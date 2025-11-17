@@ -14,6 +14,7 @@ public class RoleApplicationService implements RoleService {
 
     private final RoleRepositoryPort roleRepositoryPort;
 
+
     @Override
     public Role findByName(String name) {
         return roleRepositoryPort.findByName(name)
