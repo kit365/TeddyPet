@@ -7,19 +7,28 @@ import fpt.teddypet.domain.enums.RoleEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 
 @Slf4j
 @Component
+@Order(1) // Run first
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
     
     private final RoleRepository roleRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${data.init.admin.password:1}")
+    private String adminPassword;
+
+    @Value("${data.init.user.password:1}")
+    private String userPassword;
 
     @Override
     public void run(String... args) {
@@ -62,28 +71,28 @@ public class DataInitializer implements CommandLineRunner {
         if (!userService.existsByEmail("admin@gmail.com")) {
             User adminUser = User.builder()
                     .email("admin@gmail.com")
-                    .password(passwordEncoder.encode("1"))
+                    .password(passwordEncoder.encode(adminPassword))
                     .fullName("Administrator")
                     .role(adminRole)
                     .isEnabled(true)
                     .isAccountNonLocked(true)
                     .build();
             userService.save(adminUser);
-            log.info("✅ Created admin user (email: admin, password: admin)");
+            log.info("✅ Created admin user (email: admin@gmail.com)");
         }
 
         // Create regular user if not exists
         if (!userService.existsByEmail("user@gmail.com")) {
             User regularUser = User.builder()
                     .email("user@gmail.com")
-                    .password(passwordEncoder.encode("1"))
+                    .password(passwordEncoder.encode(userPassword))
                     .fullName("Regular User")
                     .role(userRole)
                     .isEnabled(true)
                     .isAccountNonLocked(true)
                     .build();
             userService.save(regularUser);
-            log.info("✅ Created user (email: user, password: user)");
+            log.info("✅ Created user (email: user@gmail.com)");
         }
     }
 }
