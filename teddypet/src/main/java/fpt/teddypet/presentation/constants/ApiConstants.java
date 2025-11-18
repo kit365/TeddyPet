@@ -12,9 +12,9 @@ public final class ApiConstants {
     // Auth API base path
     public static final String API_AUTH = BASE_API + "/auth";
 
-    // Add more API base paths here as needed
-    // Example:
-    // public static final String API_PRODUCTS = BASE_API + "/products";
-    // public static final String API_ORDERS = BASE_API + "/orders";
+    // Product Variant API base path
+    public static final String API_PRODUCT_VARIANTS = BASE_API + "/product-variants";
+
+   
 }
 

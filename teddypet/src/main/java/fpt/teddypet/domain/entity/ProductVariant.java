@@ -1,11 +1,13 @@
 package fpt.teddypet.domain.entity;
 
 import fpt.teddypet.domain.enums.UnitEnum;
+import fpt.teddypet.domain.valueobject.Dimensions;
+import fpt.teddypet.domain.valueobject.Price;
+import fpt.teddypet.domain.valueobject.Sku;
+import fpt.teddypet.domain.valueobject.StockQuantity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "product_variants")
@@ -26,42 +28,38 @@ public class ProductVariant extends BaseEntity {
     private Product product;
 
     @Column(nullable = false, length = 100)
-    private String name; // Ví dụ: "Gói 500g", "Gói 1.5kg"
+    private String name;
 
-    @Column(name = "weight", nullable = false)
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "weight", column = @Column(name = "weight", nullable = false)),
+        @AttributeOverride(name = "length", column = @Column(name = "length")),
+        @AttributeOverride(name = "width", column = @Column(name = "width")),
+        @AttributeOverride(name = "height", column = @Column(name = "height"))
+    })
     @Builder.Default
-    private Integer weight = 0; 
+    private Dimensions dimensions = Dimensions.empty();
 
-    @Column(name = "length")
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "price", nullable = false, precision = 10, scale = 2)),
+        @AttributeOverride(name = "saleAmount", column = @Column(name = "sale_price", precision = 10, scale = 2))
+    })
+    private Price price;
+
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "sku", nullable = false, unique = true, length = 50))
+    private Sku sku;
+
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "stock_quantity", nullable = false))
     @Builder.Default
-    private Integer length = 0; // Đơn vị: cm
-
-    @Column(name = "width")
-    @Builder.Default
-    private Integer width = 0; // Đơn vị: cm
-
-    @Column(name = "height")
-    @Builder.Default
-    private Integer height = 0; // Đơn vị: cm
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Column(name = "sale_price", precision = 10, scale = 2)
-    private BigDecimal salePrice; // Giá khuyến mãi
-
-    @Column(nullable = false, unique = true, length = 50)
-    private String sku; // Ví dụ: ABC-500, ABC-1K5, ABC-3K
-
-    @Column(name = "stock_quantity", nullable = false)
-    @Builder.Default
-    private Integer stockQuantity = 0;
+    private StockQuantity stockQuantity = StockQuantity.of(0);
 
     @Enumerated(EnumType.STRING)
     @Column(name = "unit", nullable = false, length = 50)
     private UnitEnum unit;
 
-    // Ảnh đại diện cho variant (chọn từ danh sách ảnh của Product)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "featured_image_id")
     private ProductImage featuredImage;
