@@ -8,13 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "brands")
+@Table(name = "blog_tags")
 @EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class Brand extends BaseEntity {
+public class BlogTag extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,17 +23,12 @@ public class Brand extends BaseEntity {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(length = 500)
-    private String description;
+    @Column(nullable = false, unique = true, length = 255)
+    private String slug;
 
-    @Column(name = "logo_url", length = 255)
-    private String logoUrl;
-
-    @Column(name = "website_url", length = 255)
-    private String websiteUrl;
-
-    @OneToMany(mappedBy = "brand", fetch = FetchType.LAZY)
+    // Liên kết N-N với BlogPost
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<Product> products = new ArrayList<>();
+    private List<BlogPost> blogPosts = new ArrayList<>();
 }
 

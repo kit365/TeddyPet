@@ -1,5 +1,7 @@
 package fpt.teddypet.application.service;
 
+import fpt.teddypet.application.constants.auth.AuthLogMessages;
+import fpt.teddypet.application.constants.auth.AuthMessages;
 import fpt.teddypet.application.dto.request.LoginRequest;
 import fpt.teddypet.application.dto.request.RegisterRequest;
 import fpt.teddypet.application.dto.response.AuthResponse;
@@ -9,6 +11,7 @@ import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.output.JwtTokenProviderPort;
 import fpt.teddypet.domain.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthApplicationService implements AuthService {
@@ -45,32 +49,43 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        log.info(AuthLogMessages.LOG_AUTH_REGISTER_START, request.email());
+
         // Check if user already exists
         if (userService.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already exists");
+            log.warn(AuthLogMessages.LOG_AUTH_REGISTER_WARN_EMAIL_EXISTS, request.email());
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
         }
 
-        // Get default role (USER)
-        var defaultRole = roleService.getDefaultRole();
+        try {
+            // Get default role (USER)
+            var defaultRole = roleService.getDefaultRole();
 
-        // Create new user
-        User user = User.builder()
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .fullName(request.fullName())
-                .role(defaultRole)
-                .isEnabled(true)
-                .isAccountNonLocked(true)
-                .build();
+            // Create new user
+            User user = User.builder()
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .fullName(request.fullName())
+                    .role(defaultRole)
+                    .isEnabled(true)
+                    .isAccountNonLocked(true)
+                    .build();
 
-        user = userService.save(user);
+            user = userService.save(user);
+            log.info(AuthLogMessages.LOG_AUTH_REGISTER_SUCCESS, user.getId());
 
-        return generateAuthResponse(user);
+            return generateAuthResponse(user);
+        } catch (Exception e) {
+            log.error(AuthLogMessages.LOG_AUTH_REGISTER_ERROR_DB, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
+        log.info(AuthLogMessages.LOG_AUTH_LOGIN_START, request.email());
+
         try {
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
@@ -82,10 +97,12 @@ public class AuthApplicationService implements AuthService {
 
             // Get user from authentication
             User user = (User) authentication.getPrincipal();
+            log.info(AuthLogMessages.LOG_AUTH_LOGIN_SUCCESS, request.email());
 
             return generateAuthResponse(user);
         } catch (BadCredentialsException e) {
-            throw new BadCredentialsException("Invalid email or password");
+            log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_INVALID_CREDENTIALS, request.email());
+            throw new BadCredentialsException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
         }
     }
 }

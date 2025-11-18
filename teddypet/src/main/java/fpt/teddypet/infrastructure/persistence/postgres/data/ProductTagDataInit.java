@@ -1,8 +1,8 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
-import fpt.teddypet.domain.entity.Tag;
+import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.domain.enums.TagEnum;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.TagRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductTagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -13,16 +13,16 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Data initializer for Tag entity
+ * Data initializer for ProductTag entity
  * Based on TagEnum for consistency
  */
 @Slf4j
 @Component
 @Order(3)
 @RequiredArgsConstructor
-public class TagDataInit implements CommandLineRunner {
+public class ProductTagDataInit implements CommandLineRunner {
 
-    private final TagRepository tagRepository;
+    private final ProductTagRepository productTagRepository;
 
     // Mapping TagEnum to Vietnamese descriptions and colors
     private static final Map<TagEnum, TagInfo> TAG_INFO = new EnumMap<>(TagEnum.class);
@@ -41,17 +41,17 @@ public class TagDataInit implements CommandLineRunner {
 
     private void initializeTags() {
         for (TagEnum tagEnum : TagEnum.values()) {
-            if (!tagRepository.existsByName(tagEnum.name())) {
+            if (!productTagRepository.existsByName(tagEnum.name())) {
                 TagInfo info = TAG_INFO.get(tagEnum);
-                Tag tag = Tag.builder()
+                ProductTag tag = ProductTag.builder()
                         .name(tagEnum.name())
                         .description(info.description)
                         .color(info.color)
                         .build();
-                tagRepository.save(tag);
-                log.info("✅ Created Tag: {} - {}", tagEnum.name(), info.description);
+                productTagRepository.save(tag);
+                log.info("✅ Created ProductTag: {} - {}", tagEnum.name(), info.description);
             } else {
-                log.debug("Tag {} already exists, skipping", tagEnum.name());
+                log.debug("ProductTag {} already exists, skipping", tagEnum.name());
             }
         }
     }

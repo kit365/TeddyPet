@@ -72,21 +72,21 @@ public class Product extends BaseEntity {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "product_categories",
+        name = "product_product_categories",
         joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
+        inverseJoinColumns = @JoinColumn(name = "product_category_id")
     )
     @Builder.Default
-    private List<Category> categories = new ArrayList<>();
+    private List<ProductCategory> categories = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "product_tags",
+        name = "product_product_tags",
         joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
+        inverseJoinColumns = @JoinColumn(name = "product_tag_id")
     )
     @Builder.Default
-    private List<Tag> tags = new ArrayList<>();
+    private List<ProductTag> tags = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -98,8 +98,8 @@ public class Product extends BaseEntity {
     private List<AgeRange> ageRanges = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "brand_id")
-    private Brand brand;
+    @JoinColumn(name = "product_brand_id")
+    private ProductBrand brand;
 
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

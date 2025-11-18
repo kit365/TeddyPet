@@ -1,7 +1,7 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
-import fpt.teddypet.domain.entity.Brand;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.BrandRepository;
+import fpt.teddypet.domain.entity.ProductBrand;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -9,15 +9,15 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Data initializer for Brand entity
+ * Data initializer for ProductBrand entity
  */
 @Slf4j
 @Component
 @Order(4)
 @RequiredArgsConstructor
-public class BrandDataInit implements CommandLineRunner {
+public class ProductBrandDataInit implements CommandLineRunner {
 
-    private final BrandRepository brandRepository;
+    private final ProductBrandRepository productBrandRepository;
 
     @Override
     public void run(String... args) {
@@ -57,17 +57,17 @@ public class BrandDataInit implements CommandLineRunner {
     }
 
     private void createBrandIfNotExists(String name, String description, String logoUrl, String websiteUrl) {
-        if (!brandRepository.existsByName(name)) {
-            Brand brand = Brand.builder()
+        if (!productBrandRepository.existsByName(name)) {
+            ProductBrand brand = ProductBrand.builder()
                     .name(name)
                     .description(description)
                     .logoUrl(logoUrl)
                     .websiteUrl(websiteUrl)
                     .build();
-            brandRepository.save(brand);
-            log.info("✅ Created Brand: {}", name);
+            productBrandRepository.save(brand);
+            log.info("✅ Created ProductBrand: {}", name);
         } else {
-            log.debug("Brand {} already exists, skipping", name);
+            log.debug("ProductBrand {} already exists, skipping", name);
         }
     }
 }

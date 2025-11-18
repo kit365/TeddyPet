@@ -1,9 +1,11 @@
 package fpt.teddypet.application.service;
 
+import fpt.teddypet.application.constants.user.UserMessages;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.output.UserRepositoryPort;
 import fpt.teddypet.domain.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,14 @@ public class UserApplicationService implements UserService {
     @Transactional(readOnly = true)
     public Optional<User> findByEmail(String email) {
         return userRepositoryPort.findByEmail(email);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User getByEmail(String email) {
+        return userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        String.format(UserMessages.MESSAGE_USER_NOT_FOUND_BY_EMAIL, email)));
     }
 
     @Override

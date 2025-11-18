@@ -1,7 +1,7 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
-import fpt.teddypet.domain.entity.Category;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.CategoryRepository;
+import fpt.teddypet.domain.entity.ProductCategory;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(5)
 @RequiredArgsConstructor
-public class CategoryDataInit implements CommandLineRunner {
+public class ProductCategoryDataInit implements CommandLineRunner {
 
-    private final CategoryRepository categoryRepository;
+    private final ProductCategoryRepository productCategoryRepository;
 
     // Constants to avoid string duplication
     private static final String ROOT_PRODUCT = "Sản phẩm";
@@ -43,11 +43,11 @@ public class CategoryDataInit implements CommandLineRunner {
 
     private void initializeCategories() {
         // Root category: Sản phẩm
-        Category rootProduct = createCategoryIfNotExists(ROOT_PRODUCT, 
+        ProductCategory rootProduct = createCategoryIfNotExists(ROOT_PRODUCT, 
                 ALL_PRODUCTS + " " + DESC_FOR_PETS, null, null);
 
         // Thức ăn (child of Sản phẩm)
-        Category foodCategory = createCategoryIfNotExists(FOOD, 
+        ProductCategory foodCategory = createCategoryIfNotExists(FOOD, 
                 FOOD + " " + DESC_FOR_PETS, rootProduct, null);
 
         // Dành cho chó (child of Thức ăn)
@@ -59,7 +59,7 @@ public class CategoryDataInit implements CommandLineRunner {
                 FOOD + " " + DESC_FOR_CAT, foodCategory, null);
 
         // Đồ chơi (child of Sản phẩm)
-        Category toyCategory = createCategoryIfNotExists(TOY, 
+        ProductCategory toyCategory = createCategoryIfNotExists(TOY, 
                 TOY + " " + DESC_FOR_PETS, rootProduct, null);
 
         // Dành cho chó (child of Đồ chơi)
@@ -71,7 +71,7 @@ public class CategoryDataInit implements CommandLineRunner {
                 TOY + " " + DESC_FOR_CAT, toyCategory, null);
 
         // Phụ kiện (child of Sản phẩm)
-        Category accessoryCategory = createCategoryIfNotExists(ACCESSORY, 
+        ProductCategory accessoryCategory = createCategoryIfNotExists(ACCESSORY, 
                 ACCESSORY + " " + DESC_FOR_PETS, rootProduct, null);
 
         // Thẻ tên (child of Phụ kiện)
@@ -83,7 +83,7 @@ public class CategoryDataInit implements CommandLineRunner {
                 COLLAR + " " + DESC_FOR_PETS, accessoryCategory, null);
 
         // Vệ sinh (child of Sản phẩm)
-        Category hygieneCategory = createCategoryIfNotExists(HYGIENE, 
+        ProductCategory hygieneCategory = createCategoryIfNotExists(HYGIENE, 
                 HYGIENE_PRODUCTS + " " + DESC_FOR_PETS, rootProduct, null);
 
         // Dành cho chó (child of Vệ sinh)
@@ -95,21 +95,21 @@ public class CategoryDataInit implements CommandLineRunner {
                 HYGIENE_FOR_CAT, hygieneCategory, null);
     }
 
-    private Category createCategoryIfNotExists(String name, String description, Category parent, String imageUrl) {
-        if (!categoryRepository.existsByName(name)) {
-            Category category = Category.builder()
+    private ProductCategory createCategoryIfNotExists(String name, String description, ProductCategory parent, String imageUrl) {
+        if (!productCategoryRepository.existsByName(name)) {
+            ProductCategory category = ProductCategory.builder()
                     .name(name)
                     .description(description)
                     .parent(parent)
                     .imageUrl(imageUrl)
                     .build();
-            categoryRepository.save(category);
-            log.info("✅ Created Category: {} (parent: {})", name, parent != null ? parent.getName() : "ROOT");
+            productCategoryRepository.save(category);
+            log.info("✅ Created ProductCategory: {} (parent: {})", name, parent != null ? parent.getName() : "ROOT");
             return category;
         } else {
-            log.debug("Category {} already exists, skipping", name);
-            return categoryRepository.findByName(name)
-                    .orElseThrow(() -> new RuntimeException("Category " + name + " not found"));
+            log.debug("ProductCategory {} already exists, skipping", name);
+            return productCategoryRepository.findByName(name)
+                    .orElseThrow(() -> new RuntimeException("ProductCategory " + name + " not found"));
         }
     }
 }

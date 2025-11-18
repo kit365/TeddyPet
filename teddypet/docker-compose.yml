@@ -14,6 +14,9 @@ services:
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS:-http://elasticsearch:9200}
+      ELASTICSEARCH_CONNECTION_TIMEOUT: ${ELASTICSEARCH_CONNECTION_TIMEOUT:-5s}
+      ELASTICSEARCH_SOCKET_TIMEOUT: ${ELASTICSEARCH_SOCKET_TIMEOUT:-60s}
       SERVER_PORT: ${SERVER_PORT:-8080}
     networks:
       - teddypet-network
@@ -26,6 +29,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      elasticsearch:
+        condition: service_healthy
 
   postgres:
     image: postgres:15-alpine
@@ -126,6 +131,50 @@ services:
       timeout: 10s
       retries: 5
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: teddypet-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+      - "${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300"
+    networks:
+      - teddypet-network
+    volumes:
+      - teddypet-elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: teddypet-kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_FLEET_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=min_32_char_long_encryption_key_here
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    networks:
+      - teddypet-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   teddypet-network:
     driver: bridge
@@ -136,3 +185,4 @@ volumes:
   teddypet-redis-data: {}
   teddypet-zookeeper-data: {}
   teddypet-kafka-data: {}
+  teddypet-elasticsearch-data: {}
