@@ -1,5 +1,6 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
+import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.domain.entity.ProductBrand;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,7 @@ public class ProductBrandDataInit implements CommandLineRunner {
                     .name(name)
                     .description(description)
                     .logoUrl(logoUrl)
+                    .altImage(ImageAltUtil.generateAltText(name))
                     .websiteUrl(websiteUrl)
                     .build();
             productBrandRepository.save(brand);

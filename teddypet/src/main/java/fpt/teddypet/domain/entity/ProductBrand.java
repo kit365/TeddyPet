@@ -29,6 +29,9 @@ public class ProductBrand extends BaseEntity {
     @Column(name = "logo_url", length = 255)
     private String logoUrl;
 
+    @Column(name = "alt_image", length = 255)
+    private String altImage;
+
     @Column(name = "website_url", length = 255)
     private String websiteUrl;
 

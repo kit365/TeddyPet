@@ -15,6 +15,9 @@ public final class ApiConstants {
     // Product Variant API base path
     public static final String API_PRODUCT_VARIANTS = BASE_API + "/product-variants";
 
+    // Product Brand API base path
+    public static final String API_PRODUCT_BRANDS = BASE_API + "/product-brands";
+
    
 }
 
