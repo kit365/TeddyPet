@@ -29,46 +29,36 @@ public class ProductBrandApplicationService implements ProductBrandService {
     @Transactional
     public ProductBrandResponse create(ProductBrandRequest request) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_START, request.name());
-        try {
-            // Validate name uniqueness
-            validateNameUniqueness(request.name(), null);
+        // Validate name uniqueness
+        validateNameUniqueness(request.name(), null);
 
-            ProductBrand brand = ProductBrand.builder().build();
-            productBrandMapper.updateBrandFromRequest(request, brand);
-            brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
-            brand.setActive(true);
-            brand.setDeleted(false);
+        ProductBrand brand = ProductBrand.builder().build();
+        productBrandMapper.updateBrandFromRequest(request, brand);
+        brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
+        brand.setActive(true);
+        brand.setDeleted(false);
 
-            ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
-            log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
-            return productBrandMapper.toResponse(savedBrand);
-        } catch (Exception e) {
-            log.error(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_ERROR, e.getMessage(), e);
-            throw e;
-        }
+        ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
+        log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
+        return productBrandMapper.toResponse(savedBrand);
     }
 
     @Override
     @Transactional
     public ProductBrandResponse update(Long brandId, ProductBrandRequest request) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_START, request.name());
-        try {
-            ProductBrand brand = getById(brandId);
+        ProductBrand brand = getById(brandId);
 
-            // Validate name uniqueness (skip if same name)
-            if (!brand.getName().equals(request.name())) {
-                validateNameUniqueness(request.name(), brandId);
-            }
-
-            productBrandMapper.updateBrandFromRequest(request, brand);
-            brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
-            ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
-            log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
-            return productBrandMapper.toResponse(savedBrand);
-        } catch (Exception e) {
-            log.error(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_ERROR, e.getMessage(), e);
-            throw e;
+        // Validate name uniqueness (skip if same name)
+        if (!brand.getName().equals(request.name())) {
+            validateNameUniqueness(request.name(), brandId);
         }
+
+        productBrandMapper.updateBrandFromRequest(request, brand);
+        brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
+        ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
+        log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
+        return productBrandMapper.toResponse(savedBrand);
     }
 
     @Override
@@ -93,16 +83,11 @@ public class ProductBrandApplicationService implements ProductBrandService {
     @Transactional
     public void delete(Long brandId) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_START, brandId);
-        try {
-            ProductBrand brand = getById(brandId);
-            brand.setDeleted(true);
-            brand.setActive(false);
-            productBrandRepositoryPort.save(brand);
-            log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_SUCCESS, brandId);
-        } catch (Exception e) {
-            log.error(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_ERROR, e.getMessage(), e);
-            throw e;
-        }
+        ProductBrand brand = getById(brandId);
+        brand.setDeleted(true);
+        brand.setActive(false);
+        productBrandRepositoryPort.save(brand);
+        log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_SUCCESS, brandId);
     }
 
     private ProductBrand getById(Long brandId) {

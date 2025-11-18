@@ -8,5 +8,6 @@ import java.util.Optional;
 public interface ProductTagRepository extends JpaRepository<ProductTag, Long> {
     Optional<ProductTag> findByName(String name);
     boolean existsByName(String name);
+    Optional<ProductTag> findByIdAndIsDeletedFalse(Long tagId);
 }
 

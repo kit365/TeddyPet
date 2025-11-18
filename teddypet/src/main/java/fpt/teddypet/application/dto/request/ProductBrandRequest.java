@@ -4,8 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record ProductBrandRequest(
-        Long brandId,
-        
         @NotBlank(message = "Tên thương hiệu là bắt buộc")
         @Size(max = 100, message = "Tên thương hiệu không được vượt quá 100 ký tự")
         String name,
