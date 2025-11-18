@@ -1,8 +1,8 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
-import fpt.teddypet.domain.entity.AgeRange;
+import fpt.teddypet.domain.entity.ProductAgeRange;
 import fpt.teddypet.domain.enums.AgeRangeEnum;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.AgeRangeRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductAgeRangeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -17,9 +17,9 @@ import java.util.Map;
 @Component
 @Order(2)
 @RequiredArgsConstructor
-public class AgeRangeDataInit implements CommandLineRunner {
+public class ProductAgeRangeDataInit implements CommandLineRunner {
 
-    private final AgeRangeRepository ageRangeRepository;
+    private final ProductAgeRangeRepository productAgeRangeRepository;
 
     // Mapping AgeRangeEnum to Vietnamese descriptions
     private static final Map<AgeRangeEnum, String> AGE_RANGE_DESCRIPTIONS = new EnumMap<>(AgeRangeEnum.class);
@@ -39,15 +39,15 @@ public class AgeRangeDataInit implements CommandLineRunner {
 
     private void initializeAgeRanges() {
         for (AgeRangeEnum ageRangeEnum : AgeRangeEnum.values()) {
-            if (!ageRangeRepository.existsByName(ageRangeEnum.name())) {
-                AgeRange ageRange = AgeRange.builder()
+            if (!productAgeRangeRepository.existsByName(ageRangeEnum.name())) {
+                ProductAgeRange ageRange = ProductAgeRange.builder()
                         .name(ageRangeEnum.name())
                         .description(AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum))
                         .build();
-                ageRangeRepository.save(ageRange);
-                log.info("✅ Created AgeRange: {} - {}", ageRangeEnum.name(), AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum));
+                productAgeRangeRepository.save(ageRange);
+                log.info("✅ Created ProductAgeRange: {} - {}", ageRangeEnum.name(), AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum));
             } else {
-                log.debug("AgeRange {} already exists, skipping", ageRangeEnum.name());
+                log.debug("ProductAgeRange {} already exists, skipping", ageRangeEnum.name());
             }
         }
     }

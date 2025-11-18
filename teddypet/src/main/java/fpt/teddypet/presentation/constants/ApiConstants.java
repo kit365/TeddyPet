@@ -23,5 +23,8 @@ public final class ApiConstants {
 
     // Product Image API base path
     public static final String API_PRODUCT_IMAGES = BASE_API + "/product-images";
+
+    // Product Age Range API base path
+    public static final String API_PRODUCT_AGE_RANGES = BASE_API + "/product-age-ranges";
 }
 

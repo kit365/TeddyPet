@@ -95,7 +95,7 @@ public class Product extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "age_range_id")
     )
     @Builder.Default
-    private List<AgeRange> ageRanges = new ArrayList<>();
+    private List<ProductAgeRange> ageRanges = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_brand_id")

@@ -8,13 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "age_ranges")
+@Table(name = "product_age_range")
 @EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class AgeRange extends BaseEntity {
+public class ProductAgeRange extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +25,6 @@ public class AgeRange extends BaseEntity {
 
     @Column(length = 255)
     private String description; // Ví dụ: "Mọi lứa tuổi", "Chó con", "Trưởng thành"
-
 
     @ManyToMany(mappedBy = "ageRanges", fetch = FetchType.LAZY)
     @Builder.Default
