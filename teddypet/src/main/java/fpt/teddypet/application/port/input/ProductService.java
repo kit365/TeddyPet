@@ -4,5 +4,6 @@ import fpt.teddypet.domain.entity.Product;
 
 public interface ProductService {
     Product getById(Long productId);
+    Product getByIdAndIsDeletedFalse(Long productId);
 }
 

@@ -16,6 +16,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,6 +106,22 @@ public class AuthApplicationService implements AuthService {
             log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_INVALID_CREDENTIALS, request.email());
             throw new BadCredentialsException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
         }
+    }
+
+    @Override
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException(AuthMessages.MESSAGE_USER_NOT_AUTHENTICATED);
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails userDetails) {
+            String email = userDetails.getUsername();
+            return userService.getByEmail(email);
+        }
+
+        throw new IllegalStateException(AuthMessages.MESSAGE_CANNOT_DETERMINE_USER);
     }
 }
 

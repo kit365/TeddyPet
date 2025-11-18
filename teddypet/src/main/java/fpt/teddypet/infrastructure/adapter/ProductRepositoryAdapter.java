@@ -18,5 +18,10 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public Optional<Product> findByIdAndIsActiveTrueAndIsDeletedFalse(Long productId) {
         return productRepository.findByIdAndIsActiveTrueAndIsDeletedFalse(productId);
     }
+
+    @Override
+    public Optional<Product> findByIdAndIsDeletedFalse(Long productId) {
+        return productRepository.findByIdAndIsDeletedFalse(productId);
+    }
 }
 

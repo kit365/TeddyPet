@@ -17,5 +17,6 @@ public final class UserMessages {
     public static final String MESSAGE_USER_NOT_FOUND_BY_ID = "Không tìm thấy người dùng với ID: %s";
     public static final String MESSAGE_USER_ALREADY_EXISTS = "Người dùng đã tồn tại.";
     public static final String MESSAGE_USER_EMAIL_ALREADY_EXISTS = "Email này đã được sử dụng bởi người dùng khác.";
+    public static final String MESSAGE_USER_NOT_FOUND_FROM_EMAIL = "Không tìm thấy người dùng.";
 }
 

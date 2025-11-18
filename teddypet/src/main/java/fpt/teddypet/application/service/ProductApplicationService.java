@@ -22,5 +22,13 @@ public class ProductApplicationService implements ProductService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_ID, productId)));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Product getByIdAndIsDeletedFalse(Long productId) {
+        return productRepositoryPort.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_ID, productId)));
+    }
 }
 

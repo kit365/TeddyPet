@@ -15,5 +15,7 @@ public final class AuthMessages {
     public static final String MESSAGE_EMAIL_DUPLICATE = "Email này đã được sử dụng.";
     public static final String MESSAGE_EMAIL_NOT_FOUND = "Email không tồn tại.";
     public static final String MESSAGE_INVALID_CREDENTIALS = "Email hoặc mật khẩu không chính xác.";
+    public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa đăng nhập.";
+    public static final String MESSAGE_CANNOT_DETERMINE_USER = "Không thể xác định người dùng hiện tại.";
 }
 

@@ -6,5 +6,6 @@ import java.util.Optional;
 
 public interface ProductRepositoryPort {
     Optional<Product> findByIdAndIsActiveTrueAndIsDeletedFalse(Long productId);
+    Optional<Product> findByIdAndIsDeletedFalse(Long productId);
 }
 

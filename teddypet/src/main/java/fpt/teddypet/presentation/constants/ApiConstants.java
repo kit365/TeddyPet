@@ -29,5 +29,8 @@ public final class ApiConstants {
 
     // Product Category API base path
     public static final String API_PRODUCT_CATEGORIES = BASE_API + "/product-categories";
+
+    // Rating API base path
+    public static final String API_RATINGS = BASE_API + "/ratings";
 }
 

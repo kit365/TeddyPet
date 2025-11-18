@@ -8,8 +8,8 @@ import fpt.teddypet.application.dto.request.ProductImageSaveRequest;
 import fpt.teddypet.application.dto.response.ProductImageResponse;
 import fpt.teddypet.application.mapper.ProductImageMapper;
 import fpt.teddypet.application.port.input.ProductImageService;
+import fpt.teddypet.application.port.input.ProductService;
 import fpt.teddypet.application.port.output.ProductImageRepositoryPort;
-import fpt.teddypet.application.port.output.ProductRepositoryPort;
 import fpt.teddypet.application.util.DisplayOrderUtil;
 import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.domain.entity.Product;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class ProductImageApplicationService implements ProductImageService {
 
     private final ProductImageRepositoryPort productImageRepositoryPort;
-    private final ProductRepositoryPort productRepositoryPort;
+    private final ProductService productService;
     private final ProductImageMapper productImageMapper;
 
     @Override
@@ -191,9 +191,7 @@ public class ProductImageApplicationService implements ProductImageService {
     }
 
     private Product getProductById(Long productId) {
-        return productRepositoryPort.findByIdAndIsActiveTrueAndIsDeletedFalse(productId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductImageMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_ID, productId)));
+        return productService.getById(productId);
     }
 
     private void setAltTextIfEmpty(ProductImage image, Product product, String altText) {
