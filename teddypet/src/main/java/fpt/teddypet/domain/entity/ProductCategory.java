@@ -29,7 +29,9 @@ public class ProductCategory extends BaseEntity {
     @Column(name = "image_url", length = 255)
     private String imageUrl;
 
- 
+    @Column(name = "alt_image", length = 255)
+    private String altImage;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private ProductCategory parent;

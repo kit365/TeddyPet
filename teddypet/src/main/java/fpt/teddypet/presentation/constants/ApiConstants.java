@@ -26,5 +26,8 @@ public final class ApiConstants {
 
     // Product Age Range API base path
     public static final String API_PRODUCT_AGE_RANGES = BASE_API + "/product-age-ranges";
+
+    // Product Category API base path
+    public static final String API_PRODUCT_CATEGORIES = BASE_API + "/product-categories";
 }
 

@@ -9,7 +9,10 @@ import java.util.Optional;
 public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Long> {
     Optional<ProductCategory> findByName(String name);
     boolean existsByName(String name);
-    List<ProductCategory> findByParentIsNull(); // Root categories
-    List<ProductCategory> findByParentId(Long parentId); // Child categories
+    Optional<ProductCategory> findByIdAndIsDeletedFalse(Long categoryId);
+    List<ProductCategory> findByParentIsNullAndIsDeletedFalse(); // Root categories
+    List<ProductCategory> findByParentIdAndIsDeletedFalse(Long parentId); // Child categories
+    List<ProductCategory> findByParentIsNull(); // Root categories (for backward compatibility)
+    List<ProductCategory> findByParentId(Long parentId); // Child categories (for backward compatibility)
 }
 
