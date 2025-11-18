@@ -1,0 +1,219 @@
+package fpt.teddypet.application.service;
+
+import fpt.teddypet.application.constants.productimage.ProductImageLogMessages;
+import fpt.teddypet.application.constants.productimage.ProductImageMessages;
+import fpt.teddypet.application.dto.request.ProductImageItemRequest;
+import fpt.teddypet.application.dto.request.ProductImageRequest;
+import fpt.teddypet.application.dto.request.ProductImageSaveRequest;
+import fpt.teddypet.application.dto.response.ProductImageResponse;
+import fpt.teddypet.application.mapper.ProductImageMapper;
+import fpt.teddypet.application.port.input.ProductImageService;
+import fpt.teddypet.application.port.output.ProductImageRepositoryPort;
+import fpt.teddypet.application.port.output.ProductRepositoryPort;
+import fpt.teddypet.application.util.DisplayOrderUtil;
+import fpt.teddypet.application.util.ImageAltUtil;
+import fpt.teddypet.domain.entity.Product;
+import fpt.teddypet.domain.entity.ProductImage;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ProductImageApplicationService implements ProductImageService {
+
+    private final ProductImageRepositoryPort productImageRepositoryPort;
+    private final ProductRepositoryPort productRepositoryPort;
+    private final ProductImageMapper productImageMapper;
+
+    @Override
+    @Transactional
+    public ProductImageResponse create(ProductImageRequest request) {
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_START, request.imageUrl());
+        Product product = getProductById(request.productId());
+
+        ProductImage image = ProductImage.builder().build();
+        productImageMapper.updateImageFromRequest(request, image);
+        image.setProduct(product);
+        setAltTextIfEmpty(image, product, request.altText());
+        setDisplayOrderIfNull(image, request.productId(), request.displayOrder());
+        image.setActive(true);
+        image.setDeleted(false);
+
+        ProductImage savedImage = productImageRepositoryPort.save(image);
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_SUCCESS, savedImage.getId());
+        return productImageMapper.toResponse(savedImage);
+    }
+
+    @Override
+    @Transactional
+    public ProductImageResponse update(Long imageId, ProductImageRequest request) {
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_START, request.imageUrl());
+        ProductImage image = getById(imageId);
+        Product product = getProductById(request.productId());
+
+        productImageMapper.updateImageFromRequest(request, image);
+        image.setProduct(product);
+        setAltTextIfEmpty(image, product, request.altText());
+
+        ProductImage savedImage = productImageRepositoryPort.save(image);
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_SUCCESS, savedImage.getId());
+        return productImageMapper.toResponse(savedImage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductImageResponse getByIdResponse(Long imageId) {
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_GET_BY_ID, imageId);
+        ProductImage image = getById(imageId);
+        return productImageMapper.toResponse(image);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductImageResponse> getByProductId(Long productId) {
+        List<ProductImage> images = productImageRepositoryPort.findByProductId(productId);
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_GET_BY_PRODUCT_ID, images.size(), productId);
+        return images.stream()
+                .map(productImageMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<ProductImageResponse> saveImages(ProductImageSaveRequest request) {
+        Long productId = request.productId();
+        List<ProductImageItemRequest> newImages = request.images() != null ? request.images() : List.of();
+        
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_START, productId);
+        
+        Product product = getProductById(productId);
+        
+        // Lấy danh sách images hiện tại của product (chưa bị xóa)
+        List<ProductImage> existingImages = productImageRepositoryPort.findByProductId(productId);
+        
+        // Lấy danh sách imageId từ request mới
+        Set<Long> newImageIds = newImages.stream()
+                .map(ProductImageItemRequest::imageId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        // Xóa các images có trong DB nhưng không có trong request mới (sử dụng bulk update)
+        Set<Long> imageIdsToDelete = existingImages.stream()
+                .map(ProductImage::getId)
+                .filter(imageId -> !newImageIds.contains(imageId))
+                .collect(Collectors.toSet());
+        
+        if (!imageIdsToDelete.isEmpty()) {
+            productImageRepositoryPort.softDeleteByIds(imageIdsToDelete);
+            log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_DELETE, imageIdsToDelete.size());
+        }
+        
+        // Nếu không có images mới, trả về danh sách rỗng
+        if (newImages.isEmpty()) {
+            log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, 0, productId);
+            return List.of();
+        }
+        
+        // Tính max displayOrder từ danh sách images còn lại sau khi xóa
+        List<ProductImage> remainingImages = existingImages.stream()
+                .filter(img -> !imageIdsToDelete.contains(img.getId()))
+                .toList();
+        int nextDisplayOrderValue = DisplayOrderUtil.getNextDisplayOrder(remainingImages, ProductImage::getDisplayOrder);
+        
+        // Tạo hoặc cập nhật các images
+        final int[] nextDisplayOrder = {nextDisplayOrderValue};
+        List<ProductImage> imagesToSave = newImages.stream()
+                .map(itemRequest -> {
+                    ProductImage image;
+                    boolean isNewImage = itemRequest.imageId() == null;
+                    if (!isNewImage) {
+                        // Update existing image - tìm trong existingImages trước
+                        image = existingImages.stream()
+                                .filter(img -> img.getId().equals(itemRequest.imageId()))
+                                .findFirst()
+                                .orElse(ProductImage.builder().build());
+                    } else {
+                        // Create new image
+                        image = ProductImage.builder().build();
+                    }
+                    
+                    // Map fields from request
+                    image.setProduct(product);
+                    image.setImageUrl(itemRequest.imageUrl());
+                    if (itemRequest.displayOrder() == null) {
+                        if (isNewImage) {
+                            // Tăng dần displayOrder cho mỗi image mới
+                            image.setDisplayOrder(nextDisplayOrder[0]++);
+                        } else {
+                            // Giữ nguyên displayOrder của image cũ nếu không chỉ định
+                            // (không cần làm gì vì image đã có displayOrder từ DB)
+                        }
+                    } else {
+                        image.setDisplayOrder(itemRequest.displayOrder());
+                    }
+                    setAltTextIfEmpty(image, product, itemRequest.altText());
+                    image.setActive(true);
+                    image.setDeleted(false);
+                    
+                    return image;
+                })
+                .toList();
+        
+        List<ProductImage> savedImages = productImageRepositoryPort.saveAll(imagesToSave);
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, savedImages.size(), productId);
+        return savedImages.stream()
+                .map(productImageMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long imageId) {
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_DELETE_START, imageId);
+        ProductImage image = getById(imageId);
+        productImageRepositoryPort.delete(image);
+        log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_DELETE_SUCCESS, imageId);
+    }
+
+    private ProductImage getById(Long imageId) {
+        return productImageRepositoryPort.findById(imageId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductImageMessages.MESSAGE_PRODUCT_IMAGE_NOT_FOUND_BY_ID, imageId)));
+    }
+
+    private Product getProductById(Long productId) {
+        return productRepositoryPort.findByIdAndIsActiveTrueAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductImageMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_ID, productId)));
+    }
+
+    private void setAltTextIfEmpty(ProductImage image, Product product, String altText) {
+        if (altText == null || altText.trim().isEmpty()) {
+            image.setAltText(ImageAltUtil.generateAltText(product.getName(), " Image"));
+        } else {
+            image.setAltText(altText);
+        }
+    }
+
+
+    private void setDisplayOrderIfNull(ProductImage image, Long productId, Integer displayOrder) {
+        if (displayOrder == null) {
+            // Lấy max displayOrder hiện tại và +1 để đẩy lên cuối danh sách
+            List<ProductImage> existingImages = productImageRepositoryPort.findByProductId(productId);
+            int nextDisplayOrder = DisplayOrderUtil.getNextDisplayOrder(existingImages, ProductImage::getDisplayOrder);
+            image.setDisplayOrder(nextDisplayOrder);
+        } else {
+            image.setDisplayOrder(displayOrder);
+        }
+    }
+}
+

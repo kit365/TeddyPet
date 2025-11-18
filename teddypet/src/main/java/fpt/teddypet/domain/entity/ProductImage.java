@@ -24,7 +24,7 @@ public class ProductImage extends BaseEntity {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
-    @Column(name = "alt_text", length = 255)
+    @Column(name = "alt_text")
     private String altText; // Văn bản thay thế cho SEO
 
     @Column(name = "display_order", nullable = false)

@@ -20,5 +20,8 @@ public final class ApiConstants {
 
     // Product Tag API base path
     public static final String API_PRODUCT_TAGS = BASE_API + "/product-tags";
+
+    // Product Image API base path
+    public static final String API_PRODUCT_IMAGES = BASE_API + "/product-images";
 }
 
