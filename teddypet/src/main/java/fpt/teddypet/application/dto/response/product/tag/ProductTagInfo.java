@@ -1,0 +1,9 @@
+package fpt.teddypet.application.dto.response.product.tag;
+
+public record ProductTagInfo(
+        Long id,
+        String name,
+        String color
+) {
+}
+

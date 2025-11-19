@@ -26,6 +26,12 @@ public class ProductAgeRangeRepositoryAdapter implements ProductAgeRangeReposito
     }
 
     @Override
+    public Optional<ProductAgeRange> findByName(String name) {
+        return productAgeRangeRepository.findByName(name)
+                .filter(ageRange -> !ageRange.isDeleted());
+    }
+
+    @Override
     public List<ProductAgeRange> findAll() {
         return productAgeRangeRepository.findAll().stream()
                 .filter(ageRange -> !ageRange.isDeleted())

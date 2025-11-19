@@ -62,7 +62,6 @@ public class ProductBrandApplicationService implements ProductBrandService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ProductBrandResponse getByIdResponse(Long brandId) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_GET_BY_ID, brandId);
         ProductBrand brand = getById(brandId);
@@ -70,7 +69,13 @@ public class ProductBrandApplicationService implements ProductBrandService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public ProductBrand getById(Long brandId) {
+        return productBrandRepositoryPort.findById(brandId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
+    }
+
+    @Override
     public List<ProductBrandResponse> getAll() {
         List<ProductBrand> brands = productBrandRepositoryPort.findAll();
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_GET_ALL, brands.size());
@@ -90,11 +95,6 @@ public class ProductBrandApplicationService implements ProductBrandService {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_SUCCESS, brandId);
     }
 
-    private ProductBrand getById(Long brandId) {
-        return productBrandRepositoryPort.findById(brandId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
-    }
 
     private void validateNameUniqueness(String name, Long brandId) {
         boolean nameExists = brandId != null

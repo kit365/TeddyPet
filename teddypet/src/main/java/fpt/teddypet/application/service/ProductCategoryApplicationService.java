@@ -61,7 +61,6 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ProductCategoryResponse getByIdResponse(Long categoryId) {
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_BY_ID, categoryId);
         ProductCategory category = getById(categoryId);
@@ -69,7 +68,13 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public ProductCategory getById(Long categoryId) {
+        return productCategoryRepositoryPort.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_NOT_FOUND_BY_ID, categoryId)));
+    }
+
+    @Override
     public List<ProductCategoryResponse> getAll() {
         List<ProductCategory> categories = productCategoryRepositoryPort.findAll();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_ALL, categories.size());
@@ -79,7 +84,6 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getRootCategories() {
         List<ProductCategory> rootCategories = productCategoryRepositoryPort.findRootCategories();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_ROOT_CATEGORIES, rootCategories.size());
@@ -89,7 +93,6 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getChildCategories(Long parentId) {
         List<ProductCategory> childCategories = productCategoryRepositoryPort.findChildCategories(parentId);
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_CHILD_CATEGORIES, parentId, childCategories.size());
@@ -99,7 +102,11 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public List<Long> findAllDescendantIds(List<Long> categoryIds) {
+        return productCategoryRepositoryPort.findAllDescendantIds(categoryIds);
+    }
+
+    @Override
     public List<ProductCategoryNestedResponse> getNestedCategories() {
         List<ProductCategory> rootCategories = productCategoryRepositoryPort.findRootCategories();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_NESTED_CATEGORIES, rootCategories.size());
@@ -120,11 +127,6 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_DELETE_SUCCESS, categoryId);
     }
 
-    private ProductCategory getById(Long categoryId) {
-        return productCategoryRepositoryPort.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_NOT_FOUND_BY_ID, categoryId)));
-    }
 
     private ProductCategory getCategoryById(Long categoryId) {
         return productCategoryRepositoryPort.findByIdAndIsDeletedFalse(categoryId)
@@ -133,7 +135,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     private void validateNoCircularReference(Long categoryId, ProductCategory parent) {
-        if (categoryId != null && parent.getId().equals(categoryId)) {
+        if (categoryId != null && categoryId.equals(parent.getId())) {
             log.warn(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_CIRCULAR_REFERENCE, categoryId);
             throw new IllegalArgumentException(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
         }
@@ -141,7 +143,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         // Check if parent is a descendant of this category
         ProductCategory current = parent;
         while (current.getParent() != null) {
-            if (categoryId != null && current.getParent().getId().equals(categoryId)) {
+            if (categoryId != null && categoryId.equals(current.getParent().getId())) {
                 log.warn(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_CIRCULAR_REFERENCE, categoryId);
                 throw new IllegalArgumentException(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
             }

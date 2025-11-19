@@ -59,7 +59,6 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ProductAgeRangeResponse getByIdResponse(Long ageRangeId) {
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_GET_BY_ID, ageRangeId);
         ProductAgeRange ageRange = getById(ageRangeId);
@@ -67,7 +66,19 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public ProductAgeRange getById(Long ageRangeId) {
+        return productAgeRangeRepositoryPort.findById(ageRangeId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_NOT_FOUND_BY_ID, ageRangeId)));
+    }
+
+    @Override
+    public ProductAgeRange findByName(String name) {
+        return productAgeRangeRepositoryPort.findByName(name)
+                .orElse(null);
+    }
+
+    @Override
     public List<ProductAgeRangeResponse> getAll() {
         List<ProductAgeRange> ageRanges = productAgeRangeRepositoryPort.findAll();
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_GET_ALL, ageRanges.size());
@@ -87,11 +98,6 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_DELETE_SUCCESS, ageRangeId);
     }
 
-    private ProductAgeRange getById(Long ageRangeId) {
-        return productAgeRangeRepositoryPort.findById(ageRangeId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_NOT_FOUND_BY_ID, ageRangeId)));
-    }
 
     private void validateNameUniqueness(String name, Long ageRangeId) {
         boolean nameExists = ageRangeId != null

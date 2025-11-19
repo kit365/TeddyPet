@@ -32,5 +32,8 @@ public final class ApiConstants {
 
     // Rating API base path
     public static final String API_RATINGS = BASE_API + "/ratings";
+
+    // Product API base path
+    public static final String API_PRODUCTS = BASE_API + "/products";
 }
 

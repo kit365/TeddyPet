@@ -59,7 +59,6 @@ public class ProductTagApplicationService implements ProductTagService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ProductTagResponse getByIdResponse(Long tagId) {
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_GET_BY_ID, tagId);
         ProductTag tag = getById(tagId);
@@ -67,7 +66,13 @@ public class ProductTagApplicationService implements ProductTagService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public ProductTag getById(Long tagId) {
+        return productTagRepositoryPort.findById(tagId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductTagMessages.MESSAGE_PRODUCT_TAG_NOT_FOUND_BY_ID, tagId)));
+    }
+
+    @Override
     public List<ProductTagResponse> getAll() {
         List<ProductTag> tags = productTagRepositoryPort.findAll();
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_GET_ALL, tags.size());
@@ -87,11 +92,6 @@ public class ProductTagApplicationService implements ProductTagService {
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_DELETE_SUCCESS, tagId);
     }
 
-    private ProductTag getById(Long tagId) {
-        return productTagRepositoryPort.findById(tagId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductTagMessages.MESSAGE_PRODUCT_TAG_NOT_FOUND_BY_ID, tagId)));
-    }
 
     private void validateNameUniqueness(String name, Long tagId) {
         boolean nameExists = tagId != null

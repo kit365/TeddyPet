@@ -8,6 +8,7 @@ import java.util.Optional;
 public interface ProductAgeRangeRepositoryPort {
     ProductAgeRange save(ProductAgeRange productAgeRange);
     Optional<ProductAgeRange> findById(Long ageRangeId);
+    Optional<ProductAgeRange> findByName(String name);
     List<ProductAgeRange> findAll();
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Long ageRangeId);

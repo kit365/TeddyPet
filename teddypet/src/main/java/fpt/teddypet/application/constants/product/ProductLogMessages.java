@@ -6,27 +6,26 @@ public final class ProductLogMessages {
         // Utility class - prevent instantiation
     }
 
-    // Find product log messages
-    public static final String LOG_PRODUCT_FIND_BY_ID_START = "[ProductService] Bắt đầu tìm kiếm product theo ID: {}";
-    public static final String LOG_PRODUCT_FIND_BY_ID_SUCCESS = "[ProductService] Tìm thấy product với ID: {}";
-    public static final String LOG_PRODUCT_FIND_BY_ID_NOT_FOUND = "[ProductService] Không tìm thấy product với ID: {}";
-    public static final String LOG_PRODUCT_FIND_BY_SLUG_START = "[ProductService] Bắt đầu tìm kiếm product theo slug: {}";
-    public static final String LOG_PRODUCT_FIND_BY_SLUG_SUCCESS = "[ProductService] Tìm thấy product với slug: {}";
-    public static final String LOG_PRODUCT_FIND_BY_SLUG_NOT_FOUND = "[ProductService] Không tìm thấy product với slug: {}";
+    // Create/Update operations
+    public static final String LOG_PRODUCT_UPSERT_START = "Bắt đầu tạo/cập nhật sản phẩm: {}";
+    public static final String LOG_PRODUCT_UPSERT_SUCCESS = "Tạo/cập nhật sản phẩm thành công với ID: {}";
+    public static final String LOG_PRODUCT_UPSERT_ERROR = "Lỗi khi tạo/cập nhật sản phẩm: {}";
 
-    // Save product log messages
-    public static final String LOG_PRODUCT_SAVE_START = "[ProductService] Bắt đầu lưu product: {}";
-    public static final String LOG_PRODUCT_SAVE_SUCCESS = "[ProductService] Lưu product thành công, ID: {}";
-    public static final String LOG_PRODUCT_SAVE_ERROR = "[ProductService] Lỗi khi lưu product: {}";
+    // Get operations
+    public static final String LOG_PRODUCT_GET_BY_ID = "Lấy sản phẩm theo ID: {}";
+    public static final String LOG_PRODUCT_GET_BY_SLUG = "Lấy sản phẩm theo slug: {}";
+    public static final String LOG_PRODUCT_GET_ALL = "Lấy tất cả sản phẩm, tổng số: {}";
 
-    // Update product log messages
-    public static final String LOG_PRODUCT_UPDATE_START = "[ProductService] Bắt đầu cập nhật product, ID: {}";
-    public static final String LOG_PRODUCT_UPDATE_SUCCESS = "[ProductService] Cập nhật product thành công, ID: {}";
-    public static final String LOG_PRODUCT_UPDATE_ERROR = "[ProductService] Lỗi khi cập nhật product, ID: {}";
+    // Delete operations
+    public static final String LOG_PRODUCT_DELETE_START = "Bắt đầu xóa sản phẩm với ID: {}";
+    public static final String LOG_PRODUCT_DELETE_SUCCESS = "Xóa sản phẩm thành công với ID: {}";
+    public static final String LOG_PRODUCT_DELETE_ERROR = "Lỗi khi xóa sản phẩm với ID: {}";
 
-    // Delete product log messages
-    public static final String LOG_PRODUCT_DELETE_START = "[ProductService] Bắt đầu xóa product, ID: {}";
-    public static final String LOG_PRODUCT_DELETE_SUCCESS = "[ProductService] Xóa product thành công, ID: {}";
-    public static final String LOG_PRODUCT_DELETE_ERROR = "[ProductService] Lỗi khi xóa product, ID: {}";
+    // Validation
+    public static final String LOG_PRODUCT_SLUG_ALREADY_EXISTS = "Slug đã tồn tại: {}";
+    public static final String LOG_PRODUCT_BARCODE_ALREADY_EXISTS = "Mã vạch đã tồn tại: {}";
+    public static final String LOG_PRODUCT_BRAND_NOT_FOUND = "Không tìm thấy thương hiệu với ID: {}";
+    public static final String LOG_PRODUCT_CATEGORY_NOT_FOUND = "Không tìm thấy danh mục với ID: {}";
+    public static final String LOG_PRODUCT_TAG_NOT_FOUND = "Không tìm thấy tag với ID: {}";
+    public static final String LOG_PRODUCT_AGE_RANGE_NOT_FOUND = "Không tìm thấy độ tuổi với ID: {}";
 }
-
