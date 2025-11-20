@@ -1,7 +1,8 @@
 package fpt.teddypet.application.port.input;
 
 import fpt.teddypet.application.dto.request.ProductAgeRangeRequest;
-import fpt.teddypet.application.dto.response.ProductAgeRangeResponse;
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 
 import java.util.List;
@@ -13,6 +14,10 @@ public interface ProductAgeRangeService {
     ProductAgeRange getById(Long ageRangeId);
     ProductAgeRange findByName(String name);
     List<ProductAgeRangeResponse> getAll();
+    ProductAgeRangeInfo toInfo(ProductAgeRange ageRange);
+    List<ProductAgeRangeInfo> toInfos(List<ProductAgeRange> ageRanges);
+    List<ProductAgeRangeInfo> toInfos(List<ProductAgeRange> ageRanges, boolean isDeleted);
+    List<ProductAgeRangeInfo> toInfos(List<ProductAgeRange> ageRanges, boolean isDeleted, boolean isActive);
     void delete(Long ageRangeId);
 }
 

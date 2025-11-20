@@ -4,6 +4,7 @@ import fpt.teddypet.domain.enums.UnitEnum;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProductVariantRequest(
 
@@ -11,10 +12,6 @@ public record ProductVariantRequest(
         
         @NotNull(message = "ID sản phẩm là bắt buộc")
         Long productId,
-        
-        @NotBlank(message = "Tên là bắt buộc")
-        @Size(max = 100, message = "Tên không được vượt quá 100 ký tự")
-        String name,
         
         @Min(value = 0, message = "Trọng lượng phải >= 0")
         Integer weight,
@@ -46,7 +43,9 @@ public record ProductVariantRequest(
         @NotNull(message = "Đơn vị là bắt buộc")
         UnitEnum unit,
         
-        Long featuredImageId
+        Long featuredImageId,
+        
+        List<Long> attributeValueIds
 ) {
 }
 

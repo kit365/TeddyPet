@@ -9,6 +9,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "product_variants")
 @EqualsAndHashCode(callSuper = true)
@@ -63,5 +66,14 @@ public class ProductVariant extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "featured_image_id")
     private ProductImage featuredImage;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "product_variant_attribute_values",
+        joinColumns = @JoinColumn(name = "variant_id"),
+        inverseJoinColumns = @JoinColumn(name = "value_id")
+    )
+    @Builder.Default
+    private List<ProductAttributeValue> attributeValues = new ArrayList<>();
 }
 

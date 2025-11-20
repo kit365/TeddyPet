@@ -1,7 +1,7 @@
 package fpt.teddypet.application.port.input;
 
 import fpt.teddypet.application.dto.request.RatingRequest;
-import fpt.teddypet.application.dto.response.RatingResponse;
+import fpt.teddypet.application.dto.response.product.rating.RatingResponse;
 
 import java.util.List;
 

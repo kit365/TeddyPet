@@ -1,6 +1,6 @@
 package fpt.teddypet.presentation.exception;
 
-import fpt.teddypet.application.dto.response.ApiResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;

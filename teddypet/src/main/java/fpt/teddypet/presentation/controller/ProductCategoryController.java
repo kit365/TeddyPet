@@ -2,9 +2,9 @@ package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
 import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
-import fpt.teddypet.application.dto.response.ApiResponse;
-import fpt.teddypet.application.dto.response.ProductCategoryResponse;
-import fpt.teddypet.application.dto.response.ProductCategoryNestedResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
 import fpt.teddypet.application.port.input.ProductCategoryService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;

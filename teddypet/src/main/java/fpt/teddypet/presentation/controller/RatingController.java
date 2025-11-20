@@ -2,8 +2,8 @@ package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.rating.RatingMessages;
 import fpt.teddypet.application.dto.request.RatingRequest;
-import fpt.teddypet.application.dto.response.ApiResponse;
-import fpt.teddypet.application.dto.response.RatingResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.product.rating.RatingResponse;
 import fpt.teddypet.application.port.input.RatingService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;

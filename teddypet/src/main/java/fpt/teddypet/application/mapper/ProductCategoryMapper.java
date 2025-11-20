@@ -1,11 +1,11 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
-import fpt.teddypet.application.dto.response.ProductCategoryResponse;
-import fpt.teddypet.application.dto.response.ProductCategoryNestedResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.domain.entity.ProductCategory;
 import org.mapstruct.*;
-
 import java.util.List;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -27,10 +27,16 @@ public interface ProductCategoryMapper {
     @Mapping(target = "parentId", source = "parent.id")
     ProductCategoryResponse toResponse(ProductCategory category);
 
-    @Mapping(target = "categoryId", source = "id")
     @Mapping(target = "parentId", source = "parent.id")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
+    ProductCategoryInfo toInfo(ProductCategory category);
+
+    List<ProductCategoryInfo> toInfoList(List<ProductCategory> categories);
     @Mapping(target = "children", ignore = true)
     ProductCategoryNestedResponse toNestedResponse(ProductCategory category);
+
+
 
     List<ProductCategoryNestedResponse> toNestedResponseList(List<ProductCategory> categories);
 }

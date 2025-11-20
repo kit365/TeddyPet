@@ -2,8 +2,8 @@ package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productagerange.ProductAgeRangeMessages;
 import fpt.teddypet.application.dto.request.ProductAgeRangeRequest;
-import fpt.teddypet.application.dto.response.ApiResponse;
-import fpt.teddypet.application.dto.response.ProductAgeRangeResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.port.input.ProductAgeRangeService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;

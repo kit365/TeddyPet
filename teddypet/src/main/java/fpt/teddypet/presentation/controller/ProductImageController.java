@@ -2,8 +2,8 @@ package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productimage.ProductImageMessages;
 import fpt.teddypet.application.dto.request.ProductImageSaveRequest;
-import fpt.teddypet.application.dto.response.ApiResponse;
-import fpt.teddypet.application.dto.response.ProductImageResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.product.image.ProductImageResponse;
 import fpt.teddypet.application.port.input.ProductImageService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;

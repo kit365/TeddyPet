@@ -3,9 +3,10 @@ package fpt.teddypet.presentation.controller;
 import fpt.teddypet.application.constants.product.ProductMessages;
 import fpt.teddypet.application.dto.request.product.ProductRequest;
 import fpt.teddypet.application.dto.request.product.ProductSearchRequest;
-import fpt.teddypet.application.dto.response.ApiResponse;
-import fpt.teddypet.application.dto.response.PageResponse;
-import fpt.teddypet.application.dto.response.product.ProductResponse;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.common.PageResponse;
+import fpt.teddypet.application.dto.response.product.product.ProductResponse;
+import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
 import fpt.teddypet.application.port.input.ProductService;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
@@ -51,12 +52,7 @@ public class ProductController {
                 .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_UPDATED_SUCCESS, response));
     }
 
-    @GetMapping("/{productId}")
-    @Operation(summary = "Lấy sản phẩm theo ID", description = "Lấy thông tin sản phẩm theo ID")
-    public ResponseEntity<ApiResponse<ProductResponse>> getById(@PathVariable Long productId) {
-        ProductResponse response = productService.getByIdResponse(productId);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
+
 
     @GetMapping("/slug/{slug}")
     @Operation(summary = "Lấy sản phẩm theo slug", description = "Lấy thông tin sản phẩm theo slug")
@@ -65,17 +61,16 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{productId}")
+    @Operation(summary = "Lấy chi tiết sản phẩm theo ID", description = "Lấy thông tin chi tiết sản phẩm theo ID")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getDetail(@PathVariable Long productId) {
+        ProductDetailResponse response = productService.getDetail(productId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping
     @Operation(summary = "Lấy danh sách sản phẩm có phân trang", 
-            description = "Lấy danh sách sản phẩm với phân trang, tìm kiếm và bộ lọc. " +
-                    "Query params: page (default: 0), size (default: 20), keyword (optional), " +
-                    "sortKey (id|createdAt|updatedAt|minPrice|soldCount, default: id), " +
-                    "sortDirection (ASC|DESC, default: DESC), " +
-                    "categoryIds (comma-separated - automatically includes children), brandId, " +
-                    "petTypes (comma-separated: DOG,CAT,OTHER), ageRangeIds (comma-separated - skip if 'ALL' selected), " +
-                    "status (IN_STOCK|OUT_OF_STOCK|DISCONTINUED), stockStatus (OUT_OF_STOCK|LOW_STOCK), stockThreshold, " +
-                    "includeDeletedVariants (boolean), createdAtFrom, createdAtTo (yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss), " +
-                    "missingFeaturedImage (boolean), missingDescription (boolean)")
+            description = "Lấy danh sách sản phẩm với phân trang, tìm kiếm và bộ lọc. ")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllPaged(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,

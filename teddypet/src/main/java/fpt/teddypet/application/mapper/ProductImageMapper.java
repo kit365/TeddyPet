@@ -1,9 +1,12 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.ProductImageRequest;
-import fpt.teddypet.application.dto.response.ProductImageResponse;
+import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
+import fpt.teddypet.application.dto.response.product.image.ProductImageResponse;
 import fpt.teddypet.domain.entity.ProductImage;
 import org.mapstruct.*;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface ProductImageMapper {
@@ -20,6 +23,13 @@ public interface ProductImageMapper {
 
     @Mapping(target = "imageId", source = "id")
     @Mapping(target = "productId", source = "product.id")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
     ProductImageResponse toResponse(ProductImage image);
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
+    ProductImageInfo toInfo(ProductImage image);
+    
+    List<ProductImageInfo> toInfoList(List<ProductImage> images);
 }
 

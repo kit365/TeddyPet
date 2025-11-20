@@ -1,7 +1,7 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.RatingRequest;
-import fpt.teddypet.application.dto.response.RatingResponse;
+import fpt.teddypet.application.dto.response.product.rating.RatingResponse;
 import fpt.teddypet.domain.entity.Rating;
 import org.mapstruct.*;
 

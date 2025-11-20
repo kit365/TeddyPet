@@ -1,9 +1,12 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.ProductTagRequest;
-import fpt.teddypet.application.dto.response.ProductTagResponse;
+import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
+import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.domain.entity.ProductTag;
 import org.mapstruct.*;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface ProductTagMapper {
@@ -20,5 +23,11 @@ public interface ProductTagMapper {
 
     @Mapping(target = "tagId", source = "id")
     ProductTagResponse toResponse(ProductTag tag);
+
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
+    ProductTagInfo toInfo(ProductTag tag);
+
+    List<ProductTagInfo> toInfoList(List<ProductTag> tags);
 }
 

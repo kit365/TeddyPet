@@ -1,7 +1,8 @@
 package fpt.teddypet.application.port.input;
 
 import fpt.teddypet.application.dto.request.ProductBrandRequest;
-import fpt.teddypet.application.dto.response.ProductBrandResponse;
+import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
+import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.domain.entity.ProductBrand;
 
 import java.util.List;
@@ -13,5 +14,10 @@ public interface ProductBrandService {
     ProductBrand getById(Long brandId);
     List<ProductBrandResponse> getAll();
     void delete(Long brandId);
+
+    ProductBrandInfo toInfo(ProductBrand brand);
+    ProductBrandInfo toInfo(ProductBrand brand, boolean isDeleted);
+    ProductBrandInfo toInfo(ProductBrand brand, boolean isDeleted, boolean isActive);
+
 }
 

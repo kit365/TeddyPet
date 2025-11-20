@@ -1,9 +1,12 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.ProductAgeRangeRequest;
-import fpt.teddypet.application.dto.response.ProductAgeRangeResponse;
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import org.mapstruct.*;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface ProductAgeRangeMapper {
@@ -20,5 +23,12 @@ public interface ProductAgeRangeMapper {
 
     @Mapping(target = "ageRangeId", source = "id")
     ProductAgeRangeResponse toResponse(ProductAgeRange ageRange);
+
+
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
+    ProductAgeRangeInfo toInfo(ProductAgeRange ageRange);
+
+    List<ProductAgeRangeInfo> toInfoList(List<ProductAgeRange> ageRanges);
 }
 

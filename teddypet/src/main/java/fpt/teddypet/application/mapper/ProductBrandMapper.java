@@ -1,7 +1,8 @@
 package fpt.teddypet.application.mapper;
 
 import fpt.teddypet.application.dto.request.ProductBrandRequest;
-import fpt.teddypet.application.dto.response.ProductBrandResponse;
+import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
+import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.domain.entity.ProductBrand;
 import org.mapstruct.*;
 
@@ -20,5 +21,10 @@ public interface ProductBrandMapper {
 
     @Mapping(target = "brandId", source = "id")
     ProductBrandResponse toResponse(ProductBrand brand);
+
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
+    ProductBrandInfo toInfo(ProductBrand brand);
+
 }
 
