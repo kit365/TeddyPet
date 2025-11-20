@@ -19,6 +19,9 @@ spring:
         format_sql: true
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
     open-in-view: false
 
   sql:
@@ -47,6 +50,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  elasticsearch:
+    uris: ${PROD_ELASTICSEARCH_URIS}
+    connection-timeout: ${PROD_ELASTICSEARCH_CONNECTION_TIMEOUT:5s}
+    socket-timeout: ${PROD_ELASTICSEARCH_SOCKET_TIMEOUT:60s}
 
 # Logging for production
 logging:

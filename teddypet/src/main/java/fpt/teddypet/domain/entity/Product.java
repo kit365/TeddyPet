@@ -26,6 +26,9 @@ public class Product extends BaseEntity {
     @Column(nullable = false, unique = true, length = 255)
     private String slug; 
 
+    @Column(name = "barcode", unique = true, length = 50)
+    private String barcode; // Mã vạch/mã quét sản phẩm
+
     @Column(nullable = false, length = 200)
     private String name;
 
@@ -72,21 +75,21 @@ public class Product extends BaseEntity {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "product_categories",
+        name = "product_product_categories",
         joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
+        inverseJoinColumns = @JoinColumn(name = "product_category_id")
     )
     @Builder.Default
-    private List<Category> categories = new ArrayList<>();
+    private List<ProductCategory> categories = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "product_tags",
+        name = "product_product_tags",
         joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
+        inverseJoinColumns = @JoinColumn(name = "product_tag_id")
     )
     @Builder.Default
-    private List<Tag> tags = new ArrayList<>();
+    private List<ProductTag> tags = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -95,11 +98,11 @@ public class Product extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "age_range_id")
     )
     @Builder.Default
-    private List<AgeRange> ageRanges = new ArrayList<>();
+    private List<ProductAgeRange> ageRanges = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "brand_id")
-    private Brand brand;
+    @JoinColumn(name = "product_brand_id")
+    private ProductBrand brand;
 
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
@@ -114,5 +117,14 @@ public class Product extends BaseEntity {
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Rating> ratings = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "product_product_attributes",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "attribute_id")
+    )
+    @Builder.Default
+    private List<ProductAttribute> attributes = new ArrayList<>();
 }
 

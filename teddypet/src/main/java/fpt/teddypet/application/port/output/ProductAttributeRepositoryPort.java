@@ -1,0 +1,15 @@
+package fpt.teddypet.application.port.output;
+
+import fpt.teddypet.domain.entity.ProductAttribute;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ProductAttributeRepositoryPort {
+    ProductAttribute save(ProductAttribute attribute);
+    List<ProductAttribute> saveAll(List<ProductAttribute> attributes);
+    Optional<ProductAttribute> findById(Long attributeId);
+    List<ProductAttribute> findAllActive();
+    Optional<ProductAttribute> findByNameIgnoreCase(String name);
+}
+

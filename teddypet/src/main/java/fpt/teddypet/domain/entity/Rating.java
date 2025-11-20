@@ -28,8 +28,7 @@ public class Rating extends BaseEntity {
     private User user;
 
     @Column(name = "rating_score", nullable = false, precision = 2, scale = 1)
-    private BigDecimal score; // Điểm đánh giá từ 1.0 đến 5.0 
-
+    private BigDecimal score;
     @Column(columnDefinition = "TEXT")
     private String comment;
 

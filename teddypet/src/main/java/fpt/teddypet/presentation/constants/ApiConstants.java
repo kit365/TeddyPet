@@ -1,0 +1,45 @@
+package fpt.teddypet.presentation.constants;
+
+public final class ApiConstants {
+
+    private ApiConstants() {
+        // Utility class - prevent instantiation
+    }
+
+    // Base API path
+    public static final String BASE_API = "/api";
+
+    // Auth API base path
+    public static final String API_AUTH = BASE_API + "/auth";
+
+    // Product Variant API base path
+    public static final String API_PRODUCT_VARIANTS = BASE_API + "/product-variants";
+
+    // Product Brand API base path
+    public static final String API_PRODUCT_BRANDS = BASE_API + "/product-brands";
+
+    // Product Tag API base path
+    public static final String API_PRODUCT_TAGS = BASE_API + "/product-tags";
+
+    // Product Image API base path
+    public static final String API_PRODUCT_IMAGES = BASE_API + "/product-images";
+
+    // Product Age Range API base path
+    public static final String API_PRODUCT_AGE_RANGES = BASE_API + "/product-age-ranges";
+
+    // Product Category API base path
+    public static final String API_PRODUCT_CATEGORIES = BASE_API + "/product-categories";
+
+    // Rating API base path
+    public static final String API_RATINGS = BASE_API + "/ratings";
+
+    // Product API base path
+    public static final String API_PRODUCTS = BASE_API + "/products";
+
+    // Product Attribute Value API base path
+    public static final String API_PRODUCT_ATTRIBUTE_VALUES = BASE_API + "/product-attribute-values";
+
+    // Product Attribute API base path
+    public static final String API_PRODUCT_ATTRIBUTES = BASE_API + "/product-attributes";
+}
+
