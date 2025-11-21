@@ -1,12 +1,13 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
-
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.AttributeDisplayType;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.domain.enums.UnitEnum;
+import fpt.teddypet.domain.valueobject.Dimensions;
+import fpt.teddypet.domain.valueobject.Measurement;
 import fpt.teddypet.domain.valueobject.Price;
 import fpt.teddypet.domain.valueobject.Sku;
 import fpt.teddypet.domain.valueobject.StockQuantity;
@@ -16,15 +17,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Data initializer for Product entity
+ * Chứa logic tạo mẫu cho cả Định lượng (Measurement) và Định tính (Visual)
+ */
 @Slf4j
 @Component
-@Order(10)
+@Order(10) // Chạy sau các bảng Master
 @RequiredArgsConstructor
 public class ProductData implements CommandLineRunner {
 
@@ -38,12 +45,12 @@ public class ProductData implements CommandLineRunner {
     private final ProductAttributeValueRepository productAttributeValueRepository;
 
     @Override
-    public void run(String... args) throws Exception {
+    @Transactional
+    public void run(String... args) {
         initializeProducts();
     }
 
     private void initializeProducts() {
-        // Kiểm tra nếu đã có sản phẩm thì skip để tránh duplicate
         if (productRepository.count() > 0) {
             log.info("⏭️ Products already initialized, skipping...");
             return;
@@ -55,126 +62,122 @@ public class ProductData implements CommandLineRunner {
         // 1. KHỞI TẠO MASTER DATA (ATTRIBUTES & VALUES)
         // =================================================================================
 
-        // Attribute: Hương vị
-        ProductAttribute flavorAttr = createAttribute("Hương vị", AttributeDisplayType.SELECT);
-        ProductAttributeValue flavorChicken = createAttributeValue(flavorAttr, "Gà", 1, null);
-        ProductAttributeValue flavorBeef = createAttributeValue(flavorAttr, "Bò", 2, null);
-        ProductAttributeValue flavorTuna = createAttributeValue(flavorAttr, "Cá ngừ", 3, null);
-        ProductAttributeValue flavorSalmon = createAttributeValue(flavorAttr, "Cá hồi", 4, null);
+        // --- A. THUỘC TÍNH ĐỊNH LƯỢNG (Cân nặng, Thể tích) ---
+        // Định nghĩa: Admin nhập Số + Chọn Đơn vị đo (KG, G)
 
-        // Attribute: Trọng lượng
-        ProductAttribute weightAttr = createAttribute("Trọng lượng", AttributeDisplayType.RADIO);
-        ProductAttributeValue weight100g = createAttributeValue(weightAttr, "100g", 1, null);
-        ProductAttributeValue weight1kg = createAttributeValue(weightAttr, "1kg", 2, null);
-        ProductAttributeValue weight2kg = createAttributeValue(weightAttr, "2kg", 3, null);
-        ProductAttributeValue weight5kg = createAttributeValue(weightAttr, "5kg", 4, null);
+        ProductAttribute weightAttr = createAttribute("Trọng lượng", AttributeDisplayType.RADIO, 1, UnitEnum.KG, UnitEnum.GRAM);
 
-        // Attribute: Màu sắc
-        ProductAttribute colorAttr = createAttribute("Màu sắc", AttributeDisplayType.COLOR);
-        ProductAttributeValue colorRed = createAttributeValue(colorAttr, "Đỏ", 1, "#FF0000");
-        ProductAttributeValue colorBlue = createAttributeValue(colorAttr, "Xanh dương", 2, "#0000FF");
-        ProductAttributeValue colorBlack = createAttributeValue(colorAttr, "Đen", 3, "#000000");
-        ProductAttributeValue colorPink = createAttributeValue(colorAttr, "Hồng", 4, "#FFC0CB");
+        // Tạo các giá trị mẫu (Hàm helper sẽ tự ghép chuỗi "1kg", "500g")
+        ProductAttributeValue weight100g = createQuantitativeValue(weightAttr, new BigDecimal("100"), UnitEnum.GRAM);
+        ProductAttributeValue weight500g = createQuantitativeValue(weightAttr, new BigDecimal("500"), UnitEnum.GRAM);
+        ProductAttributeValue weight1kg = createQuantitativeValue(weightAttr, new BigDecimal("1"), UnitEnum.KG);
+        ProductAttributeValue weight2kg = createQuantitativeValue(weightAttr, new BigDecimal("2"), UnitEnum.KG);
+        ProductAttributeValue weight5kg = createQuantitativeValue(weightAttr, new BigDecimal("5"), UnitEnum.KG);
+        ProductAttributeValue weight10kg = createQuantitativeValue(weightAttr, new BigDecimal("10"), UnitEnum.KG);
 
-        // Attribute: Kích cỡ
-        ProductAttribute sizeAttr = createAttribute("Kích cỡ", AttributeDisplayType.SELECT);
-        ProductAttributeValue sizeS = createAttributeValue(sizeAttr, "S", 1, null);
-        ProductAttributeValue sizeM = createAttributeValue(sizeAttr, "M", 2, null);
-        ProductAttributeValue sizeL = createAttributeValue(sizeAttr, "L", 3, null);
-        ProductAttributeValue sizeXL = createAttributeValue(sizeAttr, "XL", 4, null);
+        ProductAttribute volumeAttr = createAttribute("Dung tích", AttributeDisplayType.SELECT, 2, UnitEnum.ML, UnitEnum.LITER);
+        ProductAttributeValue vol85g = createQuantitativeValue(volumeAttr, new BigDecimal("85"), UnitEnum.GRAM); // Pate tính bằng gram
+        ProductAttributeValue vol400ml = createQuantitativeValue(volumeAttr, new BigDecimal("400"), UnitEnum.ML);
+
+        // --- B. THUỘC TÍNH ĐỊNH TÍNH (Màu sắc, Size) ---
+        // Định nghĩa: Admin nhập Text hoặc Chọn Mã Màu
+
+        ProductAttribute flavorAttr = createAttribute("Hương vị", AttributeDisplayType.SELECT, 3);
+        ProductAttributeValue flavorChicken = createQualitativeValue(flavorAttr, "Gà", null);
+        ProductAttributeValue flavorBeef = createQualitativeValue(flavorAttr, "Bò", null);
+        ProductAttributeValue flavorTuna = createQualitativeValue(flavorAttr, "Cá ngừ", null);
+
+
+        ProductAttribute colorAttr = createAttribute("Màu sắc", AttributeDisplayType.COLOR, 4);
+        ProductAttributeValue colorRed = createQualitativeValue(colorAttr, "Đỏ", "#FF0000");
+        ProductAttributeValue colorBlue = createQualitativeValue(colorAttr, "Xanh dương", "#0000FF");
+
+
+        ProductAttribute sizeAttr = createAttribute("Kích cỡ", AttributeDisplayType.RADIO, 5);
+        ProductAttributeValue sizeS = createQualitativeValue(sizeAttr, "S", null);
+        ProductAttributeValue sizeM = createQualitativeValue(sizeAttr, "M", null);
+        ProductAttributeValue sizeL = createQualitativeValue(sizeAttr, "L", null);
+
 
         // =================================================================================
-        // 2. TẠO SẢN PHẨM VÀ GẮN BIẾN THỂ
+        // 2. TẠO SẢN PHẨM VÀ BIẾN THỂ
         // =================================================================================
 
-        // --- SẢN PHẨM 1: THỨC ĂN CHÓ (Nhiều biến thể theo Vị & Cân nặng) ---
+        // --- CASE 1: THỨC ĂN HẠT (Khác biệt Đơn vị đo & Đơn vị bán) ---
+        // Attribute: 1kg (Đo lường) -> Variant: Gói (Bán hàng)
         Product dogFood = createProduct(
-                "Thức ăn cho chó Royal Canin Adult",
-                "Thức ăn khô cho chó trưởng thành, công thức dinh dưỡng cân bằng",
-                "Thức ăn cho chó Royal Canin Adult - Dinh dưỡng cân bằng cho chó trưởng thành",
-                "Chi tiết về thức ăn cho chó...",
-                new BigDecimal("250000"), // Min Price
-                new BigDecimal("550000"), // Max Price
-                "Pháp",
-                "Ngũ cốc, thịt, rau củ",
+                "Thức ăn hạt Royal Canin Poodle Adult",
+                "Thức ăn khô chuyên dụng cho giống chó Poodle trưởng thành.",
+                "Thức ăn cho chó Poodle Royal Canin", "Mô tả SEO...",
+                new BigDecimal("150000"), new BigDecimal("1200000"),
+                "Pháp", "Ngũ cốc, Gia cầm",
                 List.of(PetTypeEnum.DOG),
                 getCategoryByName("Dành cho chó"),
                 getBrandByName("Royal Canin"),
-                List.of(getTagByName("NEW"), getTagByName("FEATURED")),
+                List.of(getTagByName("BEST_SELLER")),
                 List.of(getAgeRangeByName("ADULT"))
         );
 
-        // Gắn Attribute vào Product cha (Quan hệ N-N)
         linkAttributesToProduct(dogFood, flavorAttr, weightAttr);
 
-        // Tạo Variants (Tổ hợp Vị + Cân nặng)
-        createVariant(dogFood, "Gà - 1kg", "RC-CHICKEN-1KG", new BigDecimal("250000"), 100, flavorChicken, weight1kg);
-        createVariant(dogFood, "Gà - 2kg", "RC-CHICKEN-2KG", new BigDecimal("480000"), 50, flavorChicken, weight2kg);
-        createVariant(dogFood, "Bò - 1kg", "RC-BEEF-1KG", new BigDecimal("270000"), 80, flavorBeef, weight1kg);
-        createVariant(dogFood, "Bò - 5kg", "RC-BEEF-5KG", new BigDecimal("1200000"), 20, flavorBeef, weight5kg);
+        // Vị Gà - 1kg (Bán theo GÓI)
+        createVariant(dogFood, "Gà - 1kg", "RC-PD-1KG", new BigDecimal("180000"), 100, UnitEnum.PACK, flavorChicken, weight1kg);
+
+        // Vị Bò - 10kg (Bán theo BAO TẢI)
+        createVariant(dogFood, "Bò - 10kg", "RC-PD-10KG", new BigDecimal("1200000"), 10, UnitEnum.BAG, flavorBeef, weight10kg);
 
 
-        // --- SẢN PHẨM 2: THỨC ĂN MÈO (Nhiều biến thể theo Vị & Cân nặng) ---
-        Product catFood = createProduct(
-                "Thức ăn cho mèo Whiskas Tuna",
-                "Thức ăn ướt cho mèo với cá ngừ thơm ngon",
-                "Thức ăn cho mèo Whiskas Tuna - Cá ngừ thơm ngon",
-                "Chi tiết thức ăn mèo...",
-                new BigDecimal("15000"),
-                new BigDecimal("30000"),
-                "Anh",
-                "Cá ngừ, nước",
+        // --- CASE 2: PATE MÈO (Bán Lẻ & Bán Sỉ) ---
+        // Cùng 1 Attribute (85g) nhưng có 2 Variants (Lon & Thùng)
+        Product catPate = createProduct(
+                "Pate Whiskas Cá Ngừ",
+                "Pate mèo dạng sốt thơm ngon.",
+                "Pate Whiskas Tuna", "SEO...",
+                new BigDecimal("15000"), new BigDecimal("340000"),
+                "Thái Lan", "Cá ngừ",
                 List.of(PetTypeEnum.CAT),
                 getCategoryByName("Dành cho mèo"),
                 getBrandByName("Whiskas"),
-                List.of(getTagByName("BEST_SELLER")),
+                List.of(getTagByName("NEW")),
                 List.of(getAgeRangeByName("ALL"))
         );
 
-        linkAttributesToProduct(catFood, flavorAttr, weightAttr);
+        linkAttributesToProduct(catPate, flavorAttr, volumeAttr);
 
-        createVariant(catFood, "Cá ngừ - 100g", "WK-TUNA-100G", new BigDecimal("15000"), 200, flavorTuna, weight100g);
-        createVariant(catFood, "Cá ngừ - 1kg", "WK-TUNA-1KG", new BigDecimal("140000"), 50, flavorTuna, weight1kg);
-        createVariant(catFood, "Cá hồi - 100g", "WK-SALMON-100G", new BigDecimal("18000"), 150, flavorSalmon, weight100g);
+        // Variant 1: Mua Lẻ (1 Lon)
+        createVariant(catPate, "Cá ngừ - Lon 85g", "WK-TUNA-CAN", new BigDecimal("15000"), 200, UnitEnum.CAN, flavorTuna, vol85g);
+
+        // Variant 2: Mua Sỉ (Thùng 24 Lon)
+        createVariant(catPate, "Cá ngừ - Thùng 24 Lon", "WK-TUNA-BOX", new BigDecimal("340000"), 20, UnitEnum.BOX, flavorTuna, vol85g);
 
 
-        // --- SẢN PHẨM 3: VÒNG CỔ (Nhiều biến thể theo Màu & Size) ---
+        // --- CASE 3: VÒNG CỔ (Visual Color + Size) ---
         Product collar = createProduct(
-                "Vòng cổ da cao cấp",
-                "Vòng cổ da thật, bền đẹp, nhiều màu sắc",
-                "Vòng cổ da cao cấp cho thú cưng",
-                "Vòng cổ làm từ da thật 100%...",
-                new BigDecimal("90000"),
-                new BigDecimal("150000"),
-                "Việt Nam",
-                "Da bò",
+                "Vòng cổ da phản quang",
+                "Vòng cổ da thật an toàn.",
+                "Vòng cổ phản quang", "SEO...",
+                new BigDecimal("50000"), new BigDecimal("60000"),
+                "Việt Nam", "Da, Nylon",
                 List.of(PetTypeEnum.DOG, PetTypeEnum.CAT),
                 getCategoryByName("Vòng cổ"),
-                null, // Không brand
+                null,
                 List.of(getTagByName("HOT")),
                 List.of(getAgeRangeByName("ALL"))
         );
 
         linkAttributesToProduct(collar, colorAttr, sizeAttr);
 
-        createVariant(collar, "Đỏ - S", "COLLAR-RED-S", new BigDecimal("90000"), 50, colorRed, sizeS);
-        createVariant(collar, "Đỏ - M", "COLLAR-RED-M", new BigDecimal("100000"), 50, colorRed, sizeM);
-        createVariant(collar, "Xanh - S", "COLLAR-BLUE-S", new BigDecimal("90000"), 30, colorBlue, sizeS);
-        createVariant(collar, "Xanh - L", "COLLAR-BLUE-L", new BigDecimal("120000"), 20, colorBlue, sizeL);
-        createVariant(collar, "Đen - XL", "COLLAR-BLACK-XL", new BigDecimal("150000"), 10, colorBlack, sizeXL);
-        createVariant(collar, "Pink - XL", "COLLAR-Pink-XL", new BigDecimal("150000"), 10, colorPink, sizeXL);
+        createVariant(collar, "Đỏ - S", "COLLAR-RED-S", new BigDecimal("50000"), 50, UnitEnum.PIECE, colorRed, sizeS);
+        createVariant(collar, "Xanh - L", "COLLAR-BLUE-L", new BigDecimal("60000"), 20, UnitEnum.PIECE, colorBlue, sizeL);
 
 
-        // --- SẢN PHẨM 4: ĐỒ CHƠI (Không có biến thể - Default Variant) ---
+        // --- CASE 4: ĐỒ CHƠI (Simple Product) ---
         Product toy = createProduct(
-                "Bóng tennis đồ chơi",
-                "Bóng cao su đàn hồi tốt",
-                "Bóng tennis đồ chơi cho chó",
-                "Bóng siêu bền...",
-                new BigDecimal("50000"),
-                new BigDecimal("50000"),
-                "Trung Quốc",
-                "Cao su",
+                "Bóng cao su siêu bền",
+                "Bóng đồ chơi đàn hồi tốt.",
+                "Bóng đồ chơi chó", "SEO...",
+                new BigDecimal("35000"), new BigDecimal("35000"),
+                "Trung Quốc", "Cao su",
                 List.of(PetTypeEnum.DOG),
                 getCategoryByName("Đồ chơi"),
                 null,
@@ -182,33 +185,58 @@ public class ProductData implements CommandLineRunner {
                 List.of(getAgeRangeByName("ALL"))
         );
 
-        createDefaultVariant(toy, new BigDecimal("50000"));
+        createDefaultVariant(toy, new BigDecimal("35000"));
 
-        log.info("✅ Products initialization completed");
+        log.info("✅ Products initialization completed!");
     }
 
     // =================================================================================
-    // HELPER METHODS - CREATION LOGIC
+    // HELPER METHODS
     // =================================================================================
 
-    private ProductAttribute createAttribute(String name, AttributeDisplayType type) {
+    private ProductAttribute createAttribute(String name, AttributeDisplayType type, int order, UnitEnum... supportedUnits) {
         return productAttributeRepository.findByName(name)
-                .orElseGet(() -> productAttributeRepository.save(
-                        ProductAttribute.builder()
-                                .name(name)
-                                .displayType(type)
-                                .displayOrder(0)
+                .orElseGet(() -> {
+                    ProductAttribute attr = ProductAttribute.builder()
+                            .name(name)
+                            .displayType(type)
+                            .displayOrder(order)
+                            .build();
+                    if (supportedUnits != null && supportedUnits.length > 0) {
+                        attr.setSupportedUnits(Arrays.asList(supportedUnits));
+                    }
+                    return productAttributeRepository.save(attr);
+                });
+    }
+
+    // Helper tạo Value ĐỊNH LƯỢNG (Có Measurement)
+    private ProductAttributeValue createQuantitativeValue(ProductAttribute attribute, BigDecimal amount, UnitEnum unit) {
+        // 1. Tạo Measurement VO
+        Measurement measurement = new Measurement(amount, unit);
+        // 2. Lấy chuỗi hiển thị tự động (VD: "1kg")
+        String displayValue = measurement.toDisplayString();
+
+        return productAttributeValueRepository.findByAttributeAndValue(attribute, displayValue)
+                .orElseGet(() -> productAttributeValueRepository.save(
+                        ProductAttributeValue.builder()
+                                .attribute(attribute)
+                                .value(displayValue)
+                                .measurement(measurement) // Lưu VO vào DB
+                                .displayOrder(amount.intValue())
                                 .build()
                 ));
     }
 
-    private ProductAttributeValue createAttributeValue(ProductAttribute attribute, String value, int order, String displayCode) {
+    // Helper tạo Value ĐỊNH TÍNH (Chữ/Màu)
+    private ProductAttributeValue createQualitativeValue(ProductAttribute attribute, String value, String displayCode) {
         return productAttributeValueRepository.findByAttributeAndValue(attribute, value)
                 .orElseGet(() -> productAttributeValueRepository.save(
                         ProductAttributeValue.builder()
                                 .attribute(attribute)
                                 .value(value)
-                                .displayOrder(order)
+                                .displayCode(displayCode)
+                                .measurement(null) // Không có measurement
+                                .displayOrder(0)
                                 .build()
                 ));
     }
@@ -257,9 +285,8 @@ public class ProductData implements CommandLineRunner {
         productRepository.save(product);
     }
 
-    // Hàm tạo Variant gộp (Product + Attributes Values)
-    private void createVariant(Product product, String name, String skuValue, BigDecimal price, int stock, ProductAttributeValue... values) {
-        if (productVariantRepository.existsBySkuValueAndIsDeletedFalse(skuValue)) {
+    private void createVariant(Product product, String name, String skuValue, BigDecimal price, int stock, UnitEnum salesUnit, ProductAttributeValue... values) {
+        if (productVariantRepository.existsBySkuValue(skuValue)) {
             return;
         }
 
@@ -269,11 +296,12 @@ public class ProductData implements CommandLineRunner {
                 .sku(Sku.of(skuValue))
                 .price(Price.of(price))
                 .stockQuantity(StockQuantity.of(stock))
-                .unit(UnitEnum.PIECE)
-                .attributeValues(new ArrayList<>(Arrays.asList(values))) // Gắn N-N Value
+                .unit(salesUnit) // Đơn vị bán (Cái, Hộp, Gói)
+                .attributeValues(new ArrayList<>(Arrays.asList(values)))
                 .isActive(true)
                 .isDeleted(false)
                 .build();
+
 
         product.getVariants().add(variant);
         productVariantRepository.save(variant);
@@ -306,14 +334,13 @@ public class ProductData implements CommandLineRunner {
         return productBrandRepository.findByName(name).orElse(null);
     }
     private ProductTag getTagByName(String name) {
-        // Tìm theo tên enum hoặc tên hiển thị tùy logic bạn lưu
         return productTagRepository.findAll().stream()
-                .filter(t -> t.getName().equalsIgnoreCase(name) || t.getName().contains(name))
+                .filter(t -> t.getName().contains(name))
                 .findFirst().orElse(null);
     }
     private ProductAgeRange getAgeRangeByName(String name) {
         return productAgeRangeRepository.findAll().stream()
-                .filter(a -> a.getName().equalsIgnoreCase(name) || a.getName().contains(name))
+                .filter(a -> a.getName().contains(name))
                 .findFirst().orElse(null);
     }
 }

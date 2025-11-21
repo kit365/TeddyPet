@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.ProductCategoryMapper;
 import fpt.teddypet.application.port.input.ProductCategoryService;
 import fpt.teddypet.application.port.output.ProductCategoryRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductCategory;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -236,11 +237,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
     @Override
     public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean includeDeleted, boolean onlyActive) {
-        if (categories == null || categories.isEmpty()) {
-            return List.of();
-        }
-
-        return categories.stream()
+        return ListUtil.safe(categories).stream()
                 .filter(cat -> includeDeleted || !cat.isDeleted())
                 .filter(cat -> !onlyActive || cat.isActive())
                 // Ưu tiên hiển thị danh mục Cha trước, rồi đến Con, hoặc theo ID

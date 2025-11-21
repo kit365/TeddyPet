@@ -23,12 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static fpt.teddypet.domain.valueobject.Price.toPrice;
@@ -305,19 +300,10 @@ public class ProductVariantApplicationService implements ProductVariantService {
         }
 
         // Lấy danh sách attributeValues và sắp xếp theo displayOrder của attribute và value
+        // So sánh theo displayOrder của attribute trước
+        // Nếu cùng attribute, so sánh theo displayOrder của value
         List<ProductAttributeValue> sortedValues = variant.getAttributeValues().stream()
-                .sorted((v1, v2) -> {
-                    // So sánh theo displayOrder của attribute trước
-                    int attributeOrderCompare = Integer.compare(
-                            v1.getAttribute().getDisplayOrder(),
-                            v2.getAttribute().getDisplayOrder()
-                    );
-                    if (attributeOrderCompare != 0) {
-                        return attributeOrderCompare;
-                    }
-                    // Nếu cùng attribute, so sánh theo displayOrder của value
-                    return Integer.compare(v1.getDisplayOrder(), v2.getDisplayOrder());
-                })
+                .sorted(Comparator.comparingInt((ProductAttributeValue v) -> v.getAttribute().getDisplayOrder()).thenComparingInt(ProductAttributeValue::getDisplayOrder))
                 .toList();
 
         // Ghép chuỗi: "Attribute: Value - Attribute: Value"

@@ -29,7 +29,7 @@ public class ProductAttributeValue extends BaseEntity {
 
     // Chuỗi hiển thị cuối cùng (Snapshot) - Ví dụ: "10kg", "Đỏ", "Size S"
     // Dùng để search và hiển thị nhanh cho FE
-    @Column(name = "value", nullable = false, length = 255)
+    @Column(name = "value", nullable = false)
     private String value;
 
     // Mã hiển thị cho Màu sắc (nếu có) ---

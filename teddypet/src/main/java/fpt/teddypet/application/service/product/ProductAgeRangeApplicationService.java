@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInf
 import fpt.teddypet.application.mapper.ProductAgeRangeMapper;
 import fpt.teddypet.application.port.input.ProductAgeRangeService;
 import fpt.teddypet.application.port.output.ProductAgeRangeRepositoryPort;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -131,11 +132,7 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
 
     @Override
     public List<ProductAgeRangeInfo> toInfos(List<ProductAgeRange> ageRanges, boolean includeDeleted, boolean onlyActive) {
-        if (ageRanges == null || ageRanges.isEmpty()) {
-            return List.of();
-        }
-
-        return ageRanges.stream()
+        return ListUtil.safe(ageRanges).stream()
                 .filter(val -> includeDeleted || !val.isDeleted())
                 .filter(val -> !onlyActive || val.isActive())
 //                .sorted(Comparator.comparing(ProductAgeRange::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))

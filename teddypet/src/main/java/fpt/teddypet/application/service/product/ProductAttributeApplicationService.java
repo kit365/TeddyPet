@@ -8,9 +8,9 @@ import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeI
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import fpt.teddypet.application.mapper.ProductAttributeMapper;
 import fpt.teddypet.application.port.input.ProductAttributeService;
-import fpt.teddypet.application.port.input.ProductAttributeValueService;
 import fpt.teddypet.application.port.output.ProductAttributeRepositoryPort;
 import fpt.teddypet.application.util.DisplayOrderUtil;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import jakarta.persistence.EntityNotFoundException;
@@ -28,8 +28,7 @@ import java.util.stream.Collectors;
 public class ProductAttributeApplicationService implements ProductAttributeService {
 
     private final ProductAttributeRepositoryPort productAttributeRepositoryPort;
-    private final ProductAttributeValueService productAttributeValueService;
-    private final fpt.teddypet.application.mapper.ProductAttributeMapper productAttributeMapper;
+    private final ProductAttributeMapper productAttributeMapper;
 
     @Override
     @Transactional
@@ -123,7 +122,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
     @Override
     public List<ProductAttribute> getAllByIdsAndActiveAndDeleted(List<Long> ids, boolean active, boolean deleted) {
-        if (ids == null || ids.isEmpty()) {
+        if (fpt.teddypet.application.util.ListUtil.isNullOrEmpty(ids)) {
             return new ArrayList<>();
         }
         return productAttributeRepositoryPort.findAllByIdsAndActiveAndDeleted(ids, active, deleted);
@@ -182,7 +181,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         Set<Long> processedIds = new HashSet<>();
 
-        if (valueRequests == null || valueRequests.isEmpty()) {
+        if (fpt.teddypet.application.util.ListUtil.isNullOrEmpty(valueRequests)) {
             log.info("No value requests provided, marking all existing values as deleted");
             reusableValues.forEach(value -> {
                 value.setDeleted(true);
@@ -199,7 +198,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                     ? valueRequest.displayOrder()
                     : index;
 
-            ProductAttributeValue targetValue = null;
+            ProductAttributeValue targetValue;
 
             if (valueRequest.valueId() != null && existingById.containsKey(valueRequest.valueId())) {
                 targetValue = existingById.get(valueRequest.valueId());
@@ -303,11 +302,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
     @Override
     public List<ProductAttributeInfo> toInfos(List<ProductAttribute> attributes, boolean includeDeleted, boolean onlyActive) {
-        if (attributes == null || attributes.isEmpty()) {
-            return List.of();
-        }
-
-        return attributes.stream()
+        return fpt.teddypet.application.util.ListUtil.safe(attributes).stream()
                 .filter(attr -> includeDeleted || !attr.isDeleted())
                 .filter(attr -> !onlyActive || attr.isActive())
                 .sorted(Comparator.comparing(ProductAttribute::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
@@ -322,14 +317,14 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         String normalizedName = name.trim();
         productAttributeRepositoryPort.findByNameIgnoreCase(normalizedName)
                 .ifPresent(existing -> {
-                    if (currentAttributeId == null || !existing.getAttributeId().equals(currentAttributeId)) {
+                    if (currentAttributeId == null) {
                         throw new IllegalArgumentException(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_NAME_DUPLICATE);
                     }
                 });
     }
 
     private void validateValueDuplicates(List<ProductAttributeValueItemRequest> valueRequests) {
-        if (valueRequests == null || valueRequests.isEmpty()) {
+        if (ListUtil.isNullOrEmpty(valueRequests)) {
             return;
         }
         Set<String> seen = new HashSet<>();

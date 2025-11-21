@@ -208,9 +208,6 @@ public class ProductImageApplicationService implements ProductImageService {
                         if (isNewImage) {
                             // Tăng dần displayOrder cho mỗi image mới
                             image.setDisplayOrder(nextDisplayOrder[0]++);
-                        } else {
-                            // Giữ nguyên displayOrder của image cũ nếu không chỉ định
-                            // (không cần làm gì vì image đã có displayOrder từ DB)
                         }
                     } else {
                         image.setDisplayOrder(itemRequest.displayOrder());
