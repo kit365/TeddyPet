@@ -1,6 +1,6 @@
 package fpt.teddypet.application.port.input;
 
-import fpt.teddypet.application.dto.request.ProductTagRequest;
+import fpt.teddypet.application.dto.request.product.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.domain.entity.ProductTag;
@@ -16,7 +16,7 @@ public interface ProductTagService {
     ProductTagInfo toInfo(ProductTag tag);
     ProductTagInfo toInfo(ProductTag tag, boolean includeDeleted);
     ProductTagInfo toInfo(ProductTag tag, boolean includeDeleted, boolean onlyActive);
-
+    List<ProductTag> getAllByIdsAndActiveAndDeleted(List<Long> tagIds, boolean isActive, boolean isDeleted);
     List<ProductTagInfo> toInfos(List<ProductTag> tags);
     List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted);
     List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted, boolean onlyActive);

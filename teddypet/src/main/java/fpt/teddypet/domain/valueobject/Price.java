@@ -46,5 +46,11 @@ public class Price {
     public BigDecimal getSaleAmount() {
         return saleAmount;
     }
+
+    public static Price toPrice(BigDecimal salePrice,BigDecimal price ) {
+        return salePrice != null
+                ? Price.of(price, salePrice)
+                : Price.of(price);
+    }
 }
 

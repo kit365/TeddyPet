@@ -1,6 +1,6 @@
 package fpt.teddypet.application.mapper;
 
-import fpt.teddypet.application.dto.request.ProductAgeRangeRequest;
+import fpt.teddypet.application.dto.request.product.agerange.ProductAgeRangeRequest;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.domain.entity.ProductAgeRange;

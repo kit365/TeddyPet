@@ -1,6 +1,6 @@
 package fpt.teddypet.application.mapper;
 
-import fpt.teddypet.application.dto.request.ProductTagRequest;
+import fpt.teddypet.application.dto.request.product.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.domain.entity.ProductTag;

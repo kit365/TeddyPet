@@ -39,5 +39,10 @@ public class ProductAttributeRepositoryAdapter implements ProductAttributeReposi
     public Optional<ProductAttribute> findByNameIgnoreCase(String name) {
         return productAttributeRepository.findByNameIgnoreCaseAndIsDeletedFalse(name);
     }
+
+    @Override
+    public List<ProductAttribute> findAllByIdsAndActiveAndDeleted(List<Long> ids, boolean active, boolean deleted) {
+        return productAttributeRepository.findAllByAttributeIdInAndIsActiveAndIsDeleted(ids, active, deleted);
+    }
 }
 

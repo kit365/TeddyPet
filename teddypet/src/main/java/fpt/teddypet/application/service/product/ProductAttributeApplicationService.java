@@ -2,15 +2,15 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productattribute.ProductAttributeLogMessages;
 import fpt.teddypet.application.constants.productattribute.ProductAttributeMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeRequest;
-import fpt.teddypet.application.dto.request.ProductAttributeValueItemRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueItemRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import fpt.teddypet.application.mapper.ProductAttributeMapper;
 import fpt.teddypet.application.port.input.ProductAttributeService;
-import fpt.teddypet.application.port.input.ProductAttributeValueService;
 import fpt.teddypet.application.port.output.ProductAttributeRepositoryPort;
 import fpt.teddypet.application.util.DisplayOrderUtil;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -29,8 +28,7 @@ import java.util.stream.Stream;
 public class ProductAttributeApplicationService implements ProductAttributeService {
 
     private final ProductAttributeRepositoryPort productAttributeRepositoryPort;
-    private final ProductAttributeValueService productAttributeValueService;
-    private final fpt.teddypet.application.mapper.ProductAttributeMapper productAttributeMapper;
+    private final ProductAttributeMapper productAttributeMapper;
 
     @Override
     @Transactional
@@ -53,6 +51,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         attribute.setDisplayOrder(displayOrder);
         attribute.setActive(true);
         attribute.setDeleted(false);
+        attribute.setSupportedUnits(request.supportedUnits());
 
         if (request.values() != null && !request.values().isEmpty()) {
             attribute.getValues().addAll(buildValuesForCreate(attribute, request.values()));
@@ -74,6 +73,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         attribute.setName(request.name());
         attribute.setDisplayType(request.displayType());
+        attribute.setSupportedUnits(request.supportedUnits());
 
         if (request.displayOrder() != null) {
             attribute.setDisplayOrder(request.displayOrder());
@@ -117,6 +117,21 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         });
         productAttributeRepositoryPort.save(attribute);
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
+        log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
+    }
+
+    @Override
+    public List<ProductAttribute> getAllByIdsAndActiveAndDeleted(List<Long> ids, boolean active, boolean deleted) {
+        if (fpt.teddypet.application.util.ListUtil.isNullOrEmpty(ids)) {
+            return new ArrayList<>();
+        }
+        return productAttributeRepositoryPort.findAllByIdsAndActiveAndDeleted(ids, active, deleted);
+    }
+
+    @Override
+    public List<fpt.teddypet.domain.enums.UnitEnum> getSupportedUnits(Long attributeId) {
+        ProductAttribute attribute = getActiveAttribute(attributeId);
+        return attribute.getSupportedUnits();
     }
 
     private ProductAttribute getActiveAttribute(Long attributeId) {
@@ -131,6 +146,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         List<ProductAttributeValue> values = new ArrayList<>();
         int currentMaxOrder = -1;
 
+        log.info("Building {} values for create attribute: {}", valueRequests.size(), attribute.getName());
         for (ProductAttributeValueItemRequest valueRequest : valueRequests) {
             int displayOrder = valueRequest.displayOrder() != null
                     ? valueRequest.displayOrder()
@@ -149,7 +165,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                 currentMaxOrder = Math.max(currentMaxOrder, valueRequest.displayOrder());
             }
         }
-
+        log.info("Built {} values successfully", values.size());
         return values;
     }
 
@@ -165,7 +181,8 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         Set<Long> processedIds = new HashSet<>();
 
-        if (valueRequests == null || valueRequests.isEmpty()) {
+        if (fpt.teddypet.application.util.ListUtil.isNullOrEmpty(valueRequests)) {
+            log.info("No value requests provided, marking all existing values as deleted");
             reusableValues.forEach(value -> {
                 value.setDeleted(true);
                 value.setActive(false);
@@ -173,13 +190,15 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             return;
         }
 
+        log.info("Syncing {} value requests with {} existing values", valueRequests.size(), existingValues.size());
+
         for (int index = 0; index < valueRequests.size(); index++) {
             ProductAttributeValueItemRequest valueRequest = valueRequests.get(index);
             Integer requestedOrder = valueRequest.displayOrder() != null
                     ? valueRequest.displayOrder()
                     : index;
 
-            ProductAttributeValue targetValue = null;
+            ProductAttributeValue targetValue;
 
             if (valueRequest.valueId() != null && existingById.containsKey(valueRequest.valueId())) {
                 targetValue = existingById.get(valueRequest.valueId());
@@ -237,13 +256,12 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             return null;
         }
 
-        return new ProductAttributeResponse(
-                attribute.getAttributeId(),
-                attribute.getName(),
-                attribute.getDisplayType(),
-                attribute.getDisplayOrder(),
-                productAttributeValueService.toResponses(attribute.getValues(), isDeleted)
-        );
+        List<ProductAttributeValue> values = attribute.getValues().stream()
+                .filter(val -> isDeleted || !val.isDeleted())
+                .sorted(Comparator.comparing(ProductAttributeValue::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+
+        return productAttributeMapper.toResponse(attribute, values);
     }
 
     @Override
@@ -284,11 +302,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
     @Override
     public List<ProductAttributeInfo> toInfos(List<ProductAttribute> attributes, boolean includeDeleted, boolean onlyActive) {
-        if (attributes == null || attributes.isEmpty()) {
-            return List.of();
-        }
-
-        return attributes.stream()
+        return fpt.teddypet.application.util.ListUtil.safe(attributes).stream()
                 .filter(attr -> includeDeleted || !attr.isDeleted())
                 .filter(attr -> !onlyActive || attr.isActive())
                 .sorted(Comparator.comparing(ProductAttribute::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
@@ -303,14 +317,14 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         String normalizedName = name.trim();
         productAttributeRepositoryPort.findByNameIgnoreCase(normalizedName)
                 .ifPresent(existing -> {
-                    if (currentAttributeId == null || !existing.getAttributeId().equals(currentAttributeId)) {
+                    if (currentAttributeId == null) {
                         throw new IllegalArgumentException(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_NAME_DUPLICATE);
                     }
                 });
     }
 
     private void validateValueDuplicates(List<ProductAttributeValueItemRequest> valueRequests) {
-        if (valueRequests == null || valueRequests.isEmpty()) {
+        if (ListUtil.isNullOrEmpty(valueRequests)) {
             return;
         }
         Set<String> seen = new HashSet<>();
@@ -320,7 +334,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             }
             String normalized = valueRequest.value().trim().toLowerCase();
             if (!seen.add(normalized)) {
-                throw new IllegalArgumentException("Danh sách giá trị thuộc tính chứa phần tử trùng: " + valueRequest.value());
+                throw new IllegalArgumentException(String.format(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_VALUE_DUPLICATE, valueRequest.value()));
             }
         }
     }

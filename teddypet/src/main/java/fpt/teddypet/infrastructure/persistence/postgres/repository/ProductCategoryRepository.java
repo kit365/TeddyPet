@@ -14,5 +14,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
     List<ProductCategory> findByParentIdAndIsDeletedFalse(Long parentId); // Child categories
     List<ProductCategory> findByParentIsNull(); // Root categories (for backward compatibility)
     List<ProductCategory> findByParentId(Long parentId); // Child categories (for backward compatibility)
+
+    List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted);
 }
 

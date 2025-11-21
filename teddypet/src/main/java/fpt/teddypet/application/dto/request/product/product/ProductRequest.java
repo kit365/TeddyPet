@@ -1,5 +1,7 @@
-package fpt.teddypet.application.dto.request.product;
+package fpt.teddypet.application.dto.request.product.product;
 
+import fpt.teddypet.application.dto.request.product.image.ProductImageItemRequest;
+import fpt.teddypet.application.dto.request.product.variant.ProductVariantRequest;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import jakarta.validation.constraints.NotBlank;
@@ -16,6 +18,9 @@ public record ProductRequest(
 
         @Size(max = 50, message = "Mã vạch không được vượt quá 50 ký tự")
         String barcode,
+
+        @Size(max = 50, message = "Slug không được vượt quá 50 ký tự")
+        String slug,
 
         @Size(max = 5000, message = "Mô tả không được vượt quá 5000 ký tự")
         String description,
@@ -38,6 +43,8 @@ public record ProductRequest(
 
         List<PetTypeEnum> petTypes,
 
+        Long brandId,
+
         ProductStatusEnum status,
 
         List<Long> categoryIds,
@@ -46,14 +53,21 @@ public record ProductRequest(
 
         List<Long> ageRangeIds,
 
-        Long brandId
+        List<Long> attributeIds,
+
+        List<ProductImageItemRequest> images,
+
+        List<ProductVariantRequest> variants
 ) {
-    // Compact constructor to normalize null lists to empty lists
+
     public ProductRequest {
         petTypes = petTypes != null ? petTypes : new ArrayList<>();
         categoryIds = categoryIds != null ? categoryIds : new ArrayList<>();
         tagIds = tagIds != null ? tagIds : new ArrayList<>();
         ageRangeIds = ageRangeIds != null ? ageRangeIds : new ArrayList<>();
+        attributeIds = attributeIds != null ? attributeIds : new ArrayList<>();
+        images = images != null ? images : new ArrayList<>();
+        variants = variants != null ? variants : new ArrayList<>();
     }
 }
 

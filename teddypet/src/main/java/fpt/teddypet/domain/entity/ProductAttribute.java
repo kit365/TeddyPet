@@ -1,10 +1,10 @@
 package fpt.teddypet.domain.entity;
 
 import fpt.teddypet.domain.enums.AttributeDisplayType;
+import fpt.teddypet.domain.enums.UnitEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,16 +31,7 @@ public class ProductAttribute extends BaseEntity {
 
     @Column(name = "display_order", nullable = false)
     @Builder.Default
-    private Integer displayOrder = 0; // Thứ tự hiển thị
-
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "product_attribute_options",
-        joinColumns = @JoinColumn(name = "attribute_id")
-    )
-    @Column(name = "option_value", nullable = false, length = 255)
-    @Builder.Default
-    private List<String> options = new ArrayList<>();
+    private Integer displayOrder = 0;
 
     @ManyToMany(mappedBy = "attributes", fetch = FetchType.LAZY)
     @Builder.Default
@@ -49,5 +40,17 @@ public class ProductAttribute extends BaseEntity {
     @OneToMany(mappedBy = "attribute", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProductAttributeValue> values = new ArrayList<>();
+
+    // Danh sách các đơn vị được hỗ trợ (Ví dụ: Weight -> [GRAM, KILOGRAM])
+    // Nếu là Màu sắc -> List rỗng
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "product_attribute_supported_units",
+            joinColumns = @JoinColumn(name = "attribute_id")
+    )
+    @Column(name = "unit", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private List<UnitEnum> supportedUnits = new ArrayList<>();
 }
 

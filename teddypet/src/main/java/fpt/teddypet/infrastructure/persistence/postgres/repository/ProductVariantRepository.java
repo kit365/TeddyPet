@@ -20,5 +20,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE ProductVariant v SET v.isDeleted = true, v.isActive = false WHERE v.variantId IN :variantIds AND v.isDeleted = false")
     int softDeleteByIds(@Param("variantIds") Set<Long> variantIds);
+
+    boolean existsBySkuValue(String skuValue);
 }
 

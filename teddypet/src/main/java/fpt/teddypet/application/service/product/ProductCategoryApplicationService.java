@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 import fpt.teddypet.application.constants.productcategory.ProductCategoryLogMessages;
 import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
-import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.ProductCategoryMapper;
 import fpt.teddypet.application.port.input.ProductCategoryService;
 import fpt.teddypet.application.port.output.ProductCategoryRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductCategory;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -82,6 +83,16 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         return categories.stream()
                 .map(productCategoryMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public List<ProductCategory> getAllByIds(List<Long> categoryIds) {
+        return productCategoryRepositoryPort.findAllByIds(categoryIds);
+    }
+
+    @Override
+    public List<ProductCategory> getAllByIdsAndActiveAndDeleted(List<Long> categoryIds, boolean active, boolean deleted) {
+        return productCategoryRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(categoryIds, active, deleted);
     }
 
     @Override
@@ -206,7 +217,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         // Nếu Cha ẩn -> Con ẩn theo.
         if (onlyActive && category.getParent() != null) {
             if (category.getParent().isDeleted() || !category.getParent().isActive()) {
-                return null; // Ẩn luôn con nếu cha có vấn đề
+                return null;
             }
         }
 
@@ -226,11 +237,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
     @Override
     public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean includeDeleted, boolean onlyActive) {
-        if (categories == null || categories.isEmpty()) {
-            return List.of();
-        }
-
-        return categories.stream()
+        return ListUtil.safe(categories).stream()
                 .filter(cat -> includeDeleted || !cat.isDeleted())
                 .filter(cat -> !onlyActive || cat.isActive())
                 // Ưu tiên hiển thị danh mục Cha trước, rồi đến Con, hoặc theo ID

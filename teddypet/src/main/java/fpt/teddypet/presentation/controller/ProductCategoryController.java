@@ -1,7 +1,7 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
-import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;

@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.variant;
 
 import fpt.teddypet.domain.enums.UnitEnum;
 import jakarta.validation.constraints.*;

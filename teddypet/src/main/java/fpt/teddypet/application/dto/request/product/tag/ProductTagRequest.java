@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.tag;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

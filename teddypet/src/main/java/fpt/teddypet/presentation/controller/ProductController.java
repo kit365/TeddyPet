@@ -1,8 +1,8 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.product.ProductMessages;
-import fpt.teddypet.application.dto.request.product.ProductRequest;
-import fpt.teddypet.application.dto.request.product.ProductSearchRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductSearchRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;

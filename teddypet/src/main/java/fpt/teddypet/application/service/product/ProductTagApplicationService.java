@@ -2,12 +2,13 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.producttag.ProductTagLogMessages;
 import fpt.teddypet.application.constants.producttag.ProductTagMessages;
-import fpt.teddypet.application.dto.request.ProductTagRequest;
+import fpt.teddypet.application.dto.request.product.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.mapper.ProductTagMapper;
 import fpt.teddypet.application.port.input.ProductTagService;
 import fpt.teddypet.application.port.output.ProductTagRepositoryPort;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductTag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -128,6 +129,11 @@ public class ProductTagApplicationService implements ProductTagService {
     }
 
     @Override
+    public List<ProductTag> getAllByIdsAndActiveAndDeleted(List<Long> tagIds, boolean isActive, boolean isDeleted) {
+        return productTagRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(tagIds, isActive, isDeleted);
+    }
+
+    @Override
     public List<ProductTagInfo> toInfos(List<ProductTag> tags) {
         return toInfos(tags, false, true);
     }
@@ -139,12 +145,8 @@ public class ProductTagApplicationService implements ProductTagService {
 
     @Override
     public List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted, boolean onlyActive) {
-        if (tags == null || tags.isEmpty()) {
-            return List.of();
-        }
-
         //sort theo chữ cái, không phân biệt hoa thường
-        return tags.stream()
+        return ListUtil.safe(tags).stream()
                 .filter(tag -> includeDeleted || !tag.isDeleted())
                 .filter(tag -> !onlyActive || tag.isActive())
                 .sorted(Comparator.comparing(ProductTag::getName, String.CASE_INSENSITIVE_ORDER))

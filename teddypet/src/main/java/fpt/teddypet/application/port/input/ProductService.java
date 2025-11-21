@@ -1,7 +1,7 @@
 package fpt.teddypet.application.port.input;
 
-import fpt.teddypet.application.dto.request.product.ProductRequest;
-import fpt.teddypet.application.dto.request.product.ProductSearchRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductSearchRequest;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;

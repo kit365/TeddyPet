@@ -11,5 +11,6 @@ public interface ProductAttributeRepositoryPort {
     Optional<ProductAttribute> findById(Long attributeId);
     List<ProductAttribute> findAllActive();
     Optional<ProductAttribute> findByNameIgnoreCase(String name);
+    List<ProductAttribute> findAllByIdsAndActiveAndDeleted(List<Long> ids, boolean active, boolean deleted);
 }
 

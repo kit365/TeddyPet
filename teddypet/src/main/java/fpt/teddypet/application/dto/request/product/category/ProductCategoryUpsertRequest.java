@@ -1,9 +1,10 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.category;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record ProductCategoryRequest(
+public record ProductCategoryUpsertRequest(
+        Long categoryId, // Null khi tạo mới
         @NotBlank(message = "Tên danh mục là bắt buộc")
         @Size(max = 100, message = "Tên danh mục không được vượt quá 100 ký tự")
         String name,

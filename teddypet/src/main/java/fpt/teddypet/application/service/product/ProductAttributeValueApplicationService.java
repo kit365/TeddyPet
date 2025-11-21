@@ -1,11 +1,13 @@
 package fpt.teddypet.application.service.product;
 
+import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueLogMessages;
 import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeValueReorderRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeValueResponse;
 import fpt.teddypet.application.mapper.ProductAttributeValueMapper;
 import fpt.teddypet.application.port.input.ProductAttributeValueService;
 import fpt.teddypet.application.port.output.ProductAttributeValueRepositoryPort;
+import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,7 @@ public class ProductAttributeValueApplicationService implements ProductAttribute
     @Override
     @Transactional
     public void reorder(ProductAttributeValueReorderRequest request) {
-        log.info("Bắt đầu thay đổi vị trí cho {} giá trị thuộc tính", request.items().size());
+        log.info(ProductAttributeValueLogMessages.LOG_PRODUCT_ATTRIBUTE_VALUE_REORDER_START, request.items().size());
         
         // Tạo map từ valueId -> displayOrder để tra cứu nhanh
         Map<Long, Integer> orderMap = request.items().stream()
@@ -68,7 +70,7 @@ public class ProductAttributeValueApplicationService implements ProductAttribute
         // Lưu tất cả các thay đổi
         productAttributeValueRepositoryPort.saveAll(values);
         
-        log.info("Hoàn thành thay đổi vị trí cho {} giá trị thuộc tính", values.size());
+        log.info(ProductAttributeValueLogMessages.LOG_PRODUCT_ATTRIBUTE_VALUE_REORDER_SUCCESS, values.size());
     }
 
     // User
@@ -86,11 +88,7 @@ public class ProductAttributeValueApplicationService implements ProductAttribute
     //Base method
     @Override
     public List<ProductAttributeValueResponse> toResponses(List<ProductAttributeValue> values, boolean includeDeleted, boolean onlyActive) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-
-        return values.stream()
+        return ListUtil.safe(values).stream()
                 .filter(val -> includeDeleted || !val.isDeleted())
                 .filter(val -> !onlyActive || val.isActive())
                 .sorted(Comparator.comparing(ProductAttributeValue::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
