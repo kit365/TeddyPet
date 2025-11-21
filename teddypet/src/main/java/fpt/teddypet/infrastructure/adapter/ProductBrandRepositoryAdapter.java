@@ -1,13 +1,13 @@
 package fpt.teddypet.infrastructure.adapter;
 
+import fpt.teddypet.application.constants.productbrand.ProductBrandMessages;
 import fpt.teddypet.application.port.output.ProductBrandRepositoryPort;
 import fpt.teddypet.domain.entity.ProductBrand;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -21,14 +21,30 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
     }
 
     @Override
-    public Optional<ProductBrand> findById(Long brandId) {
-        return productBrandRepository.findByIdAndIsDeletedFalse(brandId);
+    public ProductBrand findById(Long brandId) {
+        return productBrandRepository.findById(brandId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
     }
 
     @Override
+    public ProductBrand findByIdAndActiveAndDeleted(Long brandId, boolean isActive, boolean isDeleted) {
+        if(brandId == null) {
+            return null;
+        }
+        return productBrandRepository
+                .findByIdAndIsActiveAndIsDeleted(brandId, isActive, isDeleted)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
+    }
+
+
+
+    @Override
     public List<ProductBrand> findAll() {
-        return productBrandRepository.findAll().stream()
-                .filter(brand -> !brand.isDeleted())
+        return productBrandRepository
+                .findAll()
+                .stream()
                 .toList();
     }
 
@@ -39,9 +55,15 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
 
     @Override
     public boolean existsByNameAndIdNot(String name, Long brandId) {
-        return productBrandRepository.findByName(name)
-                .filter(brand -> !brand.getId().equals(brandId) && !brand.isDeleted())
+        return productBrandRepository
+                .findByName(name)
                 .isPresent();
+    }
+
+    @Override
+    public ProductBrand getReferenceById(Long brandId) {
+        return productBrandRepository
+                .getReferenceById(brandId);
     }
 }
 

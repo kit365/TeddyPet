@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeValueReorderRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeValueResponse;
 import fpt.teddypet.application.mapper.ProductAttributeValueMapper;
 import fpt.teddypet.application.port.input.ProductAttributeValueService;

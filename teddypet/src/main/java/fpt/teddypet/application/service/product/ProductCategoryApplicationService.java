@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 import fpt.teddypet.application.constants.productcategory.ProductCategoryLogMessages;
 import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
-import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
@@ -82,6 +82,16 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         return categories.stream()
                 .map(productCategoryMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public List<ProductCategory> getAllByIds(List<Long> categoryIds) {
+        return productCategoryRepositoryPort.findAllByIds(categoryIds);
+    }
+
+    @Override
+    public List<ProductCategory> getAllByIdsAndActiveAndDeleted(List<Long> categoryIds, boolean active, boolean deleted) {
+        return productCategoryRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(categoryIds, active, deleted);
     }
 
     @Override
@@ -206,7 +216,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         // Nếu Cha ẩn -> Con ẩn theo.
         if (onlyActive && category.getParent() != null) {
             if (category.getParent().isDeleted() || !category.getParent().isActive()) {
-                return null; // Ẩn luôn con nếu cha có vấn đề
+                return null;
             }
         }
 

@@ -1,6 +1,6 @@
 package fpt.teddypet.application.mapper;
 
-import fpt.teddypet.application.dto.request.ProductBrandRequest;
+import fpt.teddypet.application.dto.request.product.brand.ProductBrandRequest;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.domain.entity.ProductBrand;

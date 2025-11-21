@@ -1,7 +1,7 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productbrand.ProductBrandMessages;
-import fpt.teddypet.application.dto.request.ProductBrandRequest;
+import fpt.teddypet.application.dto.request.product.brand.ProductBrandRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
 import fpt.teddypet.application.port.input.ProductBrandService;

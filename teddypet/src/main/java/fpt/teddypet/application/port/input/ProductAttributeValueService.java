@@ -1,6 +1,6 @@
 package fpt.teddypet.application.port.input;
 
-import fpt.teddypet.application.dto.request.ProductAttributeValueReorderRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeValueResponse;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import java.util.List;

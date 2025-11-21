@@ -1,9 +1,11 @@
 package fpt.teddypet.application.dto.response.product.product;
 
+import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
+import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 
@@ -30,6 +32,8 @@ public record ProductResponse(
         List<ProductCategoryInfo> categories,
         List<ProductTagInfo> tags,
         List<ProductAgeRangeInfo> ageRanges,
+        List<ProductAttributeInfo> attribute,
+        List<ProductVariantResponse> variants,
         ProductBrandInfo brand,
         boolean isActive,
         boolean isDeleted,

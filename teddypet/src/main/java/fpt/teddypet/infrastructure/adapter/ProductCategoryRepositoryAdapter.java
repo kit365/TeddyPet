@@ -3,6 +3,7 @@ package fpt.teddypet.infrastructure.adapter;
 import fpt.teddypet.application.port.output.ProductCategoryRepositoryPort;
 import fpt.teddypet.domain.entity.ProductCategory;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductCategoryRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -57,8 +58,7 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         }
         
         Set<Long> allIds = new HashSet<>(categoryIds);
-        
-        // Recursively collect all descendant IDs
+
         List<Long> currentLevel = new ArrayList<>(categoryIds);
         while (!currentLevel.isEmpty()) {
             List<Long> nextLevel = new ArrayList<>();
@@ -76,5 +76,45 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         
         return new ArrayList<>(allIds);
     }
+
+    @Override
+    public List<ProductCategory> findAllByIds(List<Long> categoryIds) {
+
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<ProductCategory> categories = productCategoryRepository.findAllById(categoryIds);
+
+        checkMissingIds(categoryIds, categories);
+        return categories;
+    }
+
+    @Override
+    public List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<ProductCategory> categories = productCategoryRepository.findAllByIdInAndIsActiveAndIsDeleted(categoryIds, active, deleted);
+
+        checkMissingIds(categoryIds, categories);
+        return categories;
+    }
+
+
+    private void checkMissingIds(List<Long> requestedIds, List<ProductCategory> foundCategories) {
+        List<Long> distinctIds = requestedIds.stream().distinct().toList();
+
+        if (foundCategories.size() != distinctIds.size()) {
+            List<Long> foundIds = foundCategories.stream().map(ProductCategory::getId).toList();
+            List<Long> missingIds = distinctIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .toList();
+
+            throw new EntityNotFoundException("Không tìm thấy danh mục với ID: " + missingIds);
+        }
+    }
+
 }
 

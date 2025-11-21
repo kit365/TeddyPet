@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.attribute;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

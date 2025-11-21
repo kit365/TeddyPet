@@ -1,6 +1,6 @@
 package fpt.teddypet.application.mapper;
 
-import fpt.teddypet.application.dto.request.ProductVariantRequest;
+import fpt.teddypet.application.dto.request.product.variant.ProductVariantRequest;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.entity.ProductVariant;
 import org.mapstruct.*;

@@ -2,22 +2,20 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.product.ProductLogMessages;
 import fpt.teddypet.application.constants.product.ProductMessages;
-import fpt.teddypet.application.dto.request.product.ProductRequest;
-import fpt.teddypet.application.dto.request.product.ProductSearchRequest;
-import fpt.teddypet.application.dto.request.product.ProductSortField;
+import fpt.teddypet.application.dto.request.product.product.ProductRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductSearchRequest;
+import fpt.teddypet.application.dto.request.product.product.ProductSortField;
 import fpt.teddypet.application.dto.common.SortDirection;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
 import fpt.teddypet.application.mapper.ProductMapper;
 import fpt.teddypet.application.port.input.*;
+import fpt.teddypet.application.dto.request.product.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.port.output.ProductRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductAgeRange;
-import fpt.teddypet.domain.entity.ProductBrand;
-import fpt.teddypet.domain.entity.ProductCategory;
-import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.specification.ProductSpecification;
 import jakarta.persistence.EntityNotFoundException;
@@ -77,7 +75,7 @@ public class ProductApplicationService implements ProductService {
         Product product = Product.builder().build();
         productMapper.updateProductFromRequest(request, product);
         product.setSlug(slug);
-        
+
         // Set barcode if provided
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             validateBarcodeUniqueness(request.barcode(), null);
@@ -88,16 +86,14 @@ public class ProductApplicationService implements ProductService {
         if (request.status() == null) {
             product.setStatus(ProductStatusEnum.IN_STOCK);
         }
+
         if (product.getViewCount() == null) {
             product.setViewCount(0);
         }
         if (product.getSoldCount() == null) {
             product.setSoldCount(0);
         }
-        // ProductRequest ensures petTypes is never null
-        if (request.petTypes().isEmpty()) {
-            product.setPetTypes(new ArrayList<>());
-        }
+
 
         setProductRelationships(product, request);
 
@@ -106,6 +102,15 @@ public class ProductApplicationService implements ProductService {
 
         Product savedProduct = productRepositoryPort.save(product);
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
+
+        if (request.images() != null && !request.images().isEmpty()) {
+            productImageService.saveImages(new fpt.teddypet.application.dto.request.product.image.ProductImageSaveRequest(savedProduct.getId(), request.images()));
+        }
+
+        if (request.variants() != null && !request.variants().isEmpty()) {
+            productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
+        }
+
         return productMapper.toResponse(savedProduct);
     }
 
@@ -116,15 +121,20 @@ public class ProductApplicationService implements ProductService {
 
         Product product = getByIdAndIsDeletedFalse(productId);
 
-        // Check if slug needs to be updated
-        String newSlug = SlugUtil.toSlug(request.name());
+        String newSlug;
+
+        if(request.slug() != null && !request.slug().trim().isEmpty()) {
+            newSlug = request.slug().trim();
+        } else {
+            newSlug = SlugUtil.toSlug(request.name());
+        }
+
         if (!product.getSlug().equals(newSlug)) {
             validateSlugUniqueness(newSlug, productId);
-            product.setSlug(newSlug);
         }
 
         productMapper.updateProductFromRequest(request, product);
-        
+
         // Set barcode if provided
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             if (!request.barcode().trim().equals(product.getBarcode())) {
@@ -140,6 +150,15 @@ public class ProductApplicationService implements ProductService {
 
         Product savedProduct = productRepositoryPort.save(product);
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
+
+        if (request.images() != null) {
+             productImageService.saveImages(new fpt.teddypet.application.dto.request.product.image.ProductImageSaveRequest(savedProduct.getId(), request.images()));
+        }
+
+        if (request.variants() != null) {
+             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
+        }
+
         return productMapper.toResponse(savedProduct);
     }
 
@@ -173,10 +192,10 @@ public class ProductApplicationService implements ProductService {
         Product product = getById(productId);
         return productMapper.toDetailResponse(product)
                 .toBuilder()
-                .categories(productCategoryService.toInfos(product.getCategories(), false,false))
-                .tags(productTagService.toInfos(product.getTags(), false,false))
-                .ageRanges(productAgeRangeService.toInfos(product.getAgeRanges(), false,false))
-                .attribute(productAttributeService.toInfos(product.getAttributes(), false,false))
+                .categories(productCategoryService.toInfos(product.getCategories(), false, false))
+                .tags(productTagService.toInfos(product.getTags(), false, false))
+                .ageRanges(productAgeRangeService.toInfos(product.getAgeRanges(), false, false))
+                .attribute(productAttributeService.toInfos(product.getAttributes(), false, false))
                 .images(productImageService.toInfos(product.getImages(), false, false))
                 .variants(productVariantService.getByProductId(product.getId(), false, false))
                 .brand(productBrandService.toInfo(product.getBrand(), false, false))
@@ -185,7 +204,7 @@ public class ProductApplicationService implements ProductService {
 
     @Override
     public PageResponse<ProductResponse> getAllPaged(ProductSearchRequest request) {
-        log.info("Searching products with keyword: {}, page: {}, size: {}", 
+        log.info("Searching products with keyword: {}, page: {}, size: {}",
                 request.keyword(), request.page(), request.size());
 
         // Build base and keyword specifications
@@ -205,7 +224,7 @@ public class ProductApplicationService implements ProductService {
             // Get "ALL" age range ID once (optimize)
             ProductAgeRange allAgeRange = productAgeRangeService.findByName("ALL");
             // Check if any selected age range is "ALL"
-            boolean hasAllAgeRange = allAgeRange != null 
+            boolean hasAllAgeRange = allAgeRange != null
                     && ageRangeIdsToFilter.contains(allAgeRange.getId());
             // If "ALL" is selected, skip age range filter
             if (hasAllAgeRange) {
@@ -238,16 +257,16 @@ public class ProductApplicationService implements ProductService {
         Sort.Direction direction = request.getSortDir() == SortDirection.ASC
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
-        Pageable pageable = PageRequest.of(request.page(), request.size(), 
+        Pageable pageable = PageRequest.of(request.page(), request.size(),
                 Sort.by(direction, sortField.getFieldName()));
-        
+
         log.info("Sort by: {} {}", sortField.getFieldName(), direction);
 
         Page<Product> productPage = productRepositoryPort.findAll(combinedSpec, pageable);
 
         Page<ProductResponse> productResponsePage = productPage.map(productMapper::toResponse);
 
-        log.info("Found {} products (page {} of {})", 
+        log.info("Found {} products (page {} of {})",
                 productPage.getTotalElements(), request.page(), productPage.getTotalPages());
 
 
@@ -300,60 +319,34 @@ public class ProductApplicationService implements ProductService {
 
     private void setProductRelationships(Product product, ProductRequest request) {
 
-        if (request.brandId() != null) {
-            ProductBrand brand = getBrandById(request.brandId());
-            product.setBrand(brand);
-        } else {
-            product.setBrand(null);
-        }
+       product.setBrand(productBrandService.getByIdAndStatusAndDeleted(
+               request.brandId(),
+               true,
+               false));
+
+        product.setCategories(productCategoryService.getAllByIdsAndActiveAndDeleted(
+                request.categoryIds(),
+                true,
+                false));
+
+        product.setTags(productTagService.getAllByIdsAndActiveAndDeleted(
+                request.tagIds(),
+                true,
+                false));
 
 
-        if (!request.categoryIds().isEmpty()) {
-            List<ProductCategory> categories = request.categoryIds().stream()
-                    .map(this::getCategoryById)
-                    .toList();
-            product.setCategories(categories);
-        } else {
-            product.setCategories(new ArrayList<>());
-        }
+        product.setAgeRanges(productAgeRangeService.getAllByIdsAndActiveAndDeleted(
+                request.ageRangeIds(),
+                true,
+                false
+        ));
 
-    
-        if (!request.tagIds().isEmpty()) {
-            List<ProductTag> tags = request.tagIds().stream()
-                    .map(this::getTagById)
-                    .toList();
-            product.setTags(tags);
-        } else {
-            product.setTags(new ArrayList<>());
-        }
-
-        if (!request.ageRangeIds().isEmpty()) {
-            List<ProductAgeRange> ageRanges = request.ageRangeIds().stream()
-                    .map(this::getAgeRangeById)
-                    .toList();
-            product.setAgeRanges(ageRanges);
-        } else {
-            product.setAgeRanges(new ArrayList<>());
-        }
+        product.setAttributes(productAttributeService.getAllByIdsAndActiveAndDeleted(
+                request.attributeIds(),
+                true,
+                false
+        ));
     }
-
-    private ProductBrand getBrandById(Long brandId) {
-        return productBrandService.getById(brandId);
-    }
-
-    private ProductCategory getCategoryById(Long categoryId) {
-        return productCategoryService.getById(categoryId);
-    }
-
-    private ProductTag getTagById(Long tagId) {
-        return productTagService.getById(tagId);
-    }
-
-    private ProductAgeRange getAgeRangeById(Long ageRangeId) {
-        return productAgeRangeService.getById(ageRangeId);
-    }
-
-
 
 }
 

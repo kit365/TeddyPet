@@ -1,7 +1,7 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeValueReorderRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.port.input.ProductAttributeValueService;
 import fpt.teddypet.presentation.constants.ApiConstants;
@@ -31,6 +31,8 @@ public class ProductAttributeValueController {
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(ProductAttributeValueMessages.MESSAGE_PRODUCT_ATTRIBUTE_VALUE_REORDER_SUCCESS));
     }
+
+
 }
 
 

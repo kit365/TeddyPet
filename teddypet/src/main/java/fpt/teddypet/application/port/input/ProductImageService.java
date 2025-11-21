@@ -1,7 +1,7 @@
 package fpt.teddypet.application.port.input;
 
-import fpt.teddypet.application.dto.request.ProductImageRequest;
-import fpt.teddypet.application.dto.request.ProductImageSaveRequest;
+import fpt.teddypet.application.dto.request.product.image.ProductImageRequest;
+import fpt.teddypet.application.dto.request.product.image.ProductImageSaveRequest;
 import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
 import fpt.teddypet.application.dto.response.product.image.ProductImageResponse;
 import fpt.teddypet.domain.entity.ProductImage;

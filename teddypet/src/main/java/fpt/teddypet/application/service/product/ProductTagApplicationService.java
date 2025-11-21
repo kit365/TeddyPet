@@ -2,7 +2,7 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.producttag.ProductTagLogMessages;
 import fpt.teddypet.application.constants.producttag.ProductTagMessages;
-import fpt.teddypet.application.dto.request.ProductTagRequest;
+import fpt.teddypet.application.dto.request.product.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.mapper.ProductTagMapper;
@@ -125,6 +125,11 @@ public class ProductTagApplicationService implements ProductTagService {
         if (onlyActive && !tag.isActive()) return null;
 
         return productTagMapper.toInfo(tag);
+    }
+
+    @Override
+    public List<ProductTag> getAllByIdsAndActiveAndDeleted(List<Long> tagIds, boolean isActive, boolean isDeleted) {
+        return productTagRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(tagIds, isActive, isDeleted);
     }
 
     @Override

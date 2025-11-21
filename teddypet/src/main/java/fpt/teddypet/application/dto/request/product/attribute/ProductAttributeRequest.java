@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.attribute;
 
 import fpt.teddypet.domain.enums.AttributeDisplayType;
 import jakarta.validation.Valid;
@@ -19,7 +19,9 @@ public record ProductAttributeRequest(
         Integer displayOrder,
 
         @Valid
-        List<ProductAttributeValueItemRequest> values
+        List<ProductAttributeValueItemRequest> values,
+
+        List<fpt.teddypet.domain.enums.UnitEnum> supportedUnits
 ) {
 }
 

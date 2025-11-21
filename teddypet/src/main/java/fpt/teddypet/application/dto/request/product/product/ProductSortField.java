@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request.product;
+package fpt.teddypet.application.dto.request.product.product;
 
 
 import lombok.Getter;

@@ -12,13 +12,8 @@ public interface ProductCategoryRepositoryPort {
     Optional<ProductCategory> findByIdAndIsDeletedFalse(Long categoryId);
     List<ProductCategory> findRootCategories();
     List<ProductCategory> findChildCategories(Long parentId);
-    /**
-     * Get all descendant category IDs (children and all nested children) recursively
-     * When filtering products by category, this ensures products in child categories are included
-     * 
-     * @param categoryIds list of parent category IDs
-     * @return list containing original IDs plus all descendant IDs
-     */
     List<Long> findAllDescendantIds(List<Long> categoryIds);
+    List<ProductCategory> findAllByIds(List<Long> categoryIds);
+    List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted);
 }
 

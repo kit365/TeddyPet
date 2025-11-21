@@ -1,13 +1,11 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.image;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record ProductImageRequest(
-        @NotNull(message = "ID sản phẩm là bắt buộc")
-        Long productId,
+public record ProductImageItemRequest(
+        Long imageId, // null nếu là tạo mới
         
         @NotBlank(message = "URL hình ảnh là bắt buộc")
         @Size(max = 500, message = "URL hình ảnh không được vượt quá 500 ký tự")

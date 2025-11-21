@@ -1,4 +1,4 @@
-package fpt.teddypet.application.dto.request;
+package fpt.teddypet.application.dto.request.product.brand;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

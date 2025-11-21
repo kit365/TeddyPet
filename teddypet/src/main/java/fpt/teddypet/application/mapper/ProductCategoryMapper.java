@@ -1,6 +1,6 @@
 package fpt.teddypet.application.mapper;
 
-import fpt.teddypet.application.dto.request.ProductCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;

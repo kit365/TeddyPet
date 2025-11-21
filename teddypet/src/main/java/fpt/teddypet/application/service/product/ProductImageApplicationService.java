@@ -2,9 +2,9 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productimage.ProductImageLogMessages;
 import fpt.teddypet.application.constants.productimage.ProductImageMessages;
-import fpt.teddypet.application.dto.request.ProductImageItemRequest;
-import fpt.teddypet.application.dto.request.ProductImageRequest;
-import fpt.teddypet.application.dto.request.ProductImageSaveRequest;
+import fpt.teddypet.application.dto.request.product.image.ProductImageItemRequest;
+import fpt.teddypet.application.dto.request.product.image.ProductImageRequest;
+import fpt.teddypet.application.dto.request.product.image.ProductImageSaveRequest;
 import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
 import fpt.teddypet.application.dto.response.product.image.ProductImageResponse;
 import fpt.teddypet.application.mapper.ProductImageMapper;
@@ -16,7 +16,6 @@ import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductImage;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -27,9 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
 
 @Slf4j
 @Service

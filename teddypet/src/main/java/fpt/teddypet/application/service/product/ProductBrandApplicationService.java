@@ -2,7 +2,7 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productbrand.ProductBrandLogMessages;
 import fpt.teddypet.application.constants.productbrand.ProductBrandMessages;
-import fpt.teddypet.application.dto.request.ProductBrandRequest;
+import fpt.teddypet.application.dto.request.product.brand.ProductBrandRequest;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.application.mapper.ProductBrandMapper;
@@ -10,7 +10,6 @@ import fpt.teddypet.application.port.input.ProductBrandService;
 import fpt.teddypet.application.port.output.ProductBrandRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.domain.entity.ProductBrand;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,7 @@ public class ProductBrandApplicationService implements ProductBrandService {
     @Transactional
     public ProductBrandResponse create(ProductBrandRequest request) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_START, request.name());
-        // Validate name uniqueness
+
         validateNameUniqueness(request.name(), null);
 
         ProductBrand brand = ProductBrand.builder().build();
@@ -71,9 +70,17 @@ public class ProductBrandApplicationService implements ProductBrandService {
 
     @Override
     public ProductBrand getById(Long brandId) {
-        return productBrandRepositoryPort.findById(brandId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
+        return productBrandRepositoryPort.findById(brandId);
+    }
+
+    @Override
+    public ProductBrand getByIdAndStatusAndDeleted(Long brandId, boolean isActive, boolean isDeleted) {
+        return productBrandRepositoryPort.findByIdAndActiveAndDeleted(brandId, isActive, isDeleted);
+    }
+
+    @Override
+    public ProductBrand getReferenceById(Long brandId) {
+        return productBrandRepositoryPort.getReferenceById(brandId);
     }
 
     @Override
@@ -129,7 +136,6 @@ public class ProductBrandApplicationService implements ProductBrandService {
         }
 
 
-        // Nếu chỉ muốn lấy Active (onlyActive=true) MÀ nó không active -> Trả về null
         if (onlyActive && !brand.isActive()) {
             return null;
         }

@@ -9,10 +9,16 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import java.util.List;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", 
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+        uses = {ProductAttributeValueMapper.class})
 public interface ProductAttributeMapper {
+
+    @Mapping(target = "values", source = "values")
+    ProductAttributeResponse toResponse(ProductAttribute attribute, List<ProductAttributeValue> values);
 
     @Mapping(target = "valueIds", expression = "java(mapValuesToIds(attribute.getValues(), context))")
     @Mapping(source = "deleted", target = "isDeleted")

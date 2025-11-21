@@ -2,14 +2,13 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productagerange.ProductAgeRangeLogMessages;
 import fpt.teddypet.application.constants.productagerange.ProductAgeRangeMessages;
-import fpt.teddypet.application.dto.request.ProductAgeRangeRequest;
+import fpt.teddypet.application.dto.request.product.agerange.ProductAgeRangeRequest;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.application.mapper.ProductAgeRangeMapper;
 import fpt.teddypet.application.port.input.ProductAgeRangeService;
 import fpt.teddypet.application.port.output.ProductAgeRangeRepositoryPort;
 import fpt.teddypet.domain.entity.ProductAgeRange;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,10 +66,13 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
     }
 
     @Override
+    public List<ProductAgeRange> getAllByIdsAndActiveAndDeleted(List<Long> ageRangeIds, boolean isActive, boolean isDeleted) {
+        return productAgeRangeRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(ageRangeIds, isActive, isDeleted);
+    }
+
+    @Override
     public ProductAgeRange getById(Long ageRangeId) {
-        return productAgeRangeRepositoryPort.findById(ageRangeId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_NOT_FOUND_BY_ID, ageRangeId)));
+       return productAgeRangeRepositoryPort.findById(ageRangeId);
     }
 
     @Override

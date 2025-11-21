@@ -2,8 +2,8 @@ package fpt.teddypet.application.service.product;
 
 import fpt.teddypet.application.constants.productattribute.ProductAttributeLogMessages;
 import fpt.teddypet.application.constants.productattribute.ProductAttributeMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeRequest;
-import fpt.teddypet.application.dto.request.ProductAttributeValueItemRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueItemRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import fpt.teddypet.application.mapper.ProductAttributeMapper;
@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -53,6 +52,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         attribute.setDisplayOrder(displayOrder);
         attribute.setActive(true);
         attribute.setDeleted(false);
+        attribute.setSupportedUnits(request.supportedUnits());
 
         if (request.values() != null && !request.values().isEmpty()) {
             attribute.getValues().addAll(buildValuesForCreate(attribute, request.values()));
@@ -74,6 +74,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         attribute.setName(request.name());
         attribute.setDisplayType(request.displayType());
+        attribute.setSupportedUnits(request.supportedUnits());
 
         if (request.displayOrder() != null) {
             attribute.setDisplayOrder(request.displayOrder());
@@ -117,6 +118,21 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         });
         productAttributeRepositoryPort.save(attribute);
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
+        log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
+    }
+
+    @Override
+    public List<ProductAttribute> getAllByIdsAndActiveAndDeleted(List<Long> ids, boolean active, boolean deleted) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return productAttributeRepositoryPort.findAllByIdsAndActiveAndDeleted(ids, active, deleted);
+    }
+
+    @Override
+    public List<fpt.teddypet.domain.enums.UnitEnum> getSupportedUnits(Long attributeId) {
+        ProductAttribute attribute = getActiveAttribute(attributeId);
+        return attribute.getSupportedUnits();
     }
 
     private ProductAttribute getActiveAttribute(Long attributeId) {
@@ -131,6 +147,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         List<ProductAttributeValue> values = new ArrayList<>();
         int currentMaxOrder = -1;
 
+        log.info("Building {} values for create attribute: {}", valueRequests.size(), attribute.getName());
         for (ProductAttributeValueItemRequest valueRequest : valueRequests) {
             int displayOrder = valueRequest.displayOrder() != null
                     ? valueRequest.displayOrder()
@@ -149,7 +166,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                 currentMaxOrder = Math.max(currentMaxOrder, valueRequest.displayOrder());
             }
         }
-
+        log.info("Built {} values successfully", values.size());
         return values;
     }
 
@@ -166,12 +183,15 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         Set<Long> processedIds = new HashSet<>();
 
         if (valueRequests == null || valueRequests.isEmpty()) {
+            log.info("No value requests provided, marking all existing values as deleted");
             reusableValues.forEach(value -> {
                 value.setDeleted(true);
                 value.setActive(false);
             });
             return;
         }
+
+        log.info("Syncing {} value requests with {} existing values", valueRequests.size(), existingValues.size());
 
         for (int index = 0; index < valueRequests.size(); index++) {
             ProductAttributeValueItemRequest valueRequest = valueRequests.get(index);
@@ -237,13 +257,12 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             return null;
         }
 
-        return new ProductAttributeResponse(
-                attribute.getAttributeId(),
-                attribute.getName(),
-                attribute.getDisplayType(),
-                attribute.getDisplayOrder(),
-                productAttributeValueService.toResponses(attribute.getValues(), isDeleted)
-        );
+        List<ProductAttributeValue> values = attribute.getValues().stream()
+                .filter(val -> isDeleted || !val.isDeleted())
+                .sorted(Comparator.comparing(ProductAttributeValue::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+
+        return productAttributeMapper.toResponse(attribute, values);
     }
 
     @Override
@@ -320,7 +339,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             }
             String normalized = valueRequest.value().trim().toLowerCase();
             if (!seen.add(normalized)) {
-                throw new IllegalArgumentException("Danh sách giá trị thuộc tính chứa phần tử trùng: " + valueRequest.value());
+                throw new IllegalArgumentException(String.format(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_VALUE_DUPLICATE, valueRequest.value()));
             }
         }
     }

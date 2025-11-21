@@ -1,13 +1,15 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.productattribute.ProductAttributeMessages;
-import fpt.teddypet.application.dto.request.ProductAttributeRequest;
+import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.EnumOptionResponse;
+import fpt.teddypet.application.dto.response.UnitResponse;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import fpt.teddypet.application.port.input.ProductAttributeService;
 import fpt.teddypet.application.util.EnumUtil;
 import fpt.teddypet.domain.enums.AttributeDisplayType;
+import fpt.teddypet.domain.enums.UnitEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static fpt.teddypet.application.util.UnitEnumUtil.getUnitsByCategory;
 
 @RestController
 @RequestMapping(ApiConstants.API_PRODUCT_ATTRIBUTES)
@@ -35,6 +39,13 @@ public class ProductAttributeController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_CREATED_SUCCESS, response));
+    }
+
+    @GetMapping("/measurement")
+    @Operation(summary = "Lấy đơn vị đo lường (Measurement Unit)", description = "Trả về danh sách đơn vị dùng cho việc định lượng (Kg, Gram, Lít...)")
+    public ResponseEntity<ApiResponse<List<UnitResponse>>> getMeasurementUnits() {
+        List<UnitResponse> units = getUnitsByCategory(UnitEnum.UnitCategory.MEASUREMENT);
+        return ResponseEntity.ok(ApiResponse.success(units));
     }
 
     @PutMapping("/{attributeId}")
@@ -76,6 +87,13 @@ public class ProductAttributeController {
                 .map(type -> new EnumOptionResponse(type.name(), type.getLabel()))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/{attributeId}/supported-units")
+    @Operation(summary = "Lấy danh sách đơn vị hỗ trợ của thuộc tính")
+    public ResponseEntity<ApiResponse<List<UnitEnum>>> getSupportedUnits(@PathVariable Long attributeId) {
+        List<UnitEnum> supportedUnits = productAttributeService.getSupportedUnits(attributeId);
+        return ResponseEntity.ok(ApiResponse.success(supportedUnits));
     }
 }
 
