@@ -38,7 +38,6 @@ public interface ProductVariantMapper {
     @Mapping(target = "height", source = "dimensions.height")
     @Mapping(target = "price", source = "price.amount")
     @Mapping(target = "salePrice", source = "price.saleAmount")
-    @Mapping(target = "sku", source = "sku.value")
     @Mapping(target = "stockQuantity", source = "stockQuantity.value")
     @Mapping(target = "featuredImageId", source = "featuredImage.id")
     @Mapping(target = "featuredImageUrl", source = "featuredImage.imageUrl")

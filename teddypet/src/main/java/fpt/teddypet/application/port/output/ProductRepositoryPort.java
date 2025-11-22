@@ -14,6 +14,8 @@ public interface ProductRepositoryPort {
     Optional<Product> findBySlugAndIsActiveTrueAndIsDeletedFalse(String slug);
     boolean existsBySlug(String slug);
     boolean existsByBarcode(String barcode);
+    
+    boolean existsBySku(String sku);
     Optional<Product> findByBarcodeAndIsActiveTrueAndIsDeletedFalse(String barcode);
     Product save(Product product);
     List<Product> findAll();

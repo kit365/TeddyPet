@@ -1,6 +1,7 @@
 package fpt.teddypet.application.dto.request.product.attribute;
 
 import fpt.teddypet.domain.enums.AttributeDisplayType;
+import fpt.teddypet.domain.enums.UnitEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,7 +22,7 @@ public record ProductAttributeRequest(
         @Valid
         List<ProductAttributeValueItemRequest> values,
 
-        List<fpt.teddypet.domain.enums.UnitEnum> supportedUnits
+        List<UnitEnum> supportedUnits
 ) {
 }
 

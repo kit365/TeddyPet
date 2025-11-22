@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.ProductBrandMapper;
 import fpt.teddypet.application.port.input.ProductBrandService;
 import fpt.teddypet.application.port.output.ProductBrandRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductBrand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,8 +111,14 @@ public class ProductBrandApplicationService implements ProductBrandService {
 
         if (nameExists) {
             log.warn(ProductBrandLogMessages.LOG_PRODUCT_BRAND_NAME_VALIDATION_FAILED, name);
-            throw new IllegalArgumentException(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NAME_ALREADY_EXISTS);
         }
+        
+        ValidationUtils.ensureUnique(
+            () -> brandId != null
+                ? productBrandRepositoryPort.existsByNameAndIdNot(name, brandId)
+                : productBrandRepositoryPort.existsByName(name),
+            ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NAME_ALREADY_EXISTS
+        );
     }
 
     @Override

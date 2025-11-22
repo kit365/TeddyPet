@@ -27,7 +27,10 @@ public class Product extends BaseEntity {
     private String slug; 
 
     @Column(name = "barcode", unique = true, length = 50)
-    private String barcode; // Mã vạch/mã quét sản phẩm
+    private String barcode; // Mã vạch/mã quét sản phẩm (do nhà sản xuất cung cấp)
+
+    @Column(name = "sku", unique = true, length = 50)
+    private String sku; // Mã quản lý kho nội bộ (tự động sinh bởi hệ thống)
 
     @Column(nullable = false, length = 200)
     private String name;

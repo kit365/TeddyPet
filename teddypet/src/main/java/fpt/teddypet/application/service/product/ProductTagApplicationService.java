@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.ProductTagMapper;
 import fpt.teddypet.application.port.input.ProductTagService;
 import fpt.teddypet.application.port.output.ProductTagRepositoryPort;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductTag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -103,8 +104,14 @@ public class ProductTagApplicationService implements ProductTagService {
 
         if (nameExists) {
             log.warn(ProductTagLogMessages.LOG_PRODUCT_TAG_NAME_VALIDATION_FAILED, name);
-            throw new IllegalArgumentException(ProductTagMessages.MESSAGE_PRODUCT_TAG_NAME_ALREADY_EXISTS);
         }
+        
+        ValidationUtils.ensureUnique(
+            () -> tagId != null
+                ? productTagRepositoryPort.existsByNameAndIdNot(name, tagId)
+                : productTagRepositoryPort.existsByName(name),
+            ProductTagMessages.MESSAGE_PRODUCT_TAG_NAME_ALREADY_EXISTS
+        );
     }
     
     @Override

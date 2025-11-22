@@ -14,6 +14,7 @@ import fpt.teddypet.application.port.input.*;
 import fpt.teddypet.application.dto.request.product.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.port.output.ProductRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
@@ -76,9 +77,12 @@ public class ProductApplicationService implements ProductService {
         productMapper.updateProductFromRequest(request, product);
         product.setSlug(slug);
 
-        // Set barcode if provided
+        // Auto-generate SKU for internal warehouse management
+        generateAndSetProductSku(product, request, null);
+        
+        // Set barcode if provided by user
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
-            validateBarcodeUniqueness(request.barcode(), null);
+            validateBarcodeUniqueness(request.barcode().trim(), null);
             product.setBarcode(request.barcode().trim());
         }
 
@@ -86,7 +90,6 @@ public class ProductApplicationService implements ProductService {
         if (request.status() == null) {
             product.setStatus(ProductStatusEnum.IN_STOCK);
         }
-
         if (product.getViewCount() == null) {
             product.setViewCount(0);
         }
@@ -94,9 +97,7 @@ public class ProductApplicationService implements ProductService {
             product.setSoldCount(0);
         }
 
-
         setProductRelationships(product, request);
-
         product.setActive(true);
         product.setDeleted(false);
 
@@ -122,7 +123,6 @@ public class ProductApplicationService implements ProductService {
         Product product = getByIdAndIsDeletedFalse(productId);
 
         String newSlug;
-
         if(request.slug() != null && !request.slug().trim().isEmpty()) {
             newSlug = request.slug().trim();
         } else {
@@ -135,7 +135,10 @@ public class ProductApplicationService implements ProductService {
 
         productMapper.updateProductFromRequest(request, product);
 
-        // Set barcode if provided
+        // Regenerate SKU if product attributes change
+        generateAndSetProductSku(product, request, productId);
+        
+        // Update barcode if provided
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             if (!request.barcode().trim().equals(product.getBarcode())) {
                 validateBarcodeUniqueness(request.barcode().trim(), productId);
@@ -145,7 +148,6 @@ public class ProductApplicationService implements ProductService {
             product.setBarcode(null);
         }
 
-        // Set relationships
         setProductRelationships(product, request);
 
         Product savedProduct = productRepositoryPort.save(product);
@@ -285,35 +287,82 @@ public class ProductApplicationService implements ProductService {
     }
 
     private void validateSlugUniqueness(String slug, Long excludeProductId) {
-        if (productRepositoryPort.existsBySlug(slug)) {
-            // Check if it's the same product (for update)
-            if (excludeProductId != null) {
-                Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId)
-                        .orElse(null);
-                if (existing != null && existing.getSlug().equals(slug)) {
-                    return; // Same product, same slug - OK
-                }
+        if (excludeProductId != null) {
+            Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
+            if (existing != null && existing.getSlug().equals(slug)) {
+                return; // Same product, same slug - OK
             }
-            log.warn(ProductLogMessages.LOG_PRODUCT_SLUG_ALREADY_EXISTS, slug);
-            throw new IllegalArgumentException(String.format(ProductMessages.MESSAGE_PRODUCT_SLUG_ALREADY_EXISTS, slug));
         }
+        
+        ValidationUtils.ensureUnique(
+            () -> productRepositoryPort.existsBySlug(slug),
+            String.format(ProductMessages.MESSAGE_PRODUCT_SLUG_ALREADY_EXISTS, slug)
+        );
+        
+        if (productRepositoryPort.existsBySlug(slug)) {
+            log.warn(ProductLogMessages.LOG_PRODUCT_SLUG_ALREADY_EXISTS, slug);
+        }
+    }
+    
+    private void validateSkuUniqueness(String sku, Long excludeProductId) {
+        if (excludeProductId != null) {
+            Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
+            if (existing != null && sku.equals(existing.getSku())) {
+                return; // Same product, same SKU - OK
+            }
+        }
+        
+        ValidationUtils.ensureUnique(
+            () -> productRepositoryPort.existsBySku(sku),
+            String.format("SKU '%s' đã tồn tại", sku)
+        );
     }
 
     private void validateBarcodeUniqueness(String barcode, Long excludeProductId) {
         if (barcode == null || barcode.trim().isEmpty()) {
             return; // Barcode is optional
         }
-        if (productRepositoryPort.existsByBarcode(barcode)) {
-            // Check if it's the same product (for update)
-            if (excludeProductId != null) {
-                Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId)
-                        .orElse(null);
-                if (existing != null && barcode.equals(existing.getBarcode())) {
-                    return; // Same product, same barcode - OK
-                }
+        
+        if (excludeProductId != null) {
+            Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
+            if (existing != null && barcode.equals(existing.getBarcode())) {
+                return; // Same product, same barcode - OK
             }
+        }
+        
+        ValidationUtils.ensureUnique(
+            () -> productRepositoryPort.existsByBarcode(barcode),
+            String.format(ProductMessages.MESSAGE_PRODUCT_BARCODE_ALREADY_EXISTS, barcode)
+        );
+        
+        if (productRepositoryPort.existsByBarcode(barcode)) {
             log.warn(ProductLogMessages.LOG_PRODUCT_BARCODE_ALREADY_EXISTS, barcode);
-            throw new IllegalArgumentException(String.format(ProductMessages.MESSAGE_PRODUCT_BARCODE_ALREADY_EXISTS, barcode));
+        }
+    }
+    
+    /**
+     * Generate and set product SKU based on brand, category, and name
+     */
+    private void generateAndSetProductSku(Product product, ProductRequest request, Long productId) {
+        String brandName = request.brandId() != null 
+                ? productBrandService.getByIdAndStatusAndDeleted(request.brandId(), true, false).getName()
+                : "NB";
+        
+        String categoryName = "GEN";
+        if (request.categoryIds() != null && !request.categoryIds().isEmpty()) {
+            var categories = productCategoryService.getAllByIdsAndActiveAndDeleted(
+                    request.categoryIds(), true, false);
+            if (!categories.isEmpty()) {
+                categoryName = categories.getFirst().getName();
+            }
+        }
+        
+        String generatedSku = fpt.teddypet.application.util.SkuUtil.generateProductSku(
+                brandName, categoryName, request.name());
+        
+        if (!generatedSku.equals(product.getSku())) {
+            validateSkuUniqueness(generatedSku, productId);
+            product.setSku(generatedSku);
         }
     }
 
