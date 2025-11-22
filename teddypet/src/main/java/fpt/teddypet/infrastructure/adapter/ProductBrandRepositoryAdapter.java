@@ -1,6 +1,6 @@
 package fpt.teddypet.infrastructure.adapter;
 
-import fpt.teddypet.application.constants.productbrand.ProductBrandMessages;
+import fpt.teddypet.application.constants.products.productbrand.ProductBrandMessages;
 import fpt.teddypet.application.port.output.ProductBrandRepositoryPort;
 import fpt.teddypet.domain.entity.ProductBrand;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;

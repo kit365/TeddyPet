@@ -32,10 +32,6 @@ public record ProductVariantRequest(
         @DecimalMin(value = "0.01", message = "Giá khuyến mãi phải lớn hơn 0")
         BigDecimal salePrice,
         
-        @NotBlank(message = "SKU là bắt buộc")
-        @Size(max = 50, message = "SKU không được vượt quá 50 ký tự")
-        String sku,
-        
         @NotNull(message = "Số lượng tồn kho là bắt buộc")
         @Min(value = 0, message = "Số lượng tồn kho phải >= 0")
         Integer stockQuantity,

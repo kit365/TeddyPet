@@ -1,6 +1,6 @@
 package fpt.teddypet.application.service.product;
-import fpt.teddypet.application.constants.productcategory.ProductCategoryLogMessages;
-import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
+import fpt.teddypet.application.constants.products.productcategory.ProductCategoryLogMessages;
+import fpt.teddypet.application.constants.products.productcategory.ProductCategoryMessages;
 import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
@@ -10,6 +10,7 @@ import fpt.teddypet.application.port.input.ProductCategoryService;
 import fpt.teddypet.application.port.output.ProductCategoryRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductCategory;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -147,9 +148,13 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     private void validateNoCircularReference(Long categoryId, ProductCategory parent) {
+        ValidationUtils.ensure(
+            categoryId == null || !categoryId.equals(parent.getId()),
+            ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE
+        );
+        
         if (categoryId != null && categoryId.equals(parent.getId())) {
             log.warn(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_CIRCULAR_REFERENCE, categoryId);
-            throw new IllegalArgumentException(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
         }
         
         // Check if parent is a descendant of this category
@@ -157,7 +162,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         while (current.getParent() != null) {
             if (categoryId != null && categoryId.equals(current.getParent().getId())) {
                 log.warn(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_CIRCULAR_REFERENCE, categoryId);
-                throw new IllegalArgumentException(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
+                ValidationUtils.ensure(false, ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
             }
             current = current.getParent();
         }

@@ -25,6 +25,10 @@ public class BlogTag extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 255)
     private String slug;
+    
+    @Column(name = "display_order")
+    @Builder.Default
+    private Integer displayOrder = 0; // For ordering tags
 
     // Liên kết N-N với BlogPost
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)

@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productvariant.ProductVariantLogMessages;
-import fpt.teddypet.application.constants.productvariant.ProductVariantMessages;
+import fpt.teddypet.application.constants.products.productvariant.ProductVariantLogMessages;
+import fpt.teddypet.application.constants.products.productvariant.ProductVariantMessages;
 import fpt.teddypet.application.dto.request.product.variant.ProductVariantRequest;
 import fpt.teddypet.application.dto.request.product.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
@@ -10,6 +10,7 @@ import fpt.teddypet.application.port.input.ProductService;
 import fpt.teddypet.application.port.input.ProductVariantService;
 import fpt.teddypet.application.port.output.ProductAttributeValueRepositoryPort;
 import fpt.teddypet.application.port.output.ProductVariantRepositoryPort;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import fpt.teddypet.domain.entity.ProductImage;
@@ -57,8 +58,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
 
         Price price = toPrice(request.salePrice(), request.price());
 
-        Sku sku = Sku.of(request.sku());
-
         StockQuantity stockQuantity = StockQuantity.of(request.stockQuantity());
 
         Dimensions dimensions = Dimensions.of(
@@ -71,28 +70,14 @@ public class ProductVariantApplicationService implements ProductVariantService {
         if (isUpdate) {
             variant = getById(request.variantId());
         } else {
-            // kiểm tra xem có variant đã bị xóa với cùng SKU không
-            Optional<ProductVariant> deletedVariant = productVariantRepositoryPort.findBySkuAndIsDeletedTrue(sku.getValue());
-            if (deletedVariant.isPresent()) {
-                variant = deletedVariant.get();
-                variant.setDeleted(false);
-                variant.setActive(true);
-            } else {
-                variant = ProductVariant.builder().build();
-            }
-        }
-
-        if (!isUpdate ||
-             variant.getSku() == null ||
-              !variant.getSku().getValue().equals(sku.getValue())) {
-            validateSkuUniqueness(sku.getValue(), variant.getSku() != null ? variant.getSku().getValue() : null, variant.getVariantId());
+            // For new variant, check if deleted variant exists with same SKU
+            variant = ProductVariant.builder().build();
         }
 
         productVariantMapper.updateVariantFromRequest(request, variant);
 
         variant.setProduct(product);
         variant.setPrice(price);
-        variant.setSku(sku);
         variant.setStockQuantity(stockQuantity);
         variant.setDimensions(dimensions);
 
@@ -104,12 +89,12 @@ public class ProductVariantApplicationService implements ProductVariantService {
             variant.setFeaturedImage(featuredImage);
         }
 
-        // Load và set attributeValues nếu có
+        // Load and set attributeValues if provided
+        List<ProductAttributeValue> attributeValues = new ArrayList<>();
         if (request.attributeValueIds() != null && !request.attributeValueIds().isEmpty()) {
             Set<Long> valueIds = new java.util.HashSet<>(request.attributeValueIds());
-            List<ProductAttributeValue> attributeValues = productAttributeValueRepositoryPort.findByIds(valueIds);
+            attributeValues = productAttributeValueRepositoryPort.findByIds(valueIds);
 
-            // Kiểm tra xem có value nào không tồn tại không
             if (attributeValues.size() != valueIds.size()) {
                 Set<Long> foundIds = attributeValues.stream()
                         .map(ProductAttributeValue::getValueId)
@@ -124,8 +109,19 @@ public class ProductVariantApplicationService implements ProductVariantService {
             variant.setAttributeValues(attributeValues);
         }
 
-        // Tự động sinh name từ attributeValues nếu có
+        // Auto-generate name from attributeValues
         generateNameFromAttributeValues(variant);
+
+        // Auto-generate SKU
+        String generatedSku = generateSkuForVariant(product, attributeValues);
+        Sku sku = Sku.of(generatedSku);
+        
+        // Validate SKU uniqueness only if SKU changed
+        if (!isUpdate || variant.getSku() == null || !variant.getSku().getValue().equals(sku.getValue())) {
+            validateSkuUniqueness(sku.getValue(), variant.getSku() != null ? variant.getSku().getValue() : null, variant.getVariantId());
+        }
+        
+        variant.setSku(sku);
 
         return variant;
     }
@@ -137,17 +133,7 @@ public class ProductVariantApplicationService implements ProductVariantService {
     }
 
 
-    private void validateBatchSkuUniqueness(List<ProductVariantRequest> requests) {
-        long uniqueSkuCount = requests.stream()
-                .map(ProductVariantRequest::sku)
-                .distinct()
-                .count();
 
-        if (uniqueSkuCount != requests.size()) {
-            log.warn(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_SKU_DUPLICATE, requests.size());
-            throw new IllegalArgumentException(ProductVariantMessages.MESSAGE_SKU_DUPLICATE_IN_BATCH);
-        }
-    }
 
 
     @Override
@@ -196,7 +182,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
                             variantRequest.height(),
                             variantRequest.price(),
                             variantRequest.salePrice(),
-                            variantRequest.sku(),
                             variantRequest.stockQuantity(),
                             variantRequest.unit(),
                             variantRequest.featuredImageId(),
@@ -205,7 +190,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
                     .toList();
 
             // Tạo hoặc cập nhật các variants (sử dụng batch save)
-            validateBatchSkuUniqueness(requestsWithProductId);
             List<ProductVariant> savedVariants = productVariantRepositoryPort.saveAll(prepareVariantsForBatch(requestsWithProductId));
             log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_SAVE_VARIANTS_SUCCESS, savedVariants.size(), productId);
             return savedVariants.stream()
@@ -274,19 +258,16 @@ public class ProductVariantApplicationService implements ProductVariantService {
     }
 
     private void validateSkuUniqueness(String newSku, String currentSku, Long variantId) {
-
         if (currentSku != null && currentSku.equals(newSku)) {
             return;
         }
 
-
-        boolean skuExists = variantId != null
+        ValidationUtils.ensureUnique(
+            () -> variantId != null
                 ? productVariantRepositoryPort.existsBySkuAndVariantIdNot(newSku, variantId)
-                : productVariantRepositoryPort.existsBySku(newSku);
-
-        if (skuExists) {
-            throw new IllegalArgumentException(ProductVariantMessages.MESSAGE_SKU_ALREADY_EXISTS);
-        }
+                : productVariantRepositoryPort.existsBySku(newSku),
+            ProductVariantMessages.MESSAGE_SKU_ALREADY_EXISTS
+        );
     }
 
     /**
@@ -295,9 +276,15 @@ public class ProductVariantApplicationService implements ProductVariantService {
      * Sắp xếp theo displayOrder của attribute và value
      */
     private void generateNameFromAttributeValues(ProductVariant variant) {
-        if (variant.getAttributeValues() == null || variant.getAttributeValues().isEmpty()) {
-            throw new IllegalArgumentException("attributeValueIds là bắt buộc để tự động sinh tên biến thể.");
-        }
+        ValidationUtils.ensureNotNull(
+            variant.getAttributeValues(),
+            "attributeValueIds là bắt buộc để tự động sinh tên biến thể."
+        );
+        
+        ValidationUtils.ensure(
+            !variant.getAttributeValues().isEmpty(),
+            "attributeValueIds là bắt buộc để tự động sinh tên biến thể."
+        );
 
         // Lấy danh sách attributeValues và sắp xếp theo displayOrder của attribute và value
         // So sánh theo displayOrder của attribute trước
@@ -315,5 +302,31 @@ public class ProductVariantApplicationService implements ProductVariantService {
         variant.setName(generatedName);
     }
 
+    /**
+     * Auto-generate SKU for ProductVariant
+     * Uses parent product SKU + attribute values
+     */
+    private String generateSkuForVariant(Product product, List<ProductAttributeValue> attributeValues) {
+        // Get parent SKU from product sku field
+        String parentSku = product.getSku();
+        
+        if (parentSku == null || parentSku.isBlank()) {
+            // Fallback: generate parent SKU if not exists
+            String brandName = product.getBrand() != null ? product.getBrand().getName() : "NB";
+            String categoryName = !product.getCategories().isEmpty() 
+                    ? product.getCategories().getFirst().getName()
+                    : "GEN";
+            parentSku = fpt.teddypet.application.util.SkuUtil.generateProductSku(
+                    brandName, categoryName, product.getName());
+        }
+        
+        // Extract attribute value names
+        List<String> attrNames = attributeValues.stream()
+                .map(ProductAttributeValue::getValue)
+                .toList();
+        
+        // Generate variant SKU: PARENT-ATTR1-ATTR2
+        return fpt.teddypet.application.util.SkuUtil.generateVariantSku(parentSku, attrNames);
+    }
 }
 

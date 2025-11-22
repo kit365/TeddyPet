@@ -11,6 +11,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findBySlugAndIsActiveTrueAndIsDeletedFalse(String slug);
     boolean existsBySlug(String slug);
     boolean existsByBarcode(String barcode);
+    
+    boolean existsBySku(String sku);
     Optional<Product> findByBarcodeAndIsActiveTrueAndIsDeletedFalse(String barcode);
 
     Optional<Product> findBySlug(String slug);

@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productagerange.ProductAgeRangeLogMessages;
-import fpt.teddypet.application.constants.productagerange.ProductAgeRangeMessages;
+import fpt.teddypet.application.constants.products.productagerange.ProductAgeRangeLogMessages;
+import fpt.teddypet.application.constants.products.productagerange.ProductAgeRangeMessages;
 import fpt.teddypet.application.dto.request.product.agerange.ProductAgeRangeRequest;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.ProductAgeRangeMapper;
 import fpt.teddypet.application.port.input.ProductAgeRangeService;
 import fpt.teddypet.application.port.output.ProductAgeRangeRepositoryPort;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,8 +111,14 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
 
         if (nameExists) {
             log.warn(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_NAME_VALIDATION_FAILED, name);
-            throw new IllegalArgumentException(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_NAME_ALREADY_EXISTS);
         }
+        
+        ValidationUtils.ensureUnique(
+            () -> ageRangeId != null
+                ? productAgeRangeRepositoryPort.existsByNameAndIdNot(name, ageRangeId)
+                : productAgeRangeRepositoryPort.existsByName(name),
+            ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_NAME_ALREADY_EXISTS
+        );
     }
 
     @Override

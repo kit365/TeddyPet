@@ -1,7 +1,10 @@
 package fpt.teddypet.application.dto.request.product.attribute;
 
+import fpt.teddypet.domain.enums.UnitEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
 
 public record ProductAttributeValueItemRequest(
         Long valueId,
@@ -10,7 +13,13 @@ public record ProductAttributeValueItemRequest(
         @Size(max = 255, message = "Giá trị thuộc tính không được vượt quá 255 ký tự")
         String value,
 
-        Integer displayOrder
+        Integer displayOrder,
+
+        BigDecimal amount,
+
+        UnitEnum unit,
+
+        String displayCode
 ) {
 }
 

@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productattribute.ProductAttributeLogMessages;
-import fpt.teddypet.application.constants.productattribute.ProductAttributeMessages;
+import fpt.teddypet.application.constants.products.productattribute.ProductAttributeLogMessages;
+import fpt.teddypet.application.constants.products.productattribute.ProductAttributeMessages;
 import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeRequest;
 import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueItemRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
@@ -116,7 +116,18 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             value.setActive(false);
         });
         productAttributeRepositoryPort.save(attribute);
-        log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
+        
+        // Normalize remaining attributes' displayOrder
+        List<ProductAttribute> remainingAttributes = productAttributeRepositoryPort.findAllActive();
+        if (DisplayOrderUtil.hasGaps(remainingAttributes, ProductAttribute::getDisplayOrder)) {
+            DisplayOrderUtil.normalizeDisplayOrders(
+                remainingAttributes,
+                ProductAttribute::getDisplayOrder,
+                ProductAttribute::setDisplayOrder
+            );
+            productAttributeRepositoryPort.saveAll(remainingAttributes);
+        }
+        
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_DELETE_SUCCESS, attributeId);
     }
 
@@ -144,13 +155,16 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
     private List<ProductAttributeValue> buildValuesForCreate(ProductAttribute attribute,
                                                             List<ProductAttributeValueItemRequest> valueRequests) {
         List<ProductAttributeValue> values = new ArrayList<>();
-        int currentMaxOrder = -1;
 
         log.info("Building {} values for create attribute: {}", valueRequests.size(), attribute.getName());
-        for (ProductAttributeValueItemRequest valueRequest : valueRequests) {
+        
+        for (int i = 0; i < valueRequests.size(); i++) {
+            ProductAttributeValueItemRequest valueRequest = valueRequests.get(i);
+            
+            // Auto-assign displayOrder if not provided
             int displayOrder = valueRequest.displayOrder() != null
                     ? valueRequest.displayOrder()
-                    : (currentMaxOrder = DisplayOrderUtil.getNextDisplayOrder(currentMaxOrder));
+                    : i; // Use index as displayOrder
 
             ProductAttributeValue value = ProductAttributeValue.builder()
                     .attribute(attribute)
@@ -160,11 +174,15 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             value.setActive(true);
             value.setDeleted(false);
             values.add(value);
-
-            if (valueRequest.displayOrder() != null) {
-                currentMaxOrder = Math.max(currentMaxOrder, valueRequest.displayOrder());
-            }
         }
+        
+        // Normalize displayOrders if any gaps exist
+        DisplayOrderUtil.normalizeDisplayOrders(
+            values,
+            ProductAttributeValue::getDisplayOrder,
+            ProductAttributeValue::setDisplayOrder
+        );
+        
         log.info("Built {} values successfully", values.size());
         return values;
     }
@@ -196,7 +214,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             ProductAttributeValueItemRequest valueRequest = valueRequests.get(index);
             Integer requestedOrder = valueRequest.displayOrder() != null
                     ? valueRequest.displayOrder()
-                    : index;
+                    : index; // Use index as default displayOrder
 
             ProductAttributeValue targetValue;
 
@@ -231,6 +249,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
             }
         }
 
+        // Mark unused values as deleted
         attribute.getValues().stream()
                 .filter(value -> value.getValueId() != null)
                 .filter(value -> !processedIds.contains(value.getValueId()))
@@ -238,6 +257,17 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                     value.setDeleted(true);
                     value.setActive(false);
                 });
+        
+        // Normalize displayOrders after sync to remove gaps
+        List<ProductAttributeValue> activeValues = attribute.getValues().stream()
+                .filter(v -> !v.isDeleted())
+                .collect(Collectors.toList());
+        
+        DisplayOrderUtil.normalizeDisplayOrders(
+            activeValues,
+            ProductAttributeValue::getDisplayOrder,
+            ProductAttributeValue::setDisplayOrder
+        );
     }
 
     @Override

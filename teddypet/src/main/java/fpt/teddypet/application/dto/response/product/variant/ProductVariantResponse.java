@@ -19,7 +19,6 @@ public record ProductVariantResponse(
         Integer height,
         BigDecimal price,
         BigDecimal salePrice,
-        String sku,
         Integer stockQuantity,
         UnitEnum unit,
         Long featuredImageId,

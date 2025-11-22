@@ -1,4 +1,7 @@
 package fpt.teddypet.application.dto.response.product.attribute;
+import fpt.teddypet.domain.enums.UnitEnum;
+
+import java.math.BigDecimal;
 
 public record ProductAttributeValueResponse(
         Long valueId,
@@ -6,8 +9,11 @@ public record ProductAttributeValueResponse(
         String attributeName,
         String value,
         Integer displayOrder,
+        String displayCode,
         boolean isDeleted,
-        boolean isActive
+        boolean isActive,
+        BigDecimal amount,
+        UnitEnum unit
 ) {
 }
 

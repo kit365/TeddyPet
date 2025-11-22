@@ -42,6 +42,11 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public boolean existsByBarcode(String barcode) {
         return productRepository.existsByBarcode(barcode);
     }
+    
+    @Override
+    public boolean existsBySku(String sku) {
+        return productRepository.existsBySku(sku);
+    }
 
     @Override
     public Optional<Product> findByBarcodeAndIsActiveTrueAndIsDeletedFalse(String barcode) {

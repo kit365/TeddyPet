@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productimage.ProductImageLogMessages;
-import fpt.teddypet.application.constants.productimage.ProductImageMessages;
+import fpt.teddypet.application.constants.products.productimage.ProductImageLogMessages;
+import fpt.teddypet.application.constants.products.productimage.ProductImageMessages;
 import fpt.teddypet.application.dto.request.product.image.ProductImageItemRequest;
 import fpt.teddypet.application.dto.request.product.image.ProductImageRequest;
 import fpt.teddypet.application.dto.request.product.image.ProductImageSaveRequest;

@@ -1,6 +1,6 @@
 package fpt.teddypet.infrastructure.adapter;
 
-import fpt.teddypet.application.constants.productagerange.ProductAgeRangeMessages;
+import fpt.teddypet.application.constants.products.productagerange.ProductAgeRangeMessages;
 import fpt.teddypet.application.port.output.ProductAgeRangeRepositoryPort;
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductAgeRangeRepository;
