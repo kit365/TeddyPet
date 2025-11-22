@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productvariant.ProductVariantLogMessages;
-import fpt.teddypet.application.constants.productvariant.ProductVariantMessages;
+import fpt.teddypet.application.constants.products.productvariant.ProductVariantLogMessages;
+import fpt.teddypet.application.constants.products.productvariant.ProductVariantMessages;
 import fpt.teddypet.application.dto.request.product.variant.ProductVariantRequest;
 import fpt.teddypet.application.dto.request.product.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;

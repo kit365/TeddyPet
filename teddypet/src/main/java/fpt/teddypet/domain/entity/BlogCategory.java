@@ -31,6 +31,13 @@ public class BlogCategory extends BaseEntity {
 
     @Column(name = "image_url", length = 255)
     private String imageUrl;
+    
+    @Column(name = "alt_image", length = 255)
+    private String altImage; // SEO alt text for image
+    
+    @Column(name = "display_order")
+    @Builder.Default
+    private Integer displayOrder = 0; // For ordering categories
 
     // Phân cấp - Danh mục cha
     @ManyToOne(fetch = FetchType.LAZY)

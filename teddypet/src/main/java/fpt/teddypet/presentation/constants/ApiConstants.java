@@ -41,5 +41,14 @@ public final class ApiConstants {
 
     // Product Attribute API base path
     public static final String API_PRODUCT_ATTRIBUTES = BASE_API + "/product-attributes";
+
+    // Blog Category API base path
+    public static final String API_BLOG_CATEGORIES = BASE_API + "/blog-categories";
+
+    // Blog Post API base path
+    public static final String API_BLOG_POSTS = BASE_API + "/blog-posts";
+
+    // Blog Tag API base path
+    public static final String API_BLOG_TAGS = BASE_API + "/blog-tags";
 }
 

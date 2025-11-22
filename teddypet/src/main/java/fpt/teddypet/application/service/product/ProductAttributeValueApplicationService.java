@@ -1,12 +1,13 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueLogMessages;
-import fpt.teddypet.application.constants.productattributevalue.ProductAttributeValueMessages;
+import fpt.teddypet.application.constants.products.productattributevalue.ProductAttributeValueLogMessages;
+import fpt.teddypet.application.constants.products.productattributevalue.ProductAttributeValueMessages;
 import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeValueResponse;
 import fpt.teddypet.application.mapper.ProductAttributeValueMapper;
 import fpt.teddypet.application.port.input.ProductAttributeValueService;
 import fpt.teddypet.application.port.output.ProductAttributeValueRepositoryPort;
+import fpt.teddypet.application.util.DisplayOrderUtil;
 import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,20 +34,20 @@ public class ProductAttributeValueApplicationService implements ProductAttribute
     public void reorder(ProductAttributeValueReorderRequest request) {
         log.info(ProductAttributeValueLogMessages.LOG_PRODUCT_ATTRIBUTE_VALUE_REORDER_START, request.items().size());
         
-        // Tạo map từ valueId -> displayOrder để tra cứu nhanh
-        Map<Long, Integer> orderMap = request.items().stream()
-                .collect(Collectors.toMap(
-                        ProductAttributeValueReorderRequest.ProductAttributeValueOrderItem::valueId,
-                        ProductAttributeValueReorderRequest.ProductAttributeValueOrderItem::displayOrder
-                ));
+        // Extract value IDs and ordered list
+        List<Long> orderedValueIds = request.items().stream()
+                .sorted(Comparator.comparing(
+                    ProductAttributeValueReorderRequest.ProductAttributeValueOrderItem::displayOrder
+                ))
+                .map(ProductAttributeValueReorderRequest.ProductAttributeValueOrderItem::valueId)
+                .toList();
         
-        // Lấy tất cả các valueIds từ request
-        Set<Long> valueIds = orderMap.keySet();
+        Set<Long> valueIds = orderedValueIds.stream().collect(Collectors.toSet());
         
-        // Lấy tất cả các ProductAttributeValue từ database
+        // Fetch all values
         List<ProductAttributeValue> values = productAttributeValueRepositoryPort.findByIds(valueIds);
         
-        // Kiểm tra xem có value nào không tồn tại không
+        // Validate all values exist
         if (values.size() != valueIds.size()) {
             Set<Long> foundIds = values.stream()
                     .map(ProductAttributeValue::getValueId)
@@ -59,15 +59,15 @@ public class ProductAttributeValueApplicationService implements ProductAttribute
                     String.format(ProductAttributeValueMessages.MESSAGE_PRODUCT_ATTRIBUTE_VALUE_NOT_FOUND, missingIds));
         }
         
-        // Cập nhật displayOrder cho từng value
-        values.forEach(value -> {
-            Integer newOrder = orderMap.get(value.getValueId());
-            if (newOrder != null) {
-                value.setDisplayOrder(newOrder);
-            }
-        });
+        // Use DisplayOrderUtil to reorder by IDs
+        DisplayOrderUtil.reorderByIds(
+            values,
+            orderedValueIds,
+            ProductAttributeValue::getValueId,
+            ProductAttributeValue::setDisplayOrder
+        );
         
-        // Lưu tất cả các thay đổi
+        // Save all changes
         productAttributeValueRepositoryPort.saveAll(values);
         
         log.info(ProductAttributeValueLogMessages.LOG_PRODUCT_ATTRIBUTE_VALUE_REORDER_SUCCESS, values.size());

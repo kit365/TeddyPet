@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.rating.RatingLogMessages;
-import fpt.teddypet.application.constants.rating.RatingMessages;
+import fpt.teddypet.application.constants.products.rating.RatingLogMessages;
+import fpt.teddypet.application.constants.products.rating.RatingMessages;
 import fpt.teddypet.application.dto.request.RatingRequest;
 import fpt.teddypet.application.dto.response.product.rating.RatingResponse;
 import fpt.teddypet.application.mapper.RatingMapper;

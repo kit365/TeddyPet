@@ -1,7 +1,7 @@
 package fpt.teddypet.application.service.product;
 
-import fpt.teddypet.application.constants.productagerange.ProductAgeRangeLogMessages;
-import fpt.teddypet.application.constants.productagerange.ProductAgeRangeMessages;
+import fpt.teddypet.application.constants.products.productagerange.ProductAgeRangeLogMessages;
+import fpt.teddypet.application.constants.products.productagerange.ProductAgeRangeMessages;
 import fpt.teddypet.application.dto.request.product.agerange.ProductAgeRangeRequest;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;

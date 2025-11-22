@@ -35,6 +35,13 @@ public class BlogPost extends BaseEntity {
 
     @Column(name = "featured_image", length = 500)
     private String featuredImage;
+    
+    @Column(name = "alt_image", length = 255)
+    private String altImage; // SEO alt text for featured image
+    
+    @Column(name = "display_order")
+    @Builder.Default
+    private Integer displayOrder = 0; // For featured/pinned posts ordering
 
     @Column(name = "meta_title", length = 255)
     private String metaTitle;

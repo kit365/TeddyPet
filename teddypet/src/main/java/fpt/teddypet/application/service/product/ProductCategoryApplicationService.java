@@ -1,6 +1,6 @@
 package fpt.teddypet.application.service.product;
-import fpt.teddypet.application.constants.productcategory.ProductCategoryLogMessages;
-import fpt.teddypet.application.constants.productcategory.ProductCategoryMessages;
+import fpt.teddypet.application.constants.products.productcategory.ProductCategoryLogMessages;
+import fpt.teddypet.application.constants.products.productcategory.ProductCategoryMessages;
 import fpt.teddypet.application.dto.request.product.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
