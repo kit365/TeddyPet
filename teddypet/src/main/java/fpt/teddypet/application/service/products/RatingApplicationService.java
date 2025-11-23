@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -113,7 +114,7 @@ public class RatingApplicationService implements RatingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RatingResponse> getByUserId(Long userId) {
+    public List<RatingResponse> getByUserId(UUID userId) {
         List<Rating> ratings = ratingRepositoryPort.findByUserId(userId);
         log.info(RatingLogMessages.LOG_RATING_GET_BY_USER, userId, ratings.size());
         return ratings.stream()

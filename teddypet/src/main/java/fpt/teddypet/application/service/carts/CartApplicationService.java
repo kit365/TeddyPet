@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Slf4j
@@ -40,7 +41,7 @@ public class CartApplicationService implements CartService {
     @Override
     @Transactional(readOnly = true)
     public CartResponse getCartResponse() {
-        Long userId = SecurityUtil.getCurrentUserId();
+        UUID userId = SecurityUtil.getCurrentUserId();
         log.info(CartLogMessages.LOG_CART_GET_START, userId);
 
         Cart cart = getOrCreateCart(userId);
@@ -62,7 +63,7 @@ public class CartApplicationService implements CartService {
     @Override
     @Transactional
     public void addItemToCart(AddToCartRequest request) {
-        Long userId = SecurityUtil.getCurrentUserId();
+        UUID userId = SecurityUtil.getCurrentUserId();
         log.info(CartLogMessages.LOG_CART_ADD_START, request.variantId(), request.quantity());
 
         // Validate variant exists and is available
@@ -99,7 +100,7 @@ public class CartApplicationService implements CartService {
     @Override
     @Transactional
     public void updateCartItemQuantity(UpdateCartItemRequest request) {
-        Long userId = SecurityUtil.getCurrentUserId();
+        UUID userId = SecurityUtil.getCurrentUserId();
         log.info(CartLogMessages.LOG_CART_UPDATE_START, request.variantId());
 
         // Validate variant and stock
@@ -123,7 +124,7 @@ public class CartApplicationService implements CartService {
     @Override
     @Transactional
     public void removeItemFromCart(Long variantId) {
-        Long userId = SecurityUtil.getCurrentUserId();
+        UUID userId = SecurityUtil.getCurrentUserId();
         log.info(CartLogMessages.LOG_CART_REMOVE_START, variantId);
 
         Cart cart = getOrCreateCart(userId);
@@ -142,7 +143,7 @@ public class CartApplicationService implements CartService {
     @Override
     @Transactional
     public void clearCart() {
-        Long userId = SecurityUtil.getCurrentUserId();
+        UUID userId = SecurityUtil.getCurrentUserId();
         log.info(CartLogMessages.LOG_CART_CLEAR_START, userId);
 
         Cart cart = getOrCreateCart(userId);
@@ -152,8 +153,8 @@ public class CartApplicationService implements CartService {
         log.info(CartLogMessages.LOG_CART_CLEAR_SUCCESS);
     }
 
-    private Cart getOrCreateCart(Long userId) {
-        Optional<Cart> existingCart = cartRepositoryPort.findByUserId(userId);
+    private Cart getOrCreateCart(UUID userId) {
+        Optional<Cart> existingCart = cartRepositoryPort.findByUserId(userId.toString());
         
         if (existingCart.isPresent()) {
             return existingCart.get();
@@ -161,7 +162,7 @@ public class CartApplicationService implements CartService {
 
         log.info(CartLogMessages.LOG_CART_GET_CREATED_NEW, userId);
         Cart newCart = Cart.builder()
-                .userId(String.valueOf(userId))
+                .userId(userId.toString())
                 .items(new ArrayList<>())
                 .build();
         return cartRepositoryPort.save(newCart);

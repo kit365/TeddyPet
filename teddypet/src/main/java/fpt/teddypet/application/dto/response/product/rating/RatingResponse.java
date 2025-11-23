@@ -2,12 +2,13 @@ package fpt.teddypet.application.dto.response.product.rating;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record RatingResponse(
         Long ratingId,
         Long productId,
         String productName,
-        Long userId,
+        UUID userId,
         String userName,
         BigDecimal score,
         String comment,

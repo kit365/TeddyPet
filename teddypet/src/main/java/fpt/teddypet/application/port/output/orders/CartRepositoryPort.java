@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface CartRepositoryPort {
     Cart save(Cart cart);
-    void deleteByUserId(Long userId);
-    Optional<Cart> findByUserId(Long userId);
+    void deleteByUserId(String userId);
+    Optional<Cart> findByUserId(String userId);
 }

@@ -4,10 +4,11 @@ import java.time.LocalDateTime;
 
 public record AuthResponse(
         String token,
+        String username,
         String email,
-        String fullName,
-        String roleName,
+        String firstName,
+        String lastName,
+        String role,
         LocalDateTime expiresAt
 ) {
 }
-

@@ -39,11 +39,16 @@ public class AuthApplicationService implements AuthService {
         String token = jwtTokenProviderPort.generateToken(user.getEmail());
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
         
+        // Get primary role name
+        String roleName = user.getRole().getName();
+
         return new AuthResponse(
                 token,
+                user.getUsername(),
                 user.getEmail(),
-                user.getFullName(),
-                user.getRole().getName(),
+                user.getFirstName(),
+                user.getLastName(),
+                roleName,
                 expiresAt
         );
     }
@@ -58,6 +63,9 @@ public class AuthApplicationService implements AuthService {
             log.warn(AuthLogMessages.LOG_AUTH_REGISTER_WARN_EMAIL_EXISTS, request.email());
             throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
         }
+        if (userService.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
 
         try {
             // Get default role (USER)
@@ -65,12 +73,14 @@ public class AuthApplicationService implements AuthService {
 
             // Create new user
             User user = User.builder()
+                    .username(request.username())
                     .email(request.email())
                     .password(passwordEncoder.encode(request.password()))
-                    .fullName(request.fullName())
+                    .firstName(request.firstName())
+                    .lastName(request.lastName())
+                    .phoneNumber(request.phoneNumber())
+                    .status(fpt.teddypet.domain.enums.UserStatusEnum.ACTIVE)
                     .role(defaultRole)
-                    .isEnabled(true)
-                    .isAccountNonLocked(true)
                     .build();
 
             user = userService.save(user);
@@ -84,26 +94,39 @@ public class AuthApplicationService implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
-        log.info(AuthLogMessages.LOG_AUTH_LOGIN_START, request.email());
+        log.info(AuthLogMessages.LOG_AUTH_LOGIN_START, request.usernameOrEmail());
 
         try {
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.email(),
+                            request.usernameOrEmail(),
                             request.password()
                     )
             );
 
             // Get user from authentication
             User user = (User) authentication.getPrincipal();
-            log.info(AuthLogMessages.LOG_AUTH_LOGIN_SUCCESS, request.email());
+            
+            // Reset failed attempts on success
+            userService.resetFailedLoginAttempts(user);
+            
+            log.info(AuthLogMessages.LOG_AUTH_LOGIN_SUCCESS, request.usernameOrEmail());
 
             return generateAuthResponse(user);
         } catch (BadCredentialsException e) {
-            log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_INVALID_CREDENTIALS, request.email());
+            log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_INVALID_CREDENTIALS, request.usernameOrEmail());
+            
+            // Track failed attempt
+            try {
+                User user = userService.getByUsernameOrEmail(request.usernameOrEmail());
+                userService.trackFailedLogin(user);
+            } catch (Exception ex) {
+                // User not found, ignore
+            }
+            
             throw new BadCredentialsException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
         }
     }

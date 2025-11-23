@@ -23,7 +23,7 @@ public interface RatingMapper {
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "productName", source = "product.name")
     @Mapping(target = "userId", source = "user.id")
-    @Mapping(target = "userName", source = "user.fullName")
+    @Mapping(target = "userName", source = "user.username")
     RatingResponse toResponse(Rating rating);
 }
 

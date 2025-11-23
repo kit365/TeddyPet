@@ -20,12 +20,12 @@ public class CartRepositoryAdapter implements CartRepositoryPort {
     }
 
     @Override
-    public void deleteByUserId(Long userId) {
-        cartRepository.deleteById(String.valueOf(userId));
+    public void deleteByUserId(String userId) {
+        cartRepository.deleteById(userId);
     }
 
     @Override
-    public Optional<Cart> findByUserId(Long userId) {
-        return cartRepository.findById(String.valueOf(userId));
+    public Optional<Cart> findByUserId(String userId) {
+        return cartRepository.findById(userId);
     }
 }
