@@ -2,7 +2,7 @@ package fpt.teddypet.presentation.controller.product;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.UnitResponse;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
-import fpt.teddypet.application.port.input.ProductVariantService;
+import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.util.UnitEnumUtil;
 import fpt.teddypet.domain.enums.UnitEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;

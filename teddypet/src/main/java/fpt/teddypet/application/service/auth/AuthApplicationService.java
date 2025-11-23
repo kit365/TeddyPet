@@ -2,8 +2,8 @@ package fpt.teddypet.application.service.auth;
 
 import fpt.teddypet.application.constants.auth.AuthLogMessages;
 import fpt.teddypet.application.constants.auth.AuthMessages;
-import fpt.teddypet.application.dto.request.LoginRequest;
-import fpt.teddypet.application.dto.request.RegisterRequest;
+import fpt.teddypet.application.dto.request.auth.LoginRequest;
+import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.RoleService;

@@ -2,9 +2,9 @@ package fpt.teddypet.presentation.controller.blog;
 
 import fpt.teddypet.application.constants.blogs.blogtag.BlogTagMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
-import fpt.teddypet.application.dto.request.blog.tag.BlogTagUpsertRequest;
+import fpt.teddypet.application.dto.request.blogs.tag.BlogTagUpsertRequest;
 import fpt.teddypet.application.dto.response.blog.tag.BlogTagResponse;
-import fpt.teddypet.application.port.input.BlogTagService;
+import fpt.teddypet.application.port.input.blogs.BlogTagService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

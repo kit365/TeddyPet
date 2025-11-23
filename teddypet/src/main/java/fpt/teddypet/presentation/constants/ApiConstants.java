@@ -50,5 +50,8 @@ public final class ApiConstants {
 
     // Blog Tag API base path
     public static final String API_BLOG_TAGS = BASE_API + "/blog-tags";
+
+
+    public static final String API_CART = BASE_API + "/carts";
 }
 
