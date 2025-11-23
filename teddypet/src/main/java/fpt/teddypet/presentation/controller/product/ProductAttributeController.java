@@ -1,12 +1,12 @@
 package fpt.teddypet.presentation.controller.product;
 
 import fpt.teddypet.application.constants.products.productattribute.ProductAttributeMessages;
-import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeRequest;
+import fpt.teddypet.application.dto.request.products.attribute.ProductAttributeRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.EnumOptionResponse;
 import fpt.teddypet.application.dto.response.UnitResponse;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
-import fpt.teddypet.application.port.input.ProductAttributeService;
+import fpt.teddypet.application.port.input.products.ProductAttributeService;
 import fpt.teddypet.application.util.EnumUtil;
 import fpt.teddypet.domain.enums.AttributeDisplayType;
 import fpt.teddypet.domain.enums.UnitEnum;

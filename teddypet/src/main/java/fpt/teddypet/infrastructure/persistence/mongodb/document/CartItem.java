@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class CartItem {
 
     @Field("variant_id")
-    private Long variantId; // Chỉ cần ID này
+    private Long variantId;
 
     @Field("quantity")
     private Integer quantity;

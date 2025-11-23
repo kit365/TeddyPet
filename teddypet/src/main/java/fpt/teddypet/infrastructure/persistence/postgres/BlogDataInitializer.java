@@ -1,13 +1,13 @@
 package fpt.teddypet.infrastructure.persistence.postgres;
 
-import fpt.teddypet.application.dto.request.blog.category.BlogCategoryUpsertRequest;
-import fpt.teddypet.application.dto.request.blog.post.BlogPostCreateRequest;
-import fpt.teddypet.application.dto.request.blog.tag.BlogTagUpsertRequest;
+import fpt.teddypet.application.dto.request.blogs.category.BlogCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.blogs.post.BlogPostCreateRequest;
+import fpt.teddypet.application.dto.request.blogs.tag.BlogTagUpsertRequest;
 import fpt.teddypet.application.dto.response.blog.category.BlogCategoryResponse;
 import fpt.teddypet.application.dto.response.blog.tag.BlogTagResponse;
-import fpt.teddypet.application.service.blog.BlogCategoryApplicationService;
-import fpt.teddypet.application.service.blog.BlogPostApplicationService;
-import fpt.teddypet.application.service.blog.BlogTagApplicationService;
+import fpt.teddypet.application.service.blogs.BlogCategoryApplicationService;
+import fpt.teddypet.application.service.blogs.BlogPostApplicationService;
+import fpt.teddypet.application.service.blogs.BlogTagApplicationService;
 import fpt.teddypet.domain.enums.BlogPostStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,9 +42,9 @@ public class BlogDataInitializer implements CommandLineRunner {
         log.info("🌱 Seeding Blog Categories...");
 
         // 1. Root Categories
-        BlogCategoryResponse news = createCategory("News", "Latest updates and news", null, 1);
+
         BlogCategoryResponse tips = createCategory("Pet Care Tips", "Useful tips for pet owners", null, 2);
-        BlogCategoryResponse events = createCategory("Events", "Upcoming events and meetups", null, 3);
+
 
         // 2. Child Categories for Tips
         createCategory("Dog Care", "Tips specifically for dogs", tips.categoryId(), 1);
@@ -78,34 +78,13 @@ public class BlogDataInitializer implements CommandLineRunner {
     }
 
     private BlogTagResponse createTag(String name, String description, Integer order) {
+
         return blogTagService.upsert(new BlogTagUpsertRequest(
                 null, name, order
         ));
     }
 
     private void initializeBlogPosts() {
-        // Check if any posts exist (using a simple check, e.g., count)
-        // Since we don't have count method exposed in service for all, we can check getAllPaged with size 1
-        // Or just rely on repository if we injected it, but we want to stick to service.
-        // Let's use getAllPaged with a dummy request.
-        // Actually, let's just check if categories exist, which we did.
-        // A better way is to check if we should seed.
-        // For simplicity, I'll assume if categories were just seeded (or empty before), we seed posts.
-        // But here I'll just try to find one post.
-        
-        // Since I can't easily check count without adding method, I will skip if tags are empty (which means we didn't seed tags just now? No, tags check is separate).
-        // Let's just add a try-catch or check if list is empty.
-        // I'll add a simple check by calling getAllPaged.
-        
-        // Actually, I'll just assume if I seeded categories/tags, I might need posts.
-        // But to be safe, I won't check for posts existence via service efficiently without a count method.
-        // I'll just skip this check for now and rely on the fact that this runs once on fresh DB usually.
-        // Or I can add `count()` to service.
-        // Let's add `count()` to BlogPostApplicationService later if needed.
-        // For now, I will just run it. If posts exist, I might duplicate?
-        // No, I should check.
-        
-        // I'll use a workaround: check if "Welcome to TeddyPet" slug exists.
         try {
             blogPostService.getPostBySlug("welcome-to-teddypet");
             return; // Exists

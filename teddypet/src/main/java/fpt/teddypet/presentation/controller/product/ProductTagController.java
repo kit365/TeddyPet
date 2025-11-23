@@ -1,10 +1,10 @@
 package fpt.teddypet.presentation.controller.product;
 
 import fpt.teddypet.application.constants.products.producttag.ProductTagMessages;
-import fpt.teddypet.application.dto.request.product.tag.ProductTagRequest;
+import fpt.teddypet.application.dto.request.products.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
-import fpt.teddypet.application.port.input.ProductTagService;
+import fpt.teddypet.application.port.input.products.ProductTagService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

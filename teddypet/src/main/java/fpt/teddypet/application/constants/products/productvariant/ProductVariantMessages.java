@@ -22,5 +22,6 @@ public final class ProductVariantMessages {
     public static final String MESSAGE_INVALID_PRICE = "Giá phải lớn hơn 0.";
     public static final String MESSAGE_INVALID_SALE_PRICE = "Giá khuyến mãi phải nhỏ hơn giá gốc và lớn hơn 0.";
     public static final String MESSAGE_INVALID_STOCK = "Số lượng tồn kho phải >= 0.";
+    public static final String MESSAGE_PRODUCT_VARIANT_NOT_AVAILABLE = "Biến thể sản phẩm ID %d không còn được bán.";
 }
 

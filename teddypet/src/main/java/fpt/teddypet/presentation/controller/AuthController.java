@@ -1,8 +1,8 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.constants.auth.AuthMessages;
-import fpt.teddypet.application.dto.request.LoginRequest;
-import fpt.teddypet.application.dto.request.RegisterRequest;
+import fpt.teddypet.application.dto.request.auth.LoginRequest;
+import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.application.port.input.AuthService;

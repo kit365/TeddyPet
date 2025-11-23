@@ -1,9 +1,9 @@
 package fpt.teddypet.presentation.controller.product;
 
 import fpt.teddypet.application.constants.products.productattributevalue.ProductAttributeValueMessages;
-import fpt.teddypet.application.dto.request.product.attribute.ProductAttributeValueReorderRequest;
+import fpt.teddypet.application.dto.request.products.attribute.ProductAttributeValueReorderRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
-import fpt.teddypet.application.port.input.ProductAttributeValueService;
+import fpt.teddypet.application.port.input.products.ProductAttributeValueService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

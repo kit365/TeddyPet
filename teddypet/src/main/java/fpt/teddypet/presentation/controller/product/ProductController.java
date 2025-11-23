@@ -1,13 +1,13 @@
 package fpt.teddypet.presentation.controller.product;
 
 import fpt.teddypet.application.constants.products.product.ProductMessages;
-import fpt.teddypet.application.dto.request.product.product.ProductRequest;
-import fpt.teddypet.application.dto.request.product.product.ProductSearchRequest;
+import fpt.teddypet.application.dto.request.products.product.ProductRequest;
+import fpt.teddypet.application.dto.request.products.product.ProductSearchRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
-import fpt.teddypet.application.port.input.ProductService;
+import fpt.teddypet.application.port.input.products.ProductService;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;

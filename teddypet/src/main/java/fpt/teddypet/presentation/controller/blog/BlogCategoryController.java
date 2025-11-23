@@ -1,10 +1,10 @@
 package fpt.teddypet.presentation.controller.blog;
 import fpt.teddypet.application.constants.blogs.blogcategory.BlogCategoryMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
-import fpt.teddypet.application.dto.request.blog.category.BlogCategoryUpsertRequest;
+import fpt.teddypet.application.dto.request.blogs.category.BlogCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.blog.category.BlogCategoryNestedResponse;
 import fpt.teddypet.application.dto.response.blog.category.BlogCategoryResponse;
-import fpt.teddypet.application.port.input.BlogCategoryService;
+import fpt.teddypet.application.port.input.blogs.BlogCategoryService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
