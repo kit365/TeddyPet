@@ -33,5 +33,15 @@ public final class UserLogMessages {
     public static final String LOG_USER_DELETE_START = "[UserService] Bắt đầu xóa user, ID: {}";
     public static final String LOG_USER_DELETE_SUCCESS = "[UserService] Xóa user thành công, ID: {}";
     public static final String LOG_USER_DELETE_ERROR = "[UserService] Lỗi khi xóa user, ID: {}";
+
+    // Lookup failures
+    public static final String LOG_USER_NOT_FOUND_BY_EMAIL = "[UserService] Không tìm thấy user với email: {}";
+    public static final String LOG_USER_NOT_FOUND_BY_USERNAME = "[UserService] Không tìm thấy user với username: {}";
+    public static final String LOG_USER_NOT_FOUND_BY_USERNAME_OR_EMAIL = "[UserService] Không tìm thấy user với username hoặc email: {}";
+    public static final String LOG_USER_NOT_FOUND_FOR_UNLOCK = "[UserService] Không tìm thấy user để mở khóa, ID: {}";
+
+    // Account status
+    public static final String LOG_USER_LOCKED = "[UserService] Tài khoản bị khóa do quá nhiều lần đăng nhập thất bại: {}";
+    public static final String LOG_USER_UNLOCKED = "[UserService] Tài khoản đã được mở khóa: {}";
 }
 

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -43,17 +44,17 @@ public class RatingRepositoryAdapter implements RatingRepositoryPort {
     }
 
     @Override
-    public List<Rating> findByUserId(Long userId) {
+    public List<Rating> findByUserId(UUID userId) {
         return ratingRepository.findByUserIdAndIsDeletedFalse(userId);
     }
 
     @Override
-    public Optional<Rating> findByProductIdAndUserId(Long productId, Long userId) {
+    public Optional<Rating> findByProductIdAndUserId(Long productId, UUID userId) {
         return ratingRepository.findByProductIdAndUserIdAndIsDeletedFalse(productId, userId);
     }
 
     @Override
-    public boolean existsByProductIdAndUserId(Long productId, Long userId) {
+    public boolean existsByProductIdAndUserId(Long productId, UUID userId) {
         return ratingRepository.existsByProductIdAndUserIdAndIsDeletedFalse(productId, userId);
     }
 }

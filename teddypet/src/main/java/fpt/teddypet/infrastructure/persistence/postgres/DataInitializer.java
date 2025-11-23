@@ -70,12 +70,15 @@ public class DataInitializer implements CommandLineRunner {
         // Create admin user if not exists
         if (!userService.existsByEmail("admin@gmail.com")) {
             User adminUser = User.builder()
+                    .username("admin")
                     .email("admin@gmail.com")
                     .password(passwordEncoder.encode(adminPassword))
-                    .fullName("Administrator")
+                    .firstName("Administrator")
+                    .lastName("TeddyPet")
+                    .phoneNumber("0123456789")
+                    .gender(fpt.teddypet.domain.enums.GenderEnum.MALE)
+                    .dateOfBirth(java.time.LocalDate.of(1990, 1, 1))
                     .role(adminRole)
-                    .isEnabled(true)
-                    .isAccountNonLocked(true)
                     .build();
             userService.save(adminUser);
             log.info("✅ Created admin user (email: admin@gmail.com)");
@@ -84,12 +87,15 @@ public class DataInitializer implements CommandLineRunner {
         // Create regular user if not exists
         if (!userService.existsByEmail("user@gmail.com")) {
             User regularUser = User.builder()
+                    .username("user")
                     .email("user@gmail.com")
                     .password(passwordEncoder.encode(userPassword))
-                    .fullName("Regular User")
+                    .firstName("Regular")
+                    .lastName("User")
+                    .phoneNumber("0987654321")
+                    .gender(fpt.teddypet.domain.enums.GenderEnum.FEMALE)
+                    .dateOfBirth(java.time.LocalDate.of(1995, 5, 5))
                     .role(userRole)
-                    .isEnabled(true)
-                    .isAccountNonLocked(true)
                     .build();
             userService.save(regularUser);
             log.info("✅ Created user (email: user@gmail.com)");

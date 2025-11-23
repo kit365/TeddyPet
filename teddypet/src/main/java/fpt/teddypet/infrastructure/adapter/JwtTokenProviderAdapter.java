@@ -92,6 +92,9 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
 
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String email = extractEmail(token);
+        if (userDetails instanceof fpt.teddypet.domain.entity.User user) {
+            return (email.equals(user.getEmail()) && !isTokenExpired(token));
+        }
         return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 

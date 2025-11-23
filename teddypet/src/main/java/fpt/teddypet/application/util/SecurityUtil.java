@@ -6,6 +6,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.UUID;
+
 /**
  * Utility class for accessing Spring Security context information
  * Provides convenient methods to get current authenticated user details
@@ -19,10 +21,10 @@ public final class SecurityUtil {
     /**
      * Get the ID of the currently authenticated user
      * 
-     * @return User ID
+     * @return User ID (UUID)
      * @throws IllegalStateException if user is not authenticated or cannot be determined
      */
-    public static Long getCurrentUserId() {
+    public static UUID getCurrentUserId() {
         User user = getCurrentUserEntity();
         return user.getId();
     }

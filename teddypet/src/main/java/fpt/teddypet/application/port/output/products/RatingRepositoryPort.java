@@ -4,6 +4,7 @@ import fpt.teddypet.domain.entity.Rating;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface RatingRepositoryPort {
     Rating save(Rating rating);
@@ -11,8 +12,8 @@ public interface RatingRepositoryPort {
     List<Rating> findAll();
     Optional<Rating> findByIdAndIsDeletedFalse(Long ratingId);
     List<Rating> findByProductId(Long productId);
-    List<Rating> findByUserId(Long userId);
-    Optional<Rating> findByProductIdAndUserId(Long productId, Long userId);
-    boolean existsByProductIdAndUserId(Long productId, Long userId);
+    List<Rating> findByUserId(UUID userId);
+    Optional<Rating> findByProductIdAndUserId(Long productId, UUID userId);
+    boolean existsByProductIdAndUserId(Long productId, UUID userId);
 }
 

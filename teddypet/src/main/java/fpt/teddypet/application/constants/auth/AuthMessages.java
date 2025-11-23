@@ -17,5 +17,6 @@ public final class AuthMessages {
     public static final String MESSAGE_INVALID_CREDENTIALS = "Email hoặc mật khẩu không chính xác.";
     public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa đăng nhập.";
     public static final String MESSAGE_CANNOT_DETERMINE_USER = "Không thể xác định người dùng hiện tại.";
+    public static final String MESSAGE_USER_NOT_FOUND = "Không tìm thấy người dùng.";
 }
 

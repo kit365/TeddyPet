@@ -57,10 +57,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.info("User authenticated: " + email);
+                } else {
+                    logger.warn("Token validation failed for email: " + email);
                 }
             }
         } catch (Exception e) {
             // Token is invalid, continue without authentication
+            logger.error("Cannot set user authentication: {}", e);
         }
         
         filterChain.doFilter(request, response);
