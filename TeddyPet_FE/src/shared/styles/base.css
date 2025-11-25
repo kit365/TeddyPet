@@ -1,0 +1,31 @@
+/* Base styles chung cho cả admin và client */
+@import 'tailwindcss';
+
+html {
+  font-size: 62.5%; /* 1rem = 10px */
+}
+
+body {
+  font-size: 1.6rem; /* 16px */
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #e5e7eb) transparent;
+}
+
+/* Prevent focus zoom on mobile */
+@media screen and (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
