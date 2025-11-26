@@ -3,7 +3,7 @@ package fpt.teddypet.infrastructure.adapter.products;
 import fpt.teddypet.application.constants.products.productbrand.ProductBrandMessages;
 import fpt.teddypet.application.port.output.products.ProductBrandRepositoryPort;
 import fpt.teddypet.domain.entity.ProductBrand;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductBrandRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

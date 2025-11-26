@@ -16,21 +16,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Adapter for JWT Token operations
- * Implements JwtTokenProviderPort for Application layer
- * Also provides additional methods for Presentation layer (security)
- */
+
 @Component
 public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
 
-    @Value("${spring.jwt.key-secret}")
+    @Value("${jwt.key-secret}")
     private String secretKey;
 
-    @Value("${spring.jwt.key-expiration-ms}")
+    @Value("${jwt.key-expiration-ms}")
     private int jwtExpirationInMs;
 
-    @Value("${spring.jwt.refresh-expiration-ms:604800000}")
+    @Value("${jwt.refresh-expiration-ms:604800000}")
     private int refreshTokenExpirationInMs;
 
     private SecretKey getSigningKey() {

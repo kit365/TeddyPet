@@ -1,7 +1,7 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.domain.entity.ProductCategory;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductCategoryRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

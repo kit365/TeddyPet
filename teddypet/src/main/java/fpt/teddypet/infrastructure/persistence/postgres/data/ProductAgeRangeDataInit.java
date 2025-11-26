@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.domain.entity.ProductAgeRange;
 import fpt.teddypet.domain.enums.AgeRangeEnum;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductAgeRangeRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductAgeRangeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

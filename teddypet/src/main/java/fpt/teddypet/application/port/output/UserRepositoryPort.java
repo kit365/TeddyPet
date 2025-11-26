@@ -12,7 +12,7 @@ public interface UserRepositoryPort {
     Optional<User> findById(UUID id);
     Optional<User> findByUsername(String username);
     Optional<User> findByUsernameOrEmail(String username, String email);
-    
+
     // Methods that throw exception if not found (as requested to move logic to adapter)
     User getByEmail(String email);
     User getByUsername(String username);

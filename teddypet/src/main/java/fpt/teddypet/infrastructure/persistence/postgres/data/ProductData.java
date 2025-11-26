@@ -6,12 +6,11 @@ import fpt.teddypet.domain.enums.AttributeDisplayType;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.domain.enums.UnitEnum;
-import fpt.teddypet.domain.valueobject.Dimensions;
 import fpt.teddypet.domain.valueobject.Measurement;
 import fpt.teddypet.domain.valueobject.Price;
 import fpt.teddypet.domain.valueobject.Sku;
 import fpt.teddypet.domain.valueobject.StockQuantity;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.*;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -23,7 +22,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Data initializer for Product entity

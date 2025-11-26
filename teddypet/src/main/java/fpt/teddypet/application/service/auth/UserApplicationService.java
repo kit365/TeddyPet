@@ -2,13 +2,14 @@ package fpt.teddypet.application.service.auth;
 import fpt.teddypet.application.constants.auth.AuthConstants;
 import fpt.teddypet.application.constants.user.UserLogMessages;
 import fpt.teddypet.application.port.input.UserService;
+import fpt.teddypet.application.port.output.UserRepositoryPort;
 import fpt.teddypet.domain.entity.User;
 import fpt.teddypet.domain.enums.UserStatusEnum;
-import fpt.teddypet.application.port.output.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,7 +18,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserApplicationService implements UserService {
-
     private final UserRepositoryPort userRepositoryPort;
 
     @Override
@@ -54,6 +54,12 @@ public class UserApplicationService implements UserService {
     @Transactional(readOnly = true)
     public User getByUsernameOrEmail(String usernameOrEmail) {
         return userRepositoryPort.getByUsernameOrEmail(usernameOrEmail);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User getById(UUID userId) {
+        return userRepositoryPort.getById(userId);
     }
 
     @Override
@@ -99,7 +105,7 @@ public class UserApplicationService implements UserService {
     @Transactional
     public void unlockAccount(UUID userId) {
         User user = userRepositoryPort.getById(userId);
-        
+
         user.setStatus(UserStatusEnum.ACTIVE);
         user.setFailedLoginAttempts(0);
         user.setLockedAt(null);

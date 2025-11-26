@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.domain.enums.TagEnum;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductTagRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductTagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.adapter.products;
 
 import fpt.teddypet.application.port.output.products.ProductImageRepositoryPort;
 import fpt.teddypet.domain.entity.ProductImage;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductImageRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductImageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
