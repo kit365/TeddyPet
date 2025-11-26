@@ -53,5 +53,14 @@ public final class ApiConstants {
 
 
     public static final String API_CART = BASE_API + "/carts";
+
+    public static final String API_ORDER = BASE_API + "/orders";
+
+
+    public static final String API_PROMOTION = BASE_API + "/promotions";
+    public static final String PROMOTION_USAGES_BASE = BASE_API + "/promotion-usages";
+
+
+    public static final String API_PAYMENT = BASE_API + "/payments";
 }
 

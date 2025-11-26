@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.adapter.products;
 
 import fpt.teddypet.application.port.output.products.ProductVariantRepositoryPort;
 import fpt.teddypet.domain.entity.ProductVariant;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductVariantRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

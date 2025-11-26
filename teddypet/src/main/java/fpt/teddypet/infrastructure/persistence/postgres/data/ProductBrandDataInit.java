@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.domain.entity.ProductBrand;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductBrandRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductBrandRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.adapter.blogs;
 
 import fpt.teddypet.application.port.output.blogs.BlogCategoryRepositoryPort;
 import fpt.teddypet.domain.entity.BlogCategory;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.BlogCategoryRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.blogs.BlogCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

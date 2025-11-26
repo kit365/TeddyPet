@@ -1,7 +1,7 @@
 package fpt.teddypet.infrastructure.adapter.products;
 import fpt.teddypet.application.port.output.products.ProductTagRepositoryPort;
 import fpt.teddypet.domain.entity.ProductTag;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductTagRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductTagRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

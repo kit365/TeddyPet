@@ -3,8 +3,9 @@ import fpt.teddypet.application.constants.orders.cart.CartMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.orders.cart.AddToCartRequest;
 import fpt.teddypet.application.dto.request.orders.cart.UpdateCartItemRequest;
-import fpt.teddypet.application.dto.response.orders.CartResponse;
-import fpt.teddypet.application.port.input.orders.CartService;
+import fpt.teddypet.application.dto.response.orders.cart.CartResponse;
+
+import fpt.teddypet.application.port.input.orders.cart.CartService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

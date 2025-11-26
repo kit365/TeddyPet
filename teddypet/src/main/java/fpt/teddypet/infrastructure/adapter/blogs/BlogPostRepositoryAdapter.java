@@ -3,7 +3,7 @@ package fpt.teddypet.infrastructure.adapter.blogs;
 import fpt.teddypet.application.port.output.blogs.BlogPostRepositoryPort;
 import fpt.teddypet.domain.entity.BlogPost;
 import fpt.teddypet.domain.enums.BlogPostStatusEnum;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.BlogPostRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.blogs.BlogPostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

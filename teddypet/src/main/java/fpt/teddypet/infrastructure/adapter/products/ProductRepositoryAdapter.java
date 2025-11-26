@@ -2,7 +2,7 @@ package fpt.teddypet.infrastructure.adapter.products;
 
 import fpt.teddypet.application.port.output.products.ProductRepositoryPort;
 import fpt.teddypet.domain.entity.Product;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.ProductRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

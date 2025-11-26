@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 @SuperBuilder
 public class OrderItem extends BaseEntity {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,15 +44,18 @@ public class OrderItem extends BaseEntity {
 
     // Snapshot - Bản sao dữ liệu tại thời điểm mua (QUAN TRỌNG)
     @Column(name = "product_name", nullable = false, length = 200)
-    private String productName; // Copy từ Product.name
+    private String productName;
 
     @Column(name = "variant_name", length = 100)
-    private String variantName; // Copy từ ProductVariant.name
+    private String variantName;
 
     @Column(name = "sku", length = 50)
-    private String sku; // Copy từ ProductVariant.sku
+    private String sku;
 
     @Column(name = "image_url", length = 500)
-    private String imageUrl; // Copy từ ProductImage (ảnh đại diện)
+    private String imageUrl;
+
+    @Column(name = "alt_image", length = 255)
+    private String altImage;
 }
 
