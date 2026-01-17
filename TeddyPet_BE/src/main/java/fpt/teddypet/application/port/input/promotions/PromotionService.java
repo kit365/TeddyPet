@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PromotionService {
-    PromotionResponse create(PromotionRequest request);
-    PromotionResponse update(UUID promotionId, PromotionRequest request);
+    void create(PromotionRequest request);
+    void update(UUID promotionId, PromotionRequest request);
     PromotionResponse getByIdResponse(UUID promotionId);
     PromotionResponse getByCodeResponse(String code);
     Promotion getById(UUID promotionId);

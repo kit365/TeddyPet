@@ -50,7 +50,7 @@ public class OrderApplicationService implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse createOrder(OrderRequest request, UUID userId) {
+    public void createOrder(OrderRequest request, UUID userId) {
         log.info(OrderLogMessages.LOG_ORDER_CREATE_START, userId);
 
         if (request.items() == null || request.items().isEmpty()) {
@@ -64,21 +64,19 @@ public class OrderApplicationService implements OrderService {
                 order.getSubtotal(), order.getDiscountAmount(),
                 order.getShippingFee(), order.getFinalAmount());
 
-        OrderResponse orderResponse = switch (request.paymentMethod()) {
+        switch (request.paymentMethod()) {
             case CASH -> createCashOrder(order);
             case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
                     "Online payment methods are not yet implemented. Please use CASH payment.");
-        };
+        }
         
         // Clear cart after successful order creation
         cartService.clearCart();
         log.info(OrderLogMessages.LOG_ORDER_CART_CLEARED, userId);
-        
-        return orderResponse;
     }
 
 
-    private OrderResponse createCashOrder(Order order) {
+    private void createCashOrder(Order order) {
         Payment payment = Payment.builder()
                 .amount(order.getFinalAmount())
                 .paymentMethod(PaymentMethodEnum.CASH)
@@ -91,8 +89,6 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         
         log.info(OrderLogMessages.LOG_ORDER_CREATE_SUCCESS, savedOrder.getId(), savedOrder.getOrderCode());
-        
-        return orderMapper.toResponse(savedOrder);
     }
 
 
@@ -157,7 +153,7 @@ public class OrderApplicationService implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse updateOrderStatus(UUID orderId, OrderStatusEnum status) {
+    public void updateOrderStatus(UUID orderId, OrderStatusEnum status) {
         log.info(OrderLogMessages.LOG_ORDER_UPDATE_START, orderId);
         Order order = getById(orderId);
         
@@ -166,7 +162,6 @@ public class OrderApplicationService implements OrderService {
         
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
-        return orderMapper.toResponse(savedOrder);
     }
 
     @Override

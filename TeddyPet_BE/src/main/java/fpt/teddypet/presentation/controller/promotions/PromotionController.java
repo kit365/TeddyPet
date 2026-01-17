@@ -29,24 +29,24 @@ public class PromotionController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tạo khuyến mãi", description = "Tạo khuyến mãi mới (Admin)")
-    public ResponseEntity<ApiResponse<PromotionResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody PromotionRequest request) {
-        PromotionResponse response = promotionService.create(request);
+        promotionService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(PromotionMessages.MESSAGE_PROMOTION_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(PromotionMessages.MESSAGE_PROMOTION_CREATED_SUCCESS));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật khuyến mãi", description = "Cập nhật thông tin khuyến mãi (Admin)")
-    public ResponseEntity<ApiResponse<PromotionResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable UUID id,
             @Valid @RequestBody PromotionRequest request) {
-        PromotionResponse response = promotionService.update(id, request);
+        promotionService.update(id, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(PromotionMessages.MESSAGE_PROMOTION_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(PromotionMessages.MESSAGE_PROMOTION_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{id}")

@@ -66,7 +66,7 @@ public class ProductApplicationService implements ProductService {
 
     @Override
     @Transactional
-    public ProductResponse create(ProductRequest request) {
+    public void create(ProductRequest request) {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_START, request.name());
 
         // Generate slug from name
@@ -111,13 +111,11 @@ public class ProductApplicationService implements ProductService {
         if (request.variants() != null && !request.variants().isEmpty()) {
             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
         }
-
-        return productMapper.toResponse(savedProduct);
     }
 
     @Override
     @Transactional
-    public ProductResponse update(Long productId, ProductRequest request) {
+    public void update(Long productId, ProductRequest request) {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_START, request.name());
 
         Product product = getByIdAndIsDeletedFalse(productId);
@@ -160,8 +158,6 @@ public class ProductApplicationService implements ProductService {
         if (request.variants() != null) {
              productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
         }
-
-        return productMapper.toResponse(savedProduct);
     }
 
     @Override

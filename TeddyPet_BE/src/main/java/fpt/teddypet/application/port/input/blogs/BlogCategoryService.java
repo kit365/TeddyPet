@@ -9,7 +9,7 @@ import fpt.teddypet.domain.entity.BlogCategory;
 import java.util.List;
 
 public interface BlogCategoryService {
-    BlogCategoryResponse upsert(BlogCategoryUpsertRequest request);
+    void upsert(BlogCategoryUpsertRequest request);
     
     BlogCategoryResponse getCategoryDetail(Long id);
     

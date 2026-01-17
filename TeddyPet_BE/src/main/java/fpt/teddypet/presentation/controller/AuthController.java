@@ -26,11 +26,11 @@ public class AuthController {
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Register a new user with email and password")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(AuthMessages.MESSAGE_REGISTER_SUCCESS, response));
+                .body(ApiResponse.success(AuthMessages.MESSAGE_REGISTER_SUCCESS));
     }
 
     @PostMapping("/login")

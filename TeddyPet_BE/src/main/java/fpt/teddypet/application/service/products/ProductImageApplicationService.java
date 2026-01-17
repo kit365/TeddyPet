@@ -46,7 +46,7 @@ public class ProductImageApplicationService implements ProductImageService {
 
     @Override
     @Transactional
-    public ProductImageResponse create(ProductImageRequest request) {
+    public void create(ProductImageRequest request) {
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_START, request.imageUrl());
         Product product = getProductById(request.productId());
 
@@ -60,12 +60,11 @@ public class ProductImageApplicationService implements ProductImageService {
 
         ProductImage savedImage = productImageRepositoryPort.save(image);
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_SUCCESS, savedImage.getId());
-        return productImageMapper.toResponse(savedImage);
     }
 
     @Override
     @Transactional
-    public ProductImageResponse update(Long imageId, ProductImageRequest request) {
+    public void update(Long imageId, ProductImageRequest request) {
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_START, request.imageUrl());
         ProductImage image = getById(imageId);
         Product product = getProductById(request.productId());
@@ -76,7 +75,6 @@ public class ProductImageApplicationService implements ProductImageService {
 
         ProductImage savedImage = productImageRepositoryPort.save(image);
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_UPSERT_SUCCESS, savedImage.getId());
-        return productImageMapper.toResponse(savedImage);
     }
 
     @Override
@@ -144,7 +142,7 @@ public class ProductImageApplicationService implements ProductImageService {
 
     @Override
     @Transactional
-    public List<ProductImageResponse> saveImages(ProductImageSaveRequest request) {
+    public void saveImages(ProductImageSaveRequest request) {
         Long productId = request.productId();
         List<ProductImageItemRequest> newImages = request.images() != null ? request.images() : List.of();
         
@@ -175,7 +173,7 @@ public class ProductImageApplicationService implements ProductImageService {
         // Nếu không có images mới, trả về danh sách rỗng
         if (newImages.isEmpty()) {
             log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, 0, productId);
-            return List.of();
+            return;
         }
         
         // Tính max displayOrder từ danh sách images còn lại sau khi xóa
@@ -222,9 +220,6 @@ public class ProductImageApplicationService implements ProductImageService {
         
         List<ProductImage> savedImages = productImageRepositoryPort.saveAll(imagesToSave);
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, savedImages.size(), productId);
-        return savedImages.stream()
-                .map(productImageMapper::toResponse)
-                .toList();
     }
 
     @Override

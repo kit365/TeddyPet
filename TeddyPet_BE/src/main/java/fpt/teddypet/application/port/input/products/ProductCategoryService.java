@@ -9,7 +9,7 @@ import fpt.teddypet.domain.entity.ProductCategory;
 import java.util.List;
 
 public interface ProductCategoryService {
-    ProductCategoryResponse upsert(ProductCategoryUpsertRequest request);
+    void upsert(ProductCategoryUpsertRequest request);
     ProductCategoryResponse getByIdResponse(Long categoryId);
     ProductCategory getById(Long categoryId);
     List<ProductCategoryResponse> getAll();
@@ -27,5 +27,6 @@ public interface ProductCategoryService {
     List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean isDeleted, boolean onlyActive);
 
     void delete(Long categoryId);
+    int deleteMany(List<Long> ids);
 }
 

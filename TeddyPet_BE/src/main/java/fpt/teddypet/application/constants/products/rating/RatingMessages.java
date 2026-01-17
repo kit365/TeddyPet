@@ -20,4 +20,3 @@ public final class RatingMessages {
     public static final String MESSAGE_RATING_NO_PERMISSION_UPDATE = "Bạn không có quyền cập nhật đánh giá này.";
     public static final String MESSAGE_RATING_NO_PERMISSION_DELETE = "Bạn không có quyền xóa đánh giá này.";
 }
-

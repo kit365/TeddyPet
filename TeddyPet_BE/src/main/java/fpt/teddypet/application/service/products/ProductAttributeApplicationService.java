@@ -32,7 +32,7 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
     @Override
     @Transactional
-    public ProductAttributeResponse create(ProductAttributeRequest request) {
+    public void create(ProductAttributeRequest request) {
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_CREATE_START, request.name());
 
         List<ProductAttribute> existingAttributes = productAttributeRepositoryPort.findAllActive();
@@ -59,12 +59,11 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         ProductAttribute savedAttribute = productAttributeRepositoryPort.save(attribute);
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_CREATE_SUCCESS, savedAttribute.getAttributeId());
-        return toResponse(savedAttribute);
     }
 
     @Override
     @Transactional
-    public ProductAttributeResponse update(Long attributeId, ProductAttributeRequest request) {
+    public void update(Long attributeId, ProductAttributeRequest request) {
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_UPDATE_START, attributeId);
         ProductAttribute attribute = getActiveAttribute(attributeId);
 
@@ -83,7 +82,6 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
 
         ProductAttribute saved = productAttributeRepositoryPort.save(attribute);
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_UPDATE_SUCCESS, attributeId);
-        return toResponse(saved);
     }
 
     @Override

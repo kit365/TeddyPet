@@ -21,6 +21,6 @@ public final class OrderMessages {
     public static final String MESSAGE_ORDER_EMPTY = "Đơn hàng không có sản phẩm.";
     public static final String MESSAGE_ORDER_INVALID_PAYMENT_METHOD = "Phương thức thanh toán không hợp lệ. Hiện chỉ hỗ trợ thanh toán tiền mặt (CASH).";
     public static final String MESSAGE_ORDER_EMPTY_ITEMS = "Đơn hàng phải có ít nhất 1 sản phẩm.";
-    public static final String MESSAGE_ORDER_VARIANT_NOT_AVAILABLE = "Sản phẩm %s không khả dụng.";
+    public static final String MESSAGE_ORDER_VARIANT_NOT_AVAILABLE = "Sản phẩm %s không còn khả dụng.";
     public static final String MESSAGE_ORDER_INSUFFICIENT_STOCK = "Sản phẩm %s không đủ hàng. Còn lại: %d";
 }

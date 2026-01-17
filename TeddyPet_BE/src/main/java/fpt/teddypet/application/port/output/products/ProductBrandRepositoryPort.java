@@ -11,5 +11,6 @@ public interface ProductBrandRepositoryPort {
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Long brandId);
     ProductBrand getReferenceById(Long brandId);
+    int softDeleteByIds(List<Long> ids);
 }
 

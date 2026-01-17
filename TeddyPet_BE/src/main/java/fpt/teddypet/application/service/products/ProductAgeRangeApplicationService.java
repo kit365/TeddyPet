@@ -28,7 +28,7 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
 
     @Override
     @Transactional
-    public ProductAgeRangeResponse create(ProductAgeRangeRequest request) {
+    public void create(ProductAgeRangeRequest request) {
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_UPSERT_START, request.name());
         // Validate name uniqueness
         validateNameUniqueness(request.name(), null);
@@ -40,12 +40,11 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
 
         ProductAgeRange savedAgeRange = productAgeRangeRepositoryPort.save(ageRange);
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_UPSERT_SUCCESS, savedAgeRange.getId());
-        return productAgeRangeMapper.toResponse(savedAgeRange);
     }
 
     @Override
     @Transactional
-    public ProductAgeRangeResponse update(Long ageRangeId, ProductAgeRangeRequest request) {
+    public void update(Long ageRangeId, ProductAgeRangeRequest request) {
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_UPSERT_START, request.name());
         ProductAgeRange ageRange = getById(ageRangeId);
 
@@ -57,7 +56,6 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
         productAgeRangeMapper.updateAgeRangeFromRequest(request, ageRange);
         ProductAgeRange savedAgeRange = productAgeRangeRepositoryPort.save(ageRange);
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_UPSERT_SUCCESS, savedAgeRange.getId());
-        return productAgeRangeMapper.toResponse(savedAgeRange);
     }
 
     @Override
@@ -85,9 +83,17 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
 
     @Override
     public List<ProductAgeRangeResponse> getAll() {
+        return getAll(null, null);
+    }
+
+    @Override
+    public List<ProductAgeRangeResponse> getAll(Boolean isActive, Boolean isDeleted) {
         List<ProductAgeRange> ageRanges = productAgeRangeRepositoryPort.findAll();
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_GET_ALL, ageRanges.size());
+        
         return ageRanges.stream()
+                .filter(ar -> isActive == null || ar.isActive() == isActive)
+                .filter(ar -> isDeleted == null || ar.isDeleted() == isDeleted)
                 .map(productAgeRangeMapper::toResponse)
                 .toList();
     }
@@ -101,6 +107,15 @@ public class ProductAgeRangeApplicationService implements ProductAgeRangeService
         ageRange.setActive(false);
         productAgeRangeRepositoryPort.save(ageRange);
         log.info(ProductAgeRangeLogMessages.LOG_PRODUCT_AGE_RANGE_DELETE_SUCCESS, ageRangeId);
+    }
+
+    @Override
+    @Transactional
+    public int deleteMany(List<Long> ids) {
+        log.info("Starting bulk delete for {} ProductAgeRanges", ids.size());
+        int count = productAgeRangeRepositoryPort.softDeleteByIds(ids);
+        log.info("Successfully soft deleted {} ProductAgeRanges", count);
+        return count;
     }
 
 

@@ -42,8 +42,13 @@ public class BlogDataInitializer implements CommandLineRunner {
         log.info("🌱 Seeding Blog Categories...");
 
         // 1. Root Categories
+        createCategory("News", "Latest news and updates", null, 1);
+        createCategory("Pet Care Tips", "Useful tips for pet owners", null, 2);
 
-        BlogCategoryResponse tips = createCategory("Pet Care Tips", "Useful tips for pet owners", null, 2);
+        BlogCategoryResponse tips = blogCategoryService.getAll().stream()
+                .filter(c -> c.name().equals("Pet Care Tips"))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Category 'Pet Care Tips' not found after seeding"));
 
 
         // 2. Child Categories for Tips
@@ -54,8 +59,8 @@ public class BlogDataInitializer implements CommandLineRunner {
         log.info("✅ Blog Categories seeded.");
     }
 
-    private BlogCategoryResponse createCategory(String name, String description, Long parentId, Integer order) {
-        return blogCategoryService.upsert(new BlogCategoryUpsertRequest(
+    private void createCategory(String name, String description, Long parentId, Integer order) {
+        blogCategoryService.upsert(new BlogCategoryUpsertRequest(
                 null, name, description, null, true, parentId, order
         ));
     }
@@ -77,9 +82,9 @@ public class BlogDataInitializer implements CommandLineRunner {
         log.info("✅ Blog Tags seeded.");
     }
 
-    private BlogTagResponse createTag(String name, String description, Integer order) {
+    private void createTag(String name, String description, Integer order) {
 
-        return blogTagService.upsert(new BlogTagUpsertRequest(
+        blogTagService.upsert(new BlogTagUpsertRequest(
                 null, name, order
         ));
     }

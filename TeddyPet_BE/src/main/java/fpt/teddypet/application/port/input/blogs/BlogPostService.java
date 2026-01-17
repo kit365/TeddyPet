@@ -9,9 +9,9 @@ import fpt.teddypet.application.dto.response.blog.post.BlogPostResponse;
 import fpt.teddypet.domain.entity.BlogPost;
 
 public interface BlogPostService {
-    BlogPostResponse create(BlogPostCreateRequest request);
+    void create(BlogPostCreateRequest request);
     
-    BlogPostResponse update(Long id, BlogPostUpdateRequest request);
+    void update(Long id, BlogPostUpdateRequest request);
     
     BlogPost getById(Long id);
     

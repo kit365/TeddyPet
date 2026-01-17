@@ -65,5 +65,13 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
         return productBrandRepository
                 .getReferenceById(brandId);
     }
+
+    @Override
+    public int softDeleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return productBrandRepository.softDeleteByIds(ids);
+    }
 }
 

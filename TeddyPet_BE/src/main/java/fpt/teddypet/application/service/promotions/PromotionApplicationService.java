@@ -29,7 +29,7 @@ public class PromotionApplicationService implements PromotionService {
 
     @Override
     @Transactional
-    public PromotionResponse create(PromotionRequest request) {
+    public void create(PromotionRequest request) {
         log.info(PromotionLogMessages.LOG_PROMOTION_CREATE_START, request.code());
 
         // Validate code uniqueness
@@ -47,12 +47,11 @@ public class PromotionApplicationService implements PromotionService {
 
         Promotion savedPromotion = promotionRepositoryPort.save(promotion);
         log.info(PromotionLogMessages.LOG_PROMOTION_CREATE_SUCCESS, savedPromotion.getId());
-        return promotionMapper.toResponse(savedPromotion);
     }
 
     @Override
     @Transactional
-    public PromotionResponse update(UUID promotionId, PromotionRequest request) {
+    public void update(UUID promotionId, PromotionRequest request) {
         log.info(PromotionLogMessages.LOG_PROMOTION_UPDATE_START, promotionId);
         Promotion promotion = getById(promotionId);
 
@@ -69,7 +68,6 @@ public class PromotionApplicationService implements PromotionService {
 
         Promotion savedPromotion = promotionRepositoryPort.save(promotion);
         log.info(PromotionLogMessages.LOG_PROMOTION_UPDATE_SUCCESS, savedPromotion.getId());
-        return promotionMapper.toResponse(savedPromotion);
     }
 
     @Override

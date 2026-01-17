@@ -9,8 +9,8 @@ import fpt.teddypet.domain.enums.UnitEnum;
 import java.util.List;
 
 public interface ProductAttributeService {
-    ProductAttributeResponse create(ProductAttributeRequest request);
-    ProductAttributeResponse update(Long attributeId, ProductAttributeRequest request);
+    void create(ProductAttributeRequest request);
+    void update(Long attributeId, ProductAttributeRequest request);
     ProductAttributeResponse getById(Long attributeId);
     List<ProductAttributeResponse> getAll();
     void delete(Long attributeId);

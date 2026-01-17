@@ -33,12 +33,12 @@ public class ProductAttributeController {
 
     @PostMapping
     @Operation(summary = "Tạo thuộc tính sản phẩm", description = "Tạo mới thuộc tính sản phẩm cùng danh sách giá trị (optional)")
-    public ResponseEntity<ApiResponse<ProductAttributeResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody ProductAttributeRequest request) {
-        ProductAttributeResponse response = productAttributeService.create(request);
+        productAttributeService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_CREATED_SUCCESS));
     }
 
     @GetMapping("/measurement")
@@ -50,13 +50,13 @@ public class ProductAttributeController {
 
     @PutMapping("/{attributeId}")
     @Operation(summary = "Cập nhật thuộc tính sản phẩm", description = "Cập nhật thông tin thuộc tính và đồng bộ danh sách giá trị")
-    public ResponseEntity<ApiResponse<ProductAttributeResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long attributeId,
             @Valid @RequestBody ProductAttributeRequest request) {
-        ProductAttributeResponse response = productAttributeService.update(attributeId, request);
+        productAttributeService.update(attributeId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{attributeId}")

@@ -31,7 +31,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
     @Override
     @Transactional
-    public ProductCategoryResponse upsert(ProductCategoryUpsertRequest request) {
+    public void upsert(ProductCategoryUpsertRequest request) {
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_UPSERT_START, request.name());
         
         ProductCategory category;
@@ -60,7 +60,6 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
         ProductCategory savedCategory = productCategoryRepositoryPort.save(category);
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_UPSERT_SUCCESS, savedCategory.getId());
-        return productCategoryMapper.toResponse(savedCategory);
     }
 
     @Override
@@ -138,6 +137,15 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         category.setActive(false);
         productCategoryRepositoryPort.save(category);
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_DELETE_SUCCESS, categoryId);
+    }
+
+    @Override
+    @Transactional
+    public int deleteMany(List<Long> ids) {
+        log.info("Starting bulk delete for {} ProductCategories", ids.size());
+        int count = productCategoryRepositoryPort.softDeleteByIds(ids);
+        log.info("Successfully soft deleted {} ProductCategories", count);
+        return count;
     }
 
 

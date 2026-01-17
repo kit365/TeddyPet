@@ -9,9 +9,9 @@ import fpt.teddypet.domain.entity.ProductImage;
 import java.util.List;
 
 public interface ProductImageService {
-    ProductImageResponse create(ProductImageRequest request);
-    ProductImageResponse update(Long imageId, ProductImageRequest request);
-    List<ProductImageResponse> saveImages(ProductImageSaveRequest request);
+    void create(ProductImageRequest request);
+    void update(Long imageId, ProductImageRequest request);
+    void saveImages(ProductImageSaveRequest request);
     ProductImageResponse getByIdResponse(Long imageId);
     List<ProductImageResponse> getByProductId(Long productId);
     ProductImageInfo toInfo(ProductImage image);

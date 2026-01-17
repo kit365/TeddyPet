@@ -12,11 +12,10 @@ public final class AuthMessages {
 
     // Error messages
     public static final String MESSAGE_PASSWORD_NOT_MATCH = "Mật khẩu không chính xác.";
-    public static final String MESSAGE_EMAIL_DUPLICATE = "Email này đã được sử dụng.";
+    public static final String MESSAGE_EMAIL_DUPLICATE = "Email đã được sử dụng.";
     public static final String MESSAGE_EMAIL_NOT_FOUND = "Email không tồn tại.";
     public static final String MESSAGE_INVALID_CREDENTIALS = "Email hoặc mật khẩu không chính xác.";
-    public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa đăng nhập.";
+    public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa được xác thực.";
     public static final String MESSAGE_CANNOT_DETERMINE_USER = "Không thể xác định người dùng hiện tại.";
     public static final String MESSAGE_USER_NOT_FOUND = "Không tìm thấy người dùng.";
 }
-

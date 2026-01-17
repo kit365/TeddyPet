@@ -8,8 +8,8 @@ import fpt.teddypet.domain.entity.ProductTag;
 import java.util.List;
 
 public interface ProductTagService {
-    ProductTagResponse create(ProductTagRequest request);
-    ProductTagResponse update(Long tagId, ProductTagRequest request);
+    void create(ProductTagRequest request);
+    void update(Long tagId, ProductTagRequest request);
     ProductTagResponse getByIdResponse(Long tagId);
     ProductTag getById(Long tagId);
     List<ProductTagResponse> getAll();
@@ -21,5 +21,6 @@ public interface ProductTagService {
     List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted);
     List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted, boolean onlyActive);
     void delete(Long tagId);
+    int deleteMany(List<Long> ids);
 }
 

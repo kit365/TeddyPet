@@ -26,23 +26,23 @@ public class ProductAgeRangeController {
 
     @PostMapping
     @Operation(summary = "Tạo độ tuổi sản phẩm", description = "Tạo độ tuổi sản phẩm mới")
-    public ResponseEntity<ApiResponse<ProductAgeRangeResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody ProductAgeRangeRequest request) {
-        ProductAgeRangeResponse response = productAgeRangeService.create(request);
+        productAgeRangeService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_CREATED_SUCCESS));
     }
 
     @PutMapping("/{ageRangeId}")
     @Operation(summary = "Cập nhật độ tuổi sản phẩm", description = "Cập nhật thông tin độ tuổi sản phẩm")
-    public ResponseEntity<ApiResponse<ProductAgeRangeResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long ageRangeId,
             @Valid @RequestBody ProductAgeRangeRequest request) {
-        ProductAgeRangeResponse response = productAgeRangeService.update(ageRangeId, request);
+        productAgeRangeService.update(ageRangeId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{ageRangeId}")
@@ -53,9 +53,11 @@ public class ProductAgeRangeController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy tất cả độ tuổi sản phẩm", description = "Lấy danh sách tất cả độ tuổi sản phẩm")
-    public ResponseEntity<ApiResponse<List<ProductAgeRangeResponse>>> getAll() {
-        List<ProductAgeRangeResponse> responses = productAgeRangeService.getAll();
+    @Operation(summary = "Lấy tất cả độ tuổi sản phẩm", description = "Lấy danh sách tất cả độ tuổi sản phẩm. Có thể filter theo isActive và isDeleted")
+    public ResponseEntity<ApiResponse<List<ProductAgeRangeResponse>>> getAll(
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) Boolean isDeleted) {
+        List<ProductAgeRangeResponse> responses = productAgeRangeService.getAll(isActive, isDeleted);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -64,6 +66,13 @@ public class ProductAgeRangeController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long ageRangeId) {
         productAgeRangeService.delete(ageRangeId);
         return ResponseEntity.ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS));
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "Xóa nhiều độ tuổi sản phẩm", description = "Xóa mềm nhiều độ tuổi sản phẩm theo danh sách ID")
+    public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
+        int count = productAgeRangeService.deleteMany(ids);
+        return ResponseEntity.ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS, count));
     }
 }
 

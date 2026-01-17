@@ -6,7 +6,7 @@ import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.domain.entity.User;
 
 public interface AuthService {
-    AuthResponse register(RegisterRequest request);
+    void register(RegisterRequest request);
     AuthResponse login(LoginRequest request);
     User getCurrentUser();
 }

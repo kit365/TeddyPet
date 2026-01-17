@@ -26,12 +26,12 @@ public class ProductImageController {
 
     @PostMapping
     @Operation(summary = "Đồng bộ hình ảnh sản phẩm", description = "Tạo, cập nhật và xóa hình ảnh sản phẩm trong một lần. Hình ảnh có imageId sẽ được cập nhật, không có imageId sẽ được tạo mới, và hình ảnh không có trong danh sách sẽ bị xóa.")
-    public ResponseEntity<ApiResponse<List<ProductImageResponse>>> saveImages(
+    public ResponseEntity<ApiResponse<Void>> saveImages(
             @Valid @RequestBody ProductImageSaveRequest request) {
-        List<ProductImageResponse> responses = productImageService.saveImages(request);
+        productImageService.saveImages(request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductImageMessages.MESSAGE_PRODUCT_IMAGES_SAVE_SUCCESS, responses));
+                .body(ApiResponse.success(ProductImageMessages.MESSAGE_PRODUCT_IMAGES_SAVE_SUCCESS));
     }
 
     @GetMapping("/{imageId}")

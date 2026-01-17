@@ -26,12 +26,12 @@ public class BlogCategoryController {
 
     @PostMapping
     @Operation(summary = "Create or Update Blog Category", description = "Creates a new blog category or updates an existing one.")
-    public ResponseEntity<ApiResponse<BlogCategoryResponse>> upsert(@Valid @RequestBody BlogCategoryUpsertRequest request) {
-        BlogCategoryResponse response = blogCategoryService.upsert(request);
+    public ResponseEntity<ApiResponse<Void>> upsert(@Valid @RequestBody BlogCategoryUpsertRequest request) {
+        blogCategoryService.upsert(request);
         String message = request.categoryId() == null 
                 ? BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_CREATED_SUCCESS 
                 : BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_UPDATED_SUCCESS;
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message, response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message));
     }
 
     @GetMapping

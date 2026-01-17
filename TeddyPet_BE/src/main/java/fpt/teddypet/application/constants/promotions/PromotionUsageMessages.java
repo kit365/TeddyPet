@@ -12,6 +12,6 @@ public final class PromotionUsageMessages {
     // Error messages
     public static final String MESSAGE_PROMOTION_USAGE_NOT_FOUND = "Không tìm thấy lịch sử sử dụng khuyến mãi.";
     public static final String MESSAGE_PROMOTION_USAGE_NOT_FOUND_BY_ID = "Không tìm thấy lịch sử sử dụng khuyến mãi với ID: %s";
-    public static final String MESSAGE_PROMOTION_USAGE_LIMIT_PER_USER_REACHED = "Bạn đã đạt giới hạn sử dụng khuyến mãi này.";
+    public static final String MESSAGE_PROMOTION_USAGE_LIMIT_PER_USER_REACHED = "Bạn đã đạt giới hạn sử dụng cho khuyến mãi này.";
     public static final String MESSAGE_PROMOTION_USAGE_ALREADY_EXISTS = "Lịch sử sử dụng khuyến mãi đã tồn tại.";
 }

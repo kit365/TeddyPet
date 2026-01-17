@@ -26,23 +26,23 @@ public class ProductBrandController {
 
     @PostMapping
     @Operation(summary = "Tạo thương hiệu sản phẩm", description = "Tạo thương hiệu sản phẩm mới")
-    public ResponseEntity<ApiResponse<ProductBrandResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody ProductBrandRequest request) {
-        ProductBrandResponse response = productBrandService.create(request);
+        productBrandService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_CREATED_SUCCESS));
     }
 
     @PutMapping("/{brandId}")
     @Operation(summary = "Cập nhật thương hiệu sản phẩm", description = "Cập nhật thông tin thương hiệu sản phẩm")
-    public ResponseEntity<ApiResponse<ProductBrandResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long brandId,
             @Valid @RequestBody ProductBrandRequest request) {
-        ProductBrandResponse response = productBrandService.update(brandId, request);
+        productBrandService.update(brandId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{brandId}")
@@ -64,6 +64,13 @@ public class ProductBrandController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long brandId) {
         productBrandService.delete(brandId);
         return ResponseEntity.ok(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_DELETED_SUCCESS));
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "Xóa nhiều thương hiệu sản phẩm", description = "Xóa mềm nhiều thương hiệu sản phẩm theo danh sách ID")
+    public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
+        int count = productBrandService.deleteMany(ids);
+        return ResponseEntity.ok(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_DELETED_SUCCESS, count));
     }
 }
 

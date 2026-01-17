@@ -22,6 +22,8 @@ public interface ProductAgeRangeMapper {
     void updateAgeRangeFromRequest(ProductAgeRangeRequest request, @MappingTarget ProductAgeRange ageRange);
 
     @Mapping(target = "ageRangeId", source = "id")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
     ProductAgeRangeResponse toResponse(ProductAgeRange ageRange);
 
 

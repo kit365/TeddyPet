@@ -14,6 +14,5 @@ public final class ProductAgeRangeMessages {
     // Error messages
     public static final String MESSAGE_PRODUCT_AGE_RANGE_NOT_FOUND = "Không tìm thấy độ tuổi sản phẩm.";
     public static final String MESSAGE_PRODUCT_AGE_RANGE_NOT_FOUND_BY_ID = "Không tìm thấy độ tuổi sản phẩm với ID: %s";
-    public static final String MESSAGE_PRODUCT_AGE_RANGE_NAME_ALREADY_EXISTS = "Tên độ tuổi này đã được sử dụng.";
+    public static final String MESSAGE_PRODUCT_AGE_RANGE_NAME_ALREADY_EXISTS = "Tên độ tuổi đã tồn tại.";
 }
-

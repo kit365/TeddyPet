@@ -116,5 +116,13 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         }
     }
 
+    @Override
+    public int softDeleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return productCategoryRepository.softDeleteByIds(ids);
+    }
+
 }
 

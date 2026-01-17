@@ -23,12 +23,12 @@ public class BlogTagController {
 
     @PostMapping
     @Operation(summary = "Create or Update Blog Tag", description = "Creates a new blog tag or updates an existing one.")
-    public ResponseEntity<ApiResponse<BlogTagResponse>> upsert(@Valid @RequestBody BlogTagUpsertRequest request) {
-        BlogTagResponse response = blogTagService.upsert(request);
+    public ResponseEntity<ApiResponse<Void>> upsert(@Valid @RequestBody BlogTagUpsertRequest request) {
+        blogTagService.upsert(request);
         String message = request.tagId() == null 
                 ? BlogTagMessages.MESSAGE_BLOG_TAG_CREATED_SUCCESS 
                 : BlogTagMessages.MESSAGE_BLOG_TAG_UPDATED_SUCCESS;
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message, response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message));
     }
 
     @GetMapping

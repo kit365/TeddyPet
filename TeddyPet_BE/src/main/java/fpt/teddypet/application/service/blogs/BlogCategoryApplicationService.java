@@ -29,7 +29,7 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
 
     @Override
     @Transactional
-    public BlogCategoryResponse upsert(BlogCategoryUpsertRequest request) {
+    public void upsert(BlogCategoryUpsertRequest request) {
         log.info(BlogCategoryLogMessages.LOG_BLOG_CATEGORY_UPSERT_START, request.name());
 
         BlogCategory category;
@@ -75,8 +75,6 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
 
         BlogCategory savedCategory = blogCategoryRepositoryPort.save(category);
         log.info(BlogCategoryLogMessages.LOG_BLOG_CATEGORY_UPSERT_SUCCESS, savedCategory.getId());
-
-        return blogCategoryMapper.toResponse(savedCategory);
     }
 
     @Override

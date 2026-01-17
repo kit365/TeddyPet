@@ -34,7 +34,7 @@ public class CartController {
 
     @PostMapping("/items")
     @Operation(summary = "Thêm sản phẩm vào giỏ hàng", description = "Thêm một sản phẩm (variant) vào giỏ hàng. Nếu sản phẩm đã tồn tại, số lượng sẽ được cộng dồn.")
-    public ResponseEntity<ApiResponse<String>> addItem(@Valid @RequestBody AddToCartRequest request) {
+    public ResponseEntity<ApiResponse<Void>> addItem(@Valid @RequestBody AddToCartRequest request) {
         cartService.addItemToCart(request);
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -43,7 +43,7 @@ public class CartController {
 
     @PutMapping("/items")
     @Operation(summary = "Cập nhật số lượng sản phẩm", description = "Cập nhật số lượng của một sản phẩm trong giỏ hàng")
-    public ResponseEntity<ApiResponse<String>> updateItem(@Valid @RequestBody UpdateCartItemRequest request) {
+    public ResponseEntity<ApiResponse<Void>> updateItem(@Valid @RequestBody UpdateCartItemRequest request) {
         cartService.updateCartItemQuantity(request);
         return ResponseEntity
                 .status(HttpStatus.OK)
