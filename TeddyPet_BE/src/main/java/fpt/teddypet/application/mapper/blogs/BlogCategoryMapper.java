@@ -19,14 +19,17 @@ public interface BlogCategoryMapper {
     BlogCategoryResponse toResponse(BlogCategory blogCategory);
 
     @Mapping(target = "categoryId", source = "id")
+    @Mapping(target = "isActive", source = "active")
     BlogCategoryInfo toInfo(BlogCategory blogCategory);
 
     @Mapping(target = "categoryId", source = "id")
     @Mapping(target = "children", source = "children")
+    @Mapping(target = "isActive", source = "active")
     BlogCategoryNestedResponse toNestedResponse(BlogCategory blogCategory);
 
     List<BlogCategoryNestedResponse> toNestedResponseList(List<BlogCategory> blogCategories);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -36,7 +39,7 @@ public interface BlogCategoryMapper {
     @Mapping(target = "parent", ignore = true)
     @Mapping(target = "children", ignore = true)
     @Mapping(target = "blogPosts", ignore = true)
-    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
     void updateCategoryFromRequest(BlogCategoryUpsertRequest request, @MappingTarget BlogCategory category);
 }

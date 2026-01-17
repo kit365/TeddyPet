@@ -37,7 +37,7 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
 
         if (isNew) {
             category = BlogCategory.builder().build();
-            category.setActive(true);
+
             category.setDeleted(false);
         } else {
             category = getById(request.categoryId());

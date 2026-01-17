@@ -1,5 +1,4 @@
 package fpt.teddypet.presentation.controller.blog;
-
 import fpt.teddypet.application.constants.blogs.blogtag.BlogTagMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.blogs.tag.BlogTagUpsertRequest;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -21,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Blog Tag", description = "APIs for managing blog tags")
 public class BlogTagController {
-
     private final BlogTagService blogTagService;
 
     @PostMapping

@@ -1,5 +1,6 @@
 package fpt.teddypet.application.dto.response.blog.post;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fpt.teddypet.application.dto.response.blog.category.BlogCategoryInfo;
 import fpt.teddypet.domain.enums.BlogPostStatusEnum;
 
@@ -16,6 +17,10 @@ public record BlogPostListResponse(
         BlogPostStatusEnum status,
         BlogCategoryInfo category,
         Integer displayOrder,
+        @JsonProperty("isActive")
+        boolean isActive,
+        @JsonProperty("isDeleted")
+        boolean isDeleted,
         LocalDateTime createdAt
 ) {
 }
