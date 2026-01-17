@@ -14,9 +14,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller chỉ để query biến thể sản phẩm và lấy danh sách đơn vị.
+ * Việc tạo/sửa/xóa biến thể được thực hiện thông qua ProductController (POST/PUT /api/products)
+ * bằng cách gửi mảng variants trong request body.
+ */
 @RestController
 @RequestMapping(ApiConstants.API_PRODUCT_VARIANTS)
-@Tag(name = "Biến thể sản phẩm", description = "API quản lý biến thể sản phẩm")
+@Tag(name = "Biến thể sản phẩm", description = "API query biến thể sản phẩm (Tạo/sửa/xóa thông qua Product API)")
 @RequiredArgsConstructor
 public class ProductVariantController {
     private final ProductVariantService productVariantService;

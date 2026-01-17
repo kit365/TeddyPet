@@ -1,38 +1,29 @@
 package fpt.teddypet.presentation.controller.product;
 
-import fpt.teddypet.application.constants.products.productimage.ProductImageMessages;
-import fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.image.ProductImageResponse;
 import fpt.teddypet.application.port.input.products.ProductImageService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller chỉ để query hình ảnh sản phẩm.
+ * Việc tạo/sửa/xóa hình ảnh được thực hiện thông qua ProductController (POST/PUT /api/products)
+ * bằng cách gửi mảng images trong request body.
+ */
 @RestController
 @RequestMapping(ApiConstants.API_PRODUCT_IMAGES)
-@Tag(name = "Hình ảnh sản phẩm", description = "API quản lý hình ảnh sản phẩm")
+@Tag(name = "Hình ảnh sản phẩm", description = "API query hình ảnh sản phẩm (Tạo/sửa/xóa thông qua Product API)")
 @RequiredArgsConstructor
 public class ProductImageController {
 
     private final ProductImageService productImageService;
-
-    @PostMapping
-    @Operation(summary = "Đồng bộ hình ảnh sản phẩm", description = "Tạo, cập nhật và xóa hình ảnh sản phẩm trong một lần. Hình ảnh có imageId sẽ được cập nhật, không có imageId sẽ được tạo mới, và hình ảnh không có trong danh sách sẽ bị xóa.")
-    public ResponseEntity<ApiResponse<Void>> saveImages(
-            @Valid @RequestBody ProductImageSaveRequest request) {
-        productImageService.saveImages(request);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductImageMessages.MESSAGE_PRODUCT_IMAGES_SAVE_SUCCESS));
-    }
 
     @GetMapping("/{imageId}")
     @Operation(summary = "Lấy hình ảnh sản phẩm theo ID", description = "Lấy thông tin hình ảnh sản phẩm theo ID")
