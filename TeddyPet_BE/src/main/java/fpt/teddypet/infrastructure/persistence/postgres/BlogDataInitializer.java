@@ -56,7 +56,7 @@ public class BlogDataInitializer implements CommandLineRunner {
 
     private BlogCategoryResponse createCategory(String name, String description, Long parentId, Integer order) {
         return blogCategoryService.upsert(new BlogCategoryUpsertRequest(
-                null, name, description, null, parentId, order
+                null, name, description, null, true, parentId, order
         ));
     }
 

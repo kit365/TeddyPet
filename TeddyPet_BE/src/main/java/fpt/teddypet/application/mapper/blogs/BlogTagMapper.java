@@ -10,9 +10,12 @@ import org.mapstruct.*;
 public interface BlogTagMapper {
 
     @Mapping(target = "tagId", source = "id")
+    @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "isDeleted", source = "deleted")
     BlogTagResponse toResponse(BlogTag blogTag);
 
     @Mapping(target = "tagId", source = "id")
+    @Mapping(target = "isActive", source = "active")
     BlogTagInfo toInfo(BlogTag blogTag);
 
     @Mapping(target = "id", ignore = true)
