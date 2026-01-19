@@ -13,6 +13,7 @@ import fpt.teddypet.application.util.DisplayOrderUtil;
 import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
+import fpt.teddypet.domain.valueobject.Measurement;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -164,9 +165,16 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                     ? valueRequest.displayOrder()
                     : i; // Use index as displayOrder
 
+            Measurement measurement = null;
+            if (valueRequest.amount() != null && valueRequest.unit() != null) {
+                measurement = Measurement.of(valueRequest.amount(), valueRequest.unit());
+            }
+
             ProductAttributeValue value = ProductAttributeValue.builder()
                     .attribute(attribute)
                     .value(valueRequest.value())
+                    .displayCode(valueRequest.displayCode())
+                    .measurement(measurement)
                     .displayOrder(displayOrder)
                     .build();
             value.setActive(true);
@@ -227,9 +235,16 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                         .orElse(null);
             }
 
+            Measurement measurement = null;
+            if (valueRequest.amount() != null && valueRequest.unit() != null) {
+                measurement = Measurement.of(valueRequest.amount(), valueRequest.unit());
+            }
+
             if (targetValue != null) {
                 targetValue.setValue(valueRequest.value());
                 targetValue.setDisplayOrder(requestedOrder);
+                targetValue.setDisplayCode(valueRequest.displayCode());
+                targetValue.setMeasurement(measurement);
                 targetValue.setDeleted(false);
                 targetValue.setActive(true);
                 if (targetValue.getValueId() != null) {
@@ -239,6 +254,8 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                 ProductAttributeValue newValue = ProductAttributeValue.builder()
                         .attribute(attribute)
                         .value(valueRequest.value())
+                        .displayCode(valueRequest.displayCode())
+                        .measurement(measurement)
                         .displayOrder(requestedOrder)
                         .build();
                 newValue.setDeleted(false);
