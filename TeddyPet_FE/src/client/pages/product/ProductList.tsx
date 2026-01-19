@@ -7,7 +7,7 @@ import { ProductListSearch } from "./sections/ProductListSearch"
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
-    { label: "Cửa hàng", to: "/cua-hang" },
+    { label: "Cửa hàng", to: "/shop" },
 ];
 
 const products: Product[] = [

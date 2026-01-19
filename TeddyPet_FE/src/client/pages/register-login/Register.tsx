@@ -5,7 +5,7 @@ import { FooterSub } from "../../components/layouts/FooterSub";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
-    { label: "Đăng ký", to: "/dang-ky" }
+    { label: "Đăng ký", to: "/auth/register" }
 ];
 
 export const RegisterPage = () => {
@@ -36,7 +36,7 @@ export const RegisterPage = () => {
                                 <Input placeholder="Xác nhận mật khẩu *" type="password" name="password" />
                                 <button className="w-full mt-[10px] mb-[20px] py-[16px] px-[30px] bg-client-secondary text-white font-secondary text-[1.8rem] rounded-[40px] transition-default cursor-pointer hover:bg-white hover:text-client-secondary">Đăng ký</button>
                             </form>
-                            <p className="text-center text-white">Bạn đã có tài khoản? <Link className="underline decoration-transparent hover:decoration-white transition-all duration-300 ease-linear" to={"/dang-nhap"}>Đăng nhập</Link></p>
+                            <p className="text-center text-white">Bạn đã có tài khoản? <Link className="underline decoration-transparent hover:decoration-white transition-all duration-300 ease-linear" to={"/auth/login"}>Đăng nhập</Link></p>
                         </div>
                     </div>
                 </div>

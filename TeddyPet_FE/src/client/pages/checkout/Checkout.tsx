@@ -123,7 +123,7 @@ export const CheckoutPage = () => {
                     }} />
                     <div className="text-client-text font-[700] mt-[16px]">Giỏ hàng của bạn hiện đang trống!</div>
                     <p className="mt-[5px] mb-[40px] text-client-text">Không thể thanh toán khi giỏ hàng của bạn trống - vui lòng xem qua cửa hàng của chúng tôi và quay lại khi bạn đã sẵn sàng đặt hàng.</p>
-                    <Link to="/cua-hang" className="w-[170px] h-[190px] items-center justify-center inline-flex bg-client-primary hover:bg-client-secondary transition-default text-white px-[30px] py-[16px] rounded-[9999px]">
+                    <Link to="/shop" className="w-[170px] h-[190px] items-center justify-center inline-flex bg-client-primary hover:bg-client-secondary transition-default text-white px-[30px] py-[16px] rounded-[9999px]">
                         Xem cửa hàng
                     </Link>
                 </div>

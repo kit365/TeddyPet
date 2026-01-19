@@ -85,7 +85,7 @@ export const MainHeader = () => {
 
                             </div>
                         </div>
-                        <Link to="/dang-ky" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                        <Link to="/auth/register" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
                             <User stroke="2" className="w-[2.5rem] h-[2.5rem]" />
                         </Link>
                         <Button
