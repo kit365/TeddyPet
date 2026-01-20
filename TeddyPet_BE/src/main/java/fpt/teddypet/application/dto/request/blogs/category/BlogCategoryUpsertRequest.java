@@ -14,6 +14,8 @@ public record BlogCategoryUpsertRequest(
         
         @Size(max = 255, message = "URL hình ảnh không được vượt quá 255 ký tự")
         String imageUrl,
+
+        Boolean isActive,
         
         Long parentId,
         

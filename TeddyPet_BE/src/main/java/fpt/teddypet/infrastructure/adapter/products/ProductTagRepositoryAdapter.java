@@ -68,5 +68,13 @@ public class ProductTagRepositoryAdapter implements ProductTagRepositoryPort {
             throw new EntityNotFoundException("Không tìm thấy tag với ID: " + missingIds);
         }
     }
+
+    @Override
+    public int softDeleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return productTagRepository.softDeleteByIds(ids);
+    }
 }
 

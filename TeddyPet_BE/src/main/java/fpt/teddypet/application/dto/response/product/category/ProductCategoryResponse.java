@@ -9,6 +9,7 @@ public record ProductCategoryResponse(
         String imageUrl,
         String altImage,
         Long parentId,
+        String parentName,
         boolean isActive,
         boolean isDeleted,
         LocalDateTime createdAt,

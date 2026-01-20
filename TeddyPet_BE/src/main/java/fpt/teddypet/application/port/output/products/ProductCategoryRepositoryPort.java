@@ -15,5 +15,6 @@ public interface ProductCategoryRepositoryPort {
     List<Long> findAllDescendantIds(List<Long> categoryIds);
     List<ProductCategory> findAllByIds(List<Long> categoryIds);
     List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted);
+    int softDeleteByIds(List<Long> ids);
 }
 

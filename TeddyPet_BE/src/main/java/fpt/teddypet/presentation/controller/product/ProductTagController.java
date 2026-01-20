@@ -26,23 +26,23 @@ public class ProductTagController {
 
     @PostMapping
     @Operation(summary = "Tạo tag sản phẩm", description = "Tạo tag sản phẩm mới")
-    public ResponseEntity<ApiResponse<ProductTagResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody ProductTagRequest request) {
-        ProductTagResponse response = productTagService.create(request);
+        productTagService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_CREATED_SUCCESS));
     }
 
     @PutMapping("/{tagId}")
     @Operation(summary = "Cập nhật tag sản phẩm", description = "Cập nhật thông tin tag sản phẩm")
-    public ResponseEntity<ApiResponse<ProductTagResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long tagId,
             @Valid @RequestBody ProductTagRequest request) {
-        ProductTagResponse response = productTagService.update(tagId, request);
+        productTagService.update(tagId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{tagId}")
@@ -64,6 +64,13 @@ public class ProductTagController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long tagId) {
         productTagService.delete(tagId);
         return ResponseEntity.ok(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_DELETED_SUCCESS));
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "Xóa nhiều tag sản phẩm", description = "Xóa mềm nhiều tag sản phẩm theo danh sách ID")
+    public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
+        int count = productTagService.deleteMany(ids);
+        return ResponseEntity.ok(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_DELETED_SUCCESS, count));
     }
 }
 

@@ -10,10 +10,13 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, uses = {BlogCategoryMapper.class, BlogTagMapper.class})
 public interface BlogPostMapper {
 
+    @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     @Mapping(target = "parentId", source = "parent.id")
     BlogPostResponse toResponse(BlogPost blogPost);
 
+    @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "isDeleted", source = "deleted")
     @Mapping(target = "category", source = "category")
     BlogPostListResponse toListResponse(BlogPost blogPost);
 

@@ -33,23 +33,23 @@ public class ProductController {
 
     @PostMapping
     @Operation(summary = "Tạo sản phẩm", description = "Tạo sản phẩm mới")
-    public ResponseEntity<ApiResponse<ProductResponse>> create(
+    public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody ProductRequest request) {
-        ProductResponse response = productService.create(request);
+        productService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_CREATED_SUCCESS));
     }
 
     @PutMapping("/{productId}")
     @Operation(summary = "Cập nhật sản phẩm", description = "Cập nhật thông tin sản phẩm")
-    public ResponseEntity<ApiResponse<ProductResponse>> update(
+    public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long productId,
             @Valid @RequestBody ProductRequest request) {
-        ProductResponse response = productService.update(productId, request);
+        productService.update(productId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_UPDATED_SUCCESS, response));
+                .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_UPDATED_SUCCESS));
     }
 
 

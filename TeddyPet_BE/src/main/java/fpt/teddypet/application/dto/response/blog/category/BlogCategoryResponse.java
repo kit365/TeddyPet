@@ -1,5 +1,6 @@
 package fpt.teddypet.application.dto.response.blog.category;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 public record BlogCategoryResponse(
@@ -11,6 +12,7 @@ public record BlogCategoryResponse(
         String altImage,
         Long parentId,
         Integer displayOrder,
+        @JsonProperty("isActive")
         boolean isActive,
         boolean isDeleted,
         LocalDateTime createdAt,

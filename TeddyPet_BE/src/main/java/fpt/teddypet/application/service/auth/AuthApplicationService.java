@@ -55,7 +55,7 @@ public class AuthApplicationService implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         log.info(AuthLogMessages.LOG_AUTH_REGISTER_START, request.email());
 
         // Check if user already exists
@@ -83,10 +83,9 @@ public class AuthApplicationService implements AuthService {
                     .role(defaultRole)
                     .build();
 
-            user = userService.save(user);
+            userService.save(user);
             log.info(AuthLogMessages.LOG_AUTH_REGISTER_SUCCESS, user.getId());
 
-            return generateAuthResponse(user);
         } catch (Exception e) {
             log.error(AuthLogMessages.LOG_AUTH_REGISTER_ERROR_DB, e.getMessage(), e);
             throw e;

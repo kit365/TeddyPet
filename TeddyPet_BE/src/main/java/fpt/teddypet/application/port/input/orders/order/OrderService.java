@@ -13,8 +13,8 @@ import java.util.UUID;
 
 public interface OrderService {
 
-    OrderResponse createOrder(OrderRequest request, UUID userId);
-    OrderResponse updateOrderStatus(UUID orderId, OrderStatusEnum status);
+    void createOrder(OrderRequest request, UUID userId);
+    void updateOrderStatus(UUID orderId, OrderStatusEnum status);
 
     OrderResponse getByIdResponse(UUID orderId);
     OrderResponse getByOrderCodeResponse(String orderCode);

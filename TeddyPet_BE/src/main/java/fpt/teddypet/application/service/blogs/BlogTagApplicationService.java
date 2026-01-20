@@ -31,7 +31,7 @@ public class BlogTagApplicationService implements BlogTagService {
 
     @Override
     @Transactional
-    public BlogTagResponse upsert(BlogTagUpsertRequest request) {
+    public void upsert(BlogTagUpsertRequest request) {
         log.info(BlogTagLogMessages.LOG_BLOG_TAG_UPSERT_START, request.name());
 
         BlogTag tag;
@@ -77,8 +77,6 @@ public class BlogTagApplicationService implements BlogTagService {
 
         BlogTag savedTag = blogTagRepositoryPort.save(tag);
         log.info(BlogTagLogMessages.LOG_BLOG_TAG_UPSERT_SUCCESS, savedTag.getId());
-
-        return blogTagMapper.toResponse(savedTag);
     }
 
     @Override
@@ -105,8 +103,16 @@ public class BlogTagApplicationService implements BlogTagService {
     public void delete(Long id) {
         log.info(BlogTagLogMessages.LOG_BLOG_TAG_DELETE_START, id);
         BlogTag tag = getById(id);
-        blogTagRepositoryPort.delete(tag); // Hard delete or soft delete depending on entity/requirement
-        // Assuming hard delete for tags or standard JPA delete
+        
+        // Remove this tag from all associated blog posts to avoid foreign key constraint violation
+        if (tag.getBlogPosts() != null && !tag.getBlogPosts().isEmpty()) {
+            for (var blogPost : tag.getBlogPosts()) {
+                blogPost.getTags().remove(tag);
+            }
+            tag.getBlogPosts().clear();
+        }
+        
+        blogTagRepositoryPort.delete(tag);
         log.info(BlogTagLogMessages.LOG_BLOG_TAG_DELETE_SUCCESS, id);
     }
 

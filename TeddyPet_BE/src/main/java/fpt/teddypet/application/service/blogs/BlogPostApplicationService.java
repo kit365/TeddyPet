@@ -45,7 +45,7 @@ public class BlogPostApplicationService implements BlogPostService {
 
     @Override
     @Transactional
-    public BlogPostResponse create(BlogPostCreateRequest request) {
+    public void create(BlogPostCreateRequest request) {
         log.info(BlogPostLogMessages.LOG_BLOG_POST_CREATE_START, request.title());
 
         BlogPost blogPost = BlogPost.builder().build();
@@ -96,12 +96,10 @@ public class BlogPostApplicationService implements BlogPostService {
 
         BlogPost savedPost = blogPostRepositoryPort.save(blogPost);
         log.info(BlogPostLogMessages.LOG_BLOG_POST_CREATE_SUCCESS, savedPost.getId());
-
-        return blogPostMapper.toResponse(savedPost);
     }
 
     @Transactional
-    public BlogPostResponse update(Long id, BlogPostUpdateRequest request) {
+    public void update(Long id, BlogPostUpdateRequest request) {
         log.info(BlogPostLogMessages.LOG_BLOG_POST_UPDATE_START, id);
 
         BlogPost blogPost = getById(id);
@@ -149,8 +147,6 @@ public class BlogPostApplicationService implements BlogPostService {
 
         BlogPost savedPost = blogPostRepositoryPort.save(blogPost);
         log.info(BlogPostLogMessages.LOG_BLOG_POST_UPDATE_SUCCESS, savedPost.getId());
-
-        return blogPostMapper.toResponse(savedPost);
     }
 
     public BlogPost getById(Long id) {

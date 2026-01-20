@@ -27,15 +27,15 @@ public class ProductCategoryController {
 
     @PutMapping
     @Operation(summary = "Tạo hoặc cập nhật danh mục sản phẩm", description = "Tạo mới nếu categoryId là null, cập nhật nếu categoryId có giá trị")
-    public ResponseEntity<ApiResponse<ProductCategoryResponse>> upsert(
+    public ResponseEntity<ApiResponse<Void>> upsert(
             @Valid @RequestBody ProductCategoryUpsertRequest request) {
-        ProductCategoryResponse response = productCategoryService.upsert(request);
+        productCategoryService.upsert(request);
         String message = request.categoryId() == null 
                 ? ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CREATED_SUCCESS
                 : ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_UPDATED_SUCCESS;
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(message, response));
+                .body(ApiResponse.success(message));
     }
 
     @GetMapping("/{categoryId}")
@@ -79,6 +79,13 @@ public class ProductCategoryController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long categoryId) {
         productCategoryService.delete(categoryId);
         return ResponseEntity.ok(ApiResponse.success(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_DELETED_SUCCESS));
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "Xóa nhiều danh mục sản phẩm", description = "Xóa mềm nhiều danh mục sản phẩm theo danh sách ID")
+    public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
+        int count = productCategoryService.deleteMany(ids);
+        return ResponseEntity.ok(ApiResponse.success(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_DELETED_SUCCESS, count));
     }
 }
 

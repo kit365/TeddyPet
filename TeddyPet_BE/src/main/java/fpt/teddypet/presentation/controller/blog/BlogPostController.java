@@ -34,17 +34,17 @@ public class BlogPostController {
 
     @PostMapping
     @Operation(summary = "Create Blog Post", description = "Creates a new blog post.")
-    public ResponseEntity<ApiResponse<BlogPostResponse>> create(@Valid @RequestBody BlogPostCreateRequest request) {
-        BlogPostResponse response = blogPostService.create(request);
+    public ResponseEntity<ApiResponse<Void>> create(@Valid @RequestBody BlogPostCreateRequest request) {
+        blogPostService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(BlogPostMessages.MESSAGE_BLOG_POST_CREATED_SUCCESS, response));
+                .body(ApiResponse.success(BlogPostMessages.MESSAGE_BLOG_POST_CREATED_SUCCESS));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update Blog Post", description = "Updates an existing blog post.")
-    public ResponseEntity<ApiResponse<BlogPostResponse>> update(@PathVariable Long id, @Valid @RequestBody BlogPostUpdateRequest request) {
-        BlogPostResponse response = blogPostService.update(id, request);
-        return ResponseEntity.ok(ApiResponse.success(BlogPostMessages.MESSAGE_BLOG_POST_UPDATED_SUCCESS, response));
+    public ResponseEntity<ApiResponse<Void>> update(@PathVariable Long id, @Valid @RequestBody BlogPostUpdateRequest request) {
+        blogPostService.update(id, request);
+        return ResponseEntity.ok(ApiResponse.success(BlogPostMessages.MESSAGE_BLOG_POST_UPDATED_SUCCESS));
     }
 
     @GetMapping("/{id}")

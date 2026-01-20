@@ -12,8 +12,8 @@ import java.util.List;
 public interface ProductService {
     Product getById(Long productId);
     Product getByIdAndIsDeletedFalse(Long productId);
-    ProductResponse create(ProductRequest request);
-    ProductResponse update(Long productId, ProductRequest request);
+    void create(ProductRequest request);
+    void update(Long productId, ProductRequest request);
     ProductResponse getByIdResponse(Long productId);
     ProductResponse getBySlugResponse(String slug);
     List<ProductResponse> getAll();

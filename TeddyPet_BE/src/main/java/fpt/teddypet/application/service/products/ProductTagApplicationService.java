@@ -30,7 +30,7 @@ public class ProductTagApplicationService implements ProductTagService {
 
     @Override
     @Transactional
-    public ProductTagResponse create(ProductTagRequest request) {
+    public void create(ProductTagRequest request) {
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_UPSERT_START, request.name());
         // Validate name uniqueness
         validateNameUniqueness(request.name(), null);
@@ -42,12 +42,11 @@ public class ProductTagApplicationService implements ProductTagService {
 
         ProductTag savedTag = productTagRepositoryPort.save(tag);
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_UPSERT_SUCCESS, savedTag.getId());
-        return productTagMapper.toResponse(savedTag);
     }
 
     @Override
     @Transactional
-    public ProductTagResponse update(Long tagId, ProductTagRequest request) {
+    public void update(Long tagId, ProductTagRequest request) {
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_UPSERT_START, request.name());
         ProductTag tag = getById(tagId);
 
@@ -59,7 +58,6 @@ public class ProductTagApplicationService implements ProductTagService {
         productTagMapper.updateTagFromRequest(request, tag);
         ProductTag savedTag = productTagRepositoryPort.save(tag);
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_UPSERT_SUCCESS, savedTag.getId());
-        return productTagMapper.toResponse(savedTag);
     }
 
     @Override
@@ -94,6 +92,15 @@ public class ProductTagApplicationService implements ProductTagService {
         tag.setActive(false);
         productTagRepositoryPort.save(tag);
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_DELETE_SUCCESS, tagId);
+    }
+
+    @Override
+    @Transactional
+    public int deleteMany(List<Long> ids) {
+        log.info("Starting bulk delete for {} ProductTags", ids.size());
+        int count = productTagRepositoryPort.softDeleteByIds(ids);
+        log.info("Successfully soft deleted {} ProductTags", count);
+        return count;
     }
 
 

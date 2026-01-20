@@ -20,6 +20,8 @@ public interface ProductBrandMapper {
     void updateBrandFromRequest(ProductBrandRequest request, @MappingTarget ProductBrand brand);
 
     @Mapping(target = "brandId", source = "id")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
     ProductBrandResponse toResponse(ProductBrand brand);
 
     @Mapping(source = "deleted", target = "isDeleted")

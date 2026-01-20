@@ -2,6 +2,9 @@ package fpt.teddypet.infrastructure.persistence.postgres.repository.products;
 
 import fpt.teddypet.domain.entity.ProductCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,5 +19,9 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
     List<ProductCategory> findByParentId(Long parentId); // Child categories (for backward compatibility)
 
     List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted);
+
+    @Modifying
+    @Query("UPDATE ProductCategory p SET p.isDeleted = true, p.isActive = false WHERE p.id IN :ids")
+    int softDeleteByIds(@Param("ids") List<Long> ids);
 }
 

@@ -8,7 +8,7 @@ import fpt.teddypet.domain.entity.BlogTag;
 import java.util.List;
 
 public interface BlogTagService {
-    BlogTagResponse upsert(BlogTagUpsertRequest request);
+    void upsert(BlogTagUpsertRequest request);
     
     BlogTagResponse getTagDetail(Long id);
     

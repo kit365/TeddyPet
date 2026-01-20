@@ -99,9 +99,12 @@ public class ProductCategoryDataInit implements CommandLineRunner {
         if (!productCategoryRepository.existsByName(name)) {
             ProductCategory category = ProductCategory.builder()
                     .name(name)
-                    .description(description)
+                    .description(description != null ? description : "")
                     .parent(parent)
-                    .imageUrl(imageUrl)
+                    .imageUrl(imageUrl != null ? imageUrl : "")
+                    .altImage(imageUrl != null ? "Hình ảnh " + name : "")
+                    .isActive(true)
+                    .isDeleted(false)
                     .build();
             productCategoryRepository.save(category);
             log.info("✅ Created ProductCategory: {} (parent: {})", name, parent != null ? parent.getName() : "ROOT");

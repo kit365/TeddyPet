@@ -75,5 +75,13 @@ public class ProductAgeRangeRepositoryAdapter implements ProductAgeRangeReposito
             throw new EntityNotFoundException("Không tìm thấy độ tuổi với ID: " + missingIds);
         }
     }
+
+    @Override
+    public int softDeleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return productAgeRangeRepository.softDeleteByIds(ids);
+    }
 }
 

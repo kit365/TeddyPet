@@ -78,10 +78,10 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Tạo đơn hàng", description = "Tạo đơn hàng mới từ thông tin sản phẩm")
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<ApiResponse<Void>> createOrder(@Valid @RequestBody OrderRequest request) {
         UUID userId = SecurityUtil.getCurrentUserId();
-        OrderResponse order = orderService.createOrder(request, userId);
-        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CREATED_SUCCESS, order));
+        orderService.createOrder(request, userId);
+        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CREATED_SUCCESS));
     }
 
     // ========== STAFF/ADMIN ENDPOINTS ==========
@@ -146,10 +146,10 @@ public class OrderController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     @Operation(summary = "Cập nhật trạng thái đơn hàng", description = "Cập nhật trạng thái đơn hàng (Staff/Admin)")
-    public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
+    public ResponseEntity<ApiResponse<Void>> updateStatus(
             @PathVariable UUID id,
             @RequestParam OrderStatusEnum status) {
-        OrderResponse order = orderService.updateOrderStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_STATUS_UPDATED_SUCCESS, order));
+        orderService.updateOrderStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_STATUS_UPDATED_SUCCESS));
     }
 }

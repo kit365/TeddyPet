@@ -1,11 +1,13 @@
 package fpt.teddypet.domain.valueobject;
 
 import fpt.teddypet.domain.enums.UnitEnum;
+import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 
 import java.math.BigDecimal;
 
+@Embeddable
 public record Measurement(
         BigDecimal amount,
         @Enumerated(EnumType.STRING)

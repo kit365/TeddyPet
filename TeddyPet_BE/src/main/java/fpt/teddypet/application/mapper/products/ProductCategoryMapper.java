@@ -25,6 +25,9 @@ public interface ProductCategoryMapper {
 
     @Mapping(target = "categoryId", source = "id")
     @Mapping(target = "parentId", source = "parent.id")
+    @Mapping(target = "parentName", source = "parent.name")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
     ProductCategoryResponse toResponse(ProductCategory category);
 
     @Mapping(target = "parentId", source = "parent.id")

@@ -28,7 +28,7 @@ public class ProductBrandApplicationService implements ProductBrandService {
 
     @Override
     @Transactional
-    public ProductBrandResponse create(ProductBrandRequest request) {
+    public void create(ProductBrandRequest request) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_START, request.name());
 
         validateNameUniqueness(request.name(), null);
@@ -41,12 +41,11 @@ public class ProductBrandApplicationService implements ProductBrandService {
 
         ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
-        return productBrandMapper.toResponse(savedBrand);
     }
 
     @Override
     @Transactional
-    public ProductBrandResponse update(Long brandId, ProductBrandRequest request) {
+    public void update(Long brandId, ProductBrandRequest request) {
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_START, request.name());
         ProductBrand brand = getById(brandId);
 
@@ -59,7 +58,6 @@ public class ProductBrandApplicationService implements ProductBrandService {
         brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
         ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
-        return productBrandMapper.toResponse(savedBrand);
     }
 
     @Override
@@ -101,7 +99,18 @@ public class ProductBrandApplicationService implements ProductBrandService {
         brand.setDeleted(true);
         brand.setActive(false);
         productBrandRepositoryPort.save(brand);
-        log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_SUCCESS, brandId);}
+        log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_DELETE_SUCCESS, brandId);
+    }
+
+    @Override
+    @Transactional
+    public int deleteMany(List<Long> ids) {
+        log.info("Starting bulk delete for {} ProductBrands", ids.size());
+        int count = productBrandRepositoryPort.softDeleteByIds(ids);
+        log.info("Successfully soft deleted {} ProductBrands", count);
+        return count;
+    }
+
 
 
     private void validateNameUniqueness(String name, Long brandId) {

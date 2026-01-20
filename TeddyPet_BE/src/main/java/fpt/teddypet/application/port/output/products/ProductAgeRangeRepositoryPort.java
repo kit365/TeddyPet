@@ -13,5 +13,6 @@ public interface ProductAgeRangeRepositoryPort {
     List<ProductAgeRange> findAll();
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Long ageRangeId);
+    int softDeleteByIds(List<Long> ids);
 }
 

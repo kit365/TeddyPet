@@ -1,5 +1,4 @@
 package fpt.teddypet.presentation.controller.blog;
-
 import fpt.teddypet.application.constants.blogs.blogtag.BlogTagMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.blogs.tag.BlogTagUpsertRequest;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -21,17 +19,16 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Blog Tag", description = "APIs for managing blog tags")
 public class BlogTagController {
-
     private final BlogTagService blogTagService;
 
     @PostMapping
     @Operation(summary = "Create or Update Blog Tag", description = "Creates a new blog tag or updates an existing one.")
-    public ResponseEntity<ApiResponse<BlogTagResponse>> upsert(@Valid @RequestBody BlogTagUpsertRequest request) {
-        BlogTagResponse response = blogTagService.upsert(request);
+    public ResponseEntity<ApiResponse<Void>> upsert(@Valid @RequestBody BlogTagUpsertRequest request) {
+        blogTagService.upsert(request);
         String message = request.tagId() == null 
                 ? BlogTagMessages.MESSAGE_BLOG_TAG_CREATED_SUCCESS 
                 : BlogTagMessages.MESSAGE_BLOG_TAG_UPDATED_SUCCESS;
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message, response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(message));
     }
 
     @GetMapping
