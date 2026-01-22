@@ -146,4 +146,3 @@ public class AuthApplicationService implements AuthService {
         throw new IllegalStateException(AuthMessages.MESSAGE_CANNOT_DETERMINE_USER);
     }
 }
-

@@ -40,3 +40,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
+
+# App configuration
+app:
+  name: TeddyPet
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:3000}
+  password-reset:
+    token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
