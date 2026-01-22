@@ -139,4 +139,44 @@ public class EmailServiceAdapter implements EmailServicePort {
         sendHtmlEmail(to, subject, htmlBody);
         log.info("[EmailServiceAdapter] Password reset email sent successfully to: {}", to);
     }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendVerificationEmail(String to, String token, String link) {
+        log.info("[EmailServiceAdapter] Sending verification email to: {}", to);
+        String subject = "Xác nhận tài khoản - " + appName;
+        String htmlBody = """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #4A90A4; margin: 0; font-size: 28px;">🐾 %s</h1>
+                        <p style="color: #666; margin-top: 10px;">Chào mừng bạn đến với mái nhà của các bé thú cưng!</p>
+                    </div>
+                    <div style="color: #333; line-height: 1.6;">
+                        <p>Xin chào,</p>
+                        <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>%s</strong>. Chỉ còn một bước cuối cùng nữa thôi, hãy nhấn vào nút bên dưới để xác thực tài khoản của bạn:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #4A90A4; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+                                Xác thực tài khoản
+                            </a>
+                        </div>
+                        <p style="font-size: 14px; color: #666;">Nếu nút trên không hoạt động, bạn có thể copy link sau vào trình duyệt:</p>
+                        <p style="font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; color: #0066cc;">%s</p>
+                    </div>
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #999; font-size: 12px;">
+                        <p>© 2026 %s. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(appName, appName, link, link, appName);
+        sendHtmlEmail(to, subject, htmlBody);
+    }
 }

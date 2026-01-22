@@ -44,6 +44,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_LOGIN_SUCCESS, response));
     }
 
+    @GetMapping("/verify-email")
+    @Operation(summary = "Verify user email", description = "Verify email using the token sent during registration and login the user")
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(@RequestParam String token) {
+        AuthResponse response = authService.verifyEmail(token);
+        return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_VERIFY_EMAIL_SUCCESS, response));
+    }
+
     //request reset password
     @PostMapping("/forgot-password")
     @Operation(

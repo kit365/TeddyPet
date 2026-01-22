@@ -20,6 +20,7 @@ public final class PasswordResetMessages {
     public static final String MESSAGE_PASSWORD_NOT_MATCH = "Mật khẩu xác nhận không khớp.";
     public static final String MESSAGE_EMAIL_NOT_FOUND = "Email không tồn tại trong hệ thống.";
     public static final String MESSAGE_USER_NOT_ACTIVE = "Tài khoản đã bị khóa hoặc vô hiệu hóa.";
+    public static final String MESSAGE_EMAIL_NOT_VERIFIED = "Email của bạn chưa được xác thực. Vui lòng xác thực email trước khi thực hiện đặt lại mật khẩu.";
 
     // Email template constants
     public static final String EMAIL_SUBJECT = "Yêu cầu đặt lại mật khẩu - TeddyPet";

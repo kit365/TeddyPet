@@ -46,6 +46,11 @@ public class PasswordResetApplicationService implements PasswordResetService {
                 .orElseThrow(() -> new IllegalArgumentException(PasswordResetMessages.MESSAGE_EMAIL_NOT_FOUND));
 
         // Kiểm tra User có active không
+        if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION) {
+            log.warn("[PasswordResetService] Email chưa được xác thực: {}", request.email());
+            throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_EMAIL_NOT_VERIFIED);
+        }
+
         if (user.getStatus() != UserStatusEnum.ACTIVE) {
             log.warn(PasswordResetLogMessages.LOG_FORGOT_PASSWORD_USER_NOT_ACTIVE, request.email());
             throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_USER_NOT_ACTIVE);
