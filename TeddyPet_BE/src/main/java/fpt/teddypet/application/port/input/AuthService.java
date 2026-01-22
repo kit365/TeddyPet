@@ -9,5 +9,7 @@ public interface AuthService {
     void register(RegisterRequest request);
     AuthResponse login(LoginRequest request);
     User getCurrentUser();
+
+    AuthResponse verifyEmail(String token);
 }
 

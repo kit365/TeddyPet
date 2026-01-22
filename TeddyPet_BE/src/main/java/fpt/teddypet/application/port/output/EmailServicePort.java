@@ -12,5 +12,21 @@ public interface EmailServicePort {
     
 
     void sendOrderConfirmation(String to, Object orderDetails);
+    
+    /**
+     * Send password reset email with reset link
+     * @param to recipient email
+     * @param resetToken the reset token
+     * @param resetLink the full reset link
+     */
+    void sendPasswordResetEmail(String to, String resetToken, String resetLink);
+
+    /**
+     * Send email verification link
+     * @param to recipient email
+     * @param token the verification token
+     * @param link the full verification link
+     */
+    void sendVerificationEmail(String to, String token, String link);
 }
 

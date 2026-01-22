@@ -18,4 +18,11 @@ public final class AuthMessages {
     public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa được xác thực.";
     public static final String MESSAGE_CANNOT_DETERMINE_USER = "Không thể xác định người dùng hiện tại.";
     public static final String MESSAGE_USER_NOT_FOUND = "Không tìm thấy người dùng.";
+    
+    // Email Verification messages
+    public static final String MESSAGE_VERIFY_EMAIL_SENT = "Email xác thực đã được gửi. Vui lòng kiểm tra hộp thư của bạn.";
+    public static final String MESSAGE_VERIFY_EMAIL_SUCCESS = "Xác thực email thành công. Chào mừng bạn đến với TeddyPet!";
+    public static final String MESSAGE_EMAIL_ALREADY_VERIFIED = "Email này đã được xác thực trước đó.";
+    public static final String MESSAGE_INVALID_VERIFY_TOKEN = "Mã xác thực không hợp lệ hoặc đã hết hạn.";
+    public static final String MESSAGE_EMAIL_NOT_VERIFIED = "Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập.";
 }
