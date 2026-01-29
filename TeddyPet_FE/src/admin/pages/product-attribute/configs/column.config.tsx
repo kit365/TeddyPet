@@ -79,7 +79,7 @@ export const RenderValuesCell = (params: GridRenderCellParams) => {
             {values.slice(0, 5).map((v: any) => (
                 <Chip
                     key={v.valueId}
-                    label={`${v.value}${v.unit ? ` ${v.unit}` : ''}`}
+                    label={v.value}
                     size="small"
                     sx={{
                         fontSize: '1.1rem',

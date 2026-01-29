@@ -7,7 +7,7 @@ const BASE_URL = '/api/product-categories';
 
 /** Header auth dùng chung cho product-categories */
 const withAuth = () => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
 
     return {
         headers: {
@@ -23,7 +23,7 @@ export const getCategories = async (): Promise<ApiResponse<any[]>> => {
 };
 
 export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNode[]>> => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
     const response = await apiApp.get('/api/product-categories/nested', {
         headers: { Authorization: `Bearer ${token}` },
     });

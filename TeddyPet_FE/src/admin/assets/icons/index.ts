@@ -41,5 +41,7 @@ export * from './ShareIcon';
 export * from './GoLiveIcon';
 export * from './DraftIcon';
 export * from './ArchivedIcon';
+export * from './GeneralIcon';
+export * from './BillingIcon';
 export * from './socials/FacebookIcon';
 export * from './socials/InstagramIcon';

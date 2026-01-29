@@ -11,7 +11,10 @@ import {
     MenuItem,
     Autocomplete,
     IconButton,
-    Typography
+    Typography,
+    Checkbox,
+    FormControlLabel,
+    ListItemText
 } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
@@ -224,57 +227,96 @@ export const ProductAttributeCreatePage = () => {
                                     />
                                 </Box>
 
-                                {/* Đơn vị hỗ trợ */}
-                                <Controller
-                                    name="supportedUnits"
-                                    control={control}
-                                    render={({ field }) => {
-                                        const allCodes = salesUnits.map((u: any) => u.code);
-                                        const isAllSelected = field.value?.length === allCodes.length;
+                                {/* Đơn vị hỗ trợ - Chỉ hiện khi KHÔNG phải là màu sắc */}
+                                {!isColorType && (
+                                    <Controller
+                                        name="supportedUnits"
+                                        control={control}
+                                        render={({ field, fieldState }) => {
+                                            const allUnitCodes = measurementUnits.map((u: any) => u.code);
+                                            const selected = field.value || [];
+                                            const isAllSelected = allUnitCodes.length > 0 && selected.length === allUnitCodes.length;
+                                            const isIndeterminate = selected.length > 0 && selected.length < allUnitCodes.length;
 
-                                        return (
-                                            <Autocomplete
-                                                multiple
-                                                options={['SELECT_ALL', ...allCodes]}
-                                                getOptionLabel={(option) => {
-                                                    if (option === 'SELECT_ALL') return 'Chọn tất cả';
-                                                    const unit = salesUnits.find((u: any) => u.code === option);
-                                                    return unit ? unit.label : option;
-                                                }}
-                                                value={field.value || []}
-                                                onChange={(_, newValue) => {
-                                                    if (newValue.includes('SELECT_ALL')) {
-                                                        if (isAllSelected) {
-                                                            field.onChange([]);
-                                                        } else {
-                                                            field.onChange(allCodes);
-                                                        }
+                                            const handleChange = (event: any) => {
+                                                const {
+                                                    target: { value },
+                                                } = event;
+
+                                                // Handle Select All
+                                                if (value.includes('SELECT_ALL')) {
+                                                    if (isAllSelected) {
+                                                        field.onChange([]);
                                                     } else {
-                                                        field.onChange(newValue.filter((v: string) => v !== 'SELECT_ALL'));
+                                                        field.onChange(allUnitCodes);
                                                     }
-                                                }}
-                                                renderOption={(props, option) => {
-                                                    if (option === 'SELECT_ALL') {
-                                                        return (
-                                                            <li {...props} style={{ fontWeight: 600, color: '#00A76F' }}>
-                                                                {isAllSelected ? '✓ Đã chọn tất cả' : 'Chọn tất cả'}
-                                                            </li>
-                                                        );
-                                                    }
-                                                    const unit = salesUnits.find((u: any) => u.code === option);
-                                                    return <li {...props}>{unit ? unit.label : option}</li>;
-                                                }}
-                                                renderInput={(params) => (
-                                                    <TextField
-                                                        {...params}
+                                                    return;
+                                                }
+
+                                                // On autofill we get a stringified value.
+                                                const newValue = typeof value === 'string' ? value.split(',') : value;
+                                                field.onChange(newValue);
+                                            };
+
+                                            return (
+                                                <FormControl error={!!fieldState.error} fullWidth>
+                                                    <InputLabel>Đơn vị hỗ trợ</InputLabel>
+                                                    <Select
+                                                        labelId="supported-units-label"
+                                                        multiple
+                                                        value={selected}
+                                                        onChange={handleChange}
                                                         label="Đơn vị hỗ trợ"
-                                                        placeholder="Chọn đơn vị..."
-                                                    />
-                                                )}
-                                            />
-                                        );
-                                    }}
-                                />
+                                                        renderValue={(selected) => {
+                                                            const selectedUnits = measurementUnits.filter((u: any) => selected.includes(u.code));
+                                                            return selectedUnits.map((u: any) => u.label).join(', ');
+                                                        }}
+                                                        MenuProps={{
+                                                            PaperProps: {
+                                                                style: {
+                                                                    maxHeight: 224,
+                                                                    width: 250,
+                                                                },
+                                                            },
+                                                        }}
+                                                    >
+                                                        <MenuItem
+                                                            value="SELECT_ALL"
+                                                            sx={{ fontWeight: 600, py: 1 }}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isAllSelected}
+                                                                indeterminate={isIndeterminate}
+                                                            />
+                                                            <ListItemText primary="Chọn tất cả" primaryTypographyProps={{ style: { fontSize: '1.4rem', fontWeight: 600 } }} />
+                                                        </MenuItem>
+                                                        {measurementUnits.map((unit: any) => (
+                                                            <MenuItem key={unit.code} value={unit.code}>
+                                                                <Checkbox checked={selected.indexOf(unit.code) > -1} />
+                                                                <ListItemText
+                                                                    primary={`${unit.label} (${unit.symbol})`}
+                                                                    primaryTypographyProps={{ style: { fontSize: '1.4rem' } }}
+                                                                />
+                                                            </MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                    {fieldState.error && (
+                                                        <Typography
+                                                            sx={{
+                                                                color: '#d32f2f',
+                                                                fontSize: '1.2rem',
+                                                                mt: 0.5,
+                                                                ml: 1.75
+                                                            }}
+                                                        >
+                                                            {fieldState.error.message}
+                                                        </Typography>
+                                                    )}
+                                                </FormControl>
+                                            );
+                                        }}
+                                    />
+                                )}
                             </Stack>
                         </CollapsibleCard>
 
@@ -296,7 +338,6 @@ export const ProductAttributeCreatePage = () => {
                                         }}
                                     >
                                         {isColorType ? (
-                                            // COLOR type: Tên màu + Mã màu với preview
                                             <>
                                                 <Controller
                                                     name={`values.${index}.value`}
@@ -392,25 +433,32 @@ export const ProductAttributeCreatePage = () => {
                                                 <Controller
                                                     name={`values.${index}.unit`}
                                                     control={control}
-                                                    render={({ field: inputField }) => (
-                                                        <FormControl sx={{ width: 180 }}>
-                                                            <InputLabel>Đơn vị</InputLabel>
-                                                            <Select
-                                                                {...inputField}
-                                                                label="Đơn vị"
-                                                            >
-                                                                {measurementUnits.map((unit: any) => (
-                                                                    <MenuItem
-                                                                        key={unit.code}
-                                                                        value={unit.code}
-                                                                        sx={{ fontSize: '1.4rem' }}
-                                                                    >
-                                                                        {unit.label} ({unit.symbol})
-                                                                    </MenuItem>
-                                                                ))}
-                                                            </Select>
-                                                        </FormControl>
-                                                    )}
+                                                    render={({ field: inputField }) => {
+                                                        const supportedUnits = watch('supportedUnits');
+                                                        const displayedUnits = measurementUnits.filter((u: any) =>
+                                                            !supportedUnits?.length || supportedUnits.includes(u.code)
+                                                        );
+
+                                                        return (
+                                                            <FormControl sx={{ width: 180 }}>
+                                                                <InputLabel>Đơn vị</InputLabel>
+                                                                <Select
+                                                                    {...inputField}
+                                                                    label="Đơn vị"
+                                                                >
+                                                                    {displayedUnits.map((unit: any) => (
+                                                                        <MenuItem
+                                                                            key={unit.code}
+                                                                            value={unit.code}
+                                                                            sx={{ fontSize: '1.4rem' }}
+                                                                        >
+                                                                            {unit.label} ({unit.symbol})
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        );
+                                                    }}
                                                 />
                                                 <Controller
                                                     name={`values.${index}.value`}

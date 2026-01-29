@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { IProduct } from '../configs/types';
-import { DemoData } from '../configs/constants';
+import { getProducts } from '../../../../api/product.api';
+import { toast } from 'react-toastify';
 
 interface IProductFilters {
     status?: string[];
@@ -9,12 +10,49 @@ interface IProductFilters {
 }
 
 export const useProducts = () => {
-    const [products] = useState<IProduct[]>(DemoData);
+    const [products, setProducts] = useState<IProduct[]>([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState<IProductFilters>({
         status: [],
         stock: [],
         search: '',
     });
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await getProducts();
+                if (response.success) {
+                    const mappedProducts: IProduct[] = response.data.content.map((item) => {
+                        const totalStock = item.variants.reduce((acc, curr) => acc + curr.stockQuantity, 0);
+                        // Map backend status to frontend status
+                        let status = "draft";
+                        if (item.status === "IN_STOCK") status = "active";
+                        if (item.status === "OUT_OF_STOCK") status = "inactive"; // or whatever logic you prefer
+
+                        return {
+                            id: item.productId,
+                            product: item.name,
+                            category: item.categories[0]?.name || "N/A",
+                            image: "https://api-prod-minimal-v700.pages.dev/assets/images/m-product/product-1.webp", // Placeholder as per demo
+                            createdAt: new Date(item.createdAt),
+                            stock: totalStock,
+                            price: item.minPrice,
+                            status: status
+                        };
+                    });
+                    setProducts(mappedProducts);
+                }
+            } catch (error) {
+                console.error("Failed to fetch products", error);
+                toast.error("Không thể tải danh sách sản phẩm");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     // Memoize filtered products để tránh unnecessary recalculations
     const filteredProducts = useMemo(() => {
@@ -83,6 +121,7 @@ export const useProducts = () => {
     return {
         products: filteredProducts,
         allProducts: products,
+        loading,
         filters,
         setStatusFilter,
         setStockFilter,

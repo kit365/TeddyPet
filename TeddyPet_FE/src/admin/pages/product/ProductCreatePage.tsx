@@ -1,6 +1,6 @@
 import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button } from "@mui/material"
 import { useTranslation } from "react-i18next";
-import { useProductTags, useProductAgeRanges } from "./hooks/useProduct";
+import { useProductTags, useProductAgeRanges, useCountries, useBrands, useCreateProduct } from "./hooks/useProduct";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
 import { useState } from "react"
@@ -10,6 +10,9 @@ import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
 import { prefixAdmin } from "../../constants/routes";
 import { CategoryMultiTreeSelect } from "../../components/ui/CategoryMultiTreeSelect";
 import { useNestedProductCategories } from "../product-category/hooks/useProductCategory";
+import { ProductVariants } from "./components/ProductVariants";
+import { useProductAttributes } from "../product-attribute/hooks/useProductAttribute";
+import { toast } from "react-toastify";
 
 
 
@@ -20,6 +23,7 @@ interface CustomFile extends File {
 export const ProductCreatePage = () => {
     const { t } = useTranslation();
     const [expandedDetail, setExpandedDetail] = useState(true);
+    const [expandedVariants, setExpandedVariants] = useState(true);
     const [expandedExtra, setExpandedExtra] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
@@ -34,6 +38,156 @@ export const ProductCreatePage = () => {
     const { data: ageRanges = [] } = useProductAgeRanges();
 
     const [files, setFiles] = useState<CustomFile[]>([]);
+
+    // Country
+    const { data: countries = [] } = useCountries();
+    const [origin, setOrigin] = useState<string>("");
+
+    const handleChangeOrigin = (event: SelectChangeEvent) => {
+        setOrigin(event.target.value as string);
+    };
+
+    // Brand
+    const { data: brands = [] } = useBrands();
+    const [brandId, setBrandId] = useState<string | number>('');
+
+    const handleChangeBrand = (event: SelectChangeEvent) => {
+        setBrandId(event.target.value as string);
+    };
+
+    // Variants
+    const [variants, setVariants] = useState<any[]>([]);
+
+    // Attributes (for lookup)
+    const { data: allAttributes = [] } = useProductAttributes();
+
+    const createProductMutation = useCreateProduct();
+
+    // Function to reset all form states
+    const resetForm = () => {
+        setSelectedTags([]);
+        setSelectedCategoryIds([]);
+        setSelectedAgeIds([]);
+        setFiles([]);
+        setOrigin("");
+        setBrandId('');
+        setVariants([]);
+        setStatus("draft");
+
+        const form = document.querySelector('form');
+        if (form) {
+            form.reset();
+        }
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+
+        const payload = {
+            name: formData.get('name') as string,
+            barcode: formData.get('sku') as string,
+            description: "Mô tả sản phẩm",
+            content: "Nội dung chi tiết",
+            origin: origin,
+            material: formData.get('material') as string,
+            petTypes: ["DOG"],
+            brandId: Number(brandId),
+            status: "IN_STOCK",
+            categoryIds: selectedCategoryIds,
+            tagIds: selectedTags.map((tag: any) => tag.id),
+            ageRangeIds: selectedAgeIds,
+            attributeIds: [],
+            images: files.map(f => ({ imageUrl: f.preview })),
+
+            variants: variants.map(v => ({
+                price: Number(v.price),
+                salePrice: Number(v.price), // Default to price
+                stockQuantity: Number(v.stock),
+                unit: "PIECE",
+                attributeValueIds: []
+            }))
+        };
+        const getAttributeDetail = (name: string, value: string) => {
+            const attr = allAttributes.find((a: any) => a.name === name);
+            const val = attr.values?.find((v: any) => v.value === value);
+            return {
+                attributeId: attr.attributeId || attr.id,
+                valueId: val.valueId || val.id || val.attributeValueId
+            };
+        };
+
+        // Determine used attribute IDs
+        const usedAttributeIds = new Set<number>();
+        variants.forEach(v => {
+            v.attributes.forEach((a: any) => {
+                const detail = getAttributeDetail(a.name, a.value);
+                if (detail?.attributeId) {
+                    usedAttributeIds.add(Number(detail.attributeId));
+                }
+            });
+        });
+
+        // Refined Payload based on User JSON
+        const finalPayload = {
+            name: payload.name,
+            barcode: payload.barcode || "BARCODE-" + Date.now(),
+            description: payload.description,
+            origin: payload.origin,
+            material: payload.material,
+            petTypes: ["DOG"],
+            brandId: Number(payload.brandId),
+            status: "IN_STOCK",
+            categoryIds: payload.categoryIds,
+            // Try multiple property names for ID
+            tagIds: selectedTags.map((tag: any) => tag.id || tag.tagId || tag.productTagId).filter(Boolean),
+            ageRangeIds: payload.ageRangeIds,
+            // Use locally derived attributeIds
+            attributeIds: Array.from(usedAttributeIds),
+            images: files.map(f => ({ imageUrl: typeof f === 'string' ? f : (f.preview || "") })),
+            variants: variants.map((v) => {
+                // Use lookup to get IDs
+                const attributeValueIds = v.attributes.map((a: any) => {
+                    if (!a.id) {
+                        const detail = getAttributeDetail(a.name, a.value);
+                        return detail?.valueId;
+                    }
+                    return a.id;
+                }).filter((id: any) => !!id);
+
+                console.log(`   🎯 Final attributeValueIds:`, attributeValueIds);
+
+                return {
+                    price: Number(v.originalPrice),  // Giá gốc (giá cũ)
+                    salePrice: Number(v.price),      // Giá khuyến mãi (giá mới)
+                    stockQuantity: Number(v.stock),
+                    unit: "PIECE",
+                    attributeValueIds: attributeValueIds  // Dùng valueId động từ API
+                };
+            })
+        };
+
+        console.log('Final Payload:', finalPayload);
+
+        createProductMutation.mutate(finalPayload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    toast.success(response.message || "Tạo sản phẩm thành công!");
+                    resetForm();
+                } else {
+                    toast.error(response.message);
+                }
+            },
+            onError: () => {
+                toast.error("Có lỗi xảy ra khi tạo sản phẩm");
+            }
+        });
+    };
 
     const outerTheme = useTheme();
 
@@ -94,7 +248,7 @@ export const ProductCreatePage = () => {
                 </div>
             </div>
             <ThemeProvider theme={localTheme}>
-                <form action="">
+                <form onSubmit={handleSubmit}>
                     <Stack sx={{
                         margin: "0px 120px",
                         gap: "40px"
@@ -106,8 +260,49 @@ export const ProductCreatePage = () => {
                             onToggle={toggle(setExpandedDetail)}
                         >
                             <Stack p="24px" gap="24px">
-                                <TextField label={t('admin.product.fields.name')} fullWidth />
-                                <TextField label={t('admin.product.fields.short_desc')} multiline rows={4} fullWidth />
+                                <TextField label={t('admin.product.fields.name')} name="name" fullWidth />
+
+                                <FormControl fullWidth>
+                                    <InputLabel id="brand-select-label">Thương hiệu</InputLabel>
+                                    <Select
+                                        labelId="brand-select-label"
+                                        value={typeof brandId === 'number' ? String(brandId) : brandId}
+                                        label="Thương hiệu"
+                                        onChange={handleChangeBrand}
+                                    >
+                                        {brands.map((brand: any) => (
+                                            <MenuItem key={brand.id || brand.brandId} value={brand.id || brand.brandId}>
+                                                {brand.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl fullWidth>
+                                    <InputLabel id="origin-select-label" >
+                                        Xuất xứ
+                                    </InputLabel>
+                                    <Select
+                                        labelId="origin-select-label"
+                                        value={origin}
+                                        input={<OutlinedInput label="Xuất xứ" />}
+                                        onChange={handleChangeOrigin}
+                                        MenuProps={{
+                                            PaperProps: {
+                                                style: {
+                                                    maxHeight: 300,
+                                                },
+                                            },
+                                        }}
+                                    >
+                                        {countries.map((country: any) => (
+                                            <MenuItem key={country.code} value={country.code} sx={{ fontSize: '1.4rem' }}>
+                                                {country.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <TextField label="Nguyên vật liệu" name="material" multiline rows={4} fullWidth />
                                 <Tiptap />
                                 <UploadFiles
                                     files={files}
@@ -115,6 +310,14 @@ export const ProductCreatePage = () => {
                                 />
                             </Stack>
                         </CollapsibleCard>
+
+                        <ProductVariants
+                            expanded={expandedVariants}
+                            onToggle={toggle(setExpandedVariants)}
+                            variants={variants}
+                            onVariantsChange={setVariants}
+                        />
+
                         <CollapsibleCard
                             title={t('admin.common.attributes')}
                             subheader={t('admin.common.description')}
@@ -270,6 +473,7 @@ export const ProductCreatePage = () => {
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: "16px" }}>
                             <Button
+                                type="submit"
                                 variant="contained"
                                 sx={{
                                     background: '#1C252E',

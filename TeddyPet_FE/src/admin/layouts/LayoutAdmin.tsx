@@ -3,7 +3,6 @@ import { BlogTagDialog } from "../pages/blog/components/BlogTagDialog";
 import { ProductTagDialog } from "../pages/product/components/ProductTagDialog";
 import { AgeRangeListDialog } from "../pages/product/components/AgeRangeListDialog";
 import { ThemeProvider } from "@mui/material/styles";
-import { ToastContainer } from "react-toastify";
 import { SideBar } from "../components/layouts/sidebar/SideBar";
 import { Header } from "../components/layouts/Header";
 import { adminTheme } from "../config/theme";
@@ -27,7 +26,6 @@ const LayoutAdminContent = () => {
 
     return (
         <div className="flex">
-            <ToastContainer />
             <SideBar />
 
             <div className={`flex-1 transition-[padding-left] duration-[120ms] ease-linear ${isOpen ? 'pl-[300px]' : 'pl-[88px]'}`}>

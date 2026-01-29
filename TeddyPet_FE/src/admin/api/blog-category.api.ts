@@ -7,7 +7,7 @@ const BASE_URL = '/api/blog-categories';
 
 /** Header auth dùng chung cho blog-categories */
 const withAuth = () => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
 
     return {
         headers: {
@@ -24,7 +24,7 @@ export const getCategories = async (): Promise<ApiResponse<any[]>> => {
 
 /** Danh sách dạng cây */
 export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNode[]>> => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
     const response = await apiApp.get('/api/blog-categories/nested', {
         headers: { Authorization: `Bearer ${token}` },
     });

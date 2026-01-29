@@ -165,6 +165,18 @@
                 "description_placeholder": "Tiêu đề, mô tả, hình ảnh..."
             }
         },
+        "blog_category": {
+            "title": {
+                "list": "Danh mục bài viết",
+                "create": "Tạo mới danh mục bài viết",
+                "edit": "Chỉnh sửa danh mục bài viết"
+            },
+            "fields": {
+                "name": "Tên danh mục",
+                "parent": "Danh mục cha",
+                "description_placeholder": "Tiêu đề, mô tả, hình ảnh..."
+            }
+        },
         "tiptap": {
             "content_label": "Nội dung",
             "placeholder": "Hãy viết điều gì đó tuyệt vời...",

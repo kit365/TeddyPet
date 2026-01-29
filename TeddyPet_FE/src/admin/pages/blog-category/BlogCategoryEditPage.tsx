@@ -15,8 +15,10 @@ import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFi
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const BlogCategoryEditPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const [expandedDetail, setExpandedDetail] = useState(true);
 
@@ -72,13 +74,13 @@ export const BlogCategoryEditPage = () => {
         update(payload, {
             onSuccess: (response) => {
                 if (response.success) {
-                    toast.success(response.message || "Cập nhật danh mục thành công");
+                    toast.success(response.message || t("admin.validation.update_success"));
                 } else {
                     toast.error(response.message);
                 }
             },
             onError: () => {
-                toast.error("Có lỗi xảy ra trong quá trình cập nhật");
+                toast.error(t("admin.validation.update_failed"));
             }
         });
     };
@@ -96,12 +98,12 @@ export const BlogCategoryEditPage = () => {
         <>
             <div className="mb-[40px] gap-[16px] flex items-start justify-end">
                 <div className="mr-auto">
-                    <Title title="Chỉnh sửa danh mục bài viết" />
+                    <Title title={t("admin.blog_category.title.edit")} />
                     <Breadcrumb
                         items={[
-                            { label: "Dashboard", to: "/" },
-                            { label: "Danh mục bài viết", to: `/${prefixAdmin}/blog-category/list` },
-                            { label: "Chỉnh sửa" }
+                            { label: t("admin.dashboard"), to: "/" },
+                            { label: t("admin.blog_category.title.list"), to: `/${prefixAdmin}/blog-category/list` },
+                            { label: t("admin.common.edit") }
                         ]}
                     />
                 </div>
@@ -111,8 +113,8 @@ export const BlogCategoryEditPage = () => {
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
                         <CollapsibleCard
-                            title="Chi tiết"
-                            subheader="Cập nhật tiêu đề, mô tả và hình ảnh danh mục"
+                            title={t("admin.common.details")}
+                            subheader={t("admin.blog_category.fields.description_placeholder")}
                             expanded={expandedDetail}
                             onToggle={toggle(setExpandedDetail)}
                         >
@@ -124,7 +126,7 @@ export const BlogCategoryEditPage = () => {
                                         render={({ field, fieldState }) => (
                                             <TextField
                                                 {...field}
-                                                label="Tên danh mục"
+                                                label={t("admin.blog_category.fields.name")}
                                                 error={!!fieldState.error}
                                                 helperText={fieldState.error?.message}
                                                 fullWidth
@@ -177,7 +179,7 @@ export const BlogCategoryEditPage = () => {
                                 }}
                                 variant="contained"
                             >
-                                {isUpdating ? 'Đang cập nhật...' : 'Cập nhật danh mục'}
+                                {isUpdating ? t("admin.common.processing") : t("admin.blog_category.title.edit")}
                             </Button>
                         </Box>
                     </Stack>

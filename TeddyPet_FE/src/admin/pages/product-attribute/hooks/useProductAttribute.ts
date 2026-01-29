@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getProductAttributes,
+    getProductAttributeDetail,
     deleteProductAttribute,
+    updateProductAttribute,
     getDisplayTypes,
     getSalesUnits,
     getMeasurementUnits,
@@ -14,6 +16,14 @@ export const useProductAttributes = () => {
         queryKey: ['product-attributes'],
         queryFn: getProductAttributes,
         select: (res: ApiResponse<any[]>) => res.data || [],
+    });
+};
+
+export const useProductAttributeDetail = (id: string | undefined) => {
+    return useQuery({
+        queryKey: ['product-attribute-detail', id],
+        queryFn: () => getProductAttributeDetail(id!),
+        enabled: !!id,
     });
 };
 
@@ -49,6 +59,20 @@ export const useCreateProductAttribute = () => {
         onSuccess: (response: any) => {
             if (response.success) {
                 queryClient.invalidateQueries({ queryKey: ['product-attributes'] });
+            }
+        },
+    });
+};
+
+export const useUpdateProductAttribute = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: number | string; data: any }) => updateProductAttribute(id, data),
+        onSuccess: (response: any) => {
+            if (response.success) {
+                queryClient.invalidateQueries({ queryKey: ['product-attributes'] });
+                queryClient.invalidateQueries({ queryKey: ['product-attribute-detail'] });
             }
         },
     });

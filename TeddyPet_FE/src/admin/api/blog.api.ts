@@ -7,7 +7,7 @@ const TAGS_URL = '/api/blog-tags';
 
 /** Header auth dùng chung */
 const withAuth = () => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
 
     return {
         headers: {

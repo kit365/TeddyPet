@@ -4,7 +4,7 @@ import { ProductBanner } from "../product/sections/ProductBanner"
 import { SocialIcon } from "../../components/ui/SocialIcon";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicBlogBySlug } from "../../../api/blog.api";
+import { getPublicBlogBySlug, getPublicBlogs } from "../../../api/blog.api";
 import SearchIcon from "@mui/icons-material/Search";
 import { ProductAsideTitle } from "../product/sections/ProductAsideTitle";
 
@@ -76,6 +76,11 @@ export const BlogDetailPage = () => {
         enabled: !!slug,
     });
 
+    const { data: blogsRes } = useQuery({
+        queryKey: ['public-blogs'],
+        queryFn: getPublicBlogs
+    });
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
@@ -85,6 +90,20 @@ export const BlogDetailPage = () => {
     }
 
     const blog = detailRes?.data;
+
+    // Process recent blogs
+    let recentBlogs: any[] = [];
+    const blogsData = blogsRes?.data;
+    if (Array.isArray(blogsData)) {
+        recentBlogs = blogsData;
+    } else if (blogsData && typeof blogsData === 'object' && 'content' in blogsData && Array.isArray(blogsData.content)) {
+        recentBlogs = blogsData.content;
+    }
+
+    // Filter out current blog
+    if (blog) {
+        recentBlogs = recentBlogs.filter(b => b.id !== blog.id);
+    }
 
     if (!blog) {
         return (
@@ -261,27 +280,31 @@ export const BlogDetailPage = () => {
                         <div className="mb-[40px]">
                             <ProductAsideTitle title="Bài viết mới nhất" />
                             <ul className="mt-[20px]">
-                                <li className="mb-[15px] p-[20px] bg-[#fff0f066] rounded-[10px] flex items-center">
-                                    <img width={90} height={90} className="w-[90px] h-[90px] object-cover rounded-[10px]" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Classy-hoomns.jpg" alt="" />
-                                    <div className="ml-[24px] flex-1">
-                                        <p className="uppercase mb-[6px] text-[1.4rem] text-client-text">11 JUN</p>
-                                        <Link to={'#'} className="text-[1.8rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">The Proper Diet First Step To Healthy Cats</Link>
-                                    </div>
-                                </li>
-                                <li className="mb-[15px] p-[20px] bg-[#fff0f066] rounded-[10px] flex items-center">
-                                    <img width={90} height={90} className="w-[90px] h-[90px] object-cover rounded-[10px]" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Classy-hoomns.jpg" alt="" />
-                                    <div className="ml-[24px] flex-1">
-                                        <p className="uppercase mb-[6px] text-[1.4rem] text-client-text">11 JUN</p>
-                                        <Link to={'#'} className="text-[1.8rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">The Proper Diet First Step To Healthy Cats</Link>
-                                    </div>
-                                </li>
-                                <li className="mb-[15px] p-[20px] bg-[#fff0f066] rounded-[10px] flex items-center">
-                                    <img width={90} height={90} className="w-[90px] h-[90px] object-cover rounded-[10px]" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Classy-hoomns.jpg" alt="" />
-                                    <div className="ml-[24px] flex-1">
-                                        <p className="uppercase mb-[6px] text-[1.4rem] text-client-text">11 JUN</p>
-                                        <Link to={'#'} className="text-[1.8rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">The Proper Diet First Step To Healthy Cats</Link>
-                                    </div>
-                                </li>
+                                {recentBlogs?.slice(0, 3).map((item: any) => (
+                                    <li key={item.id} className="mb-[15px] p-[20px] bg-[#fff0f066] rounded-[10px] flex items-center">
+                                        <img
+                                            width={90}
+                                            height={90}
+                                            className="w-[90px] h-[90px] object-cover rounded-[10px]"
+                                            src={item.featuredImage || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Classy-hoomns.jpg"}
+                                            alt={item.title}
+                                        />
+                                        <div className="ml-[24px] flex-1">
+                                            <p className="uppercase mb-[6px] text-[1.4rem] text-client-text">
+                                                {/* Requires dayjs import if not present, checking imports... */}
+                                                {/* user's file has no dayjs import? checking previous File... */}
+                                                {/* BlogDetail.tsx didn't have dayjs. I'll add it. */}
+                                                {new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </p>
+                                            <Link to={`/blog/detail/${item.slug}`} className="text-[1.8rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">
+                                                {item.title}
+                                            </Link>
+                                        </div>
+                                    </li>
+                                ))}
+                                {(!recentBlogs || recentBlogs.length === 0) && (
+                                    <li className="text-[1.4rem] text-gray-500 italic">Không có bài viết mới</li>
+                                )}
                             </ul>
                         </div>
 

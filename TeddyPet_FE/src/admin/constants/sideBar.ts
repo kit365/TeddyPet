@@ -5,6 +5,7 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import ArticleIcon from '@mui/icons-material/Article';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import DiscountIcon from '@mui/icons-material/Discount';
+import PersonIcon from '@mui/icons-material/Person';
 
 export const menuOverviewData = [
     {
@@ -25,6 +26,14 @@ export const menuOverviewData = [
 
 export const menuManagementData = [
     {
+        id: "users",
+        label: "Tài khoản",
+        Icon: PersonIcon,
+        children: [
+            { id: "list", label: "Danh sách người dùng", path: `/${prefixAdmin}/user/list` },
+        ]
+    },
+    {
         id: "products",
         label: "Sản phẩm",
         tKey: "admin.sidebar.products",
@@ -33,7 +42,7 @@ export const menuManagementData = [
             { id: "list", label: "Danh sách", tKey: "admin.sidebar.list", path: `/${prefixAdmin}/product/list` },
             { id: "brand", label: "Thương hiệu", tKey: "admin.sidebar.brand", path: `/${prefixAdmin}/brand/list` },
             { id: "category", label: "Danh mục", tKey: "admin.sidebar.category", path: `/${prefixAdmin}/product-category/list` },
-            { id: "attribute", label: "Thuộc tính", tKey: "admin.sidebar.attribute", path: `/${prefixAdmin}/product/attribute` },
+            { id: "attribute", label: "Thuộc tính", tKey: "admin.sidebar.attribute", path: `/${prefixAdmin}/product/attribute/list` },
             { id: "create", label: "Tạo sản phẩm", tKey: "admin.sidebar.product_create", path: `/${prefixAdmin}/product/create`, hidden: true },
             { id: "edit", label: "Sửa sản phẩm", tKey: "admin.sidebar.product_edit", path: `/${prefixAdmin}/product/edit`, hidden: true },
             { id: "category-create", label: "Tạo danh mục sản phẩm", tKey: "admin.sidebar.category_create", path: `/${prefixAdmin}/product-category/create`, hidden: true },

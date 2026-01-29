@@ -80,6 +80,13 @@ export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => 
     };
 
     useEffect(() => {
+        // Reset isTouched khi files được clear (ví dụ: sau khi submit success)
+        if (files.length === 0) {
+            setIsTouched(false);
+        }
+    }, [files.length]);
+
+    useEffect(() => {
         return () => {
             filesRef.current.forEach(file => URL.revokeObjectURL(file.preview));
         };

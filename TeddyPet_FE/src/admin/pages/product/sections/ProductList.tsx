@@ -20,6 +20,7 @@ import {
     filterPanelStyles,
     dataGridStyles,
 } from '../configs/styles.config';
+import { Stack, Typography } from '@mui/material';
 
 declare module '@mui/x-data-grid' {
     interface ToolbarPropsOverrides {
@@ -28,10 +29,27 @@ declare module '@mui/x-data-grid' {
     }
 }
 
+const CustomNoRowsOverlay = () => {
+    return (
+        <Stack height="100%" alignItems="center" justifyContent="center">
+            <div className="w-[100px] h-[100px] mb-[20px]">
+                <img
+                    src="https://img.icons8.com/fluency/200/nothing-found.png"
+                    alt="No data"
+                    className="w-full h-full object-contain filter grayscale opacity-60"
+                />
+            </div>
+            <Typography variant="body1" sx={{ fontSize: '1.5rem', fontWeight: 500, color: 'text.secondary' }}>
+                Không có dữ liệu
+            </Typography>
+        </Stack>
+    );
+}
+
 export const ProductList = () => {
     const { t } = useTranslation();
     const { settings, setSettings } = useSettings();
-    const { products } = useProducts();
+    const { products, loading } = useProducts();
     const columns = useProductColumns();
     const localeText = useDataGridLocale();
 
@@ -42,6 +60,7 @@ export const ProductList = () => {
         >
             <div style={dataGridContainerStyles}>
                 <DataGrid
+                    loading={loading}
                     rows={products}
                     columns={columns}
                     density={settings.density}
@@ -53,6 +72,7 @@ export const ProductList = () => {
                         columnSortedAscendingIcon: SortAscendingIcon,
                         columnSortedDescendingIcon: SortDescendingIcon,
                         columnUnsortedIcon: UnsortedIcon,
+                        noRowsOverlay: CustomNoRowsOverlay
                     }}
                     slotProps={{
                         columnsManagement: {

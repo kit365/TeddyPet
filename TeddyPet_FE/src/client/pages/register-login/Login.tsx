@@ -3,27 +3,37 @@ import { Input } from "./sections/Input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useLogin } from "./hooks/use-login";
 
-const schema = z.object({
-    email: z
+const loginSchema = z.object({
+    usernameOrEmail: z
         .string()
-        .nonempty("Vui lòng nhập email!")
-        .email("Email không đúng định dạng!"),
+        .nonempty("Vui lòng nhập email hoặc tên đăng nhập!"),
     password: z
         .string()
         .nonempty("Vui lòng nhập mật khẩu!")
 });
 
+type LoginFormSchema = z.infer<typeof loginSchema>;
+
 export const LoginPage = () => {
-    const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
+    const {
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm<LoginFormSchema>({
         defaultValues: {
-            email: "",
+            usernameOrEmail: "",
             password: ""
         },
-        resolver: zodResolver(schema)
+        resolver: zodResolver(loginSchema)
     });
 
-    const onSubmit = (data: unknown) => console.log(data);
+    const { mutate: loginMutate } = useLogin();
+
+    const onSubmit = (data: LoginFormSchema) => {
+        loginMutate(data);
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
@@ -39,11 +49,11 @@ export const LoginPage = () => {
                 </div>
                 <p className="mt-[30px] mb-[40px] text-client-text text-center">Hoặc đăng nhập với</p>
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col mb-[30px]">
-                    <div className="mb-[20px]">
+                    <div className="mb-[10px]">
                         <Input
-                            placeholder="Email"
-                            {...register("email")}
-                            error={errors.email?.message}
+                            placeholder="Email hoặc tên đăng nhập"
+                            {...register("usernameOrEmail")}
+                            error={errors.usernameOrEmail?.message}
                         />
                     </div>
                     <Input

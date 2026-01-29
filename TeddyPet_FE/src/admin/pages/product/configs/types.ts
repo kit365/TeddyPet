@@ -9,7 +9,7 @@ export interface IProduct {
     createdAt: Date;
     stock: number;
     price: number;
-    status: 'active' | 'inactive' | 'draft';
+    status: string; // Allow arbitrary strings like "IN_STOCK"
 }
 
 // Định nghĩa kiểu dữ liệu cho Settings của Grid

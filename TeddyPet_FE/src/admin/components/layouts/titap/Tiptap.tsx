@@ -11,6 +11,8 @@ import { UtilityButtons } from "./sections/UtilityButtons"
 import { editorContainerStyles, tiptapContentStyles, editorHeadingStyles } from "./TiptapStyles"
 import { getExtensions } from "./TiptapExtensions";
 import { FullscreenControl } from "./sections/FullscreenControl";
+import { AIAssistant } from "./sections/AIAssistant";
+
 
 const VerticalDivider = memo(() => (
     <Divider sx={{
@@ -195,10 +197,12 @@ export const Tiptap = memo(({ value = '', onChange }: TiptapProps) => {
                         state={utilityState}
                     />
                     <VerticalDivider />
+                    <AIAssistant editor={editor} />
+                    <VerticalDivider />
                     <FullscreenControl isFullscreen={isFullscreen} onToggle={toggleFullscreen} />
                 </Stack>
 
-                <Box sx={tiptapContentStyles}>
+                <Box sx={{ ...tiptapContentStyles, position: 'relative' }}>
                     <EditorContent style={{
                         height: "100%"
                     }} spellCheck="false" autoCapitalize="off" autoComplete="off" editor={editor} />

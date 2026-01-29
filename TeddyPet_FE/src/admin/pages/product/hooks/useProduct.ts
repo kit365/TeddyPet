@@ -1,9 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getProductTags, createProductTag, deleteProductTag,
-    getProductAgeRanges, createProductAgeRange, updateProductAgeRange, deleteProductAgeRange, getProductAgeRangeById
+    getProductAgeRanges, createProductAgeRange, updateProductAgeRange, deleteProductAgeRange, getProductAgeRangeById,
+    getCountries, createProduct
 } from '../../../api/product.api';
+import { getBrands } from '../../../api/brand.api';
 import { ApiResponse } from '../../../config/type';
+
+// --- COUNTRIES ---
+export const useCountries = () => {
+    return useQuery({
+        queryKey: ['countries'],
+        queryFn: getCountries,
+        select: (data) => data.map((country: any) => ({
+            code: country.cca2,
+            name: country.name.common
+        })).sort((a: any, b: any) => a.name.localeCompare(b.name))
+    });
+};
 
 // --- TAGS ---
 export const useProductTags = () => {
@@ -84,6 +98,27 @@ export const useDeleteProductAgeRange = () => {
         mutationFn: deleteProductAgeRange,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['product-age-ranges'] });
+        },
+    });
+};
+
+// --- BRANDS ---
+export const useBrands = () => {
+    return useQuery({
+        queryKey: ['brands'],
+        queryFn: getBrands,
+        select: (res: ApiResponse<any>) => res.data || [],
+    });
+};
+
+// --- PRODUCT ---
+export const useCreateProduct = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: createProduct,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
         },
     });
 };

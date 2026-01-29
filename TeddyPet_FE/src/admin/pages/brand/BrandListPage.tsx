@@ -1,6 +1,4 @@
 import { ListHeader } from "../../components/ui/ListHeader";
-import { Search } from "../../components/ui/Search";
-import { Box } from "@mui/material";
 import { prefixAdmin } from "../../constants/routes";
 import { BrandList } from "./sections/BrandList";
 
@@ -17,10 +15,6 @@ export const BrandListPage = () => {
                 addButtonLabel="Thêm thương hiệu"
                 addButtonPath={`/${prefixAdmin}/brand/create`}
             />
-
-            <Box sx={{ mb: '40px' }}>
-                <Search maxWidth={400} placeholder="Tìm kiếm thương hiệu..." />
-            </Box>
 
             <BrandList />
         </>

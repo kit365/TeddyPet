@@ -126,7 +126,7 @@ export const adminTheme = createTheme({
                 root: {
                     padding: '4px',
                     color: '#637381',
-                    '&.Mui-checked, &.Mui-checkbox-indeterminate': { color: '#00A76F' },
+                    '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: '#00A76F' },
                     '& .MuiSvgIcon-root': { fontSize: '2rem' },
                 },
             },

@@ -23,7 +23,7 @@ export const MenuBar = () => {
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/07/Menu-img-12.png",
         },
         {
-            label: "Tất cả sản phẩm",
+            label: "Sản phẩm",
             to: "/shop",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/07/Menu-img-11-1.png",
         },

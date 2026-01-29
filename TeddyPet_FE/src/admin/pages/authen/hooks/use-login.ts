@@ -11,7 +11,7 @@ export const useLogin = () => {
         mutationFn: login,
         onSuccess: (response: LoginResponse) => {
             if (response.success && response.data?.token) {
-                Cookies.set("token", response.data.token, {
+                Cookies.set("tokenAdmin", response.data.token, {
                     expires: 1,        // 1 ngày
                     secure: false,     // true nếu HTTPS
                     sameSite: "lax"

@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { Facebook, Instagram } from "iconoir-react";
 
 const socialItems = [
-    { icon: Instagram, to: "/" },
-    { icon: Facebook, to: "/" }
+    { icon: Instagram, to: "https://www.instagram.com/teddypetvietnam/" },
+    { icon: Facebook, to: "https://www.facebook.com/profile.php?id=61583347940476" }
 ];
 
 export const SocialIcon = () => {

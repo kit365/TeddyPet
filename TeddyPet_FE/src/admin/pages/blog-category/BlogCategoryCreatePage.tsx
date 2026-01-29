@@ -14,8 +14,10 @@ import { prefixAdmin } from "../../constants/routes";
 import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
+import { useTranslation } from "react-i18next";
 
 export const BlogCategoryCreatePage = () => {
+    const { t } = useTranslation();
     const [expandedDetail, setExpandedDetail] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
@@ -64,7 +66,7 @@ export const BlogCategoryCreatePage = () => {
 
             },
             onError: () => {
-                toast.error("Tạo danh mục thất bại");
+                toast.error(t("admin.validation.create_failed"));
             }
         });
     };
@@ -73,12 +75,12 @@ export const BlogCategoryCreatePage = () => {
         <>
             <div className="mb-[40px] gap-[16px] flex items-start justify-end">
                 <div className="mr-auto">
-                    <Title title="Tạo mới danh mục bài viết" />
+                    <Title title={t("admin.blog_category.title.create")} />
                     <Breadcrumb
                         items={[
-                            { label: "Dashboard", to: "/" },
-                            { label: "Danh mục bài viết", to: `/${prefixAdmin}/blog-category/list` },
-                            { label: "Tạo mới" }
+                            { label: t("admin.dashboard"), to: "/" },
+                            { label: t("admin.blog_category.title.list"), to: `/${prefixAdmin}/blog-category/list` },
+                            { label: t("admin.common.add") }
                         ]}
                     />
                 </div>
@@ -90,8 +92,8 @@ export const BlogCategoryCreatePage = () => {
                         gap: "40px"
                     }}>
                         <CollapsibleCard
-                            title="Chi tiết"
-                            subheader="Tiêu đề, mô tả, hình ảnh..."
+                            title={t("admin.common.details")}
+                            subheader={t("admin.blog_category.fields.description_placeholder")}
                             expanded={expandedDetail}
                             onToggle={toggle(setExpandedDetail)}
                         >
@@ -109,7 +111,7 @@ export const BlogCategoryCreatePage = () => {
                                         render={({ field, fieldState }) => (
                                             <TextField
                                                 {...field}
-                                                label="Tên danh mục"
+                                                label={t("admin.blog_category.fields.name")}
                                                 error={!!fieldState.error}
                                                 helperText={fieldState.error?.message}
                                             />
@@ -159,7 +161,7 @@ export const BlogCategoryCreatePage = () => {
                                 }}
                                 variant="contained"
                             >
-                                {isPending ? 'Đang tạo...' : 'Thêm danh mục'}
+                                {isPending ? t("admin.common.loading") : t("admin.blog_category.title.create")}
                             </Button>
                         </Box>
                     </Stack>

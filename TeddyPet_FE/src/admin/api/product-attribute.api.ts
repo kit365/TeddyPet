@@ -6,7 +6,7 @@ const BASE_URL = '/api/product-attributes';
 
 /** Header auth dùng chung */
 const withAuth = () => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('tokenAdmin');
 
     return {
         headers: {
@@ -18,6 +18,12 @@ const withAuth = () => {
 /** Lấy danh sách thuộc tính */
 export const getProductAttributes = async (): Promise<ApiResponse<any[]>> => {
     const response = await apiApp.get(BASE_URL, withAuth());
+    return response.data;
+};
+
+/** Lấy chi tiết thuộc tính */
+export const getProductAttributeDetail = async (id: number | string): Promise<ApiResponse<any>> => {
+    const response = await apiApp.get(`${BASE_URL}/${id}`, withAuth());
     return response.data;
 };
 

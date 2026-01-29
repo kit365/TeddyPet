@@ -66,7 +66,13 @@ export const RenderProductCell = (params: GridRenderCellParams) => {
 }
 
 // Thời gian tạo
-export const RenderCreatedAtCell = () => {
+export const RenderCreatedAtCell = (params: GridRenderCellParams) => {
+    const rawDate = params.row.createdAt;
+    const dateObj = new Date(rawDate);
+
+    const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
     return (
         <Box
             sx={{
@@ -81,7 +87,7 @@ export const RenderCreatedAtCell = () => {
                     color: COLORS.primary,
                     transition: 'color 0.2s',
                 }}>
-                29 Dec 2025
+                {dateStr}
             </span>
 
             <Box
@@ -92,7 +98,7 @@ export const RenderCreatedAtCell = () => {
                     color: COLORS.secondary
                 }}
             >
-                11:02 pm
+                {timeStr}
             </Box>
         </Box >
     );

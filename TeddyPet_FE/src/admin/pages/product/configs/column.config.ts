@@ -16,7 +16,7 @@ export const columnsConfig: GridColDef<IProduct>[] = [
         headerName: "Thời gian tạo",
         width: 160,
         filterable: true,
-        type: "date",
+        type: "dateTime",
         renderCell: RenderCreatedAtCell,
     },
     {
