@@ -29,7 +29,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
             </div>
 
             <div className="grid grid-cols-[1fr_auto] gap-[20px]">
-                <div className="pl-[30px]">
+                <div className="pl-[30px] min-w-0">
                     {/* Rating */}
                     <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
@@ -46,7 +46,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                     {/* Title */}
                     <Link
                         to={product.url}
-                        className="inline-block text-client-secondary text-[2.4rem] 2xl:text-[2.3rem] line-clamp-1 font-secondary leading-[1.8] transition-all duration-[350ms] ease-in-out my-[10px] group-hover:text-white hover:opacity-70"
+                        className="block text-client-secondary text-[2.4rem] 2xl:text-[2.3rem] truncate font-secondary leading-[1.8] transition-all duration-[350ms] ease-in-out my-[10px] group-hover:text-white hover:opacity-70"
                     >
                         {product.title}
                     </Link>

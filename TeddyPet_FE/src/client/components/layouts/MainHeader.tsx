@@ -4,6 +4,8 @@ import { Button } from "../ui/Button"
 import { useCartStore } from "../../../stores/useCartStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
+import { useState, useEffect } from "react";
+import { getSearchSuggestions } from "../../../api/home.api";
 
 export const MainHeader = () => {
     const totalItemsCount = useCartStore((state) => state.totalItems());
@@ -16,6 +18,34 @@ export const MainHeader = () => {
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
     const navigate = useNavigate();
+
+    // Search state
+    const [keyword, setKeyword] = useState("");
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    // Debounce search
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            if (keyword.trim().length > 1) {
+                try {
+                    const res = await getSearchSuggestions(keyword);
+                    if (res && res.data) {
+                        setSuggestions(res.data);
+                        setShowSuggestions(true);
+                    }
+                } catch (error) {
+                    console.error("Error fetching suggestions:", error);
+                }
+            } else {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchSuggestions, 300);
+        return () => clearTimeout(timeoutId);
+    }, [keyword]);
 
     const handleRemove = (id: string) => {
         setTimeout(() => {
@@ -46,12 +76,63 @@ export const MainHeader = () => {
                     </div>
 
                     {/* Form Search */}
-                    <form action="" className="w-[34.2%] flex">
-                        <input type="text" name="keyword" placeholder="Tìm kiếm sản phẩm" className="w-[95.2%] bg-[#10293708] rounded-l-[4rem] h-[50px] border border-[#d7d7d7] px-[32px] py-[16px] focus:outline-none focus:border-[#102937] transition-[border] duration-300 ease-linear" />
-                        <div className="ml-[-25px] w-[5rem] h-[5rem] rounded-full bg-client-secondary flex items-center justify-center text-white cursor-pointer hover:bg-client-primary transition-[background] duration-300 ease-linear">
-                            <Search stroke="3" />
-                        </div>
-                    </form>
+                    <div className="w-[34.2%] relative z-50">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (keyword.trim()) {
+                                    navigate(`/shop?keyword=${encodeURIComponent(keyword)}`);
+                                    setShowSuggestions(false);
+                                }
+                            }}
+                            className="w-full flex"
+                        >
+                            <input
+                                type="text"
+                                value={keyword}
+                                onChange={(e) => setKeyword(e.target.value)}
+                                placeholder="Tìm kiếm sản phẩm"
+                                className="w-[95.2%] bg-[#10293708] rounded-l-[4rem] h-[50px] border border-[#d7d7d7] px-[32px] py-[16px] focus:outline-none focus:border-[#102937] transition-[border] duration-300 ease-linear"
+                            />
+                            <div
+                                onClick={() => {
+                                    if (keyword.trim()) {
+                                        navigate(`/shop?keyword=${encodeURIComponent(keyword)}`);
+                                        setShowSuggestions(false);
+                                    }
+                                }}
+                                className="ml-[-25px] w-[5rem] h-[5rem] rounded-full bg-client-secondary flex items-center justify-center text-white cursor-pointer hover:bg-client-primary transition-[background] duration-300 ease-linear"
+                            >
+                                <Search stroke="3" />
+                            </div>
+                        </form>
+
+                        {/* Search Suggestions Dropdown */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute top-[60px] left-0 w-full bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] p-[10px] animate-fadeIn">
+                                <ul>
+                                    {suggestions.map((product: any) => (
+                                        <li key={product.productId} className="mb-[10px] last:mb-0">
+                                            <Link
+                                                to={`/product/detail/${product.slug}`}
+                                                className="flex items-center gap-[15px] p-[10px] hover:bg-gray-50 rounded-[8px] transition-colors"
+                                                onClick={() => setShowSuggestions(false)}
+                                            >
+                                                <img
+                                                    src={product.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg"}
+                                                    alt={product.name}
+                                                    className="w-[50px] h-[50px] object-cover rounded-[5px]"
+                                                />
+                                                <div>
+                                                    <p className="text-[1.4rem] font-secondary text-client-secondary line-clamp-1">{product.name}</p>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-[30px] w-[34.2%] justify-end mr-[16px]">
