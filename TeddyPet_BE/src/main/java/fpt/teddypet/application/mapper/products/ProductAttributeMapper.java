@@ -1,6 +1,5 @@
 package fpt.teddypet.application.mapper.products;
 
-
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
@@ -12,9 +11,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
 import java.util.List;
 
-@Mapper(componentModel = "spring", 
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        uses = {ProductAttributeValueMapper.class})
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, uses = {
+        ProductAttributeValueMapper.class })
 public interface ProductAttributeMapper {
 
     @Mapping(target = "values", source = "values")
@@ -25,16 +23,22 @@ public interface ProductAttributeMapper {
     @Mapping(source = "active", target = "isActive")
     ProductAttributeInfo toInfo(ProductAttribute attribute, @Context MappingContext context);
 
+    default ProductAttributeInfo toInfo(ProductAttribute attribute) {
+        return toInfo(attribute, new MappingContext(false, true));
+    }
 
     default List<Long> mapValuesToIds(List<ProductAttributeValue> values, MappingContext context) {
-        if (values == null) return List.of();
+        if (values == null)
+            return List.of();
         return values.stream()
                 .filter(val -> context.includeDeleted() || !val.isDeleted())
                 .filter(val -> !context.onlyActive() || val.isActive())
-                .sorted(java.util.Comparator.comparing(ProductAttributeValue::getDisplayOrder, java.util.Comparator.nullsLast(Integer::compareTo)))
+                .sorted(java.util.Comparator.comparing(ProductAttributeValue::getDisplayOrder,
+                        java.util.Comparator.nullsLast(Integer::compareTo)))
                 .map(ProductAttributeValue::getValueId)
                 .toList();
     }
 
-    record MappingContext(boolean includeDeleted, boolean onlyActive) {}
+    record MappingContext(boolean includeDeleted, boolean onlyActive) {
+    }
 }

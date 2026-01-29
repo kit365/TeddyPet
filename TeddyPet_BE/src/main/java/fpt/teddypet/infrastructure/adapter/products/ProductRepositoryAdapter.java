@@ -19,6 +19,26 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     private final ProductRepository productRepository;
 
     @Override
+    public Page<Product> findByCategoryId(Long categoryId, Pageable pageable) {
+        return productRepository.findDistinctByCategoriesIdAndIsActiveTrueAndIsDeletedFalse(categoryId, pageable);
+    }
+
+    @Override
+    public List<Product> findAllByCategoryId(Long categoryId) {
+        return productRepository.findDistinctByCategoriesIdAndIsActiveTrueAndIsDeletedFalse(categoryId);
+    }
+
+    @Override
+    public Page<Product> findByBrandId(Long brandId, Pageable pageable) {
+        return productRepository.findByBrandIdAndIsActiveTrueAndIsDeletedFalse(brandId, pageable);
+    }
+
+    @Override
+    public List<Product> findAllByBrandId(Long brandId) {
+        return productRepository.findByBrandIdAndIsActiveTrueAndIsDeletedFalse(brandId);
+    }
+
+    @Override
     public Optional<Product> findByIdAndIsActiveTrueAndIsDeletedFalse(Long productId) {
         return productRepository.findByIdAndIsActiveTrueAndIsDeletedFalse(productId);
     }
@@ -42,7 +62,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public boolean existsByBarcode(String barcode) {
         return productRepository.existsByBarcode(barcode);
     }
-    
+
     @Override
     public boolean existsBySku(String sku) {
         return productRepository.existsBySku(sku);
@@ -68,4 +88,3 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         return productRepository.findAll(spec, pageable);
     }
 }
-

@@ -7,14 +7,30 @@ import java.util.Optional;
 
 public interface ProductCategoryRepositoryPort {
     ProductCategory save(ProductCategory productCategory);
+
+    boolean existsByName(String name);
+
+    boolean existsBySlug(String slug);
+
+    boolean existsBySlugAndIdNot(String slug, Long id);
+
     Optional<ProductCategory> findById(Long categoryId);
+
     List<ProductCategory> findAll();
+
     Optional<ProductCategory> findByIdAndIsDeletedFalse(Long categoryId);
+
     List<ProductCategory> findRootCategories();
+
     List<ProductCategory> findChildCategories(Long parentId);
+
     List<Long> findAllDescendantIds(List<Long> categoryIds);
+
     List<ProductCategory> findAllByIds(List<Long> categoryIds);
+
     List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted);
+
+    List<ProductCategory> findLeafCategories();
+
     int softDeleteByIds(List<Long> ids);
 }
-

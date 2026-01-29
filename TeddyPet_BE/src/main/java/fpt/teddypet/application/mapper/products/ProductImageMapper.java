@@ -26,10 +26,11 @@ public interface ProductImageMapper {
     @Mapping(source = "deleted", target = "isDeleted")
     @Mapping(source = "active", target = "isActive")
     ProductImageResponse toResponse(ProductImage image);
-    @Mapping(source = "deleted", target = "isDeleted")
-    @Mapping(source = "active", target = "isActive")
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "url", source = "imageUrl")
+    @Mapping(target = "alt", source = "altText")
     ProductImageInfo toInfo(ProductImage image);
-    
+
     List<ProductImageInfo> toInfoList(List<ProductImage> images);
 }
-

@@ -29,7 +29,7 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
 
     @Override
     public ProductBrand findByIdAndActiveAndDeleted(Long brandId, boolean isActive, boolean isDeleted) {
-        if(brandId == null) {
+        if (brandId == null) {
             return null;
         }
         return productBrandRepository
@@ -37,8 +37,6 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NOT_FOUND_BY_ID, brandId)));
     }
-
-
 
     @Override
     public List<ProductBrand> findAll() {
@@ -55,9 +53,17 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
 
     @Override
     public boolean existsByNameAndIdNot(String name, Long brandId) {
-        return productBrandRepository
-                .findByName(name)
-                .isPresent();
+        return productBrandRepository.existsByNameAndIdNot(name, brandId);
+    }
+
+    @Override
+    public boolean existsBySlug(String slug) {
+        return productBrandRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public boolean existsBySlugAndIdNot(String slug, Long id) {
+        return productBrandRepository.existsBySlugAndIdNot(slug, id);
     }
 
     @Override
@@ -74,4 +80,3 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
         return productBrandRepository.softDeleteByIds(ids);
     }
 }
-

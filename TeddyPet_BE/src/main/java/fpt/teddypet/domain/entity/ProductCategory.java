@@ -23,6 +23,9 @@ public class ProductCategory extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 255)
+    private String slug;
+
     @Column(length = 500)
     private String description;
 
@@ -40,7 +43,6 @@ public class ProductCategory extends BaseEntity {
     @Builder.Default
     private List<ProductCategory> children = new ArrayList<>();
 
-
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Product> products = new ArrayList<>();
@@ -52,4 +54,3 @@ public class ProductCategory extends BaseEntity {
         return parent == null;
     }
 }
-

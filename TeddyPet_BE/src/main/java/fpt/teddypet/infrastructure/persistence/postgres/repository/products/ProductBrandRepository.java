@@ -11,7 +11,15 @@ import java.util.Optional;
 
 public interface ProductBrandRepository extends JpaRepository<ProductBrand, Long> {
     Optional<ProductBrand> findByName(String name);
+
     boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
+
+    boolean existsBySlug(String slug);
+
+    boolean existsBySlugAndIdNot(String slug, Long id);
+
     Optional<ProductBrand> findByIdAndIsActiveAndIsDeleted(Long brandId, boolean isActive, boolean isDeleted);
 
     @Modifying

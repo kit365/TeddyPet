@@ -23,6 +23,9 @@ public class ProductBrand extends BaseEntity {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 255)
+    private String slug;
+
     @Column(length = 500)
     private String description;
 
@@ -39,4 +42,3 @@ public class ProductBrand extends BaseEntity {
     @Builder.Default
     private List<Product> products = new ArrayList<>();
 }
-

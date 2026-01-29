@@ -1,4 +1,5 @@
 package fpt.teddypet.infrastructure.adapter.products;
+
 import fpt.teddypet.application.port.output.products.ProductTagRepositoryPort;
 import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductTagRepository;
@@ -40,13 +41,27 @@ public class ProductTagRepositoryAdapter implements ProductTagRepositoryPort {
 
     @Override
     public boolean existsByNameAndIdNot(String name, Long tagId) {
-        return productTagRepository.findByName(name)
-                .filter(tag -> !tag.getId().equals(tagId) && !tag.isDeleted())
-                .isPresent();
+        return productTagRepository.existsByNameAndIdNot(name, tagId);
     }
 
     @Override
-    public List<ProductTag> findAllByIdInAndIsActiveAndIsDeleted(List<Long> tagIds, boolean isActive, boolean isDeleted) {
+    public boolean existsBySlug(String slug) {
+        return productTagRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public boolean existsBySlugAndIdNot(String slug, Long id) {
+        return productTagRepository.existsBySlugAndIdNot(slug, id);
+    }
+
+    @Override
+    public Optional<ProductTag> findBySlug(String slug) {
+        return productTagRepository.findBySlug(slug);
+    }
+
+    @Override
+    public List<ProductTag> findAllByIdInAndIsActiveAndIsDeleted(List<Long> tagIds, boolean isActive,
+            boolean isDeleted) {
         if (tagIds == null || tagIds.isEmpty()) {
             return new ArrayList<>();
         }
@@ -56,6 +71,7 @@ public class ProductTagRepositoryAdapter implements ProductTagRepositoryPort {
         checkMissingIds(tagIds, tags);
         return tags;
     }
+
     private void checkMissingIds(List<Long> requestedIds, List<ProductTag> foundTags) {
         List<Long> distinctIds = requestedIds.stream().distinct().toList();
 
@@ -77,4 +93,3 @@ public class ProductTagRepositoryAdapter implements ProductTagRepositoryPort {
         return productTagRepository.softDeleteByIds(ids);
     }
 }
-
