@@ -19,17 +19,21 @@ public class VerificationTokenAdapter implements VerificationTokenPort {
 
     private static final String TOKEN_PREFIX = "verify:token:";
     private static final String EMAIL_PREFIX = "verify:email:";
+    private static final String RESEND_COOLDOWN_PREFIX = "verify:cooldown:";
 
     @Value("${app.verification.token-expiration-minutes:1440}") // Default 24 hours
     private int tokenExpirationMinutes;
 
+    @Value("${app.verification.resend-cooldown-seconds:120}") // Default 2 minutes
+    private int resendCooldownSeconds;
+
     @Override
     public void saveToken(String email, String token) {
         log.info("[VerificationTokenAdapter] Saving verification token for email: {}", email);
-        
+
         String tokenKey = TOKEN_PREFIX + token;
         String emailKey = EMAIL_PREFIX + email;
-        
+
         redisTemplate.opsForValue().set(tokenKey, email, tokenExpirationMinutes, TimeUnit.MINUTES);
         redisTemplate.opsForValue().set(emailKey, token, tokenExpirationMinutes, TimeUnit.MINUTES);
     }
@@ -39,6 +43,13 @@ public class VerificationTokenAdapter implements VerificationTokenPort {
         String tokenKey = TOKEN_PREFIX + token;
         Object email = redisTemplate.opsForValue().get(tokenKey);
         return Optional.ofNullable(email).map(Object::toString);
+    }
+
+    @Override
+    public Optional<String> findTokenByEmail(String email) {
+        String emailKey = EMAIL_PREFIX + email;
+        Object token = redisTemplate.opsForValue().get(emailKey);
+        return Optional.ofNullable(token).map(Object::toString);
     }
 
     @Override
@@ -54,5 +65,24 @@ public class VerificationTokenAdapter implements VerificationTokenPort {
     @Override
     public boolean isTokenValid(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(TOKEN_PREFIX + token));
+    }
+
+    @Override
+    public void saveResendCooldown(String email) {
+        String cooldownKey = RESEND_COOLDOWN_PREFIX + email;
+        redisTemplate.opsForValue().set(cooldownKey, System.currentTimeMillis(), resendCooldownSeconds,
+                TimeUnit.SECONDS);
+        log.info("[VerificationTokenAdapter] Saved resend cooldown for email: {}, cooldown: {}s", email,
+                resendCooldownSeconds);
+    }
+
+    @Override
+    public long getResendCooldownSeconds(String email) {
+        String cooldownKey = RESEND_COOLDOWN_PREFIX + email;
+        Long ttl = redisTemplate.getExpire(cooldownKey, TimeUnit.SECONDS);
+        if (ttl == null || ttl < 0) {
+            return 0;
+        }
+        return ttl;
     }
 }
