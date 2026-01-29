@@ -17,6 +17,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 public record ProductDetailResponse(
                 Long id,
+                String slug,
                 String name,
                 String description,
                 String content,

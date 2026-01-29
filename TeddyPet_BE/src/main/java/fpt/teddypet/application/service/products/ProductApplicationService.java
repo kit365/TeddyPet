@@ -10,6 +10,7 @@ import fpt.teddypet.application.dto.common.SortDirection;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
+import fpt.teddypet.application.dto.response.product.product.ProductSuggestionResponse;
 import fpt.teddypet.application.mapper.products.ProductMapper;
 import fpt.teddypet.application.dto.request.products.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.port.input.products.ProductAgeRangeService;
@@ -199,6 +200,18 @@ public class ProductApplicationService implements ProductService {
     @Override
     public ProductDetailResponse getDetail(Long productId) {
         Product product = getById(productId);
+        return mapToDetailResponse(product);
+    }
+
+    @Override
+    public ProductDetailResponse getDetailBySlug(String slug) {
+        Product product = productRepositoryPort.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_SLUG, slug)));
+        return mapToDetailResponse(product);
+    }
+
+    private ProductDetailResponse mapToDetailResponse(Product product) {
         return productMapper.toDetailResponse(product)
                 .toBuilder()
                 .categories(productCategoryService.toInfos(product.getCategories(), false, false))
@@ -352,6 +365,27 @@ public class ProductApplicationService implements ProductService {
         Page<Product> productPage = productRepositoryPort.findAll(spec, pageable);
 
         return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    @Override
+    public List<ProductSuggestionResponse> getSuggestions(String keyword) {
+        log.info("Getting search suggestions for keyword: {}", keyword);
+
+        Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
+                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildKeywordSearchSpecification(keyword)));
+
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "viewCount", "soldCount"));
+        Page<Product> productPage = productRepositoryPort.findAll(spec, pageable);
+
+        return productPage.getContent().stream()
+                .map(product -> ProductSuggestionResponse.builder()
+                        .productId(product.getId())
+                        .name(product.getName())
+                        .slug(product.getSlug())
+                        .imageUrl(product.getImages().isEmpty() ? null : product.getImages().get(0).getImageUrl())
+                        .build())
+                .toList();
     }
 
     private Sort buildSort(String sortKey, String sortDirection) {
