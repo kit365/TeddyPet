@@ -1,5 +1,6 @@
 package fpt.teddypet.infrastructure.persistence.postgres.data;
 
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.domain.enums.TagEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductTagRepository;
@@ -45,6 +46,7 @@ public class ProductTagDataInit implements CommandLineRunner {
                 TagInfo info = TAG_INFO.get(tagEnum);
                 ProductTag tag = ProductTag.builder()
                         .name(tagEnum.name())
+                        .slug(SlugUtil.toSlug(tagEnum.name()))
                         .description(info.description)
                         .color(info.color)
                         .build();
@@ -66,4 +68,3 @@ public class ProductTagDataInit implements CommandLineRunner {
         }
     }
 }
-

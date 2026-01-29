@@ -41,6 +41,7 @@ public class ProductData implements CommandLineRunner {
     private final ProductVariantRepository productVariantRepository;
     private final ProductAttributeRepository productAttributeRepository;
     private final ProductAttributeValueRepository productAttributeValueRepository;
+    private final ProductImageRepository productImageRepository;
 
     @Override
     @Transactional
@@ -63,7 +64,8 @@ public class ProductData implements CommandLineRunner {
         // --- A. THUỘC TÍNH ĐỊNH LƯỢNG (Cân nặng, Thể tích) ---
         // Định nghĩa: Admin nhập Số + Chọn Đơn vị đo (KG, G)
 
-        ProductAttribute weightAttr = createAttribute("Trọng lượng", AttributeDisplayType.RADIO, 1, UnitEnum.KG, UnitEnum.GRAM);
+        ProductAttribute weightAttr = createAttribute("Trọng lượng", AttributeDisplayType.RADIO, 1, UnitEnum.KG,
+                UnitEnum.GRAM);
 
         // Tạo các giá trị mẫu (Hàm helper sẽ tự ghép chuỗi "1kg", "500g")
         ProductAttributeValue weight100g = createQuantitativeValue(weightAttr, new BigDecimal("100"), UnitEnum.GRAM);
@@ -73,8 +75,12 @@ public class ProductData implements CommandLineRunner {
         ProductAttributeValue weight5kg = createQuantitativeValue(weightAttr, new BigDecimal("5"), UnitEnum.KG);
         ProductAttributeValue weight10kg = createQuantitativeValue(weightAttr, new BigDecimal("10"), UnitEnum.KG);
 
-        ProductAttribute volumeAttr = createAttribute("Dung tích", AttributeDisplayType.SELECT, 2, UnitEnum.ML, UnitEnum.LITER);
-        ProductAttributeValue vol85g = createQuantitativeValue(volumeAttr, new BigDecimal("85"), UnitEnum.GRAM); // Pate tính bằng gram
+        ProductAttribute volumeAttr = createAttribute("Dung tích", AttributeDisplayType.SELECT, 2, UnitEnum.ML,
+                UnitEnum.LITER);
+        ProductAttributeValue vol85g = createQuantitativeValue(volumeAttr, new BigDecimal("85"), UnitEnum.GRAM); // Pate
+                                                                                                                 // tính
+                                                                                                                 // bằng
+                                                                                                                 // gram
         ProductAttributeValue vol400ml = createQuantitativeValue(volumeAttr, new BigDecimal("400"), UnitEnum.ML);
 
         // --- B. THUỘC TÍNH ĐỊNH TÍNH (Màu sắc, Size) ---
@@ -85,17 +91,14 @@ public class ProductData implements CommandLineRunner {
         ProductAttributeValue flavorBeef = createQualitativeValue(flavorAttr, "Bò", null);
         ProductAttributeValue flavorTuna = createQualitativeValue(flavorAttr, "Cá ngừ", null);
 
-
         ProductAttribute colorAttr = createAttribute("Màu sắc", AttributeDisplayType.COLOR, 4);
         ProductAttributeValue colorRed = createQualitativeValue(colorAttr, "Đỏ", "#FF0000");
         ProductAttributeValue colorBlue = createQualitativeValue(colorAttr, "Xanh dương", "#0000FF");
-
 
         ProductAttribute sizeAttr = createAttribute("Kích cỡ", AttributeDisplayType.RADIO, 5);
         ProductAttributeValue sizeS = createQualitativeValue(sizeAttr, "S", null);
         ProductAttributeValue sizeM = createQualitativeValue(sizeAttr, "M", null);
         ProductAttributeValue sizeL = createQualitativeValue(sizeAttr, "L", null);
-
 
         // =================================================================================
         // 2. TẠO SẢN PHẨM VÀ BIẾN THỂ
@@ -113,17 +116,22 @@ public class ProductData implements CommandLineRunner {
                 getCategoryByName("Dành cho chó"),
                 getBrandByName("Royal Canin"),
                 List.of(getTagByName("BEST_SELLER")),
-                List.of(getAgeRangeByName("ADULT"))
-        );
+                List.of(getAgeRangeByName("ADULT")));
+
+        createProductImage(dogFood, "https://images.unsplash.com/photo-1517849845537-4d257902454a", "Poodle Adult 1",
+                0);
+        createProductImage(dogFood, "https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a", "Poodle Adult 2",
+                1);
 
         linkAttributesToProduct(dogFood, flavorAttr, weightAttr);
 
         // Vị Gà - 1kg (Bán theo GÓI)
-        createVariant(dogFood, "Gà - 1kg", "RC-PD-1KG", new BigDecimal("180000"), 100, UnitEnum.PACK, flavorChicken, weight1kg);
+        createVariant(dogFood, "Gà - 1kg", "RC-PD-1KG", new BigDecimal("180000"), 100, UnitEnum.PACK, flavorChicken,
+                weight1kg);
 
         // Vị Bò - 10kg (Bán theo BAO TẢI)
-        createVariant(dogFood, "Bò - 10kg", "RC-PD-10KG", new BigDecimal("1200000"), 10, UnitEnum.BAG, flavorBeef, weight10kg);
-
+        createVariant(dogFood, "Bò - 10kg", "RC-PD-10KG", new BigDecimal("1200000"), 10, UnitEnum.BAG, flavorBeef,
+                weight10kg);
 
         // --- CASE 2: PATE MÈO (Bán Lẻ & Bán Sỉ) ---
         // Cùng 1 Attribute (85g) nhưng có 2 Variants (Lon & Thùng)
@@ -137,17 +145,22 @@ public class ProductData implements CommandLineRunner {
                 getCategoryByName("Dành cho mèo"),
                 getBrandByName("Whiskas"),
                 List.of(getTagByName("NEW")),
-                List.of(getAgeRangeByName("ALL"))
-        );
+                List.of(getAgeRangeByName("ALL")));
+
+        createProductImage(catPate, "https://images.unsplash.com/photo-1591768793355-74d7c0d3a75c", "Whiskas Tuna 1",
+                0);
+        createProductImage(catPate, "https://images.unsplash.com/photo-1574158622682-e40e69881006", "Whiskas Tuna 2",
+                1);
 
         linkAttributesToProduct(catPate, flavorAttr, volumeAttr);
 
         // Variant 1: Mua Lẻ (1 Lon)
-        createVariant(catPate, "Cá ngừ - Lon 85g", "WK-TUNA-CAN", new BigDecimal("15000"), 200, UnitEnum.CAN, flavorTuna, vol85g);
+        createVariant(catPate, "Cá ngừ - Lon 85g", "WK-TUNA-CAN", new BigDecimal("15000"), 200, UnitEnum.CAN,
+                flavorTuna, vol85g);
 
         // Variant 2: Mua Sỉ (Thùng 24 Lon)
-        createVariant(catPate, "Cá ngừ - Thùng 24 Lon", "WK-TUNA-BOX", new BigDecimal("340000"), 20, UnitEnum.BOX, flavorTuna, vol85g);
-
+        createVariant(catPate, "Cá ngừ - Thùng 24 Lon", "WK-TUNA-BOX", new BigDecimal("340000"), 20, UnitEnum.BOX,
+                flavorTuna, vol85g);
 
         // --- CASE 3: VÒNG CỔ (Visual Color + Size) ---
         Product collar = createProduct(
@@ -160,14 +173,16 @@ public class ProductData implements CommandLineRunner {
                 getCategoryByName("Vòng cổ"),
                 null,
                 List.of(getTagByName("HOT")),
-                List.of(getAgeRangeByName("ALL"))
-        );
+                List.of(getAgeRangeByName("ALL")));
+
+        createProductImage(collar, "https://images.unsplash.com/photo-1591047139829-d91aecb6caea", "Collar Red 1", 0);
+        createProductImage(collar, "https://images.unsplash.com/photo-1623903088095-d300c83aa3d1", "Collar Blue 1", 1);
 
         linkAttributesToProduct(collar, colorAttr, sizeAttr);
 
         createVariant(collar, "Đỏ - S", "COLLAR-RED-S", new BigDecimal("50000"), 50, UnitEnum.PIECE, colorRed, sizeS);
-        createVariant(collar, "Xanh - L", "COLLAR-BLUE-L", new BigDecimal("60000"), 20, UnitEnum.PIECE, colorBlue, sizeL);
-
+        createVariant(collar, "Xanh - L", "COLLAR-BLUE-L", new BigDecimal("60000"), 20, UnitEnum.PIECE, colorBlue,
+                sizeL);
 
         // --- CASE 4: ĐỒ CHƠI (Simple Product) ---
         Product toy = createProduct(
@@ -180,8 +195,10 @@ public class ProductData implements CommandLineRunner {
                 getCategoryByName("Đồ chơi"),
                 null,
                 List.of(getTagByName("SALE")),
-                List.of(getAgeRangeByName("ALL"))
-        );
+                List.of(getAgeRangeByName("ALL")));
+
+        createProductImage(toy, "https://images.unsplash.com/photo-1576049671415-0aa834b768a4", "Bóng cao su 1", 0);
+        createProductImage(toy, "https://images.unsplash.com/photo-1581550461937-047979601d8b", "Bóng cao su 2", 1);
 
         createDefaultVariant(toy, new BigDecimal("35000"));
 
@@ -192,7 +209,8 @@ public class ProductData implements CommandLineRunner {
     // HELPER METHODS
     // =================================================================================
 
-    private ProductAttribute createAttribute(String name, AttributeDisplayType type, int order, UnitEnum... supportedUnits) {
+    private ProductAttribute createAttribute(String name, AttributeDisplayType type, int order,
+            UnitEnum... supportedUnits) {
         return productAttributeRepository.findByName(name)
                 .orElseGet(() -> {
                     ProductAttribute attr = ProductAttribute.builder()
@@ -208,7 +226,8 @@ public class ProductData implements CommandLineRunner {
     }
 
     // Helper tạo Value ĐỊNH LƯỢNG (Có Measurement)
-    private ProductAttributeValue createQuantitativeValue(ProductAttribute attribute, BigDecimal amount, UnitEnum unit) {
+    private ProductAttributeValue createQuantitativeValue(ProductAttribute attribute, BigDecimal amount,
+            UnitEnum unit) {
         // 1. Tạo Measurement VO
         Measurement measurement = new Measurement(amount, unit);
         // 2. Lấy chuỗi hiển thị tự động (VD: "1kg")
@@ -221,8 +240,7 @@ public class ProductData implements CommandLineRunner {
                                 .value(displayValue)
                                 .measurement(measurement) // Lưu VO vào DB
                                 .displayOrder(amount.intValue())
-                                .build()
-                ));
+                                .build()));
     }
 
     // Helper tạo Value ĐỊNH TÍNH (Chữ/Màu)
@@ -235,8 +253,7 @@ public class ProductData implements CommandLineRunner {
                                 .displayCode(displayCode)
                                 .measurement(null) // Không có measurement
                                 .displayOrder(0)
-                                .build()
-                ));
+                                .build()));
     }
 
     private Product createProduct(
@@ -277,13 +294,26 @@ public class ProductData implements CommandLineRunner {
         return productRepository.save(product);
     }
 
+    private void createProductImage(Product product, String url, String altText, int order) {
+        ProductImage image = ProductImage.builder()
+                .product(product)
+                .imageUrl(url)
+                .altText(altText)
+                .displayOrder(order)
+                .isActive(true)
+                .isDeleted(false)
+                .build();
+        productImageRepository.save(image);
+    }
+
     private void linkAttributesToProduct(Product product, ProductAttribute... attributes) {
         product.getAttributes().clear();
         product.getAttributes().addAll(Arrays.asList(attributes));
         productRepository.save(product);
     }
 
-    private void createVariant(Product product, String name, String skuValue, BigDecimal price, int stock, UnitEnum salesUnit, ProductAttributeValue... values) {
+    private void createVariant(Product product, String name, String skuValue, BigDecimal price, int stock,
+            UnitEnum salesUnit, ProductAttributeValue... values) {
         if (productVariantRepository.existsBySkuValue(skuValue)) {
             return;
         }
@@ -300,13 +330,13 @@ public class ProductData implements CommandLineRunner {
                 .isDeleted(false)
                 .build();
 
-
         product.getVariants().add(variant);
         productVariantRepository.save(variant);
     }
 
     private void createDefaultVariant(Product product, BigDecimal price) {
-        if (!product.getVariants().isEmpty()) return;
+        if (!product.getVariants().isEmpty())
+            return;
         String sku = "SKU-" + product.getSlug().toUpperCase().replace("-", "");
 
         ProductVariant variant = ProductVariant.builder()
@@ -328,14 +358,17 @@ public class ProductData implements CommandLineRunner {
     private ProductCategory getCategoryByName(String name) {
         return productCategoryRepository.findByName(name).orElse(null);
     }
+
     private ProductBrand getBrandByName(String name) {
         return productBrandRepository.findByName(name).orElse(null);
     }
+
     private ProductTag getTagByName(String name) {
         return productTagRepository.findAll().stream()
                 .filter(t -> t.getName().contains(name))
                 .findFirst().orElse(null);
     }
+
     private ProductAgeRange getAgeRangeByName(String name) {
         return productAgeRangeRepository.findAll().stream()
                 .filter(a -> a.getName().contains(name))

@@ -52,8 +52,6 @@ public class ProductController {
                 .body(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_UPDATED_SUCCESS));
     }
 
-
-
     @GetMapping("/slug/{slug}")
     @Operation(summary = "Lấy sản phẩm theo slug", description = "Lấy thông tin sản phẩm theo slug")
     public ResponseEntity<ApiResponse<ProductResponse>> getBySlug(@PathVariable String slug) {
@@ -69,8 +67,7 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách sản phẩm có phân trang", 
-            description = "Lấy danh sách sản phẩm với phân trang, tìm kiếm và bộ lọc. ")
+    @Operation(summary = "Lấy danh sách sản phẩm có phân trang", description = "Lấy danh sách sản phẩm với phân trang, tìm kiếm và bộ lọc. ")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllPaged(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -92,22 +89,22 @@ public class ProductController {
             @RequestParam(required = false) String createdAtTo,
             @RequestParam(required = false) Boolean missingFeaturedImage,
             @RequestParam(required = false) Boolean missingDescription) {
-        
+
         // Parse comma-separated lists using utility class
         List<Long> categoryIdsList = RequestParamParser.parseLongList(categoryIds);
         List<PetTypeEnum> petTypesList = RequestParamParser.parsePetTypeList(petTypes);
         List<Long> ageRangeIdsList = RequestParamParser.parseLongList(ageRangeIds);
-        
+
         // Parse date strings to LocalDateTime (supports both date and datetime format)
         LocalDateTime createdAtFromDateTime = RequestParamParser.parseLocalDateTime(createdAtFrom, false);
         LocalDateTime createdAtToDateTime = RequestParamParser.parseLocalDateTime(createdAtTo, true);
-        
+
         ProductSearchRequest request = new ProductSearchRequest(
                 page, size, keyword, sortKey, sortDirection,
                 categoryIdsList, brandId, petTypesList, ageRangeIdsList,
                 status, stockStatus, stockThreshold, includeDeletedVariants,
                 createdAtFromDateTime, createdAtToDateTime, missingFeaturedImage, missingDescription);
-        
+
         PageResponse<ProductResponse> response = productService.getAllPaged(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -126,4 +123,3 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_DELETED_SUCCESS));
     }
 }
-

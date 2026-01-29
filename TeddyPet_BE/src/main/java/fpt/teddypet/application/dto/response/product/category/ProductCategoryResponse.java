@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record ProductCategoryResponse(
         Long categoryId,
         String name,
+        String slug,
         String description,
         String imageUrl,
         String altImage,
@@ -15,7 +16,5 @@ public record ProductCategoryResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         String createdBy,
-        String updatedBy
-) {
+        String updatedBy) {
 }
-

@@ -1,46 +1,23 @@
 package fpt.teddypet.application.dto.response.product.product;
 
-import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
-import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
-import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
-import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
+import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public record ProductResponse(
-        Long productId,
-        String slug,
-        String barcode,
-        String name,
-        String description,
-        String metaTitle,
-        String metaDescription,
-        BigDecimal minPrice,
-        BigDecimal maxPrice,
-        String origin,
-        String material,
-        Integer viewCount,
-        Integer soldCount,
-        List<PetTypeEnum> petTypes,
-        ProductStatusEnum status,
-        List<ProductCategoryInfo> categories,
-        List<ProductTagInfo> tags,
-        List<ProductAgeRangeInfo> ageRanges,
-        List<ProductAttributeInfo> attribute,
-        List<ProductVariantResponse> variants,
-        ProductBrandInfo brand,
-        boolean isActive,
-        boolean isDeleted,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
-        String createdBy,
-        String updatedBy
-) {
+                Long productId,
+                String slug,
+                String name,
+                BigDecimal minPrice,
+                BigDecimal maxPrice,
+                ProductStatusEnum status,
+                List<ProductCategoryInfo> categories,
+                List<ProductTagInfo> tags,
+                ProductBrandInfo brand,
+                List<ProductImageInfo> images) {
 }
-

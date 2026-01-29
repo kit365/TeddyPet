@@ -4,6 +4,7 @@ import fpt.teddypet.application.constants.products.product.ProductLogMessages;
 import fpt.teddypet.application.constants.products.product.ProductMessages;
 import fpt.teddypet.application.dto.request.products.product.ProductRequest;
 import fpt.teddypet.application.dto.request.products.product.ProductSearchRequest;
+import fpt.teddypet.application.dto.request.products.product.ProductHomeSearchRequest;
 import fpt.teddypet.application.dto.request.products.product.ProductSortField;
 import fpt.teddypet.application.dto.common.SortDirection;
 import fpt.teddypet.application.dto.common.PageResponse;
@@ -11,7 +12,14 @@ import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
 import fpt.teddypet.application.mapper.products.ProductMapper;
 import fpt.teddypet.application.dto.request.products.variant.ProductVariantSaveRequest;
-import fpt.teddypet.application.port.input.products.*;
+import fpt.teddypet.application.port.input.products.ProductAgeRangeService;
+import fpt.teddypet.application.port.input.products.ProductAttributeService;
+import fpt.teddypet.application.port.input.products.ProductBrandService;
+import fpt.teddypet.application.port.input.products.ProductCategoryService;
+import fpt.teddypet.application.port.input.products.ProductImageService;
+import fpt.teddypet.application.port.input.products.ProductService;
+import fpt.teddypet.application.port.input.products.ProductTagService;
+import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.output.products.ProductRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
@@ -31,8 +39,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
 
 @Slf4j
 @Service
@@ -48,7 +56,6 @@ public class ProductApplicationService implements ProductService {
     private final ProductTagService productTagService;
     private final ProductAgeRangeService productAgeRangeService;
     private final ProductAttributeService productAttributeService;
-
 
     @Override
     public Product getById(Long productId) {
@@ -79,7 +86,7 @@ public class ProductApplicationService implements ProductService {
 
         // Auto-generate SKU for internal warehouse management
         generateAndSetProductSku(product, request, null);
-        
+
         // Set barcode if provided by user
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             validateBarcodeUniqueness(request.barcode().trim(), null);
@@ -105,7 +112,9 @@ public class ProductApplicationService implements ProductService {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
 
         if (request.images() != null && !request.images().isEmpty()) {
-            productImageService.saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(savedProduct.getId(), request.images()));
+            productImageService
+                    .saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(
+                            savedProduct.getId(), request.images()));
         }
 
         if (request.variants() != null && !request.variants().isEmpty()) {
@@ -121,7 +130,7 @@ public class ProductApplicationService implements ProductService {
         Product product = getByIdAndIsDeletedFalse(productId);
 
         String newSlug;
-        if(request.slug() != null && !request.slug().trim().isEmpty()) {
+        if (request.slug() != null && !request.slug().trim().isEmpty()) {
             newSlug = request.slug().trim();
         } else {
             newSlug = SlugUtil.toSlug(request.name());
@@ -135,7 +144,7 @@ public class ProductApplicationService implements ProductService {
 
         // Regenerate SKU if product attributes change
         generateAndSetProductSku(product, request, productId);
-        
+
         // Update barcode if provided
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             if (!request.barcode().trim().equals(product.getBarcode())) {
@@ -152,11 +161,13 @@ public class ProductApplicationService implements ProductService {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
 
         if (request.images() != null) {
-             productImageService.saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(savedProduct.getId(), request.images()));
+            productImageService
+                    .saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(
+                            savedProduct.getId(), request.images()));
         }
 
         if (request.variants() != null) {
-             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
+            productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
         }
     }
 
@@ -193,7 +204,7 @@ public class ProductApplicationService implements ProductService {
                 .categories(productCategoryService.toInfos(product.getCategories(), false, false))
                 .tags(productTagService.toInfos(product.getTags(), false, false))
                 .ageRanges(productAgeRangeService.toInfos(product.getAgeRanges(), false, false))
-                .attribute(productAttributeService.toInfos(product.getAttributes(), false, false))
+                .attributes(productAttributeService.toInfos(product.getAttributes(), false, false))
                 .images(productImageService.toInfos(product.getImages(), false, false))
                 .variants(productVariantService.getByProductId(product.getId(), false, false))
                 .brand(productBrandService.toInfo(product.getBrand(), false, false))
@@ -210,13 +221,15 @@ public class ProductApplicationService implements ProductService {
         Specification<Product> keywordSpec = ProductSpecification.buildKeywordSearchSpecification(request.keyword());
 
         // Expand category IDs to include all descendants (hierarchical filtering)
-        // When admin selects a parent category, products in child categories are also included
+        // When admin selects a parent category, products in child categories are also
+        // included
         List<Long> expandedCategoryIds = request.categoryIds() != null && !request.categoryIds().isEmpty()
                 ? productCategoryService.findAllDescendantIds(request.categoryIds())
                 : request.categoryIds();
 
         // Check if age range filter should be skipped
-        // If "ALL" age range is selected, skip the filter (treat as "all ages" = no filter)
+        // If "ALL" age range is selected, skip the filter (treat as "all ages" = no
+        // filter)
         List<Long> ageRangeIdsToFilter = request.ageRangeIds();
         if (ageRangeIdsToFilter != null && !ageRangeIdsToFilter.isEmpty()) {
             // Get "ALL" age range ID once (optimize)
@@ -241,7 +254,8 @@ public class ProductApplicationService implements ProductService {
                 request.stockStatus(), request.stockThreshold(), request.includeDeletedVariants()));
         filterSpecs.add(ProductSpecification.buildDateRangeFilterSpecification(
                 request.createdAtFrom(), request.createdAtTo()));
-        filterSpecs.add(ProductSpecification.buildMissingFeaturedImageFilterSpecification(request.missingFeaturedImage()));
+        filterSpecs
+                .add(ProductSpecification.buildMissingFeaturedImageFilterSpecification(request.missingFeaturedImage()));
         filterSpecs.add(ProductSpecification.buildMissingDescriptionFilterSpecification(request.missingDescription()));
 
         // Combine all specifications
@@ -267,7 +281,6 @@ public class ProductApplicationService implements ProductService {
         log.info("Found {} products (page {} of {})",
                 productPage.getTotalElements(), request.page(), productPage.getTotalPages());
 
-
         return PageResponse.fromPage(productResponsePage);
     }
 
@@ -282,6 +295,92 @@ public class ProductApplicationService implements ProductService {
         log.info(ProductLogMessages.LOG_PRODUCT_DELETE_SUCCESS, productId);
     }
 
+    @Override
+    public PageResponse<ProductResponse> getProductsByCategorySlug(String slug, int page, int size, String sortKey,
+            String sortDirection) {
+        log.info("Getting products by category slug: {}, page: {}, size: {}, sortKey: {}, sortDirection: {}", slug,
+                page, size, sortKey, sortDirection);
+
+        if (slug == null || slug.isBlank()) {
+            return PageResponse.fromPage(Page.empty());
+        }
+
+        Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
+                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildCategorySlugsFilterSpecification(List.of(slug))));
+
+        Pageable pageable = PageRequest.of(page, size, buildSort(sortKey, sortDirection));
+        Page<Product> productPage = productRepositoryPort.findAll(spec, pageable);
+
+        return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsByBrandSlug(String slug, int page, int size, String sortKey,
+            String sortDirection) {
+        log.info("Getting products by brand slug: {}, page: {}, size: {}, sortKey: {}, sortDirection: {}", slug, page,
+                size, sortKey, sortDirection);
+
+        if (slug == null || slug.isBlank()) {
+            return PageResponse.fromPage(Page.empty());
+        }
+
+        Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
+                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildBrandSlugsFilterSpecification(List.of(slug))));
+
+        Pageable pageable = PageRequest.of(page, size, buildSort(sortKey, sortDirection));
+        Page<Product> productPage = productRepositoryPort.findAll(spec, pageable);
+
+        return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getHomeProducts(ProductHomeSearchRequest request) {
+        log.info("Searching home products with filters: {}", request);
+
+        Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
+                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildKeywordSearchSpecification(request.keyword()),
+                ProductSpecification.buildCategorySlugsFilterSpecification(request.categorySlugs()),
+                ProductSpecification.buildBrandSlugsFilterSpecification(request.brandSlugs()),
+                ProductSpecification.buildTagSlugsFilterSpecification(request.tagSlugs()),
+                ProductSpecification.buildPriceRangeSpecification(request.minPrice(), request.maxPrice())));
+
+        Pageable pageable = PageRequest.of(request.page(), request.size(),
+                buildSort(request.sortKey(), request.sortDirection()));
+        Page<Product> productPage = productRepositoryPort.findAll(spec, pageable);
+
+        return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    private Sort buildSort(String sortKey, String sortDirection) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        if (sortKey == null || sortKey.isBlank() || sortKey.equalsIgnoreCase("default")) {
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        // Map sortKey to actual field name for search-friendly keys
+        String field;
+        if ("price".equalsIgnoreCase(sortKey)) {
+            field = "minPrice";
+        } else if ("latest".equalsIgnoreCase(sortKey) || "date".equalsIgnoreCase(sortKey)) {
+            field = "createdAt";
+        } else {
+            field = sortKey;
+        }
+
+        // Safety check to prevent PropertyReferenceException for invalid fields
+        List<String> allowedFields = List.of("createdAt", "minPrice", "name", "soldCount", "viewCount", "slug");
+        if (!allowedFields.contains(field)) {
+            log.warn("Invalid sort key provided: {}, defaulting to createdAt", sortKey);
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        return Sort.by(direction, field);
+    }
+
     private void validateSlugUniqueness(String slug, Long excludeProductId) {
         if (excludeProductId != null) {
             Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
@@ -289,17 +388,16 @@ public class ProductApplicationService implements ProductService {
                 return; // Same product, same slug - OK
             }
         }
-        
+
         ValidationUtils.ensureUnique(
-            () -> productRepositoryPort.existsBySlug(slug),
-            String.format(ProductMessages.MESSAGE_PRODUCT_SLUG_ALREADY_EXISTS, slug)
-        );
-        
+                () -> productRepositoryPort.existsBySlug(slug),
+                String.format(ProductMessages.MESSAGE_PRODUCT_SLUG_ALREADY_EXISTS, slug));
+
         if (productRepositoryPort.existsBySlug(slug)) {
             log.warn(ProductLogMessages.LOG_PRODUCT_SLUG_ALREADY_EXISTS, slug);
         }
     }
-    
+
     private void validateSkuUniqueness(String sku, Long excludeProductId) {
         if (excludeProductId != null) {
             Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
@@ -307,43 +405,41 @@ public class ProductApplicationService implements ProductService {
                 return; // Same product, same SKU - OK
             }
         }
-        
+
         ValidationUtils.ensureUnique(
-            () -> productRepositoryPort.existsBySku(sku),
-            String.format("SKU '%s' đã tồn tại", sku)
-        );
+                () -> productRepositoryPort.existsBySku(sku),
+                String.format("SKU '%s' đã tồn tại", sku));
     }
 
     private void validateBarcodeUniqueness(String barcode, Long excludeProductId) {
         if (barcode == null || barcode.trim().isEmpty()) {
             return; // Barcode is optional
         }
-        
+
         if (excludeProductId != null) {
             Product existing = productRepositoryPort.findByIdAndIsDeletedFalse(excludeProductId).orElse(null);
             if (existing != null && barcode.equals(existing.getBarcode())) {
                 return; // Same product, same barcode - OK
             }
         }
-        
+
         ValidationUtils.ensureUnique(
-            () -> productRepositoryPort.existsByBarcode(barcode),
-            String.format(ProductMessages.MESSAGE_PRODUCT_BARCODE_ALREADY_EXISTS, barcode)
-        );
-        
+                () -> productRepositoryPort.existsByBarcode(barcode),
+                String.format(ProductMessages.MESSAGE_PRODUCT_BARCODE_ALREADY_EXISTS, barcode));
+
         if (productRepositoryPort.existsByBarcode(barcode)) {
             log.warn(ProductLogMessages.LOG_PRODUCT_BARCODE_ALREADY_EXISTS, barcode);
         }
     }
-    
+
     /**
      * Generate and set product SKU based on brand, category, and name
      */
     private void generateAndSetProductSku(Product product, ProductRequest request, Long productId) {
-        String brandName = request.brandId() != null 
+        String brandName = request.brandId() != null
                 ? productBrandService.getByIdAndStatusAndDeleted(request.brandId(), true, false).getName()
                 : "NB";
-        
+
         String categoryName = "GEN";
         if (request.categoryIds() != null && !request.categoryIds().isEmpty()) {
             var categories = productCategoryService.getAllByIdsAndActiveAndDeleted(
@@ -352,10 +448,10 @@ public class ProductApplicationService implements ProductService {
                 categoryName = categories.getFirst().getName();
             }
         }
-        
+
         String generatedSku = fpt.teddypet.application.util.SkuUtil.generateProductSku(
                 brandName, categoryName, request.name());
-        
+
         if (!generatedSku.equals(product.getSku())) {
             validateSkuUniqueness(generatedSku, productId);
             product.setSku(generatedSku);
@@ -364,10 +460,10 @@ public class ProductApplicationService implements ProductService {
 
     private void setProductRelationships(Product product, ProductRequest request) {
 
-       product.setBrand(productBrandService.getByIdAndStatusAndDeleted(
-               request.brandId(),
-               true,
-               false));
+        product.setBrand(productBrandService.getByIdAndStatusAndDeleted(
+                request.brandId(),
+                true,
+                false));
 
         product.setCategories(productCategoryService.getAllByIdsAndActiveAndDeleted(
                 request.categoryIds(),
@@ -379,19 +475,15 @@ public class ProductApplicationService implements ProductService {
                 true,
                 false));
 
-
         product.setAgeRanges(productAgeRangeService.getAllByIdsAndActiveAndDeleted(
                 request.ageRangeIds(),
                 true,
-                false
-        ));
+                false));
 
         product.setAttributes(productAttributeService.getAllByIdsAndActiveAndDeleted(
                 request.attributeIds(),
                 true,
-                false
-        ));
+                false));
     }
 
 }
-

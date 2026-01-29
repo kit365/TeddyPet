@@ -1,15 +1,18 @@
 package fpt.teddypet.application.service.products;
+
 import fpt.teddypet.application.constants.products.productcategory.ProductCategoryLogMessages;
 import fpt.teddypet.application.constants.products.productcategory.ProductCategoryMessages;
 import fpt.teddypet.application.dto.request.products.category.ProductCategoryUpsertRequest;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
+import fpt.teddypet.application.dto.response.product.category.ProductCategoryHomeResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
 import fpt.teddypet.application.mapper.products.ProductCategoryMapper;
 import fpt.teddypet.application.port.input.products.ProductCategoryService;
 import fpt.teddypet.application.port.output.products.ProductCategoryRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductCategory;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,10 +36,10 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     @Transactional
     public void upsert(ProductCategoryUpsertRequest request) {
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_UPSERT_START, request.name());
-        
+
         ProductCategory category;
         boolean isNew = request.categoryId() == null;
-        
+
         if (isNew) {
             category = ProductCategory.builder().build();
             category.setActive(true);
@@ -44,9 +47,18 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         } else {
             category = getById(request.categoryId());
         }
-        
+
         productCategoryMapper.updateCategoryFromRequest(request, category);
-        
+
+        // Generate and validate Slug
+        String slug = SlugUtil.toSlug(request.name());
+        ValidationUtils.ensureUnique(
+                () -> isNew
+                        ? productCategoryRepositoryPort.existsBySlug(slug)
+                        : productCategoryRepositoryPort.existsBySlugAndIdNot(slug, category.getId()),
+                "Slug '" + slug + "' đã tồn tại");
+        category.setSlug(slug);
+
         // Set parent if provided
         if (request.parentId() != null) {
             ProductCategory parent = getCategoryById(request.parentId());
@@ -55,7 +67,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         } else {
             category.setParent(null);
         }
-        
+
         setAltImageIfImageUrlProvided(category, request.name(), request.imageUrl());
 
         ProductCategory savedCategory = productCategoryRepositoryPort.save(category);
@@ -91,7 +103,8 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
-    public List<ProductCategory> getAllByIdsAndActiveAndDeleted(List<Long> categoryIds, boolean active, boolean deleted) {
+    public List<ProductCategory> getAllByIdsAndActiveAndDeleted(List<Long> categoryIds, boolean active,
+            boolean deleted) {
         return productCategoryRepositoryPort.findAllByIdInAndIsActiveAndIsDeleted(categoryIds, active, deleted);
     }
 
@@ -107,7 +120,8 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     @Override
     public List<ProductCategoryResponse> getChildCategories(Long parentId) {
         List<ProductCategory> childCategories = productCategoryRepositoryPort.findChildCategories(parentId);
-        log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_CHILD_CATEGORIES, parentId, childCategories.size());
+        log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_CHILD_CATEGORIES, parentId,
+                childCategories.size());
         return childCategories.stream()
                 .map(productCategoryMapper::toResponse)
                 .toList();
@@ -122,7 +136,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     public List<ProductCategoryNestedResponse> getNestedCategories() {
         List<ProductCategory> rootCategories = productCategoryRepositoryPort.findRootCategories();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_NESTED_CATEGORIES, rootCategories.size());
-        
+
         return rootCategories.stream()
                 .map(this::buildNestedResponse)
                 .toList();
@@ -148,6 +162,14 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         return count;
     }
 
+    @Override
+    public List<ProductCategoryHomeResponse> getLeafCategories() {
+        List<ProductCategory> leafCategories = productCategoryRepositoryPort.findLeafCategories();
+        log.info("Getting leaf categories (categories without children), found: {}", leafCategories.size());
+        return leafCategories.stream()
+                .map(productCategoryMapper::toHomeResponse)
+                .toList();
+    }
 
     private ProductCategory getCategoryById(Long categoryId) {
         return productCategoryRepositoryPort.findByIdAndIsDeletedFalse(categoryId)
@@ -157,14 +179,13 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
     private void validateNoCircularReference(Long categoryId, ProductCategory parent) {
         ValidationUtils.ensure(
-            categoryId == null || !categoryId.equals(parent.getId()),
-            ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE
-        );
-        
+                categoryId == null || !categoryId.equals(parent.getId()),
+                ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CIRCULAR_REFERENCE);
+
         if (categoryId != null && categoryId.equals(parent.getId())) {
             log.warn(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_CIRCULAR_REFERENCE, categoryId);
         }
-        
+
         // Check if parent is a descendant of this category
         ProductCategory current = parent;
         while (current.getParent() != null) {
@@ -187,7 +208,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         List<ProductCategoryNestedResponse> childrenResponses = children.stream()
                 .map(this::buildNestedResponse)
                 .toList();
-        
+
         ProductCategoryNestedResponse response = productCategoryMapper.toNestedResponse(category);
         return new ProductCategoryNestedResponse(
                 response.categoryId(),
@@ -202,8 +223,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
                 response.updatedAt(),
                 response.createdBy(),
                 response.updatedBy(),
-                childrenResponses
-        );
+                childrenResponses);
     }
 
     @Override
@@ -223,9 +243,10 @@ public class ProductCategoryApplicationService implements ProductCategoryService
         }
 
         // Kiểm tra bản thân category cha
-        if (!includeDeleted && category.isDeleted()) return null;
-        if (onlyActive && !category.isActive()) return null;
-
+        if (!includeDeleted && category.isDeleted())
+            return null;
+        if (onlyActive && !category.isActive())
+            return null;
 
         // Nếu Cha ẩn -> Con ẩn theo.
         if (onlyActive && category.getParent() != null) {
@@ -239,17 +260,18 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
     @Override
     public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories) {
-        return toInfos(categories, false,  true);
+        return toInfos(categories, false, true);
 
     }
 
     @Override
     public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean isDeleted) {
-        return toInfos(categories, isDeleted,  false);
+        return toInfos(categories, isDeleted, false);
     }
 
     @Override
-    public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean includeDeleted, boolean onlyActive) {
+    public List<ProductCategoryInfo> toInfos(List<ProductCategory> categories, boolean includeDeleted,
+            boolean onlyActive) {
         return ListUtil.safe(categories).stream()
                 .filter(cat -> includeDeleted || !cat.isDeleted())
                 .filter(cat -> !onlyActive || cat.isActive())
@@ -259,8 +281,4 @@ public class ProductCategoryApplicationService implements ProductCategoryService
                 .toList();
     }
 
-
-
-
 }
-

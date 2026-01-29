@@ -9,6 +9,7 @@ import fpt.teddypet.application.mapper.products.ProductTagMapper;
 import fpt.teddypet.application.port.input.products.ProductTagService;
 import fpt.teddypet.application.port.output.products.ProductTagRepositoryPort;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductTag;
 import jakarta.persistence.EntityNotFoundException;
@@ -37,6 +38,14 @@ public class ProductTagApplicationService implements ProductTagService {
 
         ProductTag tag = ProductTag.builder().build();
         productTagMapper.updateTagFromRequest(request, tag);
+
+        // Generate and validate Slug
+        String slug = SlugUtil.toSlug(request.name());
+        ValidationUtils.ensureUnique(
+                () -> productTagRepositoryPort.existsBySlug(slug),
+                "Slug '" + slug + "' đã tồn tại");
+        tag.setSlug(slug);
+
         tag.setActive(true);
         tag.setDeleted(false);
 
@@ -56,6 +65,14 @@ public class ProductTagApplicationService implements ProductTagService {
         }
 
         productTagMapper.updateTagFromRequest(request, tag);
+
+        // Generate and validate Slug
+        String slug = SlugUtil.toSlug(request.name());
+        ValidationUtils.ensureUnique(
+                () -> productTagRepositoryPort.existsBySlugAndIdNot(slug, tagId),
+                "Slug '" + slug + "' đã tồn tại");
+        tag.setSlug(slug);
+
         ProductTag savedTag = productTagRepositoryPort.save(tag);
         log.info(ProductTagLogMessages.LOG_PRODUCT_TAG_UPSERT_SUCCESS, savedTag.getId());
     }
@@ -103,7 +120,6 @@ public class ProductTagApplicationService implements ProductTagService {
         return count;
     }
 
-
     private void validateNameUniqueness(String name, Long tagId) {
         boolean nameExists = tagId != null
                 ? productTagRepositoryPort.existsByNameAndIdNot(name, tagId)
@@ -112,15 +128,14 @@ public class ProductTagApplicationService implements ProductTagService {
         if (nameExists) {
             log.warn(ProductTagLogMessages.LOG_PRODUCT_TAG_NAME_VALIDATION_FAILED, name);
         }
-        
+
         ValidationUtils.ensureUnique(
-            () -> tagId != null
-                ? productTagRepositoryPort.existsByNameAndIdNot(name, tagId)
-                : productTagRepositoryPort.existsByName(name),
-            ProductTagMessages.MESSAGE_PRODUCT_TAG_NAME_ALREADY_EXISTS
-        );
+                () -> tagId != null
+                        ? productTagRepositoryPort.existsByNameAndIdNot(name, tagId)
+                        : productTagRepositoryPort.existsByName(name),
+                ProductTagMessages.MESSAGE_PRODUCT_TAG_NAME_ALREADY_EXISTS);
     }
-    
+
     @Override
     public ProductTagInfo toInfo(ProductTag tag) {
         return toInfo(tag, false, true);
@@ -136,8 +151,10 @@ public class ProductTagApplicationService implements ProductTagService {
         if (tag == null) {
             return null;
         }
-        if (!includeDeleted && tag.isDeleted()) return null;
-        if (onlyActive && !tag.isActive()) return null;
+        if (!includeDeleted && tag.isDeleted())
+            return null;
+        if (onlyActive && !tag.isActive())
+            return null;
 
         return productTagMapper.toInfo(tag);
     }
@@ -159,7 +176,7 @@ public class ProductTagApplicationService implements ProductTagService {
 
     @Override
     public List<ProductTagInfo> toInfos(List<ProductTag> tags, boolean includeDeleted, boolean onlyActive) {
-        //sort theo chữ cái, không phân biệt hoa thường
+        // sort theo chữ cái, không phân biệt hoa thường
         return ListUtil.safe(tags).stream()
                 .filter(tag -> includeDeleted || !tag.isDeleted())
                 .filter(tag -> !onlyActive || tag.isActive())
@@ -168,4 +185,3 @@ public class ProductTagApplicationService implements ProductTagService {
                 .toList();
     }
 }
-

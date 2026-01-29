@@ -47,6 +47,7 @@ public class SecurityConfig {
                         // Other auth endpoints are public
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/home/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api-docs/**",

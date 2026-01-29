@@ -12,6 +12,7 @@ import java.util.List;
 public interface ProductTagMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "slug", ignore = true)
     @Mapping(target = "products", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "active", ignore = true)
@@ -22,6 +23,8 @@ public interface ProductTagMapper {
     void updateTagFromRequest(ProductTagRequest request, @MappingTarget ProductTag tag);
 
     @Mapping(target = "tagId", source = "id")
+    @Mapping(source = "deleted", target = "isDeleted")
+    @Mapping(source = "active", target = "isActive")
     ProductTagResponse toResponse(ProductTag tag);
 
     @Mapping(source = "deleted", target = "isDeleted")
@@ -30,4 +33,3 @@ public interface ProductTagMapper {
 
     List<ProductTagInfo> toInfoList(List<ProductTag> tags);
 }
-
