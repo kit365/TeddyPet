@@ -62,4 +62,7 @@ public final class ApiConstants {
     public static final String PROMOTION_USAGES_BASE = BASE_API + "/promotion-usages";
 
     public static final String API_PAYMENT = BASE_API + "/payments";
+
+    // User Address API base path
+    public static final String API_USER_ADDRESSES = BASE_API + "/user-addresses";
 }
