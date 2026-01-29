@@ -5,7 +5,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +17,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
+
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
 
     @Value("${jwt.key-secret}")
     private String secretKey;
@@ -48,10 +57,33 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
     @Override
     public Boolean validateToken(String token) {
         try {
-            return !isTokenExpired(token);
+            return !isTokenExpired(token) && !isTokenBlacklisted(token);
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    public void blacklistToken(String token) {
+        try {
+            // Get token expiration time
+            Date expiration = extractExpiration(token);
+            long ttlMs = expiration.getTime() - System.currentTimeMillis();
+
+            if (ttlMs > 0) {
+                String blacklistKey = BLACKLIST_PREFIX + token;
+                redisTemplate.opsForValue().set(blacklistKey, "blacklisted", ttlMs, TimeUnit.MILLISECONDS);
+                log.info("[JwtTokenProvider] Token blacklisted successfully");
+            }
+        } catch (Exception e) {
+            log.error("[JwtTokenProvider] Failed to blacklist token: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean isTokenBlacklisted(String token) {
+        String blacklistKey = BLACKLIST_PREFIX + token;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey));
     }
 
     // Additional methods for Presentation layer (security)
@@ -87,6 +119,9 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
+        if (isTokenBlacklisted(token)) {
+            return false;
+        }
         final String email = extractEmail(token);
         if (userDetails instanceof fpt.teddypet.domain.entity.User user) {
             return (email.equals(user.getEmail()) && !isTokenExpired(token));
@@ -108,4 +143,3 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
                 .compact();
     }
 }
-
