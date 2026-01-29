@@ -5,7 +5,9 @@ import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.request.products.product.ProductHomeSearchRequest;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandHomeResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryHomeResponse;
+import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductResponse;
+import fpt.teddypet.application.dto.response.product.product.ProductSuggestionResponse;
 import fpt.teddypet.application.port.input.products.ProductBrandService;
 import fpt.teddypet.application.port.input.products.ProductCategoryService;
 import fpt.teddypet.application.port.input.products.ProductService;
@@ -99,6 +101,20 @@ public class HomeController {
                 .sortDirection(sortDirection)
                 .build();
         PageResponse<ProductResponse> response = productService.getHomeProducts(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/products/{slug}")
+    @Operation(summary = "Lấy chi tiết sản phẩm theo slug", description = "Lấy toàn bộ thông tin chi tiết của một sản phẩm qua slug (Public)")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductDetailBySlug(@PathVariable String slug) {
+        ProductDetailResponse response = productService.getDetailBySlug(slug);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/products/search/suggestions")
+    @Operation(summary = "Lấy gợi ý tìm kiếm", description = "Lấy danh sách các sản phẩm gợi ý dựa trên từ khóa (Public)")
+    public ResponseEntity<ApiResponse<List<ProductSuggestionResponse>>> getSuggestions(@RequestParam String keyword) {
+        List<ProductSuggestionResponse> response = productService.getSuggestions(keyword);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
