@@ -15,6 +15,9 @@ const config: Config = {
           secondary: "#102937",
           text: "#505050",
         },
+        admin: {
+          hoverIcon: "rgba(99, 115, 129, 0.08)"
+        }
       },
       fontFamily: {
         secondary: ["Merriweather", "serif"],

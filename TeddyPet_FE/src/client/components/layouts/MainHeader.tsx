@@ -1,7 +1,9 @@
 import { Handbag, Heart, Search, User } from "iconoir-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
 import { useCartStore } from "../../../stores/useCartStore";
+import { useAuthStore } from "../../../stores/useAuthStore";
+import { logout as logoutApi } from "../../../api/auth.api";
 
 export const MainHeader = () => {
     const totalItemsCount = useCartStore((state) => state.totalItems());
@@ -11,10 +13,25 @@ export const MainHeader = () => {
     const cartCount = isHydrated ? totalItemsCount : 0;
     const removeFromCart = useCartStore((state) => state.removeFromCart);
 
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const navigate = useNavigate();
+
     const handleRemove = (id: string) => {
         setTimeout(() => {
             removeFromCart(id);
         }, 300);
+    };
+
+    const handleLogout = async () => {
+        try {
+            await logoutApi();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            logout();
+            navigate("/auth/login");
+        }
     };
 
     return (
@@ -85,9 +102,36 @@ export const MainHeader = () => {
 
                             </div>
                         </div>
-                        <Link to="/dang-ky" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                            <User stroke="2" className="w-[2.5rem] h-[2.5rem]" />
-                        </Link>
+                        {user ? (
+                            <div className="group relative">
+                                <Link to="/dashboard/profile" className="w-[3.5rem] h-[3.5rem] rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:border-client-primary transition-default">
+                                    <img
+                                        src={user.avatarUrl || "https://i.imgur.com/L8j8x7x.png"}
+                                        alt={user.username}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </Link>
+                                <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[200px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-50 py-[10px] animate-fadeIn">
+                                    <div className="px-[20px] py-[10px] border-b border-[#f0f0f0]">
+                                        <p className="font-bold text-client-secondary truncate">{user.lastName} {user.firstName}</p>
+                                        <p className="text-[1.2rem] text-gray-500 truncate">{user.email}</p>
+                                    </div>
+                                    <Link to="/dashboard/profile" className="block px-[20px] py-[10px] text-[1.4rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
+                                        Hồ sơ cá nhân
+                                    </Link>
+                                    <div
+                                        onClick={handleLogout}
+                                        className="block px-[20px] py-[10px] text-[1.4rem] text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
+                                    >
+                                        Đăng xuất
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link to="/auth/login" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                                <User stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                            </Link>
+                        )}
                         <Button
                             content="Liên hệ chúng tôi"
                             background="bg-client-secondary"

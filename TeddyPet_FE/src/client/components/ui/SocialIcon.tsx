@@ -1,18 +1,15 @@
 import { Link } from "react-router-dom";
+import { Facebook, Instagram } from "iconoir-react";
 
-interface SocialItem {
-    icon: React.ElementType;
-    to: string;
-}
+const socialItems = [
+    { icon: Instagram, to: "https://www.instagram.com/teddypetvietnam/" },
+    { icon: Facebook, to: "https://www.facebook.com/profile.php?id=61583347940476" }
+];
 
-interface SocialIconProps {
-    items: SocialItem[];
-}
-
-export const SocialIcon = ({ items }: SocialIconProps) => {
+export const SocialIcon = () => {
     return (
         <ul className="flex gap-[10px]">
-            {items.map(({ icon: Icon, to }, index) => (
+            {socialItems.map(({ icon: Icon, to }, index) => (
                 <li
                     key={index}
                     className="w-[36px] h-[36px] bg-client-secondary text-white p-[10px] 

@@ -71,7 +71,7 @@ export const CartPage = () => {
                                             <td className="border-r border-[#d7d7d7] py-[30px] px-[20px]">
                                                 <div className="text-center">
                                                     <Link
-                                                        to={`/san-pham/the-ten`}
+                                                        to={`/product/detail/the-ten`}
                                                         className="mb-[20px] block text-[2rem] font-secondary"
                                                     >
                                                         {item.title}

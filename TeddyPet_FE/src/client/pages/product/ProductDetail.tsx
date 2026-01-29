@@ -50,8 +50,8 @@ const data: Product = {
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
-    { label: "Phụ kiện cho chó", to: "/phu-kien-cho-cho" },
-    { label: "Thẻ tên", to: "/the-ten" },
+    { label: "Cửa hàng", to: "/shop" },
+    { label: "Thẻ tên", to: "/product/detail/the-ten" },
 ];
 
 export const ProductDetailPage = () => {
@@ -261,7 +261,7 @@ export const ProductDetailPage = () => {
                     </div>
                     <div className="px-[10px] py-[5px] text-client-text flex-1">
                         <div>Sản phẩm</div>
-                        <Link to="/san-pham/the-ten" className="text-[2rem] font-secondary mb-[6px] text-client-secondary my-[5px] inline-block">
+                        <Link to="/product/detail/the-ten" className="text-[2rem] font-secondary mb-[6px] text-client-secondary my-[5px] inline-block">
                             {data.title}
                         </Link>
                         <p>đã được thêm vào giỏ hàng thành công!</p>

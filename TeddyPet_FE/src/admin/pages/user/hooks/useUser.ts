@@ -1,0 +1,55 @@
+// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// import { getBrands, createBrand, getBrandById, updateBrand, deleteBrand } from '../../../api/brand.api';
+// import { ApiResponse } from '../../../config/type';
+
+// export const useUsers = () => {
+//     return useQuery({
+//         queryKey: ['users'],
+//         queryFn: getUsers,
+//         select: (res: ApiResponse<any[]>) => res.data || [],
+//     });
+// };
+
+// export const useCreateUser = () => {
+//     const queryClient = useQueryClient();
+
+//     return useMutation({
+//         mutationFn: createBrand,
+//         onSuccess: () => {
+//             queryClient.invalidateQueries({ queryKey: ['brands'] });
+//         },
+//     });
+// };
+
+// export const useUpdateBrand = () => {
+//     const queryClient = useQueryClient();
+
+//     return useMutation({
+//         mutationFn: ({ id, data }: { id: string | number; data: any }) => updateBrand(id, data),
+//         onSuccess: (response) => {
+//             if (response.success) {
+//                 queryClient.invalidateQueries({ queryKey: ['brands'] });
+//                 queryClient.invalidateQueries({ queryKey: ['brand'] });
+//             }
+//         },
+//     });
+// };
+
+// export const useBrandDetail = (id?: string | number) => {
+//     return useQuery({
+//         queryKey: ['brand', id],
+//         queryFn: () => getBrandById(id!),
+//         enabled: !!id,
+//     });
+// };
+
+// export const useDeleteBrand = () => {
+//     const queryClient = useQueryClient();
+
+//     return useMutation({
+//         mutationFn: deleteBrand,
+//         onSuccess: () => {
+//             queryClient.invalidateQueries({ queryKey: ['brands'] });
+//         },
+//     });
+// };

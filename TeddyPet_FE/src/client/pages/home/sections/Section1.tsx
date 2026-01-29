@@ -23,6 +23,7 @@ export const Section1 = () => {
                                 hoverTextColor="group-hover:text-white"
                                 iconColor="before:bg-client-secondary after:bg-client-secondary"
                                 hoverIconColor="hover:before:bg-white hover:after:bg-white"
+                                url="/blogs"
                             />
                             <div className="flex items-center">
                                 <Link to="/">

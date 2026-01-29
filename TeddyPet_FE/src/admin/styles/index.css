@@ -1,117 +1,88 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import './theme.css';
-
-@custom-variant dark (&:is(.dark *));
-
-/* Admin scoped styles */
-.admin-app {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: 'Lora', serif;
-  font-size: 1rem;
-  line-height: 1.5;
-  font-weight: 400;
-  min-height: 100vh;
-  width: 100%;
+.sidebar-sub-item::before {
+    left: 0px;
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    transform: translateY(-6px);
+    background-color: #EDEFF2;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' viewBox='0 0 14 14'%3E%3Cpath d='M1 1v4a8 8 0 0 0 8 8h4' stroke='%23efefef' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 50% 50% / 100% no-repeat;
 }
 
-.admin-app * {
-  border-color: hsl(var(--border));
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border)) transparent;
+/* Container scroll */
+.sidebar-scroll {
+    overflow-y: auto;
 }
 
-/* Override Radix scroll locking for sticky headers */
-body[data-scroll-locked] {
-  overflow: unset !important;
+/* Chiều rộng thanh scroll */
+.sidebar-scroll::-webkit-scrollbar {
+    width: 8px;
 }
 
-/* Cursor pointer for buttons */
-button:not(:disabled),
-[role='button']:not(:disabled) {
-  cursor: pointer;
+/* Track (nền) */
+.sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    padding: 20px 0;
+    /* 👈 giảm chiều cao thanh kéo */
 }
 
-/* Prevent focus zoom on mobile devices */
-@media screen and (max-width: 767px) {
-
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
+/* Thanh kéo */
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: #919EAB;
+    border-radius: 7px;
 }
 
-/* Utility classes */
-.container {
-  margin-inline: auto;
-  padding-inline: 2rem;
+/* Header */
+
+.header__admin::before {
+    backdrop-filter: blur(6px);
+    background-color: rgba(255 255 255 / 80%);
+    opacity: 0;
+    content: "";
+    visibility: hidden;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), visibility 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.no-scrollbar {
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+.header__admin.scrolled::before {
+    opacity: 1;
+    visibility: visible;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+.header__avatar::before {
+    width: 100%;
+    content: "";
+    height: 100%;
+    position: absolute;
+    padding: 1px;
+    inset: 0px;
+    margin: auto;
+    border-radius: inherit;
+    mask: linear-gradient(rgb(255, 255, 255) 0px, rgb(255, 255, 255) 0px) content-box xor, linear-gradient(rgb(255, 255, 255) 0px, rgb(255, 255, 255) 0px);
 }
 
-.faded-bottom {
-  position: relative;
+/* End Header */
+
+.sidebar-item-before::before {
+    left: 0px;
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #EDEFF2;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' viewBox='0 0 14 14'%3E%3Cpath d='M1 1v4a8 8 0 0 0 8 8h4' stroke='%23efefef' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 50% 50% / 100% no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' viewBox='0 0 14 14'%3E%3Cpath d='M1 1v4a8 8 0 0 0 8 8h4' stroke='%23efefef' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 50% 50% / 100% no-repeat;
+    transform: translateX(-12px, -4.8px);
 }
 
-.faded-bottom::after {
-  pointer-events: none;
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  display: none;
-  height: 8rem;
-  width: 100%;
-  border-bottom-left-radius: 1rem;
-  border-bottom-right-radius: 1rem;
-  background: linear-gradient(180deg, transparent 10%, hsl(var(--background)) 70%);
-}
-
-@media (min-width: 768px) {
-  .faded-bottom::after {
-    display: block;
-  }
-}
-
-/* styles.css */
-.CollapsibleContent {
-  overflow: hidden;
-}
-
-.CollapsibleContent[data-state='open'] {
-  animation: slideDown 300ms ease-out;
-}
-
-.CollapsibleContent[data-state='closed'] {
-  animation: slideUp 300ms ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    height: 0;
-  }
-
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-
-  to {
-    height: 0;
-  }
+.left-header-auth {
+    background-image: linear-gradient(0deg, #ffffffeb, #ffffffeb), url(https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/background/background-3-blur.webp);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
 }
