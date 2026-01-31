@@ -1,4 +1,5 @@
 package fpt.teddypet.domain.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -8,8 +9,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -78,6 +81,12 @@ public class User extends BaseEntity implements UserDetails {
     @EqualsAndHashCode.Exclude
     private Role role;
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<UserAddress> addresses = new ArrayList<>();
+
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -109,4 +118,3 @@ public class User extends BaseEntity implements UserDetails {
         return status == UserStatusEnum.ACTIVE;
     }
 }
-

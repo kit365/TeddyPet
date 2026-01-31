@@ -2,7 +2,6 @@ package fpt.teddypet.application.dto.response.orders.order;
 
 import fpt.teddypet.application.dto.response.UserOrderInfoResponse;
 
-
 import fpt.teddypet.application.dto.response.payment.PaymentOrderResponse;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
@@ -14,7 +13,9 @@ import java.util.UUID;
 public record OrderResponse(
         UUID id,
         String orderCode,
-        UserOrderInfoResponse user,
+        UserOrderInfoResponse user, // null nếu guest checkout
+        Long userAddressId, // ID của địa chỉ đã lưu (null nếu nhập thủ công hoặc guest)
+        String guestEmail, // Email của guest (null nếu user đăng nhập)
         BigDecimal subtotal,
         BigDecimal shippingFee,
         BigDecimal discountAmount,
@@ -27,6 +28,5 @@ public record OrderResponse(
         String shippingName,
         String notes,
         List<OrderItemResponse> orderItems,
-        List<PaymentOrderResponse> payments
-) {
+        List<PaymentOrderResponse> payments) {
 }

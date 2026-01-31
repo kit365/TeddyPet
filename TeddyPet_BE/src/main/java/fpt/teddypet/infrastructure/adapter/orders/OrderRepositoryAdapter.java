@@ -1,4 +1,5 @@
 package fpt.teddypet.infrastructure.adapter.orders;
+
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.domain.entity.Order;
@@ -7,13 +8,18 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderR
 import fpt.teddypet.infrastructure.persistence.postgres.specification.OrderSpecification;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+@Repository
+@Primary
 @Component
 @RequiredArgsConstructor
 public class OrderRepositoryAdapter implements OrderRepositoryPort {
@@ -72,5 +78,10 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     @Override
     public Order getReferenceById(UUID orderId) {
         return orderRepository.getReferenceById(orderId);
+    }
+
+    @Override
+    public Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail) {
+        return orderRepository.findByOrderCodeAndGuestEmail(orderCode, guestEmail);
     }
 }

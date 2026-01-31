@@ -4,6 +4,7 @@ import fpt.teddypet.config.CorsConstants;
 import fpt.teddypet.presentation.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -42,9 +43,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // /api/auth/me and /api/auth/logout require authentication
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
-                        // Other auth endpoints are public
+                        .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
+                        .requestMatchers("/api/orders/guest/**").permitAll()
+                        // Guest OTP
+                        .requestMatchers("/api/otp/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/home/**",

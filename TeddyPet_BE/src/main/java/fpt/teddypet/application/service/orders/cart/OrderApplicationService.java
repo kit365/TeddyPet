@@ -1,5 +1,7 @@
 package fpt.teddypet.application.service.orders.cart;
+
 import fpt.teddypet.application.constants.orders.order.OrderLogMessages;
+import fpt.teddypet.application.port.input.auth.OtpService;
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.common.SortDirection;
@@ -13,12 +15,15 @@ import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.input.orders.cart.CartService;
 import fpt.teddypet.application.port.input.orders.order.OrderItemService;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
+import fpt.teddypet.application.port.input.user.UserAddressService;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
 import fpt.teddypet.domain.entity.Payment;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.domain.entity.UserAddress;
+import fpt.teddypet.domain.enums.UserStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
@@ -47,6 +52,8 @@ public class OrderApplicationService implements OrderService {
     private final UserService userService;
     private final OrderItemService orderItemService;
     private final CartService cartService;
+    private final UserAddressService userAddressService;
+    private final OtpService otpService;
 
     @Override
     @Transactional
@@ -59,7 +66,6 @@ public class OrderApplicationService implements OrderService {
 
         Order order = buildOrder(request, userId);
 
-
         log.info(OrderLogMessages.LOG_ORDER_CALCULATE_PRICING,
                 order.getSubtotal(), order.getDiscountAmount(),
                 order.getShippingFee(), order.getFinalAmount());
@@ -69,12 +75,11 @@ public class OrderApplicationService implements OrderService {
             case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
                     "Online payment methods are not yet implemented. Please use CASH payment.");
         }
-        
+
         // Clear cart after successful order creation
         cartService.clearCart();
         log.info(OrderLogMessages.LOG_ORDER_CART_CLEARED, userId);
     }
-
 
     private void createCashOrder(Order order) {
         Payment payment = Payment.builder()
@@ -83,20 +88,47 @@ public class OrderApplicationService implements OrderService {
                 .status(PaymentStatusEnum.PENDING)
                 .notes("Thanh toán tiền mặt khi nhận hàng")
                 .build();
-        
+
         order.addPayment(payment);
 
         Order savedOrder = orderRepositoryPort.save(order);
-        
+
         log.info(OrderLogMessages.LOG_ORDER_CREATE_SUCCESS, savedOrder.getId(), savedOrder.getOrderCode());
     }
-
 
     private Order buildOrder(OrderRequest request, UUID userId) {
         User user = userService.getById(userId);
 
+        if (user.getStatus() != UserStatusEnum.ACTIVE) {
+            throw new IllegalStateException(OrderMessages.MESSAGE_USER_NOT_VERIFIED);
+        }
 
-        String finalReceiverName = request.receiverName();
+        // Biến để lưu thông tin shipping
+        String finalReceiverName;
+        String finalReceiverPhone;
+        String finalShippingAddress;
+        UserAddress userAddress = null;
+
+        // Nếu có userAddressId -> lấy từ địa chỉ đã lưu
+        if (request.userAddressId() != null) {
+            userAddress = userAddressService.getEntityById(request.userAddressId(), userId);
+            finalReceiverName = userAddress.getFullName();
+            finalReceiverPhone = userAddress.getPhone();
+            finalShippingAddress = userAddress.getAddress();
+            log.info("Sử dụng địa chỉ đã lưu: id={}, address={}", userAddress.getId(), finalShippingAddress);
+        } else {
+            // Nếu không có userAddressId -> lấy từ request (nhập thủ công)
+            finalReceiverName = request.receiverName();
+            finalReceiverPhone = request.receiverPhone();
+            finalShippingAddress = request.shippingAddress();
+
+            // Validate khi nhập thủ công
+            if (finalShippingAddress == null || finalShippingAddress.isBlank()) {
+                throw new IllegalArgumentException("Địa chỉ giao hàng không được để trống");
+            }
+        }
+
+        // Fallback cho tên người nhận nếu rỗng
         if (finalReceiverName == null || finalReceiverName.isBlank()) {
             finalReceiverName = (user.getFirstName() != null ? user.getFirstName() : "") +
                     (user.getLastName() != null ? " " + user.getLastName() : "");
@@ -105,30 +137,32 @@ public class OrderApplicationService implements OrderService {
             }
         }
 
-        String finalReceiverPhone = request.receiverPhone();
+        // Fallback cho số điện thoại nếu rỗng
         if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
             finalReceiverPhone = user.getPhoneNumber();
+            if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
+                throw new IllegalArgumentException("Số điện thoại người nhận không được để trống");
+            }
         }
 
-        // 2. Build Order
+        // Build Order
         Order order = Order.builder()
                 .user(user)
+                .userAddress(userAddress) // Lưu reference đến địa chỉ đã lưu (có thể null)
                 .status(OrderStatusEnum.PENDING)
                 .orderType(OrderTypeEnum.ONLINE)
 
-                // LƯU SNAPSHOT
+                // SNAPSHOT - luôn lưu dù dùng địa chỉ đã lưu hay nhập tay
                 .shippingName(finalReceiverName)
                 .shippingPhone(finalReceiverPhone)
-                .shippingAddress(request.shippingAddress())
+                .shippingAddress(finalShippingAddress)
 
                 .notes(request.note())
                 .shippingFee(BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .build();
 
-
         order.generateAndSetOrderCode();
-
 
         createOrderItems(order, request.items());
 
@@ -136,7 +170,6 @@ public class OrderApplicationService implements OrderService {
 
         return order;
     }
-
 
     private void createOrderItems(Order order, List<OrderItemRequest> itemRequests) {
         List<OrderItem> orderItems = orderItemService.createOrderItemsFromRequests(itemRequests);
@@ -147,7 +180,7 @@ public class OrderApplicationService implements OrderService {
             order.addOrderItem(orderItem);
             subtotal = subtotal.add(orderItem.getTotalPrice());
         }
-        
+
         order.setSubtotal(subtotal);
     }
 
@@ -156,10 +189,10 @@ public class OrderApplicationService implements OrderService {
     public void updateOrderStatus(UUID orderId, OrderStatusEnum status) {
         log.info(OrderLogMessages.LOG_ORDER_UPDATE_START, orderId);
         Order order = getById(orderId);
-        
+
         OrderStatusEnum oldStatus = order.getStatus();
         order.setStatus(status);
-        
+
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
     }
@@ -271,14 +304,14 @@ public class OrderApplicationService implements OrderService {
     public void cancelOrder(UUID orderId) {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         validateOwnership(orderId, currentUserId);
-        
+
         Order order = getById(orderId);
 
-        if (order.getStatus() == OrderStatusEnum.DELIVERED || 
-            order.getStatus() == OrderStatusEnum.CANCELLED) {
+        if (order.getStatus() == OrderStatusEnum.DELIVERED ||
+                order.getStatus() == OrderStatusEnum.CANCELLED) {
             throw new IllegalStateException(OrderMessages.MESSAGE_ORDER_CANNOT_CANCEL);
         }
-        
+
         order.setStatus(OrderStatusEnum.CANCELLED);
         orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_CANCEL, orderId);
@@ -295,5 +328,124 @@ public class OrderApplicationService implements OrderService {
         return PageRequest.of(request.page(), request.size(),
                 Sort.by(direction, sortField.getFieldName()));
     }
-    
+
+    // ========== UNIFIED ORDER CREATION ==========
+
+    @Override
+    @Transactional
+    public OrderResponse createUnifiedOrder(OrderRequest request, UUID userId) {
+        boolean isGuest = (userId == null);
+
+        log.info("Creating {} order", isGuest ? "guest" : "user");
+
+        // Validate items
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_ORDER_EMPTY_ITEMS);
+        }
+
+        Order order;
+
+        if (isGuest) {
+            // Guest checkout - validate required fields
+            validateGuestOrder(request);
+            order = buildGuestOrder(request);
+
+            // Guest chỉ hỗ trợ COD
+            if (request.paymentMethod() != PaymentMethodEnum.CASH) {
+                throw new UnsupportedOperationException(OrderMessages.MESSAGE_GUEST_PAYMENT_COD_ONLY);
+            }
+        } else {
+            // User checkout
+            order = buildOrder(request, userId);
+        }
+
+        log.info(OrderLogMessages.LOG_ORDER_CALCULATE_PRICING,
+                order.getSubtotal(), order.getDiscountAmount(),
+                order.getShippingFee(), order.getFinalAmount());
+
+        // Create payment
+        switch (request.paymentMethod()) {
+            case CASH -> {
+                Payment payment = Payment.builder()
+                        .amount(order.getFinalAmount())
+                        .paymentMethod(PaymentMethodEnum.CASH)
+                        .status(PaymentStatusEnum.PENDING)
+                        .notes(isGuest ? "Đơn hàng khách vãng lai - COD" : "Thanh toán tiền mặt khi nhận hàng")
+                        .build();
+                order.addPayment(payment);
+            }
+            case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
+                    "Online payment methods are not yet implemented. Please use CASH payment.");
+        }
+
+        Order savedOrder = orderRepositoryPort.save(order);
+
+        // Clear cart only for logged-in users
+        if (!isGuest) {
+            cartService.clearCart();
+            log.info(OrderLogMessages.LOG_ORDER_CART_CLEARED, userId);
+        }
+
+        log.info("Order created successfully: id={}, code={}, isGuest={}",
+                savedOrder.getId(), savedOrder.getOrderCode(), isGuest);
+
+        return orderMapper.toResponse(savedOrder);
+    }
+
+    private void validateGuestOrder(OrderRequest request) {
+        if (request.guestEmail() == null || request.guestEmail().isBlank()) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_GUEST_EMAIL_REQUIRED);
+        }
+        if (request.receiverName() == null || request.receiverName().isBlank()) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_NAME_REQUIRED);
+        }
+        if (request.receiverPhone() == null || request.receiverPhone().isBlank()) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_PHONE_REQUIRED);
+        }
+        if (request.shippingAddress() == null || request.shippingAddress().isBlank()) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_SHIPPING_ADDRESS_REQUIRED);
+        }
+
+        // Check if email already exists as a member
+        if (userService.existsByEmail(request.guestEmail())) {
+            throw new IllegalArgumentException(OrderMessages.MESSAGE_GUEST_EMAIL_EXISTS);
+        }
+
+        // Validate OTP
+        otpService.verifyGuestOtp(request.guestEmail(), request.otpCode());
+    }
+
+    private Order buildGuestOrder(OrderRequest request) {
+        Order order = Order.builder()
+                .user(null) // Guest order không có user
+                .userAddress(null) // Guest không có địa chỉ đã lưu
+                .status(OrderStatusEnum.PENDING)
+                .orderType(OrderTypeEnum.ONLINE)
+                .shippingName(request.receiverName())
+                .shippingPhone(request.receiverPhone())
+                .shippingAddress(request.shippingAddress())
+                .guestEmail(request.guestEmail())
+                .notes(request.note())
+                .shippingFee(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .build();
+
+        order.generateAndSetOrderCode();
+        createOrderItems(order, request.items());
+        order.calculateFinalAmount();
+
+        return order;
+    }
+
+    @Override
+    public OrderResponse getGuestOrderByCodeAndEmail(String orderCode, String email) {
+        log.info("Looking up guest order: code={}, email={}", orderCode, email);
+
+        Order order = orderRepositoryPort.findByOrderCodeAndGuestEmail(orderCode, email)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
+                        OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND));
+
+        return orderMapper.toResponse(order);
+    }
+
 }

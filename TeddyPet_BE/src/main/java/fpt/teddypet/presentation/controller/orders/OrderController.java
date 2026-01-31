@@ -1,4 +1,5 @@
 package fpt.teddypet.presentation.controller.orders;
+
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
@@ -29,7 +30,7 @@ public class OrderController {
     private final OrderService orderService;
 
     // ========== USER ENDPOINTS ==========
-    
+
     @GetMapping("/my-orders")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy đơn hàng của tôi (phân trang)", description = "Lấy danh sách đơn hàng của user hiện tại với phân trang")
@@ -76,16 +77,27 @@ public class OrderController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Tạo đơn hàng", description = "Tạo đơn hàng mới từ thông tin sản phẩm")
-    public ResponseEntity<ApiResponse<Void>> createOrder(@Valid @RequestBody OrderRequest request) {
-        UUID userId = SecurityUtil.getCurrentUserId();
-        orderService.createOrder(request, userId);
-        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CREATED_SUCCESS));
+    @Operation(summary = "Tạo đơn hàng", description = "Tạo đơn hàng mới - hỗ trợ cả user đăng nhập và khách vãng lai")
+    public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody OrderRequest request) {
+        // Tự động detect: có token = user, không có = guest
+        UUID userId = SecurityUtil.getCurrentUserIdOrNull();
+        OrderResponse response = orderService.createUnifiedOrder(request, userId);
+        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CREATED_SUCCESS, response));
+    }
+
+    // ========== GUEST ORDER LOOKUP ==========
+
+    @GetMapping("/guest/lookup")
+    @Operation(summary = "Tra cứu đơn hàng khách vãng lai", description = "Tra cứu đơn hàng bằng mã đơn và email")
+    public ResponseEntity<ApiResponse<OrderResponse>> lookupGuestOrder(
+            @RequestParam String orderCode,
+            @RequestParam String email) {
+        OrderResponse response = orderService.getGuestOrderByCodeAndEmail(orderCode, email);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     // ========== STAFF/ADMIN ENDPOINTS ==========
-    
+
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     @Operation(summary = "Lấy tất cả đơn hàng (phân trang)", description = "Lấy danh sách tất cả đơn hàng với phân trang (Staff/Admin)")
