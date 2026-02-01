@@ -8,8 +8,8 @@ import { useState, useEffect } from "react";
 import { getSearchSuggestions } from "../../../api/home.api";
 
 export const MainHeader = () => {
-    const totalItemsCount = useCartStore((state) => state.totalItems());
-    const totalAmount = useCartStore((state) => state.totalAmount());
+    const totalItemsCount = useCartStore((state) => state.totalItemsChecked());
+    const totalAmount = useCartStore((state) => state.totalAmountChecked());
     const items = useCartStore((state) => state.items);
     const isHydrated = useCartStore((state) => state.isHydrated);
     const cartCount = isHydrated ? totalItemsCount : 0;
@@ -140,7 +140,7 @@ export const MainHeader = () => {
                             <Heart stroke="2" className="w-[2.5rem] h-[2.5rem]" />
                         </div>
                         <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
-                            <Link to="/gio-hang">
+                            <Link to="/cart">
                                 <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />
                             </Link>
                             {cartCount > 0 && (
@@ -163,8 +163,8 @@ export const MainHeader = () => {
                                                 </Link>
                                                 <div>
                                                     <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
-                                                    <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option.size}</div>
-                                                    <div className="text-client-text text-[1.4rem]">{item.quantity} x {item.option.price.toLocaleString()}đ</div>
+                                                    <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
+                                                    <div className="text-client-text text-[1.4rem]">{item.quantity} x {item.option?.price?.toLocaleString()}đ</div>
                                                 </div>
                                             </li>
                                         ))}
@@ -173,8 +173,8 @@ export const MainHeader = () => {
                                             <span>{totalAmount.toLocaleString()}đ</span>
                                         </div>
                                         <div className="mt-[20px] mb-[5px]">
-                                            <Link to="/gio-hang" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
-                                            <Link to="/thanh-toan" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
+                                            <Link to="/cart" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
+                                            <Link to="/checkout" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
                                         </div>
                                     </ul>
                                 ) : (

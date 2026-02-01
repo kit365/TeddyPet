@@ -7,16 +7,20 @@ import { Link } from "react-router-dom";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
-    { label: "Giỏ hàng", to: "/gio-hang" },
+    { label: "Giỏ hàng", to: "/cart" },
 ];
 
 export const CartPage = () => {
     const items = useCartStore((state) => state.items);
     const removeFromCart = useCartStore((state) => state.removeFromCart);
     const updateQuantity = useCartStore((state) => state.updateQuantity);
-    const totalAmount = useCartStore((state) => state.totalAmount());
+    const toggleCheck = useCartStore((state) => state.toggleCheck);
+    const toggleAll = useCartStore((state) => state.toggleAll);
+    const totalAmountChecked = useCartStore((state) => state.totalAmountChecked());
 
     const [removingItems, setRemovingItems] = useState<string[]>([]);
+
+
 
     const handleRemove = (id: string) => {
         setRemovingItems((prev) => [...prev, id]);
@@ -25,6 +29,21 @@ export const CartPage = () => {
             setRemovingItems((prev) => prev.filter((itemId) => itemId !== id));
         }, 300);
     };
+
+    const handleSelectAll = (checked: boolean) => {
+        toggleAll(checked);
+    };
+
+    const handleSelectItem = (id: string | number) => {
+        toggleCheck(id);
+    };
+
+    // Calculate totals for selected items only
+    const selectedItemsData = items.filter(item => item.checked);
+    const subtotal = totalAmountChecked;
+    const total = subtotal;
+
+    const allSelected = items.length > 0 && items.every(item => item.checked);
 
     return (
         <>
@@ -41,6 +60,18 @@ export const CartPage = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="w-full text-[2rem] font-secondary text-white bg-client-primary">
+                                    <th className="w-[60px] border-r border-[#d7d7d7] py-[10px] px-[20px]">
+                                        <div className="checkbox checkbox-cart flex items-center justify-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={allSelected}
+                                                onChange={(e) => handleSelectAll(e.target.checked)}
+                                                id="select-all"
+                                                hidden
+                                            />
+                                            <label htmlFor="select-all" className="cursor-pointer m-0"></label>
+                                        </div>
+                                    </th>
                                     <th className="w-[26%] border-r border-[#d7d7d7] py-[10px] px-[20px]">
                                         Sản phẩm
                                     </th>
@@ -60,6 +91,18 @@ export const CartPage = () => {
                                             className={`border-t border-[#d7d7d7] transition-opacity duration-300 ${isRemoving ? "opacity-0" : "opacity-100"
                                                 }`}
                                         >
+                                            <td className="w-[60px] border-r border-[#d7d7d7] py-[20px] px-[20px] text-center">
+                                                <div className="checkbox checkbox-cart flex items-center justify-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.checked}
+                                                        onChange={() => handleSelectItem(item.id)}
+                                                        id={`item-${item.id}`}
+                                                        hidden
+                                                    />
+                                                    <label htmlFor={`item-${item.id}`} className="cursor-pointer m-0"></label>
+                                                </div>
+                                            </td>
                                             <td className="w-[26%] border-r border-[#d7d7d7] py-[20px] px-[30px]">
                                                 <img
                                                     className="w-[206px] h-[216px] 2xl:w-[170px] 2xl:h-[179px] object-cover rounded-[10px]"
@@ -83,7 +126,7 @@ export const CartPage = () => {
 
                                                     <p className="text-client-text mb-[20px] 2xl:mb-[15px]">
                                                         <span className="font-secondary 2xl:text-[1.4rem] text-client-secondary mr-[5px]">
-                                                            Kích cỡ:
+                                                            Phân loại:
                                                         </span>
                                                         {item.option.size}
                                                     </p>
@@ -139,7 +182,9 @@ export const CartPage = () => {
                                             </td>
 
                                             <td className="w-[150px] text-center">
-                                                {(item.option.price * item.quantity).toLocaleString()}đ
+                                                <span className="text-[2rem] font-bold text-client-secondary">
+                                                    {(item.option.price * item.quantity).toLocaleString()}đ
+                                                </span>
                                             </td>
                                         </tr>
                                     );
@@ -149,15 +194,71 @@ export const CartPage = () => {
                     </div>
                     <div className="flex-1 ml-[50px]">
                         <div className="sticky top-[0px] min-h-[100px]">
-                            <div className="overflow-hidden border border-[#d7d7d7] bg-white rounded-[20px] mb-[16px]">
-                                <h2 className="py-[10px] px-[20px] text-[2rem] font-secondary text-white bg-client-primary text-center">Tổng cộng</h2>
-                                <div className="p-[20px] border-t border-[#d7d7d7] text-client-secondary font-[500] text-[1.5rem] flex justify-between">
-                                    <span>Tổng ước tính</span>
-                                    <span className="text-client-text">{totalAmount.toLocaleString()}đ</span>
+                            <div className="overflow-hidden border border-[#d7d7d7] bg-white rounded-[20px]">
+                                <h2 className="py-[10px] px-[20px] text-[2rem] font-secondary text-white bg-client-primary text-center">Tóm tắt đơn hàng</h2>
+
+                                {/* Selected Items Summary */}
+                                <div className="p-[20px]">
+                                    {selectedItemsData.length > 0 ? (
+                                        <div className="mb-[20px]">
+                                            {selectedItemsData.map((item) => (
+                                                <div key={item.id} className="flex items-start gap-3 mb-[15px] pb-[15px] border-b border-[#f0f0f0] last:border-b-0">
+                                                    <img
+                                                        src={item.image}
+                                                        alt={item.title}
+                                                        className="w-[60px] h-[60px] object-cover rounded-[8px] border border-gray-200"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[1.4rem] font-medium text-client-secondary line-clamp-2 mb-[5px]">
+                                                            {item.title}
+                                                        </p>
+                                                        <p className="text-[1.2rem] text-gray-500 mb-[3px]">
+                                                            {item.option.price.toLocaleString()}đ × {item.quantity}
+                                                        </p>
+                                                        <p className="text-[1.2rem] text-gray-400">
+                                                            Màu sắc: {item.option.size}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-[1.4rem] font-bold text-client-secondary">
+                                                        {(item.option.price * item.quantity).toLocaleString()}đ
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : null}
+
+                                    {/* Subtotal */}
+                                    <div className="border-t border-[#d7d7d7] pt-[15px] mb-[15px]">
+                                        <div className="flex justify-between items-center text-client-text font-[400] text-[1.5rem]">
+                                            <span>Tạm tính</span>
+                                            <span>{subtotal.toLocaleString()}đ</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Total */}
+                                    <div className="flex justify-between items-center mb-[20px]">
+                                        <span className="text-[1.8rem] font-secondary text-client-secondary">Tổng thanh toán</span>
+                                        <span className="text-[2rem] font-bold text-client-primary">
+                                            {total.toLocaleString()}đ
+                                        </span>
+                                    </div>
+
+                                    {/* Checkout Button */}
+                                    <Link
+                                        to="/checkout"
+                                        className={`block w-full py-[16px] px-[30px] text-white font-secondary text-center rounded-[50px] transition-default ${selectedItemsData.length > 0
+                                            ? 'bg-client-primary hover:bg-client-secondary cursor-pointer'
+                                            : 'bg-gray-300 cursor-not-allowed pointer-events-none'
+                                            }`}
+                                    >
+                                        Tiến hành thanh toán
+                                    </Link>
+
+                                    {/* Note */}
+                                    <p className="text-[1.2rem] text-gray-400 text-center mt-[10px]">
+                                        (Nhận thanh toán sau khi lên đơn hàng)
+                                    </p>
                                 </div>
-                            </div>
-                            <div className="text-right">
-                                <Link to="/thanh-toan" className="py-[16px] px-[30px] text-white font-secondary bg-client-primary inline-block rounded-[50px] transition-default cursor-pointer hover:bg-client-secondary">Tiến hành thanh toán</Link>
                             </div>
                         </div>
                     </div>

@@ -25,6 +25,49 @@ export interface ProductVariant {
     updatedBy: string;
 }
 
+export interface ProductAttributeValue {
+    valueId: number;
+    attributeId: number;
+    attributeName: string;
+    value: string;
+    displayOrder: number;
+    displayCode: string;
+    // ... other fields
+}
+
+export interface ProductVariantDetail {
+    variantId: number;
+    productId: number;
+    name: string;
+    price: number;
+    stockQuantity: number;
+    featuredImageUrl: string | null;
+    attributes: ProductAttributeValue[];
+    productSlug?: string;
+}
+
+export interface ProductAttribute {
+    attributeId: number;
+    name: string;
+    valueIds: number[];
+}
+
+export interface ProductDetail {
+    id: number;
+    slug: string;
+    name: string;
+    description: string;
+    minPrice: number;
+    maxPrice: number;
+    ratingCount: number;
+    averageRating: number;
+    sku: string; // Not in response? Check.
+    variants: ProductVariantDetail[];
+    attributes: ProductAttribute[];
+    images: { id: number, url: string }[];
+    viewCount?: number;
+}
+
 export interface Product {
     productId: number;
     slug: string;
@@ -74,5 +117,10 @@ export interface ProductsResponse {
 
 export const getProducts = async (): Promise<ProductsResponse> => {
     const response = await apiApp.get("/api/products");
+    return response.data;
+};
+
+export const getProductBySlug = async (slug: string) => {
+    const response = await apiApp.get(`/api/home/products/${slug}`); // Corrected endpoint
     return response.data;
 };

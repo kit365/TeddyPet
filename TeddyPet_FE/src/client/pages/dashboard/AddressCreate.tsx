@@ -1,5 +1,5 @@
 import { ArrowRight, MapPin, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Sidebar } from "./sections/Sidebar";
 import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
@@ -7,6 +7,8 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { createAddress } from "../../../api/address.api";
+import { ProductBanner } from "../product/sections/ProductBanner";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -50,9 +52,8 @@ function LocationMarker({
     );
 }
 
-import { ProductBanner } from "../product/sections/ProductBanner";
-
 export const AddressCreatePage = () => {
+    const navigate = useNavigate();
     const [position, setPosition] = useState<L.LatLng | null>(new L.LatLng(10.7410688, 106.7164031));
     const [mapCenter, setMapCenter] = useState<L.LatLngExpression>([10.7410688, 106.7164031]);
     const [address, setAddress] = useState<string>("");
@@ -61,6 +62,9 @@ export const AddressCreatePage = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isDefault, setIsDefault] = useState(false);
     const [isNotFound, setIsNotFound] = useState(false);
+    const [fullName, setFullName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     // Ref để theo dõi thao tác người dùng
     const isManualChange = useRef(false);
@@ -170,10 +174,36 @@ export const AddressCreatePage = () => {
         setIsNotFound(false);
     };
 
-    const onSubmit = (e: React.FormEvent) => {
+    const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        toast.success("Thông tin địa chỉ đã sẵn sàng!");
-        console.log("🚀 DỮ LIỆU CUỐI CÙNG:", { address, position, isDefault });
+
+        if (!fullName.trim() || !phone.trim() || !address.trim()) {
+            toast.error("Vui lòng điền đầy đủ thông tin");
+            return;
+        }
+
+        if (!position) {
+            toast.error("Vui lòng chọn vị trí trên bản đồ");
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            await createAddress({
+                fullName: fullName.trim(),
+                phone: phone.trim(),
+                address: address.trim(),
+                longitude: position.lng,
+                latitude: position.lat,
+                isDefault
+            });
+            toast.success("Thêm địa chỉ thành công!");
+            navigate("/dashboard/address");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể thêm địa chỉ");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const breadcrumbs = [
@@ -213,6 +243,8 @@ export const AddressCreatePage = () => {
                                         <input
                                             type="text"
                                             required
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
                                             className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[1.5rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
                                             placeholder="Nhập họ tên"
                                         />
@@ -222,6 +254,8 @@ export const AddressCreatePage = () => {
                                         <input
                                             type="text"
                                             required
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
                                             className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[1.5rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
                                             placeholder="Nhập số điện thoại"
                                         />
@@ -315,7 +349,7 @@ export const AddressCreatePage = () => {
                                     <div className="absolute inset-0 pointer-events-none shadow-[inset_0px_0px_50px_rgba(0,0,0,0.02)] rounded-[16px]"></div>
                                 </div>
 
-                                <div className="checkbox mt-[10px]">
+                                <div className="checkbox checkbox-cart mt-[10px]">
                                     <input
                                         type="checkbox"
                                         id="default_address_checkbox"
@@ -329,8 +363,12 @@ export const AddressCreatePage = () => {
                                 </div>
 
                                 <div className="flex items-center gap-[10px] pt-[10px]">
-                                    <button type="submit" className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[30px] py-[12px] font-[500] text-[1.4rem] text-white cursor-pointer flex items-center gap-[8px]">
-                                        <span className="relative z-10">Thêm mới địa chỉ</span>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[30px] py-[12px] font-[500] text-[1.4rem] text-white cursor-pointer flex items-center gap-[8px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span className="relative z-10">{submitting ? "Đang thêm..." : "Thêm mới địa chỉ"}</span>
                                         <ArrowRight className="relative z-10 w-[1.8rem] h-[1.8rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />
                                         <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                     </button>
