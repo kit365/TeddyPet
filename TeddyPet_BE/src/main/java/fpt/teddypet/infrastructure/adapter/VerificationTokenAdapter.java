@@ -85,4 +85,28 @@ public class VerificationTokenAdapter implements VerificationTokenPort {
         }
         return ttl;
     }
+
+    // Guest OTP Implementation
+    private static final String GUEST_OTP_PREFIX = "guest:otp:";
+    private static final int OTP_EXPIRATION_MINUTES = 5;
+
+    @Override
+    public void saveGuestOtp(String email, String otp) {
+        String key = GUEST_OTP_PREFIX + email;
+        redisTemplate.opsForValue().set(key, otp, OTP_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        log.info("[VerificationTokenAdapter] Saved OTP for guest email: {}", email);
+    }
+
+    @Override
+    public Optional<String> getGuestOtp(String email) {
+        String key = GUEST_OTP_PREFIX + email;
+        Object otp = redisTemplate.opsForValue().get(key);
+        return Optional.ofNullable(otp).map(Object::toString);
+    }
+
+    @Override
+    public void deleteGuestOtp(String email) {
+        String key = GUEST_OTP_PREFIX + email;
+        redisTemplate.delete(key);
+    }
 }

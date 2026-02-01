@@ -27,4 +27,11 @@ public interface VerificationTokenPort {
      * @return remaining seconds, 0 if can resend immediately
      */
     long getResendCooldownSeconds(String email);
+
+    // Guest OTP methods
+    void saveGuestOtp(String email, String otp);
+
+    Optional<String> getGuestOtp(String email);
+
+    void deleteGuestOtp(String email);
 }

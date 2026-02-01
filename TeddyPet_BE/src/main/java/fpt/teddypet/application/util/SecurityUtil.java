@@ -22,7 +22,8 @@ public final class SecurityUtil {
      * Get the ID of the currently authenticated user
      * 
      * @return User ID (UUID)
-     * @throws IllegalStateException if user is not authenticated or cannot be determined
+     * @throws IllegalStateException if user is not authenticated or cannot be
+     *                               determined
      */
     public static UUID getCurrentUserId() {
         User user = getCurrentUserEntity();
@@ -53,7 +54,8 @@ public final class SecurityUtil {
      * Get the current authenticated User entity
      * 
      * @return User entity
-     * @throws IllegalStateException if user is not authenticated or cannot be determined
+     * @throws IllegalStateException if user is not authenticated or cannot be
+     *                               determined
      */
     public static User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -76,7 +78,23 @@ public final class SecurityUtil {
      */
     public static boolean isAuthenticated() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.isAuthenticated() 
+        return authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User;
+    }
+
+    /**
+     * Get the ID of the currently authenticated user, or null if not authenticated
+     * 
+     * @return User ID (UUID) or null if guest/not authenticated
+     */
+    public static UUID getCurrentUserIdOrNull() {
+        if (!isAuthenticated()) {
+            return null;
+        }
+        try {
+            return getCurrentUserId();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
