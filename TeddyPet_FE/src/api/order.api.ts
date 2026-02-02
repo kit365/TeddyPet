@@ -22,6 +22,13 @@ export const getMyOrderByCode = async (code: string) => {
     return response.data;
 };
 
+export const lookupGuestOrder = async (orderCode: string, email: string) => {
+    const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/guest/lookup`, {
+        params: { orderCode, email }
+    });
+    return response.data;
+};
+
 export const cancelOrder = async (id: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`);
     return response.data;

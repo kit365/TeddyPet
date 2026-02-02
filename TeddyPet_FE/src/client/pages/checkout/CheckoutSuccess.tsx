@@ -5,7 +5,7 @@ import { ProductBanner } from "../product/sections/ProductBanner";
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneEnabledOutlinedIcon from '@mui/icons-material/PhoneEnabledOutlined';
 import EditLocationAltOutlinedIcon from '@mui/icons-material/EditLocationAltOutlined';
-import { getMyOrderByCode } from "../../../api/order.api";
+import { getMyOrderByCode, lookupGuestOrder } from "../../../api/order.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
 
@@ -30,7 +30,17 @@ export const CheckSuccessPage = () => {
     const fetchOrderDetails = async () => {
         try {
             setLoading(true);
-            const response = await getMyOrderByCode(orderCode!);
+            const email = searchParams.get("email");
+            let response;
+
+            if (email) {
+                // Tra cứu cho khách vãng lai
+                response = await lookupGuestOrder(orderCode!, email);
+            } else {
+                // Tra cứu cho user đã đăng nhập
+                response = await getMyOrderByCode(orderCode!);
+            }
+
             if (response.success) {
                 setOrder(response.data);
             } else {

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, MapPin, Phone, User, Search, LogOut } from "iconoir-react";
 import { useCartStore } from "../../../stores/useCartStore";
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { getAllAddresses } from "../../../api/address.api";
 import { useForm } from "react-hook-form";
@@ -17,6 +18,7 @@ import { toast } from "react-toastify";
 import { createOrder } from "../../../api/order.api";
 import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
 import { UserAddressResponse } from "../../../types/address.type";
+import { sendGuestOtp } from "../../../api/otp.api";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -42,6 +44,8 @@ const schema = z.object({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
     note: z.string().optional(),
+    guestEmail: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
+    otpCode: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -95,6 +99,10 @@ export const CheckoutPage = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const isManualChange = useRef(false);
 
+    // Guest Auth States
+    const [otpCooldown, setOtpCooldown] = useState(0);
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
+
     const items = useCartStore((state) => state.items);
     const totalAmount = useCartStore((state) => state.totalAmountChecked());
     const clearCart = useCartStore((state) => state.clearCart);
@@ -108,6 +116,36 @@ export const CheckoutPage = () => {
     });
 
     const watchAddress = watch("address");
+    const watchGuestEmail = watch("guestEmail");
+
+    useEffect(() => {
+        let timer: any;
+        if (otpCooldown > 0) {
+            timer = setTimeout(() => setOtpCooldown(prev => prev - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [otpCooldown]);
+
+    const handleSendOtp = async () => {
+        if (!watchGuestEmail || !watchGuestEmail.includes("@")) {
+            toast.error("Vui lòng nhập email hợp lệ!");
+            return;
+        }
+        setIsSendingOtp(true);
+        try {
+            const response = await sendGuestOtp(watchGuestEmail);
+            if (response.success) {
+                toast.success("Mã OTP đã được gửi đến email của bạn!");
+                setOtpCooldown(Number(response.data) || 120);
+            } else {
+                toast.error(response.message || "Gửi OTP thất bại");
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Lỗi gửi OTP");
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
 
     // Fetch initial addresses
     useEffect(() => {
@@ -227,6 +265,10 @@ export const CheckoutPage = () => {
                 toast.error("Vui lòng điền đầy đủ thông tin giao hàng!");
                 return;
             }
+            if (!user && (!data.guestEmail || !data.otpCode)) {
+                toast.error("Vui lòng nhập Email và mã OTP để xác thực khách hàng!");
+                return;
+            }
         }
 
         setIsPlacingOrder(true);
@@ -250,6 +292,8 @@ export const CheckoutPage = () => {
                     shippingAddress: data.address!,
                     note: data.note,
                     items: orderItems,
+                    guestEmail: data.guestEmail,
+                    otpCode: data.otpCode,
                 };
             } else {
                 // Existing address case
@@ -273,7 +317,10 @@ export const CheckoutPage = () => {
             if (response.success) {
                 toast.success("Đặt hàng thành công!");
                 clearCart();
-                navigate(`/checkout/success?orderCode=${response.data.orderCode}`);
+                const successUrl = !user && data.guestEmail
+                    ? `/checkout/success?orderCode=${response.data.orderCode}&email=${data.guestEmail}`
+                    : `/checkout/success?orderCode=${response.data.orderCode}`;
+                navigate(successUrl);
             } else {
                 toast.error(response.message || "Không thể tạo đơn hàng!");
             }
@@ -328,24 +375,68 @@ export const CheckoutPage = () => {
                     <div className="w-[60%] py-[50px]">
                         <form onSubmit={handleSubmit(handlePlaceOrder)}>
                             {/* Account Header */}
-                            <div className="mb-[40px] p-[20px] bg-[#fcfcfc] border border-dashed border-gray-200 rounded-[15px] flex items-center justify-between">
-                                <div className="flex items-center gap-[12px] text-[1.6rem] text-client-secondary font-medium">
-                                    <div className="w-[40px] h-[40px] rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm">
-                                        <User className="w-[2rem] h-[2rem] text-client-primary" />
+                            {user && (
+                                <div className="mb-[40px] p-[20px] bg-[#fcfcfc] border border-dashed border-gray-200 rounded-[15px] flex items-center justify-between">
+                                    <div className="flex items-center gap-[12px] text-[1.6rem] text-client-secondary font-medium">
+                                        <div className="w-[40px] h-[40px] rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm">
+                                            <User className="w-[2rem] h-[2rem] text-client-primary" />
+                                        </div>
+                                        <span>Tài khoản: <span className="font-bold">{user ? `${user.firstName} ${user.lastName}` : 'Khách'}</span></span>
                                     </div>
-                                    <span>Tài khoản: <span className="font-bold">{user ? `${user.firstName} ${user.lastName}` : 'Khách'}</span></span>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="px-[15px] py-[8px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[8px] text-[1.3rem] font-bold"
+                                    >
+                                        <LogOut className="w-[1.6rem] h-[1.6rem]" />
+                                        <span>Đăng xuất</span>
+                                    </button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={handleLogout}
-                                    className="px-[15px] py-[8px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[8px] text-[1.3rem] font-bold"
-                                >
-                                    <LogOut className="w-[1.6rem] h-[1.6rem]" />
-                                    <span>Đăng xuất</span>
-                                </button>
-                            </div>
+                            )}
 
                             <h2 className="text-[2.5rem] font-secondary mt-[8px] mb-[30px] font-bold">Thông tin nhận hàng</h2>
+
+                            {/* Guest Verification Section */}
+                            {!user && (
+                                <div className="space-y-[18px] mb-[35px] bg-client-primary/5 p-[25px] rounded-[20px] border border-dashed border-client-primary/20 shadow-inner">
+                                    <div className="flex items-center gap-[10px] mb-[5px]">
+                                        <div className="w-[30px] h-[30px] rounded-full bg-client-primary/10 flex items-center justify-center">
+                                            <EmailOutlinedIcon className="text-client-primary w-[1.8rem] h-[1.8rem]" />
+                                        </div>
+                                        <h3 className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
+                                    </div>
+                                    <div className="flex gap-[12px]">
+                                        <div className="flex-1">
+                                            <input
+                                                type="email"
+                                                placeholder="Email của bạn *"
+                                                {...register("guestEmail")}
+                                                className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={otpCooldown > 0 || isSendingOtp}
+                                            onClick={handleSendOtp}
+                                            className={`px-[25px] rounded-[40px] font-bold text-[1.3rem] transition-all uppercase tracking-wider ${otpCooldown > 0 || isSendingOtp
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-client-secondary text-white hover:bg-client-primary shadow-lg shadow-client-secondary/20 active:scale-95'}`}
+                                        >
+                                            {isSendingOtp ? 'Đang gửi...' : otpCooldown > 0 ? `Lại sau (${otpCooldown}s)` : 'Gửi mã'}
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập mã xác thực (OTP) *"
+                                        {...register("otpCode")}
+                                        className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
+                                    />
+                                    <p className="text-[1.2rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
+                                        <div className="w-[4px] h-[4px] bg-client-primary rounded-full"></div>
+                                        Lưu ý: Chúng tôi sẽ dùng Email này để gửi thông tin hành trình đơn hàng.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Danh sách địa chỉ có sẵn */}
                             {user && !loadingAddresses && addresses.length > 0 && (
@@ -389,23 +480,25 @@ export const CheckoutPage = () => {
                             )}
 
                             {/* Option Sử dụng địa chỉ khác - Styled more subtly */}
-                            <div
-                                onClick={() => setSelectedAddressId("new")}
-                                className="flex items-center gap-[12px] mb-[30px] cursor-pointer group w-fit pr-[20px]"
-                            >
-                                <div className="shrink-0">
-                                    <input
-                                        type="radio"
-                                        checked={selectedAddressId === "new"}
-                                        onChange={() => setSelectedAddressId("new")}
-                                        className="appearance-none w-[18px] h-[18px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[5px] transition-all cursor-pointer bg-white"
-                                    />
+                            {user && addresses.length > 0 && (
+                                <div
+                                    onClick={() => setSelectedAddressId("new")}
+                                    className="flex items-center gap-[12px] mb-[30px] cursor-pointer group w-fit pr-[20px]"
+                                >
+                                    <div className="shrink-0">
+                                        <input
+                                            type="radio"
+                                            checked={selectedAddressId === "new"}
+                                            onChange={() => setSelectedAddressId("new")}
+                                            className="appearance-none w-[18px] h-[18px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[5px] transition-all cursor-pointer bg-white"
+                                        />
+                                    </div>
+                                    <span className={`text-[1.5rem] font-bold tracking-wide transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400 group-hover:text-client-secondary'}`}>
+                                        Sử dụng địa chỉ khác
+                                        <div className={`h-[2px] bg-client-primary transition-all duration-300 ${selectedAddressId === "new" ? 'w-full opacity-10' : 'w-0 opacity-0'}`}></div>
+                                    </span>
                                 </div>
-                                <span className={`text-[1.5rem] font-bold tracking-wide transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400 group-hover:text-client-secondary'}`}>
-                                    Sử dụng địa chỉ khác
-                                    <div className={`h-[2px] bg-client-primary transition-all duration-300 ${selectedAddressId === "new" ? 'w-full opacity-10' : 'w-0 opacity-0'}`}></div>
-                                </span>
-                            </div>
+                            )}
 
                             {/* New Address Form & Map */}
                             <div className={`overflow-hidden transition-all duration-500 ease-in-out ${selectedAddressId === "new" ? "max-h-[1500px] opacity-100 scale-100" : "max-h-0 opacity-0 scale-95 invisible"}`}>

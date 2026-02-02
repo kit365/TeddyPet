@@ -11,6 +11,7 @@ import { ServicePage } from "../pages/service/Service";
 import { CartPage } from "../pages/cart/Cart";
 import { CheckoutPage } from "../pages/checkout/Checkout";
 import { CheckSuccessPage } from "../pages/checkout/CheckoutSuccess";
+import { OrderTrackingPage } from "../pages/checkout/OrderTracking";
 import { ProfilePage } from "../pages/dashboard/Profile";
 import { OverviewPage } from "../pages/dashboard/Overview";
 import { ProfileEditPage } from "../pages/dashboard/ProfileEdit";
@@ -56,6 +57,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/cart", element: <CartPage /> },
     { path: "/checkout", element: <CheckoutPage /> },
     { path: "/checkout/success", element: <CheckSuccessPage /> },
+    { path: "/tra-cuu-don-hang", element: <OrderTrackingPage /> },
     { path: "/dich-vu", element: <ServicePage /> },
     {
         path: "/dashboard",
