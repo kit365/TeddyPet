@@ -1,0 +1,62 @@
+export interface RegisterPayload {
+    username: string;
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+}
+
+export interface LoginPayload {
+    usernameOrEmail: string;
+    password: string;
+}
+
+export interface ResetPasswordPayload {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+import { ApiResponse } from "./common.type";
+
+export interface TokenResponse {
+    token: string;
+    refreshToken: string;
+    expiresAt: string;
+}
+
+
+export type AuthResponse = ApiResponse<TokenResponse>;
+
+export interface RegisterResponseData {
+    message: string;
+    cooldownSeconds: number;
+    cooldownEndsAt: string;
+}
+
+export type RegisterResponse = ApiResponse<RegisterResponseData>;
+
+export interface UserProfileResponse {
+    id: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    avatarUrl?: string;
+    altImage?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    status?: string;
+    role?: string;
+}
+
+export type MeResponse = ApiResponse<UserProfileResponse>;
+
+export type ResetPasswordResponse = ApiResponse<void>;
+export type ForgotPasswordResponse = ApiResponse<void>;
+export type ValidateResetTokenResponse = ApiResponse<boolean>;
+export type LogoutResponse = ApiResponse<void>;
+
+

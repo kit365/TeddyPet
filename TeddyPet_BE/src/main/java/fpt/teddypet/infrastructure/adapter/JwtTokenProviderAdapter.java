@@ -28,6 +28,7 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+    private static final String REFRESH_TOKEN_PREFIX = "auth:refresh_token:";
 
     @Value("${jwt.key-secret}")
     private String secretKey;
@@ -92,9 +93,29 @@ public class JwtTokenProviderAdapter implements JwtTokenProviderPort {
         return createToken(claims, userDetails.getUsername());
     }
 
+    @Override
     public String generateRefreshToken(String email) {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, email, refreshTokenExpirationInMs);
+    }
+
+    @Override
+    public void saveRefreshToken(String email, String refreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + email;
+        redisTemplate.opsForValue().set(key, refreshToken, refreshTokenExpirationInMs, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public String getRefreshToken(String email) {
+        String key = REFRESH_TOKEN_PREFIX + email;
+        Object token = redisTemplate.opsForValue().get(key);
+        return token != null ? token.toString() : null;
+    }
+
+    @Override
+    public void deleteRefreshToken(String email) {
+        String key = REFRESH_TOKEN_PREFIX + email;
+        redisTemplate.delete(key);
     }
 
     public Date extractExpiration(String token) {

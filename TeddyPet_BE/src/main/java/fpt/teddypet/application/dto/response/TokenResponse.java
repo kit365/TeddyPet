@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
  * Used for login and verify-email responses.
  */
 public record TokenResponse(
-        String token,
-        LocalDateTime expiresAt) {
+                String token,
+                String refreshToken,
+                LocalDateTime expiresAt) {
 }

@@ -28,17 +28,18 @@ export const VerifyEmailPage = () => {
                 const response = await verifyEmail(token);
 
                 if (response.success && response.data?.token) {
-                    const { token: authToken, ...userData } = response.data;
+                    const { token: authToken, refreshToken } = response.data;
 
-                    // Optimistically set data
-                    const { login } = await import("../../../stores/useAuthStore").then(m => m.useAuthStore.getState());
-                    login(userData, authToken);
+                    // Set token to cookie for getMe request
+                    const { default: Cookies } = await import("js-cookie");
+                    Cookies.set("token", authToken);
 
                     // Fetch full profile
                     try {
                         const userResponse = await import("../../../api/auth.api").then(m => m.getMe());
                         if (userResponse.success) {
-                            login(userResponse.data, authToken);
+                            const { login } = await import("../../../stores/useAuthStore").then(m => m.useAuthStore.getState());
+                            login(userResponse.data, authToken, refreshToken);
                         }
                     } catch (err) {
                         console.error("Failed to fetch user profile", err);

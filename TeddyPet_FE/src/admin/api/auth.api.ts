@@ -1,23 +1,8 @@
 import { LoginFormValues } from "../schemas/login.schema";
 import { apiApp } from "../../api";
+import { AuthResponse } from "../../types/auth.type";
 
-export interface LoginResponse {
-    success: boolean;
-    message: string;
-    data?: {
-        token: string;
-        username: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        role: string;
-        expiresAt: string;
-    };
-    timestamp: string;
-    statusCode?: number;
-}
-
-export const login = async (data: LoginFormValues): Promise<LoginResponse> => {
+export const login = async (data: LoginFormValues): Promise<AuthResponse> => {
     const response = await apiApp.post("/api/auth/login", data);
     return response.data;
 };

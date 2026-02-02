@@ -22,7 +22,7 @@ interface AuthState {
     user: User | null;
     token: string | null;
     isHydrated: boolean;
-    login: (user: User, token: string) => void;
+    login: (user: User, token: string, refreshToken?: string) => void;
     logout: () => void;
     set: (newState: Partial<AuthState>) => void;
 }
@@ -34,12 +34,16 @@ export const useAuthStore = create<AuthState>()(
                 user: null,
                 token: null,
                 isHydrated: false,
-                login: (user, token) => {
+                login: (user, token, refreshToken) => {
                     Cookies.set("token", token);
+                    if (refreshToken) {
+                        Cookies.set("refreshToken", refreshToken);
+                    }
                     set({ user, token });
                 },
                 logout: () => {
                     Cookies.remove("token");
+                    Cookies.remove("refreshToken");
                     set({ user: null, token: null });
                 },
                 set: (newState) => set(newState),

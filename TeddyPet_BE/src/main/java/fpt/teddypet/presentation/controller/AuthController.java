@@ -49,10 +49,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login user", description = "Login with email/username and password. Returns only the token.")
+    @Operation(summary = "Login user", description = "Login with email/username and password. Returns token and refresh token.")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
         TokenResponse response = authService.loginForToken(request);
         return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_LOGIN_SUCCESS, response));
+    }
+
+    @PostMapping("/refresh-token")
+    @Operation(summary = "Refresh token", description = "Get new access token using refresh token")
+    public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(
+            @Valid @RequestBody fpt.teddypet.application.dto.request.auth.RefreshTokenRequest request) {
+        TokenResponse response = authService.refreshToken(request.refreshToken());
+        return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
     }
 
     @GetMapping("/verify-email")

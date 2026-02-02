@@ -44,6 +44,11 @@ public interface AuthService {
     RegisterResponse resendVerificationEmail(ResendEmailRequest request);
 
     /**
+     * Refresh access token using refresh token
+     */
+    TokenResponse refreshToken(String refreshToken);
+
+    /**
      * Logout user by blacklisting the current token
      */
     void logout(String token);

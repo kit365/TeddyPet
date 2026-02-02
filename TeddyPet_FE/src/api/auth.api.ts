@@ -1,70 +1,67 @@
 import { apiApp } from "./index";
+import {
+    RegisterPayload,
+    LoginPayload,
+    ResetPasswordPayload,
+    RegisterResponse,
+    AuthResponse,
+    ForgotPasswordResponse,
+    ValidateResetTokenResponse,
+    MeResponse,
+    LogoutResponse,
+    ResetPasswordResponse
+} from "../types/auth.type";
 
-export interface RegisterPayload {
-    username: string;
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-}
-
-export interface LoginPayload {
-    usernameOrEmail: string;
-    password: string;
-}
-
-export const register = async (data: RegisterPayload) => {
+export const register = async (data: RegisterPayload): Promise<RegisterResponse> => {
     const response = await apiApp.post("/api/auth/register", data);
     return response.data;
 };
 
-export const login = async (data: LoginPayload) => {
+export const login = async (data: LoginPayload): Promise<AuthResponse> => {
     const response = await apiApp.post("/api/auth/login", data);
     return response.data;
 };
 
-export const forgotPassword = async (email: string) => {
+export const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
     const response = await apiApp.post("/api/auth/forgot-password", { email });
     return response.data;
 };
 
-export const verifyEmail = async (token: string) => {
+export const verifyEmail = async (token: string): Promise<AuthResponse> => {
     const response = await apiApp.get("/api/auth/verify-email", {
         params: { token }
     });
     return response.data;
 };
 
-export const validateResetToken = async (token: string) => {
+export const validateResetToken = async (token: string): Promise<ValidateResetTokenResponse> => {
     const response = await apiApp.get("/api/auth/validate-reset-token", {
         params: { token }
     });
     return response.data;
 };
 
-export const resendEmail = async (email: string) => {
+export const resendEmail = async (email: string): Promise<RegisterResponse> => {
     const response = await apiApp.post("/api/auth/resend-email", { email });
     return response.data;
 };
 
-export const getMe = async () => {
+export const getMe = async (): Promise<MeResponse> => {
     const response = await apiApp.get("/api/auth/me");
     return response.data;
 };
 
-export const logout = async () => {
+export const logout = async (): Promise<LogoutResponse> => {
     const response = await apiApp.post("/api/auth/logout");
     return response.data;
 };
 
-export interface ResetPasswordPayload {
-    token: string;
-    newPassword: string;
-    confirmPassword: string;
-}
+export const refreshToken = async (refreshToken: string): Promise<AuthResponse> => {
+    const response = await apiApp.post("/api/auth/refresh-token", { refreshToken });
+    return response.data;
+};
 
-export const resetPassword = async (data: ResetPasswordPayload) => {
+export const resetPassword = async (data: ResetPasswordPayload): Promise<ResetPasswordResponse> => {
     const response = await apiApp.post("/api/auth/reset-password", data);
     return response.data;
 };

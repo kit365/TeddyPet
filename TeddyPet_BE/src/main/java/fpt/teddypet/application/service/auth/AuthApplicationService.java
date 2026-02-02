@@ -47,7 +47,7 @@ public class AuthApplicationService implements AuthService {
     private final VerificationTokenPort verificationTokenPort;
     private final EmailServicePort emailServicePort;
 
-    @Value("${app.frontend-url:http://localhost:3000}")
+    @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
     @Value("${app.verification.resend-cooldown-seconds:120}")
@@ -79,7 +79,7 @@ public class AuthApplicationService implements AuthService {
             throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
         }
         if (userService.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_USERNAME_DUPLICATE);
         }
 
         try {
@@ -113,7 +113,7 @@ public class AuthApplicationService implements AuthService {
                 String verificationLink = frontendUrl + "/verify-email?token=" + token;
                 emailServicePort.sendVerificationEmail(user.getEmail(), token, verificationLink);
             } else {
-                log.info("[AuthService] Bypassing email verification for test account: {}", request.email());
+                log.info(AuthLogMessages.LOG_AUTH_BYPASS_VERIFICATION, request.email());
             }
 
         } catch (Exception e) {
@@ -156,8 +156,8 @@ public class AuthApplicationService implements AuthService {
 
             throw new BadCredentialsException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
         } catch (DisabledException e) {
-            log.warn("[AuthService] Account disabled for {}: {}", request.usernameOrEmail(), e.getMessage());
-            String message = (e.getMessage() != null && e.getMessage().contains("User is disabled"))
+            log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_ACCOUNT_DISABLED, request.usernameOrEmail(), e.getMessage());
+            String message = (e.getMessage() != null && e.getMessage().contains(AuthMessages.MESSAGE_USER_IS_DISABLED))
                     ? AuthMessages.MESSAGE_EMAIL_NOT_VERIFIED
                     : e.getMessage();
             throw new DisabledException(message);
@@ -167,7 +167,7 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public AuthResponse verifyEmail(String token) {
-        log.info("[AuthService] Verifying email with token: {}", token);
+        log.info(AuthLogMessages.LOG_AUTH_VERIFY_EMAIL_START, token);
 
         String email = verificationTokenPort.findEmailByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException(AuthMessages.MESSAGE_INVALID_VERIFY_TOKEN));
@@ -184,7 +184,7 @@ public class AuthApplicationService implements AuthService {
 
         verificationTokenPort.deleteToken(token);
 
-        log.info("[AuthService] Email verified successfully for: {}", email);
+        log.info(AuthLogMessages.LOG_AUTH_EMAIL_VERIFIED_SUCCESS, email);
 
         return generateAuthResponse(user);
     }
@@ -220,8 +220,12 @@ public class AuthApplicationService implements AuthService {
      */
     private TokenResponse generateTokenResponse(User user) {
         String token = jwtTokenProviderPort.generateToken(user.getEmail());
+        String refreshToken = jwtTokenProviderPort.generateRefreshToken(user.getEmail());
+
+        jwtTokenProviderPort.saveRefreshToken(user.getEmail(), refreshToken);
+
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        return new TokenResponse(token, expiresAt);
+        return new TokenResponse(token, refreshToken, expiresAt);
     }
 
     @Override
@@ -269,7 +273,7 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public TokenResponse verifyEmailForToken(String token) {
-        log.info("[AuthService] Verifying email with token: {}", token);
+        log.info(AuthLogMessages.LOG_AUTH_VERIFY_EMAIL_START, token);
 
         String email = verificationTokenPort.findEmailByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException(AuthMessages.MESSAGE_INVALID_VERIFY_TOKEN));
@@ -319,7 +323,7 @@ public class AuthApplicationService implements AuthService {
             throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
         }
         if (userService.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_USERNAME_DUPLICATE);
         }
 
         try {
@@ -357,7 +361,7 @@ public class AuthApplicationService implements AuthService {
                         resendCooldownSeconds,
                         LocalDateTime.now().plusSeconds(resendCooldownSeconds));
             } else {
-                log.info("[AuthService] Bypassing email verification for test account: {}", request.email());
+                log.info(AuthLogMessages.LOG_AUTH_BYPASS_VERIFICATION, request.email());
                 return new RegisterResponse(
                         AuthMessages.MESSAGE_REGISTER_SUCCESS,
                         0,
@@ -373,7 +377,7 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public RegisterResponse resendVerificationEmail(ResendEmailRequest request) {
-        log.info("[AuthService] Resend verification email for: {}", request.email());
+        log.info(AuthLogMessages.LOG_AUTH_RESEND_EMAIL, request.email());
 
         // Check if user exists
         User user = userService.getByEmail(request.email());
@@ -387,7 +391,7 @@ public class AuthApplicationService implements AuthService {
         long remainingCooldown = verificationTokenPort.getResendCooldownSeconds(request.email());
         if (remainingCooldown > 0) {
             throw new IllegalStateException(
-                    String.format("Vui lòng đợi %d giây trước khi gửi lại email xác thực.", remainingCooldown));
+                    String.format(AuthMessages.MESSAGE_WAIT_FOR_COOLDOWN, remainingCooldown));
         }
 
         // Delete old token if exists
@@ -402,18 +406,46 @@ public class AuthApplicationService implements AuthService {
         String verificationLink = frontendUrl + "/verify-email?token=" + token;
         emailServicePort.sendVerificationEmail(user.getEmail(), token, verificationLink);
 
-        log.info("[AuthService] Verification email resent to: {}", request.email());
+        log.info(AuthLogMessages.LOG_AUTH_RESEND_VERIFICATION_EMAIL_SUCCESS, request.email());
 
         return new RegisterResponse(
-                "Email xác thực đã được gửi lại thành công.",
+                AuthMessages.MESSAGE_RESEND_EMAIL_SUCCESS,
                 resendCooldownSeconds,
                 LocalDateTime.now().plusSeconds(resendCooldownSeconds));
     }
 
     @Override
+    public TokenResponse refreshToken(String refreshToken) {
+        if (!jwtTokenProviderPort.validateToken(refreshToken)) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_INVALID_REFRESH_TOKEN);
+        }
+
+        String email = jwtTokenProviderPort.extractEmail(refreshToken);
+        String storedToken = jwtTokenProviderPort.getRefreshToken(email);
+
+        if (storedToken == null || !storedToken.equals(refreshToken)) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_EXPIRED_REFRESH_TOKEN);
+        }
+
+        User user = userService.getByEmail(email);
+        return generateTokenResponse(user);
+    }
+
+    @Override
     public void logout(String token) {
-        log.info("[AuthService] Logging out user");
+        log.info(AuthLogMessages.LOG_AUTH_LOGOUT_START);
         jwtTokenProviderPort.blacklistToken(token);
-        log.info("[AuthService] User logged out successfully");
+
+        // Also delete refresh token
+        try {
+            String email = jwtTokenProviderPort.extractEmail(token);
+            if (email != null) {
+                jwtTokenProviderPort.deleteRefreshToken(email);
+            }
+        } catch (Exception e) {
+            log.warn(AuthLogMessages.LOG_AUTH_TOKEN_EXTRACT_ERROR);
+        }
+
+        log.info(AuthLogMessages.LOG_AUTH_LOGOUT_SUCCESS);
     }
 }

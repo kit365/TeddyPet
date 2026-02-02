@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { login, LoginResponse } from "../../../api/auth.api";
+import { login } from "../../../api/auth.api";
+import { AuthResponse } from "../../../../types/auth.type";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import Cookies from "js-cookie";
@@ -9,13 +10,20 @@ export const useLogin = () => {
 
     return useMutation({
         mutationFn: login,
-        onSuccess: (response: LoginResponse) => {
+        onSuccess: (response: AuthResponse) => {
             if (response.success && response.data?.token) {
                 Cookies.set("tokenAdmin", response.data.token, {
                     expires: 1,        // 1 ngày
                     secure: false,     // true nếu HTTPS
                     sameSite: "lax"
                 });
+                if (response.data.refreshToken) {
+                    Cookies.set("refreshTokenAdmin", response.data.refreshToken, {
+                        expires: 7,
+                        secure: false,
+                        sameSite: "lax"
+                    });
+                }
                 toast.success(response.message);
                 setTimeout(() => {
                     navigate("/admin/dashboard");

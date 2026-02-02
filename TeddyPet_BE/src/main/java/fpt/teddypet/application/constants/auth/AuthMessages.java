@@ -18,11 +18,22 @@ public final class AuthMessages {
     public static final String MESSAGE_USER_NOT_AUTHENTICATED = "Người dùng chưa được xác thực.";
     public static final String MESSAGE_CANNOT_DETERMINE_USER = "Không thể xác định người dùng hiện tại.";
     public static final String MESSAGE_USER_NOT_FOUND = "Không tìm thấy người dùng.";
-    
+
     // Email Verification messages
     public static final String MESSAGE_VERIFY_EMAIL_SENT = "Email xác thực đã được gửi. Vui lòng kiểm tra hộp thư của bạn.";
     public static final String MESSAGE_VERIFY_EMAIL_SUCCESS = "Xác thực email thành công. Chào mừng bạn đến với TeddyPet!";
     public static final String MESSAGE_EMAIL_ALREADY_VERIFIED = "Email này đã được xác thực trước đó.";
     public static final String MESSAGE_INVALID_VERIFY_TOKEN = "Mã xác thực không hợp lệ hoặc đã hết hạn.";
     public static final String MESSAGE_EMAIL_NOT_VERIFIED = "Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập.";
+
+    // Additional messages
+    public static final String MESSAGE_USERNAME_DUPLICATE = "Tên đăng nhập đã tồn tại.";
+    public static final String MESSAGE_PROFILE_RETRIEVED_SUCCESS = "Lấy thông tin người dùng thành công.";
+    public static final String MESSAGE_LOGOUT_SUCCESS = "Đăng xuất thành công.";
+    public static final String MESSAGE_RESEND_EMAIL_SUCCESS = "Email xác thực đã được gửi lại thành công.";
+    public static final String MESSAGE_WAIT_FOR_COOLDOWN = "Vui lòng đợi %d giây trước khi gửi lại email xác thực.";
+    public static final String MESSAGE_INVALID_REFRESH_TOKEN = "Refresh Token không hợp lệ.";
+    public static final String MESSAGE_EXPIRED_REFRESH_TOKEN = "Refresh Token đã hết hạn hoặc không hợp lệ.";
+    public static final String MESSAGE_REFRESH_TOKEN_SUCCESS = "Làm mới token thành công.";
+    public static final String MESSAGE_USER_IS_DISABLED = "User is disabled";
 }
