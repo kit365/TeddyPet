@@ -14,7 +14,9 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-lea
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { toast } from "react-toastify";
-import { createOrder, OrderRequest, OrderItemRequest } from "../../../api/order.api";
+import { createOrder } from "../../../api/order.api";
+import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
+import { UserAddressResponse } from "../../../types/address.type";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -77,12 +79,12 @@ export const CheckoutPage = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const [showOrderNotes, setShowOrderNotes] = useState(false);
-    const [addresses, setAddresses] = useState<any[]>([]);
+    const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
     const [loadingAddresses, setLoadingAddresses] = useState(true);
 
     // Shipping & Payment States
-    const [paymentMethod, setPaymentMethod] = useState<"BANK_TRANSFER" | "CASH_ON_DELIVERY">("BANK_TRANSFER");
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
     // Map States for New Address
@@ -118,7 +120,7 @@ export const CheckoutPage = () => {
                 const response = await getAllAddresses();
                 if (response.success) {
                     setAddresses(response.data);
-                    const defaultAddr = response.data.find((addr: any) => addr.isDefault);
+                    const defaultAddr = response.data.find((addr: UserAddressResponse) => addr.isDefault);
                     if (defaultAddr) {
                         setSelectedAddressId(defaultAddr.id.toString());
                     } else if (response.data.length > 0) {
@@ -562,8 +564,8 @@ export const CheckoutPage = () => {
                                     </h3>
                                     <div className="space-y-[12px]">
                                         {[
-                                            { id: 'BANK_TRANSFER' as const, label: 'Chuyển khoản ngân hàng' },
-                                            { id: 'CASH_ON_DELIVERY' as const, label: 'Thanh toán khi nhận hàng (COD)' }
+                                            { id: 'BANK_TRANSFER' as const, label: 'Chuyển khoản ngân hàng (Chưa hỗ trợ)' },
+                                            { id: 'CASH' as const, label: 'Thanh toán khi nhận hàng (COD)' }
                                         ].map((method) => (
                                             <label key={method.id} className="flex items-center gap-[12px] cursor-pointer group">
                                                 <input

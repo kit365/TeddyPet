@@ -1,60 +1,36 @@
 import { apiApp } from "./index";
+import { ApiResponse } from "../types/common.type";
+import { UserAddressRequest, UserAddressResponse } from "../types/address.type";
 
-// API Endpoints Constants
-const ENDPOINTS = {
-    USER_ADDRESSES: '/api/user-addresses',
-    USER_ADDRESS_BY_ID: (id: number) => `/api/user-addresses/${id}`,
-    SET_DEFAULT: (id: number) => `/api/user-addresses/${id}/default`,
-};
-
-// Interfaces
-export interface UserAddressRequest {
-    fullName: string;
-    phone: string;
-    address: string;
-    longitude?: number;
-    latitude?: number;
-    isDefault: boolean;
-}
-
-export interface UserAddressResponse {
-    id: number;
-    userId: string;
-    fullName: string;
-    phone: string;
-    address: string;
-    longitude?: number;
-    latitude?: number;
-    isDefault: boolean;
-}
+const BASE_PATH = "/api/user-addresses";
 
 // API Functions
 export const getAllAddresses = async () => {
-    const response = await apiApp.get<{ success: boolean; data: UserAddressResponse[] }>(ENDPOINTS.USER_ADDRESSES);
+    const response = await apiApp.get<ApiResponse<UserAddressResponse[]>>(`${BASE_PATH}`);
     return response.data;
 };
 
 export const getAddressDetail = async (id: number) => {
-    const response = await apiApp.get<{ success: boolean; data: UserAddressResponse }>(ENDPOINTS.USER_ADDRESS_BY_ID(id));
+    const response = await apiApp.get<ApiResponse<UserAddressResponse>>(`${BASE_PATH}/${id}`);
     return response.data;
 };
 
 export const createAddress = async (request: UserAddressRequest) => {
-    const response = await apiApp.post<{ success: boolean; message: string }>(ENDPOINTS.USER_ADDRESSES, request);
+    const response = await apiApp.post<ApiResponse<void>>(`${BASE_PATH}`, request);
     return response.data;
 };
 
 export const updateAddress = async (id: number, request: UserAddressRequest) => {
-    const response = await apiApp.put<{ success: boolean; message: string }>(ENDPOINTS.USER_ADDRESS_BY_ID(id), request);
+    const response = await apiApp.put<ApiResponse<void>>(`${BASE_PATH}/${id}`, request);
     return response.data;
 };
 
 export const deleteAddress = async (id: number) => {
-    const response = await apiApp.delete<{ success: boolean; message: string }>(ENDPOINTS.USER_ADDRESS_BY_ID(id));
+    const response = await apiApp.delete<ApiResponse<void>>(`${BASE_PATH}/${id}`);
     return response.data;
 };
 
 export const setDefaultAddress = async (id: number) => {
-    const response = await apiApp.patch<{ success: boolean; message: string }>(ENDPOINTS.SET_DEFAULT(id));
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/default`);
     return response.data;
 };

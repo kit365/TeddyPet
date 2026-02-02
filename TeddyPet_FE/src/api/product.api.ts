@@ -32,7 +32,6 @@ export interface ProductAttributeValue {
     value: string;
     displayOrder: number;
     displayCode: string;
-    // ... other fields
 }
 
 export interface ProductVariantDetail {
@@ -61,7 +60,7 @@ export interface ProductDetail {
     maxPrice: number;
     ratingCount: number;
     averageRating: number;
-    sku: string; // Not in response? Check.
+    sku: string;
     variants: ProductVariantDetail[];
     attributes: ProductAttribute[];
     images: { id: number, url: string }[];
@@ -115,12 +114,15 @@ export interface ProductsResponse {
     timestamp: string;
 }
 
+const BASE_PATH = "/api/products";
+const HOME_BASE_PATH = "/api/home/products";
+
 export const getProducts = async (): Promise<ProductsResponse> => {
-    const response = await apiApp.get("/api/products");
+    const response = await apiApp.get(`${BASE_PATH}`);
     return response.data;
 };
 
 export const getProductBySlug = async (slug: string) => {
-    const response = await apiApp.get(`/api/home/products/${slug}`); // Corrected endpoint
+    const response = await apiApp.get(`${HOME_BASE_PATH}/${slug}`);
     return response.data;
 };

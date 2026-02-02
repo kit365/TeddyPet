@@ -55,7 +55,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/dat-lich", element: <BookingPage /> },
     { path: "/cart", element: <CartPage /> },
     { path: "/checkout", element: <CheckoutPage /> },
-    { path: "/order/success", element: <CheckSuccessPage /> },
+    { path: "/checkout/success", element: <CheckSuccessPage /> },
     { path: "/dich-vu", element: <ServicePage /> },
     {
         path: "/dashboard",

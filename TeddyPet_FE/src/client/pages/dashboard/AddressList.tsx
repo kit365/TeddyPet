@@ -3,7 +3,8 @@ import { ProductBanner } from "../product/sections/ProductBanner";
 import { Link } from "react-router-dom";
 import { Sidebar } from "./sections/Sidebar";
 import { useEffect, useState } from "react";
-import { getAllAddresses, deleteAddress, setDefaultAddress, UserAddressResponse } from "../../../api/address.api";
+import { getAllAddresses, deleteAddress, setDefaultAddress } from "../../../api/address.api";
+import { UserAddressResponse } from "../../../types/address.type";
 import { toast } from "react-toastify";
 
 export const AddressListPage = () => {

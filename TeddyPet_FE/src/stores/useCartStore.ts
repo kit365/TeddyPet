@@ -1,22 +1,9 @@
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { getCart, addToCart as addToCartAPI, updateCartItem as updateCartItemAPI, removeCartItem as removeCartItemAPI, CartItemResponse } from "../api/cart.api";
+import { getCart, addToCart as addToCartAPI, updateCartItem as updateCartItemAPI, removeCartItem as removeCartItemAPI } from "../api/cart.api";
+import { CartItemResponse, CartItem } from "../types/cart.type";
 import Cookies from "js-cookie";
-
-export interface CartItem {
-    id: string | number;
-    title: string;
-    image: string;
-    option: {
-        id: string;
-        size: string;
-        price: number;
-    };
-    quantity: number;
-    stockQuantity?: number;
-    checked?: boolean;
-}
 
 interface CartState {
     items: CartItem[];
