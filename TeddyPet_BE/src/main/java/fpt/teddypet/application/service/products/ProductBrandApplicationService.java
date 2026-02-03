@@ -4,11 +4,13 @@ import fpt.teddypet.application.constants.products.productbrand.ProductBrandLogM
 import fpt.teddypet.application.constants.products.productbrand.ProductBrandMessages;
 import fpt.teddypet.application.dto.request.products.brand.ProductBrandRequest;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
+import fpt.teddypet.application.dto.response.product.brand.ProductBrandHomeResponse;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.application.mapper.products.ProductBrandMapper;
 import fpt.teddypet.application.port.input.products.ProductBrandService;
 import fpt.teddypet.application.port.output.products.ProductBrandRepositoryPort;
 import fpt.teddypet.application.util.ImageAltUtil;
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductBrand;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,13 @@ public class ProductBrandApplicationService implements ProductBrandService {
 
         ProductBrand brand = ProductBrand.builder().build();
         productBrandMapper.updateBrandFromRequest(request, brand);
+
+        // Generate and validate Slug
+        String slug = SlugUtil.toSlug(request.name());
+        ValidationUtils.ensureUnique(
+                () -> productBrandRepositoryPort.existsBySlug(slug),
+                "Slug '" + slug + "' đã tồn tại");
+        brand.setSlug(slug);
         brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
         brand.setActive(true);
         brand.setDeleted(false);
@@ -55,6 +64,13 @@ public class ProductBrandApplicationService implements ProductBrandService {
         }
 
         productBrandMapper.updateBrandFromRequest(request, brand);
+
+        // Generate and validate Slug
+        String slug = SlugUtil.toSlug(request.name());
+        ValidationUtils.ensureUnique(
+                () -> productBrandRepositoryPort.existsBySlugAndIdNot(slug, brandId),
+                "Slug '" + slug + "' đã tồn tại");
+        brand.setSlug(slug);
         brand.setAltImage(ImageAltUtil.generateAltText(request.name()));
         ProductBrand savedBrand = productBrandRepositoryPort.save(brand);
         log.info(ProductBrandLogMessages.LOG_PRODUCT_BRAND_UPSERT_SUCCESS, savedBrand.getId());
@@ -111,8 +127,6 @@ public class ProductBrandApplicationService implements ProductBrandService {
         return count;
     }
 
-
-
     private void validateNameUniqueness(String name, Long brandId) {
         boolean nameExists = brandId != null
                 ? productBrandRepositoryPort.existsByNameAndIdNot(name, brandId)
@@ -121,13 +135,12 @@ public class ProductBrandApplicationService implements ProductBrandService {
         if (nameExists) {
             log.warn(ProductBrandLogMessages.LOG_PRODUCT_BRAND_NAME_VALIDATION_FAILED, name);
         }
-        
+
         ValidationUtils.ensureUnique(
-            () -> brandId != null
-                ? productBrandRepositoryPort.existsByNameAndIdNot(name, brandId)
-                : productBrandRepositoryPort.existsByName(name),
-            ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NAME_ALREADY_EXISTS
-        );
+                () -> brandId != null
+                        ? productBrandRepositoryPort.existsByNameAndIdNot(name, brandId)
+                        : productBrandRepositoryPort.existsByName(name),
+                ProductBrandMessages.MESSAGE_PRODUCT_BRAND_NAME_ALREADY_EXISTS);
     }
 
     @Override
@@ -151,12 +164,20 @@ public class ProductBrandApplicationService implements ProductBrandService {
             return null;
         }
 
-
         if (onlyActive && !brand.isActive()) {
             return null;
         }
 
         return productBrandMapper.toInfo(brand);
     }
-}
 
+    @Override
+    public List<ProductBrandHomeResponse> getAllHomeBrands() {
+        List<ProductBrand> brands = productBrandRepositoryPort.findAll();
+        log.info("Getting home brands, found: {}", brands.size());
+        return brands.stream()
+                .filter(b -> b.isActive() && !b.isDeleted())
+                .map(productBrandMapper::toHomeResponse)
+                .toList();
+    }
+}

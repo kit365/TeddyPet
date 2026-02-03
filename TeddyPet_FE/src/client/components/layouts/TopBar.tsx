@@ -1,17 +1,9 @@
-import { Facebook, Instagram, X, Threads, YoutubeSolid, MailSolid } from "iconoir-react";
+import { MailSolid } from "iconoir-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom"
 import { SocialIcon } from "../ui/SocialIcon";
 
 export const TopBar = () => {
-    const socialItems = [
-        { icon: Instagram, to: "/" },
-        { icon: Facebook, to: "/" },
-        { icon: X, to: "/" },
-        { icon: Threads, to: "/" },
-        { icon: YoutubeSolid, to: "/" },
-    ];
-
     const texts = [
         "Ưu đãi mùa hè đã có – Miễn phí giao hàng cho đơn trên 300k!",
         "Đắm chìm trong mùa hè tiết kiệm – Miễn phí vận chuyển trên 300k!",
@@ -39,7 +31,7 @@ export const TopBar = () => {
         <>
             <div className="px-[30px] py-[10px] bg-client-primary">
                 <div className="flex items-center justify-between app-container">
-                    <SocialIcon items={socialItems} />
+                    <SocialIcon />
                     <div className="flex items-center justify-center">
                         <div className="w-[35px] h-[35px] cursor-pointer flex items-center justify-center">
                             <svg

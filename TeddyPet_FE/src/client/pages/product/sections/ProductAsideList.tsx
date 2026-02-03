@@ -2,38 +2,51 @@ import { Link } from "react-router-dom";
 import PetsIcon from "@mui/icons-material/Pets";
 import { memo } from "react";
 
-interface Category {
+interface CategoryItem {
     name: string;
     count: number;
-    to: string;
+    slug: string; // Changed from 'to' to 'slug' to match ProductAside
 }
 
 interface ProductAsideListProps {
-    categories: Category[];
+    categories: CategoryItem[];
+    selectedSlugs?: string[];
+    onSelect?: (slug: string) => void;
 }
 
-export const ProductAsideList = memo(({ categories }: ProductAsideListProps) => {
+export const ProductAsideList = memo(({ categories, selectedSlugs = [], onSelect }: ProductAsideListProps) => {
     return (
         <ul className="py-[10px]">
-            {categories.map((cat) => (
-                <li
-                    key={cat.name}
-                    className="mb-[10px] flex items-center relative group"
-                >
-                    <Link
-                        to={cat.to}
-                        className="w-full px-[30px] py-[15px] bg-[#fff0f066] pr-[60px] rounded-[40px] 
-                        flex items-center text-client-secondary transition-default 
-                        group-hover:bg-client-secondary group-hover:text-white"
+            {categories.map((cat) => {
+                const isSelected = selectedSlugs.includes(cat.slug);
+                return (
+                    <li
+                        key={cat.slug}
+                        className="mb-[10px] flex items-center relative group cursor-pointer"
+                        onClick={(e) => {
+                            if (onSelect) {
+                                e.preventDefault();
+                                onSelect(cat.slug);
+                            }
+                        }}
                     >
-                        <PetsIcon sx={{ fontSize: "2rem", marginRight: "10px" }} />
-                        {cat.name}
-                    </Link>
-                    <span className="absolute right-[30px] top-[50%] translate-y-[-50%] text-client-text group-hover:text-white transition-default">
-                        ({cat.count})
-                    </span>
-                </li>
-            ))}
+                        <div
+                            className={`w-full px-[30px] py-[15px] pr-[60px] rounded-[40px] 
+                            flex items-center transition-default 
+                            ${isSelected
+                                    ? "bg-client-primary text-white"
+                                    : "bg-[#fff0f066] text-client-secondary hover:bg-client-secondary hover:text-white"
+                                }`}
+                        >
+                            <PetsIcon sx={{ fontSize: "2rem", marginRight: "10px" }} />
+                            {cat.name}
+                        </div>
+                        <span className={`absolute right-[30px] top-[50%] translate-y-[-50%] transition-default ${isSelected ? 'text-white' : 'text-client-text group-hover:text-white'}`}>
+                            ({cat.count})
+                        </span>
+                    </li>
+                );
+            })}
         </ul>
     );
 });

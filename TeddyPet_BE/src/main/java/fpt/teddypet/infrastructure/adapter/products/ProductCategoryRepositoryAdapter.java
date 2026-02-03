@@ -25,6 +25,21 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
     }
 
     @Override
+    public boolean existsByName(String name) {
+        return productCategoryRepository.existsByName(name);
+    }
+
+    @Override
+    public boolean existsBySlug(String slug) {
+        return productCategoryRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public boolean existsBySlugAndIdNot(String slug, Long id) {
+        return productCategoryRepository.existsBySlugAndIdNot(slug, id);
+    }
+
+    @Override
     public Optional<ProductCategory> findById(Long categoryId) {
         return productCategoryRepository.findByIdAndIsDeletedFalse(categoryId);
     }
@@ -56,7 +71,7 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         if (categoryIds == null || categoryIds.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         Set<Long> allIds = new HashSet<>(categoryIds);
 
         List<Long> currentLevel = new ArrayList<>(categoryIds);
@@ -73,7 +88,7 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
             }
             currentLevel = nextLevel;
         }
-        
+
         return new ArrayList<>(allIds);
     }
 
@@ -91,17 +106,18 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
     }
 
     @Override
-    public List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active, boolean deleted) {
+    public List<ProductCategory> findAllByIdInAndIsActiveAndIsDeleted(List<Long> categoryIds, boolean active,
+            boolean deleted) {
         if (categoryIds == null || categoryIds.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<ProductCategory> categories = productCategoryRepository.findAllByIdInAndIsActiveAndIsDeleted(categoryIds, active, deleted);
+        List<ProductCategory> categories = productCategoryRepository.findAllByIdInAndIsActiveAndIsDeleted(categoryIds,
+                active, deleted);
 
         checkMissingIds(categoryIds, categories);
         return categories;
     }
-
 
     private void checkMissingIds(List<Long> requestedIds, List<ProductCategory> foundCategories) {
         List<Long> distinctIds = requestedIds.stream().distinct().toList();
@@ -124,5 +140,9 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         return productCategoryRepository.softDeleteByIds(ids);
     }
 
-}
+    @Override
+    public List<ProductCategory> findLeafCategories() {
+        return productCategoryRepository.findByChildrenIsEmptyAndIsDeletedFalse();
+    }
 
+}

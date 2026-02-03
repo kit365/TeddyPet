@@ -590,6 +590,11 @@ input[type="number"]::-webkit-inner-spin-button {
     border-radius: 2px;
 }
 
+.checkbox.checkbox-cart label::after {
+    top: 5px;
+    left: 4px;
+}
+
 /* End Checkbox */
 
 /* Date Blog */
@@ -960,3 +965,68 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /* End Cart Page */
+
+/* Blog Detail Content */
+.blog-detail-content p {
+    margin-bottom: 20px;
+    color: #505050;
+    line-height: 1.8;
+}
+
+.blog-detail-content h1,
+.blog-detail-content h2,
+.blog-detail-content h3,
+.blog-detail-content h4,
+.blog-detail-content h5,
+.blog-detail-content h6 {
+    font-family: 'secondary', sans-serif;
+    color: #102937;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.blog-detail-content h1 {
+    font-size: 4rem;
+}
+
+.blog-detail-content h2 {
+    font-size: 3.5rem;
+}
+
+.blog-detail-content h3 {
+    font-size: 3rem;
+}
+
+.blog-detail-content h4 {
+    font-size: 2.5rem;
+}
+
+.blog-detail-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+    margin: 30px 0;
+}
+
+.blog-detail-content ul,
+.blog-detail-content ol {
+    margin-bottom: 20px;
+    padding-left: 20px;
+}
+
+.blog-detail-content li {
+    margin-bottom: 10px;
+    list-style: disc;
+}
+
+.blog-detail-content blockquote {
+    border-left: 4px solid #F8721F;
+    padding-left: 20px;
+    margin: 30px 0;
+    font-style: italic;
+    font-size: 2rem;
+    color: #102937;
+}
+
+/* End Blog Detail Content */

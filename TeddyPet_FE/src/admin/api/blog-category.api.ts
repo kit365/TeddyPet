@@ -1,0 +1,49 @@
+import { apiApp } from '../../api';
+import Cookies from 'js-cookie';
+import { BlogCategoryNode } from '../components/ui/CategoryTreeSelect';
+import { ApiResponse } from '../config/type';
+
+const BASE_URL = '/api/blog-categories';
+
+/** Header auth dùng chung cho blog-categories */
+const withAuth = () => {
+    const token = Cookies.get('tokenAdmin');
+
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    };
+};
+
+/** Danh sách (flat) */
+export const getCategories = async (): Promise<ApiResponse<any[]>> => {
+    const response = await apiApp.get(BASE_URL, withAuth());
+    return response.data; // response.data ở đây chính là object có field { data, success, message }
+};
+
+/** Danh sách dạng cây */
+export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNode[]>> => {
+    const token = Cookies.get('tokenAdmin');
+    const response = await apiApp.get('/api/blog-categories/nested', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+};
+/** Tạo danh mục */
+export const createCategory = async (data: any): Promise<any> => {
+    const response = await apiApp.post(BASE_URL, data, withAuth());
+    return response.data;
+};
+
+/** Chi tiết */
+export const getCategoryById = async (id: string | number): Promise<any> => {
+    const response = await apiApp.get(`${BASE_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+/** Xóa */
+export const deleteCategory = async (id: string | number): Promise<any> => {
+    const response = await apiApp.delete(`${BASE_URL}/${id}`, withAuth());
+    return response.data;
+};

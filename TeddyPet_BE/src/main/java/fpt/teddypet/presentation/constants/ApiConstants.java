@@ -12,6 +12,9 @@ public final class ApiConstants {
     // Auth API base path
     public static final String API_AUTH = BASE_API + "/auth";
 
+    // Home API base path (public)
+    public static final String API_HOME = BASE_API + "/home";
+
     // Product Variant API base path
     public static final String API_PRODUCT_VARIANTS = BASE_API + "/product-variants";
 
@@ -51,16 +54,15 @@ public final class ApiConstants {
     // Blog Tag API base path
     public static final String API_BLOG_TAGS = BASE_API + "/blog-tags";
 
-
     public static final String API_CART = BASE_API + "/carts";
 
     public static final String API_ORDER = BASE_API + "/orders";
 
-
     public static final String API_PROMOTION = BASE_API + "/promotions";
     public static final String PROMOTION_USAGES_BASE = BASE_API + "/promotion-usages";
 
-
     public static final String API_PAYMENT = BASE_API + "/payments";
-}
 
+    // User Address API base path
+    public static final String API_USER_ADDRESSES = BASE_API + "/user-addresses";
+}

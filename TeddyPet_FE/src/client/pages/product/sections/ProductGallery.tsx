@@ -3,15 +3,16 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Thumbs } from 'swiper/modules';
 import { Swiper as SwiperCore } from 'swiper';
 
-const productImages = [
-    { url: 'https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg', alt: "" },
-    { url: 'https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg', alt: "" },
-    { url: 'https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10b-1000x1048.jpg', alt: "" },
-    { url: 'https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/product-img-11cb-1000x1048.jpg', alt: "" },
-];
+interface ProductGalleryProps {
+    images: { id: number; url: string }[];
+}
 
-export const ProductGallery = () => {
+export const ProductGallery = ({ images }: ProductGalleryProps) => {
     const [thumbsSwiper, setThumbsSwiper] = useState<SwiperCore | null>(null);
+
+    const displayImages = images.length > 0 ? images : [
+        { id: 1, url: 'https://placeholder.com/600', alt: "Placeholder" }
+    ];
 
     return (
         <div className="flex w-full gap-[20px] 2xl:gap-[12px] sticky top-0 h-[603px] 2xl:h-[522.75px]">
@@ -26,14 +27,14 @@ export const ProductGallery = () => {
                     watchSlidesProgress={true}
                     className="thumbs-slider-vertical w-full h-full"
                 >
-                    {productImages.map((image, index) => (
+                    {displayImages.map((image, index) => (
                         <SwiperSlide
                             key={index}
                             className="swiper-thumbnail-item border border-[#D7D7D7] cursor-pointer rounded-[10px] overflow-hidden p-[3px]"
                         >
                             <img
                                 src={image.url}
-                                alt={`Thumbnail ${image.alt}`}
+                                alt={`Thumbnail ${index}`}
                                 className="w-full h-full object-cover rounded-[10px]"
                             />
                         </SwiperSlide>
@@ -48,11 +49,11 @@ export const ProductGallery = () => {
                     navigation={true}
                     className="main-slider-horizontal rounded-[10px] h-full border border-[#D7D7D7]"
                 >
-                    {productImages.map((image, index) => (
+                    {displayImages.map((image, index) => (
                         <SwiperSlide key={index} className="h-full">
                             <img
                                 src={image.url}
-                                alt={image.alt}
+                                alt={`Product ${index}`}
                                 className="w-full h-full object-cover"
                             />
                         </SwiperSlide>

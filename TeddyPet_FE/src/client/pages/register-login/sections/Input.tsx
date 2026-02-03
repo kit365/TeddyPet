@@ -12,7 +12,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         const { name, placeholder, type = "text", error, ...rest } = props;
 
         return (
-            <p className="mb-[20px] font-[300] text-client-text">
+            <div className="mb-[10px] font-[300] text-client-text">
                 <input
                     ref={ref}
                     name={name}
@@ -21,8 +21,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     className="w-full mb-[5px] bg-white text-client-text outline-none border border-[#d7d7d7] px-[32px] py-[16px] rounded-[40px] focus:border focus:border-client-primary transition-default"
                     {...rest}
                 />
-                {error && <span className="text-client-primary ml-[32px] text-[1.4rem]">{error}</span>}
-            </p>
+                <div className="min-h-[22px] ml-[32px]">
+                    {error && <span className="text-client-secondary text-[1.4rem]">{error}</span>}
+                </div>
+            </div>
         )
     }
 );

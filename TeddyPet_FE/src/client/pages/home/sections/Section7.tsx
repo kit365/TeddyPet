@@ -80,7 +80,7 @@ export const Section7 = () => {
                                 hoverTextColor="group-hover:text-white"
                                 iconColor="before:bg-client-secondary after:bg-client-secondary"
                                 hoverIconColor="hover:before:bg-white hover:after:bg-white"
-                                url="cua-hang"
+                                url="/shop"
                             />
                         </div>
                     </div>

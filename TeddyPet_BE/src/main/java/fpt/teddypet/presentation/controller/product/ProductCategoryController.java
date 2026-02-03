@@ -30,7 +30,7 @@ public class ProductCategoryController {
     public ResponseEntity<ApiResponse<Void>> upsert(
             @Valid @RequestBody ProductCategoryUpsertRequest request) {
         productCategoryService.upsert(request);
-        String message = request.categoryId() == null 
+        String message = request.categoryId() == null
                 ? ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_CREATED_SUCCESS
                 : ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_UPDATED_SUCCESS;
         return ResponseEntity
@@ -85,7 +85,7 @@ public class ProductCategoryController {
     @Operation(summary = "Xóa nhiều danh mục sản phẩm", description = "Xóa mềm nhiều danh mục sản phẩm theo danh sách ID")
     public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
         int count = productCategoryService.deleteMany(ids);
-        return ResponseEntity.ok(ApiResponse.success(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_DELETED_SUCCESS, count));
+        return ResponseEntity
+                .ok(ApiResponse.success(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_DELETED_SUCCESS, count));
     }
 }
-

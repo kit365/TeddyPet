@@ -7,23 +7,30 @@ import { useMemo, useState } from 'react';
 type OptionType = {
     value: string;
     label: string;
+    sortKey?: string;
+    sortDirection?: string;
 };
 
 const options: OptionType[] = [
-    { value: 'a', label: 'Sắp xếp mặc định' },
-    { value: 'b', label: 'Theo độ phổ biến' },
-    { value: 'd', label: 'Sản phẩm mới nhất' },
-    { value: 'e', label: 'Giá: thấp đến cao' },
-    { value: 'f', label: 'Giá: cao đến thấp' },
+    { value: 'default', label: 'Sắp xếp mặc định', sortKey: 'id', sortDirection: 'desc' },
+    { value: 'popular', label: 'Theo độ phổ biến', sortKey: 'viewCount', sortDirection: 'desc' },
+    { value: 'newest', label: 'Sản phẩm mới nhất', sortKey: 'createdAt', sortDirection: 'desc' },
+    { value: 'price_asc', label: 'Giá: thấp đến cao', sortKey: 'minPrice', sortDirection: 'asc' },
+    { value: 'price_desc', label: 'Giá: cao đến thấp', sortKey: 'minPrice', sortDirection: 'desc' },
 ];
 
-export const ProductListSearch = () => {
+interface ProductListSearchProps {
+    totalElements?: number;
+    page: number;
+    size: number;
+    onSortChange: (key: string, direction: string) => void;
+}
+
+export const ProductListSearch = ({ totalElements = 0, page, size, onSortChange }: ProductListSearchProps) => {
     const {
         selectedOption,
         hoveredOption,
         setHoveredOption,
-        searchValue,
-        setSearchValue,
         menuOpen,
         selectRef,
         filteredOptions,
@@ -41,13 +48,25 @@ export const ProductListSearch = () => {
             ? 'max-h-[500px] opacity-100 py-[20px] mb-[30px]'
             : 'max-h-0 opacity-0 py-0 mb-0';
     }, [isFilterOpen]);
-    // Hết Hiển thị danh sách lọc
+
+    // Handle sort change wrapper
+    const onOptionSelect = (item: OptionType) => {
+        handleSelectChange(item);
+        if (item.sortKey && item.sortDirection) {
+            onSortChange(item.sortKey, item.sortDirection);
+        }
+    };
+
+    const start = page * size + 1;
+    const end = Math.min((page + 1) * size, totalElements);
 
     return (
         <>
             {/* Search */}
             <div className="px-[30px] py-[15px] mb-[40px] flex items-center justify-between bg-[#e67e201a] rounded-[192px]">
-                <div className="text-client-secondary">Showing 1–12 of 18 results</div>
+                <div className="text-client-secondary">
+                    Showing {totalElements > 0 ? `${start}–${end} of ${totalElements}` : '0'} results
+                </div>
                 <div className="flex items-center">
                     <div onClick={toggleFilter} className='cursor-pointer flex items-center'>
                         <div className="text-client-secondary">Bộ lọc</div>
@@ -77,28 +96,14 @@ export const ProductListSearch = () => {
                         }} />
                         {menuOpen && (
                             <div className="absolute z-20 bg-white left-0 top-[100%] w-full rounded-[10px] mt-[10px] border border-[#10293726] shadow-[0_4px_5px_#10293726,0_-1px_0_0_#10293726]">
-                                <div
-                                    className="p-[10px]"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="px-[32px] py-[16px] border border-[#10293726] rounded-[40px]">
-                                        <input
-                                            type="text"
-                                            className="w-full outline-none text-client-text"
-                                            value={searchValue}
-                                            onChange={(e) => setSearchValue(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </div>
-                                </div>
-                                <ul className="p-[10px] pt-0 max-h-[200px] overflow-auto">
+                                <ul className="p-[10px] max-h-[200px] overflow-auto">
                                     {filteredOptions.length > 0 ? (
                                         filteredOptions.map((item) => (
                                             <li
                                                 key={item.value}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleSelectChange(item);
+                                                    onOptionSelect(item);
                                                 }}
                                                 onMouseEnter={() => setHoveredOption(item.value)}
                                                 onMouseLeave={() => setHoveredOption(null)}
@@ -152,58 +157,7 @@ export const ProductListSearch = () => {
                         </div>
                         <span>(13)</span>
                     </div>
-                    <div className="flex items-center justify-between text-client-secondary hover:text-[#10293780] cursor-pointer transition-default">
-                        <div>
-                            {[...Array(5)].map((_, i) => (
-                                <StarIcon
-                                    key={i}
-                                    sx={{
-                                        fontSize: "1.9rem !important",
-                                        color: i < 3 ? "#ffbb00 !important" : "#ccc !important",
-                                    }}
-                                />
-                            ))}
-                        </div>
-                        <span>(5)</span>
-                    </div>
-                </div>
-                <div className='m-[10px] p-[20px] bg-[#fff0f0] rounded-[20px]'>
-                    <h2 className='mb-[15px] text-[2.1rem] font-secondary'>Lọc theo gram</h2>
-                    <ul className='grid gap-y-[10px]'>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>10 Gói</div>
-                            <span>(5)</span>
-                        </li>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>5 Gói</div>
-                            <span>(6)</span>
-                        </li>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>3 Gói</div>
-                            <span>(6)</span>
-                        </li>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>Đơn</div>
-                            <span>(6)</span>
-                        </li>
-                    </ul>
-                </div>
-                <div className='m-[10px] p-[20px] bg-[#fff0f0] rounded-[20px]'>
-                    <h2 className='mb-[15px] text-[2.1rem] font-secondary'>Lọc theo kích cỡ</h2>
-                    <ul className='grid gap-y-[10px]'>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>Lớn</div>
-                            <span>(8)</span>
-                        </li>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>Trung bình</div>
-                            <span>(8)</span>
-                        </li>
-                        <li className='text-client-secondary pb-[5px] flex justify-between'>
-                            <div className='hover:text-[#10293780] cursor-pointer transition-default'>Nhỏ</div>
-                            <span>(8)</span>
-                        </li>
-                    </ul>
+                    {/* ... other static parts can remain or be removed if not needed ... */}
                 </div>
             </div>
         </>

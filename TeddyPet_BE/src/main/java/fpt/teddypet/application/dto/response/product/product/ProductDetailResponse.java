@@ -1,4 +1,5 @@
 package fpt.teddypet.application.dto.response.product.product;
+
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeInfo;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
@@ -15,31 +16,30 @@ import java.util.List;
 
 @Builder(toBuilder = true)
 public record ProductDetailResponse(
-        Long id,
-        String name,
-        String description,
-        String content,
-        BigDecimal minPrice,
-        BigDecimal maxPrice,
-        Integer viewCount,
-        Integer soldCount,
-        Float averageRating,
-        Integer ratingCount,
-        ProductBrandInfo brand,
-        List<ProductCategoryInfo> categories,
-        List<ProductTagInfo> tags,
-        List<ProductAgeRangeInfo> ageRanges,
-        List<ProductAttributeInfo> attribute,
-        List<ProductVariantResponse> variants,
-        List<ProductImageInfo> images,
-        String metaTitle,
-        String metaDescription,
-        String origin,
-        String material,
-        ProductStatusEnum status,
-        boolean isActive,
-        boolean isDeleted,
-        LocalDateTime createdAt
-) {
+                Long id,
+                String slug,
+                String name,
+                String description,
+                String content,
+                BigDecimal minPrice,
+                BigDecimal maxPrice,
+                Integer viewCount,
+                Integer soldCount,
+                Float averageRating,
+                Integer ratingCount,
+                ProductBrandInfo brand,
+                List<ProductCategoryInfo> categories,
+                List<ProductTagInfo> tags,
+                List<ProductAgeRangeInfo> ageRanges,
+                List<ProductAttributeInfo> attributes,
+                List<ProductVariantResponse> variants,
+                List<ProductImageInfo> images,
+                String metaTitle,
+                String metaDescription,
+                String origin,
+                String material,
+                ProductStatusEnum status,
+                boolean isActive,
+                boolean isDeleted,
+                LocalDateTime createdAt) {
 }
-
