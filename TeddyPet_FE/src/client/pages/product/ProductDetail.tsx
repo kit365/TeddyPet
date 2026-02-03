@@ -284,10 +284,7 @@ export const ProductDetailPage = () => {
                                     <p>({product.ratingCount || 0} customer review)</p>
                                 </div>
                             </div>
-                            {/* <div className="flex items-center">
-                                <strong className="text-client-secondary mr-[8px]">SKU:</strong>
-                                <span className="text-[#505050]">{selectedVariant?.productSlug || product.sku || "N/A"}</span>
-                            </div> */}
+
                             <div className="mt-[10px] text-client-secondary text-[2.2rem] font-secondary">
                                 {priceElement}
                             </div>

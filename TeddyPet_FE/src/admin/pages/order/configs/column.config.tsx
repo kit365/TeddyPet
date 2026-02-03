@@ -40,10 +40,10 @@ export const getOrderColumns = (): GridColDef<OrderResponse>[] => [
             const row = params.row;
             return (
                 <Stack spacing={0.5} sx={{ py: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '1.6rem' }}>
                         {row.user?.fullName || row.shippingName || 'Khách vãng lai'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1.3rem' }}>
                         {row.user?.email || row.guestEmail || 'N/A'}
                     </Typography>
                 </Stack>

@@ -5,6 +5,7 @@ import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.AttributeDisplayType;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
+import fpt.teddypet.domain.enums.ProductTypeEnum;
 import fpt.teddypet.domain.enums.UnitEnum;
 import fpt.teddypet.domain.valueobject.Measurement;
 import fpt.teddypet.domain.valueobject.Price;
@@ -121,6 +122,7 @@ public class ProductData implements CommandLineRunner {
                                 getBrandByName("Royal Canin"),
                                 List.of(getTagByName("BEST_SELLER")),
                                 List.of(getAgeRangeByName("ADULT")));
+                dogFood.setProductType(ProductTypeEnum.VARIABLE);
 
                 ProductImage dogImg1 = createProductImage(dogFood,
                                 "https://images.unsplash.com/photo-1517849845537-4d257902454a",
@@ -158,6 +160,7 @@ public class ProductData implements CommandLineRunner {
                                 getBrandByName("Whiskas"),
                                 List.of(getTagByName("NEW")),
                                 List.of(getAgeRangeByName("ALL")));
+                catPate.setProductType(ProductTypeEnum.VARIABLE);
 
                 ProductImage catImg1 = createProductImage(catPate,
                                 "https://images.unsplash.com/photo-1591768793355-74d7c0d3a75c",
@@ -192,6 +195,7 @@ public class ProductData implements CommandLineRunner {
                                 null,
                                 List.of(getTagByName("HOT")),
                                 List.of(getAgeRangeByName("ALL")));
+                collar.setProductType(ProductTypeEnum.VARIABLE);
 
                 ProductImage collarImg1 = createProductImage(collar,
                                 "https://images.unsplash.com/photo-1591047139829-d91aecb6caea",
@@ -222,6 +226,7 @@ public class ProductData implements CommandLineRunner {
                                 null,
                                 List.of(getTagByName("SALE")),
                                 List.of(getAgeRangeByName("ALL")));
+                toy.setProductType(ProductTypeEnum.SIMPLE);
 
                 ProductImage toyImg1 = createProductImage(toy,
                                 "https://images.unsplash.com/photo-1576049671415-0aa834b768a4", "Bóng cao su 1",

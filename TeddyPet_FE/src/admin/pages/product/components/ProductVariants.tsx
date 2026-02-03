@@ -82,12 +82,30 @@ export const ProductVariants = ({
 
     const validAttributes = useMemo(() => attributes.filter((attr: any) => attr.values && attr.values.length > 0), [attributes]);
 
-    // Reset selectedAttributes khi variants được clear từ parent
+    // Reset or Populate selectedAttributes
     useEffect(() => {
         if (variants.length === 0) {
             setSelectedAttributes({});
+        } else {
+            // Populate selectedAttributes based on existing variants
+            const newSelected: Record<string, Set<string>> = {};
+
+            variants.forEach(v => {
+                v.attributes.forEach(a => {
+                    // Variant attribute has: name, value, id (valueId).
+                    const matchedAttr = attributes.find((attr: any) => attr.name === a.name);
+                    if (matchedAttr) {
+                        const matchedAttrId = String(matchedAttr.id || matchedAttr.attributeId);
+                        if (!newSelected[matchedAttrId]) {
+                            newSelected[matchedAttrId] = new Set();
+                        }
+                        newSelected[matchedAttrId].add(a.value);
+                    }
+                });
+            });
+            setSelectedAttributes(newSelected);
         }
-    }, [variants]);
+    }, [variants, attributes]);
 
     const handlePreviewVariants = () => {
         const activeAttributeIds = Object.keys(selectedAttributes);
@@ -346,8 +364,8 @@ export const ProductVariants = ({
 
                                         <TableCell width={80} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
                                         <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
-                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá cũ</TableCell>
-                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá mới</TableCell>
+                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá bán</TableCell>
+                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá khuyến mãi</TableCell>
                                         <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
                                         <TableCell width={50} align="center"></TableCell>
                                     </TableRow>
@@ -435,14 +453,10 @@ export const ProductVariants = ({
                                                     onChange={(e) => {
                                                         const newVariants = [...variants];
                                                         newVariants[index].originalPrice = Number(e.target.value);
-                                                        // Auto-update Sale Price to match if 0 to show it's default
-                                                        if (Number(e.target.value) === 0) {
-                                                            newVariants[index].price = 0;
-                                                        }
+                                                        // Ensure sale price is reset if needed, but mainly this is the Price
                                                         onVariantsChange(newVariants);
                                                     }}
                                                     fullWidth
-                                                    helperText={variant.originalPrice === 0 ? "Nhập 0 = Không sale" : ""}
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
                                             </TableCell>
@@ -458,6 +472,7 @@ export const ProductVariants = ({
                                                         onVariantsChange(newVariants);
                                                     }}
                                                     fullWidth
+                                                    helperText="Nhập 0 = Không sale"
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
                                             </TableCell>

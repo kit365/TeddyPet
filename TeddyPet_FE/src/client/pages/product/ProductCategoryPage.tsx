@@ -1,45 +1,49 @@
-import { FooterSub } from "../../components/layouts/FooterSub"
-import { ProductAside, FilterState } from "./sections/ProductAside"
-import { ProductBanner } from "./sections/ProductBanner"
-import type { Product } from "../../../types/products.type"
-import { ProductCard } from "../../components/ui/ProductCard"
-import { ProductListSearch } from "./sections/ProductListSearch"
-import { useQuery } from "@tanstack/react-query"
-import { getHomeProducts } from "../../../api/home.api"
-import { useState } from "react"
 
-const breadcrumbs = [
-    { label: "Trang chủ", to: "/" },
-    { label: "Cửa hàng", to: "/shop" },
-];
+import { useParams } from "react-router-dom";
+import { FooterSub } from "../../components/layouts/FooterSub";
+import { ProductBanner } from "./sections/ProductBanner";
+import type { Product } from "../../../types/products.type";
+import { ProductCard } from "../../components/ui/ProductCard";
+import { ProductListSearch } from "./sections/ProductListSearch";
+import { useQuery } from "@tanstack/react-query";
+import { getHomeProducts } from "../../../api/home.api";
+import { useState, useEffect } from "react";
 
-import { ProductQuickViewModal } from "../../components/ui/ProductQuickViewModal"
+export const ProductCategoryPage = () => {
+    const { slug } = useParams<{ slug: string }>();
 
-export const ProductListPage = () => {
-    const [filters, setFilters] = useState<FilterState>({
-        categorySlugs: [],
-        brandSlugs: [],
+    // Derived title for banner (could fetch category details to get actual name, 
+    // but slug is often readable enough or we can capitalize it)
+    const categoryTitle = slug ? slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Danh mục sản phẩm";
+
+    const breadcrumbs = [
+        { label: "Trang chủ", to: "/" },
+        { label: "Cửa hàng", to: "/shop" },
+        { label: categoryTitle, to: `/danh-muc-san-pham/${slug}` },
+    ];
+
+    const [filters, setFilters] = useState({
         page: 0,
         sortKey: 'id',
         sortDirection: 'desc'
     });
 
-    const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
+    // Reset page when slug changes
+    useEffect(() => {
+        setFilters(prev => ({ ...prev, page: 0 }));
+    }, [slug]);
 
     const { data: productRes, isLoading } = useQuery({
-        queryKey: ['home-products', filters],
+        queryKey: ['home-products', slug, filters],
         queryFn: () => getHomeProducts({
-            keyword: filters.keyword,
-            categorySlugs: filters.categorySlugs.length ? filters.categorySlugs : undefined,
-            brandSlugs: filters.brandSlugs.length ? filters.brandSlugs : undefined,
-            minPrice: filters.minPrice,
-            maxPrice: filters.maxPrice,
+            categorySlugs: slug ? [slug] : undefined,
             page: filters.page,
             size: 12,
             sortKey: filters.sortKey,
             sortDirection: filters.sortDirection
         }),
-        placeholderData: (previousData) => previousData
+        placeholderData: (previousData) => previousData,
+        enabled: !!slug
     });
 
     const productsData = productRes?.data;
@@ -65,16 +69,11 @@ export const ProductListPage = () => {
     const mappedProducts: Product[] = products.map(p => {
         const hasSale = p.variants?.some(v => v.salePrice && v.salePrice > 0) || false;
 
-        // Priority: Check stockStatus from Backend > Check variants stock
         let isSoldOut = false;
-
         if (p.variants && p.variants.length > 0) {
-            // Only check variants if they exist. If empty, fallback to stockStatus (which is likely IN_STOCK or undefined -> Available)
             const activeVariants = p.variants.filter(v => v.status === "ACTIVE" || v.isActive);
-
             if (activeVariants.length > 0) {
                 const everyVariantZeroStock = activeVariants.every(v => v.stockQuantity === 0);
-
                 if (everyVariantZeroStock) {
                     isSoldOut = true;
                 }
@@ -82,9 +81,7 @@ export const ProductListPage = () => {
         }
 
         let oldPriceStr: string | undefined = undefined;
-
         if (hasSale) {
-            // Find the original price corresponding to the minPrice (which is the discounted price)
             const minPriceVariant = p.variants.find(v => (v.salePrice || v.price) === p.minPrice);
             if (minPriceVariant && minPriceVariant.salePrice) {
                 oldPriceStr = minPriceVariant.price.toLocaleString('vi-VN') + 'đ';
@@ -96,9 +93,9 @@ export const ProductListPage = () => {
             title: p.name,
             price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
             oldPrice: oldPriceStr,
-            primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
-            secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
-            rating: 5, // Default for now
+            primaryImage: p.images[0]?.imageUrl || "https://placeholder.com/600",
+            secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://placeholder.com/600",
+            rating: 5,
             isSale: hasSale || p.tags.some(t => t.slug === 'sale'),
             isSoldOut: isSoldOut,
             url: `/product/detail/${p.slug}`
@@ -107,11 +104,15 @@ export const ProductListPage = () => {
 
     return (
         <>
-            <ProductBanner pageTitle="Cửa hàng" breadcrumbs={breadcrumbs} url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-blog-listing.jpg" className="bg-top" />
+            <ProductBanner
+                pageTitle={categoryTitle}
+                breadcrumbs={breadcrumbs}
+                url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-blog-listing.jpg"
+                className="bg-top"
+            />
 
-            <div className="app-container flex gap-[80px] 2xl:gap-[30px] relative">
-                <ProductAside filters={filters} onFiltersChange={setFilters} />
-                <section className="w-[1040px] 2xl:w-[970px]">
+            <div className="app-container relative pb-[100px]">
+                <section className="w-full">
                     <ProductListSearch
                         totalElements={totalElements}
                         page={filters.page}
@@ -126,24 +127,22 @@ export const ProductListPage = () => {
                     ) : (
                         <>
                             {mappedProducts.length > 0 ? (
-                                <div className="grid grid-cols-3 gap-[30px]">
+                                <div className="grid grid-cols-4 gap-[30px]">
                                     {mappedProducts.map((item) => (
                                         <ProductCard
                                             key={item.id}
                                             product={item}
-                                            onQuickView={(slug) => setQuickViewSlug(slug)}
                                         />
                                     ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-20 text-[1.6rem] text-gray-500">
-                                    Không tìm thấy sản phẩm nào phù hợp.
+                                    Không tìm thấy sản phẩm nào trong danh mục này.
                                 </div>
                             )}
 
-                            {/* Pagination */}
                             {totalPages > 1 && (
-                                <ul className="flex items-center mt-[65px] 2xl:mt-[40px] justify-center gap-[11px] pb-[150px] 2xl:pb-[120px]">
+                                <ul className="flex items-center mt-[65px] 2xl:mt-[40px] justify-center gap-[11px]">
                                     {Array.from({ length: totalPages }, (_, i) => i).map((p) => (
                                         <li
                                             key={p}
@@ -164,11 +163,6 @@ export const ProductListPage = () => {
             </div>
 
             <FooterSub />
-
-            <ProductQuickViewModal
-                slug={quickViewSlug}
-                onClose={() => setQuickViewSlug(null)}
-            />
         </>
     );
 };
