@@ -36,7 +36,7 @@ const LayoutAdminContent = () => {
                         className={
                             isBlogDetail
                                 ? undefined
-                                : "w-[1200px] mx-auto px-[40px] pt-[8px] pb-[64px]"
+                                : "w-full mx-auto px-[40px] pt-[8px] pb-[64px]"
                         }
                     >
                         <Outlet />

@@ -22,6 +22,9 @@ interface CartState {
     toggleCheck: (id: string | number) => void;
     toggleAll: (checked: boolean) => void;
 
+    buyNowItem: CartItem | null;
+    setBuyNowItem: (item: CartItem | null) => void;
+
     totalAmount: () => number;
     totalAmountChecked: () => number;
     totalItems: () => number;
@@ -38,6 +41,7 @@ const mapBackendToFrontend = (backendItem: CartItemResponse): CartItem => ({
         id: String(backendItem.variantId),
         size: backendItem.variantName,
         price: backendItem.finalPrice,
+        originalPrice: backendItem.salePrice ? backendItem.price : undefined,
     },
     quantity: backendItem.quantity,
     stockQuantity: backendItem.stockQuantity,
@@ -217,6 +221,9 @@ export const useCartStore = create<CartState>()(
 
                     totalItemsChecked: () =>
                         get().items.reduce((sum, item) => item.checked ? sum + item.quantity : sum, 0),
+
+                    buyNowItem: null,
+                    setBuyNowItem: (item) => set({ buyNowItem: item }),
 
                     set: set
                 }),

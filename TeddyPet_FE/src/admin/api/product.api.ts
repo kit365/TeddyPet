@@ -30,6 +30,21 @@ export const createProduct = async (data: any): Promise<any> => {
     return response.data;
 };
 
+export const getProductById = async (id: string | number): Promise<ApiResponse<any>> => {
+    const response = await apiApp.get(`${BASE_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+export const updateProduct = async (id: string | number, data: any): Promise<any> => {
+    const response = await apiApp.put(`${BASE_URL}/${id}`, data, withAuth());
+    return response.data;
+};
+
+export const deleteProduct = async (id: string | number): Promise<any> => {
+    const response = await apiApp.delete(`${BASE_URL}/${id}`, withAuth());
+    return response.data;
+};
+
 export const getCountries = async (): Promise<any[]> => {
     const response = await axios.get('https://restcountries.com/v3.1/all?fields=name,cca2');
     return response.data;

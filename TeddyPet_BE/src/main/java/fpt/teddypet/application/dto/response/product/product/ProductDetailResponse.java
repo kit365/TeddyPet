@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
+import fpt.teddypet.domain.enums.ProductTypeEnum;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -16,30 +17,31 @@ import java.util.List;
 
 @Builder(toBuilder = true)
 public record ProductDetailResponse(
-                Long id,
-                String slug,
-                String name,
-                String description,
-                String content,
-                BigDecimal minPrice,
-                BigDecimal maxPrice,
-                Integer viewCount,
-                Integer soldCount,
-                Float averageRating,
-                Integer ratingCount,
-                ProductBrandInfo brand,
-                List<ProductCategoryInfo> categories,
-                List<ProductTagInfo> tags,
-                List<ProductAgeRangeInfo> ageRanges,
-                List<ProductAttributeInfo> attributes,
-                List<ProductVariantResponse> variants,
-                List<ProductImageInfo> images,
-                String metaTitle,
-                String metaDescription,
-                String origin,
-                String material,
-                ProductStatusEnum status,
-                boolean isActive,
-                boolean isDeleted,
-                LocalDateTime createdAt) {
+        Long id,
+        String slug,
+        String name,
+        String description,
+        String content,
+        BigDecimal minPrice,
+        BigDecimal maxPrice,
+        Integer viewCount,
+        Integer soldCount,
+        Float averageRating,
+        Integer ratingCount,
+        ProductBrandInfo brand,
+        List<ProductCategoryInfo> categories,
+        List<ProductTagInfo> tags,
+        List<ProductAgeRangeInfo> ageRanges,
+        List<ProductAttributeInfo> attributes,
+        List<ProductVariantResponse> variants,
+        List<ProductImageInfo> images,
+        String metaTitle,
+        String metaDescription,
+        String origin,
+        String material,
+        ProductStatusEnum status,
+        ProductTypeEnum productType,
+        boolean isActive,
+        boolean isDeleted,
+        LocalDateTime createdAt) {
 }

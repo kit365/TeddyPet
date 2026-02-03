@@ -47,14 +47,19 @@ apiApp.interceptors.response.use(
         return response;
     },
     async (error) => {
+        if (error.response && error.response.data && (error.response.data.message || error.response.data.error)) {
+            error.message = error.response.data.message || error.response.data.error;
+        }
+
         const originalRequest = error.config;
 
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
 
             // Determine if Admin or Client
             const isAdmin = window.location.pathname.startsWith("/admin");
             const tokenKey = isAdmin ? "tokenAdmin" : "token";
             const refreshTokenKey = isAdmin ? "refreshTokenAdmin" : "refreshToken";
+            const loginPath = isAdmin ? "/admin/auth/login" : "/auth/login";
 
             if (originalRequest.url.includes('/login') || originalRequest.url.includes('/refresh-token')) {
                 return Promise.reject(error);
@@ -77,15 +82,9 @@ apiApp.interceptors.response.use(
             const refreshToken = Cookies.get(refreshTokenKey);
 
             if (!refreshToken) {
-                if (isAdmin) {
-                    Cookies.remove("tokenAdmin");
-                    Cookies.remove("refreshTokenAdmin");
-                    window.location.href = "/admin/login";
-                } else {
-                    Cookies.remove("token");
-                    Cookies.remove("refreshToken");
-                    window.location.href = "/login";
-                }
+                Cookies.remove(tokenKey);
+                Cookies.remove(refreshTokenKey);
+                window.location.href = loginPath;
                 return Promise.reject(error);
             }
 
@@ -111,15 +110,9 @@ apiApp.interceptors.response.use(
             } catch (err) {
                 processQueue(err, null);
                 // Clear tokens and redirect
-                if (isAdmin) {
-                    Cookies.remove("tokenAdmin");
-                    Cookies.remove("refreshTokenAdmin");
-                    window.location.href = "/admin/login";
-                } else {
-                    Cookies.remove("token");
-                    Cookies.remove("refreshToken");
-                    window.location.href = "/login";
-                }
+                Cookies.remove(tokenKey);
+                Cookies.remove(refreshTokenKey);
+                window.location.href = loginPath;
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;

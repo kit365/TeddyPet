@@ -152,7 +152,7 @@ export const MainHeader = () => {
                                 {items.length > 0 ? (
                                     <ul>
                                         {items.map((item) => (
-                                            <li className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
+                                            <li key={item.id} className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
                                                 <div
                                                     onClick={() => handleRemove(item.id as string)}
                                                     className="absolute left-[-7px] top-[-7px] text-[1.2rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
@@ -164,7 +164,15 @@ export const MainHeader = () => {
                                                 <div>
                                                     <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
                                                     <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
-                                                    <div className="text-client-text text-[1.4rem]">{item.quantity} x {item.option?.price?.toLocaleString()}đ</div>
+                                                    <div className="text-client-text text-[1.4rem] flex items-center gap-2">
+                                                        <span>{item.quantity} x </span>
+                                                        <span className="text-client-secondary font-bold">{item.option?.price?.toLocaleString()}đ</span>
+                                                        {item.option?.originalPrice && (
+                                                            <span className="text-[#999] line-through text-[1.1rem] opacity-70">
+                                                                {item.option.originalPrice.toLocaleString()}đ
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </li>
                                         ))}

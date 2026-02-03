@@ -81,7 +81,7 @@ public class ProductController {
             @RequestParam(required = false) String ageRangeIds,
             // B. Bộ lọc Trạng thái & Vận hành
             @RequestParam(required = false) ProductStatusEnum status,
-            @RequestParam(required = false) String stockStatus,
+            @RequestParam(required = false) fpt.teddypet.domain.enums.StockStatusEnum stockStatus,
             @RequestParam(required = false) Integer stockThreshold,
             @RequestParam(required = false) Boolean includeDeletedVariants,
             // C. Bộ lọc Kiểm toán & Chất lượng

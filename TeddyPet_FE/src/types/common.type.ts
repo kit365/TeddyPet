@@ -1,3 +1,5 @@
+import { GridDensity } from '@mui/x-data-grid';
+
 export interface ApiResponse<T> {
     success: boolean;
     message: string;
@@ -13,4 +15,19 @@ export interface PageResponse<T> {
     totalElements: number;
     totalPages: number;
     last: boolean;
+}
+
+export interface CustomFile extends File {
+    preview: string;
+}
+
+export interface SelectOption {
+    value: string;
+    label: string;
+}
+
+export interface IGridSettings {
+    density?: GridDensity;
+    showCellBorders?: boolean;
+    showColumnBorders?: boolean;
 }

@@ -58,16 +58,47 @@ export const ProductListPage = () => {
     };
 
     // Map backend data to frontend Product interface
-    const mappedProducts: Product[] = products.map(p => ({
-        id: p.productId,
-        title: p.name,
-        price: p.minPrice.toLocaleString('vi-VN') + 'đ',
-        primaryImage: p.images[0]?.url || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
-        secondaryImage: p.images[1]?.url || p.images[0]?.url || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
-        rating: 5, // Default for now
-        isSale: p.tags.some(t => t.slug === 'sale'),
-        url: `/product/detail/${p.slug}`
-    }));
+    const mappedProducts: Product[] = products.map(p => {
+        const hasSale = p.variants?.some(v => v.salePrice && v.salePrice > 0) || false;
+
+        // Priority: Check stockStatus from Backend > Check variants stock
+        let isSoldOut = false;
+
+        if (p.variants && p.variants.length > 0) {
+            // Only check variants if they exist. If empty, fallback to stockStatus (which is likely IN_STOCK or undefined -> Available)
+            const activeVariants = p.variants.filter(v => v.status === "ACTIVE" || v.isActive);
+
+            if (activeVariants.length > 0) {
+                const everyVariantZeroStock = activeVariants.every(v => v.stockQuantity === 0);
+
+                if (everyVariantZeroStock) {
+                    isSoldOut = true;
+                }
+            }
+        }
+
+        let oldPriceStr: string | undefined = undefined;
+
+        if (hasSale) {
+            // Find the original price corresponding to the minPrice (which is the discounted price)
+            const minPriceVariant = p.variants.find(v => (v.salePrice || v.price) === p.minPrice);
+            if (minPriceVariant && minPriceVariant.salePrice) {
+                oldPriceStr = minPriceVariant.price.toLocaleString('vi-VN') + 'đ';
+            }
+        }
+
+        return {
+            id: p.productId,
+            title: p.name,
+            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            oldPrice: oldPriceStr,
+            primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
+            secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
+            rating: 5, // Default for now
+            isSale: hasSale || p.tags.some(t => t.slug === 'sale'),
+            url: `/product/detail/${p.slug}`
+        };
+    });
 
     return (
         <>

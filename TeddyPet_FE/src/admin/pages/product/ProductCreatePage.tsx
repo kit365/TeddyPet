@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useProductTags, useProductAgeRanges, useCountries, useBrands, useCreateProduct } from "./hooks/useProduct";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
@@ -13,12 +13,8 @@ import { useNestedProductCategories } from "../product-category/hooks/useProduct
 import { ProductVariants } from "./components/ProductVariants";
 import { useProductAttributes } from "../product-attribute/hooks/useProductAttribute";
 import { toast } from "react-toastify";
-
-
-
-interface CustomFile extends File {
-    preview: string;
-}
+import { ProductVariant as Variant } from "../../../types/products.type";
+import { CustomFile } from "../../../types/common.type";
 
 export const ProductCreatePage = () => {
     const { t } = useTranslation();
@@ -56,12 +52,33 @@ export const ProductCreatePage = () => {
     };
 
     // Variants
-    const [variants, setVariants] = useState<any[]>([]);
+    const [variants, setVariants] = useState<Variant[]>([]);
 
     // Attributes (for lookup)
     const { data: allAttributes = [] } = useProductAttributes();
 
+    const [description, setDescription] = useState("");
+
     const createProductMutation = useCreateProduct();
+
+    useEffect(() => {
+        // Pre-populate with test images as requested
+        const testImages = [
+            {
+                name: "meo-cute-1.jpg",
+                preview: "https://www.robins.vn/wp-content/uploads/2026/01/anh-meo-cute-1.jpg.jpg",
+                size: 0,
+                type: "image/jpeg",
+            },
+            {
+                name: "meo-cute-2.jpg",
+                preview: "https://cdn2.fptshop.com.vn/unsafe/Anh_meo_cute_30_ece4ac0bba.jpg",
+                size: 0,
+                type: "image/jpeg",
+            }
+        ];
+        setFiles(testImages as any);
+    }, []);
 
     // Function to reset all form states
     const resetForm = () => {
@@ -85,109 +102,6 @@ export const ProductCreatePage = () => {
         });
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-
-        const payload = {
-            name: formData.get('name') as string,
-            barcode: formData.get('sku') as string,
-            description: "Mô tả sản phẩm",
-            content: "Nội dung chi tiết",
-            origin: origin,
-            material: formData.get('material') as string,
-            petTypes: ["DOG"],
-            brandId: Number(brandId),
-            status: "IN_STOCK",
-            categoryIds: selectedCategoryIds,
-            tagIds: selectedTags.map((tag: any) => tag.id),
-            ageRangeIds: selectedAgeIds,
-            attributeIds: [],
-            images: files.map(f => ({ imageUrl: f.preview })),
-
-            variants: variants.map(v => ({
-                price: Number(v.price),
-                salePrice: Number(v.price), // Default to price
-                stockQuantity: Number(v.stock),
-                unit: "PIECE",
-                attributeValueIds: []
-            }))
-        };
-        const getAttributeDetail = (name: string, value: string) => {
-            const attr = allAttributes.find((a: any) => a.name === name);
-            const val = attr.values?.find((v: any) => v.value === value);
-            return {
-                attributeId: attr.attributeId || attr.id,
-                valueId: val.valueId || val.id || val.attributeValueId
-            };
-        };
-
-        // Determine used attribute IDs
-        const usedAttributeIds = new Set<number>();
-        variants.forEach(v => {
-            v.attributes.forEach((a: any) => {
-                const detail = getAttributeDetail(a.name, a.value);
-                if (detail?.attributeId) {
-                    usedAttributeIds.add(Number(detail.attributeId));
-                }
-            });
-        });
-
-        // Refined Payload based on User JSON
-        const finalPayload = {
-            name: payload.name,
-            barcode: payload.barcode || "BARCODE-" + Date.now(),
-            description: payload.description,
-            origin: payload.origin,
-            material: payload.material,
-            petTypes: ["DOG"],
-            brandId: Number(payload.brandId),
-            status: "IN_STOCK",
-            categoryIds: payload.categoryIds,
-            // Try multiple property names for ID
-            tagIds: selectedTags.map((tag: any) => tag.id || tag.tagId || tag.productTagId).filter(Boolean),
-            ageRangeIds: payload.ageRangeIds,
-            // Use locally derived attributeIds
-            attributeIds: Array.from(usedAttributeIds),
-            images: files.map(f => ({ imageUrl: typeof f === 'string' ? f : (f.preview || "") })),
-            variants: variants.map((v) => {
-                // Use lookup to get IDs
-                const attributeValueIds = v.attributes.map((a: any) => {
-                    if (!a.id) {
-                        const detail = getAttributeDetail(a.name, a.value);
-                        return detail?.valueId;
-                    }
-                    return a.id;
-                }).filter((id: any) => !!id);
-
-                console.log(`   🎯 Final attributeValueIds:`, attributeValueIds);
-
-                return {
-                    price: Number(v.originalPrice),  // Giá gốc (giá cũ)
-                    salePrice: Number(v.price),      // Giá khuyến mãi (giá mới)
-                    stockQuantity: Number(v.stock),
-                    unit: "PIECE",
-                    attributeValueIds: attributeValueIds  // Dùng valueId động từ API
-                };
-            })
-        };
-
-        console.log('Final Payload:', finalPayload);
-
-        createProductMutation.mutate(finalPayload, {
-            onSuccess: (response) => {
-                if (response.success) {
-                    toast.success(response.message || "Tạo sản phẩm thành công!");
-                    resetForm();
-                } else {
-                    toast.error(response.message);
-                }
-            },
-            onError: () => {
-                toast.error("Có lỗi xảy ra khi tạo sản phẩm");
-            }
-        });
-    };
 
     const outerTheme = useTheme();
 
@@ -222,7 +136,14 @@ export const ProductCreatePage = () => {
         }
     });
 
-    const [status, setStatus] = useState<string>("draft");
+    const [productType, setProductType] = useState<"SIMPLE" | "VARIABLE">("SIMPLE");
+    const [status, setStatus] = useState<string>("DRAFT");
+
+    // Simple Product State
+    const [simplePrice, setSimplePrice] = useState<number>(0);
+    const [simpleSalePrice, setSimpleSalePrice] = useState<number>(0);
+    const [simpleStock, setSimpleStock] = useState<number>(0);
+    const [simpleSku, setSimpleSku] = useState<string>("");
 
     const handleChangeStatus = (event: SelectChangeEvent) => {
         setStatus(event.target.value as string);
@@ -231,6 +152,125 @@ export const ProductCreatePage = () => {
     const handleChangeAge = (event: SelectChangeEvent<number[]>) => {
         const value = event.target.value;
         setSelectedAgeIds(typeof value === 'string' ? value.split(',').map(Number) : value);
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+
+        const payload = {
+            name: formData.get('name') as string,
+            barcode: formData.get('barcode') as string,
+            description: description,
+            content: "Nội dung chi tiết",
+            origin: origin,
+            material: formData.get('material') as string,
+            petTypes: ["DOG"],
+            brandId: Number(brandId),
+            status: status, // uses the status state containing DRAFT, ACTIVE, HIDDEN
+            categoryIds: selectedCategoryIds,
+            tagIds: selectedTags.map((tag: any) => tag.id || tag.tagId || tag.productTagId).filter(Boolean),
+            ageRangeIds: selectedAgeIds,
+            attributeIds: [],
+            images: files.map((f, index) => ({
+                imageUrl: typeof f === 'string' ? f : (f.preview || ""),
+                displayOrder: index,
+                altText: ""
+            })),
+            variants: [] as any[]
+        };
+
+        const getAttributeDetail = (name: string, value: string) => {
+            const attr = allAttributes.find((a: any) => a.name === name);
+            const val = attr.values?.find((v: any) => v.value === value);
+            return {
+                attributeId: attr.attributeId || attr.id,
+                valueId: val.valueId || val.id || val.attributeValueId
+            };
+        };
+
+        let variantsPayload: any[] = [];
+        let attributeIdsPayload: number[] = [];
+
+        if (productType === "SIMPLE") {
+            // Create Single Default Variant
+            variantsPayload = [{
+                name: "Default",
+                price: Number(simplePrice),
+                salePrice: (Number(simpleSalePrice) > 0 && Number(simpleSalePrice) < Number(simplePrice)) ? Number(simpleSalePrice) : null,
+                stockQuantity: Number(simpleStock),
+                sku: simpleSku || undefined,
+                unit: "PIECE",
+                status: status,
+                attributeValueIds: []
+            }];
+            attributeIdsPayload = [];
+        } else {
+            // Determine used attribute IDs
+            const usedAttributeIds = new Set<number>();
+            variants.forEach(v => {
+                v.attributes.forEach((a: any) => {
+                    const detail = getAttributeDetail(a.name, a.value);
+                    if (detail?.attributeId) {
+                        usedAttributeIds.add(Number(detail.attributeId));
+                    }
+                });
+            });
+            attributeIdsPayload = Array.from(usedAttributeIds);
+
+            variantsPayload = variants.map((v) => {
+                const attributeValueIds = v.attributes.map((a: any) => {
+                    if (!a.id) {
+                        const detail = getAttributeDetail(a.name, a.value);
+                        return detail?.valueId;
+                    }
+                    return a.id;
+                }).filter((id: any) => !!id);
+
+                return {
+                    price: Number(v.originalPrice),
+                    salePrice: (Number(v.price) > 0 && Number(v.price) < Number(v.originalPrice)) ? Number(v.price) : null,
+                    stockQuantity: Number(v.stock),
+                    unit: "PIECE",
+                    featuredImageUrl: v.featuredImage,
+                    status: v.status || "ACTIVE",
+                    attributeValueIds: attributeValueIds
+                };
+            });
+        }
+
+        // Refined Payload based on User JSON
+        const finalPayload = {
+            name: payload.name,
+            barcode: payload.barcode || "BARCODE-" + Date.now(),
+            description: payload.description,
+            origin: payload.origin,
+            material: payload.material,
+            petTypes: ["DOG"],
+            brandId: Number(payload.brandId),
+            status: payload.status,
+            productType: productType,
+            categoryIds: payload.categoryIds,
+            tagIds: payload.tagIds,
+            ageRangeIds: payload.ageRangeIds,
+            attributeIds: attributeIdsPayload,
+            images: payload.images,
+            variants: variantsPayload
+        };
+
+        createProductMutation.mutate(finalPayload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    toast.success(response.message || "Tạo sản phẩm thành công!");
+                    resetForm();
+                } else {
+                    toast.error(response.message);
+                }
+            },
+            onError: (error: any) => {
+                toast.error(error.message || "Có lỗi xảy ra khi tạo sản phẩm");
+            }
+        });
     };
 
     return (
@@ -253,6 +293,24 @@ export const ProductCreatePage = () => {
                         margin: "0px 120px",
                         gap: "40px"
                     }}>
+                        {/* Product Type Selection */}
+                        <CollapsibleCard title="Loại sản phẩm" expanded={true} onToggle={() => { }}>
+                            <Stack p="24px">
+                                <FormControl fullWidth>
+                                    <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
+                                    <Select
+                                        labelId="product-type-label"
+                                        value={productType}
+                                        label="Loại sản phẩm"
+                                        onChange={(e) => setProductType(e.target.value as any)}
+                                    >
+                                        <MenuItem value="SIMPLE">Sản phẩm đơn (Simple)</MenuItem>
+                                        <MenuItem value="VARIABLE">Sản phẩm biến thể (Variable)</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </CollapsibleCard>
+
                         <CollapsibleCard
                             title={t('admin.common.details')}
                             subheader={t('admin.common.description')}
@@ -260,50 +318,45 @@ export const ProductCreatePage = () => {
                             onToggle={toggle(setExpandedDetail)}
                         >
                             <Stack p="24px" gap="24px">
-                                <TextField label={t('admin.product.fields.name')} name="name" fullWidth />
+                                <TextField label={t('admin.product.fields.name')} name="name" fullWidth required />
+                                <Stack direction="row" gap={2}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="brand-select-label">Thương hiệu</InputLabel>
+                                        <Select
+                                            labelId="brand-select-label"
+                                            value={typeof brandId === 'number' ? String(brandId) : brandId}
+                                            label="Thương hiệu"
+                                            onChange={handleChangeBrand}
+                                        >
+                                            {brands.map((brand: any) => (
+                                                <MenuItem key={brand.id || brand.brandId} value={brand.id || brand.brandId}>
+                                                    {brand.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
 
-                                <FormControl fullWidth>
-                                    <InputLabel id="brand-select-label">Thương hiệu</InputLabel>
-                                    <Select
-                                        labelId="brand-select-label"
-                                        value={typeof brandId === 'number' ? String(brandId) : brandId}
-                                        label="Thương hiệu"
-                                        onChange={handleChangeBrand}
-                                    >
-                                        {brands.map((brand: any) => (
-                                            <MenuItem key={brand.id || brand.brandId} value={brand.id || brand.brandId}>
-                                                {brand.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-
-                                <FormControl fullWidth>
-                                    <InputLabel id="origin-select-label" >
-                                        Xuất xứ
-                                    </InputLabel>
-                                    <Select
-                                        labelId="origin-select-label"
-                                        value={origin}
-                                        input={<OutlinedInput label="Xuất xứ" />}
-                                        onChange={handleChangeOrigin}
-                                        MenuProps={{
-                                            PaperProps: {
-                                                style: {
-                                                    maxHeight: 300,
-                                                },
-                                            },
-                                        }}
-                                    >
-                                        {countries.map((country: any) => (
-                                            <MenuItem key={country.code} value={country.code} sx={{ fontSize: '1.4rem' }}>
-                                                {country.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                                <TextField label="Nguyên vật liệu" name="material" multiline rows={4} fullWidth />
-                                <Tiptap />
+                                    <FormControl fullWidth>
+                                        <InputLabel id="origin-select-label" >
+                                            Xuất xứ
+                                        </InputLabel>
+                                        <Select
+                                            labelId="origin-select-label"
+                                            value={origin}
+                                            input={<OutlinedInput label="Xuất xứ" />}
+                                            onChange={handleChangeOrigin}
+                                            MenuProps={{ PaperProps: { style: { maxHeight: 300 } } }}
+                                        >
+                                            {countries.map((country: any) => (
+                                                <MenuItem key={country.code} value={country.code} sx={{ fontSize: '1.4rem' }}>
+                                                    {country.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                                <TextField label="Nguyên vật liệu" name="material" multiline rows={2} fullWidth />
+                                <Tiptap value={description} onChange={setDescription} />
                                 <UploadFiles
                                     files={files}
                                     onFilesChange={(newFiles) => setFiles(newFiles)}
@@ -311,12 +364,61 @@ export const ProductCreatePage = () => {
                             </Stack>
                         </CollapsibleCard>
 
-                        <ProductVariants
-                            expanded={expandedVariants}
-                            onToggle={toggle(setExpandedVariants)}
-                            variants={variants}
-                            onVariantsChange={setVariants}
-                        />
+                        {/* Conditional Rendering: Simple vs Variable */}
+                        {productType === "SIMPLE" ? (
+                            <CollapsibleCard
+                                title="Giá & Kho hàng"
+                                subheader="Thiết lập giá và số lượng tồn kho"
+                                expanded={true}
+                                onToggle={() => { }}
+                            >
+                                <Stack p="24px" gap="24px" direction="row" flexWrap="wrap">
+                                    <TextField
+                                        label="Giá bán gốc (VNĐ)"
+                                        type="number"
+                                        fullWidth
+                                        required
+                                        value={simplePrice}
+                                        onChange={(e) => setSimplePrice(Number(e.target.value))}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                    />
+                                    <TextField
+                                        label="Giá khuyến mãi (VNĐ)"
+                                        type="number"
+                                        fullWidth
+                                        value={simpleSalePrice}
+                                        onChange={(e) => setSimpleSalePrice(Number(e.target.value))}
+                                        helperText={simpleSalePrice === 0 ? "Nhập 0 nếu không có khuyến mãi" : ""}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                    />
+                                    <TextField
+                                        label="Số lượng tồn kho"
+                                        type="number"
+                                        fullWidth
+                                        required
+                                        value={simpleStock}
+                                        onChange={(e) => setSimpleStock(Number(e.target.value))}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                    />
+                                    <TextField
+                                        label="SKU (Mã kho)"
+                                        name="sku" // Optional override
+                                        fullWidth
+                                        value={simpleSku}
+                                        onChange={(e) => setSimpleSku(e.target.value)}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                    />
+                                </Stack>
+                            </CollapsibleCard>
+                        ) : (
+                            <ProductVariants
+                                expanded={expandedVariants}
+                                onToggle={toggle(setExpandedVariants)}
+                                variants={variants}
+                                onVariantsChange={setVariants}
+                                availableImages={files}
+                            />
+                        )}
 
                         <CollapsibleCard
                             title={t('admin.common.attributes')}
@@ -332,35 +434,23 @@ export const ProductCreatePage = () => {
                                         gap: "24px 16px",
                                     }}
                                 >
-                                    <TextField label={t('admin.product.fields.sku')} name="sku" />
+                                    <TextField label={t('admin.product.fields.sku')} name="barcode" placeholder="Mã vạch (Barcode)" />
                                     <FormControl>
-                                        <InputLabel
-                                            id="status-select-label"
-                                            sx={{
-                                                color: "#637381",
-                                                fontWeight: "600"
-                                            }}
-                                        >
-                                            {t('admin.common.status')}
-                                        </InputLabel>
+                                        <InputLabel id="status-select-label">Trạng thái</InputLabel>
                                         <Select
                                             labelId="status-select-label"
                                             value={status}
-                                            input={<OutlinedInput label={t('admin.common.status')} />}
+                                            label="Trạng thái"
                                             onChange={handleChangeStatus}
                                         >
-                                            <MenuItem value="draft">{t('admin.product.status.draft')}</MenuItem>
-                                            <MenuItem value="active">{t('admin.product.status.active')}</MenuItem>
-                                            <MenuItem value="inactive">{t('admin.product.status.inactive')}</MenuItem>
+                                            <MenuItem value="DRAFT">Nháp (Draft)</MenuItem>
+                                            <MenuItem value="ACTIVE">Hoạt động (Active)</MenuItem>
+                                            <MenuItem value="HIDDEN">Ẩn (Hidden)</MenuItem>
                                         </Select>
                                     </FormControl>
                                     <TextField label={t('admin.common.position')} name="position" />
                                     <FormControl>
-                                        <InputLabel
-                                            id="age-select-label"
-                                        >
-                                            Độ tuổi
-                                        </InputLabel>
+                                        <InputLabel id="age-select-label">Độ tuổi</InputLabel>
                                         <Select
                                             labelId="age-select-label"
                                             multiple

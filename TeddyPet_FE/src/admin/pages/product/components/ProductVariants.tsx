@@ -1,20 +1,24 @@
-import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, Select, MenuItem } from "@mui/material";
 import { useProductAttributes } from "../../product-attribute/hooks/useProductAttribute";
 import { useState, useMemo, useEffect } from "react";
 import { CollapsibleCard } from "../../../components/ui/CollapsibleCard";
 import { DeleteIcon } from "../../../assets/icons";
 
-interface Variant {
-    id: string;
-    attributes: { name: string; value: string }[];
-    sku: string;
-    originalPrice: number;
-    price: number;
-    stock: number;
-    active: boolean;
-}
+import { ProductVariant as Variant } from "../../../../types/products.type";
 
-export const ProductVariants = ({ expanded, onToggle, variants, onVariantsChange }: { expanded: boolean, onToggle: () => void, variants: Variant[], onVariantsChange: (variants: Variant[]) => void }) => {
+export const ProductVariants = ({
+    expanded,
+    onToggle,
+    variants,
+    onVariantsChange,
+    availableImages = []
+}: {
+    expanded: boolean,
+    onToggle: () => void,
+    variants: Variant[],
+    onVariantsChange: (variants: Variant[]) => void,
+    availableImages?: any[]
+}) => {
     const { data: attributes = [] as any[] } = useProductAttributes();
 
     const [selectedAttributes, setSelectedAttributes] = useState<Record<string, Set<string>>>({});
@@ -157,6 +161,7 @@ export const ProductVariants = ({ expanded, onToggle, variants, onVariantsChange
                 originalPrice: 0,
                 price: 0,
                 stock: 0,
+                status: "ACTIVE",
                 active: isActive,
             };
         });
@@ -339,6 +344,8 @@ export const ProductVariants = ({ expanded, onToggle, variants, onVariantsChange
                                             );
                                         })}
 
+                                        <TableCell width={80} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
+                                        <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
                                         <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá cũ</TableCell>
                                         <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá mới</TableCell>
                                         <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
@@ -364,6 +371,62 @@ export const ProductVariants = ({ expanded, onToggle, variants, onVariantsChange
                                             })}
 
                                             <TableCell>
+                                                <Select
+                                                    size="small"
+                                                    value={variant.featuredImage || ''}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].featuredImage = e.target.value;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    displayEmpty
+                                                    renderValue={(selected) => {
+                                                        if (!selected) return <Box sx={{ width: 44, height: 44, bgcolor: '#f4f6f8', borderRadius: '8px', border: '1px dashed #919eab52' }} />;
+                                                        return <Box component="img" src={String(selected)} sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: '8px', border: '1px solid #919eab29' }} />;
+                                                    }}
+                                                    sx={{
+                                                        minWidth: 80,
+                                                        '& .MuiSelect-select': { padding: '8px !important', display: 'flex', justifyContent: 'center' },
+                                                        '& fieldset': { borderColor: 'transparent !important' },
+                                                        '&:hover fieldset': { borderColor: '#919eab52 !important' }
+                                                    }}
+                                                >
+                                                    <MenuItem value=""><em>None</em></MenuItem>
+                                                    {availableImages.map((img: any, i: number) => {
+                                                        const imgSrc = typeof img === 'string' ? img : img.preview;
+                                                        return (
+                                                            <MenuItem key={i} value={imgSrc}>
+                                                                <Box component="img" src={imgSrc} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '4px', mr: 1 }} />
+                                                                Ảnh {i + 1}
+                                                            </MenuItem>
+                                                        );
+                                                    })}
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Select
+                                                    size="small"
+                                                    value={variant.status || "ACTIVE"}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].status = e.target.value as any;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{
+                                                        minWidth: 100, fontSize: '1.3rem',
+                                                        color: variant.status === "ACTIVE" ? '#00A76F' : (variant.status === "DRAFT" ? '#637381' : '#FF5630'),
+                                                        bgcolor: variant.status === "ACTIVE" ? 'rgba(0, 167, 111, 0.08)' : (variant.status === "DRAFT" ? 'rgba(99, 115, 129, 0.08)' : 'rgba(255, 86, 48, 0.08)'),
+                                                        fontWeight: 600,
+                                                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                                                    }}
+                                                >
+                                                    <MenuItem value="ACTIVE" sx={{ color: '#00A76F', fontWeight: 600 }}>Active</MenuItem>
+                                                    <MenuItem value="DRAFT" sx={{ color: '#637381', fontWeight: 600 }}>Draft</MenuItem>
+                                                    <MenuItem value="HIDDEN" sx={{ color: '#FF5630', fontWeight: 600 }}>Hidden</MenuItem>
+                                                </Select>
+                                            </TableCell>
+
+                                            <TableCell>
                                                 <TextField
                                                     size="small"
                                                     type="number"
@@ -372,9 +435,14 @@ export const ProductVariants = ({ expanded, onToggle, variants, onVariantsChange
                                                     onChange={(e) => {
                                                         const newVariants = [...variants];
                                                         newVariants[index].originalPrice = Number(e.target.value);
+                                                        // Auto-update Sale Price to match if 0 to show it's default
+                                                        if (Number(e.target.value) === 0) {
+                                                            newVariants[index].price = 0;
+                                                        }
                                                         onVariantsChange(newVariants);
                                                     }}
                                                     fullWidth
+                                                    helperText={variant.originalPrice === 0 ? "Nhập 0 = Không sale" : ""}
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
                                             </TableCell>

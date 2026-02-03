@@ -1,6 +1,6 @@
 import { GridColDef } from "@mui/x-data-grid";
 import { RenderActionsCell, RenderCreatedAtCell, RenderProductCell, RenderStatusCell, RenderStockCell } from '../utils/render-cells';
-import { IProduct } from "./types";
+import { IProduct } from "../../../../types/products.type";
 
 export const columnsConfig: GridColDef<IProduct>[] = [
     {

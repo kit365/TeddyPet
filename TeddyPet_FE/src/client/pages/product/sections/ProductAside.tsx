@@ -2,7 +2,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import StarIcon from "@mui/icons-material/Star";
-import type { Product } from "../../../../types/products.type";
+import { APIProduct } from "../../../../types/products.type";
 import { ProductAsideTitle } from "./ProductAsideTitle";
 import { ProductAsideList } from "./ProductAsideList";
 import { useQuery } from "@tanstack/react-query";
@@ -243,7 +243,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                         <li key={item.productId} className="p-[15px] mb-[15px] rounded-[10px] bg-[#fff0f066] flex">
                             <Link to={`/product/detail/${item.slug}`} className="mr-[20px] rounded-[10px] overflow-hidden min-w-[80px]">
                                 <img
-                                    src={item.images[0]?.url || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg"}
+                                    src={item.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg"}
                                     alt={item.name}
                                     className="w-[80px] h-[84px] object-cover"
                                 />
@@ -263,7 +263,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                                         />
                                     ))}
                                 </div>
-                                <p className="text-client-text">{item.minPrice.toLocaleString('vi-VN')}đ</p>
+                                <p className="text-client-text">{(item.minPrice ?? 0).toLocaleString('vi-VN')}đ</p>
                             </div>
                         </li>
                     ))}
@@ -284,8 +284,8 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
             <div>
                 <ProductAsideTitle title="Lọc theo thẻ" />
                 <div className="gap-[15px] mt-[10px] p-[20px] bg-[#fff0f066] rounded-[20px] flex flex-wrap">
-                    {filterTags.slice(0, 5).map(item => (
-                        <Link to={item.url} className="text-client-secondary bg-white hover:text-white hover:bg-client-secondary transition-default py-[8px] px-[16px] text-[1.4rem] border border-[#10293726] rounded-[35px]">
+                    {filterTags.slice(0, 5).map((item, idx) => (
+                        <Link key={idx} to={item.url} className="text-client-secondary bg-white hover:text-white hover:bg-client-secondary transition-default py-[8px] px-[16px] text-[1.4rem] border border-[#10293726] rounded-[35px]">
                             {item.title}
                         </Link>
                     ))}
