@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import Cookies from "js-cookie";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
@@ -16,7 +17,8 @@ const breadcrumbs = [
 ];
 
 export const CheckSuccessPage = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const orderCode = searchParams.get("orderCode");
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -43,6 +45,13 @@ export const CheckSuccessPage = () => {
 
             if (response.success) {
                 setOrder(response.data);
+                // Clean up URL parameters only if email is present (guest checkout)
+                // We keep orderCode for potential refresh but hide email
+                if (email) {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete("email");
+                    setSearchParams(newParams, { replace: true });
+                }
             } else {
                 toast.error(response.message || "Không thể tải thông tin đơn hàng");
             }
@@ -157,7 +166,9 @@ export const CheckSuccessPage = () => {
                                         )}
                                         <tr>
                                             <td className="text-left py-[15px] text-gray-500">Phí vận chuyển:</td>
-                                            <td className="text-right py-[15px] font-bold text-client-secondary">{(order.shippingFee || 0).toLocaleString()}đ</td>
+                                            <td className="text-right py-[15px] font-bold text-client-secondary">
+                                                {order.shippingFee && order.shippingFee > 0 ? `${order.shippingFee.toLocaleString()}đ` : 'Liên hệ sau'}
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td className="text-left py-[20px] border-t border-[#eee] text-[1.8rem] font-bold text-client-secondary">Tổng cộng:</td>
@@ -209,9 +220,23 @@ export const CheckSuccessPage = () => {
                                 )}
                             </div>
                             <div className="mt-4 pt-6 border-t border-[#eee]">
-                                <Link to="/dashboard/orders" className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[1.4rem] transition-all block">
-                                    XEM LỊCH SỬ ĐƠN HÀNG
-                                </Link>
+                                {Cookies.get("token") ? (
+                                    <Link to="/dashboard/orders" className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[1.4rem] transition-all block">
+                                        XEM LỊCH SỬ ĐƠN HÀNG
+                                    </Link>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate("/tra-cuu-don-hang", {
+                                            state: {
+                                                orderCode: order.orderCode,
+                                                email: order.guestEmail || order.user?.email
+                                            }
+                                        })}
+                                        className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[1.4rem] transition-all block"
+                                    >
+                                        TRA CỨU ĐƠN HÀNG
+                                    </button>
+                                )}
                                 <Link to="/shop" className="w-full mt-3 text-center text-client-primary font-bold text-[1.4rem] hover:underline block">
                                     TIẾP TỤC MUA SẮM
                                 </Link>

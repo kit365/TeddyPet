@@ -164,4 +164,15 @@ public class OrderController {
         orderService.updateOrderStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_STATUS_UPDATED_SUCCESS));
     }
+
+    @PatchMapping("/{id}/shipping-fee")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Cập nhật phí vận chuyển thủ công", description = "Admin cập nhật phí vận chuyển và chốt đơn")
+    public ResponseEntity<ApiResponse<Void>> updateManualShippingFee(
+            @PathVariable UUID id,
+            @RequestParam java.math.BigDecimal finalFee) {
+        orderService.updateManualShippingFee(id, finalFee);
+        return ResponseEntity.ok(
+                ApiResponse.success(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED));
+    }
 }

@@ -29,6 +29,7 @@ import { UserListPage } from "../pages/user/UserListPage";
 import { UserDetailPage } from "../pages/user/UserDetailPage";
 import { OrderListPage } from "../pages/order/OrderListPage";
 import { OrderDetailPage } from "../pages/order/OrderDetailPage";
+import { ShippingRuleListPage } from "../pages/shipping/ShippingRuleListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -60,6 +61,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "user/detail/:id", element: <UserDetailPage /> },
     { path: "order/list", element: <OrderListPage /> },
     { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "shipping/list", element: <ShippingRuleListPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

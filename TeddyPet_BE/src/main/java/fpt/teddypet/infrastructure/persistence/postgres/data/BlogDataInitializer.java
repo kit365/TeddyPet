@@ -1,4 +1,4 @@
-package fpt.teddypet.infrastructure.persistence.postgres;
+package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.application.dto.request.blogs.category.BlogCategoryUpsertRequest;
 import fpt.teddypet.application.dto.request.blogs.post.BlogPostCreateRequest;

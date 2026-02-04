@@ -34,4 +34,10 @@ public final class OrderMessages {
     public static final String MESSAGE_SHIPPING_ADDRESS_REQUIRED = "Địa chỉ giao hàng là bắt buộc.";
     public static final String MESSAGE_GUEST_ORDER_NOT_FOUND = "Không tìm thấy đơn hàng với mã và email đã nhập.";
     public static final String MESSAGE_GUEST_PAYMENT_COD_ONLY = "Khách vãng lai chỉ hỗ trợ thanh toán khi nhận hàng (COD).";
+    public static final String MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED = "Online payment methods are not yet implemented. Please use CASH payment.";
+    public static final String MESSAGE_NOTE_PAYMENT_CASH = "Thanh toán tiền mặt khi nhận hàng";
+    public static final String MESSAGE_NOTE_GUEST_COD = "Đơn hàng khách vãng lai - COD";
+
+    // Address Validation
+    public static final String MESSAGE_ADDRESS_REQUIRED = "Địa chỉ giao hàng không được để trống";
 }
