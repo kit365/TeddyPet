@@ -1,5 +1,6 @@
 import axios from "axios"
 import Cookies from "js-cookie"
+import { useAuthStore } from "../stores/useAuthStore"
 
 const BASE_URL = "http://localhost:8080"
 
@@ -82,8 +83,12 @@ apiApp.interceptors.response.use(
             const refreshToken = Cookies.get(refreshTokenKey);
 
             if (!refreshToken) {
-                Cookies.remove(tokenKey);
-                Cookies.remove(refreshTokenKey);
+                if (isAdmin) {
+                    Cookies.remove(tokenKey);
+                    Cookies.remove(refreshTokenKey);
+                } else {
+                    useAuthStore.getState().logout();
+                }
                 window.location.href = loginPath;
                 return Promise.reject(error);
             }
@@ -110,8 +115,12 @@ apiApp.interceptors.response.use(
             } catch (err) {
                 processQueue(err, null);
                 // Clear tokens and redirect
-                Cookies.remove(tokenKey);
-                Cookies.remove(refreshTokenKey);
+                if (isAdmin) {
+                    Cookies.remove(tokenKey);
+                    Cookies.remove(refreshTokenKey);
+                } else {
+                    useAuthStore.getState().logout();
+                }
                 window.location.href = loginPath;
                 return Promise.reject(err);
             } finally {

@@ -75,7 +75,7 @@ public class OrderApplicationService implements OrderService {
         switch (request.paymentMethod()) {
             case CASH -> createCashOrder(order);
             case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
-                    "Online payment methods are not yet implemented. Please use CASH payment.");
+                    OrderMessages.MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED);
         }
 
         // Clear cart after successful order creation
@@ -88,7 +88,7 @@ public class OrderApplicationService implements OrderService {
                 .amount(order.getFinalAmount())
                 .paymentMethod(PaymentMethodEnum.CASH)
                 .status(PaymentStatusEnum.PENDING)
-                .notes("Thanh toán tiền mặt khi nhận hàng")
+                .notes(OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
                 .build();
 
         order.addPayment(payment);
@@ -126,7 +126,7 @@ public class OrderApplicationService implements OrderService {
 
             // Validate khi nhập thủ công
             if (finalShippingAddress == null || finalShippingAddress.isBlank()) {
-                throw new IllegalArgumentException("Địa chỉ giao hàng không được để trống");
+                throw new IllegalArgumentException(OrderMessages.MESSAGE_ADDRESS_REQUIRED);
             }
         }
 
@@ -143,7 +143,7 @@ public class OrderApplicationService implements OrderService {
         if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
             finalReceiverPhone = user.getPhoneNumber();
             if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
-                throw new IllegalArgumentException("Số điện thoại người nhận không được để trống");
+                throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_PHONE_REQUIRED);
             }
         }
 
@@ -378,12 +378,12 @@ public class OrderApplicationService implements OrderService {
                     .amount(order.getFinalAmount())
                     .paymentMethod(PaymentMethodEnum.CASH)
                     .status(PaymentStatusEnum.PENDING)
-                    .notes(isGuest ? "Đơn hàng khách vãng lai - COD" : "Thanh toán tiền mặt khi nhận hàng")
+                    .notes(isGuest ? OrderMessages.MESSAGE_NOTE_GUEST_COD : OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
                     .build();
             order.addPayment(payment);
         } else {
             throw new UnsupportedOperationException(
-                    "Online payment methods are not yet implemented. Please use CASH payment.");
+                    OrderMessages.MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED);
         }
 
         Order savedOrder = orderRepositoryPort.save(order);
@@ -454,6 +454,40 @@ public class OrderApplicationService implements OrderService {
                         OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND));
 
         return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public void updateManualShippingFee(UUID orderId, BigDecimal finalFee) {
+        log.info("Updating manual shipping fee for order: {} with fee: {}", orderId, finalFee);
+
+        Order order = getById(orderId);
+
+        // Cập nhật phí ship
+        order.setShippingFee(finalFee);
+
+        // Tính toán lại tổng tiền
+        order.calculateFinalAmount();
+
+        // Chuyển trạng thái sang ĐÃ XÁC NHẬN nếu đang là PENDING
+        if (order.getStatus() == OrderStatusEnum.PENDING) {
+            order.setStatus(OrderStatusEnum.CONFIRMED);
+        }
+
+        // Nếu có payment CASH, cũng cần update lại amount của payment (hoặc tạo mới nếu
+        // chưa có)
+        if (order.getPayments() != null && !order.getPayments().isEmpty()) {
+            // Giả sử payment đầu tiên là payment chính
+            Payment mainPayment = order.getPayments().get(0);
+            if (mainPayment.getPaymentMethod() == PaymentMethodEnum.CASH
+                    && mainPayment.getStatus() == PaymentStatusEnum.PENDING) {
+                mainPayment.setAmount(order.getFinalAmount());
+            }
+        }
+
+        Order savedOrder = orderRepositoryPort.save(order);
+        log.info(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED + " OrderId: {}",
+                savedOrder.getId());
     }
 
 }

@@ -1,4 +1,4 @@
-package fpt.teddypet.infrastructure.persistence.postgres;
+package fpt.teddypet.infrastructure.persistence.postgres.data;
 
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.domain.entity.Role;

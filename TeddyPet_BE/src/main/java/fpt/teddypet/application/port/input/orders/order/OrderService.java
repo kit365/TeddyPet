@@ -51,4 +51,7 @@ public interface OrderService {
 
     // Guest order lookup
     OrderResponse getGuestOrderByCodeAndEmail(String orderCode, String email);
+
+    // Admin manual shipping fee update
+    void updateManualShippingFee(UUID orderId, java.math.BigDecimal finalFee);
 }

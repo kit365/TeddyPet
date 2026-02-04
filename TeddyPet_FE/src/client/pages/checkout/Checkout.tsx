@@ -19,6 +19,7 @@ import { createOrder } from "../../../api/order.api";
 import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp } from "../../../api/otp.api";
+import { getShippingEstimation } from "../../api/shipping.api";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -87,6 +88,8 @@ export const CheckoutPage = () => {
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
     const [loadingAddresses, setLoadingAddresses] = useState(true);
+    const [shippingFee, setShippingFee] = useState(0);
+    const [calculatingFee, setCalculatingFee] = useState(false);
 
     // Shipping & Payment States
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -215,11 +218,39 @@ export const CheckoutPage = () => {
             if (data && data.display_name) {
                 isManualChange.current = false;
                 setValue("address", data.display_name);
+
+                // Try to extract address components to calculate shipping
+                if (data.address) {
+                    // MOCK LOGIC for demo:
+                    // If latitude is near HCM (10.7 - 10.9), use Province ID 79 (HCM)
+                    // Otherwise use Province ID 0 (Other)
+
+                    let provinceId = 0;
+                    if (lat >= 10.7 && lat <= 11.0 && lon >= 106.6 && lon <= 106.8) {
+                        provinceId = 79; // HCM
+                    }
+
+                    setCalculatingFee(true);
+                    try {
+                        const resVal = await getShippingEstimation(provinceId);
+                        if (resVal !== undefined && resVal !== null) {
+                            setShippingFee(Number(resVal));
+                        } else {
+                            setShippingFee(0);
+                        }
+                    } catch (err) {
+                        console.error("Error calculating fee", err);
+                        setShippingFee(0);
+                    } finally {
+                        setCalculatingFee(false);
+                    }
+                }
             }
         } catch (error) {
             console.error("Lỗi reverse geocoding:", error);
         }
     };
+
 
     const geocodeFromAddress = async (query: string, isFromSearch: boolean = false) => {
         if (!query.trim() || query.length < 3) return;
@@ -481,10 +512,10 @@ export const CheckoutPage = () => {
                                         {...register("otpCode")}
                                         className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
                                     />
-                                    <p className="text-[1.2rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
+                                    <div className="text-[1.2rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
                                         <div className="w-[4px] h-[4px] bg-client-primary rounded-full"></div>
                                         Lưu ý: Chúng tôi sẽ dùng Email này để gửi thông tin hành trình đơn hàng.
-                                    </p>
+                                    </div>
                                 </div>
                             )}
 
@@ -753,9 +784,16 @@ export const CheckoutPage = () => {
                                         <span className="font-bold text-client-secondary">{checkoutTotalAmount.toLocaleString()}đ</span>
                                     </div>
 
+                                    <div className="flex justify-between text-[#666] text-[1.4rem]">
+                                        <span className="font-medium">Phí vận chuyển</span>
+                                        <span className="font-bold text-client-secondary">
+                                            {calculatingFee ? "Đang tính..." : (shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
+                                        </span>
+                                    </div>
+
                                     <div className="pt-[20px] border-t border-[#eee] flex justify-between items-center">
                                         <span className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{checkoutTotalAmount.toLocaleString()}đ</div>
+                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{(checkoutTotalAmount + shippingFee).toLocaleString()}đ</div>
                                     </div>
 
                                     <button

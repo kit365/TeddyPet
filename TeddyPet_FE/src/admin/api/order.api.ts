@@ -29,6 +29,11 @@ export const updateOrderStatus = async (id: string, status: string) => {
     return response.data;
 };
 
+export const updateShippingFee = async (id: string, fee: number) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/shipping-fee?fee=${fee}`);
+    return response.data;
+};
+
 export const searchOrders = async (params: {
     keyword: string;
     page?: number;

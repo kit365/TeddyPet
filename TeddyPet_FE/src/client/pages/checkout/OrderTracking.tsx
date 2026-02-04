@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { lookupGuestOrder } from "../../../api/order.api";
@@ -12,10 +13,18 @@ const breadcrumbs = [
 ];
 
 export const OrderTrackingPage = () => {
+    const location = useLocation();
     const [orderCode, setOrderCode] = useState("");
     const [email, setEmail] = useState("");
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (location.state) {
+            if (location.state.orderCode) setOrderCode(location.state.orderCode);
+            if (location.state.email) setEmail(location.state.email);
+        }
+    }, [location.state]);
 
     const handleLookup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -248,7 +257,7 @@ export const OrderTrackingPage = () => {
                                         </div>
                                         <div className="flex justify-between text-[1.4rem] text-gray-500">
                                             <span>Phí ship:</span>
-                                            <span>{(order.shippingFee || 0).toLocaleString()}đ</span>
+                                            <span>{order.shippingFee && order.shippingFee > 0 ? `${order.shippingFee.toLocaleString()}đ` : 'Liên hệ sau'}</span>
                                         </div>
                                         <div className="flex justify-between text-[1.6rem] font-bold text-client-primary mt-2">
                                             <span>Tổng số tiền:</span>
