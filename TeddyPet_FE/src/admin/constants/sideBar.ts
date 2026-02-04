@@ -26,6 +26,14 @@ export const menuOverviewData = [
 
 export const menuManagementData = [
     {
+        id: "orders",
+        label: "Đơn hàng",
+        Icon: ArticleIcon,
+        children: [
+            { id: "list", label: "Danh sách đơn hàng", path: `/${prefixAdmin}/order/list` },
+        ]
+    },
+    {
         id: "users",
         label: "Tài khoản",
         Icon: PersonIcon,

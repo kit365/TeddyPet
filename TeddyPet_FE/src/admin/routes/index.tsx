@@ -1,6 +1,8 @@
 import type { RouteObject } from "react-router-dom";
 import { ProductListPage } from "../pages/product/ProductListPage";
 import { ProductCreatePage } from "../pages/product/ProductCreatePage";
+import { ProductEditPage } from "../pages/product/ProductEditPage";
+import { ProductDetailPage } from "../pages/product/ProductDetailPage";
 import { ProductCategoryListPage } from "../pages/product-category/ProductCategoryListPage";
 import { ProductCategoryCreatePage } from "../pages/product-category/ProductCategoryCreatePage";
 import { ProductCategoryEditPage } from "../pages/product-category/ProductCategoryEditPage";
@@ -25,11 +27,15 @@ import { ProductAttributeEditPage } from "../pages/product-attribute/ProductAttr
 import { ProductAttributeDetailPage } from "../pages/product-attribute/ProductAttributeDetailPage";
 import { UserListPage } from "../pages/user/UserListPage";
 import { UserDetailPage } from "../pages/user/UserDetailPage";
+import { OrderListPage } from "../pages/order/OrderListPage";
+import { OrderDetailPage } from "../pages/order/OrderDetailPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "product/list", element: <ProductListPage /> },
     { path: "product/create", element: <ProductCreatePage /> },
+    { path: "product/edit/:id", element: <ProductEditPage /> },
+    { path: "product/detail/:id", element: <ProductDetailPage /> },
     { path: "product/attribute/list", element: <ProductAttributeListPage /> },
     { path: "product-attribute/create", element: <ProductAttributeCreatePage /> },
     { path: "product-attribute/edit/:id", element: <ProductAttributeEditPage /> },
@@ -52,6 +58,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "blog-category/detail/:id", element: <BlogCategoryDetailPage /> },
     { path: "user/list", element: <UserListPage /> },
     { path: "user/detail/:id", element: <UserDetailPage /> },
+    { path: "order/list", element: <OrderListPage /> },
+    { path: "order/detail/:id", element: <OrderDetailPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

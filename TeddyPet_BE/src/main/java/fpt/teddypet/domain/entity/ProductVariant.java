@@ -35,18 +35,18 @@ public class ProductVariant extends BaseEntity {
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "weight", column = @Column(name = "weight", nullable = false)),
-        @AttributeOverride(name = "length", column = @Column(name = "length")),
-        @AttributeOverride(name = "width", column = @Column(name = "width")),
-        @AttributeOverride(name = "height", column = @Column(name = "height"))
+            @AttributeOverride(name = "weight", column = @Column(name = "weight", nullable = false)),
+            @AttributeOverride(name = "length", column = @Column(name = "length")),
+            @AttributeOverride(name = "width", column = @Column(name = "width")),
+            @AttributeOverride(name = "height", column = @Column(name = "height"))
     })
     @Builder.Default
     private Dimensions dimensions = Dimensions.empty();
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "amount", column = @Column(name = "price", nullable = false, precision = 10, scale = 2)),
-        @AttributeOverride(name = "saleAmount", column = @Column(name = "sale_price", precision = 10, scale = 2))
+            @AttributeOverride(name = "amount", column = @Column(name = "price", nullable = false, precision = 10, scale = 2)),
+            @AttributeOverride(name = "saleAmount", column = @Column(name = "sale_price", precision = 10, scale = 2))
     })
     private Price price;
 
@@ -60,6 +60,11 @@ public class ProductVariant extends BaseEntity {
     private StockQuantity stockQuantity = StockQuantity.of(0);
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    @Builder.Default
+    private fpt.teddypet.domain.enums.ProductStatusEnum status = fpt.teddypet.domain.enums.ProductStatusEnum.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "unit", nullable = false, length = 50)
     private UnitEnum unit;
 
@@ -68,12 +73,7 @@ public class ProductVariant extends BaseEntity {
     private ProductImage featuredImage;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_variant_attribute_values",
-        joinColumns = @JoinColumn(name = "variant_id"),
-        inverseJoinColumns = @JoinColumn(name = "value_id")
-    )
+    @JoinTable(name = "product_variant_attribute_values", joinColumns = @JoinColumn(name = "variant_id"), inverseJoinColumns = @JoinColumn(name = "value_id"))
     @Builder.Default
     private List<ProductAttributeValue> attributeValues = new ArrayList<>();
 }
-

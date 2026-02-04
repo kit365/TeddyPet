@@ -6,7 +6,7 @@ import { useCartStore } from "../../../stores/useCartStore";
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { getAllAddresses } from "../../../api/address.api";
+import { getAllAddresses, createAddress } from "../../../api/address.api";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,6 +46,7 @@ const schema = z.object({
     note: z.string().optional(),
     guestEmail: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
     otpCode: z.string().optional(),
+    saveAddress: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -104,16 +105,41 @@ export const CheckoutPage = () => {
     const [isSendingOtp, setIsSendingOtp] = useState(false);
 
     const items = useCartStore((state) => state.items);
-    const totalAmount = useCartStore((state) => state.totalAmountChecked());
+    const cartTotalAmount = useCartStore((state) => state.totalAmountChecked());
     const clearCart = useCartStore((state) => state.clearCart);
+    const buyNowItem = useCartStore((state) => state.buyNowItem);
+    const setBuyNowItem = useCartStore((state) => state.setBuyNowItem);
+
+    // Identify checkout type
+    const isBuyNow = !!buyNowItem;
+    const checkoutItems = isBuyNow ? [buyNowItem] : items.filter(item => item.checked);
+    const checkoutTotalAmount = isBuyNow
+        ? (buyNowItem.option.price * buyNowItem.quantity)
+        : cartTotalAmount;
+
+    // Clear buyNowItem only on success, not on unmount to avoid Strict Mode issues
+    useEffect(() => {
+        // We handle clearing buyNowItem in handlePlaceOrder success case
+    }, []);
 
     const { register, handleSubmit, setValue, watch } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
+            fullName: user ? `${user.firstName} ${user.lastName}` : "",
+            phone: user?.phoneNumber || "",
             latitude: 10.7410688,
-            longitude: 106.7164031
+            longitude: 106.7164031,
+            saveAddress: false
         }
     });
+
+    // Update form values if user loads after initial render
+    useEffect(() => {
+        if (user) {
+            setValue("fullName", `${user.firstName} ${user.lastName}`);
+            if (user.phoneNumber) setValue("phone", user.phoneNumber);
+        }
+    }, [user, setValue]);
 
     const watchAddress = watch("address");
     const watchGuestEmail = watch("guestEmail");
@@ -252,12 +278,14 @@ export const CheckoutPage = () => {
 
 
     const handlePlaceOrder = async (data: FormData) => {
-        const activeItems = items.filter(item => item.checked);
+        const activeItems = checkoutItems;
 
         if (activeItems.length === 0) {
             toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán!");
             return;
         }
+
+        const saveAddressValue = data.saveAddress || false;
 
         // Validate address
         if (selectedAddressId === "new") {
@@ -274,6 +302,24 @@ export const CheckoutPage = () => {
         setIsPlacingOrder(true);
 
         try {
+            // Save address if user is logged in and checkbox is checked
+            if (user && selectedAddressId === "new" && saveAddressValue) {
+                try {
+                    await createAddress({
+                        fullName: data.fullName!,
+                        phone: data.phone!,
+                        address: data.address!,
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                        isDefault: addresses.length === 0 // Make default if it's the first address
+                    });
+                    toast.info("Đã lưu địa chỉ mới vào sổ địa chỉ");
+                } catch (error) {
+                    console.error("Lỗi khi lưu địa chỉ:", error);
+                    // Continue with order even if address saving fails
+                }
+            }
+
             // Prepare order items
             const orderItems: OrderItemRequest[] = activeItems.map(item => ({
                 variantId: Number(item.id),
@@ -292,8 +338,11 @@ export const CheckoutPage = () => {
                     shippingAddress: data.address!,
                     note: data.note,
                     items: orderItems,
-                    guestEmail: data.guestEmail,
-                    otpCode: data.otpCode,
+                    // Only send guest info if not logged in
+                    ...(!user && {
+                        guestEmail: data.guestEmail,
+                        otpCode: data.otpCode,
+                    })
                 };
             } else {
                 // Existing address case
@@ -316,7 +365,8 @@ export const CheckoutPage = () => {
 
             if (response.success) {
                 toast.success("Đặt hàng thành công!");
-                clearCart();
+                if (!isBuyNow) clearCart();
+                setBuyNowItem(null);
                 const successUrl = !user && data.guestEmail
                     ? `/checkout/success?orderCode=${response.data.orderCode}&email=${data.guestEmail}`
                     : `/checkout/success?orderCode=${response.data.orderCode}`;
@@ -370,7 +420,7 @@ export const CheckoutPage = () => {
                     background-color: white !important;
                 }
             `}} />
-            {items.length > 0 ? (
+            {checkoutItems.length > 0 ? (
                 <div className="app-container flex pb-[150px] 2xl:pb-[100px] relative">
                     <div className="w-[60%] py-[50px]">
                         <form onSubmit={handleSubmit(handlePlaceOrder)}>
@@ -479,24 +529,28 @@ export const CheckoutPage = () => {
                                 </div>
                             )}
 
-                            {/* Option Sử dụng địa chỉ khác - Styled more subtly */}
-                            {user && addresses.length > 0 && (
+                            {/* Option Sử dụng địa chỉ khác */}
+                            {user && (
                                 <div
                                     onClick={() => setSelectedAddressId("new")}
-                                    className="flex items-center gap-[12px] mb-[30px] cursor-pointer group w-fit pr-[20px]"
+                                    className={`border rounded-[20px] px-[25px] py-[18px] cursor-pointer transition-all duration-300 flex items-center gap-[20px] mb-[30px] ${selectedAddressId === "new"
+                                        ? 'border-client-primary bg-client-primary/[0.03] ring-1 ring-client-primary/10 shadow-sm'
+                                        : 'border-[#eee] hover:border-gray-300 bg-white'
+                                        }`}
                                 >
-                                    <div className="shrink-0">
+                                    <div className="shrink-0 flex items-center">
                                         <input
                                             type="radio"
                                             checked={selectedAddressId === "new"}
                                             onChange={() => setSelectedAddressId("new")}
-                                            className="appearance-none w-[18px] h-[18px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[5px] transition-all cursor-pointer bg-white"
+                                            className="appearance-none w-[20px] h-[20px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
                                         />
                                     </div>
-                                    <span className={`text-[1.5rem] font-bold tracking-wide transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400 group-hover:text-client-secondary'}`}>
-                                        Sử dụng địa chỉ khác
-                                        <div className={`h-[2px] bg-client-primary transition-all duration-300 ${selectedAddressId === "new" ? 'w-full opacity-10' : 'w-0 opacity-0'}`}></div>
-                                    </span>
+                                    <div className="flex-1">
+                                        <div className={`text-[1.5rem] font-bold transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400'}`}>
+                                            Thêm địa chỉ giao hàng mới
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -581,6 +635,19 @@ export const CheckoutPage = () => {
                                                 />
                                             </MapContainer>
                                         </div>
+
+                                        {user && (
+                                            <label className="flex items-center gap-[10px] cursor-pointer mt-[15px] group w-fit">
+                                                <input
+                                                    type="checkbox"
+                                                    {...register("saveAddress")}
+                                                    className="w-[18px] h-[18px] accent-client-primary cursor-pointer"
+                                                />
+                                                <span className="text-[1.4rem] text-gray-500 group-hover:text-client-secondary transition-default font-medium">
+                                                    Lưu địa chỉ này vào sổ địa chỉ để dùng cho lần sau
+                                                </span>
+                                            </label>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -622,7 +689,7 @@ export const CheckoutPage = () => {
                             <div className="px-[35px] pb-[35px] pt-[15px]">
                                 {/* Product List */}
                                 <ul className="mb-[25px] max-h-[360px] overflow-y-auto pr-[10px] pt-[15px] -mt-[15px]">
-                                    {items.filter(item => item.checked).map((item, index) => (
+                                    {checkoutItems.map((item, index) => (
                                         <li key={index} className="flex mb-[20px] pb-[20px] border-b border-[#f9f9f9] last:border-0 last:mb-0">
                                             <div className="relative shrink-0">
                                                 <div className="w-[65px] h-[65px] rounded-[12px] overflow-hidden border border-[#eee] bg-gray-50">
@@ -634,7 +701,12 @@ export const CheckoutPage = () => {
                                             </div>
                                             <div className="pl-[15px] pr-[10px] flex-1">
                                                 <div className="text-[1.4rem] font-bold text-client-secondary mb-[2px] line-clamp-1">{item.title}</div>
-                                                <p className="text-client-primary font-bold text-[1.3rem]">{item.option.price.toLocaleString()}đ</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[#FF6262] font-bold text-[1.3rem]">{item.option.price.toLocaleString()}đ</p>
+                                                    {item.option.originalPrice && (
+                                                        <p className="text-[#999] line-through text-[1.1rem]">{item.option.originalPrice.toLocaleString()}đ</p>
+                                                    )}
+                                                </div>
                                                 {item.option.size && (
                                                     <div className="text-[#999] text-[1.1rem] mt-[2px] italic">
                                                         {item.option.size}
@@ -647,8 +719,6 @@ export const CheckoutPage = () => {
                                         </li>
                                     ))}
                                 </ul>
-
-
 
                                 {/* Payment Methods */}
                                 <div className="mb-[35px] pt-[25px] border-t border-[#eee]">
@@ -680,12 +750,12 @@ export const CheckoutPage = () => {
                                 <div className="space-y-[15px] pt-[25px] border-t border-[#eee]">
                                     <div className="flex justify-between text-[#666] text-[1.4rem]">
                                         <span className="font-medium">Tạm tính</span>
-                                        <span className="font-bold text-client-secondary">{totalAmount.toLocaleString()}đ</span>
+                                        <span className="font-bold text-client-secondary">{checkoutTotalAmount.toLocaleString()}đ</span>
                                     </div>
 
                                     <div className="pt-[20px] border-t border-[#eee] flex justify-between items-center">
                                         <span className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{totalAmount.toLocaleString()}đ</div>
+                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{checkoutTotalAmount.toLocaleString()}đ</div>
                                     </div>
 
                                     <button

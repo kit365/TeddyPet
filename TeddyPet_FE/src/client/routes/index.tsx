@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router-dom";
 import { HomePage } from "../pages/home/HomePage";
 import { ProductDetailPage } from "../pages/product/ProductDetail";
 import { ProductListPage } from "../pages/product/ProductList";
+import { ProductCategoryPage } from "../pages/product/ProductCategoryPage";
 import { BlogListPage } from "../pages/blog/BlogList";
 import { BlogDetailPage } from "../pages/blog/BlogDetail";
 import { RegisterPage } from "../pages/auth/Register";
@@ -59,6 +60,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/checkout/success", element: <CheckSuccessPage /> },
     { path: "/tra-cuu-don-hang", element: <OrderTrackingPage /> },
     { path: "/dich-vu", element: <ServicePage /> },
+    { path: "/danh-muc-san-pham/:slug", element: <ProductCategoryPage /> },
     {
         path: "/dashboard",
         element: <AuthGuard />,

@@ -3,14 +3,13 @@ package fpt.teddypet.application.mapper.products;
 import fpt.teddypet.application.dto.request.products.variant.ProductVariantRequest;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.entity.ProductVariant;
+import fpt.teddypet.domain.valueobject.Sku;
 import org.mapstruct.*;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring",
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {ProductAttributeValueMapper.class})
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, unmappedTargetPolicy = ReportingPolicy.IGNORE, uses = {
+        ProductAttributeValueMapper.class })
 public interface ProductVariantMapper {
 
     @Mapping(target = "variantId", ignore = true)
@@ -28,7 +27,6 @@ public interface ProductVariantMapper {
     @Mapping(target = "updatedBy", ignore = true)
     void updateVariantFromRequest(ProductVariantRequest request, @MappingTarget ProductVariant variant);
 
-
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "productName", source = "product.name")
     @Mapping(target = "productSlug", source = "product.slug")
@@ -42,11 +40,14 @@ public interface ProductVariantMapper {
     @Mapping(target = "featuredImageId", source = "featuredImage.id")
     @Mapping(target = "featuredImageUrl", source = "featuredImage.imageUrl")
     @Mapping(target = "attributes", source = "attributeValues")
+    @Mapping(source = "sku", target = "sku")
     @Mapping(source = "deleted", target = "isDeleted")
     @Mapping(source = "active", target = "isActive")
     ProductVariantResponse toResponse(ProductVariant variant);
 
+    default String skuToString(Sku sku) {
+        return sku != null ? sku.getValue() : null;
+    }
+
     List<ProductVariantResponse> toResponseList(List<ProductVariant> variants);
-
-
 }

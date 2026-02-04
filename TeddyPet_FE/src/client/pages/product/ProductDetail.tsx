@@ -9,21 +9,23 @@ import { ProductDesc } from "./sections/ProductDesc";
 import { ProductComment } from "./sections/ProductComment";
 import { ProductRelated } from "./sections/ProductRelated";
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { useCartStore, CartItem } from "../../../stores/useCartStore";
-import { getProductBySlug, ProductDetail, ProductVariantDetail, ProductAttributeValue } from "../../../api/product.api";
+import { useCartStore } from "../../../stores/useCartStore";
+import { CartItem } from "../../../types/cart.type";
+import { getProductBySlug } from "../../../api/product.api";
+import { APIProduct, APIProductVariant, APIProductAttributeValue } from "../../../types/products.type";
 
 export const ProductDetailPage = () => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
 
     // State
-    const [product, setProduct] = useState<ProductDetail | null>(null);
+    const [product, setProduct] = useState<APIProduct | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedOptions, setSelectedOptions] = useState<{ [key: number]: number }>({}); // attributeId -> valueId
     const [quantity, setQuantity] = useState(1);
 
     // Derived State
-    const [selectedVariant, setSelectedVariant] = useState<ProductVariantDetail | null>(null);
+    const [selectedVariant, setSelectedVariant] = useState<APIProductVariant | null>(null);
     const [canAddToCart, setCanAddToCart] = useState(false);
     const [outOfStock, setOutOfStock] = useState(false);
 
@@ -57,7 +59,7 @@ export const ProductDetailPage = () => {
     // Calculate Unique Attribute Values for Rendering Options
     const attributeValueMap = useMemo(() => {
         if (!product) return {};
-        const map: { [key: number]: ProductAttributeValue } = {};
+        const map: { [key: number]: APIProductAttributeValue } = {};
         product.variants.forEach(v => {
             v.attributes.forEach(a => {
                 map[a.valueId] = a;
@@ -69,7 +71,32 @@ export const ProductDetailPage = () => {
     // Find Selected Variant when Options Change
     useEffect(() => {
         setOutOfStock(false);
-        if (!product || Object.keys(selectedOptions).length === 0) {
+        if (!product) return;
+
+        // Case 1: Simple Product (No attributes)
+        if (product.attributes.length === 0) {
+            // Usually simple products have 1 variant. Select it automatically.
+            const variant = product.variants[0];
+            if (variant) {
+                setSelectedVariant(variant);
+                if (variant.stockQuantity > 0) {
+                    setCanAddToCart(true);
+                    setOutOfStock(false);
+                } else {
+                    setCanAddToCart(false);
+                    setOutOfStock(true);
+                }
+            } else {
+                // No variant found even for simple product
+                setSelectedVariant(null);
+                setCanAddToCart(false);
+                setOutOfStock(true);
+            }
+            return;
+        }
+
+        // Case 2: Variable Product (Has attributes)
+        if (Object.keys(selectedOptions).length === 0) {
             setSelectedVariant(null);
             setCanAddToCart(false);
             return;
@@ -139,11 +166,12 @@ export const ProductDetailPage = () => {
         const cartItem: CartItem = {
             id: selectedVariant.variantId, // Use variantId as unique ID
             title: product.name,
-            image: selectedVariant.featuredImageUrl || product.images[0]?.url || "",
+            image: selectedVariant.featuredImageUrl || product.images[0]?.imageUrl || "",
             option: {
                 id: String(selectedVariant.variantId),
                 size: selectedVariant.attributes.map(a => a.value).join(" / "), // Summary of options
-                price: selectedVariant.price,
+                price: selectedVariant.salePrice || selectedVariant.price,
+                originalPrice: selectedVariant.salePrice ? selectedVariant.price : undefined,
             },
             quantity: quantity,
         };
@@ -164,9 +192,12 @@ export const ProductDetailPage = () => {
 
     // Max quantity user can add now = Stock - InCart
     const availableStock = selectedVariant ? Math.max(0, selectedVariant.stockQuantity - currentCartQuantity) : 0;
-    const currentMaxQuantity = outOfStock ? 0 : Math.min(availableStock, 20);
+    const currentMaxQuantity = outOfStock ? 0 : availableStock;
 
-    const handleDecrease = () => setQuantity(prev => Math.max(1, prev - 1));
+    const handleDecrease = () => {
+        if (outOfStock) return;
+        setQuantity(prev => Math.max(1, prev - 1));
+    };
     const handleIncrease = () => {
         if (outOfStock || quantity >= currentMaxQuantity) return;
         setQuantity(prev => Math.min(currentMaxQuantity, prev + 1));
@@ -194,9 +225,20 @@ export const ProductDetailPage = () => {
     let priceElement: React.ReactNode;
 
     if (selectedVariant) {
-        priceElement = <p>{selectedVariant.price.toLocaleString("vi-VN")}đ</p>;
+        if (selectedVariant.stockQuantity <= 0) {
+            priceElement = <p className="text-[#FF6262] font-bold">Tạm hết hàng</p>;
+        } else if (selectedVariant.salePrice) {
+            priceElement = (
+                <div className="flex items-center gap-3">
+                    <p className="text-[#FF6262] font-bold">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
+                    <p className="text-[#999] line-through text-[1.6rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
+                </div>
+            );
+        } else {
+            priceElement = <p>{selectedVariant.price.toLocaleString("vi-VN")}đ</p>;
+        }
     } else if (allAttributesSelected && !selectedVariant) {
-        priceElement = <p className="text-red-500">Tạm hết hàng</p>;
+        priceElement = <p className="text-red-500 font-bold">Tạm hết hàng</p>;
     } else {
         if (product.minPrice === product.maxPrice) {
             priceElement = <p>{product.minPrice?.toLocaleString("vi-VN")}đ</p>;
@@ -205,7 +247,7 @@ export const ProductDetailPage = () => {
         }
     }
 
-    const mainImage = selectedVariant?.featuredImageUrl || product.images?.[0]?.url || "https://placeholder.com/600";
+    const mainImage = selectedVariant?.featuredImageUrl || product.images?.[0]?.imageUrl || "https://placeholder.com/600";
 
     return (
         <>
@@ -217,7 +259,10 @@ export const ProductDetailPage = () => {
             />
             <section className="relative px-[30px] bg-white">
                 <div className="app-container grid grid-cols-2 gap-[60px] 2xl:gap-[40px] relative">
-                    <ProductGallery images={product.images || []} />
+                    <ProductGallery
+                        images={product.images || []}
+                        selectedImage={selectedVariant?.featuredImageUrl}
+                    />
 
                     <div>
                         <div>
@@ -239,10 +284,7 @@ export const ProductDetailPage = () => {
                                     <p>({product.ratingCount || 0} customer review)</p>
                                 </div>
                             </div>
-                            {/* <div className="flex items-center">
-                                <strong className="text-client-secondary mr-[8px]">SKU:</strong>
-                                <span className="text-[#505050]">{selectedVariant?.productSlug || product.sku || "N/A"}</span>
-                            </div> */}
+
                             <div className="mt-[10px] text-client-secondary text-[2.2rem] font-secondary">
                                 {priceElement}
                             </div>
@@ -334,9 +376,34 @@ export const ProductDetailPage = () => {
                                 </div>
                             </div>
 
-                            <Link to="/gio-hang" className="text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[2rem] text-white bg-client-primary hover:bg-client-secondary transition-default">
-                                Mua ngay
-                            </Link>
+                            <button
+                                onClick={() => {
+                                    if (!canAddToCart || !selectedVariant) {
+                                        toast.error("Vui lòng chọn đầy đủ các tùy chọn sản phẩm!");
+                                        return;
+                                    }
+                                    const buyNowItem: CartItem = {
+                                        id: selectedVariant.variantId,
+                                        title: product.name,
+                                        image: selectedVariant.featuredImageUrl || product.images[0]?.imageUrl || "",
+                                        option: {
+                                            id: String(selectedVariant.variantId),
+                                            size: selectedVariant.attributes.map(a => a.value).join(" / "),
+                                            price: selectedVariant.salePrice || selectedVariant.price,
+                                            originalPrice: selectedVariant.salePrice ? selectedVariant.price : undefined,
+                                        },
+                                        quantity: quantity,
+                                    };
+                                    // Add to cart first so it appears in the persistent cart
+                                    addToCart(buyNowItem);
+                                    useCartStore.getState().setBuyNowItem(buyNowItem);
+                                    navigate("/checkout");
+                                }}
+                                disabled={!canAddToCart}
+                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[2rem] text-white transition-default ${canAddToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
+                            >
+                                {outOfStock ? "Hết hàng" : "Mua ngay"}
+                            </button>
 
                             <ul className="mt-[50px]">
                                 <li className="flex items-center text-[#505050] my-[15px]">

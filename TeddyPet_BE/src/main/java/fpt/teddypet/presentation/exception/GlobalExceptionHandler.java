@@ -62,6 +62,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
+    }
+
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleEntityNotFoundException(EntityNotFoundException ex) {
         return ResponseEntity
@@ -73,7 +80,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("An error occurred: " + ex.getMessage(),
+                .body(ApiResponse.error("Runtime error: " + ex.getMessage(),
                         HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 
@@ -81,7 +88,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Internal server error",
+                .body(ApiResponse.error("Internal server error: " + ex.getMessage(),
                         HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 }

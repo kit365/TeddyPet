@@ -107,6 +107,18 @@ export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => 
                         sx={{ width: 1, height: 1, objectFit: 'cover', borderRadius: '10px' }}
                     />
 
+                    {/* Badge thứ tự */}
+                    <Box sx={{
+                        position: 'absolute', top: -8, left: -8,
+                        bgcolor: '#1C252E', color: '#fff',
+                        width: 22, height: 22, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.2rem', fontWeight: 'bold',
+                        border: '2px solid #fff', zIndex: 1
+                    }}>
+                        {index + 1}
+                    </Box>
+
                     {/* Nút xóa ảnh */}
                     <ButtonBase
                         onClick={(e) => { e.stopPropagation(); handleRemoveFile(file); }}

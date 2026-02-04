@@ -46,4 +46,6 @@ public interface ProductService {
         PageResponse<ProductResponse> getHomeProducts(ProductHomeSearchRequest request);
 
         List<ProductSuggestionResponse> getSuggestions(String keyword);
+
+        void recalculateProductMetadata(Long productId);
 }

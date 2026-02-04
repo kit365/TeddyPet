@@ -22,6 +22,7 @@ export interface CartItem {
         id: string;
         size: string;
         price: number;
+        originalPrice?: number;
     };
     quantity: number;
     stockQuantity?: number;

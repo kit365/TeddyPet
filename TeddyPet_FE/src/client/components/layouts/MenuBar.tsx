@@ -29,12 +29,12 @@ export const MenuBar = () => {
         },
         {
             label: "Chó cưng",
-            to: "/danh-muc-san-pham/cho-cung",
+            to: "/danh-muc-san-pham/danh-cho-cho",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-4.png",
         },
         {
             label: "Mèo cưng",
-            to: "/danh-muc-san-pham/meo-cung",
+            to: "/danh-muc-san-pham/danh-cho-meo",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-5.png",
         },
         {

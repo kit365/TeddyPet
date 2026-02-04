@@ -7,7 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SortAscendingIcon, SortDescendingIcon, UnsortedIcon } from '../../../assets/icons';
 import { columnsInitialState } from '../configs/column.config';
-import { IGridSettings } from '../configs/types';
+import { IGridSettings } from '../../../../types/common.type';
 import { ProductToolbar } from './ProductToolbar';
 import { useDataGridLocale } from '../../../hooks/useDataGridLocale';
 import { useSettings } from '../hooks/useSettings';
@@ -26,6 +26,14 @@ declare module '@mui/x-data-grid' {
     interface ToolbarPropsOverrides {
         settings: IGridSettings;
         onSettingsChange: React.Dispatch<React.SetStateAction<IGridSettings>>;
+        filters: {
+            status?: string[];
+            stock?: string[];
+            search?: string;
+        };
+        onStatusChange: (status: string[]) => void;
+        onStockChange: (stock: string[]) => void;
+        onSearchChange: (search: string) => void;
     }
 }
 
@@ -49,7 +57,14 @@ const CustomNoRowsOverlay = () => {
 export const ProductList = () => {
     const { t } = useTranslation();
     const { settings, setSettings } = useSettings();
-    const { products, loading } = useProducts();
+    const {
+        products,
+        loading,
+        filters,
+        setStatusFilter,
+        setStockFilter,
+        setSearchFilter
+    } = useProducts();
     const columns = useProductColumns();
     const localeText = useDataGridLocale();
 
@@ -66,7 +81,6 @@ export const ProductList = () => {
                     density={settings.density}
                     showCellVerticalBorder={settings.showCellBorders}
                     showColumnVerticalBorder={settings.showColumnBorders}
-                    showToolbar
                     slots={{
                         toolbar: ProductToolbar,
                         columnSortedAscendingIcon: SortAscendingIcon,
@@ -89,13 +103,18 @@ export const ProductList = () => {
                         toolbar: {
                             settings,
                             onSettingsChange: setSettings,
+                            filters,
+                            onStatusChange: setStatusFilter,
+                            onStockChange: setStockFilter,
+                            onSearchChange: setSearchFilter
                         },
                     }}
                     localeText={localeText}
                     pagination
+                    getRowHeight={() => 'auto'}
+                    getEstimatedRowHeight={() => 100}
                     pageSizeOptions={[5, 10, 20, { value: -1, label: t("admin.common.tabs.all") }]}
                     initialState={columnsInitialState}
-                    getRowHeight={() => 'auto'}
                     checkboxSelection
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

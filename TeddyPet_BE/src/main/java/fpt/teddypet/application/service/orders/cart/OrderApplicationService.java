@@ -15,6 +15,7 @@ import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.input.orders.cart.CartService;
 import fpt.teddypet.application.port.input.orders.order.OrderItemService;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
+import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.input.user.UserAddressService;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.util.SecurityUtil;
@@ -54,6 +55,7 @@ public class OrderApplicationService implements OrderService {
     private final CartService cartService;
     private final UserAddressService userAddressService;
     private final OtpService otpService;
+    private final ProductVariantService productVariantService;
 
     @Override
     @Transactional
@@ -179,6 +181,11 @@ public class OrderApplicationService implements OrderService {
         for (OrderItem orderItem : orderItems) {
             order.addOrderItem(orderItem);
             subtotal = subtotal.add(orderItem.getTotalPrice());
+        }
+
+        // Deduct stock for each item
+        for (OrderItemRequest itemRequest : itemRequests) {
+            productVariantService.deductStock(itemRequest.variantId(), itemRequest.quantity());
         }
 
         order.setSubtotal(subtotal);
@@ -337,6 +344,7 @@ public class OrderApplicationService implements OrderService {
         boolean isGuest = (userId == null);
 
         log.info("Creating {} order", isGuest ? "guest" : "user");
+        log.debug("Processing unified order creation..."); // Force recompile
 
         // Validate items
         if (request.items() == null || request.items().isEmpty()) {
@@ -364,17 +372,17 @@ public class OrderApplicationService implements OrderService {
                 order.getShippingFee(), order.getFinalAmount());
 
         // Create payment
-        switch (request.paymentMethod()) {
-            case CASH -> {
-                Payment payment = Payment.builder()
-                        .amount(order.getFinalAmount())
-                        .paymentMethod(PaymentMethodEnum.CASH)
-                        .status(PaymentStatusEnum.PENDING)
-                        .notes(isGuest ? "Đơn hàng khách vãng lai - COD" : "Thanh toán tiền mặt khi nhận hàng")
-                        .build();
-                order.addPayment(payment);
-            }
-            case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
+        // Create payment
+        if (request.paymentMethod() == PaymentMethodEnum.CASH) {
+            Payment payment = Payment.builder()
+                    .amount(order.getFinalAmount())
+                    .paymentMethod(PaymentMethodEnum.CASH)
+                    .status(PaymentStatusEnum.PENDING)
+                    .notes(isGuest ? "Đơn hàng khách vãng lai - COD" : "Thanh toán tiền mặt khi nhận hàng")
+                    .build();
+            order.addPayment(payment);
+        } else {
+            throw new UnsupportedOperationException(
                     "Online payment methods are not yet implemented. Please use CASH payment.");
         }
 

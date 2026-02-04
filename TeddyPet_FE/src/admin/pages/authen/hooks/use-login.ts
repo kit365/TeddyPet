@@ -27,7 +27,7 @@ export const useLogin = () => {
                 toast.success(response.message);
                 setTimeout(() => {
                     navigate("/admin/dashboard");
-                }, 1500);
+                }, 500);
             } else {
                 toast.error(response.message);
             }
