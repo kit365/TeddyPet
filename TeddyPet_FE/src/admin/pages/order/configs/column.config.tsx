@@ -48,7 +48,7 @@ const ProductCell = ({ items }: { items: any[] }) => {
                     {items.length > 1 && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Chip
-                                label={`+${items.length - 1} MÓN KHÁC`}
+                                label={`+${items.length - 1} món khác`}
                                 size="small"
                                 sx={{
                                     height: 20,
@@ -101,22 +101,30 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
     {
         field: 'orderCode',
         headerName: 'Mã đơn',
-        width: 140,
+        width: 160,
+        align: 'center',
+        headerAlign: 'center',
         renderCell: (params) => (
-            <Typography
-                component={NavLink}
-                to={`/${prefixAdmin}/order/detail/${params.row.id}`}
-                sx={{
-                    fontWeight: 900,
-                    color: '#3F51B5',
-                    textDecoration: 'none',
-                    fontSize: '1.3rem',
-                    letterSpacing: '0.5px',
-                    '&:hover': { textDecoration: 'underline' }
-                }}
-            >
-                #{params.value}
-            </Typography>
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography
+                    component={NavLink}
+                    to={`/${prefixAdmin}/order/detail/${params.row.id}`}
+                    sx={{
+                        fontWeight: 900,
+                        color: '#3F51B5',
+                        textDecoration: 'none',
+                        fontSize: '1.3rem',
+                        letterSpacing: '0.5px',
+                        whiteSpace: 'nowrap',
+                        textAlign: 'center',
+                        width: '100%',
+                        display: 'block',
+                        '&:hover': { textDecoration: 'underline' }
+                    }}
+                >
+                    #{params.value}
+                </Typography>
+            </Box>
         )
     },
     {
@@ -142,7 +150,7 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
         field: 'orderItems',
         headerName: 'Sản phẩm',
         flex: 2,
-        minWidth: 300,
+        minWidth: 280,
         renderCell: (params) => <ProductCell items={params.value as any[]} />
     },
     {
@@ -175,13 +183,15 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
     {
         field: 'finalAmount',
         headerName: 'Tổng tiền',
-        width: 120,
-        align: 'right',
-        headerAlign: 'right',
+        width: 140,
+        align: 'center',
+        headerAlign: 'center',
         renderCell: (params) => (
-            <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1.4rem' }}>
-                {params.value?.toLocaleString('vi-VN')}₫
-            </Typography>
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1.5rem', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
+                    {params.value?.toLocaleString('vi-VN')}₫
+                </Typography>
+            </Box>
         )
     },
     {
@@ -231,35 +241,38 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
             }
 
             return (
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    sx={{
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: '8px',
-                        bgcolor: bgColor,
-                        color: textColor,
-                        fontWeight: 800,
-                        fontSize: '1.1rem',
-                        textTransform: 'uppercase'
-                    }}
-                >
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dotColor }} />
-                    <Box component="span">{label}</Box>
-                </Stack>
+                <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        sx={{
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: '8px',
+                            bgcolor: bgColor,
+                            color: textColor,
+                            fontWeight: 800,
+                            fontSize: '1.1rem',
+                            textTransform: 'uppercase'
+                        }}
+                    >
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dotColor }} />
+                        <Box component="span">{label}</Box>
+                    </Stack>
+                </Box>
             );
         }
     },
     {
         field: 'actions',
         headerName: '',
-        width: 140,
+        width: 130,
         sortable: false,
         align: 'right',
+        headerAlign: 'right',
         renderCell: (params) => (
-            <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+            <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" sx={{ height: '100%' }}>
                 {params.row.status === 'PENDING' && (
                     <Tooltip title="Xác nhận nhanh">
                         <IconButton

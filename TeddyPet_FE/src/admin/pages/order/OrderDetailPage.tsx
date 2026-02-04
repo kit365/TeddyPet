@@ -15,7 +15,8 @@ import {
     TextField,
     InputAdornment,
     Badge,
-    Chip
+    Chip,
+    Avatar
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
@@ -23,8 +24,6 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import { toast } from "react-toastify";
 
-
-// import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
 import { getOrderById, updateShippingFee, updateOrderStatus } from "../../api/order.api";
 import { OrderResponse } from "../../../types/order.type";
@@ -33,7 +32,6 @@ import { COLORS } from "../product/configs/constants";
 export const OrderDetailPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    // const { t } = useTranslation();
 
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -71,8 +69,6 @@ export const OrderDetailPage = () => {
 
 
     const suggestedFee = useMemo(() => {
-        // Simple suggestion based on most common rule: 5k/km + (excess weight > 2kg * 5k/kg)
-        // This is a default suggestion, admin can still override
         const baseFee = distance * 5000;
         const excessWeight = Math.max(0, weight - 2);
         const weightSurcharge = excessWeight * 5000;
@@ -121,11 +117,9 @@ export const OrderDetailPage = () => {
 
     if (!order) return null;
 
-
-
     return (
         <Box sx={{ pb: 8, bgcolor: '#F4F7F9', minHeight: '100vh' }}>
-            {/* 1. Slim Header (Balanced) */}
+            {/* 1. Header (Balanced) */}
             <Box sx={{ p: 3, mb: 4, bgcolor: 'white', borderBottom: '1px solid #E5E8EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                     <Button
@@ -160,15 +154,8 @@ export const OrderDetailPage = () => {
                 </Button>
             </Box>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', lg: '1fr 420px' },
-                    gap: 4,
-                    px: { xs: 2, md: 5 }
-                }}
-            >
-                {/* 2. Main Content (65%) */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, px: { xs: 2, md: 5 } }}>
+                {/* Left Side (65%) */}
                 <Box>
                     <Stack spacing={4}>
                         {/* Timeline Card */}
@@ -215,60 +202,63 @@ export const OrderDetailPage = () => {
                             </Box>
                         </Card>
 
-                        {/* Product List */}
-                        <Card sx={{ borderRadius: '24px', border: '1px solid #F4F6F8', overflow: 'hidden' }}>
+                        {/* Customer Info (Section 2) */}
+                        <Card sx={{ p: 4, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #FFF' }}>
+                            <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', mb: 3, color: '#1C252E' }}>Thông tin khách hàng</Typography>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.5fr' }, gap: 4 }}>
+                                <Box>
+                                    <Typography sx={{ color: '#919EAB', fontWeight: 800, fontSize: '1.1rem', mb: 1.5, textTransform: 'uppercase' }}>Họ tên & SĐT</Typography>
+                                    <Typography sx={{ fontWeight: 900, fontSize: '1.7rem', color: '#1C252E' }}>{order.shippingName}</Typography>
+                                    <Typography sx={{ color: '#3F51B5', fontWeight: 800, fontSize: '1.6rem', mt: 0.5 }}>{order.shippingPhone}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ color: '#919EAB', fontWeight: 800, fontSize: '1.1rem', mb: 1.5, textTransform: 'uppercase' }}>Địa chỉ nhận hàng</Typography>
+                                    <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.6, color: '#637381' }}>{order.shippingAddress}</Typography>
+                                </Box>
+                            </Box>
+                            {order.notes && (
+                                <Box sx={{ mt: 3, p: 2.5, borderRadius: '16px', bgcolor: '#FFF5F5', border: '1px dashed #FF5630', display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Box sx={{ p: 1, borderRadius: '50%', bgcolor: 'rgba(255, 86, 48, 0.1)', color: '#FF5630' }}>📝</Box>
+                                    <Box>
+                                        <Typography sx={{ color: '#FF5630', fontWeight: 900, fontSize: '1.2rem' }}>GHI CHÚ:</Typography>
+                                        <Typography sx={{ color: '#B71D18', fontSize: '1.4rem', fontWeight: 600 }}>"{order.notes}"</Typography>
+                                    </Box>
+                                </Box>
+                            )}
+                        </Card>
+
+                        {/* Product List (Section 3) */}
+                        <Card sx={{ borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #FFF', overflow: 'hidden' }}>
                             <Box sx={{ p: 3, bgcolor: '#F8F9FA', borderBottom: '1px solid #F4F6F8', display: 'flex', alignItems: 'center', gap: 2 }}>
                                 <ShoppingBagIcon sx={{ color: '#1C252E' }} />
-                                <Typography sx={{ fontWeight: 900, fontSize: '1.6rem' }}>Chi tiết giỏ hàng ({order.orderItems.length})</Typography>
+                                <Typography sx={{ fontWeight: 900, fontSize: '1.7rem', color: '#1C252E' }}>Chi tiết giỏ hàng ({order.orderItems.length})</Typography>
                             </Box>
                             <Stack divider={<Divider sx={{ borderStyle: 'dashed' }} />}>
                                 {order.orderItems.map((item) => (
                                     <Box key={item.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3, '&:hover': { bgcolor: '#F9FAFB' } }}>
-                                        <Badge badgeContent={item.quantity} color="error" overlap="rectangular" anchorOrigin={{ vertical: 'top', horizontal: 'left' }}>
-                                            <img src={item.imageUrl} alt="" style={{ width: 80, height: 80, borderRadius: '16px', objectFit: 'cover', border: '1px solid #EEE' }} />
+                                        <Badge badgeContent={item.quantity} color="primary" overlap="rectangular" anchorOrigin={{ vertical: 'top', horizontal: 'left' }}>
+                                            <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 80, height: 80, borderRadius: '16px', border: '1px solid #F4F6F8' }} />
                                         </Badge>
                                         <Box sx={{ flex: 1 }}>
-                                            <Typography sx={{ fontWeight: 900, fontSize: '1.5rem', mb: 0.5 }}>{item.productName}</Typography>
+                                            <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#1C252E', mb: 0.5 }}>{item.productName}</Typography>
                                             <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 700 }}>SKU: {item.variantId || 'N/A'}</Typography>
-                                            <Typography sx={{ fontSize: '1.25rem', color: '#637381' }}>Phân loại: <Box component="span" sx={{ fontWeight: 700, color: '#1C252E' }}>{item.variantName}</Box></Typography>
+                                            <Typography sx={{ fontSize: '1.25rem', color: '#637381', fontWeight: 600 }}>Phân loại: <Box component="span" sx={{ fontWeight: 800, color: '#3F51B5' }}>{item.variantName}</Box></Typography>
                                         </Box>
                                         <Box textAlign="right">
-                                            <Typography sx={{ fontWeight: 900, fontSize: '1.7rem', color: '#1C252E' }}>{(item.unitPrice * item.quantity).toLocaleString('vi-VN')}₫</Typography>
-                                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600 }}>{item.unitPrice.toLocaleString('vi-VN')}₫ x {item.quantity}</Typography>
+                                            <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>{(item.unitPrice * item.quantity).toLocaleString('vi-VN')}₫</Typography>
+                                            <Typography sx={{ fontSize: '1.25rem', color: '#919EAB', fontWeight: 600 }}>{item.unitPrice.toLocaleString('vi-VN')}₫ x {item.quantity}</Typography>
                                         </Box>
                                     </Box>
                                 ))}
                             </Stack>
                         </Card>
-
-                        {/* Customer Info */}
-                        <Card sx={{ p: 4, borderRadius: '24px', border: '1px solid #F4F6F8' }}>
-                            <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', mb: 3 }}>Thông tin giao nhận</Typography>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.5fr' }, gap: 4 }}>
-                                <Box>
-                                    <Typography sx={{ color: '#919EAB', fontWeight: 800, fontSize: '1.1rem', mb: 1.5, textTransform: 'uppercase' }}>Khách hàng</Typography>
-                                    <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#1C252E' }}>{order.shippingName}</Typography>
-                                    <Typography sx={{ color: '#3F51B5', fontWeight: 800, fontSize: '1.5rem', mt: 0.5 }}>{order.shippingPhone}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography sx={{ color: '#919EAB', fontWeight: 800, fontSize: '1.1rem', mb: 1.5, textTransform: 'uppercase' }}>Địa chỉ nhận hàng</Typography>
-                                    <Typography sx={{ fontWeight: 600, fontSize: '1.45rem', lineHeight: 1.6, color: '#1C252E' }}>{order.shippingAddress}</Typography>
-                                </Box>
-                            </Box>
-                            {order.notes && (
-                                <Box sx={{ mt: 4, p: 3, borderRadius: '16px', bgcolor: '#FFF5F5', border: '1px solid #FFE4E4' }}>
-                                    <Typography sx={{ color: '#B71D18', fontWeight: 900, fontSize: '1.3rem', mb: 1 }}>📝 Ghi chú từ khách hàng:</Typography>
-                                    <Typography sx={{ color: '#B71D18', fontSize: '1.45rem', fontStyle: 'italic', fontWeight: 500 }}>"{order.notes}"</Typography>
-                                </Box>
-                            )}
-                        </Card>
                     </Stack>
                 </Box>
 
-                {/* 3. Control Sidebar (35% - STICKY) */}
+                {/* Right Side (Sticky Control) */}
                 <Box sx={{ position: 'sticky', top: 24, height: 'fit-content' }}>
-                    <Stack spacing={4}>
-                        {/* Shipping Control Card */}
+                    <Stack spacing={3}>
+                        {/* Shipping Widget */}
                         <Card sx={{ p: 4, borderRadius: '24px', boxShadow: '0 10px 40px rgba(0, 167, 111, 0.12)', border: '1px solid rgba(0, 167, 111, 0.2)' }}>
                             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
                                 <Box sx={{ p: 1, borderRadius: '10px', bgcolor: 'rgba(0, 167, 111, 0.1)', display: 'flex' }}>
@@ -327,41 +317,41 @@ export const OrderDetailPage = () => {
                             </Stack>
                         </Card>
 
-                        {/* Payment Summary - DARK MODE */}
-                        <Card sx={{ p: 4, borderRadius: '24px', bgcolor: '#1C252E', color: 'white', border: '1px solid #2C3E50' }}>
-                            <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', mb: 3, opacity: 0.9 }}>Tổng kết thanh toán</Typography>
-                            <Stack spacing={2}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', opacity: 0.7 }}>
-                                    <Typography sx={{ fontWeight: 600, fontSize: '1.4rem' }}>Tạm tính</Typography>
-                                    <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>{order.subtotal.toLocaleString('vi-VN')}₫</Typography>
+                        {/* Payment Summary - NO LONGER DARK MODE */}
+                        <Card sx={{ p: 4, borderRadius: '24px', bgcolor: 'white', boxShadow: '0 12px 40px rgba(63, 81, 181, 0.08)', border: '1px solid rgba(63, 81, 181, 0.1)' }}>
+                            <Typography sx={{ fontWeight: 900, fontSize: '1.7rem', mb: 3, color: '#1C252E' }}>Tổng kết thanh toán</Typography>
+                            <Stack spacing={2.5}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', color: '#637381' }}>Tạm tính</Typography>
+                                    <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1C252E' }}>{order.subtotal.toLocaleString('vi-VN')}₫</Typography>
                                 </Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', opacity: 0.7 }}>
-                                    <Typography sx={{ fontWeight: 600, fontSize: '1.4rem' }}>Phí vận chuyển</Typography>
-                                    <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>+{Number(newShippingFee).toLocaleString('vi-VN')}₫</Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', color: '#637381' }}>Phí vận chuyển</Typography>
+                                    <Typography sx={{ fontWeight: 900, fontSize: '1.5rem', color: '#00A76F' }}>+{Number(newShippingFee).toLocaleString('vi-VN')}₫</Typography>
                                 </Box>
                                 {order.discountAmount > 0 && (
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', color: '#FF5630' }}>
-                                        <Typography sx={{ fontWeight: 600, fontSize: '1.4rem' }}>Giảm giá</Typography>
-                                        <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>-{order.discountAmount.toLocaleString('vi-VN')}₫</Typography>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#FF5630' }}>
+                                        <Typography sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Giảm giá</Typography>
+                                        <Typography sx={{ fontWeight: 900, fontSize: '1.5rem' }}>-{order.discountAmount.toLocaleString('vi-VN')}₫</Typography>
                                     </Box>
                                 )}
-                                <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 2, borderStyle: 'dashed' }} />
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                    <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', opacity: 0.9 }}>TỔNG CẦN THU</Typography>
-                                    <Typography sx={{ fontWeight: 900, fontSize: '3rem', color: '#00E676', textAlign: 'right', lineHeight: 1 }}>
+                                <Divider sx={{ borderColor: '#F4F6F8', my: 1, borderStyle: 'dashed' }} />
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', pt: 1 }}>
+                                    <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#1C252E' }}>TỔNG CỘNG</Typography>
+                                    <Typography sx={{ fontWeight: 900, fontSize: '3.2rem', color: '#FF5630', textAlign: 'right', lineHeight: 1 }}>
                                         {(order.subtotal + Number(newShippingFee) - order.discountAmount).toLocaleString('vi-VN')}₫
                                     </Typography>
                                 </Box>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2, p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.05)' }}>
-                                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FFAB00' }} />
-                                    <Typography sx={{ fontSize: '1.2rem', color: '#FFAB00', fontWeight: 700 }}>Thanh toán: {order.payments[0]?.paymentMethod === 'CASH' ? 'Khi nhận hàng (COD)' : 'Chuyển khoản / VNPay'}</Typography>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2, p: 2, borderRadius: '16px', bgcolor: '#F4F7F9' }}>
+                                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#FFAB00' }} />
+                                    <Typography sx={{ fontSize: '1.3rem', color: '#1C252E', fontWeight: 800 }}>{order.payments[0]?.paymentMethod === 'CASH' ? 'Thanh toán COD' : 'Đã thanh toán Online'}</Typography>
                                 </Stack>
                             </Stack>
                         </Card>
 
                         <Box sx={{ px: 1 }}>
-                            <Typography sx={{ fontSize: '1.3rem', color: '#637381', textAlign: 'center', mb: 2, fontWeight: 700 }}>
-                                {order.status === 'PENDING' ? `⚠️ Sau khi xác nhận, đơn sẽ đổi từ ${order.finalAmount.toLocaleString('vi-VN')}₫ → ${(order.subtotal + Number(newShippingFee) - order.discountAmount).toLocaleString('vi-VN')}₫` : 'Đơn hàng đã được xác nhận'}
+                            <Typography sx={{ fontSize: '1.3rem', color: '#637381', textAlign: 'center', mb: 2, fontWeight: 700, lineHeight: 1.5 }}>
+                                {order.status === 'PENDING' ? `⚠️ Xác nhận đơn hàng trị giá: ${(order.subtotal + Number(newShippingFee) - order.discountAmount).toLocaleString('vi-VN')}₫` : 'Đơn hàng này đã được xác nhận'}
                             </Typography>
                             <Button
                                 fullWidth
@@ -370,12 +360,12 @@ export const OrderDetailPage = () => {
                                 onClick={() => setOpenConfirmDialog(true)}
                                 disabled={order.status !== 'PENDING' || updating}
                                 sx={{
-                                    py: 2.5, borderRadius: '16px', fontSize: '1.6rem', fontWeight: 900, textTransform: 'none',
-                                    bgcolor: '#1C252E', boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
-                                    '&:hover': { bgcolor: '#333' }
+                                    py: 2.5, borderRadius: '20px', fontSize: '1.8rem', fontWeight: 900, textTransform: 'none',
+                                    bgcolor: '#3F51B5', boxShadow: '0 8px 24px rgba(63, 81, 181, 0.3)',
+                                    '&:hover': { bgcolor: '#303F9F', boxShadow: '0 12px 32px rgba(63, 81, 181, 0.4)' }
                                 }}
                             >
-                                {updating ? 'Đang xử lý...' : 'XÁC NHẬN & CHỐT ĐƠN'}
+                                {updating ? 'Đang xử lý...' : 'XÁC NHẬN ĐƠN HÀNG'}
                             </Button>
                         </Box>
                     </Stack>
@@ -421,7 +411,7 @@ export const OrderDetailPage = () => {
                         fullWidth
                         variant="contained"
                         onClick={handleUpdateShippingFee}
-                        sx={{ fontSize: '1.4rem', fontWeight: 800, py: 1.5, borderRadius: '12px', bgcolor: '#1C252E' }}
+                        sx={{ fontSize: '1.4rem', fontWeight: 800, py: 1.5, borderRadius: '12px', bgcolor: '#3F51B5' }}
                     >
                         XÁC NHẬN PHÍ
                     </Button>
