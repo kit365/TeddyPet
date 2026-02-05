@@ -88,7 +88,7 @@ export const CheckoutPage = () => {
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
     const [loadingAddresses, setLoadingAddresses] = useState(true);
-    const [shippingFee, setShippingFee] = useState(0);
+    const [shippingFee, setShippingFee] = useState<number | null>(null);
     const [calculatingFee, setCalculatingFee] = useState(false);
 
     // Shipping & Payment States
@@ -208,6 +208,47 @@ export const CheckoutPage = () => {
 
 
 
+    const calculateShipping = async (lat: number, lon: number) => {
+        let provinceId = 0;
+        // Mock HCM detection
+        if (lat >= 10.7 && lat <= 11.0 && lon >= 106.6 && lon <= 106.8) {
+            provinceId = 79;
+        }
+
+        setCalculatingFee(true);
+        try {
+            const resVal = await getShippingEstimation(provinceId);
+            if (resVal && resVal.data !== undefined && resVal.data > 0) {
+                setShippingFee(Number(resVal.data));
+            } else {
+                setShippingFee(null); // null means "Liên hệ sau"
+            }
+        } catch (err) {
+            console.error("Error calculating fee", err);
+            setShippingFee(null);
+        } finally {
+            setCalculatingFee(false);
+        }
+    };
+
+    // Calculate shipping when selecting existing address
+    // Calculate shipping when selecting existing address
+    useEffect(() => {
+        // Disabled automatic shipping calculation on client side as per requirement
+        setShippingFee(0);
+
+        /* 
+        if (selectedAddressId !== "new" && addresses.length > 0) {
+            const addr = addresses.find(a => a.id.toString() === selectedAddressId);
+            if (addr && addr.latitude && addr.longitude) {
+                calculateShipping(addr.latitude, addr.longitude);
+            } else {
+                setShippingFee(null);
+            }
+        }
+        */
+    }, [selectedAddressId, addresses]);
+
     // Map Logic handling
     const fetchAddressFromCoords = async (lat: number, lon: number) => {
         setValue("latitude", lat);
@@ -219,32 +260,9 @@ export const CheckoutPage = () => {
                 isManualChange.current = false;
                 setValue("address", data.display_name);
 
-                // Try to extract address components to calculate shipping
-                if (data.address) {
-                    // MOCK LOGIC for demo:
-                    // If latitude is near HCM (10.7 - 10.9), use Province ID 79 (HCM)
-                    // Otherwise use Province ID 0 (Other)
-
-                    let provinceId = 0;
-                    if (lat >= 10.7 && lat <= 11.0 && lon >= 106.6 && lon <= 106.8) {
-                        provinceId = 79; // HCM
-                    }
-
-                    setCalculatingFee(true);
-                    try {
-                        const resVal = await getShippingEstimation(provinceId);
-                        if (resVal !== undefined && resVal !== null) {
-                            setShippingFee(Number(resVal));
-                        } else {
-                            setShippingFee(0);
-                        }
-                    } catch (err) {
-                        console.error("Error calculating fee", err);
-                        setShippingFee(0);
-                    } finally {
-                        setCalculatingFee(false);
-                    }
-                }
+                // Calculate shipping - DISABLED as per new requirement (no fee for unconfirmed orders)
+                // calculateShipping(lat, lon);
+                setShippingFee(0);
             }
         } catch (error) {
             console.error("Lỗi reverse geocoding:", error);
@@ -269,6 +287,7 @@ export const CheckoutPage = () => {
                     setSearchKeyword("");
                     setShowSuggestions(false);
                 }
+                calculateShipping(lat, lon);
             }
         } catch (error) {
             console.error("Lỗi Geocoding:", error);
@@ -304,6 +323,7 @@ export const CheckoutPage = () => {
         setValue("address", suggestion.display_name);
         setSearchKeyword("");
         setShowSuggestions(false);
+        calculateShipping(lat, lon);
     };
 
 
@@ -367,12 +387,16 @@ export const CheckoutPage = () => {
                     receiverName: data.fullName!,
                     receiverPhone: data.phone!,
                     shippingAddress: data.address!,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
                     note: data.note,
                     items: orderItems,
                     // Only send guest info if not logged in
                     ...(!user && {
                         guestEmail: data.guestEmail,
                         otpCode: data.otpCode,
+                        latitude: data.latitude,
+                        longitude: data.longitude,
                     })
                 };
             } else {
@@ -787,13 +811,13 @@ export const CheckoutPage = () => {
                                     <div className="flex justify-between text-[#666] text-[1.4rem]">
                                         <span className="font-medium">Phí vận chuyển</span>
                                         <span className="font-bold text-client-secondary">
-                                            {calculatingFee ? "Đang tính..." : (shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
+                                            {calculatingFee ? "Đang tính..." : (shippingFee !== null && shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
                                         </span>
                                     </div>
 
                                     <div className="pt-[20px] border-t border-[#eee] flex justify-between items-center">
                                         <span className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{(checkoutTotalAmount + shippingFee).toLocaleString()}đ</div>
+                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
                                     </div>
 
                                     <button

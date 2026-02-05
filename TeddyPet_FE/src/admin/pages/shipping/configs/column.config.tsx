@@ -73,6 +73,22 @@ export const getShippingColumns = ({ onEdit, onDelete }: ShippingColumnProps): G
         )
     },
     {
+        field: 'freeShipDistanceKm',
+        headerName: 'Miễn phí (KM & Đơn)',
+        flex: 1.5,
+        minWidth: 200,
+        renderCell: (params) => (
+            <Stack spacing={0.5} sx={{ py: 1.5 }}>
+                <Typography sx={{ fontSize: '1.4rem', fontWeight: 700, color: '#00A76F' }}>
+                    Dưới {params.value} km
+                </Typography>
+                <Typography sx={{ fontSize: '1.2rem', color: '#637381', fontWeight: 600 }}>
+                    Hoặc đơn từ: <Box component="span" sx={{ color: '#1C252E', fontWeight: 700 }}>{(params.row.freeShipThreshold || 0).toLocaleString()}đ</Box>
+                </Typography>
+            </Stack>
+        )
+    },
+    {
         field: 'maxInternalDistanceKm',
         headerName: 'Giới hạn & Phương thức',
         flex: 1.5,

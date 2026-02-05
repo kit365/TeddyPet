@@ -6,16 +6,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Slf4j
 @EnableAsync
-@SpringBootApplication(exclude = {RedisRepositoriesAutoConfiguration.class})
+@EnableScheduling
+@SpringBootApplication(exclude = { RedisRepositoriesAutoConfiguration.class })
 public class TeddyPetApplication {
 
     public static void main(String[] args) {
         // Load .env file before Spring Boot starts
         loadEnvFile();
-        
+
         SpringApplication.run(TeddyPetApplication.class, args);
     }
 
@@ -24,7 +26,7 @@ public class TeddyPetApplication {
             Dotenv dotenv = Dotenv.configure()
                     .ignoreIfMissing()
                     .load();
-            
+
             // Load .env variables into System properties for Spring Boot
             dotenv.entries().forEach(entry -> {
                 String key = entry.getKey();
@@ -34,7 +36,7 @@ public class TeddyPetApplication {
                     System.setProperty(key, value);
                 }
             });
-            
+
             log.info("✅ Environment variables loaded from .env file");
         } catch (Exception e) {
             log.warn("⚠️  Could not load .env file: {}", e.getMessage());

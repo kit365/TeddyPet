@@ -17,6 +17,11 @@ export const getMyOrders = async () => {
     return response.data;
 };
 
+export const getMyOrderById = async (id: string) => {
+    const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/${id}`);
+    return response.data;
+};
+
 export const getMyOrderByCode = async (code: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/code/${code}`);
     return response.data;
@@ -31,5 +36,10 @@ export const lookupGuestOrder = async (orderCode: string, email: string) => {
 
 export const cancelOrder = async (id: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`);
+    return response.data;
+};
+
+export const confirmReceived = async (id: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/received`);
     return response.data;
 };

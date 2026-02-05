@@ -12,12 +12,16 @@ import fpt.teddypet.application.dto.request.orders.order.OrderSortField;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 import fpt.teddypet.application.mapper.orders.order.OrderMapper;
 import fpt.teddypet.application.port.input.UserService;
+import fpt.teddypet.application.port.input.AppSettingService;
 import fpt.teddypet.application.port.input.orders.cart.CartService;
 import fpt.teddypet.application.port.input.orders.order.OrderItemService;
+import fpt.teddypet.application.constants.settings.AppSettingsConstants;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
 import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.input.user.UserAddressService;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
+import fpt.teddypet.application.port.output.EmailServicePort;
+import fpt.teddypet.application.constants.email.EmailTemplates;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
@@ -56,6 +60,75 @@ public class OrderApplicationService implements OrderService {
     private final UserAddressService userAddressService;
     private final OtpService otpService;
     private final ProductVariantService productVariantService;
+    private final EmailServicePort emailServicePort;
+    private final AppSettingService appSettingService;
+
+    private static final String APP_NAME = "TeddyPet";
+    // TODO: Move to config
+    private static final String FRONTEND_URL = "http://localhost:5173";
+
+    private OrderResponse toEnhancedResponse(Order order) {
+        OrderResponse response = orderMapper.toResponse(order);
+        Double distance = calculateDistanceKm(order);
+
+        return new OrderResponse(
+                response.id(),
+                response.orderCode(),
+                response.user(),
+                response.userAddressId(),
+                response.guestEmail(),
+                response.subtotal(),
+                response.shippingFee(),
+                response.discountAmount(),
+                response.voucherCode(),
+                response.finalAmount(),
+                response.orderType(),
+                response.status(),
+                response.shippingAddress(),
+                response.shippingPhone(),
+                response.shippingName(),
+                response.notes(),
+                response.orderItems(),
+                response.payments(),
+                distance,
+                response.createdAt(),
+                response.updatedAt());
+    }
+
+    private Double calculateDistanceKm(Order order) {
+        Double destLat = null;
+        Double destLng = null;
+
+        if (order.getUserAddress() != null) {
+            destLat = order.getUserAddress().getLatitude();
+            destLng = order.getUserAddress().getLongitude();
+        } else {
+            destLat = order.getLatitude();
+            destLng = order.getLongitude();
+        }
+
+        if (destLat == null || destLng == null) {
+            return null;
+        }
+
+        try {
+            double shopLat = Double.parseDouble(appSettingService.getSetting(
+                    AppSettingsConstants.SHOP_LAT, AppSettingsConstants.DEFAULT_SHOP_LAT));
+            double shopLng = Double.parseDouble(appSettingService.getSetting(
+                    AppSettingsConstants.SHOP_LNG, AppSettingsConstants.DEFAULT_SHOP_LNG));
+
+            double distance = fpt.teddypet.application.util.DistanceUtil.calculateDistance(
+                    shopLat, shopLng,
+                    destLat,
+                    destLng);
+
+            // Round to 1 decimal place
+            return Math.round(distance * 10.0) / 10.0;
+        } catch (Exception e) {
+            log.error("Error calculating distance for order {}", order.getId(), e);
+            return null;
+        }
+    }
 
     @Override
     @Transactional
@@ -158,6 +231,8 @@ public class OrderApplicationService implements OrderService {
                 .shippingName(finalReceiverName)
                 .shippingPhone(finalReceiverPhone)
                 .shippingAddress(finalShippingAddress)
+                .latitude(request.latitude())
+                .longitude(request.longitude())
 
                 .notes(request.note())
                 .shippingFee(BigDecimal.ZERO)
@@ -200,22 +275,30 @@ public class OrderApplicationService implements OrderService {
         OrderStatusEnum oldStatus = order.getStatus();
         order.setStatus(status);
 
+        // Update delivering time if moving to DELIVERING
+        if (status == OrderStatusEnum.DELIVERING && oldStatus != OrderStatusEnum.DELIVERING) {
+            order.setDeliveringAt(java.time.LocalDateTime.now());
+        }
+
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
+
+        // Send email notification
+        sendOrderStatusEmail(savedOrder, status);
     }
 
     @Override
     public OrderResponse getByIdResponse(UUID orderId) {
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_ID, orderId);
         Order order = getById(orderId);
-        return orderMapper.toResponse(order);
+        return toEnhancedResponse(order);
     }
 
     @Override
     public OrderResponse getByOrderCodeResponse(String orderCode) {
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_CODE, orderCode);
         Order order = getByOrderCode(orderCode);
-        return orderMapper.toResponse(order);
+        return toEnhancedResponse(order);
     }
 
     @Override
@@ -233,14 +316,14 @@ public class OrderApplicationService implements OrderService {
         Pageable pageable = buildPageable(request);
         Page<Order> orders = orderRepositoryPort.findAll(pageable);
         log.info(OrderLogMessages.LOG_ORDER_GET_ALL, orders.getTotalElements());
-        return PageResponse.fromPage(orders.map(orderMapper::toResponse));
+        return PageResponse.fromPage(orders.map(this::toEnhancedResponse));
     }
 
     @Override
     public PageResponse<OrderResponse> getOrdersByStatus(OrderStatusEnum status, OrderSearchRequest request) {
         Pageable pageable = buildPageable(request);
         Page<Order> orders = orderRepositoryPort.findByStatus(status, pageable);
-        return PageResponse.fromPage(orders.map(orderMapper::toResponse));
+        return PageResponse.fromPage(orders.map(this::toEnhancedResponse));
     }
 
     @Override
@@ -248,7 +331,7 @@ public class OrderApplicationService implements OrderService {
         Pageable pageable = buildPageable(request);
         String keyword = request.keyword() != null ? request.keyword() : "";
         Page<Order> orders = orderRepositoryPort.searchOrders(keyword, pageable);
-        return PageResponse.fromPage(orders.map(orderMapper::toResponse));
+        return PageResponse.fromPage(orders.map(this::toEnhancedResponse));
     }
 
     @Override
@@ -257,7 +340,7 @@ public class OrderApplicationService implements OrderService {
         Pageable pageable = buildPageable(request);
         Page<Order> orders = orderRepositoryPort.findByUserId(currentUserId, pageable);
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_USER, currentUserId, orders.getTotalElements());
-        return PageResponse.fromPage(orders.map(orderMapper::toResponse));
+        return PageResponse.fromPage(orders.map(this::toEnhancedResponse));
     }
 
     @Override
@@ -266,7 +349,7 @@ public class OrderApplicationService implements OrderService {
         List<Order> orders = orderRepositoryPort.findByUserId(currentUserId);
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_USER, currentUserId, orders.size());
         return orders.stream()
-                .map(orderMapper::toResponse)
+                .map(this::toEnhancedResponse)
                 .toList();
     }
 
@@ -275,7 +358,7 @@ public class OrderApplicationService implements OrderService {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         Order order = getById(orderId);
         validateOwnership(orderId, currentUserId);
-        return orderMapper.toResponse(order);
+        return toEnhancedResponse(order);
     }
 
     @Override
@@ -283,7 +366,7 @@ public class OrderApplicationService implements OrderService {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         Order order = getByOrderCode(orderCode);
         validateOwnership(order.getId(), currentUserId);
-        return orderMapper.toResponse(order);
+        return toEnhancedResponse(order);
     }
 
     @Override
@@ -432,6 +515,8 @@ public class OrderApplicationService implements OrderService {
                 .shippingName(request.receiverName())
                 .shippingPhone(request.receiverPhone())
                 .shippingAddress(request.shippingAddress())
+                .latitude(request.latitude())
+                .longitude(request.longitude())
                 .guestEmail(request.guestEmail())
                 .notes(request.note())
                 .shippingFee(BigDecimal.ZERO)
@@ -488,6 +573,98 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED + " OrderId: {}",
                 savedOrder.getId());
+
+        // Send email if order is confirmed
+        if (savedOrder.getStatus() == OrderStatusEnum.CONFIRMED) {
+            sendOrderStatusEmail(savedOrder, OrderStatusEnum.CONFIRMED);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void confirmReceived(UUID orderId) {
+        log.info("Customer confirming receipt for order: {}", orderId);
+        Order order = getById(orderId);
+
+        if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.SHIPPED) {
+            throw new IllegalStateException("Đơn hàng phải ở trạng thái đang giao mới có thể xác nhận.");
+        }
+
+        order.setStatus(OrderStatusEnum.DELIVERED);
+        orderRepositoryPort.save(order);
+
+        sendOrderStatusEmail(order, OrderStatusEnum.DELIVERED);
+    }
+
+    private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {
+        try {
+            String email = order.getGuestEmail();
+            if (email == null && order.getUser() != null) {
+                email = order.getUser().getEmail();
+            }
+
+            if (email == null) {
+                log.warn("Cannot send email: No email found for order {}", order.getId());
+                return;
+            }
+
+            String statusText;
+            String message;
+
+            switch (status) {
+                case CONFIRMED -> {
+                    statusText = "ĐÃ XÁC NHẬN";
+                    message = "Đơn hàng của bạn đã được xác nhận phí vận chuyển và đang được chuẩn bị.";
+                }
+                case SHIPPED -> {
+                    statusText = "ĐÃ GỬI HÀNG";
+                    message = "Đơn hàng của bạn đã được gửi cho đơn vị vận chuyển.";
+                }
+                case DELIVERING -> {
+                    statusText = "ĐANG GIAO HÀNG";
+                    message = "Shipper đang giao hàng tới bạn. Vui lòng chú ý địa chỉ và điện thoại để nhận hàng nhé!";
+                }
+                case DELIVERED -> {
+                    statusText = "GIAO HÀNG THÀNH CÔNG";
+                    message = "Đơn hàng đã được giao thành công. Cảm ơn bạn đã mua sắm tại TeddyPet!";
+                }
+                case COMPLETED -> {
+                    statusText = "ĐÃ HOÀN TẤT";
+                    message = "Đơn hàng đã hoàn tất. Hẹn gặp lại bạn lần sau!";
+                }
+                case CANCELLED -> {
+                    statusText = "ĐÃ HỦY";
+                    message = "Đơn hàng đã bị hủy. Vui lòng liên hệ CSKH nếu có thắc mắc.";
+                }
+                default -> {
+                    return; // Ignore other statuses
+                }
+            }
+
+            String orderLink = FRONTEND_URL + "/tracking?code=" + order.getOrderCode(); // Guest tracking link
+            if (order.getUser() != null) {
+                orderLink = FRONTEND_URL + "/account/orders/" + order.getId();
+            }
+
+            String subject = String.format(EmailTemplates.SUBJECT_ORDER_STATUS_UPDATE, APP_NAME, order.getOrderCode());
+            String body = String.format(EmailTemplates.BODY_ORDER_STATUS_UPDATE,
+                    APP_NAME,
+                    order.getOrderCode(),
+                    order.getShippingName(),
+                    order.getOrderCode(),
+                    statusText,
+                    message,
+                    orderLink,
+                    APP_NAME,
+                    APP_NAME);
+
+            emailServicePort.sendHtmlEmail(email, subject, body);
+            log.info("Sent status update email to {}", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send order status email", e);
+            // Don't throw exception to avoid rolling back transaction
+        }
     }
 
 }

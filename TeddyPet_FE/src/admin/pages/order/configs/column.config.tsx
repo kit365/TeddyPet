@@ -128,6 +128,26 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
         )
     },
     {
+        field: 'createdAt',
+        headerName: 'Ngày đặt',
+        width: 160,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params) => {
+            const date = new Date(params.value);
+            return (
+                <Stack spacing={0} alignItems="center" sx={{ py: 1, width: '100%' }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', color: '#1C252E' }}>
+                        {date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </Typography>
+                    <Typography sx={{ fontSize: '1.1rem', color: '#919EAB', fontWeight: 700 }}>
+                        {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                </Stack>
+            );
+        }
+    },
+    {
         field: 'customer',
         headerName: 'Khách hàng',
         flex: 1,
@@ -141,6 +161,9 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     </Typography>
                     <Typography sx={{ fontSize: '1.2rem', color: '#637381', fontWeight: 600 }}>
                         {row.shippingPhone}
+                    </Typography>
+                    <Typography noWrap sx={{ fontSize: '1.1rem', color: '#919EAB', fontWeight: 700 }}>
+                        {row.user?.email || row.guestEmail || ''}
                     </Typography>
                 </Stack>
             );
@@ -220,17 +243,35 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     dotColor = "#00B8D9";
                     label = "Đã xác nhận";
                     break;
-                case 'SHIPPING':
+                case 'PROCESSING':
+                    bgColor = "rgba(34, 197, 94, 0.16)";
+                    textColor = "#118D57";
+                    dotColor = "#22C55E";
+                    label = "Đang chuẩn bị";
+                    break;
+                case 'SHIPPED':
                     bgColor = "rgba(16, 100, 173, 0.16)";
                     textColor = "#1064ad";
                     dotColor = "#1064ad";
-                    label = "Đang giao";
+                    label = "Đã gửi hàng";
+                    break;
+                case 'DELIVERING':
+                    bgColor = "rgba(16, 100, 173, 0.16)";
+                    textColor = "#1064ad";
+                    dotColor = "#1064ad";
+                    label = "Đang giao hàng";
                     break;
                 case 'DELIVERED':
                     bgColor = "rgba(34, 197, 94, 0.16)";
                     textColor = "#118D57";
                     dotColor = "#22C55E";
-                    label = "Đã giao";
+                    label = "Đã nhận hàng";
+                    break;
+                case 'COMPLETED':
+                    bgColor = "rgba(34, 197, 94, 0.16)";
+                    textColor = "#118D57";
+                    dotColor = "#22C55E";
+                    label = "Hoàn thành";
                     break;
                 case 'CANCELLED':
                     bgColor = "rgba(255, 86, 48, 0.16)";

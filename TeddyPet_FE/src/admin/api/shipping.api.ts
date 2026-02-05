@@ -38,10 +38,10 @@ export const deleteShippingRule = async (id: number): Promise<ApiResponse<void>>
     return response.data;
 };
 
-export const getShippingFeeSuggestion = async (distance: number, provinceId: number): Promise<ApiResponse<any>> => {
+export const getShippingFeeSuggestion = async (distance: number, provinceId: number, orderTotal?: number, weight?: number): Promise<ApiResponse<any>> => {
     const response = await apiApp.get(`${BASE_URL}/suggestion`, {
         ...withAuth(),
-        params: { distance, provinceId }
+        params: { distance, provinceId, orderTotal, weight }
     });
     return response.data;
 };

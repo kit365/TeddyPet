@@ -9,8 +9,18 @@ export const getAllOrders = async (params?: {
     size?: number;
     sortKey?: string;
     sortDirection?: string;
-}) => {
-    const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}`, { params });
+}, signal?: AbortSignal) => {
+    const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}`, { params, signal });
+    return response.data;
+};
+
+export const getOrdersByStatus = async (status: string, params?: {
+    page?: number;
+    size?: number;
+    sortKey?: string;
+    sortDirection?: string;
+}, signal?: AbortSignal) => {
+    const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}/status/${status}`, { params, signal });
     return response.data;
 };
 
@@ -30,7 +40,7 @@ export const updateOrderStatus = async (id: string, status: string) => {
 };
 
 export const updateShippingFee = async (id: string, fee: number) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/shipping-fee?fee=${fee}`);
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/shipping-fee?finalFee=${fee}`);
     return response.data;
 };
 
@@ -40,7 +50,7 @@ export const searchOrders = async (params: {
     size?: number;
     sortKey?: string;
     sortDirection?: string;
-}) => {
-    const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}/search`, { params });
+}, signal?: AbortSignal) => {
+    const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}/search`, { params, signal });
     return response.data;
 };

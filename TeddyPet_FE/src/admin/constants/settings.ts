@@ -1,0 +1,7 @@
+export const APP_SETTING_KEYS = {
+    SHOP_ADDRESS: 'SHOP_ADDRESS',
+    SHOP_LAT: 'SHOP_LAT',
+    SHOP_LNG: 'SHOP_LNG',
+    SHOP_PHONE: 'SHOP_PHONE',
+    SHOP_EMAIL: 'SHOP_EMAIL',
+} as const;

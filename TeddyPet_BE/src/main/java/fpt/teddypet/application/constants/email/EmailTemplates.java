@@ -11,6 +11,7 @@ public final class EmailTemplates {
     public static final String SUBJECT_GUEST_OTP = "[%s] Mã xác thực đơn hàng của bạn";
     public static final String SUBJECT_BOOKING_CONFIRMATION = "%s - Xác nhận đặt lịch";
     public static final String SUBJECT_ORDER_CONFIRMATION = "%s - Xác nhận đơn hàng";
+    public static final String SUBJECT_ORDER_STATUS_UPDATE = "%s - Cập nhật trạng thái đơn hàng #%s";
 
     // Body Templates
 
@@ -125,4 +126,51 @@ public final class EmailTemplates {
 
     // 5. Order Confirmation
     public static final String BODY_ORDER_CONFIRMATION = "Đơn hàng của bạn đã được xác nhận. Chi tiết: %s";
+
+    // 6. Order Status Update
+    // Args: AppName, OrderCode, ReceiverName, OrderCode, Status, Message,
+    // OrderLink, AppName, AppName
+    public static final String BODY_ORDER_STATUS_UPDATE = """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 0; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background-color: #00AB55; padding: 30px 20px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">🐾 %s</h1>
+                        <p style="color: rgba(255,255,255,0.8); margin-top: 5px; font-size: 14px;">Cập nhật đơn hàng #%s</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px; color: #333; line-height: 1.6;">
+                        <p style="font-size: 16px;">Xin chào <strong>%s</strong>,</p>
+
+                        <p>Đơn hàng <strong>#%s</strong> của bạn vừa được cập nhật trạng thái:</p>
+
+                        <div style="background-color: #F0FDF4; border: 1px dashed #00AB55; padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center;">
+                            <span style="display: block; font-size: 14px; color: #637381; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">TRẠNG THÁI MỚI</span>
+                            <span style="display: block; font-size: 24px; color: #00AB55; font-weight: 900;">%s</span>
+                            <p style="margin: 10px 0 0; color: #212B36; font-size: 15px;">%s</p>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="%s" style="background-color: #212B36; color: white; padding: 15px 40px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 16px;">
+                                Xem chi tiết đơn hàng
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #F9FAFB; padding: 20px; text-align: center; border-top: 1px solid #F4F6F8; color: #637381; font-size: 12px;">
+                        <p style="margin: 0;">© 2026 %s. Cảm ơn bạn đã tin tưởng và mua sắm!</p>
+                        <p style="margin: 5px 0 0;">%s</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """;
 }

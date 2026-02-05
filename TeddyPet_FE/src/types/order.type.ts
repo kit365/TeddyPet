@@ -16,6 +16,8 @@ export interface OrderRequest {
     voucherCode?: string;
     guestEmail?: string;
     otpCode?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface OrderItemResponse {
@@ -59,6 +61,7 @@ export interface OrderResponse {
     notes?: string;
     orderItems: OrderItemResponse[];
     payments: OrderPaymentResponse[];
+    distanceKm?: number;
     createdAt: string;
     updatedAt: string;
 }

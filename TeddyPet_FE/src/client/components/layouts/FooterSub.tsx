@@ -5,8 +5,37 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import { Autoplay } from "swiper/modules";
 import { SocialIconCircle } from "../ui/SocialIconsCircle";
+import { useState, useEffect } from "react";
+import { getAllSettings } from "../../../admin/api/setting.api";
+import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
 
 export const FooterSub = () => {
+    const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
+    const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
+    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+
+    useEffect(() => {
+        const fetchShopSettings = async () => {
+            try {
+                const response = await getAllSettings();
+                if (response.success && response.data) {
+                    const settings = response.data;
+                    const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue;
+                    const phone = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_PHONE)?.settingValue;
+                    const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue;
+
+                    if (address) setShopAddress(address);
+                    if (phone) setShopPhone(phone);
+                    if (email) setShopEmail(email);
+                }
+            } catch (error) {
+                console.error("Error fetching shop settings for FooterSub:", error);
+            }
+        };
+
+        fetchShopSettings();
+    }, []);
+
     return (
         <footer className="w-full p-[20px]">
             <div className="bg-[#FFF0F0] rounded-[20px]">
@@ -80,15 +109,21 @@ export const FooterSub = () => {
                             <ul className="flex flex-wrap gap-y-[15px] gap-x-[30px] mb-[20px]">
                                 <li className="flex items-center">
                                     <LocationOnIcon className="text-client-primary" style={{ fontSize: "2rem" }} />
-                                    <span className="pl-[8px] text-client-text">No: 58 A, East Madison Street, Baltimore, MD, USA 4508</span>
+                                    <span className="pl-[8px] text-client-text">
+                                        {shopAddress}
+                                    </span>
                                 </li>
                                 <li className="flex items-center">
                                     <PhoneIcon className="text-client-primary" style={{ fontSize: "2rem" }} />
-                                    <span className="pl-[8px] text-client-text hover:text-client-primary transition-default cursor-pointer">+1234 567 890</span>
+                                    <span className="pl-[8px] text-client-text hover:text-client-primary transition-default cursor-pointer">
+                                        {shopPhone}
+                                    </span>
                                 </li>
                                 <li className="flex items-center">
                                     <EmailIcon className="text-client-primary" style={{ fontSize: "2rem" }} />
-                                    <span className="pl-[8px] text-client-text hover:text-client-primary transition-default cursor-pointer">teddypet@gmail.com</span>
+                                    <span className="pl-[8px] text-client-text hover:text-client-primary transition-default cursor-pointer">
+                                        {shopEmail}
+                                    </span>
                                 </li>
                             </ul>
                             <SocialIconCircle />

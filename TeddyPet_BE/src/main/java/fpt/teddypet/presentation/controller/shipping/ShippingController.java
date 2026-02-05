@@ -77,8 +77,11 @@ public class ShippingController {
     @Operation(summary = "Lấy gợi ý phí vận chuyển", description = "Lấy gợi ý phí vận chuyển dựa trên khoảng cách và tỉnh/thành phố (Admin)")
     public ResponseEntity<ApiResponse<ShippingSuggestionResponse>> getFeeSuggestion(
             @RequestParam double distance,
-            @RequestParam Integer provinceId) {
-        ShippingSuggestionResponse suggestion = internalShippingService.getFeeSuggestion(distance, provinceId);
+            @RequestParam Integer provinceId,
+            @RequestParam(required = false) BigDecimal orderTotal,
+            @RequestParam(required = false, defaultValue = "1.0") Double weight) {
+        ShippingSuggestionResponse suggestion = internalShippingService.getFeeSuggestion(distance, provinceId,
+                orderTotal, weight);
         return ResponseEntity.ok(ApiResponse.success(suggestion));
     }
 }
