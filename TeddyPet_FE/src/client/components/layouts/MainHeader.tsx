@@ -6,6 +6,7 @@ import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
 import { useState, useEffect } from "react";
 import { getSearchSuggestions } from "../../../api/home.api";
+import { LocationSelector } from "../ui/LocationSelector";
 
 export const MainHeader = () => {
     const totalItemsCount = useCartStore((state) => state.totalItemsChecked());
@@ -73,6 +74,10 @@ export const MainHeader = () => {
                         <Link to="/">
                             <img src="https://i.imgur.com/V2kwkkK.png" alt="" className="w-[190px] object-cover z-10" />
                         </Link>
+                    </div>
+
+                    <div className="flex-1 px-[20px] max-w-[200px]">
+                        <LocationSelector />
                     </div>
 
                     {/* Form Search */}

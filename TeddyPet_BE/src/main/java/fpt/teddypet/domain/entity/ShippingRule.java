@@ -52,4 +52,11 @@ public class ShippingRule extends BaseEntity {
 
     @Column(name = "over_weight_fee")
     private BigDecimal overWeightFee; // Phí quá khổ mỗi kg
+
+    @Column(name = "free_ship_distance_km")
+    private Double freeShipDistanceKm; // Khoảng cách dưới ngưỡng này phí ship = 0
+
+    @Column(name = "is_self_ship")
+    @Builder.Default
+    private Boolean isSelfShip = true; // Shop tự vận chuyển hay cần Grab/Ahamove
 }

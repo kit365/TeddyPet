@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,19 +26,47 @@ public class InternalShippingApplicationService implements InternalShippingServi
     @Override
     @Transactional
     public ShippingRuleResponse createRule(ShippingRuleRequest request) {
-        ShippingRule rule = ShippingRule.builder()
-                .isInnerCity(request.isInnerCity() != null ? request.isInnerCity() : true)
-                .provinceId(request.provinceId())
-                .districtId(request.districtId())
-                .fixedFee(request.fixedFee())
-                .maxInternalDistanceKm(request.maxInternalDistanceKm())
-                .feePerKm(request.feePerKm())
-                .freeShipThreshold(request.freeShipThreshold())
-                .note(request.note())
-                .minFee(request.minFee())
-                .baseWeight(request.baseWeight())
-                .overWeightFee(request.overWeightFee())
-                .build();
+        // Check if rule already exists for this location
+        Optional<ShippingRule> existingRuleOpt;
+        if (request.districtId() != null) {
+            existingRuleOpt = shippingRuleRepositoryPort.findByLocation(request.provinceId(), request.districtId());
+        } else {
+            existingRuleOpt = shippingRuleRepositoryPort.findByProvince(request.provinceId());
+        }
+
+        ShippingRule rule;
+        if (existingRuleOpt.isPresent()) {
+            // Update existing rule
+            rule = existingRuleOpt.get();
+            rule.setIsInnerCity(request.isInnerCity() != null ? request.isInnerCity() : rule.getIsInnerCity());
+            rule.setFixedFee(request.fixedFee());
+            rule.setMaxInternalDistanceKm(request.maxInternalDistanceKm());
+            rule.setFeePerKm(request.feePerKm());
+            rule.setFreeShipThreshold(request.freeShipThreshold());
+            rule.setNote(request.note());
+            rule.setMinFee(request.minFee());
+            rule.setBaseWeight(request.baseWeight());
+            rule.setOverWeightFee(request.overWeightFee());
+            rule.setFreeShipDistanceKm(request.freeShipDistanceKm());
+            rule.setIsSelfShip(request.isSelfShip() != null ? request.isSelfShip() : true);
+        } else {
+            // Create new rule
+            rule = ShippingRule.builder()
+                    .isInnerCity(request.isInnerCity() != null ? request.isInnerCity() : true)
+                    .provinceId(request.provinceId())
+                    .districtId(request.districtId())
+                    .fixedFee(request.fixedFee())
+                    .maxInternalDistanceKm(request.maxInternalDistanceKm())
+                    .feePerKm(request.feePerKm())
+                    .freeShipThreshold(request.freeShipThreshold())
+                    .note(request.note())
+                    .minFee(request.minFee())
+                    .baseWeight(request.baseWeight())
+                    .overWeightFee(request.overWeightFee())
+                    .freeShipDistanceKm(request.freeShipDistanceKm())
+                    .isSelfShip(request.isSelfShip() != null ? request.isSelfShip() : true)
+                    .build();
+        }
 
         ShippingRule savedRule = shippingRuleRepositoryPort.save(rule);
         return toResponse(savedRule);
@@ -70,6 +99,10 @@ public class InternalShippingApplicationService implements InternalShippingServi
             rule.setBaseWeight(request.baseWeight());
         if (request.overWeightFee() != null)
             rule.setOverWeightFee(request.overWeightFee());
+        if (request.freeShipDistanceKm() != null)
+            rule.setFreeShipDistanceKm(request.freeShipDistanceKm());
+        if (request.isSelfShip() != null)
+            rule.setIsSelfShip(request.isSelfShip());
 
         ShippingRule savedRule = shippingRuleRepositoryPort.save(rule);
         return toResponse(savedRule);
@@ -95,30 +128,73 @@ public class InternalShippingApplicationService implements InternalShippingServi
     // ... existing getFeeSuggestion code ...
 
     @Override
-    public ShippingSuggestionResponse getFeeSuggestion(double distance, Integer provinceId) {
-        Optional<ShippingRule> ruleOpt = shippingRuleRepositoryPort.findByProvince(provinceId);
+    public ShippingSuggestionResponse getFeeSuggestion(double distance, Integer provinceId, BigDecimal orderTotal,
+            Double weight) {
+        Optional<ShippingRule> ruleOpt = Optional.empty();
 
-        // If no specific rule found, return status UNKNOWN or default handling
-        // For simplicity, if not found, we assume OUT_OF_RANGE or requires manual check
+        if (provinceId != null && provinceId > 0) {
+            ruleOpt = shippingRuleRepositoryPort.findByProvince(provinceId);
+        }
+
         if (ruleOpt.isEmpty()) {
-            // Fallback to general logic or return null/error
-            return new ShippingSuggestionResponse(BigDecimal.ZERO, "UNKNOWN_RULE", distance);
+            List<ShippingRule> allRules = shippingRuleRepositoryPort.findAll();
+            ruleOpt = allRules.stream()
+                    .filter(rule -> Boolean.TRUE.equals(rule.getIsInnerCity()))
+                    .sorted(Comparator.comparing(ShippingRule::getUpdatedAt,
+                            Comparator.nullsLast(Comparator.reverseOrder())))
+                    .findFirst();
+
+            if (ruleOpt.isEmpty() && !allRules.isEmpty()) {
+                ruleOpt = allRules.stream()
+                        .sorted(Comparator.comparing(ShippingRule::getUpdatedAt,
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                        .findFirst();
+            }
+        }
+
+        if (ruleOpt.isEmpty()) {
+            return new ShippingSuggestionResponse(BigDecimal.ZERO, "UNKNOWN_RULE", distance, BigDecimal.ZERO,
+                    BigDecimal.ZERO, 0.0);
         }
 
         ShippingRule rule = ruleOpt.get();
 
-        if (distance > rule.getMaxInternalDistanceKm()) {
-            return new ShippingSuggestionResponse(BigDecimal.ZERO, "OUT_OF_RANGE", distance);
+        // Distance Check
+        if (rule.getMaxInternalDistanceKm() != null && distance > rule.getMaxInternalDistanceKm()) {
+            return new ShippingSuggestionResponse(BigDecimal.ZERO, "OUT_OF_RANGE", distance, rule.getFeePerKm(),
+                    rule.getOverWeightFee(), rule.getBaseWeight());
         }
 
-        BigDecimal fee = rule.getFeePerKm().multiply(BigDecimal.valueOf(distance));
-
-        // Apply Min Fee logic
-        if (rule.getMinFee() != null && fee.compareTo(rule.getMinFee()) < 0) {
-            fee = rule.getMinFee();
+        // Free Ship logic
+        if ((rule.getFreeShipDistanceKm() != null && rule.getFreeShipDistanceKm() > 0
+                && distance < rule.getFreeShipDistanceKm()) ||
+                (orderTotal != null && rule.getFreeShipThreshold() != null
+                        && rule.getFreeShipThreshold().compareTo(BigDecimal.ZERO) > 0
+                        && orderTotal.compareTo(rule.getFreeShipThreshold()) >= 0)) {
+            return new ShippingSuggestionResponse(BigDecimal.ZERO, "FREE_SHIP", distance, rule.getFeePerKm(),
+                    rule.getOverWeightFee(), rule.getBaseWeight());
         }
 
-        return new ShippingSuggestionResponse(fee, "IN_RANGE", distance);
+        // Calculation
+        BigDecimal feePerKm = rule.getFeePerKm() != null ? rule.getFeePerKm() : BigDecimal.ZERO;
+        BigDecimal distanceFee = feePerKm.multiply(BigDecimal.valueOf(distance));
+
+        BigDecimal overWeightFee = BigDecimal.ZERO;
+        if (weight != null && rule.getBaseWeight() != null && weight > rule.getBaseWeight()
+                && rule.getOverWeightFee() != null) {
+            double excessWeight = weight - rule.getBaseWeight();
+            overWeightFee = rule.getOverWeightFee().multiply(BigDecimal.valueOf(excessWeight));
+        }
+
+        BigDecimal totalFee = distanceFee.add(overWeightFee);
+
+        // Apply Min Fee
+        if (rule.getMinFee() != null && totalFee.compareTo(rule.getMinFee()) < 0) {
+            totalFee = rule.getMinFee();
+        }
+
+        return new ShippingSuggestionResponse(totalFee, "IN_RANGE", distance, rule.getFeePerKm(),
+                rule.getOverWeightFee(), rule.getBaseWeight());
     }
 
     // ... existing getEstimatedFeeForUser code ...
@@ -154,6 +230,8 @@ public class InternalShippingApplicationService implements InternalShippingServi
                 rule.getNote(),
                 rule.getMinFee(),
                 rule.getBaseWeight(),
-                rule.getOverWeightFee());
+                rule.getOverWeightFee(),
+                rule.getFreeShipDistanceKm(),
+                rule.getIsSelfShip());
     }
 }

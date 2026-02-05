@@ -72,4 +72,7 @@ public final class ApiConstants {
 
     // Shipping API base path
     public static final String API_SHIPPING = BASE_API + "/shipping";
+
+    // App Setting API base path
+    public static final String API_SETTINGS = BASE_API + "/settings";
 }

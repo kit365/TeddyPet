@@ -69,6 +69,22 @@ export const AddressCreatePage = () => {
     // Ref để theo dõi thao tác người dùng
     const isManualChange = useRef(false);
 
+    // Khởi tạo từ Header nếu có
+    useEffect(() => {
+        const savedAddress = localStorage.getItem("delivery_address");
+        const savedCoords = localStorage.getItem("delivery_coords");
+
+        if (savedAddress && savedAddress !== "Chọn địa chỉ giao hàng" && !address) {
+            setAddress(savedAddress);
+            if (savedCoords) {
+                const { lat, lon } = JSON.parse(savedCoords);
+                const newPos = new L.LatLng(lat, lon);
+                setPosition(newPos);
+                setMapCenter([lat, lon]);
+            }
+        }
+    }, []);
+
     // Log mỗi khi Tọa độ (Position) thay đổi
     useEffect(() => {
         if (position) {

@@ -7,8 +7,10 @@ import { getAllAddresses, deleteAddress, setDefaultAddress } from "../../../api/
 import { UserAddressResponse } from "../../../types/address.type";
 import { toast } from "react-toastify";
 
+import { useAuthStore } from "../../../stores/useAuthStore";
+
 export const AddressListPage = () => {
-    const user = { name: "Demo User" }; // Fixed data for portability
+    const { user } = useAuthStore();
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,6 +42,15 @@ export const AddressListPage = () => {
         try {
             await deleteAddress(id);
             toast.success("Xóa địa chỉ thành công");
+
+            // Sync with header if deleted address was selected
+            const savedAddr = localStorage.getItem("delivery_address");
+            const addrToDelete = addresses.find(a => a.id === id);
+            if (addrToDelete && savedAddr === addrToDelete.address) {
+                localStorage.removeItem("delivery_address");
+                localStorage.removeItem("delivery_coords");
+            }
+
             fetchAddresses();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Không thể xóa địa chỉ");
@@ -50,6 +61,19 @@ export const AddressListPage = () => {
         try {
             await setDefaultAddress(id);
             toast.success("Đặt địa chỉ mặc định thành công");
+
+            // Sync with header
+            const newDefault = addresses.find(a => a.id === id);
+            if (newDefault) {
+                localStorage.setItem("delivery_address", newDefault.address);
+                if (newDefault.latitude && newDefault.longitude) {
+                    localStorage.setItem("delivery_coords", JSON.stringify({
+                        lat: newDefault.latitude,
+                        lon: newDefault.longitude
+                    }));
+                }
+            }
+
             fetchAddresses();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Không thể đặt địa chỉ mặc định");

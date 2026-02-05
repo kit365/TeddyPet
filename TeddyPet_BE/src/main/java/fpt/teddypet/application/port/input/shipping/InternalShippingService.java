@@ -15,7 +15,8 @@ public interface InternalShippingService {
 
     List<ShippingRuleResponse> getAllRules();
 
-    ShippingSuggestionResponse getFeeSuggestion(double distance, Integer provinceId);
+    ShippingSuggestionResponse getFeeSuggestion(double distance, Integer provinceId, BigDecimal orderTotal,
+            Double weight);
 
     BigDecimal getEstimatedFeeForUser(Integer provinceId, Integer districtId);
 }

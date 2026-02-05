@@ -4,6 +4,9 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import HomeIcon from '@mui/icons-material/Home';
 import LanguageIcon from '@mui/icons-material/Language';
+import { useState, useEffect } from "react";
+import { getAllSettings } from "../../../admin/api/setting.api";
+import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
 
 const FooterLogoSVG = () => {
     const svgStyles = `
@@ -97,6 +100,32 @@ const FooterLogoSVG = () => {
 };
 
 export const MainFooter = () => {
+    const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
+    const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
+    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+
+    useEffect(() => {
+        const fetchShopSettings = async () => {
+            try {
+                const response = await getAllSettings();
+                if (response.success && response.data) {
+                    const settings = response.data;
+                    const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue;
+                    const phone = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_PHONE)?.settingValue;
+                    const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue;
+
+                    if (address) setShopAddress(address);
+                    if (phone) setShopPhone(phone);
+                    if (email) setShopEmail(email);
+                }
+            } catch (error) {
+                console.error("Error fetching shop settings for footer:", error);
+            }
+        };
+
+        fetchShopSettings();
+    }, []);
+
     return (
         <>
             <footer className="bg-[#FFF0F0]">
@@ -134,15 +163,21 @@ export const MainFooter = () => {
                                 <ul className="flex flex-col gap-[20px]">
                                     <li className="flex">
                                         <HomeIcon className="text-client-text" style={{ fontSize: "2.2rem" }} />
-                                        <span className="pl-[8px] text-client-text text-[1.7rem] cursor-pointer">No: 58 A, East Madison Street, Baltimore, MD, USA 4508</span>
+                                        <span className="pl-[8px] text-client-text text-[1.7rem] cursor-pointer">
+                                            {shopAddress}
+                                        </span>
                                     </li>
                                     <li className="flex items-center">
                                         <PhoneIcon className="text-client-text" style={{ fontSize: "2.2rem" }} />
-                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">+1234 567 890</span>
+                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">
+                                            {shopPhone}
+                                        </span>
                                     </li>
                                     <li className="flex items-center">
                                         <EmailIcon className="text-client-text" style={{ fontSize: "2.2rem" }} />
-                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">teddypet@gmail.com</span>
+                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">
+                                            {shopEmail}
+                                        </span>
                                     </li>
                                     <li className="flex items-center">
                                         <LanguageIcon className="text-client-text" style={{ fontSize: "2.2rem" }} />

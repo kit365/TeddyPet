@@ -11,7 +11,9 @@ import {
     InputAdornment,
     Stack,
     IconButton,
-    Divider
+    Divider,
+    FormControlLabel,
+    Switch
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
@@ -51,6 +53,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
 
     // Simulation states
     const [testDistance, setTestDistance] = useState<number>(5);
+    const [testOrderTotal, setTestOrderTotal] = useState<number>(500000);
     const [testWeight, setTestWeight] = useState<number>(1);
 
     useEffect(() => {
@@ -73,13 +76,19 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
     }, [initialData, open]);
 
     const previewResult = useMemo(() => {
+        // Freeship by Distance
         if (testDistance < (formData.freeShipDistanceKm || 0)) return 0;
+
+        // Freeship by Order Total
+        if (formData.freeShipThreshold && formData.freeShipThreshold > 0 && testOrderTotal >= formData.freeShipThreshold) {
+            return 0;
+        }
 
         const excessWeight = Math.max(0, testWeight - (formData.baseWeight || 0));
         const calculatedFee = (testDistance * (formData.feePerKm || 0)) + (excessWeight * (formData.overWeightFee || 0));
 
         return Math.max(formData.minFee || 0, calculatedFee);
-    }, [testDistance, testWeight, formData]);
+    }, [testDistance, testWeight, testOrderTotal, formData]);
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -146,24 +155,33 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                         <Box sx={{ p: 3, borderRadius: '16px', bgcolor: COLORS.backgroundLight, border: `1px dashed ${COLORS.border}` }}>
                             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                                 <Autocomplete
-                                    options={PROVINCES.filter(p => p.id === 79)}
+                                    options={PROVINCES}
                                     getOptionLabel={(option) => option.name}
                                     value={selectedProvince}
-                                    disabled // Khóa tỉnh thành
+                                    onChange={(_, newValue) => {
+                                        setFormData({
+                                            ...formData,
+                                            provinceId: newValue ? newValue.id : 0
+                                        });
+                                    }}
                                     renderInput={(params) => (
-                                        <TextField {...params} label="Tỉnh/Thành phố (Cố định HCM)" fullWidth />
+                                        <TextField {...params} label="Tỉnh/Thành phố" fullWidth />
                                     )}
                                     fullWidth
-                                    sx={{ bgcolor: '#F4F6F8', borderRadius: '12px', '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                    sx={{ bgcolor: 'white', borderRadius: '12px', '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 />
-                                <TextField
-                                    label="Khu vực"
-                                    fullWidth
-                                    value="Nội thành"
-                                    disabled // Khóa khu vực
-                                    sx={{ bgcolor: '#F4F6F8', borderRadius: '12px', '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                    helperText="Hệ thống hiện chỉ hỗ trợ nội thành HCM"
-                                />
+                                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.isInnerCity}
+                                                onChange={(e) => setFormData({ ...formData, isInnerCity: e.target.checked })}
+                                                color="primary"
+                                            />
+                                        }
+                                        label={<Typography sx={{ fontWeight: 700, color: '#1C252E' }}>Nội thành</Typography>}
+                                    />
+                                </Box>
                             </Stack>
                         </Box>
                     </Box>
@@ -184,6 +202,18 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                 helperText="Khoảng cách dưới ngưỡng này phí ship = 0₫"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>km</InputAdornment>,
+                                    sx: { borderRadius: '12px' }
+                                }}
+                            />
+                            <TextField
+                                label="Ngưỡng Freeship (Số tiền)"
+                                type="number"
+                                fullWidth
+                                value={formData.freeShipThreshold}
+                                onChange={(e) => setFormData({ ...formData, freeShipThreshold: Number(e.target.value) })}
+                                helperText="Tổng đơn trên mức này sẽ được miễn phí ship"
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>₫</InputAdornment>,
                                     sx: { borderRadius: '12px' }
                                 }}
                             />
@@ -221,6 +251,18 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>km</InputAdornment>,
                                     sx: { borderRadius: '12px' }
                                 }}
+                            />
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.isSelfShip ?? true}
+                                        onChange={(e) => setFormData({ ...formData, isSelfShip: e.target.checked })}
+                                        color="primary"
+                                    />
+                                }
+                                label={<Typography sx={{ fontWeight: 700, color: '#1C252E' }}>Shop tự vận chuyển</Typography>}
+                                sx={{ gridColumn: 'span 2' }}
                             />
 
                             <Divider sx={{ gridColumn: 'span 2', my: 1, opacity: 0.5 }} />
@@ -303,6 +345,23 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                     onChange={(e) => setTestDistance(Number(e.target.value))}
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end" sx={{ fontWeight: 900, color: '#1C252E' }}>km</InputAdornment>,
+                                        sx: {
+                                            bgcolor: 'white',
+                                            borderRadius: '12px',
+                                            '& input': { fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
+                                        }
+                                    }}
+                                    InputLabelProps={{ shrink: true, sx: { fontWeight: 900, color: '#1C252E !important' } }}
+                                />
+                                <TextField
+                                    label="Tổng đơn hàng"
+                                    type="number"
+                                    fullWidth
+                                    size="small"
+                                    value={testOrderTotal}
+                                    onChange={(e) => setTestOrderTotal(Number(e.target.value))}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end" sx={{ fontWeight: 900, color: '#1C252E' }}>₫</InputAdornment>,
                                         sx: {
                                             bgcolor: 'white',
                                             borderRadius: '12px',

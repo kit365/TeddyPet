@@ -100,5 +100,11 @@ export const menuManagementData = [
         children: [
             { id: "list", label: "Phí vận chuyển", path: `/${prefixAdmin}/shipping/list` },
         ]
+    },
+    {
+        id: "settings",
+        label: "Cài đặt",
+        Icon: ManageAccountsIcon,
+        path: `/${prefixAdmin}/settings`
     }
 ];

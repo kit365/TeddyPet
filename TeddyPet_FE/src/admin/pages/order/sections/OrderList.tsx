@@ -24,7 +24,7 @@ const STATUS_OPTIONS = [
     { label: 'Tất cả', value: 'ALL' },
     { label: 'Chờ xử lý', value: 'PENDING', color: '#B76E00' },
     { label: 'Đã xác nhận', value: 'CONFIRMED', color: '#006C9C' },
-    { label: 'Đang giao', value: 'SHIPPING', color: '#1064ad' },
+    { label: 'Đang giao', value: 'SHIPPED', color: '#1064ad' },
     { label: 'Hoàn tất', value: 'DELIVERED', color: '#118D57' },
     { label: 'Đã hủy', value: 'CANCELLED', color: '#B71D18' },
 ];
@@ -51,6 +51,7 @@ export const OrderList = () => {
         orders,
         loading,
         totalElements,
+        pendingCount,
         page,
         setPage,
         pageSize,
@@ -59,6 +60,10 @@ export const OrderList = () => {
         setKeyword,
         status,
         setStatus,
+        sortKey,
+        setSortKey,
+        sortDirection,
+        setSortDirection,
         refresh
     } = useOrders();
 
@@ -151,8 +156,21 @@ export const OrderList = () => {
                         label={
                             <Stack direction="row" spacing={1} alignItems="center">
                                 {opt.label}
-                                {opt.value === 'PENDING' && totalElements > 0 && status === 'ALL' && (
-                                    <Badge badgeContent={totalElements} color="error" sx={{ '& .MuiBadge-badge': { fontSize: '1rem', height: 18, minWidth: 18 } }} />
+                                {opt.value === 'PENDING' && pendingCount > 0 && (
+                                    <Badge
+                                        badgeContent={pendingCount}
+                                        color="error"
+                                        sx={{
+                                            ml: 1.5,
+                                            '& .MuiBadge-badge': {
+                                                fontSize: '1rem',
+                                                height: 18,
+                                                minWidth: 18,
+                                                position: 'static',
+                                                transform: 'none'
+                                            }
+                                        }}
+                                    />
                                 )}
                             </Stack>
                         }
@@ -218,6 +236,14 @@ export const OrderList = () => {
                     onPaginationModelChange={(model) => {
                         setPage(model.page);
                         setPageSize(model.pageSize);
+                    }}
+                    sortingMode="server"
+                    sortModel={[{ field: sortKey, sort: sortDirection.toLowerCase() as 'asc' | 'desc' }]}
+                    onSortModelChange={(model) => {
+                        if (model.length > 0) {
+                            setSortKey(model[0].field);
+                            setSortDirection(model[0].sort?.toUpperCase() as 'ASC' | 'DESC');
+                        }
                     }}
                     showCellVerticalBorder={false}
                     showColumnVerticalBorder={false}
