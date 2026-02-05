@@ -275,6 +275,11 @@ public class OrderApplicationService implements OrderService {
         OrderStatusEnum oldStatus = order.getStatus();
         order.setStatus(status);
 
+        // Update delivering time if moving to DELIVERING
+        if (status == OrderStatusEnum.DELIVERING && oldStatus != OrderStatusEnum.DELIVERING) {
+            order.setDeliveringAt(java.time.LocalDateTime.now());
+        }
+
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
@@ -575,6 +580,22 @@ public class OrderApplicationService implements OrderService {
         }
     }
 
+    @Override
+    @Transactional
+    public void confirmReceived(UUID orderId) {
+        log.info("Customer confirming receipt for order: {}", orderId);
+        Order order = getById(orderId);
+
+        if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.SHIPPED) {
+            throw new IllegalStateException("Đơn hàng phải ở trạng thái đang giao mới có thể xác nhận.");
+        }
+
+        order.setStatus(OrderStatusEnum.DELIVERED);
+        orderRepositoryPort.save(order);
+
+        sendOrderStatusEmail(order, OrderStatusEnum.DELIVERED);
+    }
+
     private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {
         try {
             String email = order.getGuestEmail();
@@ -596,12 +617,20 @@ public class OrderApplicationService implements OrderService {
                     message = "Đơn hàng của bạn đã được xác nhận phí vận chuyển và đang được chuẩn bị.";
                 }
                 case SHIPPED -> {
+                    statusText = "ĐÃ GỬI HÀNG";
+                    message = "Đơn hàng của bạn đã được gửi cho đơn vị vận chuyển.";
+                }
+                case DELIVERING -> {
                     statusText = "ĐANG GIAO HÀNG";
-                    message = "Đơn hàng đã được bàn giao cho đơn vị vận chuyển. Vui lòng để ý điện thoại.";
+                    message = "Shipper đang giao hàng tới bạn. Vui lòng chú ý địa chỉ và điện thoại để nhận hàng nhé!";
                 }
                 case DELIVERED -> {
                     statusText = "GIAO HÀNG THÀNH CÔNG";
                     message = "Đơn hàng đã được giao thành công. Cảm ơn bạn đã mua sắm tại TeddyPet!";
+                }
+                case COMPLETED -> {
+                    statusText = "ĐÃ HOÀN TẤT";
+                    message = "Đơn hàng đã hoàn tất. Hẹn gặp lại bạn lần sau!";
                 }
                 case CANCELLED -> {
                     statusText = "ĐÃ HỦY";

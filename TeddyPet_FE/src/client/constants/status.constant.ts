@@ -9,13 +9,18 @@ export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg
         color: "#006C9C",
         bgColor: "rgba(0, 184, 217, 0.16)"
     },
-    SHIPPING: {
+    SHIPPED: {
+        label: "Đã gửi hàng",
+        color: "#006C9C",
+        bgColor: "rgba(0, 184, 217, 0.16)"
+    },
+    DELIVERING: {
         label: "Đang giao hàng",
         color: "#1064ad",
         bgColor: "rgba(16, 100, 173, 0.16)"
     },
     DELIVERED: {
-        label: "Đã giao hàng",
+        label: "Đã nhận hàng",
         color: "#118D57",
         bgColor: "rgba(34, 197, 94, 0.16)"
     },

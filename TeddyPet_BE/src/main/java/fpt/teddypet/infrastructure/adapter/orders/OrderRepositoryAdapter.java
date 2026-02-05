@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,5 +82,10 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     @Override
     public Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail) {
         return orderRepository.findByOrderCodeAndGuestEmail(orderCode, guestEmail);
+    }
+
+    @Override
+    public List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime) {
+        return orderRepository.findByStatusAndDeliveringAtBefore(status, dateTime);
     }
 }

@@ -243,17 +243,35 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     dotColor = "#00B8D9";
                     label = "Đã xác nhận";
                     break;
+                case 'PROCESSING':
+                    bgColor = "rgba(34, 197, 94, 0.16)";
+                    textColor = "#118D57";
+                    dotColor = "#22C55E";
+                    label = "Đang chuẩn bị";
+                    break;
                 case 'SHIPPED':
                     bgColor = "rgba(16, 100, 173, 0.16)";
                     textColor = "#1064ad";
                     dotColor = "#1064ad";
-                    label = "Đang giao";
+                    label = "Đã gửi hàng";
+                    break;
+                case 'DELIVERING':
+                    bgColor = "rgba(16, 100, 173, 0.16)";
+                    textColor = "#1064ad";
+                    dotColor = "#1064ad";
+                    label = "Đang giao hàng";
                     break;
                 case 'DELIVERED':
                     bgColor = "rgba(34, 197, 94, 0.16)";
                     textColor = "#118D57";
                     dotColor = "#22C55E";
-                    label = "Đã giao";
+                    label = "Đã nhận hàng";
+                    break;
+                case 'COMPLETED':
+                    bgColor = "rgba(34, 197, 94, 0.16)";
+                    textColor = "#118D57";
+                    dotColor = "#22C55E";
+                    label = "Hoàn thành";
                     break;
                 case 'CANCELLED':
                     bgColor = "rgba(255, 86, 48, 0.16)";

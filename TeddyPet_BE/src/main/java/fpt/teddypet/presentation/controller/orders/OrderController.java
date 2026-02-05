@@ -76,6 +76,14 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CANCELLED_SUCCESS));
     }
 
+    @PatchMapping("/{id}/received")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Xác nhận đã nhận hàng", description = "User xác nhận đã nhận được hàng")
+    public ResponseEntity<ApiResponse<Void>> confirmReceived(@PathVariable UUID id) {
+        orderService.confirmReceived(id);
+        return ResponseEntity.ok(ApiResponse.success("Xác nhận đã nhận hàng thành công."));
+    }
+
     @PostMapping
     @Operation(summary = "Tạo đơn hàng", description = "Tạo đơn hàng mới - hỗ trợ cả user đăng nhập và khách vãng lai")
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody OrderRequest request) {

@@ -54,4 +54,7 @@ public interface OrderService {
 
     // Admin manual shipping fee update
     void updateManualShippingFee(UUID orderId, java.math.BigDecimal finalFee);
+
+    // Customer confirm receipt
+    void confirmReceived(UUID orderId);
 }

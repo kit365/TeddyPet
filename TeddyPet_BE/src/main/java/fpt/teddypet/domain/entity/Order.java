@@ -96,6 +96,9 @@ public class Order extends BaseEntity {
     @Column(name = "longitude")
     private Double longitude;
 
+    @Column(name = "delivering_at")
+    private LocalDateTime deliveringAt;
+
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
