@@ -6,17 +6,15 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import Button from "@mui/material/Button";
 import AddIcon from '@mui/icons-material/Add';
-import {
-    CalendarViewAgendaIcon,
-    CalendarViewDayIcon,
-    CalendarViewMonthIcon,
-    CalendarViewWeekIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    CalendarFilterIcon,
-    DeleteIcon,
-    CloseIcon
-} from '../../assets/icons';
+import ViewAgenda from '@mui/icons-material/ViewAgenda';
+import ViewDay from '@mui/icons-material/ViewDay';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
+import ViewWeek from '@mui/icons-material/ViewWeek';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
+import FilterList from '@mui/icons-material/FilterList';
+import Close from '@mui/icons-material/Close';
+import { DeleteIcon } from '../../assets/icons';
 import { CalendarFiltersDrawer } from './sections/CalendarFiltersDrawer';
 
 import { Title } from "../../components/ui/Title";
@@ -227,7 +225,7 @@ export const CalendarPage = () => {
                                 }
                             }}
                         >
-                            <CloseIcon sx={{ fontSize: 8 }} />
+                            <Close sx={{ fontSize: 8 }} />
                         </IconButton>
                     </Box>
                 </Box>
@@ -469,29 +467,29 @@ export const CalendarPage = () => {
                     >
                         <Tooltip title="Tháng" placement="bottom">
                             <ToggleButton value="dayGridMonth" aria-label="Month view">
-                                <CalendarViewMonthIcon sx={{ fontSize: 20 }} />
+                                <CalendarMonth sx={{ fontSize: 20 }} />
                             </ToggleButton>
                         </Tooltip>
                         <Tooltip title="Tuần" placement="bottom">
                             <ToggleButton value="timeGridWeek" aria-label="Week view">
-                                <CalendarViewWeekIcon sx={{ fontSize: 20 }} />
+                                <ViewWeek sx={{ fontSize: 20 }} />
                             </ToggleButton>
                         </Tooltip>
                         <Tooltip title="Ngày" placement="bottom">
                             <ToggleButton value="timeGridDay" aria-label="Day view">
-                                <CalendarViewDayIcon sx={{ fontSize: 20 }} />
+                                <ViewDay sx={{ fontSize: 20 }} />
                             </ToggleButton>
                         </Tooltip>
                         <Tooltip title="Chương trình" placement="bottom">
                             <ToggleButton value="listWeek" aria-label="Agenda view">
-                                <CalendarViewAgendaIcon sx={{ fontSize: 20 }} />
+                                <ViewAgenda sx={{ fontSize: 20 }} />
                             </ToggleButton>
                         </Tooltip>
                     </ToggleButtonGroup>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <IconButton size="medium" onClick={handlePrev}>
-                            <ChevronLeftIcon sx={{ fontSize: 20, color: '#637381' }} />
+                            <ChevronLeft sx={{ fontSize: 20, color: '#637381' }} />
                         </IconButton>
 
                         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.7rem', minWidth: '160px', textAlign: 'center', color: "#1C252E" }}>
@@ -499,7 +497,7 @@ export const CalendarPage = () => {
                         </Typography>
 
                         <IconButton size="medium" onClick={handleNext}>
-                            <ChevronRightIcon sx={{ fontSize: 20, color: '#637381' }} />
+                            <ChevronRight sx={{ fontSize: 20, color: '#637381' }} />
                         </IconButton>
                     </Box>
 
@@ -526,7 +524,7 @@ export const CalendarPage = () => {
                         </Button>
                         <IconButton size="medium" onClick={handleOpenFilters}>
                             <Badge variant="dot" sx={{ '& .MuiBadge-badge': { bgcolor: '#FF5630' } }} invisible={false}>
-                                <CalendarFilterIcon sx={{ color: '#637381' }} />
+                                <FilterList sx={{ color: '#637381' }} />
                             </Badge>
                         </IconButton>
                     </Box>

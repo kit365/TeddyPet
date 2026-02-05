@@ -13,7 +13,10 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { ReloadIcon, CloseIcon, CheckIcon, CalendarIcon } from '../../../assets/icons';
+import Refresh from '@mui/icons-material/Refresh';
+import Close from '@mui/icons-material/Close';
+import Check from '@mui/icons-material/Check';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/vi';
 
@@ -94,11 +97,11 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                     <Box>
                         <IconButton size="medium">
                             <Badge variant="dot" sx={{ '& .MuiBadge-badge': { bgcolor: '#FF5630' } }}>
-                                <ReloadIcon sx={{ fontSize: 20, color: '#637381' }} />
+                                <Refresh sx={{ fontSize: 20, color: '#637381' }} />
                             </Badge>
                         </IconButton>
                         <IconButton size="medium" onClick={onClose}>
-                            <CloseIcon sx={{ fontSize: 20, color: '#637381' }} />
+                            <Close sx={{ fontSize: 20, color: '#637381' }} />
                         </IconButton>
                     </Box>
                 </Box>
@@ -156,7 +159,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 justifyContent: 'center',
                                             }}
                                         >
-                                            {isSelected && <CheckIcon sx={{ fontSize: 14, color: '#fff' }} />}
+                                            {isSelected && <Check sx={{ fontSize: 14, color: '#fff' }} />}
                                         </Box>
                                     </Box>
                                 );
@@ -191,7 +194,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                     return map[dayjs(day).day()];
                                 }}
                                 slots={{
-                                    openPickerIcon: (props) => <CalendarIcon {...props} sx={{ fontSize: 24, color: '#637381' }} />,
+                                    openPickerIcon: (props) => <CalendarMonth {...props} sx={{ fontSize: 24, color: '#637381' }} />,
                                     switchViewIcon: (props) => (
                                         <svg {...props} width="24" height="24" viewBox="0 0 24 24" fill="none">
                                             <path d="M12 15.5a1 1 0 0 1-.71-.29l-4-4a1 1 0 1 1 1.42-1.42L12 13.1l3.3-3.18a1 1 0 1 1 1.38 1.44l-4 3.86a1 1 0 0 1-.68.28" fill="currentColor" />
@@ -299,7 +302,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                     return map[dayjs(day).day()];
                                 }}
                                 slots={{
-                                    openPickerIcon: (props) => <CalendarIcon {...props} sx={{ fontSize: 24, color: '#637381' }} />,
+                                    openPickerIcon: (props) => <CalendarMonth {...props} sx={{ fontSize: 24, color: '#637381' }} />,
                                     switchViewIcon: (props) => (
                                         <svg {...props} width="24" height="24" viewBox="0 0 24 24" fill="none">
                                             <path d="M12 15.5a1 1 0 0 1-.71-.29l-4-4a1 1 0 1 1 1.42-1.42L12 13.1l3.3-3.18a1 1 0 1 1 1.38 1.44l-4 3.86a1 1 0 0 1-.68.28" fill="currentColor" />
