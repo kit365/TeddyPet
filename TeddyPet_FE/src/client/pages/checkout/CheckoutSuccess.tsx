@@ -222,12 +222,16 @@ export const CheckSuccessPage = () => {
                             <div className="mt-4 pt-6 border-t border-[#eee]">
                                 <button
                                     onClick={() => {
-                                        const emailParam = order.guestEmail || (order.user?.email ? order.user.email : "");
-                                        navigate(`/tra-cuu-don-hang?code=${order.orderCode}${emailParam ? `&email=${emailParam}` : ''}`);
+                                        if (Cookies.get("token")) {
+                                            navigate(`/dashboard/order/detail/${order.id}`);
+                                        } else {
+                                            const emailParam = order.guestEmail || (order.user?.email ? order.user.email : "");
+                                            navigate(`/tra-cuu-don-hang?code=${order.orderCode}${emailParam ? `&email=${emailParam}` : ''}`);
+                                        }
                                     }}
                                     className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[1.4rem] transition-all block"
                                 >
-                                    {Cookies.get("token") ? "THEO DÕI ĐƠN HÀNG" : "TRA CỨU ĐƠN HÀNG"}
+                                    {Cookies.get("token") ? "VỀ ĐƠN HÀNG CỦA TÔI" : "TRA CỨU ĐƠN HÀNG"}
                                 </button>
                                 <Link to="/shop" className="w-full mt-3 text-center text-client-primary font-bold text-[1.4rem] hover:underline block">
                                     TIẾP TỤC MUA SẮM

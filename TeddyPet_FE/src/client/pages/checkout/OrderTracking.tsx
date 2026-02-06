@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { trackOrder, confirmReceived, lookupGuestOrder } from "../../../api/order.api";
@@ -95,7 +95,9 @@ export const OrderTrackingPage = () => {
     const [email, setEmail] = useState("");
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const hasAutoLooked = useRef(false);
 
@@ -139,6 +141,11 @@ export const OrderTrackingPage = () => {
             }
 
             if (response.success && response.data) {
+                // Nếu đã đăng nhập và tra cứu thành công đơn của mình -> nhảy vào trang dashboard detail luôn
+                if (isAuthenticated) {
+                    navigate(`/dashboard/order/detail/${response.data.id}`);
+                    return;
+                }
                 setOrder(response.data);
             } else {
                 setError("Không tìm thấy đơn hàng. Vui lòng kiểm tra lại thông tin.");
@@ -147,6 +154,21 @@ export const OrderTrackingPage = () => {
             setError(err.response?.data?.message || "Không thể tìm thấy đơn hàng này.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleConfirmReceived = async () => {
+        if (!order) return;
+        setIsSubmitting(true);
+        try {
+            await confirmReceived(order.id);
+            toast.success("Xác nhận đã nhận hàng thành công. TeddyPet cảm ơn bạn!");
+            // Reload lại data hoặc cập nhật status tại chỗ
+            doTrackOrder(order.orderCode, email);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -363,6 +385,18 @@ export const OrderTrackingPage = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Nút hành động nổi bật khi đã giao */}
+                            {order.status === 'DELIVERED' && (
+                                <button
+                                    onClick={handleConfirmReceived}
+                                    disabled={isSubmitting}
+                                    className="w-full h-[65px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[1.7rem] rounded-[24px] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
+                                >
+                                    {isSubmitting ? <RefreshDouble className="w-[2.4rem] h-[2.4rem] animate-spin" /> : <CheckCircle className="w-[2.4rem] h-[2.4rem]" />}
+                                    {isSubmitting ? "Đang xác nhận..." : "TÔI ĐÃ NHẬN ĐƯỢC HÀNG"}
+                                </button>
+                            )}
 
                         </div>
                     )}

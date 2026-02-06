@@ -1,4 +1,5 @@
 package fpt.teddypet.application.service.promotions;
+
 import fpt.teddypet.application.constants.promotions.PromotionLogMessages;
 import fpt.teddypet.application.constants.promotions.PromotionMessages;
 import fpt.teddypet.application.dto.request.promotions.PromotionRequest;
@@ -68,6 +69,12 @@ public class PromotionApplicationService implements PromotionService {
 
         Promotion savedPromotion = promotionRepositoryPort.save(promotion);
         log.info(PromotionLogMessages.LOG_PROMOTION_UPDATE_SUCCESS, savedPromotion.getId());
+    }
+
+    @Override
+    @Transactional
+    public void save(Promotion promotion) {
+        promotionRepositoryPort.save(promotion);
     }
 
     @Override
@@ -171,8 +178,7 @@ public class PromotionApplicationService implements PromotionService {
                 onlyActive,
                 Promotion::isDeleted,
                 Promotion::isActive,
-                promotionMapper::toInfo
-        );
+                promotionMapper::toInfo);
     }
 
     private void validateCodeUniqueness(String code, UUID promotionId) {
@@ -188,13 +194,12 @@ public class PromotionApplicationService implements PromotionService {
                 () -> promotionId != null
                         ? promotionRepositoryPort.existsByCodeAndIdNot(code, promotionId)
                         : promotionRepositoryPort.existsByCode(code),
-                PromotionMessages.MESSAGE_PROMOTION_CODE_ALREADY_EXISTS
-        );
+                PromotionMessages.MESSAGE_PROMOTION_CODE_ALREADY_EXISTS);
     }
 
     private void validateDateRange(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            log.warn(PromotionLogMessages.LOG_PROMOTION_DATE_VALIDATION_FAILED, 
+            log.warn(PromotionLogMessages.LOG_PROMOTION_DATE_VALIDATION_FAILED,
                     "Start: " + startDate + ", End: " + endDate);
             throw new IllegalArgumentException(PromotionMessages.MESSAGE_PROMOTION_INVALID_DATE_RANGE);
         }

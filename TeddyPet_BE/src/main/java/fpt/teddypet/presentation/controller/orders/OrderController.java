@@ -77,7 +77,6 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/received")
-    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Xác nhận đã nhận hàng", description = "User xác nhận đã nhận được hàng")
     public ResponseEntity<ApiResponse<Void>> confirmReceived(@PathVariable UUID id) {
         orderService.confirmReceived(id);

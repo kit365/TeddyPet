@@ -13,7 +13,6 @@ import {
     HomeSimple,
     WarningCircle,
     RefreshDouble,
-    User,
     MapPin,
     Phone,
     Copy,
@@ -21,7 +20,8 @@ import {
     HelpCircle,
     Calendar,
     Wallet,
-    ShieldCheck
+    ShieldCheck,
+    Star
 } from "iconoir-react";
 import { toast } from "react-toastify";
 import { useState } from "react";
@@ -74,15 +74,15 @@ const OrderStepper = ({ status }: { status: string }) => {
                         <div key={step.key} className="flex flex-col items-center gap-[15px] z-10 w-[14%] relative">
                             <div
                                 className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all duration-700 ${isActive
-                                        ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-110 shadow-lg'
-                                        : 'bg-white text-gray-200 border-2 border-gray-100'
+                                    ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-110 shadow-lg'
+                                    : 'bg-white text-gray-200 border-2 border-gray-100'
                                     } ${isCurrent ? (isCompleted ? 'ring-8 ring-emerald-50' : 'ring-8 ring-client-primary/10') : ''}`}
                             >
                                 {step.icon}
                             </div>
                             <span className={`text-[1.2rem] font-bold text-center transition-colors duration-500 ${isActive
-                                    ? (isCompleted ? 'text-emerald-600' : 'text-client-secondary')
-                                    : 'text-gray-300'
+                                ? (isCompleted ? 'text-emerald-600' : 'text-client-secondary')
+                                : 'text-gray-300'
                                 }`}>
                                 {step.label}
                             </span>
@@ -243,6 +243,16 @@ export const OrderDetailPage = () => {
                                             </div>
                                             <div className="mt-2 text-[1.6rem] font-black text-client-secondary">{(item.unitPrice * item.quantity).toLocaleString()}đ</div>
                                         </div>
+                                        {order.status === 'COMPLETED' && (
+                                            <div className="flex items-center">
+                                                <Link
+                                                    to={`/feedback?orderId=${order.id}`}
+                                                    className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[1.2rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
+                                                >
+                                                    <Star className="w-4 h-4" /> Đánh giá sản phẩm
+                                                </Link>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

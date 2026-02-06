@@ -19,6 +19,10 @@ import fpt.teddypet.application.constants.settings.AppSettingsConstants;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
 import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.input.user.UserAddressService;
+import fpt.teddypet.application.port.input.promotions.PromotionService;
+import fpt.teddypet.application.port.input.promotions.PromotionUsageService;
+import fpt.teddypet.application.port.input.feedback.FeedbackService;
+import fpt.teddypet.domain.entity.promotions.Promotion;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.constants.email.EmailTemplates;
@@ -62,6 +66,58 @@ public class OrderApplicationService implements OrderService {
     private final ProductVariantService productVariantService;
     private final EmailServicePort emailServicePort;
     private final AppSettingService appSettingService;
+    private final PromotionService promotionService;
+    private final PromotionUsageService promotionUsageService;
+    private final FeedbackService feedbackService;
+
+    private BigDecimal calculateDiscount(Order order, Promotion promotion) {
+        if (promotion == null || !promotion.isValid()) {
+            return BigDecimal.ZERO;
+        }
+
+        if (order.getSubtotal().compareTo(
+                promotion.getMinOrderAmount() != null ? promotion.getMinOrderAmount() : BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discount = BigDecimal.ZERO;
+        if (promotion.getDiscountType() == fpt.teddypet.domain.enums.promotions.DiscountTypeEnum.PERCENTAGE) {
+            discount = order.getSubtotal().multiply(promotion.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            if (promotion.getMaxDiscountAmount() != null && discount.compareTo(promotion.getMaxDiscountAmount()) > 0) {
+                discount = promotion.getMaxDiscountAmount();
+            }
+        } else {
+            discount = promotion.getDiscountValue();
+        }
+
+        return discount.min(order.getSubtotal());
+    }
+
+    private void applyPromotionToOrder(Order order, String voucherCode, UUID userId) {
+        if (voucherCode == null || voucherCode.isBlank()) {
+            return;
+        }
+
+        try {
+            Promotion promotion = promotionService.getByCode(voucherCode);
+            if (promotion != null && promotion.isValid()) {
+                // Check user usage limit if userId is present
+                if (userId != null) {
+                    if (!promotionUsageService.canUserUsePromotion(userId, promotion.getId())) {
+                        log.warn("User {} has exceeded usage limit for promotion {}", userId, voucherCode);
+                        return;
+                    }
+                }
+
+                BigDecimal discount = calculateDiscount(order, promotion);
+                order.setDiscountAmount(discount);
+                order.setVoucherCode(voucherCode);
+                log.info("Applied promotion: {}, discount: {}", voucherCode, discount);
+            }
+        } catch (Exception e) {
+            log.warn("Could not apply promotion {}: {}", voucherCode, e.getMessage());
+        }
+    }
 
     private static final String APP_NAME = "TeddyPet";
     // TODO: Move to config
@@ -280,11 +336,31 @@ public class OrderApplicationService implements OrderService {
             order.setDeliveringAt(java.time.LocalDateTime.now());
         }
 
+        // Return stock if moving to CANCELLED
+        if (status == OrderStatusEnum.CANCELLED && oldStatus != OrderStatusEnum.CANCELLED) {
+            returnOrderStock(order);
+        }
+
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
         // Send email notification
         sendOrderStatusEmail(savedOrder, status);
+
+        // Send feedback email if completed
+        if (status == OrderStatusEnum.COMPLETED && oldStatus != OrderStatusEnum.COMPLETED) {
+            feedbackService.sendFeedbackEmailsForOrder(orderId);
+        }
+    }
+
+    private void returnOrderStock(Order order) {
+        if (order.getOrderItems() != null) {
+            for (fpt.teddypet.domain.entity.OrderItem item : order.getOrderItems()) {
+                if (item.getVariant() != null) {
+                    productVariantService.returnStock(item.getVariant().getVariantId(), item.getQuantity());
+                }
+            }
+        }
     }
 
     @Override
@@ -403,6 +479,10 @@ public class OrderApplicationService implements OrderService {
         }
 
         order.setStatus(OrderStatusEnum.CANCELLED);
+
+        // Return stock for all items
+        returnOrderStock(order);
+
         orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_CANCEL, orderId);
     }
@@ -440,36 +520,55 @@ public class OrderApplicationService implements OrderService {
             // Guest checkout - validate required fields
             validateGuestOrder(request);
             order = buildGuestOrder(request);
-
-            // Guest chỉ hỗ trợ COD
-            if (request.paymentMethod() != PaymentMethodEnum.CASH) {
-                throw new UnsupportedOperationException(OrderMessages.MESSAGE_GUEST_PAYMENT_COD_ONLY);
-            }
+            // Áp dụng voucher cho khách
+            applyPromotionToOrder(order, request.voucherCode(), null);
         } else {
             // User checkout
             order = buildOrder(request, userId);
+            // Áp dụng voucher cho user
+            applyPromotionToOrder(order, request.voucherCode(), userId);
         }
+
+        // recalculate final amount after discount
+        order.calculateFinalAmount();
 
         log.info(OrderLogMessages.LOG_ORDER_CALCULATE_PRICING,
                 order.getSubtotal(), order.getDiscountAmount(),
                 order.getShippingFee(), order.getFinalAmount());
 
         // Create payment
-        // Create payment
-        if (request.paymentMethod() == PaymentMethodEnum.CASH) {
-            Payment payment = Payment.builder()
-                    .amount(order.getFinalAmount())
-                    .paymentMethod(PaymentMethodEnum.CASH)
-                    .status(PaymentStatusEnum.PENDING)
-                    .notes(isGuest ? OrderMessages.MESSAGE_NOTE_GUEST_COD : OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
-                    .build();
-            order.addPayment(payment);
-        } else {
-            throw new UnsupportedOperationException(
-                    OrderMessages.MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED);
-        }
+        PaymentMethodEnum method = request.paymentMethod();
+        PaymentStatusEnum paymentStatus = PaymentStatusEnum.PENDING;
+
+        Payment payment = Payment.builder()
+                .amount(order.getFinalAmount())
+                .paymentMethod(method)
+                .status(paymentStatus)
+                .notes(method == PaymentMethodEnum.CASH
+                        ? (isGuest ? OrderMessages.MESSAGE_NOTE_GUEST_COD : OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
+                        : "Thanh toán Online - Đang chờ xử lý")
+                .build();
+        order.addPayment(payment);
 
         Order savedOrder = orderRepositoryPort.save(order);
+
+        // Record promotion usage if applicable
+        if (order.getVoucherCode() != null && !order.getVoucherCode().isBlank()) {
+            try {
+                Promotion promotion = promotionService.getByCode(order.getVoucherCode());
+                if (promotion != null) {
+                    if (userId != null) {
+                        promotionUsageService.recordUsage(userId, promotion.getId());
+                    } else {
+                        // For guest, we just increment the promotion's usage count
+                        promotion.incrementUsageCount();
+                        promotionService.save(promotion);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to record promotion usage: {}", e.getMessage());
+            }
+        }
 
         // Clear cart only for logged-in users
         if (!isGuest) {
@@ -596,6 +695,9 @@ public class OrderApplicationService implements OrderService {
         orderRepositoryPort.save(order);
 
         sendOrderStatusEmail(order, OrderStatusEnum.COMPLETED);
+
+        // Send feedback email
+        feedbackService.sendFeedbackEmailsForOrder(orderId);
     }
 
     private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {

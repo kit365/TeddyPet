@@ -658,7 +658,7 @@ export const OrderDetailPage = () => {
                         </Card>
 
                         {/* General Status Steps Support */}
-                        {order.status !== 'PENDING' && !['COMPLETED', 'CANCELLED'].includes(order.status) && (
+                        {order.status !== 'PENDING' && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(order.status) && (
                             <Card sx={{
                                 p: 3.5,
                                 borderRadius: '32px',
@@ -690,24 +690,26 @@ export const OrderDetailPage = () => {
                                         </Button>
                                     )}
 
-                                    <Button
-                                        fullWidth
-                                        variant="outlined"
-                                        color="error"
-                                        onClick={() => handleUpdateStatus('CANCELLED')}
-                                        disabled={updating || ['DELIVERED', 'COMPLETED'].includes(order.status)}
-                                        sx={{
-                                            py: 1.5,
-                                            borderRadius: '20px',
-                                            fontSize: '1.4rem',
-                                            fontWeight: 800,
-                                            textTransform: 'none',
-                                            borderWidth: '2px',
-                                            '&:hover': { borderWidth: '2px' }
-                                        }}
-                                    >
-                                        Hủy đơn hàng
-                                    </Button>
+                                    {!['DELIVERED', 'COMPLETED'].includes(order.status) && (
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            color="error"
+                                            onClick={() => handleUpdateStatus('CANCELLED')}
+                                            disabled={updating}
+                                            sx={{
+                                                py: 1.5,
+                                                borderRadius: '20px',
+                                                fontSize: '1.4rem',
+                                                fontWeight: 800,
+                                                textTransform: 'none',
+                                                borderWidth: '2px',
+                                                '&:hover': { borderWidth: '2px' }
+                                            }}
+                                        >
+                                            Hủy đơn hàng
+                                        </Button>
+                                    )}
 
                                     <Typography sx={{ fontSize: '1.2rem', color: '#637381', textAlign: 'center', fontStyle: 'italic', mt: 1 }}>
                                         * Nhấn nút để thực hiện bước chuyển đổi trạng thái tiếp theo.

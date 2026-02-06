@@ -142,7 +142,7 @@ export const OrderHistoryPage = () => {
 
                                                                 {order.status === "COMPLETED" && (
                                                                     <Link
-                                                                        to={`/dashboard/order/detail/${order.id}`}
+                                                                        to={`/feedback?orderId=${order.id}`}
                                                                         className="flex flex-1 items-center justify-center gap-2 h-[42px] bg-client-primary/5 text-client-primary border border-client-primary/10 hover:bg-client-primary hover:text-white rounded-xl font-bold text-[1.2rem] transition-all"
                                                                     >
                                                                         <Star className="w-4 h-4" /> Đánh giá
