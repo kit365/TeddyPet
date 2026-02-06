@@ -586,14 +586,16 @@ public class OrderApplicationService implements OrderService {
         log.info("Customer confirming receipt for order: {}", orderId);
         Order order = getById(orderId);
 
-        if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.SHIPPED) {
-            throw new IllegalStateException("Đơn hàng phải ở trạng thái đang giao mới có thể xác nhận.");
+        // Khách hàng chỉ có thể xác nhận nhận hàng khi Admin đã chuyển sang DELIVERED
+        if (order.getStatus() != OrderStatusEnum.DELIVERED) {
+            throw new IllegalStateException(
+                    "Đơn hàng phải ở trạng thái Đã giao hàng mới có thể xác nhận nhận hàng.");
         }
 
-        order.setStatus(OrderStatusEnum.DELIVERED);
+        order.setStatus(OrderStatusEnum.COMPLETED);
         orderRepositoryPort.save(order);
 
-        sendOrderStatusEmail(order, OrderStatusEnum.DELIVERED);
+        sendOrderStatusEmail(order, OrderStatusEnum.COMPLETED);
     }
 
     private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {
@@ -616,9 +618,9 @@ public class OrderApplicationService implements OrderService {
                     statusText = "ĐÃ XÁC NHẬN";
                     message = "Đơn hàng của bạn đã được xác nhận phí vận chuyển và đang được chuẩn bị.";
                 }
-                case SHIPPED -> {
-                    statusText = "ĐÃ GỬI HÀNG";
-                    message = "Đơn hàng của bạn đã được gửi cho đơn vị vận chuyển.";
+                case PROCESSING -> {
+                    statusText = "ĐANG ĐÓNG GÓI";
+                    message = "Đơn hàng của bạn đang được đóng gói và chuẩn bị giao.";
                 }
                 case DELIVERING -> {
                     statusText = "ĐANG GIAO HÀNG";

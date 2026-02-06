@@ -120,11 +120,10 @@ export const OrderDetailPage = () => {
 
     const getNextAction = (currentStatus: string) => {
         switch (currentStatus) {
-            case 'CONFIRMED': return { status: 'PROCESSING', label: 'Bắt đầu chuẩn bị hàng', color: '#16A34A', icon: <LocalShippingIcon /> };
-            case 'PROCESSING': return { status: 'SHIPPED', label: 'Đã bàn giao vận chuyển', color: '#006C9C', icon: <LocalShippingIcon /> };
-            case 'SHIPPED': return { status: 'DELIVERING', label: 'Bắt đầu giao hàng', color: '#1064ad', icon: <LocalShippingIcon /> };
-            case 'DELIVERING': return { status: 'DELIVERED', label: 'Xác nhận Đã giao hàng', color: '#118D57', icon: <CheckCircleOutlineIcon /> };
-            case 'DELIVERED': return { status: 'COMPLETED', label: 'Hoàn tất Đơn hàng', color: '#05A845', icon: <CheckCircleOutlineIcon /> };
+            case 'CONFIRMED': return { status: 'PROCESSING', label: 'Bắt đầu đóng gói', color: '#16A34A', icon: <LocalShippingIcon /> };
+            case 'PROCESSING': return { status: 'DELIVERING', label: 'Bắt đầu giao hàng', color: '#1064ad', icon: <LocalShippingIcon /> };
+            case 'DELIVERING': return { status: 'DELIVERED', label: 'Xác nhận Đã giao thành công', color: '#118D57', icon: <CheckCircleOutlineIcon /> };
+            // DELIVERED → COMPLETED: Do khách hàng tự nhấn "Đã nhận hàng"
             default: return null;
         }
     };
@@ -184,12 +183,11 @@ export const OrderDetailPage = () => {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'PENDING': return 'Đang chờ';
+            case 'PENDING': return 'Chờ xác nhận';
             case 'CONFIRMED': return 'Đã xác nhận';
-            case 'PROCESSING': return 'Đang chuẩn bị';
-            case 'SHIPPED': return 'Đã gửi hàng';
+            case 'PROCESSING': return 'Đang đóng gói';
             case 'DELIVERING': return 'Đang giao hàng';
-            case 'DELIVERED': return 'Đã nhận hàng';
+            case 'DELIVERED': return 'Đã giao hàng';
             case 'COMPLETED': return 'Hoàn thành';
             case 'CANCELLED': return 'Đã hủy';
             default: return status;
@@ -201,7 +199,6 @@ export const OrderDetailPage = () => {
             case 'PENDING': return { bg: '#FFF7CD', color: '#B76E00' };
             case 'CONFIRMED': return { bg: '#D0F2FE', color: '#04297A' };
             case 'PROCESSING': return { bg: '#E9FCD4', color: '#229A16' };
-            case 'SHIPPED':
             case 'DELIVERING': return { bg: '#D6E4FF', color: '#091A7A' };
             case 'DELIVERED':
             case 'COMPLETED': return { bg: '#E9FCD4', color: '#229A16' };
@@ -314,10 +311,10 @@ export const OrderDetailPage = () => {
                                     <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
                                         <Box sx={{
                                             width: 28, height: 28, borderRadius: '50%',
-                                            bgcolor: (['SHIPPED', 'DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status)) ? '#00AB55' : '#919EAB',
+                                            bgcolor: (['DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status)) ? '#00AB55' : '#919EAB',
                                             border: '5px solid white',
-                                            boxShadow: `0 0 0 1px ${(['SHIPPED', 'DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`,
-                                            animation: order.status === 'SHIPPED' || order.status === 'DELIVERING' ? 'pulse-blue 2s infinite' : 'none',
+                                            boxShadow: `0 0 0 1px ${(['DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`,
+                                            animation: order.status === 'DELIVERING' ? 'pulse-blue 2s infinite' : 'none',
                                             '@keyframes pulse-blue': {
                                                 '0%': { boxShadow: '0 0 0 0 rgba(24, 144, 255, 0.4)' },
                                                 '70%': { boxShadow: '0 0 0 10px rgba(24, 144, 255, 0)' },
@@ -325,11 +322,11 @@ export const OrderDetailPage = () => {
                                             }
                                         }} />
                                         <Box textAlign="center">
-                                            <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: (['SHIPPED', 'DELIVERING'].includes(order.status)) ? '#1064ad' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                            <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: order.status === 'DELIVERING' ? '#1064ad' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
                                                 Đang giao hàng
                                             </Typography>
                                             <Typography sx={{ fontSize: '1.25rem', color: '#919EAB' }}>
-                                                {(order.status === 'SHIPPED' || order.status === 'DELIVERING') ? 'Đang vận chuyển...' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? 'Đã giao tới nơi' : 'Chờ vận chuyển')}
+                                                {order.status === 'DELIVERING' ? 'Đang vận chuyển...' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? 'Đã giao tới nơi' : 'Chờ vận chuyển')}
                                             </Typography>
                                         </Box>
                                     </Stack>

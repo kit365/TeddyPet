@@ -133,16 +133,7 @@ export const OverviewPage = () => {
                                                                 </svg>
                                                                 Xem chi tiết
                                                             </Link>
-                                                            <Link
-                                                                to={`/tracking?code=${order.orderCode}&email=${order.user?.email || order.guestEmail || ''}`}
-                                                                className="flex items-center gap-[6px] text-[1.4rem] text-[#7d7b7b] hover:text-client-primary transition-default"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[1.8rem] h-[1.8rem]">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25s-7.5-4.108-7.5-11.25a7.5 7.5 0 1 1 15 0Z" />
-                                                                </svg>
-                                                                Theo dõi
-                                                            </Link>
+
                                                         </div>
                                                     </td>
                                                 </tr>

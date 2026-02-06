@@ -22,12 +22,11 @@ import { OrderResponse } from '../../../../types/order.type';
 
 const STATUS_OPTIONS = [
     { label: 'Tất cả', value: 'ALL' },
-    { label: 'Chờ xử lý', value: 'PENDING', color: '#B76E00' },
+    { label: 'Chờ xác nhận', value: 'PENDING', color: '#B76E00' },
     { label: 'Đã xác nhận', value: 'CONFIRMED', color: '#006C9C' },
-    { label: 'Đang chuẩn bị', value: 'PROCESSING', color: '#229A16' },
-    { label: 'Đã gửi hàng', value: 'SHIPPED', color: '#1064ad' },
-    { label: 'Đang giao', value: 'DELIVERING', color: '#1064ad' },
-    { label: 'Đã nhận hàng', value: 'DELIVERED', color: '#118D57' },
+    { label: 'Đang đóng gói', value: 'PROCESSING', color: '#229A16' },
+    { label: 'Đang giao hàng', value: 'DELIVERING', color: '#1064ad' },
+    { label: 'Đã giao hàng', value: 'DELIVERED', color: '#118D57' },
     { label: 'Hoàn tất', value: 'COMPLETED', color: '#05A845' },
     { label: 'Đã hủy', value: 'CANCELLED', color: '#B71D18' },
 ];

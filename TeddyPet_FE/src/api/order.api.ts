@@ -27,6 +27,12 @@ export const getMyOrderByCode = async (code: string) => {
     return response.data;
 };
 
+// Public tracking - chỉ cần orderCode, không cần email
+export const trackOrder = async (code: string) => {
+    const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/track/${code}`);
+    return response.data;
+};
+
 export const lookupGuestOrder = async (orderCode: string, email: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/guest/lookup`, {
         params: { orderCode, email }

@@ -235,7 +235,7 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     bgColor = "rgba(255, 171, 0, 0.16)";
                     textColor = "#B76E00";
                     dotColor = "#FFAB00";
-                    label = "Chờ xử lý";
+                    label = "Chờ xác nhận";
                     break;
                 case 'CONFIRMED':
                     bgColor = "rgba(0, 184, 217, 0.16)";
@@ -247,13 +247,7 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     bgColor = "rgba(34, 197, 94, 0.16)";
                     textColor = "#118D57";
                     dotColor = "#22C55E";
-                    label = "Đang chuẩn bị";
-                    break;
-                case 'SHIPPED':
-                    bgColor = "rgba(16, 100, 173, 0.16)";
-                    textColor = "#1064ad";
-                    dotColor = "#1064ad";
-                    label = "Đã gửi hàng";
+                    label = "Đang đóng gói";
                     break;
                 case 'DELIVERING':
                     bgColor = "rgba(16, 100, 173, 0.16)";
@@ -265,7 +259,7 @@ export const getOrderColumns = (onQuickConfirm?: (id: string) => void): GridColD
                     bgColor = "rgba(34, 197, 94, 0.16)";
                     textColor = "#118D57";
                     dotColor = "#22C55E";
-                    label = "Đã nhận hàng";
+                    label = "Đã giao hàng";
                     break;
                 case 'COMPLETED':
                     bgColor = "rgba(34, 197, 94, 0.16)";

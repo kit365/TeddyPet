@@ -59,6 +59,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/checkout", element: <CheckoutPage /> },
     { path: "/checkout/success", element: <CheckSuccessPage /> },
     { path: "/tra-cuu-don-hang", element: <OrderTrackingPage /> },
+    { path: "/tracking", element: <OrderTrackingPage /> },
     { path: "/dich-vu", element: <ServicePage /> },
     { path: "/danh-muc-san-pham/:slug", element: <ProductCategoryPage /> },
     {
