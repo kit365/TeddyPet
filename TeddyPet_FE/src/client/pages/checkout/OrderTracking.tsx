@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { trackOrder, confirmReceived, lookupGuestOrder } from "../../../api/order.api";
@@ -66,15 +66,15 @@ const OrderStepper = ({ status }: { status: string }) => {
                         <div key={step.key} className="flex flex-col items-center gap-[15px] z-10 w-[14%] relative">
                             <div
                                 className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all duration-700 ${isActive
-                                        ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-110 shadow-lg'
-                                        : 'bg-white text-gray-200 border-2 border-gray-100'
+                                    ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-110 shadow-lg'
+                                    : 'bg-white text-gray-200 border-2 border-gray-100'
                                     } ${isCurrent ? (isCompleted ? 'ring-8 ring-emerald-50' : 'ring-8 ring-client-primary/10') : ''}`}
                             >
                                 {step.icon}
                             </div>
                             <span className={`text-[1.2rem] font-bold text-center transition-colors duration-500 ${isActive
-                                    ? (isCompleted ? 'text-emerald-600' : 'text-client-secondary')
-                                    : 'text-gray-300'
+                                ? (isCompleted ? 'text-emerald-600' : 'text-client-secondary')
+                                : 'text-gray-300'
                                 }`}>
                                 {step.label}
                             </span>
@@ -87,7 +87,6 @@ const OrderStepper = ({ status }: { status: string }) => {
 };
 
 export const OrderTrackingPage = () => {
-    const location = useLocation();
     const [searchParams] = useSearchParams();
     const { user } = useAuthStore();
     const isAuthenticated = !!user;
@@ -97,7 +96,6 @@ export const OrderTrackingPage = () => {
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isConfirming, setIsConfirming] = useState(false);
 
     const hasAutoLooked = useRef(false);
 
@@ -109,11 +107,17 @@ export const OrderTrackingPage = () => {
     }, [searchParams]);
 
     useEffect(() => {
-        if (orderCode && (isAuthenticated || email) && !hasAutoLooked.current && !order) {
-            hasAutoLooked.current = true;
-            doTrackOrder(orderCode, email);
+        const codeFromUrl = searchParams.get("code");
+        const emailFromUrl = searchParams.get("email");
+        if (codeFromUrl && !hasAutoLooked.current && !order) {
+            // Lấy email ưu tiên từ URL rồi mới tới state
+            const targetEmail = emailFromUrl || email;
+            if (isAuthenticated || targetEmail) {
+                hasAutoLooked.current = true;
+                doTrackOrder(codeFromUrl, targetEmail);
+            }
         }
-    }, [orderCode, email, isAuthenticated]);
+    }, [searchParams, isAuthenticated, email, order]);
 
     const doTrackOrder = async (code: string, emailInput?: string) => {
         if (!code) return;
@@ -121,11 +125,13 @@ export const OrderTrackingPage = () => {
         setError(null);
         try {
             let response;
+            // Theo backend mới: /api/orders/track/{code} là public
+            // Tuy nhiên vẫn dùng logic Guest Lookup nếu là khách vãng lai để bảo mật
             if (isAuthenticated) {
                 response = await trackOrder(code.trim());
             } else {
                 if (!emailInput) {
-                    setError("Vui lòng nhập Email để bảo mật thông tin.");
+                    setError("Vui lòng nhập Email đặt hàng để bảo mật.");
                     setLoading(false);
                     return;
                 }
@@ -135,10 +141,10 @@ export const OrderTrackingPage = () => {
             if (response.success && response.data) {
                 setOrder(response.data);
             } else {
-                setError("Không tìm thấy đơn hàng. Vui lòng kiểm tra lại mã.");
+                setError("Không tìm thấy đơn hàng. Vui lòng kiểm tra lại thông tin.");
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || "Thông tin không chính xác.");
+            setError(err.response?.data?.message || "Không thể tìm thấy đơn hàng này.");
         } finally {
             setLoading(false);
         }
@@ -147,7 +153,7 @@ export const OrderTrackingPage = () => {
     const handleManualLookup = (e: React.FormEvent) => {
         e.preventDefault();
         if (!orderCode) { toast.error("Nhập mã đơn hàng!"); return; }
-        if (!isAuthenticated && !email) { toast.error("Nhập Email bảo mật!"); return; }
+        if (!isAuthenticated && !email) { toast.error("Nhập Email/SĐT bảo mật!"); return; }
         hasAutoLooked.current = true;
         doTrackOrder(orderCode, email);
     };
@@ -178,8 +184,16 @@ export const OrderTrackingPage = () => {
                         <div className="bg-white p-[50px] rounded-[40px] shadow-sm border border-[#eee] animate-fadeIn text-center">
                             <h2 className="text-[2.6rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
                             <p className="text-[1.5rem] text-gray-400 font-medium mb-10 italic">
-                                {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email chính chủ"}
+                                {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
                             </p>
+
+                            {isAuthenticated && (
+                                <div className="mb-8 p-4 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
+                                    <p className="text-[1.3rem] text-client-secondary font-bold">
+                                        💡 Bạn có thể vào <Link to="/dashboard/orders" className="text-client-primary underline">Lịch sử đơn hàng</Link> để xem danh sách trọn vẹn nhất.
+                                    </p>
+                                </div>
+                            )}
 
                             <form onSubmit={handleManualLookup} className="max-w-[500px] mx-auto space-y-4">
                                 <div className="relative">
@@ -196,8 +210,8 @@ export const OrderTrackingPage = () => {
                                     <div className="relative animate-fadeIn">
                                         <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 w-6 h-6" />
                                         <input
-                                            type="email"
-                                            placeholder="Địa chỉ Email đặt hàng"
+                                            type="text"
+                                            placeholder="Địa chỉ Email hoặc Số điện thoại"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
