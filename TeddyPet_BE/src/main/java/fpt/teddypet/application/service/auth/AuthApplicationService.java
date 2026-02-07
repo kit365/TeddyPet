@@ -432,6 +432,7 @@ public class AuthApplicationService implements AuthService {
     }
 
     @Override
+    @Transactional
     public void logout(String token) {
         log.info(AuthLogMessages.LOG_AUTH_LOGOUT_START);
         jwtTokenProviderPort.blacklistToken(token);

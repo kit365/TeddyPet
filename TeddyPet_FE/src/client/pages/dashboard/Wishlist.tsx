@@ -1,7 +1,7 @@
-import { Sidebar } from "./sections/Sidebar";
-import { ProductBanner } from "../product/sections/ProductBanner";
 import { ProductCard } from "../../components/ui/ProductCard";
 import type { Product } from "../../../types/products.type";
+import { DashboardLayout } from "./sections/DashboardLayout";
+import { Heart } from "lucide-react";
 
 export const WishlistPage = () => {
     const breadcrumbs = [
@@ -74,39 +74,32 @@ export const WishlistPage = () => {
     ];
 
     return (
-        <>
-            <ProductBanner
-                pageTitle="Sản phẩm yêu thích"
-                breadcrumbs={breadcrumbs}
-                url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-shop-details.jpg"
-                className="bg-top"
-            />
-
-            <div className="mt-[-150px] mb-[100px] w-[1600px] mx-auto flex items-stretch">
-                <div className="w-[25%] px-[12px] flex">
-                    <Sidebar />
+        <DashboardLayout pageTitle="Sản phẩm yêu thích" breadcrumbs={breadcrumbs}>
+            <div className="flex justify-between items-end border-b border-slate-100 pb-8 mb-12">
+                <div>
+                    <h3 className="text-[2.8rem] font-black text-slate-800 tracking-tight italic flex items-center gap-3">
+                        <Heart className="text-rose-500 fill-rose-500" size={32} />
+                        Sản phẩm yêu thích
+                    </h3>
+                    <p className="text-[1.2rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Bộ sưu tập dành riêng cho thú cưng của bạn</p>
                 </div>
-                <div className="w-[75%] px-[12px]">
-                    <div className="mt-[100px] p-[35px] bg-white shadow-[0px_8px_24px_#959da533] rounded-[12px]">
-                        <h3 className="text-[2.4rem] font-[600] text-client-secondary mb-[30px] flex items-center justify-between">
-                            Sản phẩm yêu thích
-                        </h3>
-
-                        <div className="grid grid-cols-3 gap-[25px]">
-                            {wishlistItems.map((item) => (
-                                <ProductCard key={item.id} product={item} />
-                            ))}
-                        </div>
-
-                        {/* Pagination */}
-                        <ul className="flex items-center mt-[50px] justify-center gap-[11px]">
-                            <li className="flex items-center cursor-pointer justify-center bg-client-secondary text-white rounded-full w-[4.5rem] h-[4.5rem]">1</li>
-                            <li className="flex items-center cursor-pointer justify-center bg-client-primary hover:bg-client-secondary transition-default text-white rounded-full w-[4.5rem] h-[4.5rem]">2</li>
-                            <div className="w-[4.5rem] h-[4.5rem] rounded-full bg-client-primary hover:bg-client-secondary cursor-pointer transition-default flex items-center justify-center next-button"></div>
-                        </ul>
-                    </div>
+                <div className="px-6 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[1.4rem] font-black text-rose-500 uppercase tracking-widest">
+                    {wishlistItems.length} Sản phẩm
                 </div>
             </div>
-        </>
+
+            <div className="grid grid-cols-3 gap-8">
+                {wishlistItems.map((item) => (
+                    <ProductCard key={item.id} product={item} />
+                ))}
+            </div>
+
+            {/* Pagination */}
+            <ul className="flex items-center mt-16 justify-center gap-4">
+                <li className="flex items-center cursor-pointer justify-center bg-indigo-600 text-white rounded-2xl w-14 h-14 font-black shadow-lg shadow-indigo-100">1</li>
+                <li className="flex items-center cursor-pointer justify-center bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all rounded-2xl w-14 h-14 font-black px-4">2</li>
+                <li className="flex items-center cursor-pointer justify-center bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all rounded-2xl w-14 h-14 font-black px-4">Next</li>
+            </ul>
+        </DashboardLayout>
     );
 };

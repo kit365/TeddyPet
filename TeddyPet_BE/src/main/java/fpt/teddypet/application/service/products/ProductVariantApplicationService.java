@@ -286,6 +286,18 @@ public class ProductVariantApplicationService implements ProductVariantService {
 
     @Override
     @Transactional
+    public void returnStock(Long variantId, int quantity) {
+        log.info("Returning stock for variant: {}, quantity: {}", variantId, quantity);
+        ProductVariant variant = getById(variantId);
+        int currentStock = variant.getStockQuantity().getValue();
+
+        variant.setStockQuantity(StockQuantity.of(currentStock + quantity));
+        productVariantRepositoryPort.save(variant);
+        log.info("Stock returned successfully for variant: {}. New stock: {}", variantId, currentStock + quantity);
+    }
+
+    @Override
+    @Transactional
     public void delete(Long variantId) {
         log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_DELETE_START, variantId);
         try {

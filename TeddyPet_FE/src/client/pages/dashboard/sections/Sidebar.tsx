@@ -1,7 +1,31 @@
-import { Camera, AlignJustify, ShoppingBag, User, Arcade, Heart, Star, Lock, LogOut } from "iconoir-react";
+import {
+    User, MapPin, PawPrint, Package,
+    LogOut, Camera, ShieldCheck
+} from 'lucide-react';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../../api/auth.api";
+
+interface SidebarItemProps {
+    to: string;
+    icon: any;
+    label: string;
+    active: boolean;
+}
+
+const SidebarItem = ({ to, icon: Icon, label, active }: SidebarItemProps) => (
+    <Link
+        to={to}
+        className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] transition-all ${active
+            ? `bg-indigo-600 text-white shadow-lg shadow-indigo-200 translate-x-2`
+            : `text-slate-500 hover:bg-slate-50 hover:text-indigo-600`
+            }`}
+    >
+        <Icon size={20} />
+        <span className="flex-1 text-left">{label}</span>
+        {active && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>}
+    </Link>
+);
 
 export const Sidebar = () => {
     const location = useLocation();
@@ -21,77 +45,87 @@ export const Sidebar = () => {
         }
     };
 
-    if (!user) return null; // Should be handled by AuthGuard
+    if (!user) return null;
 
     return (
-        <div className="w-full h-full">
-            <div className="rounded-[10px] relative shadow-[0px_8px_24px_#959da533] z-[3] h-full bg-white min-h-[600px]">
-                <div className="top-[-70px] relative rounded-t-[10px] overflow-hidden">
-                    <div className="px-[40px] pt-[40px] pb-[30px] bg-white text-center">
-                        <div className="mx-auto w-[150px] h-[150px] shadow-[0px_7px_29px_0px_#64646f33] border-[3px] border-white rounded-full relative">
-                            <img src={user.avatarUrl || "https://i.imgur.com/L8j8x7x.png"} alt="" className="w-full h-full object-cover rounded-full" />
-                            <label htmlFor="profile_photo" className="hover:bg-client-primary hover:text-white cursor-pointer transition-default w-[30px] h-[30px] text-[1.2rem] bg-white flex justify-center items-center absolute bottom-[5px] right-[5px] text-[#333] border-[#dddddd] rounded-full">
-                                <Camera />
-                            </label>
-                            <input type="file" id="profile_photo" hidden />
-                        </div>
-                        <h3 className="text-[2.2rem] mt-[22px] mb-[5px] font-[600] text-client-secondary uppercase leading-tight">{user.lastName} {user.firstName}</h3>
-                        <p className="text-[#7d7b7b] font-[500]">{user.email}</p>
-                    </div>
-                    <ul className="">
-                        <li className="bg-[#FFF0F0] text-[1.4rem] my-[10px] font-[500] py-[12px] px-[25px] uppercase text-client-primary border-y border-dashed border-[#dddddd]">Tổng quan</li>
-                        <li>
-                            <Link to={"/dashboard/overview"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname === "/dashboard/overview" ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <AlignJustify className="w-[2rem] h-[2rem]" />
-                                Tổng quan
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"/dashboard/orders"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname.startsWith("/dashboard/order") ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <ShoppingBag className="w-[2rem] h-[2rem]" />
-                                Đơn hàng
-                            </Link>
-                        </li>
-                        <li className="bg-[#FFF0F0] text-[1.4rem] my-[10px] font-[500] py-[12px] px-[25px] uppercase text-client-primary border-y border-dashed border-[#dddddd]">Cài đặt tài khoản</li>
-                        <li>
-                            <Link to={"/dashboard/profile"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname === "/dashboard/profile" || pathname === "/dashboard/profile/edit" ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <User className="w-[2rem] h-[2rem]" />
-                                Thông tin cá nhân
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"/dashboard/address"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname.startsWith("/dashboard/address") ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <Arcade className="w-[2rem] h-[2rem]" />
-                                Địa chỉ
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"/dashboard/wishlist"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname === "/dashboard/wishlist" ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <Heart className="w-[2rem] h-[2rem]" />
-                                Yêu thích
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"/dashboard/review"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname === "/dashboard/review" ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <Star className="w-[2rem] h-[2rem]" />
-                                Đánh giá
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"/dashboard/change-password"} className={`inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] transition-default w-full ${pathname === "/dashboard/change-password" ? "text-client-primary" : "text-[#7d7b7b] hover:text-client-primary"}`}>
-                                <Lock className="w-[2rem] h-[2rem]" />
-                                Đổi mật khẩu
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to={"#"} onClick={handleLogout} className="inline-flex items-center gap-[10px] text-[1.5rem] py-[10px] px-[25px] text-[#7d7b7b] hover:text-client-primary transition-default w-full">
-                                <LogOut className="w-[2rem] h-[2rem]" />
-                                Đăng xuất
-                            </Link>
-                        </li>
-                    </ul>
+        <div className="space-y-6">
+            {/* User Brief Card */}
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/60 border border-white p-8 text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-client-primary to-orange-400"></div>
+
+                <div className="relative inline-block mb-6">
+                    <img
+                        src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                        className="w-28 h-28 rounded-[2rem] border-4 border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
+                        alt="avatar"
+                    />
+                    <label htmlFor="profile_photo" className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg hover:scale-110 transition-transform border-4 border-white cursor-pointer">
+                        <Camera size={18} />
+                    </label>
+                    <input type="file" id="profile_photo" hidden />
+                </div>
+
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
+                    {user.lastName} {user.firstName}
+                </h2>
+                <p className="text-[1.2rem] font-bold text-slate-400 uppercase tracking-widest mt-2">
+                    {user.email}
+                </p>
+            </div>
+
+            {/* Navigation Menu */}
+            <div className="bg-white p-3 rounded-[2.5rem] shadow-lg shadow-slate-200/40 border border-slate-100">
+                <div className="px-5 py-3">
+                    <p className="text-[1rem] font-black text-slate-300 uppercase tracking-[0.2em]">Tổng quan tài khoản</p>
+                </div>
+                <div className="space-y-1">
+                    <SidebarItem
+                        to="/dashboard/profile"
+                        icon={User}
+                        label="Thông tin cá nhân"
+                        active={pathname === "/dashboard/profile" || pathname === "/dashboard/profile/edit"}
+                    />
+                    <SidebarItem
+                        to="/dashboard/address"
+                        icon={MapPin}
+                        label="Sổ địa chỉ"
+                        active={pathname.startsWith("/dashboard/address")}
+                    />
+                    <SidebarItem
+                        to="/dashboard/pets"
+                        icon={PawPrint}
+                        label="Hồ sơ thú cưng"
+                        active={pathname === "/dashboard/pets"}
+                    />
+                    <SidebarItem
+                        to="/dashboard/orders"
+                        icon={Package}
+                        label="Lịch sử đơn hàng"
+                        active={pathname.startsWith("/dashboard/order")}
+                    />
+                </div>
+
+                <div className="h-px bg-slate-50 my-3 mx-5"></div>
+
+                <div className="px-5 py-3">
+                    <p className="text-[1rem] font-black text-slate-300 uppercase tracking-[0.2em]">Cài đặt & Bảo mật</p>
+                </div>
+                <div className="space-y-1">
+                    <SidebarItem
+                        to="/dashboard/change-password"
+                        icon={ShieldCheck}
+                        label="Mật khẩu & Bảo mật"
+                        active={pathname === "/dashboard/change-password"}
+                    />
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
+                    >
+                        <LogOut size={20} />
+                        <span className="flex-1 text-left">Đăng xuất</span>
+                    </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

@@ -7,14 +7,27 @@ import java.util.UUID;
 
 public interface UserService {
     User getById(UUID userId);
+
     Optional<User> findByEmail(String email);
+
     boolean existsByEmail(String email);
+
     boolean existsByUsername(String username);
+
     User getByEmail(String email);
+
     User getByUsername(String username);
+
     User getByUsernameOrEmail(String usernameOrEmail);
+
     User save(User user);
+
     void trackFailedLogin(User user);
+
     void resetFailedLoginAttempts(User user);
+
     void unlockAccount(UUID userId);
+
+    fpt.teddypet.application.dto.response.UserProfileResponse updateProfile(User user,
+            fpt.teddypet.application.dto.request.user.UpdateProfileRequest request);
 }

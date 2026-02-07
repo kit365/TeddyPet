@@ -21,5 +21,7 @@ public interface ProductVariantService {
 
     void deductStock(Long variantId, int quantity);
 
+    void returnStock(Long variantId, int quantity);
+
     void delete(Long variantId);
 }

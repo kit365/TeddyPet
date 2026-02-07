@@ -91,7 +91,7 @@ export interface APIProductAttribute {
 }
 
 export interface APIProduct {
-    productId: number;
+    id: number;
     slug: string;
     barcode: string | null;
     name: string;

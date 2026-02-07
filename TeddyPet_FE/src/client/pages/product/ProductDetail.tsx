@@ -13,6 +13,7 @@ import { useCartStore } from "../../../stores/useCartStore";
 import { CartItem } from "../../../types/cart.type";
 import { getProductBySlug } from "../../../api/product.api";
 import { APIProduct, APIProductVariant, APIProductAttributeValue } from "../../../types/products.type";
+import { FeedbackResponse, getProductFeedbacks } from "../../../api/feedback.api";
 
 export const ProductDetailPage = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -20,6 +21,7 @@ export const ProductDetailPage = () => {
 
     // State
     const [product, setProduct] = useState<APIProduct | null>(null);
+    const [feedbacks, setFeedbacks] = useState<FeedbackResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedOptions, setSelectedOptions] = useState<{ [key: number]: number }>({}); // attributeId -> valueId
     const [quantity, setQuantity] = useState(1);
@@ -45,6 +47,15 @@ export const ProductDetailPage = () => {
                 const res = await getProductBySlug(slug);
                 if (res && res.data) {
                     setProduct(res.data);
+                    // Fetch feedbacks
+                    try {
+                        const fbRes = await getProductFeedbacks(res.data.id);
+                        if (fbRes && fbRes.data) {
+                            setFeedbacks(fbRes.data);
+                        }
+                    } catch (fbErr) {
+                        console.error("Failed to fetch feedbacks", fbErr);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch product", error);
@@ -420,7 +431,7 @@ export const ProductDetailPage = () => {
                 </div>
             </section>
             <ProductDesc />
-            <ProductComment />
+            <ProductComment feedbacks={feedbacks} />
             <ProductRelated />
             <FooterSub />
 

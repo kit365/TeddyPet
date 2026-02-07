@@ -1,6 +1,10 @@
 import { NavLink } from "react-router-dom"
+import { useAuthStore } from "../../../stores/useAuthStore";
 
 export const MenuBar = () => {
+    const { user } = useAuthStore();
+    const isAuthenticated = !!user;
+
     const menuItems = [
         {
             label: "Trang chủ",
@@ -38,8 +42,8 @@ export const MenuBar = () => {
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-5.png",
         },
         {
-            label: "Tra cứu đơn hàng",
-            to: "/tra-cuu-don-hang",
+            label: isAuthenticated ? "Đơn hàng của tôi" : "Tra cứu đơn hàng",
+            to: isAuthenticated ? "/dashboard/orders" : "/tra-cuu-don-hang",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-3.png",
         },
     ];

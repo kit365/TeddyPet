@@ -45,3 +45,30 @@ export interface UpdateCartItemRequest {
     variantId: number;
     quantity: number;
 }
+
+export interface CartState {
+    items: CartItem[];
+    isHydrated: boolean;
+    isSyncing: boolean;
+    lastSync: number; // Timestamp of last sync
+
+    // Sync with backend
+    syncWithBackend: (force?: boolean) => Promise<void>;
+
+    // Cart actions
+    addToCart: (item: CartItem) => Promise<void>;
+    removeFromCart: (id: string | number) => Promise<void>;
+    updateQuantity: (id: string | number, quantity: number) => Promise<void>;
+    clearCart: () => void;
+    toggleCheck: (id: string | number) => void;
+    toggleAll: (checked: boolean) => void;
+
+    buyNowItem: CartItem | null;
+    setBuyNowItem: (item: CartItem | null) => void;
+
+    totalAmount: () => number;
+    totalAmountChecked: () => number;
+    totalItems: () => number;
+    totalItemsChecked: () => number;
+    set: (newState: Partial<CartState>) => void;
+}

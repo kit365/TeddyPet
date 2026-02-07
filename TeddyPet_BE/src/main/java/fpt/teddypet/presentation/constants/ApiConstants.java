@@ -75,4 +75,7 @@ public final class ApiConstants {
 
     // App Setting API base path
     public static final String API_SETTINGS = BASE_API + "/settings";
+
+    // User API base path
+    public static final String API_USER = BASE_API + "/users";
 }

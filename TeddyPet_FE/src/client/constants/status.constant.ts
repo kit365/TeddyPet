@@ -1,6 +1,6 @@
 export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bgColor: string }> = {
     PENDING: {
-        label: "Đang chờ xử lý",
+        label: "Chờ xác nhận",
         color: "#B76E00",
         bgColor: "rgba(255, 171, 0, 0.16)"
     },
@@ -9,10 +9,10 @@ export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg
         color: "#006C9C",
         bgColor: "rgba(0, 184, 217, 0.16)"
     },
-    SHIPPED: {
-        label: "Đã gửi hàng",
-        color: "#006C9C",
-        bgColor: "rgba(0, 184, 217, 0.16)"
+    PROCESSING: {
+        label: "Đang đóng gói",
+        color: "#229A16",
+        bgColor: "rgba(34, 197, 94, 0.16)"
     },
     DELIVERING: {
         label: "Đang giao hàng",
@@ -20,7 +20,7 @@ export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg
         bgColor: "rgba(16, 100, 173, 0.16)"
     },
     DELIVERED: {
-        label: "Đã nhận hàng",
+        label: "Đã giao hàng",
         color: "#118D57",
         bgColor: "rgba(34, 197, 94, 0.16)"
     },

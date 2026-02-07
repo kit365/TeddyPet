@@ -77,7 +77,6 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/received")
-    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Xác nhận đã nhận hàng", description = "User xác nhận đã nhận được hàng")
     public ResponseEntity<ApiResponse<Void>> confirmReceived(@PathVariable UUID id) {
         orderService.confirmReceived(id);
@@ -95,8 +94,15 @@ public class OrderController {
 
     // ========== GUEST ORDER LOOKUP ==========
 
+    @GetMapping("/track/{code}")
+    @Operation(summary = "Tra cứu đơn hàng công khai", description = "Tra cứu đơn hàng bằng mã đơn - không cần email vì orderCode là thông tin bảo mật")
+    public ResponseEntity<ApiResponse<OrderResponse>> trackOrder(@PathVariable String code) {
+        OrderResponse response = orderService.getByOrderCodeResponse(code);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/guest/lookup")
-    @Operation(summary = "Tra cứu đơn hàng khách vãng lai", description = "Tra cứu đơn hàng bằng mã đơn và email")
+    @Operation(summary = "Tra cứu đơn hàng khách vãng lai (legacy)", description = "Tra cứu đơn hàng bằng mã đơn và email - dùng /track/{code} thay thế")
     public ResponseEntity<ApiResponse<OrderResponse>> lookupGuestOrder(
             @RequestParam String orderCode,
             @RequestParam String email) {
