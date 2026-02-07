@@ -98,6 +98,7 @@ export const OrderDetailPage = () => {
     const { id } = useParams<{ id: string }>();
     const { order, loading: fetching, refresh } = useOrderDetail(id as string);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     if (fetching || !order) {
         return (
@@ -122,7 +123,8 @@ export const OrderDetailPage = () => {
         try {
             await confirmReceived(order.id);
             toast.success("Xác nhận đã nhận hàng thành công. TeddyPet cảm ơn bạn!");
-            refresh();
+            await refresh();
+            setShowFeedbackModal(true);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
         } finally {
@@ -350,14 +352,55 @@ export const OrderDetailPage = () => {
                     </div>
                 </div>
             </div>
+            {/* Modal Gợi ý Đánh giá */}
+            {showFeedbackModal && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-client-secondary/40 backdrop-blur-md"
+                        onClick={() => setShowFeedbackModal(false)}
+                    ></div>
+                    <div className="bg-white rounded-[40px] p-10 max-w-[500px] w-full relative z-10 shadow-2xl border border-gray-100 text-center animate-scaleUp">
+                        <div className="w-[100px] h-[100px] bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-6 shadow-sm border border-emerald-100">
+                            <Star className="w-[5rem] h-[5rem] fill-current" />
+                        </div>
+                        <h3 className="text-[2.6rem] font-black text-client-secondary mb-4 leading-tight uppercase">
+                            Tuyệt vời quá!
+                        </h3>
+                        <p className="text-[1.6rem] text-gray-500 font-medium mb-8 leading-relaxed">
+                            Đơn hàng đã hoàn tất. Bạn hãy dành chút thời gian đánh giá sản phẩm để TeddyPet ngày càng hoàn thiện hơn nhé! 🐾
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <Link
+                                to={`/feedback?orderId=${order.id}`}
+                                className="h-[65px] bg-client-primary text-white rounded-[24px] font-black text-[1.8rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
+                            >
+                                <Star className="w-6 h-6" /> ĐÁNH GIÁ NGAY
+                            </Link>
+                            <button
+                                onClick={() => setShowFeedbackModal(false)}
+                                className="h-[55px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
+                            >
+                                Để sau nhé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(25px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes scaleUp {
+                    from { opacity: 0; transform: scale(0.8); }
+                    to { opacity: 1; transform: scale(1); }
+                }
                 .animate-fadeIn {
                     animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                .animate-scaleUp {
+                    animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
                 }
             `}</style>
         </div>

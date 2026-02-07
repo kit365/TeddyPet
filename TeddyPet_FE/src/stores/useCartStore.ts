@@ -2,35 +2,8 @@ import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { getCart, addToCart as addToCartAPI, updateCartItem as updateCartItemAPI, removeCartItem as removeCartItemAPI } from "../api/cart.api";
-import { CartItemResponse, CartItem } from "../types/cart.type";
+import { CartItemResponse, CartItem, CartState } from "../types/cart.type";
 import Cookies from "js-cookie";
-
-interface CartState {
-    items: CartItem[];
-    isHydrated: boolean;
-    isSyncing: boolean;
-    lastSync: number; // Timestamp of last sync
-
-    // Sync with backend
-    syncWithBackend: (force?: boolean) => Promise<void>;
-
-    // Cart actions
-    addToCart: (item: CartItem) => Promise<void>;
-    removeFromCart: (id: string | number) => Promise<void>;
-    updateQuantity: (id: string | number, quantity: number) => Promise<void>;
-    clearCart: () => void;
-    toggleCheck: (id: string | number) => void;
-    toggleAll: (checked: boolean) => void;
-
-    buyNowItem: CartItem | null;
-    setBuyNowItem: (item: CartItem | null) => void;
-
-    totalAmount: () => number;
-    totalAmountChecked: () => number;
-    totalItems: () => number;
-    totalItemsChecked: () => number;
-    set: (newState: Partial<CartState>) => void;
-}
 
 // Helper: Convert backend CartItemResponse to frontend CartItem
 const mapBackendToFrontend = (backendItem: CartItemResponse): CartItem => ({
@@ -62,7 +35,7 @@ export const useCartStore = create<CartState>()(
                     syncWithBackend: async (force = false) => {
                         const token = Cookies.get("token");
                         const now = Date.now();
-                        // Prevent sync if not logged in, already syncing, or synced very recently (e.g. within 2 seconds) unless forced
+
                         if (!token || get().isSyncing || (!force && (now - get().lastSync < 2000))) {
                             return;
                         }
@@ -76,7 +49,7 @@ export const useCartStore = create<CartState>()(
                                 // Merge with local checked state
                                 const currentItems = get().items;
                                 const mergedItems = backendItems.map(bItem => {
-                                    const localItem = currentItems.find(lItem => lItem.id === bItem.id);
+                                    const localItem = currentItems.find(lItem => Number(lItem.id) === Number(bItem.id));
                                     return {
                                         ...bItem,
                                         checked: localItem ? (localItem.checked ?? true) : true
@@ -94,90 +67,85 @@ export const useCartStore = create<CartState>()(
 
                     addToCart: async (item) => {
                         const token = Cookies.get("token");
+                        const variantId = Number(item.id);
+
+                        // Optimistic update for all cases
+                        set((state) => {
+                            const existingIndex = state.items.findIndex(
+                                (i) => Number(i.id) === variantId
+                            );
+
+                            if (existingIndex !== -1) {
+                                state.items[existingIndex].quantity += item.quantity;
+                            } else {
+                                state.items.push({ ...item, id: variantId, checked: true });
+                            }
+                        });
 
                         if (token) {
-                            // User logged in: call backend API
+                            // User logged in: call backend API to persist
                             try {
                                 await addToCartAPI({
-                                    variantId: Number(item.id),
+                                    variantId: variantId,
                                     quantity: item.quantity,
                                 });
-                                // Sync after adding (force sync)
+                                // Sync back from server to ensure data consistency
                                 await get().syncWithBackend(true);
                             } catch (error) {
-                                console.error("Failed to add to cart:", error);
+                                console.error("Failed to add to cart on server:", error);
+                                // Optional: revert optimistic update or show error
                                 throw error;
                             }
-                        } else {
-                            // User not logged in: local storage only
-                            set((state) => {
-                                const existingIndex = state.items.findIndex(
-                                    (i: CartItem) => i.id === item.id
-                                );
-
-                                if (existingIndex !== -1) {
-                                    state.items[existingIndex].quantity += item.quantity;
-                                } else {
-                                    state.items.push({ ...item, checked: true });
-                                }
-                            });
                         }
                     },
 
                     removeFromCart: async (id) => {
                         const token = Cookies.get("token");
+                        const variantId = Number(id);
+
+                        // Local update first
+                        set((state) => {
+                            state.items = state.items.filter((i) => Number(i.id) !== variantId);
+                        });
 
                         if (token) {
-                            // User logged in: call backend API
                             try {
-                                await removeCartItemAPI(Number(id));
-                                // Sync after removing (force sync)
+                                await removeCartItemAPI(variantId);
                                 await get().syncWithBackend(true);
                             } catch (error) {
-                                console.error("Failed to remove from cart:", error);
-                                throw error;
+                                console.error("Failed to remove from cart on server:", error);
                             }
-                        } else {
-                            // User not logged in: local storage only
-                            set((state) => {
-                                state.items = state.items.filter((i) => i.id !== id);
-                            });
                         }
                     },
 
                     updateQuantity: async (id, quantity) => {
                         const token = Cookies.get("token");
+                        const variantId = Number(id);
+
+                        // Local update first
+                        set((state) => {
+                            const existingIndex = state.items.findIndex((i) => Number(i.id) === variantId);
+                            if (quantity <= 0) {
+                                if (existingIndex !== -1) state.items.splice(existingIndex, 1);
+                            } else if (existingIndex !== -1) {
+                                state.items[existingIndex].quantity = quantity;
+                            }
+                        });
 
                         if (token) {
-                            // User logged in: call backend API
                             try {
                                 if (quantity <= 0) {
-                                    await removeCartItemAPI(Number(id));
+                                    await removeCartItemAPI(variantId);
                                 } else {
                                     await updateCartItemAPI({
-                                        variantId: Number(id),
+                                        variantId: variantId,
                                         quantity: quantity,
                                     });
                                 }
-                                // Sync after updating (force sync)
                                 await get().syncWithBackend(true);
                             } catch (error) {
-                                console.error("Failed to update cart quantity:", error);
-                                throw error;
+                                console.error("Failed to update cart quantity on server:", error);
                             }
-                        } else {
-                            // User not logged in: local storage only
-                            set((state) => {
-                                const existingIndex = state.items.findIndex((i) => i.id === id);
-
-                                if (quantity <= 0) {
-                                    if (existingIndex !== -1) {
-                                        state.items.splice(existingIndex, 1);
-                                    }
-                                } else if (existingIndex !== -1) {
-                                    state.items[existingIndex].quantity = quantity;
-                                }
-                            });
                         }
                     },
 

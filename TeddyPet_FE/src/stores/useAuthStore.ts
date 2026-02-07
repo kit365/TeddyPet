@@ -1,31 +1,7 @@
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import Cookies from "js-cookie";
-
-interface User {
-    id?: string;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber?: string;
-    avatarUrl?: string;
-    altImage?: string;
-    gender?: string;
-    dateOfBirth?: string;
-    status?: string;
-    role?: string;
-    expiresAt?: string;
-}
-
-interface AuthState {
-    user: User | null;
-    token: string | null;
-    isHydrated: boolean;
-    login: (user: User, token: string, refreshToken?: string) => void;
-    logout: () => void;
-    set: (newState: Partial<AuthState>) => void;
-}
+import { AuthState } from "../types/auth.type";
 
 export const useAuthStore = create<AuthState>()(
     devtools(

@@ -9,9 +9,9 @@ import { getSearchSuggestions } from "../../../api/home.api";
 import { LocationSelector } from "../ui/LocationSelector";
 
 export const MainHeader = () => {
-    const totalItemsCount = useCartStore((state) => state.totalItemsChecked());
-    const totalAmount = useCartStore((state) => state.totalAmountChecked());
     const items = useCartStore((state) => state.items);
+    const totalItemsCount = items.reduce((sum, item) => (item.checked ? sum + item.quantity : sum), 0);
+    const totalAmount = items.reduce((sum, item) => (item.checked ? sum + (item.option?.price || 0) * item.quantity : sum), 0);
     const isHydrated = useCartStore((state) => state.isHydrated);
     const cartCount = isHydrated ? totalItemsCount : 0;
     const removeFromCart = useCartStore((state) => state.removeFromCart);

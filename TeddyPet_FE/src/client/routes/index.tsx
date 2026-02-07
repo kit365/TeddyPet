@@ -26,6 +26,7 @@ import { ReviewPage } from "../pages/dashboard/Review";
 import { OrderDetailPage } from "../pages/dashboard/OrderDetail";
 import { OrderHistoryPage } from "../pages/dashboard/OrderHistory";
 import { OrderInvoicePage } from "../pages/dashboard/OrderInvoice";
+import { PetsPage } from "../pages/dashboard/Pets";
 import { AuthGuard } from "../components/guards/AuthGuard";
 
 import { ForgotPasswordPage } from "../pages/auth/ForgotPassword";
@@ -80,6 +81,7 @@ export const ClientRoutes: RouteObject[] = [
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },
             { path: "order/detail/:id", element: <OrderDetailPage /> },
             { path: "orders", element: <OrderHistoryPage /> },
+            { path: "pets", element: <PetsPage /> },
         ]
     },
 ];
