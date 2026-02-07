@@ -55,7 +55,7 @@ export const Sidebar = () => {
 
                 <div className="relative inline-block mb-6">
                     <img
-                        src={user.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Kiet"}
+                        src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
                         className="w-28 h-28 rounded-[2rem] border-4 border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
                         alt="avatar"
                     />

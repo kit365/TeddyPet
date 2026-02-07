@@ -200,11 +200,12 @@ export const MainHeader = () => {
                             <div className="group relative">
                                 <Link to="/dashboard/profile" className="w-[3.5rem] h-[3.5rem] rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:border-client-primary transition-default">
                                     <img
-                                        src={user.avatarUrl || "https://i.imgur.com/L8j8x7x.png"}
+                                        src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
                                         alt={user.username}
                                         className="w-full h-full object-cover"
                                     />
                                 </Link>
+                                <div className="absolute top-[35px] right-0 w-[120px] h-[20px] bg-transparent"></div>
                                 <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[200px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-50 py-[10px] animate-fadeIn">
                                     <div className="px-[20px] py-[10px] border-b border-[#f0f0f0]">
                                         <p className="font-bold text-client-secondary truncate">{user.lastName} {user.firstName}</p>
