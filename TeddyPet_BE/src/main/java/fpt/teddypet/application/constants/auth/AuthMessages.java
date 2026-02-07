@@ -36,4 +36,9 @@ public final class AuthMessages {
     public static final String MESSAGE_EXPIRED_REFRESH_TOKEN = "Refresh Token đã hết hạn hoặc không hợp lệ.";
     public static final String MESSAGE_REFRESH_TOKEN_SUCCESS = "Làm mới token thành công.";
     public static final String MESSAGE_USER_IS_DISABLED = "User is disabled";
+
+    // Change password messages
+    public static final String MESSAGE_CHANGE_PASSWORD_SUCCESS = "Đổi mật khẩu thành công.";
+    public static final String MESSAGE_OLD_PASSWORD_INCORRECT = "Mật khẩu cũ không chính xác.";
+    public static final String MESSAGE_NEW_PASSWORD_SAME_AS_OLD = "Mật khẩu mới không được trùng với mật khẩu cũ.";
 }

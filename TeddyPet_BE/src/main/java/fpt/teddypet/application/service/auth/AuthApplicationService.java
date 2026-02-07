@@ -32,7 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
+
+import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
 
 @Slf4j
 @Service
@@ -448,5 +451,37 @@ public class AuthApplicationService implements AuthService {
         }
 
         log.info(AuthLogMessages.LOG_AUTH_LOGOUT_SUCCESS);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        User user = getCurrentUser();
+        log.info("Changing password for user: {}", user.getUsername());
+
+        // 1. Verify old password
+        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OLD_PASSWORD_INCORRECT);
+        }
+
+        // 2. Verify new password not same as old
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_NEW_PASSWORD_SAME_AS_OLD);
+        }
+
+        // 3. Verify OTP
+        Optional<String> storedOtp = verificationTokenPort.getGuestOtp(user.getEmail());
+        if (storedOtp.isEmpty() || !storedOtp.get().equals(request.otpCode())) {
+            throw new IllegalArgumentException("Mã xác thực không chính xác hoặc đã hết hạn.");
+        }
+
+        // 4. Update password
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userService.save(user);
+
+        // 5. Clear OTP and Cooldown
+        verificationTokenPort.deleteGuestOtp(user.getEmail());
+
+        log.info("Password changed successfully for user: {}", user.getUsername());
     }
 }

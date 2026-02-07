@@ -54,3 +54,15 @@ export const searchOrders = async (params: {
     const response = await apiApp.get<ApiResponse<PageResponse<OrderResponse>>>(`${BASE_PATH}/search`, { params, signal });
     return response.data;
 };
+
+// Admin cancel order (PENDING or CONFIRMED status only)
+export const cancelOrderByAdmin = async (id: string, reason: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/admin-cancel`, { reason });
+    return response.data;
+};
+
+// Return order (DELIVERING or DELIVERED status - customer boom/return)
+export const returnOrder = async (id: string, reason: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/return`, { reason });
+    return response.data;
+};

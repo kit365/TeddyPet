@@ -1,5 +1,6 @@
 package fpt.teddypet.application.port.input;
 
+import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
@@ -52,4 +53,9 @@ public interface AuthService {
      * Logout user by blacklisting the current token
      */
     void logout(String token);
+
+    /**
+     * Change password for current authenticated user
+     */
+    void changePassword(ChangePasswordRequest request);
 }

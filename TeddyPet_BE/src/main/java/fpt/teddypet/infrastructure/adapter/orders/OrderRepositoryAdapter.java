@@ -88,4 +88,9 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     public List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime) {
         return orderRepository.findByStatusAndDeliveringAtBefore(status, dateTime);
     }
+
+    @Override
+    public List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime) {
+        return orderRepository.findByStatusAndDeliveredAtBefore(status, dateTime);
+    }
 }

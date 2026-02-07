@@ -18,19 +18,19 @@ export const DashboardLayout = ({ pageTitle, breadcrumbs, children }: DashboardL
                 className="bg-top !mb-0 shadow-sm"
             />
 
-            <div className="mb-[100px] w-[1600px] mx-auto flex gap-8 items-start relative z-10 px-4">
-                <div className="w-[25%] px-[12px] mt-[-80px]">
+            <div className="mb-[100px] max-w-[1440px] w-full mx-auto flex gap-8 items-start relative z-10 px-8 mt-[-100px]">
+                <div className="w-[25%]">
                     <Sidebar />
                 </div>
-                <div className="w-[75%] px-[12px]">
-                    <div className="bg-white min-h-[600px] rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white p-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="w-[75%]">
+                    <div className="bg-white min-h-[450px] rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white p-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {children}
                     </div>
                 </div>
             </div>
 
             {/* FOOTER MINI */}
-            <div className="w-[1600px] mx-auto px-[12px] mt-12 flex justify-between items-center text-[1rem] font-black text-slate-300 uppercase tracking-widest">
+            <div className="max-w-[1440px] w-full mx-auto px-8 mt-12 flex justify-between items-center text-[1rem] font-black text-slate-300 uppercase tracking-widest pb-10">
                 <p>© 2026 TeddyPet - Chăm sóc bằng cả trái tim</p>
                 <div className="flex gap-8">
                     <a href="#" className="hover:text-indigo-600 transition-colors">Điều khoản</a>

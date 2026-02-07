@@ -57,4 +57,13 @@ public interface OrderService {
 
     // Customer confirm receipt
     void confirmReceived(UUID orderId);
+
+    // Cancel order by customer (only PENDING status allowed)
+    void cancelOrderByCustomer(UUID orderId, String reason);
+
+    // Cancel order by admin (PENDING or CONFIRMED status allowed)
+    void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername);
+
+    // Return order (for DELIVERING or DELIVERED status - customer boom or return)
+    void returnOrder(UUID orderId, String reason, String adminUsername);
 }

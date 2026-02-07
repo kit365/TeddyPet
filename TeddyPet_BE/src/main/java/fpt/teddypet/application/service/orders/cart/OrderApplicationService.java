@@ -147,6 +147,10 @@ public class OrderApplicationService implements OrderService {
                 response.orderItems(),
                 response.payments(),
                 distance,
+                response.cancelReason(),
+                response.cancelledAt(),
+                response.cancelledBy(),
+                response.deliveredAt(),
                 response.createdAt(),
                 response.updatedAt());
     }
@@ -336,8 +340,28 @@ public class OrderApplicationService implements OrderService {
             order.setDeliveringAt(java.time.LocalDateTime.now());
         }
 
-        // Return stock if moving to CANCELLED
-        if (status == OrderStatusEnum.CANCELLED && oldStatus != OrderStatusEnum.CANCELLED) {
+        // Update delivered time if moving to DELIVERED
+        if (status == OrderStatusEnum.DELIVERED && oldStatus != OrderStatusEnum.DELIVERED) {
+            order.setDeliveredAt(java.time.LocalDateTime.now());
+
+            // Auto-complete payment for COD orders when delivered
+            // (Customer has paid cash to the shipper)
+            if (order.getPayments() != null && !order.getPayments().isEmpty()) {
+                for (Payment payment : order.getPayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethodEnum.CASH
+                            && payment.getStatus() == PaymentStatusEnum.PENDING) {
+                        payment.setStatus(PaymentStatusEnum.COMPLETED);
+                        payment.setCompletedAt(java.time.Instant.now());
+                        payment.setNotes("Đã thu tiền mặt khi giao hàng thành công (COD)");
+                        log.info("Auto-completed COD payment for order: {}", orderId);
+                    }
+                }
+            }
+        }
+
+        // Return stock if moving to CANCELLED or RETURNED
+        if ((status == OrderStatusEnum.CANCELLED && oldStatus != OrderStatusEnum.CANCELLED) ||
+                (status == OrderStatusEnum.RETURNED && oldStatus != OrderStatusEnum.RETURNED)) {
             returnOrderStock(order);
         }
 
@@ -768,6 +792,175 @@ public class OrderApplicationService implements OrderService {
         } catch (Exception e) {
             log.error("Failed to send order status email", e);
             // Don't throw exception to avoid rolling back transaction
+        }
+    }
+
+    // ========== CANCEL & RETURN ORDER METHODS ==========
+
+    @Override
+    @Transactional
+    public void cancelOrderByCustomer(UUID orderId, String reason) {
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        validateOwnership(orderId, currentUserId);
+
+        Order order = getById(orderId);
+
+        // Khách chỉ được hủy khi đơn đang ở trạng thái PENDING
+        if (order.getStatus() != OrderStatusEnum.PENDING) {
+            throw new IllegalStateException("Bạn chỉ có thể hủy đơn khi đơn hàng đang chờ xác nhận.");
+        }
+
+        // Cập nhật thông tin hủy
+        order.setStatus(OrderStatusEnum.CANCELLED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(order.getUser() != null ? order.getUser().getUsername() : "Khách hàng");
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes("Khách hàng hủy đơn: Vô hiệu hóa thanh toán");
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes("Khách hàng hủy đơn: Chờ hoàn tiền");
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Customer cancelled order: {} with reason: {}", orderId, reason);
+
+        // Gửi email thông báo
+        sendOrderStatusEmail(order, OrderStatusEnum.CANCELLED);
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername) {
+        Order order = getById(orderId);
+
+        // Admin chỉ được hủy khi đơn ở trạng thái PENDING, CONFIRMED hoặc PROCESSING
+        if (order.getStatus() != OrderStatusEnum.PENDING
+                && order.getStatus() != OrderStatusEnum.CONFIRMED
+                && order.getStatus() != OrderStatusEnum.PROCESSING) {
+            throw new IllegalStateException(
+                    "Chỉ có thể hủy đơn khi đơn hàng đang chờ xác nhận, đã xác nhận hoặc đang đóng gói.");
+        }
+
+        // Không thể hủy đơn đã hủy
+        if (order.getStatus() == OrderStatusEnum.CANCELLED || order.getStatus() == OrderStatusEnum.RETURNED) {
+            throw new IllegalStateException("Đơn hàng đã được hủy hoặc hoàn trả trước đó.");
+        }
+
+        // Cập nhật thông tin hủy
+        order.setStatus(OrderStatusEnum.CANCELLED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(adminUsername);
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes("Admin hủy đơn: Vô hiệu hóa thanh toán");
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes("Admin hủy đơn: Chờ hoàn tiền");
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Admin {} cancelled order: {} with reason: {}", adminUsername, orderId, reason);
+
+        // Gửi email thông báo
+        sendOrderStatusEmail(order, OrderStatusEnum.CANCELLED);
+    }
+
+    @Override
+    @Transactional
+    public void returnOrder(UUID orderId, String reason, String adminUsername) {
+        Order order = getById(orderId);
+
+        // Chỉ có thể hoàn trả khi đơn ở trạng thái DELIVERING hoặc DELIVERED (khách
+        // boom hoặc trả hàng)
+        if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.DELIVERED) {
+            throw new IllegalStateException("Chỉ có thể hoàn trả đơn khi đơn hàng đang giao hoặc đã giao.");
+        }
+
+        // Cập nhật thông tin hoàn trả
+        order.setStatus(OrderStatusEnum.RETURNED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(adminUsername);
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes("Hoàn đơn (Return): Vô hiệu hóa thanh toán");
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes("Hoàn đơn (Return): Chờ hoàn tiền");
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Admin {} returned order: {} with reason: {}", adminUsername, orderId, reason);
+
+        // Gửi email thông báo
+        sendReturnOrderEmail(order);
+    }
+
+    private void sendReturnOrderEmail(Order order) {
+        try {
+            String email = order.getGuestEmail();
+            if (email == null && order.getUser() != null) {
+                email = order.getUser().getEmail();
+            }
+
+            if (email == null) {
+                log.warn("Cannot send email: No email found for order {}", order.getId());
+                return;
+            }
+
+            String orderLink = FRONTEND_URL + "/tracking?code=" + order.getOrderCode();
+            if (order.getUser() != null) {
+                orderLink = FRONTEND_URL + "/account/orders/" + order.getId();
+            }
+
+            String subject = String.format(EmailTemplates.SUBJECT_ORDER_STATUS_UPDATE, APP_NAME, order.getOrderCode());
+            String body = String.format(EmailTemplates.BODY_ORDER_STATUS_UPDATE,
+                    APP_NAME,
+                    order.getOrderCode(),
+                    order.getShippingName(),
+                    order.getOrderCode(),
+                    "ĐÃ HOÀN TRẢ",
+                    "Đơn hàng đã được hoàn trả. Lý do: " + order.getCancelReason()
+                            + ". Vui lòng liên hệ CSKH nếu có thắc mắc.",
+                    orderLink,
+                    APP_NAME,
+                    APP_NAME);
+
+            emailServicePort.sendHtmlEmail(email, subject, body);
+            log.info("Sent return order email to {}", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send return order email", e);
         }
     }
 

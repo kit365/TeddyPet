@@ -12,25 +12,30 @@ import java.util.List;
 import java.util.UUID;
 
 public record OrderResponse(
-        UUID id,
-        String orderCode,
-        UserOrderInfoResponse user, // null nếu guest checkout
-        Long userAddressId, // ID của địa chỉ đã lưu (null nếu nhập thủ công hoặc guest)
-        String guestEmail, // Email của guest (null nếu user đăng nhập)
-        BigDecimal subtotal,
-        BigDecimal shippingFee,
-        BigDecimal discountAmount,
-        String voucherCode,
-        BigDecimal finalAmount,
-        OrderTypeEnum orderType,
-        OrderStatusEnum status,
-        String shippingAddress,
-        String shippingPhone,
-        String shippingName,
-        String notes,
-        List<OrderItemResponse> orderItems,
-        List<PaymentOrderResponse> payments,
-        Double distanceKm,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+                UUID id,
+                String orderCode,
+                UserOrderInfoResponse user, // null nếu guest checkout
+                Long userAddressId, // ID của địa chỉ đã lưu (null nếu nhập thủ công hoặc guest)
+                String guestEmail, // Email của guest (null nếu user đăng nhập)
+                BigDecimal subtotal,
+                BigDecimal shippingFee,
+                BigDecimal discountAmount,
+                String voucherCode,
+                BigDecimal finalAmount,
+                OrderTypeEnum orderType,
+                OrderStatusEnum status,
+                String shippingAddress,
+                String shippingPhone,
+                String shippingName,
+                String notes,
+                List<OrderItemResponse> orderItems,
+                List<PaymentOrderResponse> payments,
+                Double distanceKm,
+                // Cancellation/Return info
+                String cancelReason,
+                LocalDateTime cancelledAt,
+                String cancelledBy,
+                LocalDateTime deliveredAt,
+                LocalDateTime createdAt,
+                LocalDateTime updatedAt) {
 }

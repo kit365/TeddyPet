@@ -196,6 +196,12 @@ export const AddressEditPage = () => {
             return;
         }
 
+        const phoneRegex = /(03|05|07|08|09)+([0-9]{8})\b/;
+        if (!phoneRegex.test(phone)) {
+            toast.error("Số điện thoại không hợp lệ");
+            return;
+        }
+
         try {
             setSubmitting(true);
             await updateAddress(Number(id), {

@@ -40,8 +40,8 @@ export const lookupGuestOrder = async (orderCode: string, email: string) => {
     return response.data;
 };
 
-export const cancelOrder = async (id: string) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`);
+export const cancelOrder = async (id: string, reason: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`, { reason });
     return response.data;
 };
 

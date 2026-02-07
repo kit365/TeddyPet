@@ -77,6 +77,38 @@ public class OtpApplicationService implements OtpService {
         }
     }
 
+    @Override
+    public long sendMemberOtp(String email) {
+        log.info("Requesting OTP for member email: {}", email);
+
+        // 1. Check Cooldown
+        long remaining = verificationTokenPort.getResendCooldownSeconds(email);
+        if (remaining > 0) {
+            throw new IllegalArgumentException("Vui lòng đợi " + remaining + " giây trước khi gửi lại mã.");
+        }
+
+        // 2. Generate OTP
+        String otp = generateOtp();
+
+        // 3. Save to Redis
+        verificationTokenPort.saveGuestOtp(email, otp); // Re-use guest storage since it's email-based
+
+        // 4. Save Cooldown
+        verificationTokenPort.saveResendCooldown(email);
+
+        // 5. Send Email
+        String appName = "TeddyPet";
+        String subject = String.format("[%s] Mã xác thực bảo mật tài khoản", appName);
+        String body = String.format(EmailTemplates.BODY_GUEST_OTP, appName, otp, appName); // Re-use guest template for
+                                                                                           // now or refine later
+
+        emailServicePort.sendHtmlEmail(email, subject, body);
+
+        log.info("Security OTP sent successfully to member {}", email);
+
+        return verificationTokenPort.getResendCooldownSeconds(email);
+    }
+
     private String generateOtp() {
         SecureRandom random = new SecureRandom();
         int otp = 100000 + random.nextInt(900000);

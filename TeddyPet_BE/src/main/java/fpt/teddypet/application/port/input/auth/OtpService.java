@@ -24,4 +24,9 @@ public interface OtpService {
      * @param otp   otp code
      */
     void validateGuestOtp(String email, String otp);
+
+    /**
+     * Send OTP to authenticated member email.
+     */
+    long sendMemberOtp(String email);
 }

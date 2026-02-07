@@ -32,10 +32,11 @@ import IconButton from '@mui/material/IconButton';
 import { toast } from "react-toastify";
 
 import { prefixAdmin } from "../../constants/routes";
-import { getOrderById, updateShippingFee, updateOrderStatus } from "../../api/order.api";
+import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder } from "../../api/order.api";
 import { getShippingFeeSuggestion } from "../../api/shipping.api";
 import { OrderResponse } from "../../../types/order.type";
 import { COLORS } from "../product/configs/constants";
+import { getOrderStatus } from "../../../constants/status";
 
 
 export const OrderDetailPage = () => {
@@ -56,6 +57,11 @@ export const OrderDetailPage = () => {
     const [breakdown, setBreakdown] = useState<any>(null);
     const [suggestionStatus, setSuggestionStatus] = useState<string>('');
     const [fetchingSuggestion, setFetchingSuggestion] = useState(false);
+
+    // Cancel/Return Order Dialog State
+    const [openCancelDialog, setOpenCancelDialog] = useState(false);
+    const [openReturnDialog, setOpenReturnDialog] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
 
     useEffect(() => {
         if (id) {
@@ -147,6 +153,51 @@ export const OrderDetailPage = () => {
         }
     };
 
+    const handleCancelOrder = async () => {
+        if (!id || !cancelReason.trim() || cancelReason.length < 5) {
+            toast.error("Vui lòng nhập lý do hủy đơn (ít nhất 5 ký tự)");
+            return;
+        }
+        setUpdating(true);
+        try {
+            const response = await cancelOrderByAdmin(id, cancelReason.trim());
+            if (response.success) {
+                toast.success("Hủy đơn hàng thành công");
+                setOpenCancelDialog(false);
+                setCancelReason('');
+                fetchOrder(id);
+            } else {
+                toast.error(response.message || "Hủy đơn thất bại");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi khi hủy đơn hàng");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleReturnOrder = async () => {
+        if (!id || !cancelReason.trim() || cancelReason.length < 5) {
+            toast.error("Vui lòng nhập lý do hoàn trả (ít nhất 5 ký tự)");
+            return;
+        }
+        setUpdating(true);
+        try {
+            const response = await returnOrder(id, cancelReason.trim());
+            if (response.success) {
+                toast.success("Đánh dấu hoàn trả đơn hàng thành công");
+                setOpenReturnDialog(false);
+                setCancelReason('');
+                fetchOrder(id);
+            } else {
+                toast.error(response.message || "Hoàn trả đơn thất bại");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi khi hoàn trả đơn hàng");
+        } finally {
+            setUpdating(false);
+        }
+    };
 
 
     const handleUpdateShippingFee = async () => {
@@ -182,29 +233,12 @@ export const OrderDetailPage = () => {
     };
 
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'PENDING': return 'Chờ xác nhận';
-            case 'CONFIRMED': return 'Đã xác nhận';
-            case 'PROCESSING': return 'Đang đóng gói';
-            case 'DELIVERING': return 'Đang giao hàng';
-            case 'DELIVERED': return 'Đã giao hàng';
-            case 'COMPLETED': return 'Hoàn thành';
-            case 'CANCELLED': return 'Đã hủy';
-            default: return status;
-        }
+        return getOrderStatus(status).label;
     };
 
     const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'PENDING': return { bg: '#FFF7CD', color: '#B76E00' };
-            case 'CONFIRMED': return { bg: '#D0F2FE', color: '#04297A' };
-            case 'PROCESSING': return { bg: '#E9FCD4', color: '#229A16' };
-            case 'DELIVERING': return { bg: '#D6E4FF', color: '#091A7A' };
-            case 'DELIVERED':
-            case 'COMPLETED': return { bg: '#E9FCD4', color: '#229A16' };
-            case 'CANCELLED': return { bg: '#FFE7D9', color: '#B7211F' };
-            default: return { bg: '#F4F6F8', color: '#919EAB' };
-        }
+        const { color, bgColor } = getOrderStatus(status);
+        return { bg: bgColor, color: color };
     };
 
     if (loading) {
@@ -391,6 +425,41 @@ export const OrderDetailPage = () => {
                                     <Box>
                                         <Typography sx={{ color: '#FF5630', fontWeight: 900, fontSize: '1.2rem' }}>GHI CHÚ:</Typography>
                                         <Typography sx={{ color: '#B71D18', fontSize: '1.4rem', fontWeight: 600 }}>"{order.notes}"</Typography>
+                                    </Box>
+                                </Box>
+                            )}
+                            {/* Hiển thị lý do hủy/hoàn trả nếu có */}
+                            {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
+                                <Box sx={{
+                                    mt: 3,
+                                    p: 2.5,
+                                    borderRadius: '16px',
+                                    bgcolor: order.status === 'CANCELLED' ? '#FFF5F5' : '#FFF4E5',
+                                    border: `1px dashed ${order.status === 'CANCELLED' ? '#FF5630' : '#FFAB00'}`,
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: 2
+                                }}>
+                                    <Box sx={{ p: 1, borderRadius: '50%', bgcolor: order.status === 'CANCELLED' ? 'rgba(255, 86, 48, 0.1)' : 'rgba(255, 171, 0, 0.1)', color: order.status === 'CANCELLED' ? '#FF5630' : '#FFAB00' }}>
+                                        {order.status === 'CANCELLED' ? '❌' : '↩️'}
+                                    </Box>
+                                    <Box sx={{ flex: 1 }}>
+                                        <Typography sx={{ color: order.status === 'CANCELLED' ? '#FF5630' : '#B76E00', fontWeight: 900, fontSize: '1.2rem', textTransform: 'uppercase' }}>
+                                            LÝ DO {order.status === 'CANCELLED' ? 'HỦY ĐƠN' : 'HOÀN TRẢ'}:
+                                        </Typography>
+                                        <Typography sx={{ color: '#1C252E', fontSize: '1.4rem', fontWeight: 600, mt: 0.5 }}>
+                                            "{order.cancelReason}"
+                                        </Typography>
+                                        {order.cancelledBy && (
+                                            <Typography sx={{ color: '#919EAB', fontSize: '1.2rem', fontWeight: 600, mt: 1 }}>
+                                                Thực hiện bởi: <Box component="span" sx={{ fontWeight: 800 }}>{order.cancelledBy}</Box>
+                                            </Typography>
+                                        )}
+                                        {order.cancelledAt && (
+                                            <Typography sx={{ color: '#919EAB', fontSize: '1.2rem', fontWeight: 600 }}>
+                                                Lúc: {new Date(order.cancelledAt).toLocaleString('vi-VN')}
+                                            </Typography>
+                                        )}
                                     </Box>
                                 </Box>
                             )}
@@ -689,13 +758,13 @@ export const OrderDetailPage = () => {
                                             {updating ? 'Đang xử lý...' : getNextAction(order.status)?.label}
                                         </Button>
                                     )}
-
-                                    {!['DELIVERED', 'COMPLETED'].includes(order.status) && (
+                                    {/* Nút hủy đơn cho PENDING và CONFIRMED */}
+                                    {['PENDING', 'CONFIRMED'].includes(order.status) && (
                                         <Button
                                             fullWidth
                                             variant="outlined"
                                             color="error"
-                                            onClick={() => handleUpdateStatus('CANCELLED')}
+                                            onClick={() => setOpenCancelDialog(true)}
                                             disabled={updating}
                                             sx={{
                                                 py: 1.5,
@@ -708,6 +777,28 @@ export const OrderDetailPage = () => {
                                             }}
                                         >
                                             Hủy đơn hàng
+                                        </Button>
+                                    )}
+
+                                    {/* Nút hoàn trả cho DELIVERING và DELIVERED */}
+                                    {['DELIVERING', 'DELIVERED'].includes(order.status) && (
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            color="warning"
+                                            onClick={() => setOpenReturnDialog(true)}
+                                            disabled={updating}
+                                            sx={{
+                                                py: 1.5,
+                                                borderRadius: '20px',
+                                                fontSize: '1.4rem',
+                                                fontWeight: 800,
+                                                textTransform: 'none',
+                                                borderWidth: '2px',
+                                                '&:hover': { borderWidth: '2px' }
+                                            }}
+                                        >
+                                            Đánh dấu Hoàn trả (Khách boom)
                                         </Button>
                                     )}
 
@@ -891,6 +982,134 @@ export const OrderDetailPage = () => {
                         }}
                     >
                         XÁC NHẬN & GỬI MAIL
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Cancel Order Dialog */}
+            <Dialog
+                open={openCancelDialog}
+                onClose={() => { setOpenCancelDialog(false); setCancelReason(''); }}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 500, width: '100%' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FF5630', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <CloseIcon sx={{ fontSize: '1.6rem' }} />
+                        </Box>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>Hủy đơn hàng</Typography>
+                    </Stack>
+                    <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent sx={{ px: 4, py: 2 }}>
+                    <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
+                        Vui lòng nhập lý do hủy đơn hàng này. Thông tin sẽ được lưu lại và thông báo cho khách hàng.
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Lý do hủy đơn"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="VD: Khách hàng yêu cầu hủy, Sản phẩm hết hàng..."
+                        sx={{
+                            '& .MuiOutlinedInput-root': { borderRadius: '16px' },
+                            '& label': { fontWeight: 700 }
+                        }}
+                    />
+                    <Typography sx={{ mt: 1, fontSize: '1.2rem', color: '#919EAB', textAlign: 'right' }}>{cancelReason.length}/500</Typography>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setOpenCancelDialog(false); setCancelReason(''); }}
+                        sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleCancelOrder}
+                        disabled={updating || cancelReason.length < 5}
+                        sx={{
+                            py: 1.5, borderRadius: '12px', fontWeight: 800,
+                            bgcolor: '#FF5630', boxShadow: '0 8px 16px rgba(255, 86, 48, 0.24)',
+                            '&:hover': { bgcolor: '#B7211F' },
+                            '&:disabled': { bgcolor: '#E5E8EB' }
+                        }}
+                    >
+                        {updating ? 'Đang xử lý...' : 'Xác nhận hủy đơn'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Return Order Dialog */}
+            <Dialog
+                open={openReturnDialog}
+                onClose={() => { setOpenReturnDialog(false); setCancelReason(''); }}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 500, width: '100%' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <LocalShippingIcon sx={{ fontSize: '1.6rem' }} />
+                        </Box>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>Hoàn trả đơn hàng</Typography>
+                    </Stack>
+                    <IconButton onClick={() => { setOpenReturnDialog(false); setCancelReason(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent sx={{ px: 4, py: 2 }}>
+                    <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
+                        Đánh dấu đơn hàng này là hoàn trả (khách boom, không nhận hàng, trả lại...). Số lượng tồn kho sẽ được hoàn lại.
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Lý do hoàn trả"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="VD: Khách boom đơn, Không liên lạc được, Từ chối nhận hàng..."
+                        sx={{
+                            '& .MuiOutlinedInput-root': { borderRadius: '16px' },
+                            '& label': { fontWeight: 700 }
+                        }}
+                    />
+                    <Typography sx={{ mt: 1, fontSize: '1.2rem', color: '#919EAB', textAlign: 'right' }}>{cancelReason.length}/500</Typography>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setOpenReturnDialog(false); setCancelReason(''); }}
+                        sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleReturnOrder}
+                        disabled={updating || cancelReason.length < 5}
+                        sx={{
+                            py: 1.5, borderRadius: '12px', fontWeight: 800,
+                            bgcolor: '#FFAB00', boxShadow: '0 8px 16px rgba(255, 171, 0, 0.24)',
+                            '&:hover': { bgcolor: '#B76E00' },
+                            '&:disabled': { bgcolor: '#E5E8EB' }
+                        }}
+                    >
+                        {updating ? 'Đang xử lý...' : 'Xác nhận hoàn trả'}
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -20,31 +20,33 @@ public class OrderScheduler {
     private final OrderRepositoryPort orderRepositoryPort;
 
     /**
-     * Tự động hoàn thành đơn hàng nếu đã giao quá 3 ngày mà khách không bấm nhận
-     * Chạy mỗi giờ một lần
+     * Tự động hoàn thành đơn hàng nếu đã giao thành công quá 3 ngày mà khách không
+     * bấm nhận
+     * Chạy mỗi ngày lúc 00:00 để tiết kiệm tài nguyên
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
-    public void autoConfirmOrders() {
-        log.info("Starting auto-confirm orders task...");
+    public void autoCompleteDeliveredOrders() {
+        log.info("Starting auto-complete delivered orders task...");
 
         LocalDateTime threshold = LocalDateTime.now().minusDays(3);
 
-        List<Order> deliveringOrders = orderRepositoryPort.findByStatusAndDeliveringAtBefore(
-                OrderStatusEnum.DELIVERING, threshold);
+        // Tìm các đơn đã giao thành công (DELIVERED) quá 3 ngày
+        List<Order> deliveredOrders = orderRepositoryPort.findByStatusAndDeliveredAtBefore(
+                OrderStatusEnum.DELIVERED, threshold);
 
-        log.info("Found {} orders to auto-confirm", deliveringOrders.size());
+        log.info("Found {} orders to auto-complete", deliveredOrders.size());
 
-        for (Order order : deliveringOrders) {
+        for (Order order : deliveredOrders) {
             try {
-                order.setStatus(OrderStatusEnum.DELIVERED);
+                order.setStatus(OrderStatusEnum.COMPLETED);
                 orderRepositoryPort.save(order);
-                log.info("Auto-confirmed order: #{}", order.getOrderCode());
+                log.info("Auto-completed order: #{}", order.getOrderCode());
             } catch (Exception e) {
-                log.error("Failed to auto-confirm order #{}", order.getOrderCode(), e);
+                log.error("Failed to auto-complete order #{}", order.getOrderCode(), e);
             }
         }
 
-        log.info("Finished auto-confirm orders task");
+        log.info("Finished auto-complete delivered orders task");
     }
 }

@@ -97,4 +97,15 @@ public final class SecurityUtil {
             return null;
         }
     }
+
+    /**
+     * Get the username of the currently authenticated user
+     * 
+     * @return Username
+     * @throws IllegalStateException if user is not authenticated
+     */
+    public static String getCurrentUsername() {
+        User user = getCurrentUserEntity();
+        return user.getUsername();
+    }
 }
