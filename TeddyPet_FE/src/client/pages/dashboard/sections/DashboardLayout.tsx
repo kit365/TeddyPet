@@ -18,8 +18,8 @@ export const DashboardLayout = ({ pageTitle, breadcrumbs, children }: DashboardL
                 className="bg-top !mb-0 shadow-sm"
             />
 
-            <div className="mb-[100px] max-w-[1440px] w-full mx-auto flex gap-8 items-start relative z-10 px-8 mt-[-100px]">
-                <div className="w-[25%]">
+            <div className="mb-[100px] max-w-[1440px] w-full mx-auto flex gap-8 items-start relative z-10 px-4 mt-8">
+                <div className="w-[25%] mt-[-120px]">
                     <Sidebar />
                 </div>
                 <div className="w-[75%]">
