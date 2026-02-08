@@ -73,8 +73,10 @@ export const getFeedbackTokenDetails = async (token: string): Promise<ApiRespons
     return response.data;
 };
 
-export const getOrderFeedbackDetails = async (orderId: string): Promise<ApiResponse<FeedbackTokenResponse>> => {
-    const response = await apiApp.get(`${BASE_PATH}/order-details/${orderId}`);
+export const getOrderFeedbackDetails = async (orderId: string, email?: string): Promise<ApiResponse<FeedbackTokenResponse>> => {
+    const response = await apiApp.get(`${BASE_PATH}/order-details/${orderId}`, {
+        params: { email }
+    });
     return response.data;
 };
 

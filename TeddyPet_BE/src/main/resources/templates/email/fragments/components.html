@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <!-- CTA Button Fragment -->
+    <!-- Args: text, url -->
+    <div th:fragment="button(text, url)" style="text-align: center; margin: 30px 0;">
+        <a th:href="${url}"
+            style="background: linear-gradient(135deg, #4A90A4 0%, #63A9BD 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(74, 144, 164, 0.3);">
+            <span th:text="${text}">Button Text</span>
+        </a>
+    </div>
+
+    <!-- OTP Code Fragment -->
+    <!-- Args: code -->
+    <div th:fragment="otp(code)" style="text-align: center; margin: 30px 0;">
+        <div
+            style="background: #f1f5f9; border: 2px dashed #4A90A4; display: inline-block; padding: 15px 30px; border-radius: 12px;">
+            <span
+                style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: bold; color: #4A90A4; letter-spacing: 10px;"
+                th:text="${code}">123456</span>
+        </div>
+    </div>
+</body>
+
+</html>

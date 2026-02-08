@@ -1,13 +1,14 @@
 package fpt.teddypet.application.service.otp;
 
-import fpt.teddypet.application.constants.email.EmailTemplates;
-import fpt.teddypet.application.constants.orders.order.OrderMessages;
+import fpt.teddypet.application.constants.auth.AuthLogMessages;
+import fpt.teddypet.application.constants.auth.AuthMessages;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.input.auth.OtpService;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.VerificationTokenPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -22,19 +23,22 @@ public class OtpApplicationService implements OtpService {
     private final VerificationTokenPort verificationTokenPort;
     private final EmailServicePort emailServicePort;
 
+    @Value("${app.name:TeddyPet}")
+    private String appName;
+
     @Override
     public long sendGuestOtp(String email) {
-        log.info("Requesting OTP for guest email: {}", email);
+        log.info(AuthLogMessages.LOG_OTP_SEND_GUEST_START, email);
 
         // 1. Check if email exists as member
         if (userService.existsByEmail(email)) {
-            throw new IllegalArgumentException(OrderMessages.MESSAGE_GUEST_EMAIL_EXISTS);
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_GUEST_EMAIL_EXISTS);
         }
 
         // 2. Check Cooldown
         long remaining = verificationTokenPort.getResendCooldownSeconds(email);
         if (remaining > 0) {
-            throw new IllegalArgumentException("Vui lòng đợi " + remaining + " giây trước khi gửi lại mã.");
+            throw new IllegalArgumentException(String.format(AuthMessages.MESSAGE_WAIT_FOR_OTP, remaining));
         }
 
         // 3. Generate OTP
@@ -47,13 +51,9 @@ public class OtpApplicationService implements OtpService {
         verificationTokenPort.saveResendCooldown(email);
 
         // 6. Send Email
-        String appName = "TeddyPet";
-        String subject = String.format(EmailTemplates.SUBJECT_GUEST_OTP, appName);
-        String body = String.format(EmailTemplates.BODY_GUEST_OTP, appName, otp, appName);
+        emailServicePort.sendGuestOrderOtp(email, otp);
 
-        emailServicePort.sendHtmlEmail(email, subject, body);
-
-        log.info("OTP sent successfully to {}", email);
+        log.info(AuthLogMessages.LOG_OTP_SEND_SUCCESS, email);
 
         return verificationTokenPort.getResendCooldownSeconds(email);
     }
@@ -68,23 +68,23 @@ public class OtpApplicationService implements OtpService {
     @Override
     public void validateGuestOtp(String email, String otp) {
         if (otp == null || otp.isBlank()) {
-            throw new IllegalArgumentException(OrderMessages.MESSAGE_OTP_REQUIRED);
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_REQUIRED);
         }
 
         Optional<String> storedOtp = verificationTokenPort.getGuestOtp(email);
         if (storedOtp.isEmpty() || !storedOtp.get().equals(otp)) {
-            throw new IllegalArgumentException(OrderMessages.MESSAGE_OTP_INVALID);
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_INVALID);
         }
     }
 
     @Override
     public long sendMemberOtp(String email) {
-        log.info("Requesting OTP for member email: {}", email);
+        log.info(AuthLogMessages.LOG_OTP_SEND_MEMBER_START, email);
 
         // 1. Check Cooldown
         long remaining = verificationTokenPort.getResendCooldownSeconds(email);
         if (remaining > 0) {
-            throw new IllegalArgumentException("Vui lòng đợi " + remaining + " giây trước khi gửi lại mã.");
+            throw new IllegalArgumentException(String.format(AuthMessages.MESSAGE_WAIT_FOR_OTP, remaining));
         }
 
         // 2. Generate OTP
@@ -97,14 +97,9 @@ public class OtpApplicationService implements OtpService {
         verificationTokenPort.saveResendCooldown(email);
 
         // 5. Send Email
-        String appName = "TeddyPet";
-        String subject = String.format("[%s] Mã xác thực bảo mật tài khoản", appName);
-        String body = String.format(EmailTemplates.BODY_GUEST_OTP, appName, otp, appName); // Re-use guest template for
-                                                                                           // now or refine later
+        emailServicePort.sendSecurityOtp(email, otp);
 
-        emailServicePort.sendHtmlEmail(email, subject, body);
-
-        log.info("Security OTP sent successfully to member {}", email);
+        log.info(AuthLogMessages.LOG_OTP_SEND_MEMBER_SUCCESS, email);
 
         return verificationTokenPort.getResendCooldownSeconds(email);
     }

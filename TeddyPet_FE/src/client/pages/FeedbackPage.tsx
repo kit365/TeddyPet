@@ -11,6 +11,7 @@ export const FeedbackPage = () => {
     const [searchParams] = useSearchParams();
     const token = searchParams.get("token");
     const orderId = searchParams.get("orderId");
+    const email = searchParams.get("email");
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export const FeedbackPage = () => {
                 if (token) {
                     res = await getFeedbackTokenDetails(token);
                 } else if (orderId) {
-                    res = await getOrderFeedbackDetails(orderId);
+                    res = await getOrderFeedbackDetails(orderId, email || undefined);
                 }
 
                 if (res && res.data) {

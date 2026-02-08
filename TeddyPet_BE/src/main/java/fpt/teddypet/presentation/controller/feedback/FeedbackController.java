@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+import fpt.teddypet.presentation.constants.ApiConstants;
+
 @RestController
-@RequestMapping("/api/feedbacks")
+@RequestMapping(ApiConstants.API_FEEDBACKS)
 @RequiredArgsConstructor
 public class FeedbackController {
 
@@ -50,8 +52,10 @@ public class FeedbackController {
     }
 
     @GetMapping("/order-details/{orderId}")
-    public ResponseEntity<ApiResponse<FeedbackTokenResponse>> getOrderFeedbackDetails(@PathVariable UUID orderId) {
-        return ResponseEntity.ok(ApiResponse.success(feedbackService.getOrderFeedbackDetails(orderId)));
+    public ResponseEntity<ApiResponse<FeedbackTokenResponse>> getOrderFeedbackDetails(
+            @PathVariable UUID orderId,
+            @RequestParam(required = false) String email) {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.getOrderFeedbackDetails(orderId, email)));
     }
 
     @GetMapping("/me")

@@ -26,6 +26,7 @@ export interface CartItem {
     };
     quantity: number;
     stockQuantity?: number;
+    isAvailable?: boolean;
     checked?: boolean;
 }
 

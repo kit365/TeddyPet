@@ -14,6 +14,8 @@ import jakarta.mail.internet.MimeMessage;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 /**
  * Email service implementation using Spring Mail
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmailServiceAdapter implements EmailServicePort {
 
     private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -86,7 +89,12 @@ public class EmailServiceAdapter implements EmailServicePort {
         log.info("[EmailServiceAdapter] Sending password reset email to: {}", to);
 
         String subject = String.format(EmailTemplates.SUBJECT_PASSWORD_RESET, appName);
-        String htmlBody = String.format(EmailTemplates.BODY_PASSWORD_RESET, appName, resetLink, resetLink, appName);
+
+        Context context = new Context();
+        context.setVariable("appName", appName);
+        context.setVariable("resetLink", resetLink);
+
+        String htmlBody = templateEngine.process("email/auth/forgot-password", context);
 
         sendHtmlEmail(to, subject, htmlBody);
         log.info("[EmailServiceAdapter] Password reset email sent successfully to: {}", to);
@@ -98,8 +106,43 @@ public class EmailServiceAdapter implements EmailServicePort {
     public void sendVerificationEmail(String to, String token, String link) {
         log.info("[EmailServiceAdapter] Sending verification email to: {}", to);
         String subject = String.format(EmailTemplates.SUBJECT_ACCOUNT_VERIFICATION, appName);
-        String htmlBody = String.format(EmailTemplates.BODY_ACCOUNT_VERIFICATION, appName, appName, link, link,
-                appName);
+
+        Context context = new Context();
+        context.setVariable("appName", appName);
+        context.setVariable("verifyLink", link);
+
+        String htmlBody = templateEngine.process("email/auth/verify-account", context);
+
+        sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendGuestOrderOtp(String to, String otp) {
+        log.info("[EmailServiceAdapter] Sending guest order OTP to: {}", to);
+        String subject = String.format(EmailTemplates.SUBJECT_GUEST_OTP, appName);
+
+        Context context = new Context();
+        context.setVariable("appName", appName);
+        context.setVariable("otp", otp);
+
+        String htmlBody = templateEngine.process("email/otp/guest-order", context);
+        sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendSecurityOtp(String to, String otp) {
+        log.info("[EmailServiceAdapter] Sending security OTP to: {}", to);
+        String subject = String.format("[%s] Mã xác thực bảo mật tài khoản", appName);
+
+        Context context = new Context();
+        context.setVariable("appName", appName);
+        context.setVariable("otp", otp);
+
+        String htmlBody = templateEngine.process("email/auth/security-otp", context);
         sendHtmlEmail(to, subject, htmlBody);
     }
 }

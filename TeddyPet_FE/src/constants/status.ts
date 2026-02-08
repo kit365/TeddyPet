@@ -56,7 +56,7 @@ export const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string; 
         bgColor: "rgba(255, 171, 0, 0.12)"
     },
     COMPLETED: {
-        label: "Đã trả",
+        label: "Đã thanh toán",
         color: "#00A76F",
         bgColor: "rgba(0, 167, 111, 0.12)"
     },

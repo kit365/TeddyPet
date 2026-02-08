@@ -54,8 +54,10 @@ public interface AuthService {
      */
     void logout(String token);
 
-    /**
-     * Change password for current authenticated user
-     */
     void changePassword(ChangePasswordRequest request);
+
+    /**
+     * Verify if the provided password matches current authenticated user's password
+     */
+    void verifyCurrentPassword(String password);
 }

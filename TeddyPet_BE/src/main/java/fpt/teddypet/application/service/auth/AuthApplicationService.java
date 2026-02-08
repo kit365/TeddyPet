@@ -457,7 +457,7 @@ public class AuthApplicationService implements AuthService {
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
         User user = getCurrentUser();
-        log.info("Changing password for user: {}", user.getUsername());
+        log.info(AuthLogMessages.LOG_AUTH_CHANGE_PASSWORD_START, user.getUsername());
 
         // 1. Verify old password
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
@@ -472,7 +472,7 @@ public class AuthApplicationService implements AuthService {
         // 3. Verify OTP
         Optional<String> storedOtp = verificationTokenPort.getGuestOtp(user.getEmail());
         if (storedOtp.isEmpty() || !storedOtp.get().equals(request.otpCode())) {
-            throw new IllegalArgumentException("Mã xác thực không chính xác hoặc đã hết hạn.");
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_INVALID);
         }
 
         // 4. Update password
@@ -482,6 +482,18 @@ public class AuthApplicationService implements AuthService {
         // 5. Clear OTP and Cooldown
         verificationTokenPort.deleteGuestOtp(user.getEmail());
 
-        log.info("Password changed successfully for user: {}", user.getUsername());
+        log.info(AuthLogMessages.LOG_AUTH_CHANGE_PASSWORD_SUCCESS, user.getUsername());
+    }
+
+    @Override
+    public void verifyCurrentPassword(String password) {
+        User user = getCurrentUser();
+        log.info("[AuthService] Đang xác thực mật khẩu hiện tại cho người dùng: {}", user.getUsername());
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OLD_PASSWORD_INCORRECT);
+        }
+
+        log.info("[AuthService] Xác thực mật khẩu hiện tại thành công cho người dùng: {}", user.getUsername());
     }
 }

@@ -44,6 +44,21 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Mã xác thực đã được gửi đến email của bạn.", cooldown));
     }
 
+    @PostMapping("/change-password/verify-otp")
+    @Operation(summary = "Xác thực mã OTP đổi mật khẩu", description = "Kiểm tra mã OTP nhập vào có khớp với mã đã gửi qua email không.")
+    public ResponseEntity<ApiResponse<String>> verifyChangePasswordOtp(@RequestParam String otpCode) {
+        User currentUser = authService.getCurrentUser();
+        otpService.validateGuestOtp(currentUser.getEmail(), otpCode);
+        return ResponseEntity.ok(ApiResponse.success("Mã xác thực chính xác."));
+    }
+
+    @PostMapping("/change-password/verify-password")
+    @Operation(summary = "Xác thực mật khẩu hiện tại", description = "Kiểm tra mật khẩu nhập vào có đúng với mật khẩu hiện tại của người dùng không.")
+    public ResponseEntity<ApiResponse<String>> verifyOldPassword(@RequestParam String password) {
+        authService.verifyCurrentPassword(password);
+        return ResponseEntity.ok(ApiResponse.success("Mật khẩu chính xác."));
+    }
+
     @PutMapping("/change-password")
     @Operation(summary = "Đổi mật khẩu thành viên", description = "Xác thực mật khẩu cũ và mã OTP để đổi mật khẩu mới.")
     public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {

@@ -13,6 +13,20 @@ export const sendChangePasswordOtp = async (): Promise<{ message: string; data: 
     return response.data;
 };
 
+export const verifyChangePasswordOtp = async (otpCode: string): Promise<{ message: string }> => {
+    const response = await apiApp.post(`${BASE_PATH}/change-password/verify-otp`, null, {
+        params: { otpCode }
+    });
+    return response.data;
+};
+
+export const verifyOldPassword = async (password: string): Promise<{ message: string }> => {
+    const response = await apiApp.post(`${BASE_PATH}/change-password/verify-password`, null, {
+        params: { password }
+    });
+    return response.data;
+};
+
 export const changePassword = async (data: ChangePasswordPayload): Promise<{ message: string }> => {
     const response = await apiApp.put(`${BASE_PATH}/change-password`, data);
     return response.data;

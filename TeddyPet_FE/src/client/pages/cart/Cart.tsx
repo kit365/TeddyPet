@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { useCartStore } from "../../../stores/useCartStore";
@@ -17,6 +17,11 @@ export const CartPage = () => {
     const toggleCheck = useCartStore((state) => state.toggleCheck);
     const toggleAll = useCartStore((state) => state.toggleAll);
     const totalAmountChecked = useCartStore((state) => state.totalAmountChecked());
+    const syncWithBackend = useCartStore((state) => state.syncWithBackend);
+
+    useEffect(() => {
+        syncWithBackend(true);
+    }, [syncWithBackend]);
 
     const [removingItems, setRemovingItems] = useState<string[]>([]);
 
@@ -39,7 +44,7 @@ export const CartPage = () => {
     };
 
     // Calculate totals for selected items only
-    const selectedItemsData = items.filter(item => item.checked);
+    const selectedItemsData = items.filter(item => item.checked && (item.isAvailable !== false));
     const subtotal = totalAmountChecked;
     const total = subtotal;
 
@@ -85,30 +90,43 @@ export const CartPage = () => {
                             <tbody>
                                 {items.map((item) => {
                                     const isRemoving = removingItems.includes(item.id as string);
+                                    const isAvailable = item.isAvailable !== false; // Mặc định là true nếu chưa sync
                                     return (
                                         <tr
                                             key={`${item.id}-${item.option.id}`}
-                                            className={`border-t border-[#d7d7d7] transition-opacity duration-300 ${isRemoving ? "opacity-0" : "opacity-100"
-                                                }`}
+                                            className={`border-t border-[#d7d7d7] transition-all duration-300 ${isRemoving ? "opacity-0" : "opacity-100"} ${!isAvailable ? "bg-gray-50/50" : ""}`}
                                         >
                                             <td className="w-[60px] border-r border-[#d7d7d7] py-[20px] px-[20px] text-center">
                                                 <div className="checkbox checkbox-cart flex items-center justify-center">
                                                     <input
                                                         type="checkbox"
-                                                        checked={item.checked}
+                                                        checked={item.checked && isAvailable}
+                                                        disabled={!isAvailable}
                                                         onChange={() => handleSelectItem(item.id)}
                                                         id={`item-${item.id}`}
                                                         hidden
                                                     />
-                                                    <label htmlFor={`item-${item.id}`} className="cursor-pointer m-0"></label>
+                                                    <label
+                                                        htmlFor={`item-${item.id}`}
+                                                        className={`m-0 ${!isAvailable ? "cursor-not-allowed bg-gray-200 border-gray-300 opacity-50" : "cursor-pointer"}`}
+                                                    ></label>
                                                 </div>
                                             </td>
-                                            <td className="w-[26%] border-r border-[#d7d7d7] py-[20px] px-[30px]">
-                                                <img
-                                                    className="w-[206px] h-[216px] 2xl:w-[170px] 2xl:h-[179px] object-cover rounded-[10px]"
-                                                    src={item.image}
-                                                    alt={item.title}
-                                                />
+                                            <td className="w-[26%] border-r border-[#d7d7d7] py-[20px] px-[30px] relative">
+                                                <div className="relative overflow-hidden rounded-[10px]">
+                                                    <img
+                                                        className={`w-[206px] h-[216px] 2xl:w-[170px] 2xl:h-[179px] object-cover transition-all duration-500 ${!isAvailable ? "grayscale opacity-60 scale-105" : ""}`}
+                                                        src={item.image}
+                                                        alt={item.title}
+                                                    />
+                                                    {!isAvailable && (
+                                                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                                                            <span className="text-white font-black text-[1.4rem] uppercase tracking-widest bg-red-600/90 py-2 px-4 rounded-full shadow-lg border border-red-400 animate-pulse">
+                                                                Tạm hết hàng
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td className="border-r border-[#d7d7d7] py-[30px] px-[20px]">
@@ -124,11 +142,18 @@ export const CartPage = () => {
                                                         {item.option.price.toLocaleString()}đ
                                                     </p>
 
-                                                    <p className="text-client-text mb-[20px] 2xl:mb-[15px]">
-                                                        <span className="font-secondary 2xl:text-[1.4rem] text-client-secondary mr-[5px]">
-                                                            Phân loại:
+                                                    <p className="text-client-text mb-[20px] 2xl:mb-[15px] flex items-center justify-center gap-4">
+                                                        <span className="">
+                                                            <span className="font-secondary 2xl:text-[1.4rem] text-client-secondary mr-[5px]">
+                                                                Phân loại:
+                                                            </span>
+                                                            {item.option.size}
                                                         </span>
-                                                        {item.option.size}
+                                                        {item.stockQuantity !== undefined && (
+                                                            <span className={`text-[1.2rem] px-3 py-1 rounded-full font-bold ${item.stockQuantity > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                                                {item.stockQuantity > 0 ? `Còn ${item.stockQuantity}` : 'Hết hàng'}
+                                                            </span>
+                                                        )}
                                                     </p>
 
                                                     {/* Tăng giảm số lượng */}
