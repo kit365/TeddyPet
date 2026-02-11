@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{email/fragments/head :: head(title='Xác thực tài khoản')}"></head>
+<head th:replace="~{email/fragments/head :: head(title='Xác thực tài khoản')}">
+    <title>Xác thực tài khoản</title>
+</head>
 
 <body>
     <div class="container">
@@ -9,9 +11,9 @@
         <div th:replace="~{email/fragments/header :: header}"></div>
 
         <!-- Content -->
-        <div style="line-height: 1.6;">
-            <div class="text-center mb-30">
-                <h2 style="color: #4A90A4; font-size: 26px; margin-bottom: 10px;">Chào mừng bạn gia nhập gia đình! 🐾
+        <div style="line-height: 1.6; text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #4A90A4; font-size: 28px; margin-bottom: 15px;">Chào mừng bạn gia nhập gia đình! 🐾
                 </h2>
                 <p style="color: #64748b;">Chỉ một bước nữa thôi để bắt đầu hành trình chăm sóc thú cưng tuyệt vời.</p>
             </div>
@@ -21,11 +23,11 @@
                 lòng xác nhận địa chỉ email của bạn bằng cách nhấn vào nút bên dưới:</p>
 
             <!-- CTA Button -->
-            <div
+            <div style="margin: 30px 0;"
                 th:replace="~{email/fragments/components :: button(text='Xác thực tài khoản ngay', url=${verifyLink})}">
             </div>
 
-            <div class="warning-box">
+            <div class="warning-box" style="text-align: left;">
                 <p style="margin: 0;">
                     <strong>Tại sao tôi nhận được email này?</strong><br>
                     Email này được gửi vì có yêu cầu đăng ký tài khoản tại website của chúng tôi. Nếu bạn không thực

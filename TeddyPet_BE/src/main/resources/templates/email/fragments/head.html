@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
@@ -9,48 +9,21 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
             color: #334155;
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
             max-width: 600px;
-            margin: 30px auto;
+            margin: 40px auto;
             background-color: #ffffff;
             padding: 40px;
             border-radius: 16px;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
-        }
-
-        .warning-box {
-            background: #fff9f0;
-            border-left: 4px solid #f59e0b;
-            padding: 20px;
-            margin: 25px 0;
-            border-radius: 4px 12px 12px 4px;
-            font-size: 14px;
-            color: #92400e;
-        }
-
-        .link-box {
-            font-size: 12px;
-            word-break: break-all;
-            background: #f1f5f9;
-            padding: 15px;
-            border-radius: 12px;
-            color: #475569;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            border: 1px solid #e2e8f0;
-        }
-
-        .highlight {
-            color: #4A90A4;
-            font-weight: bold;
-        }
-
-        .text-primary {
-            color: #4A90A4;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .text-center {
@@ -59,6 +32,26 @@
 
         .mb-30 {
             margin-bottom: 30px;
+        }
+
+        .warning-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #7f1d1d;
+        }
+
+        .highlight {
+            color: #4f46e5;
+            font-weight: 700;
+        }
+
+        p {
+            margin-bottom: 15px;
+            line-height: 1.6;
         }
     </style>
 </head>

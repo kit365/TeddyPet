@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{email/fragments/head :: head(title='Xác thực đơn hàng')}"></head>
+<head th:replace="~{email/fragments/head :: head(title='Xác thực đơn hàng')}">
+    <title>Xác thực đơn hàng</title>
+</head>
 
 <body>
     <div class="container">
@@ -9,9 +11,9 @@
         <div th:replace="~{email/fragments/header :: header}"></div>
 
         <!-- Content -->
-        <div style="line-height: 1.6;">
-            <div class="text-center mb-30">
-                <h2 style="color: #4A90A4; font-size: 26px; margin-bottom: 10px;">📦 Xác thực đơn hàng</h2>
+        <div style="line-height: 1.6; text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #4A90A4; font-size: 28px; margin-bottom: 15px;">📦 Xác thực đơn hàng</h2>
                 <p style="color: #64748b;">Bạn đang thực hiện đặt hàng với tư cách khách vãng lai tại <strong
                         class="highlight" th:text="${appName}">TeddyPet</strong>.</p>
             </div>
@@ -22,7 +24,7 @@
             <!-- OTP Code -->
             <div th:replace="~{email/fragments/components :: otp(code=${otp})}"></div>
 
-            <div class="warning-box">
+            <div class="warning-box" style="text-align: left;">
                 <p style="margin: 0;">
                     ⚠️ <strong>Lưu ý:</strong> Mã này sẽ hết hạn sau <strong>5 phút</strong>. Nếu bạn không thực hiện
                     yêu cầu này, vui lòng bỏ qua email để đảm bảo an toàn.

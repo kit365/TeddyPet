@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Email Components</title>
+</head>
 
 <body>
     <!-- CTA Button Fragment -->
     <!-- Args: text, url -->
-    <div th:fragment="button(text, url)" style="text-align: center; margin: 30px 0;">
-        <a th:href="${url}"
-            style="background: linear-gradient(135deg, #4A90A4 0%, #63A9BD 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(74, 144, 164, 0.3);">
-            <span th:text="${text}">Button Text</span>
-        </a>
-    </div>
+    <a th:fragment="button(text, url)" th:href="${url}"
+        style="display: inline-block; padding: 16px 36px; background-color: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">
+        <span th:text="${text}">TIẾP TỤC</span>
+    </a>
 
     <!-- OTP Code Fragment -->
     <!-- Args: code -->
@@ -20,6 +22,92 @@
                 style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: bold; color: #4A90A4; letter-spacing: 10px;"
                 th:text="${code}">123456</span>
         </div>
+    </div>
+
+    <!-- Order Specific Components (Indigo Style) -->
+
+    <!-- Status Badge -->
+    <div th:fragment="statusBadge"
+        style="display: inline-block; padding: 8px 16px; background-color: #ecfdf5; color: #10b981; border-radius: 8px; font-size: 12px; font-weight: 900; text-transform: uppercase; margin-bottom: 15px;"
+        th:text="${'✓ ' + text}">✓ Thành công</div>
+
+    <!-- Section Title -->
+    <div th:fragment="sectionTitle"
+        style="font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; margin: 0 40px 10px;"
+        th:text="${text}">SECTION TITLE</div>
+
+    <table>
+        <!-- Summary Row -->
+        <tr th:fragment="summaryRow">
+            <td
+                th:style="${isTotal ? 'padding-top: 15px; margin-top: 15px; border-top: 1px solid #e2e8f0; font-size: 24px; font-weight: 900; color: #0f172a;' : 'padding: 8px 0; font-size: 14px; color: #64748b; font-weight: 600;'}">
+                <span th:text="${label}">Label</span>
+                <div th:if="${detail}" style="font-size: 11px; color: #94a3b8; font-weight: 500; margin-top: 2px;"
+                    th:text="${detail}">Detail info</div>
+            </td>
+            <td style="text-align: right; padding: 8px 0; font-size: 16px; font-weight: 600; color: #0f172a;"
+                th:style="${isTotal ? 'padding-top: 15px; text-align: right; font-size: 26px; font-weight: 900; color: #4f46e5;' : 'padding: 8px 0; text-align: right; font-size: 16px; font-weight: 600; color: ' + (valueColor ?: '#0f172a')}">
+                <span th:text="${value}">Value</span>
+            </td>
+        </tr>
+
+        <tr>
+            <!-- Delivery Column -->
+            <td th:fragment="deliveryCol" style="width: 50%; vertical-align: top; padding-right: 20px;">
+                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; margin-bottom: 10px;"
+                    th:text="${label}">LABEL</div>
+                <div style="font-size: 15px; font-weight: 700; color: #334155; line-height: 1.5;">
+                    <th:block th:each="line, iter : ${lines}">
+                        <span th:text="${line}">Line</span><br th:if="${!iter.last}" />
+                    </th:block>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Customer Info Grid (Screenshot 3 style) -->
+    <div th:fragment="customerInfoGrid" style="padding: 0 40px 40px;">
+        <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px;">Thông tin khách hàng</div>
+        <table style="width: 100%; border: 0; border-spacing: 0; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; vertical-align: top; padding-bottom: 30px; padding-right: 20px;">
+                    <div
+                        style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+                        Địa chỉ giao hàng</div>
+                    <div style="font-size: 15px; color: #334155; line-height: 1.6;">
+                        <strong th:text="${fullName != null ? fullName : customerName}">Ngô Tuấn Kiệt</strong><br />
+                        <span th:text="${phoneNumber}">0123456789</span><br />
+                        <span th:text="${address}">Địa chỉ đầy đủ</span>
+                    </div>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding-bottom: 30px;">
+                    <div
+                        style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+                        Địa chỉ thanh toán</div>
+                    <div style="font-size: 14px; color: #334155; line-height: 1.6;">
+                        <strong th:text="${customerName}">Ngô Tuấn Kiệt</strong><br />
+                        <span th:text="${customerEmail}">email@example.com</span><br />
+                        <span th:text="${address}">Địa chỉ đầy đủ</span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                    <div
+                        style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+                        Phương thức vận chuyển</div>
+                    <div style="font-size: 15px; color: #334155; font-weight: 600;" th:text="${shippingMethod}">Giao
+                        hàng tận nơi</div>
+                </td>
+                <td style="width: 50%; vertical-align: top;">
+                    <div
+                        style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+                        Phương thức thanh toán</div>
+                    <div style="font-size: 15px; color: #334155; font-weight: 600;" th:text="${paymentMethod}">Thanh
+                        toán khi giao hàng (COD)</div>
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
 

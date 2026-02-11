@@ -1,5 +1,7 @@
 package fpt.teddypet.application.port.output;
 
+import fpt.teddypet.domain.entity.Order;
+
 public interface EmailServicePort {
 
     void sendEmail(String to, String subject, String body);
@@ -43,4 +45,11 @@ public interface EmailServicePort {
      * @param otp the OTP code
      */
     void sendSecurityOtp(String to, String otp);
+
+    /**
+     * Send order confirmation email with full details
+     * 
+     * @param order The order entity
+     */
+    void sendOrderConfirmation(Order order);
 }

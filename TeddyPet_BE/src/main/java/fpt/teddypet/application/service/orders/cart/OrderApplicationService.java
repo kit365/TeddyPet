@@ -25,7 +25,6 @@ import fpt.teddypet.application.port.input.feedback.FeedbackService;
 import fpt.teddypet.domain.entity.promotions.Promotion;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
-import fpt.teddypet.application.constants.email.EmailTemplates;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
@@ -39,7 +38,6 @@ import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +47,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,12 +70,6 @@ public class OrderApplicationService implements OrderService {
     private final PromotionUsageService promotionUsageService;
     private final FeedbackService feedbackService;
 
-    @Value("${app.name:TeddyPet}")
-    private String appName;
-
-    @Value("${app.frontend-url:http://localhost:5173}")
-    private String frontendUrl;
-
     private BigDecimal calculateDiscount(Order order, Promotion promotion) {
         if (promotion == null || !promotion.isValid()) {
             return BigDecimal.ZERO;
@@ -87,9 +80,10 @@ public class OrderApplicationService implements OrderService {
             return BigDecimal.ZERO;
         }
 
-        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal discount;
         if (promotion.getDiscountType() == fpt.teddypet.domain.enums.promotions.DiscountTypeEnum.PERCENTAGE) {
-            discount = order.getSubtotal().multiply(promotion.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            discount = order.getSubtotal().multiply(promotion.getDiscountValue()).divide(BigDecimal.valueOf(100), 2,
+                    RoundingMode.HALF_UP);
             if (promotion.getMaxDiscountAmount() != null && discount.compareTo(promotion.getMaxDiscountAmount()) > 0) {
                 discount = promotion.getMaxDiscountAmount();
             }
@@ -132,8 +126,8 @@ public class OrderApplicationService implements OrderService {
     }
 
     private Double calculateDistanceKm(Order order) {
-        Double destLat = null;
-        Double destLng = null;
+        Double destLat;
+        Double destLng;
 
         if (order.getUserAddress() != null) {
             destLat = order.getUserAddress().getLatitude();
@@ -344,8 +338,10 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
-        // Send email notification
-        sendOrderStatusEmail(savedOrder, status);
+        // Send email notification only if status changed
+        if (oldStatus != status) {
+            sendOrderStatusEmail(savedOrder);
+        }
 
         // Send feedback email if completed
         if (status == OrderStatusEnum.COMPLETED && oldStatus != OrderStatusEnum.COMPLETED) {
@@ -579,6 +575,9 @@ public class OrderApplicationService implements OrderService {
         log.info("Order created successfully: id={}, code={}, isGuest={}",
                 savedOrder.getId(), savedOrder.getOrderCode(), isGuest);
 
+        // Send order confirmation email
+        emailServicePort.sendOrderConfirmation(savedOrder);
+
         return orderMapper.toResponse(savedOrder);
     }
 
@@ -646,6 +645,7 @@ public class OrderApplicationService implements OrderService {
         log.info("Updating manual shipping fee for order: {} with fee: {}", orderId, finalFee);
 
         Order order = getById(orderId);
+        OrderStatusEnum oldStatus = order.getStatus();
 
         // Cập nhật phí ship
         order.setShippingFee(finalFee);
@@ -662,7 +662,7 @@ public class OrderApplicationService implements OrderService {
         // chưa có)
         if (order.getPayments() != null && !order.getPayments().isEmpty()) {
             // Giả sử payment đầu tiên là payment chính
-            Payment mainPayment = order.getPayments().get(0);
+            Payment mainPayment = order.getPayments().getFirst();
             if (mainPayment.getPaymentMethod() == PaymentMethodEnum.CASH
                     && mainPayment.getStatus() == PaymentStatusEnum.PENDING) {
                 mainPayment.setAmount(order.getFinalAmount());
@@ -673,9 +673,9 @@ public class OrderApplicationService implements OrderService {
         log.info(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED + " OrderId: {}",
                 savedOrder.getId());
 
-        // Send email if order is confirmed
-        if (savedOrder.getStatus() == OrderStatusEnum.CONFIRMED) {
-            sendOrderStatusEmail(savedOrder, OrderStatusEnum.CONFIRMED);
+        // Send email if order is confirmed for the first time
+        if (oldStatus == OrderStatusEnum.PENDING && savedOrder.getStatus() == OrderStatusEnum.CONFIRMED) {
+            emailServicePort.sendOrderConfirmation(savedOrder);
         }
     }
 
@@ -693,80 +693,19 @@ public class OrderApplicationService implements OrderService {
         order.setStatus(OrderStatusEnum.COMPLETED);
         orderRepositoryPort.save(order);
 
-        sendOrderStatusEmail(order, OrderStatusEnum.COMPLETED);
+        sendOrderStatusEmail(order);
 
         // Send feedback email
         feedbackService.sendFeedbackEmailsForOrder(orderId);
     }
 
-    private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {
+    private void sendOrderStatusEmail(Order order) {
         try {
-            String email = order.getGuestEmail();
-            if (email == null && order.getUser() != null) {
-                email = order.getUser().getEmail();
-            }
-
-            if (email == null) {
-                log.warn("Cannot send email: No email found for order {}", order.getId());
-                return;
-            }
-
-            String statusText;
-            String message;
-
-            switch (status) {
-                case CONFIRMED -> {
-                    statusText = OrderMessages.STATUS_TEXT_CONFIRMED;
-                    message = OrderMessages.MESSAGE_BODY_CONFIRMED;
-                }
-                case PROCESSING -> {
-                    statusText = OrderMessages.STATUS_TEXT_PROCESSING;
-                    message = OrderMessages.MESSAGE_BODY_PROCESSING;
-                }
-                case DELIVERING -> {
-                    statusText = OrderMessages.STATUS_TEXT_DELIVERING;
-                    message = OrderMessages.MESSAGE_BODY_DELIVERING;
-                }
-                case DELIVERED -> {
-                    statusText = OrderMessages.STATUS_TEXT_DELIVERED;
-                    message = OrderMessages.MESSAGE_BODY_DELIVERED;
-                }
-                case COMPLETED -> {
-                    statusText = OrderMessages.STATUS_TEXT_COMPLETED;
-                    message = OrderMessages.MESSAGE_BODY_COMPLETED;
-                }
-                case CANCELLED -> {
-                    statusText = OrderMessages.STATUS_TEXT_CANCELLED;
-                    message = OrderMessages.MESSAGE_BODY_CANCELLED;
-                }
-                default -> {
-                    return; // Ignore other statuses
-                }
-            }
-
-            String orderLink = frontendUrl + "/tracking?code=" + order.getOrderCode(); // Guest tracking link
-            if (order.getUser() != null) {
-                orderLink = frontendUrl + "/account/orders/" + order.getId();
-            }
-
-            String subject = String.format(EmailTemplates.SUBJECT_ORDER_STATUS_UPDATE, appName, order.getOrderCode());
-            String body = String.format(EmailTemplates.BODY_ORDER_STATUS_UPDATE,
-                    appName,
-                    order.getOrderCode(),
-                    order.getShippingName(),
-                    order.getOrderCode(),
-                    statusText,
-                    message,
-                    orderLink,
-                    appName,
-                    appName);
-
-            emailServicePort.sendHtmlEmail(email, subject, body);
-            log.info("Sent status update email to {}", email);
-
+            // Tất cả trạng thái đơn hàng hiện đã được xử lý tập trung bằng Thymeleaf qua
+            // sendOrderConfirmation
+            emailServicePort.sendOrderConfirmation(order);
         } catch (Exception e) {
-            log.error("Failed to send order status email", e);
-            // Don't throw exception to avoid rolling back transaction
+            log.error("Failed to send order status email for order {}", order.getOrderCode(), e);
         }
     }
 
@@ -811,7 +750,7 @@ public class OrderApplicationService implements OrderService {
         log.info("Customer cancelled order: {} with reason: {}", orderId, reason);
 
         // Gửi email thông báo
-        sendOrderStatusEmail(order, OrderStatusEnum.CANCELLED);
+        sendOrderStatusEmail(order);
     }
 
     @Override
@@ -824,11 +763,6 @@ public class OrderApplicationService implements OrderService {
                 && order.getStatus() != OrderStatusEnum.CONFIRMED
                 && order.getStatus() != OrderStatusEnum.PROCESSING) {
             throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_CANCEL_INVALID_STATUS);
-        }
-
-        // Không thể hủy đơn đã hủy
-        if (order.getStatus() == OrderStatusEnum.CANCELLED || order.getStatus() == OrderStatusEnum.RETURNED) {
-            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_ORDER_ALREADY_CANCELLED);
         }
 
         // Cập nhật thông tin hủy
@@ -857,7 +791,7 @@ public class OrderApplicationService implements OrderService {
         log.info("Admin {} cancelled order: {} with reason: {}", adminUsername, orderId, reason);
 
         // Gửi email thông báo
-        sendOrderStatusEmail(order, OrderStatusEnum.CANCELLED);
+        sendOrderStatusEmail(order);
     }
 
     @Override
@@ -865,7 +799,8 @@ public class OrderApplicationService implements OrderService {
     public void returnOrder(UUID orderId, String reason, String adminUsername) {
         Order order = getById(orderId);
 
-        // Chỉ có thể hoàn trả khi đơn ở trạng thái DELIVERING hoặc DELIVERED (khách boom hoặc trả hàng)
+        // Chỉ có thể hoàn trả khi đơn ở trạng thái DELIVERING hoặc DELIVERED (khách
+        // boom hoặc trả hàng)
         if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.DELIVERED) {
             throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_RETURN_INVALID_STATUS);
         }
@@ -901,38 +836,11 @@ public class OrderApplicationService implements OrderService {
 
     private void sendReturnOrderEmail(Order order) {
         try {
-            String email = order.getGuestEmail();
-            if (email == null && order.getUser() != null) {
-                email = order.getUser().getEmail();
-            }
-
-            if (email == null) {
-                log.warn("Cannot send email: No email found for order {}", order.getId());
-                return;
-            }
-
-            String orderLink = frontendUrl + "/tracking?code=" + order.getOrderCode();
-            if (order.getUser() != null) {
-                orderLink = frontendUrl + "/account/orders/" + order.getId();
-            }
-
-            String subject = String.format(EmailTemplates.SUBJECT_ORDER_STATUS_UPDATE, appName, order.getOrderCode());
-            String body = String.format(EmailTemplates.BODY_ORDER_STATUS_UPDATE,
-                    appName,
-                    order.getOrderCode(),
-                    order.getShippingName(),
-                    order.getOrderCode(),
-                    OrderMessages.STATUS_TEXT_RETURNED,
-                    String.format(OrderMessages.MESSAGE_BODY_RETURNED_EMAIL, order.getCancelReason()),
-                    orderLink,
-                    appName,
-                    appName);
-
-            emailServicePort.sendHtmlEmail(email, subject, body);
-            log.info("Sent return order email to {}", email);
-
+            // Tất cả trạng thái đơn hàng (bao gồm RETURNED) hiện đã được xử lý tập trung
+            // bằng Thymeleaf
+            emailServicePort.sendOrderConfirmation(order);
         } catch (Exception e) {
-            log.error("Failed to send return order email", e);
+            log.error("Failed to send return order email for order {}", order.getOrderCode(), e);
         }
     }
 
