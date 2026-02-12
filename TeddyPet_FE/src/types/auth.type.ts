@@ -80,8 +80,8 @@ export interface AuthState {
     login: (user: AuthUser, token: string, refreshToken?: string) => void;
     logout: () => void;
     set: (newState: Partial<AuthState>) => void;
+}export interface ChangePasswordPayload {
+    oldPassword: string;
+    newPassword: string;
+    otpCode: string;
 }
-
-
-
-

@@ -1,10 +1,13 @@
 package fpt.teddypet.presentation.controller.user;
 
+import fpt.teddypet.application.constants.auth.AuthMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
 import fpt.teddypet.application.dto.request.user.UpdateProfileRequest;
 import fpt.teddypet.application.dto.response.UserProfileResponse;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.UserService;
+import fpt.teddypet.application.port.input.auth.OtpService;
 import fpt.teddypet.domain.entity.User;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +25,7 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final OtpService otpService;
 
     @PutMapping("/profile")
     @Operation(summary = "Update user profile", description = "Update the authenticated user's profile information. Requires a valid JWT token.")
@@ -30,5 +34,35 @@ public class UserController {
         User currentUser = authService.getCurrentUser();
         UserProfileResponse response = userService.updateProfile(currentUser, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", response));
+    }
+
+    @PostMapping("/change-password/send-otp")
+    @Operation(summary = "Gửi mã OTP đổi mật khẩu cho thành viên", description = "Gửi mã OTP đến email của người dùng đang đăng nhập.")
+    public ResponseEntity<ApiResponse<Long>> sendChangePasswordOtp() {
+        User currentUser = authService.getCurrentUser();
+        long cooldown = otpService.sendMemberOtp(currentUser.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("Mã xác thực đã được gửi đến email của bạn.", cooldown));
+    }
+
+    @PostMapping("/change-password/verify-otp")
+    @Operation(summary = "Xác thực mã OTP đổi mật khẩu", description = "Kiểm tra mã OTP nhập vào có khớp với mã đã gửi qua email không.")
+    public ResponseEntity<ApiResponse<String>> verifyChangePasswordOtp(@RequestParam String otpCode) {
+        User currentUser = authService.getCurrentUser();
+        otpService.validateGuestOtp(currentUser.getEmail(), otpCode);
+        return ResponseEntity.ok(ApiResponse.success("Mã xác thực chính xác."));
+    }
+
+    @PostMapping("/change-password/verify-password")
+    @Operation(summary = "Xác thực mật khẩu hiện tại", description = "Kiểm tra mật khẩu nhập vào có đúng với mật khẩu hiện tại của người dùng không.")
+    public ResponseEntity<ApiResponse<String>> verifyOldPassword(@RequestParam String password) {
+        authService.verifyCurrentPassword(password);
+        return ResponseEntity.ok(ApiResponse.success("Mật khẩu chính xác."));
+    }
+
+    @PutMapping("/change-password")
+    @Operation(summary = "Đổi mật khẩu thành viên", description = "Xác thực mật khẩu cũ và mã OTP để đổi mật khẩu mới.")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_CHANGE_PASSWORD_SUCCESS));
     }
 }

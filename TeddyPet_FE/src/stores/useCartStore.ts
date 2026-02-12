@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { getCart, addToCart as addToCartAPI, updateCartItem as updateCartItemAPI, removeCartItem as removeCartItemAPI } from "../api/cart.api";
+import { getCart, addToCart as addToCartAPI, updateCartItem as updateCartItemAPI, removeCartItem as removeCartItemAPI, syncGuestCart } from "../api/cart.api";
 import { CartItemResponse, CartItem, CartState } from "../types/cart.type";
 import Cookies from "js-cookie";
 
@@ -18,6 +18,7 @@ const mapBackendToFrontend = (backendItem: CartItemResponse): CartItem => ({
     },
     quantity: backendItem.quantity,
     stockQuantity: backendItem.stockQuantity,
+    isAvailable: backendItem.isAvailable,
     checked: true,
 });
 
@@ -36,13 +37,28 @@ export const useCartStore = create<CartState>()(
                         const token = Cookies.get("token");
                         const now = Date.now();
 
-                        if (!token || get().isSyncing || (!force && (now - get().lastSync < 2000))) {
+                        if (get().isSyncing || (!force && (now - get().lastSync < 2000))) {
                             return;
                         }
 
                         set({ isSyncing: true });
                         try {
-                            const response = await getCart();
+                            let response;
+                            if (token) {
+                                response = await getCart();
+                            } else {
+                                // Guest sync: send current local IDs to get latest prices/stock
+                                const localItems = get().items.map(i => ({
+                                    variantId: Number(i.id),
+                                    quantity: i.quantity
+                                }));
+                                if (localItems.length === 0) {
+                                    set({ lastSync: Date.now() });
+                                    return;
+                                }
+                                response = await syncGuestCart(localItems);
+                            }
+
                             if (response.success && response.data) {
                                 const backendItems = response.data.items.map(mapBackendToFrontend);
 
@@ -59,7 +75,7 @@ export const useCartStore = create<CartState>()(
                                 set({ items: mergedItems, lastSync: Date.now() });
                             }
                         } catch (error) {
-                            console.error("Failed to sync cart from backend:", error);
+                            console.error("Failed to sync cart:", error);
                         } finally {
                             set({ isSyncing: false });
                         }
@@ -200,11 +216,8 @@ export const useCartStore = create<CartState>()(
                     onRehydrateStorage: () => (state) => {
                         if (state) {
                             state.set({ isHydrated: true });
-                            // Auto-sync with backend after hydration if user is logged in
-                            const token = Cookies.get("token");
-                            if (token) {
-                                state.syncWithBackend();
-                            }
+                            // Always sync to validate stock/price, regardless of token
+                            state.syncWithBackend();
                         }
                     },
                 }

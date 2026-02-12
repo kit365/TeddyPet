@@ -62,6 +62,11 @@ export interface OrderResponse {
     orderItems: OrderItemResponse[];
     payments: OrderPaymentResponse[];
     distanceKm?: number;
+    // Cancellation/Return info
+    cancelReason?: string;
+    cancelledAt?: string;
+    cancelledBy?: string;
+    deliveredAt?: string;
     createdAt: string;
     updatedAt: string;
 }

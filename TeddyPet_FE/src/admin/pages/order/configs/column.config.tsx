@@ -10,6 +10,9 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import CancelIcon from '@mui/icons-material/Cancel';
+import ReplayIcon from '@mui/icons-material/Replay';
+import { getOrderStatus, getPaymentStatus } from '../../../../constants/status';
 import { prefixAdmin } from '../../../constants/routes';
 import { OrderResponse } from '../../../../types/order.type';
 import React, { useState } from 'react';
@@ -102,7 +105,9 @@ const ProductCell = ({ items }: { items: any[] }) => {
 
 export const getOrderColumns = (
     onQuickConfirm?: (id: string) => void,
-    onUpdateStatus?: (id: string, status: string) => void
+    onUpdateStatus?: (id: string, status: string) => void,
+    onCancelOrder?: (id: string) => void,
+    onReturnOrder?: (id: string) => void
 ): GridColDef<OrderResponse>[] => [
         {
             field: 'orderCode',
@@ -136,20 +141,22 @@ export const getOrderColumns = (
         {
             field: 'createdAt',
             headerName: 'Ngày đặt',
-            width: 160,
+            width: 130,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
                 const date = new Date(params.value);
                 return (
-                    <Stack spacing={0} alignItems="center" sx={{ py: 1, width: '100%' }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', color: '#1C252E' }}>
-                            {date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </Typography>
-                        <Typography sx={{ fontSize: '1.1rem', color: '#919EAB', fontWeight: 700 }}>
-                            {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                    </Stack>
+                    <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Stack spacing={0} alignItems="center">
+                            <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1C252E' }}>
+                                {date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </Typography>
+                            <Typography sx={{ fontSize: '1rem', color: '#919EAB', fontWeight: 700 }}>
+                                {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                            </Typography>
+                        </Stack>
+                    </Box>
                 );
             }
         },
@@ -185,26 +192,49 @@ export const getOrderColumns = (
         {
             field: 'payment',
             headerName: 'Thanh toán',
-            width: 140,
+            width: 100,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params) => {
                 const payment = params.row.payments[0];
                 const isCOD = payment?.paymentMethod === 'CASH' || !payment;
+                const status = payment?.status;
+                const { label: statusLabel, color: statusColor, bgColor: statusBgColor } = getPaymentStatus(status);
+
                 return (
-                    <Stack spacing={0} sx={{ py: 1 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                            {isCOD ? <PaymentsIcon sx={{ color: '#637381', fontSize: '1.6rem' }} /> : <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '1.6rem' }} />}
-                            <Typography sx={{ fontWeight: 700, fontSize: '1.25rem', color: '#1C252E' }}>
-                                {isCOD ? 'Tiền mặt' : 'Chuyển khoản'}
+                    <Stack
+                        spacing={0.5}
+                        alignItems="center"
+                        justifyContent="center"
+                        sx={{ width: '100%', height: '100%', py: 1 }}
+                    >
+                        {/* Phương thức thanh toán */}
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                            {isCOD ? (
+                                <PaymentsIcon sx={{ color: '#637381', fontSize: '1.4rem' }} />
+                            ) : (
+                                <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '1.4rem' }} />
+                            )}
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
+                                {isCOD ? 'COD' : 'CK'}
                             </Typography>
                         </Stack>
-                        <Typography sx={{
-                            fontSize: '1rem',
-                            fontWeight: 800,
-                            color: payment?.status === 'PAID' ? '#00A76F' : '#FF5630',
-                            textTransform: 'uppercase'
+                        {/* Badge trạng thái */}
+                        <Box sx={{
+                            px: 1,
+                            py: 0.3,
+                            borderRadius: '6px',
+                            bgcolor: statusBgColor,
                         }}>
-                            {payment?.status === 'PAID' ? '● Đã trả' : '○ Chưa trả'}
-                        </Typography>
+                            <Typography sx={{
+                                fontSize: '0.85rem',
+                                fontWeight: 800,
+                                color: statusColor,
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {statusLabel}
+                            </Typography>
+                        </Box>
                     </Stack>
                 );
             }
@@ -226,80 +256,35 @@ export const getOrderColumns = (
         {
             field: 'status',
             headerName: 'Trạng thái',
-            width: 140,
+            width: 110,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
                 const status = params.value;
-                let bgColor = "rgba(145, 158, 171, 0.16)";
-                let textColor = "#637381";
-                let dotColor = "#919EAB";
-                let label = status;
-
-                switch (status) {
-                    case 'PENDING':
-                        bgColor = "rgba(255, 171, 0, 0.16)";
-                        textColor = "#B76E00";
-                        dotColor = "#FFAB00";
-                        label = "Chờ xác nhận";
-                        break;
-                    case 'CONFIRMED':
-                        bgColor = "rgba(0, 184, 217, 0.16)";
-                        textColor = "#006C9C";
-                        dotColor = "#00B8D9";
-                        label = "Đã xác nhận";
-                        break;
-                    case 'PROCESSING':
-                        bgColor = "rgba(34, 197, 94, 0.16)";
-                        textColor = "#118D57";
-                        dotColor = "#22C55E";
-                        label = "Đang đóng gói";
-                        break;
-                    case 'DELIVERING':
-                        bgColor = "rgba(16, 100, 173, 0.16)";
-                        textColor = "#1064ad";
-                        dotColor = "#1064ad";
-                        label = "Đang giao hàng";
-                        break;
-                    case 'DELIVERED':
-                        bgColor = "rgba(34, 197, 94, 0.16)";
-                        textColor = "#118D57";
-                        dotColor = "#22C55E";
-                        label = "Đã giao hàng";
-                        break;
-                    case 'COMPLETED':
-                        bgColor = "rgba(34, 197, 94, 0.16)";
-                        textColor = "#118D57";
-                        dotColor = "#22C55E";
-                        label = "Hoàn thành";
-                        break;
-                    case 'CANCELLED':
-                        bgColor = "rgba(255, 86, 48, 0.16)";
-                        textColor = "#B71D18";
-                        dotColor = "#FF5630";
-                        label = "Đã hủy";
-                        break;
-                }
+                const { label, color: textColor, bgColor, dotColor } = getOrderStatus(status);
 
                 return (
                     <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Stack
                             direction="row"
                             alignItems="center"
-                            spacing={1}
+                            spacing={0.6}
                             sx={{
-                                px: 1.5,
+                                px: 1.2,
                                 py: 0.5,
-                                borderRadius: '8px',
+                                borderRadius: '6px',
                                 bgcolor: bgColor,
-                                color: textColor,
-                                fontWeight: 800,
-                                fontSize: '1.1rem',
-                                textTransform: 'uppercase'
                             }}
                         >
-                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dotColor }} />
-                            <Box component="span">{label}</Box>
+                            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: dotColor }} />
+                            <Typography sx={{
+                                color: textColor,
+                                fontWeight: 700,
+                                fontSize: '1.05rem',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {label}
+                            </Typography>
                         </Stack>
                     </Box>
                 );
@@ -359,6 +344,32 @@ export const getOrderColumns = (
                                 sx={{ color: '#118D57', '&:hover': { bgcolor: 'rgba(17, 141, 87, 0.08)' } }}
                             >
                                 <DoneAllIcon sx={{ fontSize: '1.8rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    {/* Nút hủy đơn - chỉ hiện khi PENDING, CONFIRMED */}
+                    {['PENDING', 'CONFIRMED'].includes(params.row.status) && (
+                        <Tooltip title="Hủy đơn hàng">
+                            <IconButton
+                                size="small"
+                                onClick={() => onCancelOrder?.(params.row.id)}
+                                sx={{ color: '#FF5630', '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' } }}
+                            >
+                                <CancelIcon sx={{ fontSize: '1.8rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    {/* Nút hoàn đơn - chỉ hiện khi DELIVERING (giao không thành công) */}
+                    {params.row.status === 'DELIVERING' && (
+                        <Tooltip title="Hoàn đơn">
+                            <IconButton
+                                size="small"
+                                onClick={() => onReturnOrder?.(params.row.id)}
+                                sx={{ color: '#B76E00', '&:hover': { bgcolor: 'rgba(255, 171, 0, 0.08)' } }}
+                            >
+                                <ReplayIcon sx={{ fontSize: '1.8rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}

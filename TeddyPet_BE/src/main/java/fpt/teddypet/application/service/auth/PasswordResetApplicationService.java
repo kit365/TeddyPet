@@ -122,16 +122,6 @@ public class PasswordResetApplicationService implements PasswordResetService {
 
     private void sendPasswordResetEmail(User user, String token) {
         String resetLink = frontendUrl + "/reset-password?token=" + token;
-
-        String subject = PasswordResetMessages.EMAIL_SUBJECT;
-        String htmlBody = buildPasswordResetEmailBody(user, resetLink);
-
-        emailServicePort.sendHtmlEmail(user.getEmail(), subject, htmlBody);
-    }
-
-    private String buildPasswordResetEmailBody(User user, String resetLink) {
-        String userName = user.getFirstName() != null ? user.getFirstName() : user.getUsername();
-        return PasswordResetMessages.EMAIL_HTML_TEMPLATE.formatted(userName, resetLink, resetLink,
-                tokenExpirationMinutes);
+        emailServicePort.sendPasswordResetEmail(user.getEmail(), token, resetLink);
     }
 }

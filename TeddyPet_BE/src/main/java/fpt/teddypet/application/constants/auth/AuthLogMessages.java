@@ -29,4 +29,14 @@ public final class AuthLogMessages {
     public static final String LOG_AUTH_LOGOUT_START = "[AuthService] Đang đăng xuất người dùng";
     public static final String LOG_AUTH_LOGOUT_SUCCESS = "[AuthService] Đăng xuất người dùng thành công";
     public static final String LOG_AUTH_RESEND_VERIFICATION_EMAIL_SUCCESS = "[AuthService] Đã gửi lại email xác thực cho: {}";
+
+    // OTP log messages
+    public static final String LOG_OTP_SEND_GUEST_START = "[OtpService] Đang yêu cầu mã OTP cho email khách: {}";
+    public static final String LOG_OTP_SEND_SUCCESS = "[OtpService] Đã gửi mã OTP thành công cho: {}";
+    public static final String LOG_OTP_SEND_MEMBER_START = "[OtpService] Đang yêu cầu mã OTP bảo mật cho email thành viên: {}";
+    public static final String LOG_OTP_SEND_MEMBER_SUCCESS = "[OtpService] Đã gửi mã OTP bảo mật thành công cho thành viên: {}";
+
+    // Password change logs
+    public static final String LOG_AUTH_CHANGE_PASSWORD_START = "[AuthService] Bắt đầu đổi mật khẩu cho người dùng: {}";
+    public static final String LOG_AUTH_CHANGE_PASSWORD_SUCCESS = "[AuthService] Đổi mật khẩu thành công cho người dùng: {}";
 }

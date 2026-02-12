@@ -25,7 +25,6 @@ import fpt.teddypet.application.port.input.feedback.FeedbackService;
 import fpt.teddypet.domain.entity.promotions.Promotion;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
-import fpt.teddypet.application.constants.email.EmailTemplates;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
@@ -48,6 +47,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,9 +80,10 @@ public class OrderApplicationService implements OrderService {
             return BigDecimal.ZERO;
         }
 
-        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal discount;
         if (promotion.getDiscountType() == fpt.teddypet.domain.enums.promotions.DiscountTypeEnum.PERCENTAGE) {
-            discount = order.getSubtotal().multiply(promotion.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            discount = order.getSubtotal().multiply(promotion.getDiscountValue()).divide(BigDecimal.valueOf(100), 2,
+                    RoundingMode.HALF_UP);
             if (promotion.getMaxDiscountAmount() != null && discount.compareTo(promotion.getMaxDiscountAmount()) > 0) {
                 discount = promotion.getMaxDiscountAmount();
             }
@@ -119,41 +120,14 @@ public class OrderApplicationService implements OrderService {
         }
     }
 
-    private static final String APP_NAME = "TeddyPet";
-    // TODO: Move to config
-    private static final String FRONTEND_URL = "http://localhost:5173";
-
     private OrderResponse toEnhancedResponse(Order order) {
-        OrderResponse response = orderMapper.toResponse(order);
         Double distance = calculateDistanceKm(order);
-
-        return new OrderResponse(
-                response.id(),
-                response.orderCode(),
-                response.user(),
-                response.userAddressId(),
-                response.guestEmail(),
-                response.subtotal(),
-                response.shippingFee(),
-                response.discountAmount(),
-                response.voucherCode(),
-                response.finalAmount(),
-                response.orderType(),
-                response.status(),
-                response.shippingAddress(),
-                response.shippingPhone(),
-                response.shippingName(),
-                response.notes(),
-                response.orderItems(),
-                response.payments(),
-                distance,
-                response.createdAt(),
-                response.updatedAt());
+        return orderMapper.toResponseWithDistance(order, distance);
     }
 
     private Double calculateDistanceKm(Order order) {
-        Double destLat = null;
-        Double destLng = null;
+        Double destLat;
+        Double destLng;
 
         if (order.getUserAddress() != null) {
             destLat = order.getUserAddress().getLatitude();
@@ -336,16 +310,38 @@ public class OrderApplicationService implements OrderService {
             order.setDeliveringAt(java.time.LocalDateTime.now());
         }
 
-        // Return stock if moving to CANCELLED
-        if (status == OrderStatusEnum.CANCELLED && oldStatus != OrderStatusEnum.CANCELLED) {
+        // Update delivered time if moving to DELIVERED
+        if (status == OrderStatusEnum.DELIVERED && oldStatus != OrderStatusEnum.DELIVERED) {
+            order.setDeliveredAt(java.time.LocalDateTime.now());
+
+            // Auto-complete payment for COD orders when delivered
+            // (Customer has paid cash to the shipper)
+            if (order.getPayments() != null && !order.getPayments().isEmpty()) {
+                for (Payment payment : order.getPayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethodEnum.CASH
+                            && payment.getStatus() == PaymentStatusEnum.PENDING) {
+                        payment.setStatus(PaymentStatusEnum.COMPLETED);
+                        payment.setCompletedAt(java.time.Instant.now());
+                        payment.setNotes(OrderMessages.MESSAGE_NOTE_COD_AUTO_COMPLETED);
+                        log.info("Auto-completed COD payment for order: {}", orderId);
+                    }
+                }
+            }
+        }
+
+        // Return stock if moving to CANCELLED or RETURNED
+        if ((status == OrderStatusEnum.CANCELLED && oldStatus != OrderStatusEnum.CANCELLED) ||
+                (status == OrderStatusEnum.RETURNED && oldStatus != OrderStatusEnum.RETURNED)) {
             returnOrderStock(order);
         }
 
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
-        // Send email notification
-        sendOrderStatusEmail(savedOrder, status);
+        // Send email notification only if status changed
+        if (oldStatus != status) {
+            sendOrderStatusEmail(savedOrder);
+        }
 
         // Send feedback email if completed
         if (status == OrderStatusEnum.COMPLETED && oldStatus != OrderStatusEnum.COMPLETED) {
@@ -546,7 +542,7 @@ public class OrderApplicationService implements OrderService {
                 .status(paymentStatus)
                 .notes(method == PaymentMethodEnum.CASH
                         ? (isGuest ? OrderMessages.MESSAGE_NOTE_GUEST_COD : OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
-                        : "Thanh toán Online - Đang chờ xử lý")
+                        : OrderMessages.MESSAGE_NOTE_ONLINE_PENDING)
                 .build();
         order.addPayment(payment);
 
@@ -578,6 +574,9 @@ public class OrderApplicationService implements OrderService {
 
         log.info("Order created successfully: id={}, code={}, isGuest={}",
                 savedOrder.getId(), savedOrder.getOrderCode(), isGuest);
+
+        // Send order confirmation email
+        emailServicePort.sendOrderConfirmation(savedOrder);
 
         return orderMapper.toResponse(savedOrder);
     }
@@ -646,6 +645,7 @@ public class OrderApplicationService implements OrderService {
         log.info("Updating manual shipping fee for order: {} with fee: {}", orderId, finalFee);
 
         Order order = getById(orderId);
+        OrderStatusEnum oldStatus = order.getStatus();
 
         // Cập nhật phí ship
         order.setShippingFee(finalFee);
@@ -662,7 +662,7 @@ public class OrderApplicationService implements OrderService {
         // chưa có)
         if (order.getPayments() != null && !order.getPayments().isEmpty()) {
             // Giả sử payment đầu tiên là payment chính
-            Payment mainPayment = order.getPayments().get(0);
+            Payment mainPayment = order.getPayments().getFirst();
             if (mainPayment.getPaymentMethod() == PaymentMethodEnum.CASH
                     && mainPayment.getStatus() == PaymentStatusEnum.PENDING) {
                 mainPayment.setAmount(order.getFinalAmount());
@@ -673,9 +673,9 @@ public class OrderApplicationService implements OrderService {
         log.info(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED + " OrderId: {}",
                 savedOrder.getId());
 
-        // Send email if order is confirmed
-        if (savedOrder.getStatus() == OrderStatusEnum.CONFIRMED) {
-            sendOrderStatusEmail(savedOrder, OrderStatusEnum.CONFIRMED);
+        // Send email if order is confirmed for the first time
+        if (oldStatus == OrderStatusEnum.PENDING && savedOrder.getStatus() == OrderStatusEnum.CONFIRMED) {
+            emailServicePort.sendOrderConfirmation(savedOrder);
         }
     }
 
@@ -687,87 +687,160 @@ public class OrderApplicationService implements OrderService {
 
         // Khách hàng chỉ có thể xác nhận nhận hàng khi Admin đã chuyển sang DELIVERED
         if (order.getStatus() != OrderStatusEnum.DELIVERED) {
-            throw new IllegalStateException(
-                    "Đơn hàng phải ở trạng thái Đã giao hàng mới có thể xác nhận nhận hàng.");
+            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_RECEIPT_NOT_ALLOWED);
         }
 
         order.setStatus(OrderStatusEnum.COMPLETED);
         orderRepositoryPort.save(order);
 
-        sendOrderStatusEmail(order, OrderStatusEnum.COMPLETED);
+        sendOrderStatusEmail(order);
 
         // Send feedback email
         feedbackService.sendFeedbackEmailsForOrder(orderId);
     }
 
-    private void sendOrderStatusEmail(Order order, OrderStatusEnum status) {
+    private void sendOrderStatusEmail(Order order) {
         try {
-            String email = order.getGuestEmail();
-            if (email == null && order.getUser() != null) {
-                email = order.getUser().getEmail();
-            }
-
-            if (email == null) {
-                log.warn("Cannot send email: No email found for order {}", order.getId());
-                return;
-            }
-
-            String statusText;
-            String message;
-
-            switch (status) {
-                case CONFIRMED -> {
-                    statusText = "ĐÃ XÁC NHẬN";
-                    message = "Đơn hàng của bạn đã được xác nhận phí vận chuyển và đang được chuẩn bị.";
-                }
-                case PROCESSING -> {
-                    statusText = "ĐANG ĐÓNG GÓI";
-                    message = "Đơn hàng của bạn đang được đóng gói và chuẩn bị giao.";
-                }
-                case DELIVERING -> {
-                    statusText = "ĐANG GIAO HÀNG";
-                    message = "Shipper đang giao hàng tới bạn. Vui lòng chú ý địa chỉ và điện thoại để nhận hàng nhé!";
-                }
-                case DELIVERED -> {
-                    statusText = "GIAO HÀNG THÀNH CÔNG";
-                    message = "Đơn hàng đã được giao thành công. Cảm ơn bạn đã mua sắm tại TeddyPet!";
-                }
-                case COMPLETED -> {
-                    statusText = "ĐÃ HOÀN TẤT";
-                    message = "Đơn hàng đã hoàn tất. Hẹn gặp lại bạn lần sau!";
-                }
-                case CANCELLED -> {
-                    statusText = "ĐÃ HỦY";
-                    message = "Đơn hàng đã bị hủy. Vui lòng liên hệ CSKH nếu có thắc mắc.";
-                }
-                default -> {
-                    return; // Ignore other statuses
-                }
-            }
-
-            String orderLink = FRONTEND_URL + "/tracking?code=" + order.getOrderCode(); // Guest tracking link
-            if (order.getUser() != null) {
-                orderLink = FRONTEND_URL + "/account/orders/" + order.getId();
-            }
-
-            String subject = String.format(EmailTemplates.SUBJECT_ORDER_STATUS_UPDATE, APP_NAME, order.getOrderCode());
-            String body = String.format(EmailTemplates.BODY_ORDER_STATUS_UPDATE,
-                    APP_NAME,
-                    order.getOrderCode(),
-                    order.getShippingName(),
-                    order.getOrderCode(),
-                    statusText,
-                    message,
-                    orderLink,
-                    APP_NAME,
-                    APP_NAME);
-
-            emailServicePort.sendHtmlEmail(email, subject, body);
-            log.info("Sent status update email to {}", email);
-
+            // Tất cả trạng thái đơn hàng hiện đã được xử lý tập trung bằng Thymeleaf qua
+            // sendOrderConfirmation
+            emailServicePort.sendOrderConfirmation(order);
         } catch (Exception e) {
-            log.error("Failed to send order status email", e);
-            // Don't throw exception to avoid rolling back transaction
+            log.error("Failed to send order status email for order {}", order.getOrderCode(), e);
+        }
+    }
+
+    // ========== CANCEL & RETURN ORDER METHODS ==========
+
+    @Override
+    @Transactional
+    public void cancelOrderByCustomer(UUID orderId, String reason) {
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        validateOwnership(orderId, currentUserId);
+
+        Order order = getById(orderId);
+
+        // Khách chỉ được hủy khi đơn đang ở trạng thái PENDING
+        if (order.getStatus() != OrderStatusEnum.PENDING) {
+            throw new IllegalStateException("Bạn chỉ có thể hủy đơn khi đơn hàng đang chờ xác nhận.");
+        }
+
+        // Cập nhật thông tin hủy
+        order.setStatus(OrderStatusEnum.CANCELLED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(order.getUser() != null ? order.getUser().getUsername() : "Khách hàng");
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_BY_CUSTOMER);
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_REFUND_PENDING);
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Customer cancelled order: {} with reason: {}", orderId, reason);
+
+        // Gửi email thông báo
+        sendOrderStatusEmail(order);
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername) {
+        Order order = getById(orderId);
+
+        // Admin chỉ được hủy khi đơn ở trạng thái PENDING, CONFIRMED hoặc PROCESSING
+        if (order.getStatus() != OrderStatusEnum.PENDING
+                && order.getStatus() != OrderStatusEnum.CONFIRMED
+                && order.getStatus() != OrderStatusEnum.PROCESSING) {
+            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_CANCEL_INVALID_STATUS);
+        }
+
+        // Cập nhật thông tin hủy
+        order.setStatus(OrderStatusEnum.CANCELLED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(adminUsername);
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_BY_ADMIN);
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_ADMIN_REFUND);
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Admin {} cancelled order: {} with reason: {}", adminUsername, orderId, reason);
+
+        // Gửi email thông báo
+        sendOrderStatusEmail(order);
+    }
+
+    @Override
+    @Transactional
+    public void returnOrder(UUID orderId, String reason, String adminUsername) {
+        Order order = getById(orderId);
+
+        // Chỉ có thể hoàn trả khi đơn ở trạng thái DELIVERING hoặc DELIVERED (khách
+        // boom hoặc trả hàng)
+        if (order.getStatus() != OrderStatusEnum.DELIVERING && order.getStatus() != OrderStatusEnum.DELIVERED) {
+            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_RETURN_INVALID_STATUS);
+        }
+
+        // Cập nhật thông tin hoàn trả
+        order.setStatus(OrderStatusEnum.RETURNED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy(adminUsername);
+
+        // Hoàn lại stock
+        returnOrderStock(order);
+
+        // Cập nhật trạng thái payment
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_RETURN_VOIDED);
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_RETURN_REFUND);
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Admin {} returned order: {} with reason: {}", adminUsername, orderId, reason);
+
+        // Gửi email thông báo
+        sendReturnOrderEmail(order);
+    }
+
+    private void sendReturnOrderEmail(Order order) {
+        try {
+            // Tất cả trạng thái đơn hàng (bao gồm RETURNED) hiện đã được xử lý tập trung
+            // bằng Thymeleaf
+            emailServicePort.sendOrderConfirmation(order);
+        } catch (Exception e) {
+            log.error("Failed to send return order email for order {}", order.getOrderCode(), e);
         }
     }
 

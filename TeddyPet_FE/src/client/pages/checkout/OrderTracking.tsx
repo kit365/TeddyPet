@@ -9,7 +9,7 @@ import {
     Search, Package, MapPin, User, Phone, CheckCircle, WarningCircle,
     RefreshDouble, ClipboardCheck, Truck, Box as BoxIcon, HomeSimple,
     Mail, Copy, NavArrowRight, HelpCircle, ChatBubble, Wallet, Calendar,
-    ShieldCheck, InfoCircle, ShareAndroid
+    ShieldCheck, InfoCircle, ShareAndroid, Star
 } from "iconoir-react";
 import { format } from "date-fns";
 import { useAuthStore } from "../../../stores/useAuthStore";
@@ -97,6 +97,7 @@ export const OrderTrackingPage = () => {
     const [loading, setLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const navigate = useNavigate();
 
     const hasAutoLooked = useRef(false);
@@ -163,8 +164,8 @@ export const OrderTrackingPage = () => {
         try {
             await confirmReceived(order.id);
             toast.success("Xác nhận đã nhận hàng thành công. TeddyPet cảm ơn bạn!");
-            // Reload lại data hoặc cập nhật status tại chỗ
-            doTrackOrder(order.orderCode, email);
+            setOrder({ ...order, status: 'COMPLETED' as const });
+            setShowFeedbackModal(true);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
         } finally {
@@ -328,6 +329,16 @@ export const OrderTrackingPage = () => {
                                                 <span className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{item.variantName}</span>
                                                 <div className="text-[1.6rem] font-black text-client-secondary mt-2">{(item.unitPrice * item.quantity).toLocaleString()}đ</div>
                                             </div>
+                                            {order.status === 'COMPLETED' && (
+                                                <div className="flex items-center">
+                                                    <Link
+                                                        to={`/feedback?orderId=${order.id}${!order.user ? `&email=${order.guestEmail || email}` : ''}`}
+                                                        className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[1.2rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
+                                                    >
+                                                        <Star className="w-4 h-4" /> Đánh giá
+                                                    </Link>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -397,11 +408,45 @@ export const OrderTrackingPage = () => {
                                     {isSubmitting ? "Đang xác nhận..." : "TÔI ĐÃ NHẬN ĐƯỢC HÀNG"}
                                 </button>
                             )}
-
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Modal Gợi ý Đánh giá */}
+            {showFeedbackModal && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-client-secondary/40 backdrop-blur-md"
+                        onClick={() => setShowFeedbackModal(false)}
+                    ></div>
+                    <div className="bg-white rounded-[40px] p-10 max-w-[500px] w-full relative z-10 shadow-2xl border border-gray-100 text-center animate-scaleUp">
+                        <div className="w-[100px] h-[100px] bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-6 shadow-sm border border-emerald-100">
+                            <Star className="w-[5rem] h-[5rem] fill-current" />
+                        </div>
+                        <h3 className="text-[2.6rem] font-black text-client-secondary mb-4 leading-tight uppercase">
+                            Tuyệt vời quá!
+                        </h3>
+                        <p className="text-[1.6rem] text-gray-500 font-medium mb-8 leading-relaxed">
+                            Đơn hàng đã hoàn thành. Bạn hãy dành chút thời gian đánh giá sản phẩm để TeddyPet ngày càng hoàn thiện hơn nhé! 🐾
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <Link
+                                to={`/feedback?orderId=${order?.id}${!order?.user ? `&email=${order?.guestEmail || email}` : ''}`}
+                                className="h-[65px] bg-client-primary text-white rounded-[24px] font-black text-[1.8rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
+                            >
+                                <Star className="w-6 h-6" /> ĐÁNH GIÁ NGAY
+                            </Link>
+                            <button
+                                onClick={() => setShowFeedbackModal(false)}
+                                className="h-[55px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
+                            >
+                                Để sau nhé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <FooterSub />
 
@@ -413,6 +458,11 @@ export const OrderTrackingPage = () => {
                 .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
+                @keyframes scaleUp {
+                    from { opacity: 0; transform: scale(0.9); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .animate-scaleUp { animation: scaleUp 0.3s ease-out forwards; }
             `}</style>
         </div>
     );

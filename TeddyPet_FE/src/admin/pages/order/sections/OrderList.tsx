@@ -20,7 +20,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import { updateOrderStatus, updateShippingFee } from '../../../api/order.api';
+import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder } from '../../../api/order.api';
 import { getShippingFeeSuggestion } from '../../../api/shipping.api';
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
@@ -85,6 +85,19 @@ export const OrderList = () => {
     const [suggestedFee, setSuggestedFee] = useState<number>(0);
     const [suggestionStatus, setSuggestionStatus] = useState<string>('');
     const [fetchingSuggestion, setFetchingSuggestion] = useState(false);
+
+    // Cancel order states
+    const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const quickCancelReasons = [
+        "Hết hàng thực tế",
+        "Khách yêu cầu hủy",
+        "Không liên lạc được (đã gọi 3 lần)",
+        "Khách từ chối phí ship",
+        "Đơn hàng ảo/Spam"
+    ];
 
     const handleQuickConfirm = (orderId: string) => {
         const order = orders.find(o => o.id === orderId);
@@ -158,7 +171,70 @@ export const OrderList = () => {
         }
     };
 
-    const columns = getOrderColumns(handleQuickConfirm, handleUpdateStatus);
+    const handleCancelOrder = (orderId: string) => {
+        setCancellingOrderId(orderId);
+        setCancelReason('');
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!cancellingOrderId || !cancelReason.trim()) return;
+        setIsCancelling(true);
+        try {
+            const response = await cancelOrderByAdmin(cancellingOrderId, cancelReason);
+            if (response.success) {
+                toast.success("Đã hủy đơn hàng thành công");
+                setCancellingOrderId(null);
+                setCancelReason('');
+                refresh();
+            } else {
+                toast.error(response.message || "Hủy đơn thất bại");
+            }
+        } catch (error) {
+            toast.error("Lỗi hệ thống khi hủy đơn");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    // Return order states
+    const [returningOrderId, setReturningOrderId] = useState<string | null>(null);
+    const [returnReason, setReturnReason] = useState('');
+    const [isReturning, setIsReturning] = useState(false);
+
+    const quickReturnReasons = [
+        "Khách không nhận hàng",
+        "Khách đổi ý không mua nữa",
+        "Không liên lạc được khách",
+        "Sản phẩm bị hư hỏng trong quá trình vận chuyển",
+        "Địa chỉ không chính xác"
+    ];
+
+    const handleReturnOrder = (orderId: string) => {
+        setReturningOrderId(orderId);
+        setReturnReason('');
+    };
+
+    const handleConfirmReturn = async () => {
+        if (!returningOrderId || !returnReason.trim()) return;
+        setIsReturning(true);
+        try {
+            const response = await returnOrder(returningOrderId, returnReason);
+            if (response.success) {
+                toast.success("Đã hoàn đơn hàng thành công");
+                setReturningOrderId(null);
+                setReturnReason('');
+                refresh();
+            } else {
+                toast.error(response.message || "Hoàn đơn thất bại");
+            }
+        } catch (error) {
+            toast.error("Lỗi hệ thống khi hoàn đơn");
+        } finally {
+            setIsReturning(false);
+        }
+    };
+
+    const columns = getOrderColumns(handleQuickConfirm, handleUpdateStatus, handleCancelOrder, handleReturnOrder);
     const localeText = useDataGridLocale();
 
     const handleTabChange = (_: any, newValue: string) => {
@@ -576,6 +652,250 @@ export const OrderList = () => {
                         }}
                     >
                         {updating ? "ĐANG XỬ LÝ..." : "XÁC NHẬN & GỬI MAIL"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Cancel Order Dialog */}
+            <Dialog
+                open={!!cancellingOrderId}
+                onClose={() => { setCancellingOrderId(null); setCancelReason(''); }}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: '24px', boxShadow: '0 24px 48px rgba(0, 0, 0, 0.16)' }
+                }}
+            >
+                <DialogTitle sx={{
+                    p: 3,
+                    pb: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid #F4F6F8'
+                }}>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        <Box sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: 'rgba(255, 86, 48, 0.12)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <CloseIcon sx={{ color: '#FF5630', fontSize: 24 }} />
+                        </Box>
+                        <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1C252E' }}>
+                            Hủy đơn hàng
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={() => { setCancellingOrderId(null); setCancelReason(''); }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 3 }}>
+                    <Typography sx={{ fontSize: '1.1rem', color: '#637381', mb: 3 }}>
+                        Chọn lý do hủy đơn hàng:
+                    </Typography>
+                    <Stack spacing={1.5}>
+                        {quickCancelReasons.map((reason, index) => (
+                            <Box
+                                key={index}
+                                onClick={() => setCancelReason(reason)}
+                                sx={{
+                                    p: 2,
+                                    borderRadius: '12px',
+                                    border: '2px solid',
+                                    borderColor: cancelReason === reason ? '#FF5630' : '#F4F6F8',
+                                    bgcolor: cancelReason === reason ? 'rgba(255, 86, 48, 0.08)' : 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    '&:hover': { borderColor: '#FF5630', bgcolor: 'rgba(255, 86, 48, 0.04)' }
+                                }}
+                            >
+                                <Stack direction="row" alignItems="center" spacing={2}>
+                                    <Box sx={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: '50%',
+                                        border: '2px solid',
+                                        borderColor: cancelReason === reason ? '#FF5630' : '#C4CDD5',
+                                        bgcolor: cancelReason === reason ? '#FF5630' : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {cancelReason === reason && (
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'white' }} />
+                                        )}
+                                    </Box>
+                                    <Typography sx={{
+                                        fontWeight: 600,
+                                        fontSize: '1.1rem',
+                                        color: cancelReason === reason ? '#FF5630' : '#1C252E'
+                                    }}>
+                                        {reason}
+                                    </Typography>
+                                </Stack>
+                            </Box>
+                        ))}
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setCancellingOrderId(null); setCancelReason(''); }}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            color: '#637381',
+                            borderColor: '#E5E8EB',
+                            fontWeight: 700,
+                            fontSize: '1.05rem'
+                        }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleConfirmCancel}
+                        disabled={isCancelling || !cancelReason.trim()}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            bgcolor: '#FF5630',
+                            '&:hover': { bgcolor: '#B71D18' },
+                            '&:disabled': { bgcolor: '#FFD8D0', color: '#FF5630' }
+                        }}
+                    >
+                        {isCancelling ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Xác nhận hủy'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Return Order Dialog */}
+            <Dialog
+                open={!!returningOrderId}
+                onClose={() => { setReturningOrderId(null); setReturnReason(''); }}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: '24px', boxShadow: '0 24px 48px rgba(0, 0, 0, 0.16)' }
+                }}
+            >
+                <DialogTitle sx={{
+                    p: 3,
+                    pb: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid #F4F6F8'
+                }}>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        <Box sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: 'rgba(255, 171, 0, 0.12)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <ArrowForwardIcon sx={{ color: '#B76E00', fontSize: 24, transform: 'rotate(180deg)' }} />
+                        </Box>
+                        <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1C252E' }}>
+                            Hoàn đơn hàng
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={() => { setReturningOrderId(null); setReturnReason(''); }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 3 }}>
+                    <Typography sx={{ fontSize: '1.1rem', color: '#637381', mb: 3 }}>
+                        Chọn lý do hoàn đơn hàng:
+                    </Typography>
+                    <Stack spacing={1.5}>
+                        {quickReturnReasons.map((reason, index) => (
+                            <Box
+                                key={index}
+                                onClick={() => setReturnReason(reason)}
+                                sx={{
+                                    p: 2,
+                                    borderRadius: '12px',
+                                    border: '2px solid',
+                                    borderColor: returnReason === reason ? '#B76E00' : '#F4F6F8',
+                                    bgcolor: returnReason === reason ? 'rgba(255, 171, 0, 0.08)' : 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    '&:hover': { borderColor: '#B76E00', bgcolor: 'rgba(255, 171, 0, 0.04)' }
+                                }}
+                            >
+                                <Stack direction="row" alignItems="center" spacing={2}>
+                                    <Box sx={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: '50%',
+                                        border: '2px solid',
+                                        borderColor: returnReason === reason ? '#B76E00' : '#C4CDD5',
+                                        bgcolor: returnReason === reason ? '#B76E00' : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {returnReason === reason && (
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'white' }} />
+                                        )}
+                                    </Box>
+                                    <Typography sx={{
+                                        fontWeight: 600,
+                                        fontSize: '1.1rem',
+                                        color: returnReason === reason ? '#B76E00' : '#1C252E'
+                                    }}>
+                                        {reason}
+                                    </Typography>
+                                </Stack>
+                            </Box>
+                        ))}
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setReturningOrderId(null); setReturnReason(''); }}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            color: '#637381',
+                            borderColor: '#E5E8EB',
+                            fontWeight: 700,
+                            fontSize: '1.05rem'
+                        }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleConfirmReturn}
+                        disabled={isReturning || !returnReason.trim()}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            bgcolor: '#B76E00',
+                            '&:hover': { bgcolor: '#8A5200' },
+                            '&:disabled': { bgcolor: '#FFE8CC', color: '#B76E00' }
+                        }}
+                    >
+                        {isReturning ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Xác nhận hoàn'}
                     </Button>
                 </DialogActions>
             </Dialog>

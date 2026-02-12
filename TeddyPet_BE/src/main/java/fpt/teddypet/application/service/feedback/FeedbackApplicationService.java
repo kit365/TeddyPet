@@ -19,6 +19,7 @@ import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,11 +42,13 @@ public class FeedbackApplicationService implements FeedbackService {
     private final FeedbackMapper feedbackMapper;
     private final EmailServicePort emailServicePort;
 
-    private static final String FRONTEND_URL = "http://localhost:5173"; // TODO: config
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     @Transactional
     public FeedbackResponse submitFeedback(FeedbackRequest request) {
+
         Order order;
         User user = null;
         String guestEmail = null;
@@ -198,12 +201,19 @@ public class FeedbackApplicationService implements FeedbackService {
     }
 
     @Override
-    public FeedbackTokenResponse getOrderFeedbackDetails(UUID orderId) {
+    public FeedbackTokenResponse getOrderFeedbackDetails(UUID orderId, String email) {
         Order order = orderRepositoryPort.findById(orderId);
 
-        UUID currentUserId = SecurityUtil.getCurrentUserId();
-        if (order.getUser() == null || !order.getUser().getId().equals(currentUserId)) {
-            throw new AccessDeniedException("You don't have permission to review this order.");
+        UUID currentUserId = SecurityUtil.getCurrentUserIdOrNull();
+        if (currentUserId != null) {
+            if (order.getUser() == null || !order.getUser().getId().equals(currentUserId)) {
+                throw new AccessDeniedException("You don't have permission to review this order.");
+            }
+        } else {
+            // Guest check: must provide email that matches order
+            if (email == null || order.getGuestEmail() == null || !email.equalsIgnoreCase(order.getGuestEmail())) {
+                throw new AccessDeniedException("Email mismatch or not provided for guest review.");
+            }
         }
 
         List<Feedback> existingFeedbacks = feedbackRepositoryPort.findByOrderId(order.getId());
@@ -213,9 +223,9 @@ public class FeedbackApplicationService implements FeedbackService {
                 .collect(Collectors.toList());
 
         return new FeedbackTokenResponse(
-                null, // No token needed for logged in user
+                null, // No token needed if we have session or verified email
                 order.getShippingName(),
-                order.getUser().getEmail(),
+                order.getUser() != null ? order.getUser().getEmail() : order.getGuestEmail(),
                 items);
     }
 
@@ -274,7 +284,7 @@ public class FeedbackApplicationService implements FeedbackService {
                     return feedbackTokenRepositoryPort.save(newToken);
                 });
 
-        String feedbackLink = FRONTEND_URL + "/feedback?token=" + feedbackToken.getToken();
+        String feedbackLink = frontendUrl + "/feedback?token=" + feedbackToken.getToken();
 
         String subject = "TeddyPet - Chia sẻ cảm nhận của bạn về sản phẩm!";
         String body = "<h3>Cảm ơn bạn đã mua sắm tại TeddyPet!</h3>" +

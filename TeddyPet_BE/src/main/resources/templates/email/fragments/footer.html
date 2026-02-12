@@ -1,0 +1,43 @@
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Email Footer</title>
+</head>
+
+<body>
+    <div th:fragment="footer" style="padding: 40px; text-align: center;">
+        <!-- Support Info -->
+        <div style="margin-bottom: 30px;">
+            <p style="font-size: 15px; color: #64748b; margin-bottom: 20px; font-weight: 500;">
+                Bạn có câu hỏi? Liên hệ với chúng tôi qua các kênh hỗ trợ:
+            </p>
+            <div style="margin-top: 15px;">
+                <a th:href="${facebookUrl}"
+                    style="display: inline-block; padding: 12px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b; text-decoration: none; font-size: 14px; font-weight: 700; margin-right: 15px; vertical-align: middle;">
+                    <span style="color: #1877f2; font-size: 18px; font-weight: 900; margin-right: 5px;">f</span>
+                    Facebook
+                </a>
+                <a th:href="${instagramUrl}"
+                    style="display: inline-block; padding: 12px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b; text-decoration: none; font-size: 14px; font-weight: 700; vertical-align: middle;">
+                    <span style="color: #e4405f; margin-right: 5px;">📸</span> Instagram
+                </a>
+            </div>
+            <p th:if="${hotline}" style="font-size: 14px; color: #94a3b8; margin-top: 25px; font-weight: 600;">
+                Hotline: <span th:text="${hotline}" style="color: #4f46e5;">1900 1234</span>
+            </p>
+        </div>
+
+        <!-- Trademark -->
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 30px;">
+            <p
+                style="font-size: 11px; color: #94a3b8; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 800;">
+                © 2026 <span th:text="${appName}">TeddyPet</span>. All rights reserved.
+            </p>
+            <p style="font-size: 10px; color: #cbd5e1; margin-top: 10px;">
+                Đây là email tự động, vui lòng không phản hồi trực tiếp vào địa chỉ này.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

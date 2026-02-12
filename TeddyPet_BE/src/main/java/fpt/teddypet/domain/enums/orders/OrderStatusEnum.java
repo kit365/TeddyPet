@@ -7,5 +7,6 @@ public enum OrderStatusEnum {
     DELIVERING, // Đang giao hàng
     DELIVERED, // Đã giao thành công (chờ khách xác nhận)
     COMPLETED, // Hoàn thành
-    CANCELLED // Đã hủy
+    CANCELLED, // Đã hủy
+    RETURNED // Hoàn trả (khách boom hàng hoặc trả hàng)
 }

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{email/fragments/head :: head(title='Xác thực bảo mật')}">
+    <title>Xác thực bảo mật</title>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div th:replace="~{email/fragments/header :: header}"></div>
+
+        <!-- Content -->
+        <div style="line-height: 1.6; text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #4A90A4; font-size: 28px; margin-bottom: 15px;">Xác thực bảo mật</h2>
+                <p style="color: #64748b;">Chúng tôi cần xác nhận danh tính của bạn để thực hiện thay đổi quan trọng.
+                </p>
+            </div>
+
+            <p>Xin chào,</p>
+            <p>Bạn đang yêu cầu một thao tác bảo mật (như đổi mật khẩu) tại <strong class="highlight"
+                    th:text="${appName}">TeddyPet</strong>. Vui lòng sử dụng mã xác thực dưới đây:</p>
+
+            <!-- OTP Code -->
+            <div th:replace="~{email/fragments/components :: otp(code=${otp})}"></div>
+
+            <div class="warning-box" style="text-align: left;">
+                <p style="margin: 0;">
+                    ⚠️ <strong>Lưu ý:</strong> Mã này sẽ hết hạn sau <strong>5 phút</strong>. <strong>Tuyệt đối không
+                        chia sẻ mã này cho bất kỳ ai</strong>, kể cả nhân viên hỗ trợ của chúng tôi.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div th:replace="~{email/fragments/footer :: footer}"></div>
+    </div>
+</body>
+
+</html>

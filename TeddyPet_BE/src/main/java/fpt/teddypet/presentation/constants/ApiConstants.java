@@ -78,4 +78,6 @@ public final class ApiConstants {
 
     // User API base path
     public static final String API_USER = BASE_API + "/users";
+
+    public static final String API_FEEDBACKS = BASE_API + "/feedbacks";
 }

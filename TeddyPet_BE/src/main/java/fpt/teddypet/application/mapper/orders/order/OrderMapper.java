@@ -21,4 +21,8 @@ public interface OrderMapper {
 
         @Mapping(source = "userAddress.id", target = "userAddressId")
         OrderResponse toResponse(Order order);
+
+        @Mapping(source = "order.userAddress.id", target = "userAddressId")
+        @Mapping(source = "distanceKm", target = "distanceKm")
+        OrderResponse toResponseWithDistance(Order order, Double distanceKm);
 }

@@ -18,7 +18,7 @@ public interface FeedbackService {
 
     FeedbackTokenResponse getFeedbackTokenDetails(UUID token);
 
-    FeedbackTokenResponse getOrderFeedbackDetails(UUID orderId);
+    FeedbackTokenResponse getOrderFeedbackDetails(UUID orderId, String email);
 
     List<FeedbackResponse> getMyFeedbacks();
 
