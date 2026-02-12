@@ -3,7 +3,9 @@ package fpt.teddypet.presentation.controller.orders;
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
+import fpt.teddypet.application.dto.request.orders.order.CancelOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
+import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
@@ -70,10 +72,19 @@ public class OrderController {
 
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Hủy đơn hàng", description = "Hủy đơn hàng của user hiện tại")
-    public ResponseEntity<ApiResponse<Void>> cancelOrder(@PathVariable UUID id) {
-        orderService.cancelOrder(id);
+    @Operation(summary = "Hủy đơn hàng (Customer)", description = "Khách hàng hủy đơn hàng - chỉ được phép khi đơn đang chờ xác nhận (PENDING)")
+    public ResponseEntity<ApiResponse<Void>> cancelOrderByCustomer(
+            @PathVariable UUID id,
+            @Valid @RequestBody CancelOrderRequest request) {
+        orderService.cancelOrderByCustomer(id, request.reason());
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CANCELLED_SUCCESS));
+    }
+
+    @PatchMapping("/{id}/received")
+    @Operation(summary = "Xác nhận đã nhận hàng", description = "User xác nhận đã nhận được hàng")
+    public ResponseEntity<ApiResponse<Void>> confirmReceived(@PathVariable UUID id) {
+        orderService.confirmReceived(id);
+        return ResponseEntity.ok(ApiResponse.success("Xác nhận đã nhận hàng thành công."));
     }
 
     @PostMapping
@@ -87,8 +98,15 @@ public class OrderController {
 
     // ========== GUEST ORDER LOOKUP ==========
 
+    @GetMapping("/track/{code}")
+    @Operation(summary = "Tra cứu đơn hàng công khai", description = "Tra cứu đơn hàng bằng mã đơn - không cần email vì orderCode là thông tin bảo mật")
+    public ResponseEntity<ApiResponse<OrderResponse>> trackOrder(@PathVariable String code) {
+        OrderResponse response = orderService.getByOrderCodeResponse(code);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/guest/lookup")
-    @Operation(summary = "Tra cứu đơn hàng khách vãng lai", description = "Tra cứu đơn hàng bằng mã đơn và email")
+    @Operation(summary = "Tra cứu đơn hàng khách vãng lai (legacy)", description = "Tra cứu đơn hàng bằng mã đơn và email - dùng /track/{code} thay thế")
     public ResponseEntity<ApiResponse<OrderResponse>> lookupGuestOrder(
             @RequestParam String orderCode,
             @RequestParam String email) {
@@ -163,5 +181,38 @@ public class OrderController {
             @RequestParam OrderStatusEnum status) {
         orderService.updateOrderStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_STATUS_UPDATED_SUCCESS));
+    }
+
+    @PatchMapping("/{id}/shipping-fee")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Cập nhật phí vận chuyển thủ công", description = "Admin cập nhật phí vận chuyển và chốt đơn")
+    public ResponseEntity<ApiResponse<Void>> updateManualShippingFee(
+            @PathVariable UUID id,
+            @RequestParam java.math.BigDecimal finalFee) {
+        orderService.updateManualShippingFee(id, finalFee);
+        return ResponseEntity.ok(
+                ApiResponse.success(fpt.teddypet.application.constants.shipping.ShippingMessages.SHIPPING_FEE_UPDATED));
+    }
+
+    @PatchMapping("/{id}/admin-cancel")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Hủy đơn hàng (Admin)", description = "Admin/Staff hủy đơn hàng - chỉ được phép khi đơn ở trạng thái PENDING hoặc CONFIRMED")
+    public ResponseEntity<ApiResponse<Void>> cancelOrderByAdmin(
+            @PathVariable UUID id,
+            @Valid @RequestBody CancelOrderRequest request) {
+        String adminUsername = SecurityUtil.getCurrentUsername();
+        orderService.cancelOrderByAdmin(id, request.reason(), adminUsername);
+        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CANCELLED_SUCCESS));
+    }
+
+    @PatchMapping("/{id}/return")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Hoàn trả đơn hàng", description = "Admin/Staff đánh dấu đơn hàng hoàn trả - dùng khi khách boom hàng hoặc trả hàng (DELIVERING hoặc DELIVERED)")
+    public ResponseEntity<ApiResponse<Void>> returnOrder(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReturnOrderRequest request) {
+        String adminUsername = SecurityUtil.getCurrentUsername();
+        orderService.returnOrder(id, request.reason(), adminUsername);
+        return ResponseEntity.ok(ApiResponse.success("Đơn hàng đã được đánh dấu hoàn trả."));
     }
 }

@@ -17,8 +17,19 @@ export const getMyOrders = async () => {
     return response.data;
 };
 
+export const getMyOrderById = async (id: string) => {
+    const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/${id}`);
+    return response.data;
+};
+
 export const getMyOrderByCode = async (code: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/code/${code}`);
+    return response.data;
+};
+
+// Public tracking - chỉ cần orderCode, không cần email
+export const trackOrder = async (code: string) => {
+    const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/track/${code}`);
     return response.data;
 };
 
@@ -29,7 +40,12 @@ export const lookupGuestOrder = async (orderCode: string, email: string) => {
     return response.data;
 };
 
-export const cancelOrder = async (id: string) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`);
+export const cancelOrder = async (id: string, reason: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/cancel`, { reason });
+    return response.data;
+};
+
+export const confirmReceived = async (id: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/received`);
     return response.data;
 };

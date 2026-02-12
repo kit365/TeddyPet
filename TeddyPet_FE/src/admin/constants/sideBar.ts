@@ -6,6 +6,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import DiscountIcon from '@mui/icons-material/Discount';
 import PersonIcon from '@mui/icons-material/Person';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 
 export const menuOverviewData = [
     {
@@ -25,6 +26,14 @@ export const menuOverviewData = [
 ];
 
 export const menuManagementData = [
+    {
+        id: "orders",
+        label: "Đơn hàng",
+        Icon: ArticleIcon,
+        children: [
+            { id: "list", label: "Danh sách đơn hàng", path: `/${prefixAdmin}/order/list` },
+        ]
+    },
     {
         id: "users",
         label: "Tài khoản",
@@ -83,5 +92,19 @@ export const menuManagementData = [
             { id: "create", label: "Tạo mã giảm giá", tKey: "admin.sidebar.coupon_create", path: `/${prefixAdmin}/role/create` },
             { id: "list", label: "Danh sách mã giảm giá", tKey: "admin.sidebar.coupon_list", path: `/${prefixAdmin}/role/list` },
         ]
+    },
+    {
+        id: "shipping",
+        label: "Vận chuyển",
+        Icon: LocalShippingIcon,
+        children: [
+            { id: "list", label: "Phí vận chuyển", path: `/${prefixAdmin}/shipping/list` },
+        ]
+    },
+    {
+        id: "settings",
+        label: "Cài đặt",
+        Icon: ManageAccountsIcon,
+        path: `/${prefixAdmin}/settings`
     }
 ];

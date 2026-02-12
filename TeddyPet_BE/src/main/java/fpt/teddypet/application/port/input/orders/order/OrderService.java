@@ -51,4 +51,19 @@ public interface OrderService {
 
     // Guest order lookup
     OrderResponse getGuestOrderByCodeAndEmail(String orderCode, String email);
+
+    // Admin manual shipping fee update
+    void updateManualShippingFee(UUID orderId, java.math.BigDecimal finalFee);
+
+    // Customer confirm receipt
+    void confirmReceived(UUID orderId);
+
+    // Cancel order by customer (only PENDING status allowed)
+    void cancelOrderByCustomer(UUID orderId, String reason);
+
+    // Cancel order by admin (PENDING or CONFIRMED status allowed)
+    void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername);
+
+    // Return order (for DELIVERING or DELIVERED status - customer boom or return)
+    void returnOrder(UUID orderId, String reason, String adminUsername);
 }

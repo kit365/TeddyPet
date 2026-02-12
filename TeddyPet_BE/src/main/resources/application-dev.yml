@@ -52,6 +52,11 @@ spring:
     connection-timeout: ${ELASTICSEARCH_CONNECTION_TIMEOUT:5s}
     socket-timeout: ${ELASTICSEARCH_SOCKET_TIMEOUT:60s}
 
+  mail:
+    properties:
+      mail:
+        debug: false
+
 # Logging configuration
 logging:
   level:

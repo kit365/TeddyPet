@@ -69,6 +69,22 @@ export const AddressCreatePage = () => {
     // Ref để theo dõi thao tác người dùng
     const isManualChange = useRef(false);
 
+    // Khởi tạo từ Header nếu có
+    useEffect(() => {
+        const savedAddress = localStorage.getItem("delivery_address");
+        const savedCoords = localStorage.getItem("delivery_coords");
+
+        if (savedAddress && savedAddress !== "Chọn địa chỉ giao hàng" && !address) {
+            setAddress(savedAddress);
+            if (savedCoords) {
+                const { lat, lon } = JSON.parse(savedCoords);
+                const newPos = new L.LatLng(lat, lon);
+                setPosition(newPos);
+                setMapCenter([lat, lon]);
+            }
+        }
+    }, []);
+
     // Log mỗi khi Tọa độ (Position) thay đổi
     useEffect(() => {
         if (position) {
@@ -184,6 +200,12 @@ export const AddressCreatePage = () => {
 
         if (!position) {
             toast.error("Vui lòng chọn vị trí trên bản đồ");
+            return;
+        }
+
+        const phoneRegex = /(03|05|07|08|09)+([0-9]{8})\b/;
+        if (!phoneRegex.test(phone)) {
+            toast.error("Số điện thoại không hợp lệ");
             return;
         }
 

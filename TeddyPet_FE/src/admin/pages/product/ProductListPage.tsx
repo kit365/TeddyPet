@@ -7,7 +7,7 @@ export const ProductListPage = () => {
     const { t } = useTranslation();
 
     return (
-        <>
+        <div className="flex flex-col gap-[32px]">
             <ListHeader
                 title={t("admin.product.title.list")}
                 breadcrumbItems={[
@@ -19,6 +19,6 @@ export const ProductListPage = () => {
                 addButtonPath={`/${prefixAdmin}/product/create`}
             />
             <ProductList />
-        </>
+        </div>
     )
 }

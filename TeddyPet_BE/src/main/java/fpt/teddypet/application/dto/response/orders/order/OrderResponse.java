@@ -30,6 +30,12 @@ public record OrderResponse(
                 String notes,
                 List<OrderItemResponse> orderItems,
                 List<PaymentOrderResponse> payments,
+                Double distanceKm,
+                // Cancellation/Return info
+                String cancelReason,
+                LocalDateTime cancelledAt,
+                String cancelledBy,
+                LocalDateTime deliveredAt,
                 LocalDateTime createdAt,
                 LocalDateTime updatedAt) {
 }

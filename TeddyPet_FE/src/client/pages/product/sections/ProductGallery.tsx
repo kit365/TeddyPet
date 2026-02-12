@@ -1,18 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Thumbs } from 'swiper/modules';
 import { Swiper as SwiperCore } from 'swiper';
 
 interface ProductGalleryProps {
-    images: { id: number; url: string }[];
+    images: { id: number; imageUrl: string }[];
+    selectedImage?: string | null;
 }
 
-export const ProductGallery = ({ images }: ProductGalleryProps) => {
+export const ProductGallery = ({ images, selectedImage }: ProductGalleryProps) => {
     const [thumbsSwiper, setThumbsSwiper] = useState<SwiperCore | null>(null);
+    const [mainSwiper, setMainSwiper] = useState<SwiperCore | null>(null);
 
     const displayImages = images.length > 0 ? images : [
-        { id: 1, url: 'https://placeholder.com/600', alt: "Placeholder" }
+        { id: 1, imageUrl: 'https://placeholder.com/600', alt: "Placeholder" }
     ];
+
+    useEffect(() => {
+        if (mainSwiper && selectedImage) {
+            const index = displayImages.findIndex(img => img.imageUrl === selectedImage);
+            if (index !== -1) {
+                mainSwiper.slideTo(index);
+            }
+        }
+    }, [selectedImage, mainSwiper, displayImages]);
 
     return (
         <div className="flex w-full gap-[20px] 2xl:gap-[12px] sticky top-0 h-[603px] 2xl:h-[522.75px]">
@@ -33,7 +44,7 @@ export const ProductGallery = ({ images }: ProductGalleryProps) => {
                             className="swiper-thumbnail-item border border-[#D7D7D7] cursor-pointer rounded-[10px] overflow-hidden p-[3px]"
                         >
                             <img
-                                src={image.url}
+                                src={image.imageUrl}
                                 alt={`Thumbnail ${index}`}
                                 className="w-full h-full object-cover rounded-[10px]"
                             />
@@ -43,6 +54,7 @@ export const ProductGallery = ({ images }: ProductGalleryProps) => {
             </div>
             <div className={`w-[571px] h-[600px] 2xl:w-[499px] 2xl:h-[522.75px]`}>
                 <Swiper
+                    onSwiper={setMainSwiper}
                     thumbs={{ swiper: thumbsSwiper }}
                     modules={[FreeMode, Thumbs]}
                     spaceBetween={10}
@@ -52,7 +64,7 @@ export const ProductGallery = ({ images }: ProductGalleryProps) => {
                     {displayImages.map((image, index) => (
                         <SwiperSlide key={index} className="h-full">
                             <img
-                                src={image.url}
+                                src={image.imageUrl}
                                 alt={`Product ${index}`}
                                 className="w-full h-full object-cover"
                             />

@@ -44,17 +44,34 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                        // Public Order APIs
                         .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/received").permitAll()
+                        .requestMatchers("/api/orders/track/**").permitAll()
                         .requestMatchers("/api/orders/guest/**").permitAll()
+                        // Public Product & Content APIs
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/product-categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/product-brands/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/product-tags/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/product-variants/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/feedbacks/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/feedbacks").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/home/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/blog-posts/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/blog-categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ratings/**").permitAll()
                         // Guest OTP
                         .requestMatchers("/api/otp/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/home/**",
+                                "/api/settings/**",
+                                "/api/shipping/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api-docs/**",
                                 "/swagger-ui.html",
+                                "/dev/**",
                                 "/error")
                         .permitAll()
                         .anyRequest().authenticated())

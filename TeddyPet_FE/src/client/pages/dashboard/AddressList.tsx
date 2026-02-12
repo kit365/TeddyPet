@@ -1,14 +1,15 @@
-import { MapPin, Phone, User } from "iconoir-react";
-import { ProductBanner } from "../product/sections/ProductBanner";
+import { MapPin, Phone, User as UserIcon } from "iconoir-react";
 import { Link } from "react-router-dom";
-import { Sidebar } from "./sections/Sidebar";
 import { useEffect, useState } from "react";
 import { getAllAddresses, deleteAddress, setDefaultAddress } from "../../../api/address.api";
 import { UserAddressResponse } from "../../../types/address.type";
 import { toast } from "react-toastify";
+import { useAuthStore } from "../../../stores/useAuthStore";
+import { DashboardLayout } from "./sections/DashboardLayout";
+import { Plus } from "lucide-react";
 
 export const AddressListPage = () => {
-    const user = { name: "Demo User" }; // Fixed data for portability
+    const { user } = useAuthStore();
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,6 +41,14 @@ export const AddressListPage = () => {
         try {
             await deleteAddress(id);
             toast.success("Xóa địa chỉ thành công");
+
+            const savedAddr = localStorage.getItem("delivery_address");
+            const addrToDelete = addresses.find(a => a.id === id);
+            if (addrToDelete && savedAddr === addrToDelete.address) {
+                localStorage.removeItem("delivery_address");
+                localStorage.removeItem("delivery_coords");
+            }
+
             fetchAddresses();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Không thể xóa địa chỉ");
@@ -50,6 +59,18 @@ export const AddressListPage = () => {
         try {
             await setDefaultAddress(id);
             toast.success("Đặt địa chỉ mặc định thành công");
+
+            const newDefault = addresses.find(a => a.id === id);
+            if (newDefault) {
+                localStorage.setItem("delivery_address", newDefault.address);
+                if (newDefault.latitude && newDefault.longitude) {
+                    localStorage.setItem("delivery_coords", JSON.stringify({
+                        lat: newDefault.latitude,
+                        lon: newDefault.longitude
+                    }));
+                }
+            }
+
             fetchAddresses();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Không thể đặt địa chỉ mặc định");
@@ -58,100 +79,98 @@ export const AddressListPage = () => {
 
     if (!user) {
         return (
-            <>
-                <ProductBanner
-                    pageTitle="Tài khoản"
-                    breadcrumbs={breadcrumbs}
-                    url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-shop-details.jpg"
-                    className="bg-top"
-                />
-                <div className="min-h-[40vh] flex flex-col items-center justify-center gap-4 bg-[#f9f9f9]">
-                    <p className="text-[1.8rem] text-client-secondary">Vui lòng đăng nhập để xem thông tin tài khoản.</p>
-                    <a href="/auth/login" className="bg-client-secondary text-white px-8 py-3 rounded-full text-[1.6rem] hover:bg-client-primary transition-all">Đăng nhập ngay</a>
+            <DashboardLayout pageTitle="Tài khoản" breadcrumbs={breadcrumbs}>
+                <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6">
+                    <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center text-client-primary animate-pulse">
+                        <UserIcon width={48} height={48} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-[2rem] font-black text-slate-800 tracking-tight">Vui lòng đăng nhập</p>
+                        <p className="text-slate-400 mt-2 font-medium">Bạn cần đăng nhập để xem thông tin tài khoản.</p>
+                    </div>
+                    <Link to="/auth/login" className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-indigo-100">
+                        Đăng nhập ngay
+                    </Link>
                 </div>
-            </>
+            </DashboardLayout>
         );
     }
 
     return (
-        <>
-            <ProductBanner
-                pageTitle="Danh sách địa chỉ"
-                breadcrumbs={breadcrumbs}
-                url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-shop-details.jpg"
-                className="bg-top"
-            />
-
-            <div className="mt-[-150px] mb-[100px] w-[1600px] mx-auto flex items-stretch">
-                <div className="w-[25%] px-[12px] flex">
-                    <Sidebar />
+        <DashboardLayout pageTitle="Danh sách địa chỉ" breadcrumbs={breadcrumbs}>
+            <div className="flex justify-between items-end border-b border-slate-100 pb-8 mb-10">
+                <div>
+                    <h3 className="text-[2.8rem] font-black text-slate-800 tracking-tight italic flex items-center gap-3">
+                        Sổ địa chỉ
+                    </h3>
+                    <p className="text-[1.2rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Nơi nhận yêu thương từ TeddyPet</p>
                 </div>
-                <div className="w-[75%] px-[12px]">
-                    <div className="mt-[100px] p-[35px] bg-white shadow-[0px_8px_24px_#959da533] rounded-[12px]">
-                        <h3 className="text-[2.4rem] font-[600] text-client-secondary flex items-center justify-between mb-[10px]">
-                            Danh sách địa chỉ
-                            <Link className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[25px] py-[12px] font-[500] text-[1.4rem] text-white flex items-center gap-[8px]" to={"/dashboard/address/create"}>
-                                <span className="relative z-10">Thêm địa chỉ</span>
-                                <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
-                            </Link>
-                        </h3>
+                <Link to="/dashboard/address/create" className="flex items-center gap-2 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20">
+                    <Plus size={18} /> Thêm địa chỉ mới
+                </Link>
+            </div>
 
-                        {loading ? (
-                            <div className="text-center py-[50px] text-client-text">Đang tải...</div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-[30px] mt-[30px]">
-                                {addresses.map((item) => (
-                                    <div key={item.id} className="group cursor-pointer">
-                                        <div className={`relative border rounded-[16px] p-[30px] transition-all duration-300 bg-white shadow-[0px_2px_8px_rgba(0,0,0,0.04)] border-[#eee] group-hover:shadow-[0px_10px_30px_rgba(0,0,0,0.08)] group-hover:border-client-primary/30 group-hover:-translate-y-1`}>
-                                            {item.isDefault && (
-                                                <div className="absolute top-[20px] right-[20px] bg-client-primary/10 text-client-primary text-[1.2rem] font-[600] px-[12px] py-[4px] rounded-full">
-                                                    Mặc định
-                                                </div>
-                                            )}
-                                            <div className="flex gap-[20px]">
-                                                <div className="mt-[6px]">
-                                                    <input
-                                                        type="radio"
-                                                        name="address_selection"
-                                                        className="appearance-none w-[20px] h-[20px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
-                                                        checked={item.isDefault}
-                                                        onChange={() => handleSetDefault(item.id)}
-                                                    />
-                                                </div>
-                                                <div className="flex-1 space-y-[15px]">
-                                                    <div className="flex items-center gap-[12px] text-[1.6rem] text-client-secondary font-[700]">
-                                                        <User className="w-[2rem] h-[2rem] text-client-primary" />
-                                                        {item.fullName}
-                                                    </div>
-                                                    <div className="flex items-center gap-[12px] text-[1.5rem] text-[#555]">
-                                                        <Phone className="w-[2rem] h-[2rem] text-gray-400" />
-                                                        {item.phone}
-                                                    </div>
-                                                    <div className="flex items-start gap-[12px] text-[1.5rem] text-[#555] leading-relaxed">
-                                                        <MapPin className="w-[2rem] h-[2rem] text-gray-400 mt-[2px]" />
-                                                        <span className="flex-1">{item.address}</span>
-                                                    </div>
-
-                                                    <div className="pt-[10px] flex items-center gap-[15px] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Link to={`/dashboard/address/edit/${item.id}`} className="text-[1.4rem] font-[600] text-client-primary hover:underline">Chỉnh sửa</Link>
-                                                        <div className="w-[1px] h-[12px] bg-gray-300"></div>
-                                                        <button
-                                                            onClick={() => handleDelete(item.id)}
-                                                            className="text-[1.4rem] font-[600] text-red-500 hover:underline"
-                                                        >
-                                                            Xóa
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+            {loading ? (
+                <div className="py-20 flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p className="text-[1.6rem] font-bold text-slate-300">Đang tải danh sách...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-8">
+                    {addresses.map((item) => (
+                        <div key={item.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 transition-all hover:shadow-2xl hover:shadow-client-primary/5 hover:-translate-y-1">
+                            {item.isDefault && (
+                                <div className="absolute top-6 right-6 bg-emerald-50 text-emerald-600 text-[1.1rem] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-emerald-100">
+                                    Mặc định
+                                </div>
+                            )}
+                            <div className="flex gap-6">
+                                <div className="mt-1">
+                                    <input
+                                        type="radio"
+                                        name="address_selection"
+                                        className="appearance-none w-6 h-6 border-2 border-slate-200 rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
+                                        checked={item.isDefault}
+                                        onChange={() => handleSetDefault(item.id)}
+                                    />
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                    <div>
+                                        <div className="flex items-center gap-3 text-[1.8rem] text-slate-800 font-bold">
+                                            <UserIcon className="w-6 h-6 text-indigo-400" />
+                                            {item.fullName}
                                         </div>
                                     </div>
-                                ))}
+                                    <div className="flex items-center gap-3 text-[1.5rem] text-slate-500 font-medium font-sans">
+                                        <Phone className="w-6 h-6 text-slate-300" />
+                                        {item.phone}
+                                    </div>
+                                    <div className="flex items-start gap-3 text-[1.5rem] text-slate-500 font-medium leading-relaxed font-sans">
+                                        <MapPin className="w-6 h-6 text-slate-300 mt-1 shrink-0" />
+                                        <span>{item.address}</span>
+                                    </div>
+
+                                    <div className="pt-4 flex items-center gap-6 border-t border-slate-50">
+                                        <Link to={`/dashboard/address/edit/${item.id}`} className="text-[1.2rem] font-black text-indigo-600 uppercase tracking-widest hover:text-slate-800 transition-colors">Chỉnh sửa</Link>
+                                        <button
+                                            onClick={() => handleDelete(item.id)}
+                                            className="text-[1.2rem] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors"
+                                        >
+                                            Xóa bỏ
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
+                    {addresses.length === 0 && !loading && (
+                        <div className="col-span-2 py-20 flex flex-col items-center gap-6 opacity-40">
+                            <MapPin className="w-24 h-24 text-slate-300" />
+                            <p className="text-[1.8rem] font-bold text-slate-400">Bạn chưa có địa chỉ nào lưu lại.</p>
+                        </div>
+                    )}
                 </div>
-            </div>
-        </>
+            )}
+        </DashboardLayout>
     );
 };

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { IProduct } from '../configs/types';
+import { IProduct } from '../../../../types/products.type';
 import { getProducts } from '../../../../api/product.api';
 import { toast } from 'react-toastify';
 
@@ -23,21 +23,23 @@ export const useProducts = () => {
             try {
                 const response = await getProducts();
                 if (response.success) {
-                    const mappedProducts: IProduct[] = response.data.content.map((item) => {
-                        const totalStock = item.variants.reduce((acc, curr) => acc + curr.stockQuantity, 0);
-                        // Map backend status to frontend status
-                        let status = "draft";
-                        if (item.status === "IN_STOCK") status = "active";
-                        if (item.status === "OUT_OF_STOCK") status = "inactive"; // or whatever logic you prefer
+                    const mappedProducts: IProduct[] = response.data.content.map((item: any) => {
+                        const variants = item.variants || [];
+                        const totalStock = variants.reduce((acc: number, curr: any) => acc + (curr.stockQuantity || 0), 0);
+                        const status = item.status ? item.status.toLowerCase() : "draft";
 
                         return {
                             id: item.productId,
                             product: item.name,
                             category: item.categories[0]?.name || "N/A",
-                            image: "https://api-prod-minimal-v700.pages.dev/assets/images/m-product/product-1.webp", // Placeholder as per demo
-                            createdAt: new Date(item.createdAt),
+                            image: item.images && item.images.length > 0 ? item.images[0].imageUrl : "https://api-prod-minimal-v700.pages.dev/assets/images/m-product/product-1.webp",
+                            createdAt: item.createdAt ? new Date(item.createdAt) : null,
                             stock: totalStock,
+                            stockStatus: item.stockStatus,
                             price: item.minPrice,
+                            minPrice: item.minPrice,
+                            maxPrice: item.maxPrice,
+                            productType: item.productType,
                             status: status
                         };
                     });
@@ -66,14 +68,11 @@ export const useProducts = () => {
 
             // Filter by stock
             if (filters.stock && filters.stock.length > 0) {
-                const isInStock = product.stock > 20;
-                const isLowStock = product.stock > 0 && product.stock <= 20;
-                const isOutOfStock = product.stock === 0;
-
                 const matchesStock = filters.stock.some((stock) => {
-                    if (stock === 'instock') return isInStock;
-                    if (stock === 'lowstock') return isLowStock;
-                    if (stock === 'outofstock') return isOutOfStock;
+                    const status = product.stockStatus;
+                    if (stock === 'instock') return status === 'IN_STOCK';
+                    if (stock === 'lowstock') return status === 'LOW_STOCK';
+                    if (stock === 'outofstock') return status === 'OUT_OF_STOCK';
                     return false;
                 });
 

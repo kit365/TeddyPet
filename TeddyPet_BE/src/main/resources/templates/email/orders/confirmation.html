@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{email/fragments/head :: head(title='Xác nhận đơn hàng - TeddyPet')}">
+    <title>Xác nhận đơn hàng</title>
+</head>
+
+
+
+<body>
+    <!-- Hidden Preheader: Text that appears in the email client's notification/preview -->
+    <div
+        style="display: none; font-size: 1px; color: #ffffff; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+        <span th:text="${emailHeadline}">Xác nhận đơn hàng thành công!</span>
+        &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+    </div>
+    <div class="order-wrapper"
+        style="width: 100%; table-layout: fixed; background-color: #f1f5f9; padding: 40px 0; text-align: center;">
+        <!--[if (gte mso 9)|(IE)]>
+        <table style="width: 600px; margin: 0 auto; border-spacing: 0;"><tr><td>
+        <![endif]-->
+        <table class="order-main"
+            style="width: 100%; max-width: 600px; background-color: #ffffff; margin: 0 auto; border: 0; border-spacing: 0; border-collapse: collapse; border-radius: 16px; overflow: hidden;">
+            <!-- Header -->
+            <tr>
+                <td>
+                    <div th:replace="~{email/fragments/header :: header}"></div>
+                </td>
+            </tr>
+
+            <!-- Hero Section & CTA (Screenshot 4/5 style) -->
+            <tr>
+                <td class="hero" style="padding: 40px 40px 30px; text-align: center;">
+                    <h1 class="headline" style="font-size: 32px; line-height: 1.2; margin-bottom: 15px;"
+                        th:text="${emailHeadline}">Đặt hàng
+                        thành công!</h1>
+                    <p class="sub-headline" style="font-size: 16px; margin-bottom: 30px; color: #64748b;"
+                        th:text="${subHeadline}">
+                        Xin chào <strong th:text="${fullName}">Quý khách</strong>, đơn hàng của bạn đã được tiếp nhận.
+                    </p>
+                    <table style="border: 0; border-spacing: 0; border-collapse: collapse; margin: 0 auto;">
+                        <tr>
+                            <td style="vertical-align: middle; text-align: center;">
+                                <div
+                                    th:replace="~{email/fragments/components :: button(text='Xem đơn hàng', url=${trackOrderUrl})}">
+                                </div>
+                            </td>
+                            <td style="padding-left: 20px; font-size: 16px; color: #64748b; vertical-align: middle;">
+                                hoặc <a th:href="${webUrl}"
+                                    style="color: #4f46e5; text-decoration: none; font-weight: 600;">Đến cửa hàng của
+                                    chúng tôi</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+
+            <!-- Divider 1 -->
+            <tr>
+                <td style="padding: 10px 0;">
+                    <div style="border-top: 1px solid #e2e8f0; width: 100%;"></div>
+                </td>
+            </tr>
+
+            <!-- Order Details (Screenshot 2 style) -->
+            <tr>
+                <td style="padding: 20px 0;">
+                    <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0 40px 20px;">Thông tin đơn
+                        hàng</div>
+
+                    <table style="width: 100%; border-spacing: 0; border-collapse: collapse;">
+                        <th:block th:each="item : ${items}">
+                            <tr>
+                                <td class="product-row" style="padding: 15px 40px; border-bottom: 1px solid #e2e8f0;">
+                                    <table
+                                        style="width: 100%; border: 0; border-spacing: 0; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="width: 60px; vertical-align: top;">
+                                                <img th:src="${item.imageUrl}" width="60" height="60" alt="Sản phẩm"
+                                                    style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; display: block;">
+                                            </td>
+                                            <td style="padding-left: 15px; vertical-align: top;">
+                                                <div style="font-size: 14px; font-weight: 700; color: #334155; line-height: 1.4;"
+                                                    th:text="${item.productName + ' × ' + item.quantity}">Sản phẩm × 1
+                                                </div>
+                                                <div th:if="${item.variantName}"
+                                                    style="font-size: 12px; color: #94a3b8; margin-top: 4px;"
+                                                    th:text="${item.variantName}">Biến thể</div>
+                                            </td>
+                                            <td style="text-align: right; vertical-align: top; white-space: nowrap;">
+                                                <div style="font-size: 15px; font-weight: 700; color: #1e293b;"
+                                                    th:text="${#numbers.formatDecimal(item.unitPrice * item.quantity, 0, 'COMMA', 0, 'POINT') + 'đ'}">
+                                                    0đ</div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </th:block>
+                    </table>
+
+                    <!-- Financial Summary Aligned Right -->
+                    <div style="padding: 30px 40px 10px;">
+                        <table style="width: 100%; border: 0; border-spacing: 0; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 45%;"></td>
+                                <td>
+                                    <table
+                                        style="width: 100%; border: 0; border-spacing: 0; border-collapse: collapse;">
+                                        <tr>
+                                            <td
+                                                style="padding: 6px 0; font-size: 14px; color: #64748b; white-space: nowrap;">
+                                                Tổng giá trị sản phẩm</td>
+                                            <td style="text-align: right; padding: 6px 0 6px 20px; font-size: 14px; color: #1e293b; font-weight: 700; white-space: nowrap;"
+                                                th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT') + 'đ'}">
+                                                0đ</td>
+                                        </tr>
+                                        <tr>
+                                            <td
+                                                style="padding: 6px 0; font-size: 14px; color: #64748b; white-space: nowrap;">
+                                                Khuyến mãi</td>
+                                            <td style="text-align: right; padding: 6px 0 6px 20px; font-size: 14px; color: #f43f5e; font-weight: 700; white-space: nowrap;"
+                                                th:text="${'-' + #numbers.formatDecimal((discount ?: 0), 0, 'COMMA', 0, 'POINT') + 'đ'}">
+                                                0đ</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                                            <td
+                                                style="padding: 6px 0 15px; font-size: 14px; color: #64748b; white-space: nowrap;">
+                                                Phí vận chuyển</td>
+                                            <td
+                                                style="text-align: right; padding: 6px 0 15px 20px; font-size: 14px; color: #1e293b; font-weight: 700; white-space: nowrap;">
+                                                <span th:if="${orderStatus == 'PENDING'}"
+                                                    style="color: #0d9488; font-style: italic;">Liên hệ sau</span>
+                                                <span th:unless="${orderStatus == 'PENDING'}"
+                                                    th:text="${#numbers.formatDecimal(shippingFee, 0, 'COMMA', 0, 'POINT') + 'đ'}">0đ</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td
+                                                style="padding: 20px 0 5px; font-size: 16px; color: #1e293b; font-weight: 800; white-space: nowrap;">
+                                                Tổng cộng</td>
+                                            <td style="text-align: right; padding: 20px 0 5px 20px; font-size: 22px; color: #1e293b; font-weight: 900; white-space: nowrap;"
+                                                th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT') + ' VND'}">
+                                                0 VND</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Divider 2 -->
+            <tr>
+                <td style="padding: 10px 0;">
+                    <div style="border-top: 1px solid #e2e8f0; width: 100%;"></div>
+                </td>
+            </tr>
+
+            <!-- Customer Info (Screenshot 3 style) -->
+            <tr>
+                <td style="border-top: 1px solid #e2e8f0; padding-top: 30px;">
+                    <div th:replace="~{email/fragments/components :: customerInfoGrid}"></div>
+                </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+                <td>
+                    <div th:replace="~{email/fragments/footer :: footer}"></div>
+                </td>
+            </tr>
+        </table>
+        <!--[if (gte mso 9)|(IE)]>
+        </td></tr></table>
+        <![endif]-->
+    </div>
+</body>
+
+</html>

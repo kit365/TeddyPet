@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getProductTags, createProductTag, deleteProductTag,
     getProductAgeRanges, createProductAgeRange, updateProductAgeRange, deleteProductAgeRange, getProductAgeRangeById,
-    getCountries, createProduct
+    getCountries, createProduct, getProductById, updateProduct, deleteProduct
 } from '../../../api/product.api';
 import { getBrands } from '../../../api/brand.api';
 import { ApiResponse } from '../../../config/type';
@@ -117,6 +117,38 @@ export const useCreateProduct = () => {
 
     return useMutation({
         mutationFn: createProduct,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+        },
+    });
+};
+
+export const useProductDetail = (id?: string | number) => {
+    return useQuery({
+        queryKey: ['product', id],
+        queryFn: () => getProductById(id!),
+        enabled: !!id,
+        select: (res: any) => res.data,
+    });
+};
+
+export const useUpdateProduct = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string | number; data: any }) => updateProduct(id, data),
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['product', variables.id] });
+        },
+    });
+};
+
+export const useDeleteProduct = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: deleteProduct,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
         },

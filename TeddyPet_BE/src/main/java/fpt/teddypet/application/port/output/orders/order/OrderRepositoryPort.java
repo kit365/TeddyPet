@@ -5,7 +5,9 @@ import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderRepositoryPort {
@@ -30,5 +32,9 @@ public interface OrderRepositoryPort {
     Order getReferenceById(UUID orderId);
 
     // Guest order lookup
-    java.util.Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail);
+    Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail);
+
+    List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
+
+    List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 }

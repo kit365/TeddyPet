@@ -1,5 +1,6 @@
 import axios from "axios"
 import Cookies from "js-cookie"
+import { useAuthStore } from "../stores/useAuthStore"
 
 const BASE_URL = "http://localhost:8080"
 
@@ -47,14 +48,19 @@ apiApp.interceptors.response.use(
         return response;
     },
     async (error) => {
+        if (error.response && error.response.data && (error.response.data.message || error.response.data.error)) {
+            error.message = error.response.data.message || error.response.data.error;
+        }
+
         const originalRequest = error.config;
 
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
 
             // Determine if Admin or Client
             const isAdmin = window.location.pathname.startsWith("/admin");
             const tokenKey = isAdmin ? "tokenAdmin" : "token";
             const refreshTokenKey = isAdmin ? "refreshTokenAdmin" : "refreshToken";
+            const loginPath = isAdmin ? "/admin/auth/login" : "/auth/login";
 
             if (originalRequest.url.includes('/login') || originalRequest.url.includes('/refresh-token')) {
                 return Promise.reject(error);
@@ -78,14 +84,12 @@ apiApp.interceptors.response.use(
 
             if (!refreshToken) {
                 if (isAdmin) {
-                    Cookies.remove("tokenAdmin");
-                    Cookies.remove("refreshTokenAdmin");
-                    window.location.href = "/admin/login";
+                    Cookies.remove(tokenKey);
+                    Cookies.remove(refreshTokenKey);
                 } else {
-                    Cookies.remove("token");
-                    Cookies.remove("refreshToken");
-                    window.location.href = "/login";
+                    useAuthStore.getState().logout();
                 }
+                window.location.href = loginPath;
                 return Promise.reject(error);
             }
 
@@ -112,14 +116,12 @@ apiApp.interceptors.response.use(
                 processQueue(err, null);
                 // Clear tokens and redirect
                 if (isAdmin) {
-                    Cookies.remove("tokenAdmin");
-                    Cookies.remove("refreshTokenAdmin");
-                    window.location.href = "/admin/login";
+                    Cookies.remove(tokenKey);
+                    Cookies.remove(refreshTokenKey);
                 } else {
-                    Cookies.remove("token");
-                    Cookies.remove("refreshToken");
-                    window.location.href = "/login";
+                    useAuthStore.getState().logout();
                 }
+                window.location.href = loginPath;
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;

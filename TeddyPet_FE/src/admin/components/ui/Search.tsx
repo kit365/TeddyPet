@@ -8,9 +8,11 @@ import { useTranslation } from 'react-i18next';
 interface SearchProps {
     maxWidth?: string | number;
     placeholder?: string;
+    value?: string;
+    onChange?: (value: string) => void;
 }
 
-export const Search = ({ maxWidth = 260, placeholder }: SearchProps) => {
+export const Search = ({ maxWidth = 260, placeholder, value, onChange }: SearchProps) => {
     const { t } = useTranslation();
     const displayPlaceholder = placeholder || t("admin.common.search");
 
@@ -20,6 +22,8 @@ export const Search = ({ maxWidth = 260, placeholder }: SearchProps) => {
                 fullWidth
                 variant="outlined"
                 placeholder={displayPlaceholder}
+                value={value}
+                onChange={(e) => onChange?.(e.target.value)}
                 slotProps={{
                     input: {
                         startAdornment: (

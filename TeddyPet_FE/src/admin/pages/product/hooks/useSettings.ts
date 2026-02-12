@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { IGridSettings } from "../configs/types";
+import { IGridSettings } from "../../../../types/common.type";
 
 const SETTINGS_DEFAULT: IGridSettings = {
-    density: 'standard',
+    density: 'comfortable',
     showCellBorders: true,
     showColumnBorders: true,
 };

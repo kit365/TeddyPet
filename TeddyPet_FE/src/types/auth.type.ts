@@ -59,4 +59,29 @@ export type ForgotPasswordResponse = ApiResponse<void>;
 export type ValidateResetTokenResponse = ApiResponse<boolean>;
 export type LogoutResponse = ApiResponse<void>;
 
+export interface UpdateProfilePayload {
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: string;
+}
 
+export type UpdateProfileResponse = ApiResponse<UserProfileResponse>;
+
+export interface AuthUser extends UserProfileResponse {
+    expiresAt?: string;
+}
+
+export interface AuthState {
+    user: AuthUser | null;
+    token: string | null;
+    isHydrated: boolean;
+    login: (user: AuthUser, token: string, refreshToken?: string) => void;
+    logout: () => void;
+    set: (newState: Partial<AuthState>) => void;
+}export interface ChangePasswordPayload {
+    oldPassword: string;
+    newPassword: string;
+    otpCode: string;
+}

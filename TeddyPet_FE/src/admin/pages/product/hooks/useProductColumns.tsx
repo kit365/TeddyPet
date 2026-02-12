@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { GridColDef } from '@mui/x-data-grid';
+import { Box } from '@mui/material';
 import { RenderActionsCell, RenderCreatedAtCell, RenderProductCell, RenderStatusCell, RenderStockCell } from '../utils/render-cells';
-import { IProduct } from '../configs/types';
+import { IProduct } from '../../../../types/products.type';
 import { useMemo } from 'react';
 
 export const useProductColumns = () => {
@@ -34,8 +35,15 @@ export const useProductColumns = () => {
         {
             field: "price",
             headerName: t("admin.product.fields.price"),
-            width: 120,
+            width: 140,
             filterable: true,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                    <span style={{ fontWeight: 600, fontSize: '1.4rem' }}>
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(params.value || 0)}
+                    </span>
+                </Box>
+            )
         },
         {
             field: "status",

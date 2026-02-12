@@ -31,3 +31,9 @@ export const removeCartItem = async (variantId: number) => {
     const response = await apiApp.delete<ApiResponse<void>>(`${BASE_PATH}/items/${variantId}`);
     return response.data;
 };
+
+// POST /api/carts/guest/sync - Đồng bộ giỏ hàng khách vãng lai
+export const syncGuestCart = async (items: AddToCartRequest[]) => {
+    const response = await apiApp.post<ApiResponse<CartResponse>>(`${BASE_PATH}/guest/sync`, items);
+    return response.data;
+};

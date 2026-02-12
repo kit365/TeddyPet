@@ -7,7 +7,10 @@ export const ProductCard = ({ product }: { product: Product }) => {
     return (
         <div className="bg-[#fff0f0] rounded-[20px] overflow-hidden product-item transition-all duration-300 ease-linear hover:bg-client-primary group">
             <div className="p-[15px]">
-                <Link to={product.url} className="block relative rounded-[20px] overflow-hidden aspect-[327/343]">
+                <Link
+                    to={product.url}
+                    className="block relative rounded-[20px] overflow-hidden aspect-[327/343]"
+                >
                     {/*Primary Image */}
                     <img
                         className="primary-image-item w-full h-full object-cover rounded-[20px] transition-opacity duration-700 opacity-100 cursor-pointer absolute top-0 left-0"
@@ -20,10 +23,18 @@ export const ProductCard = ({ product }: { product: Product }) => {
                         src={product.secondaryImage}
                         alt={product.title}
                     />
-                    {product.isSale && (
+                    {product.isSoldOut && (
+                        <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[1.2rem] uppercase tracking-normal text-white bg-black/60 rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center pointer-events-none z-10">
+                            Hết hàng
+                        </div>
+                    )}
+                    {product.isSale && !product.isSoldOut && (
                         <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[1.2rem] uppercase tracking-normal text-white bg-client-primary rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center">
                             SALE
                         </div>
+                    )}
+                    {product.isSoldOut && (
+                        <div className="absolute inset-0 bg-white/50 z-1 pointer-events-none"></div>
                     )}
                 </Link>
             </div>
@@ -52,22 +63,29 @@ export const ProductCard = ({ product }: { product: Product }) => {
                     </Link>
 
                     {/* Price */}
-                    <p className="text-client-secondary group-hover:text-white transition-default">
-                        {product.price}
-                    </p>
+                    <div className="flex items-center gap-2 group-hover:text-white transition-default font-bold">
+                        <p className="text-client-secondary group-hover:text-white">
+                            {product.price}
+                        </p>
+                        {product.oldPrice && (
+                            <p className="text-[#999] line-through text-[1.4rem] font-normal group-hover:text-white opacity-70">
+                                {product.oldPrice}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Cart Button */}
-                <div className="mt-[15px]">
+                <div className={`mt-[15px] ${product.isSoldOut ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                     <div className="mt-[53px]">
-                        <div className="w-[61px] h-[61px] pt-[10px] pr-[1px] pb-[1px] pl-[10px] relative rounded-tl-[30px] bg-white cart-button">
+                        <Link to={product.url} className="w-[61px] h-[61px] pt-[10px] pr-[1px] pb-[1px] pl-[10px] relative rounded-tl-[30px] bg-white cart-button cursor-pointer block">
                             <div className="w-[50px] h-[50px] rounded-full bg-client-primary flex items-center justify-center duration-[375ms] ease-[cubic-bezier(0.7,0,0.3,1)] group-hover:bg-client-secondary">
                                 <ShoppingCartOutlinedIcon
                                     className="text-white"
                                     sx={{ fontSize: "2.5rem" }}
                                 />
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </div>

@@ -64,5 +64,20 @@ public final class ApiConstants {
     public static final String API_PAYMENT = BASE_API + "/payments";
 
     // User Address API base path
+    // User Address API base path
     public static final String API_USER_ADDRESSES = BASE_API + "/user-addresses";
+
+    // OTP API base path
+    public static final String API_OTP = BASE_API + "/otp";
+
+    // Shipping API base path
+    public static final String API_SHIPPING = BASE_API + "/shipping";
+
+    // App Setting API base path
+    public static final String API_SETTINGS = BASE_API + "/settings";
+
+    // User API base path
+    public static final String API_USER = BASE_API + "/users";
+
+    public static final String API_FEEDBACKS = BASE_API + "/feedbacks";
 }
