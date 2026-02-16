@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+// import { showConfirmDialog } from "../../../utils/confirmation";
 import { useParams, useNavigate } from "react-router-dom";
+import { StatusConfirmDialog } from "../../components/StatusConfirmDialog";
 import {
     Card,
     Typography,
@@ -32,7 +34,7 @@ import IconButton from '@mui/material/IconButton';
 import { toast } from "react-toastify";
 
 import { prefixAdmin } from "../../constants/routes";
-import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder } from "../../api/order.api";
+import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder, handleReturnRequest } from "../../api/order.api";
 import { getShippingFeeSuggestion } from "../../api/shipping.api";
 import { OrderResponse } from "../../../types/order.type";
 import { COLORS } from "../product/configs/constants";
@@ -58,10 +60,27 @@ export const OrderDetailPage = () => {
     const [suggestionStatus, setSuggestionStatus] = useState<string>('');
     const [fetchingSuggestion, setFetchingSuggestion] = useState(false);
 
+    // Status Confirmation Dialog State
+    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
     // Cancel/Return Order Dialog State
     const [openCancelDialog, setOpenCancelDialog] = useState(false);
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+
+    // Handle Return Request State
+    const [openHandleReturnDialog, setOpenHandleReturnDialog] = useState(false);
+    const [returnApproved, setReturnApproved] = useState(true);
+    const [adminReturnNote, setAdminReturnNote] = useState('');
+
+    const quickRejectReasons = [
+        "Sản phẩm không còn nguyên vẹn/đã qua sử dụng",
+        "Quá thời hạn đổi trả quy định (7 ngày)",
+        "Lý do trả hàng không hợp lệ/không đúng sự thật",
+        "Thiếu hình ảnh/video bằng chứng xác thực",
+        "Không đúng sản phẩm đã giao"
+    ];
+
 
     useEffect(() => {
         if (id) {
@@ -134,14 +153,19 @@ export const OrderDetailPage = () => {
         }
     };
 
-    const handleUpdateStatus = async (newStatus: string) => {
-        if (!id) return;
+    const handleUpdateStatus = (newStatus: string) => {
+        setPendingStatus(newStatus);
+    };
+
+    const handleConfirmStatusChange = async () => {
+        if (!id || !pendingStatus) return;
         setUpdating(true);
         try {
-            const response = await updateOrderStatus(id, newStatus);
+            const response = await updateOrderStatus(id, pendingStatus);
             if (response.success) {
                 toast.success("Cập nhật trạng thái thành công");
                 fetchOrder(id);
+                setPendingStatus(null);
             } else {
                 toast.error(response.message || "Cập nhật thất bại");
             }
@@ -251,6 +275,28 @@ export const OrderDetailPage = () => {
 
     if (!order) return null;
 
+    const handleProcessReturnRequest = async () => {
+        if (!id) return;
+        setUpdating(true);
+        try {
+            const response = await handleReturnRequest(id, {
+                approved: returnApproved,
+                adminNote: adminReturnNote.trim()
+            });
+            if (response.success) {
+                toast.success(returnApproved ? "Đã chấp nhận yêu cầu trả hàng" : "Đã từ chối yêu cầu trả hàng");
+                setOpenHandleReturnDialog(false);
+                setAdminReturnNote('');
+                fetchOrder(id);
+            } else {
+                toast.error(response.message || "Xử lý thất bại");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi khi xử lý yêu cầu trả hàng");
+        } finally {
+            setUpdating(false);
+        }
+    };
     return (
         <Box sx={{ pb: 8, bgcolor: '#F4F7F9', minHeight: '100vh' }}>
             {/* 1. Header (Balanced) */}
@@ -374,14 +420,40 @@ export const OrderDetailPage = () => {
                                             boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
                                         }} />
                                         <Box textAlign="center">
-                                            <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: (['DELIVERED', 'COMPLETED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
+                                            <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
                                                 Giao hàng & Hoàn tất
                                             </Typography>
                                             <Typography sx={{ fontSize: '1.25rem', color: '#919EAB' }}>
-                                                {(['DELIVERED', 'COMPLETED'].includes(order.status)) ? new Date(order.updatedAt).toLocaleDateString('vi-VN') : 'Dự kiến sau khi chốt'}
+                                                {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? new Date(order.updatedAt).toLocaleDateString('vi-VN') : 'Dự kiến sau khi chốt'}
                                             </Typography>
                                         </Box>
                                     </Stack>
+
+                                    {/* Combined Step for Return (Conditional) */}
+                                    {['RETURN_REQUESTED', 'RETURNED'].includes(order.status) && (
+                                        <Stack spacing={2} alignItems="center" sx={{ width: '25%', ml: 'auto' }}>
+                                            <Box sx={{
+                                                width: 28, height: 28, borderRadius: '50%',
+                                                bgcolor: order.status === 'RETURN_REQUESTED' ? '#00B8D9' : '#00AB55',
+                                                border: '5px solid white',
+                                                boxShadow: `0 0 0 1px ${order.status === 'RETURN_REQUESTED' ? '#00B8D9' : '#00AB55'}`,
+                                                animation: order.status === 'RETURN_REQUESTED' ? 'pulse-cyan 2s infinite' : 'none',
+                                                '@keyframes pulse-cyan': {
+                                                    '0%': { boxShadow: '0 0 0 0 rgba(0, 184, 217, 0.4)' },
+                                                    '70%': { boxShadow: '0 0 0 10px rgba(0, 184, 217, 0)' },
+                                                    '100%': { boxShadow: '0 0 0 0 rgba(0, 184, 217, 0)' }
+                                                }
+                                            }} />
+                                            <Box textAlign="center">
+                                                <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: order.status === 'RETURN_REQUESTED' ? '#006C9C' : '#1C252E', mb: 0.5 }}>
+                                                    {order.status === 'RETURN_REQUESTED' ? 'Yêu cầu trả hàng' : 'Đã hoàn trả'}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '1.25rem', color: '#637381' }}>
+                                                    {order.returnRequestedAt ? new Date(order.returnRequestedAt).toLocaleDateString('vi-VN') : 'Mới gửi yêu cầu'}
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+                                    )}
                                 </Stack>
                             </Box>
                         </Card>
@@ -461,6 +533,87 @@ export const OrderDetailPage = () => {
                                             </Typography>
                                         )}
                                     </Box>
+                                </Box>
+                            )}
+                            {/* Hiển thị yêu cầu trả hàng nếu có */}
+                            {(order.status === 'RETURN_REQUESTED' || order.returnRequestedAt) && (
+                                <Box sx={{
+                                    mt: 3,
+                                    p: 2.5,
+                                    borderRadius: '24px',
+                                    bgcolor: 'rgba(0, 184, 217, 0.04)',
+                                    border: '1px solid rgba(0, 184, 217, 0.2)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 2
+                                }}>
+                                    <Stack direction="row" spacing={2} alignItems="center">
+                                        <Box sx={{ p: 1, borderRadius: '12px', bgcolor: 'rgba(0, 184, 217, 0.1)', color: '#006C9C' }}>
+                                            📦
+                                        </Box>
+                                        <Typography sx={{ color: '#006C9C', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase' }}>
+                                            Yêu cầu trả hàng từ khách
+                                        </Typography>
+                                        {order.returnRequestedAt && (
+                                            <Typography sx={{ color: '#919EAB', fontSize: '1.2rem', fontWeight: 600, ml: 'auto' }}>
+                                                Lúc: {new Date(order.returnRequestedAt).toLocaleString('vi-VN')}
+                                            </Typography>
+                                        )}
+                                    </Stack>
+
+                                    <Box sx={{ pl: 6 }}>
+                                        <Typography sx={{ color: '#1C252E', fontSize: '1.5rem', fontWeight: 700, mb: 2 }}>
+                                            "{order.returnReason}"
+                                        </Typography>
+
+                                        {order.returnEvidence && (
+                                            <Stack direction="row" spacing={1} flexWrap="wrap">
+                                                {order.returnEvidence.split(',').map((url, i) => (
+                                                    <Avatar
+                                                        key={i}
+                                                        src={url}
+                                                        variant="rounded"
+                                                        sx={{ width: 80, height: 80, borderRadius: '12px', border: '1px solid #E5E8EB', cursor: 'pointer' }}
+                                                        onClick={() => window.open(url, '_blank')}
+                                                    />
+                                                ))}
+                                            </Stack>
+                                        )}
+
+                                        {order.adminReturnNote && (
+                                            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed rgba(0, 184, 217, 0.2)' }}>
+                                                <Typography sx={{ color: '#919EAB', fontWeight: 800, fontSize: '1.1rem', mb: 0.5, textTransform: 'uppercase' }}>
+                                                    Phản hồi từ Admin:
+                                                </Typography>
+                                                <Typography sx={{ color: order.status === 'RETURNED' ? '#00AB55' : '#FF5630', fontSize: '1.4rem', fontWeight: 700 }}>
+                                                    {order.adminReturnNote}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    {order.status === 'RETURN_REQUESTED' && (
+                                        <Stack direction="row" spacing={2} sx={{ mt: 1, ml: 6 }}>
+                                            <Button
+                                                variant="contained"
+                                                color="success"
+                                                size="small"
+                                                sx={{ borderRadius: '10px', fontWeight: 800, textTransform: 'none' }}
+                                                onClick={() => { setReturnApproved(true); setOpenHandleReturnDialog(true); }}
+                                            >
+                                                Đồng ý Trả hàng
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                color="error"
+                                                size="small"
+                                                sx={{ borderRadius: '10px', fontWeight: 800, textTransform: 'none' }}
+                                                onClick={() => { setReturnApproved(false); setOpenHandleReturnDialog(true); }}
+                                            >
+                                                Từ chối
+                                            </Button>
+                                        </Stack>
+                                    )}
                                 </Box>
                             )}
                         </Card>
@@ -1008,6 +1161,7 @@ export const OrderDetailPage = () => {
                     <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
                         Vui lòng nhập lý do hủy đơn hàng này. Thông tin sẽ được lưu lại và thông báo cho khách hàng.
                     </Typography>
+
                     <TextField
                         fullWidth
                         multiline
@@ -1072,6 +1226,7 @@ export const OrderDetailPage = () => {
                     <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
                         Đánh dấu đơn hàng này là hoàn trả (khách boom, không nhận hàng, trả lại...). Số lượng tồn kho sẽ được hoàn lại.
                     </Typography>
+
                     <TextField
                         fullWidth
                         multiline
@@ -1113,6 +1268,129 @@ export const OrderDetailPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            {/* Handle Return Request Dialog */}
+            <Dialog
+                open={openHandleReturnDialog}
+                onClose={() => { setOpenHandleReturnDialog(false); setAdminReturnNote(''); }}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 500, width: '100%' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: returnApproved ? '#00AB55' : '#FF5630', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            {returnApproved ? <CheckCircleOutlineIcon sx={{ fontSize: '1.8rem' }} /> : <CloseIcon sx={{ fontSize: '1.8rem' }} />}
+                        </Box>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>
+                            {returnApproved ? 'Đồng ý Trả hàng' : 'Từ chối Trả hàng'}
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={() => { setOpenHandleReturnDialog(false); setAdminReturnNote(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent sx={{ px: 4, py: 2 }}>
+                    <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
+                        {returnApproved
+                            ? 'Đồng ý hoàn trả cho đơn hàng này. Trạng thái sẽ chuyển thành HOÀN TRẢ, tồn kho sẽ được hoàn lại.'
+                            : 'Từ chối yêu cầu trả hàng. Đơn hàng sẽ quay lại trạng thái HOÀN THÀNH.'}
+                    </Typography>
+
+                    {!returnApproved && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, mb: 1.5, color: '#637381' }}>Chọn lý do nhanh:</Typography>
+                            <Stack spacing={1}>
+                                {quickRejectReasons.map((reason) => {
+                                    const isSelected = adminReturnNote === reason;
+                                    return (
+                                        <Box
+                                            key={reason}
+                                            onClick={() => setAdminReturnNote(reason)}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '12px',
+                                                border: `2px solid ${isSelected ? '#FF5630' : '#F4F6F8'}`,
+                                                bgcolor: isSelected ? 'rgba(255, 86, 48, 0.08)' : '#F9FAFB',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: isSelected ? 'rgba(255, 86, 48, 0.12)' : '#F4F6F8',
+                                                    borderColor: isSelected ? '#FF5630' : '#DFE3E8'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{
+                                                width: 20,
+                                                height: 20,
+                                                borderRadius: '50%',
+                                                border: `2px solid ${isSelected ? '#FF5630' : '#C4CDD5'}`,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                {isSelected && <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#FF5630' }} />}
+                                            </Box>
+                                            <Typography sx={{ fontWeight: isSelected ? 700 : 600, color: isSelected ? '#B71D18' : '#637381', fontSize: '1.2rem' }}>
+                                                {reason}
+                                            </Typography>
+                                        </Box>
+                                    );
+                                })}
+                            </Stack>
+                        </Box>
+                    )}
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Ghi chú phản hồi cho khách"
+                        value={adminReturnNote}
+                        onChange={(e) => setAdminReturnNote(e.target.value)}
+                        placeholder="Nhập lý do chi tiết..."
+                        sx={{
+                            '& .MuiOutlinedInput-root': { borderRadius: '16px' },
+                            '& label': { fontWeight: 700 }
+                        }}
+                    />
+                    <Typography sx={{ mt: 1, fontSize: '1.2rem', color: '#919EAB', textAlign: 'right' }}>{adminReturnNote.length}/500</Typography>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setOpenHandleReturnDialog(false); setAdminReturnNote(''); }}
+                        sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleProcessReturnRequest}
+                        disabled={updating || adminReturnNote.trim().length < 5}
+                        sx={{
+                            py: 1.5, borderRadius: '12px', fontWeight: 800,
+                            bgcolor: returnApproved ? '#00AB55' : '#FF5630',
+                            boxShadow: `0 8px 16px ${returnApproved ? 'rgba(0, 171, 85, 0.24)' : 'rgba(255, 86, 48, 0.24)'}`,
+                            '&:hover': { bgcolor: returnApproved ? '#007B55' : '#B7211F' },
+                            '&:disabled': { bgcolor: '#E5E8EB' }
+                        }}
+                    >
+                        {updating ? 'Đang xử lý...' : 'Xác nhận xử lý'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            {/* Status Confirm Dialog */}
+            <StatusConfirmDialog
+                open={!!pendingStatus}
+                onClose={() => setPendingStatus(null)}
+                onConfirm={handleConfirmStatusChange}
+                newStatus={pendingStatus || ''}
+                isUpdating={updating}
+            />
         </Box>
     );
 };

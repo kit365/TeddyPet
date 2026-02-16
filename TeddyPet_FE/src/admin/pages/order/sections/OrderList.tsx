@@ -25,6 +25,7 @@ import { getShippingFeeSuggestion } from '../../../api/shipping.api';
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
 import { OrderResponse } from '../../../../types/order.type';
+import { StatusConfirmDialog } from '../../../components/StatusConfirmDialog';
 
 const STATUS_OPTIONS = [
     { label: 'Tất cả', value: 'ALL' },
@@ -90,6 +91,9 @@ export const OrderList = () => {
     const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // Status Confirmation Dialog State
+    const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: string } | null>(null);
 
     const quickCancelReasons = [
         "Hết hàng thực tế",
@@ -157,17 +161,28 @@ export const OrderList = () => {
         }
     };
 
-    const handleUpdateStatus = async (id: string, newStatus: string) => {
+    const handleUpdateStatus = (id: string, newStatus: string) => {
+        setStatusConfirm({ id, status: newStatus });
+    };
+
+    const handleConfirmStatusChange = async () => {
+        if (!statusConfirm) return;
+
+        setUpdating(true);
         try {
-            const response = await updateOrderStatus(id, newStatus);
+            const response = await updateOrderStatus(statusConfirm.id, statusConfirm.status);
             if (response.success) {
                 toast.success("Cập nhật trạng thái thành công");
+                setStatusConfirm(null);
                 refresh();
             } else {
                 toast.error(response.message || "Cập nhật thất bại");
             }
         } catch (error) {
-            toast.error("Lỗi hệ thống");
+            console.error("Error updating status:", error);
+            toast.error("Lỗi khi cập nhật trạng thái");
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -899,6 +914,14 @@ export const OrderList = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            {/* Status Confirm Dialog */}
+            <StatusConfirmDialog
+                open={!!statusConfirm}
+                onClose={() => setStatusConfirm(null)}
+                onConfirm={handleConfirmStatusChange}
+                newStatus={statusConfirm?.status || ''}
+                isUpdating={updating}
+            />
         </Card>
     )
 }

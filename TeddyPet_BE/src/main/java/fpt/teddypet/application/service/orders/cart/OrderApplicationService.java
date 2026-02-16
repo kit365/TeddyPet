@@ -5,10 +5,7 @@ import fpt.teddypet.application.port.input.auth.OtpService;
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.common.SortDirection;
-import fpt.teddypet.application.dto.request.orders.order.OrderItemRequest;
-import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
-import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
-import fpt.teddypet.application.dto.request.orders.order.OrderSortField;
+import fpt.teddypet.application.dto.request.orders.order.*;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 import fpt.teddypet.application.mapper.orders.order.OrderMapper;
 import fpt.teddypet.application.port.input.UserService;
@@ -691,12 +688,9 @@ public class OrderApplicationService implements OrderService {
         }
 
         order.setStatus(OrderStatusEnum.COMPLETED);
+        order.setCompletedAt(java.time.LocalDateTime.now());
         orderRepositoryPort.save(order);
-
-        sendOrderStatusEmail(order);
-
-        // Send feedback email
-        feedbackService.sendFeedbackEmailsForOrder(orderId);
+        // feedbackService.sendFeedbackEmailsForOrder(orderId);
     }
 
     private void sendOrderStatusEmail(Order order) {
@@ -842,6 +836,85 @@ public class OrderApplicationService implements OrderService {
         } catch (Exception e) {
             log.error("Failed to send return order email for order {}", order.getOrderCode(), e);
         }
+    }
+
+    @Override
+    @Transactional
+    public void requestReturnByCustomer(UUID orderId, ReturnOrderRequest request) {
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        validateOwnership(orderId, currentUserId);
+
+        Order order = getById(orderId);
+
+        // Chỉ được trả khi trạng thái là COMPLETED
+        if (order.getStatus() != OrderStatusEnum.COMPLETED) {
+            throw new IllegalStateException("Bạn chỉ có thể yêu cầu trả hàng khi đơn hàng đã hoàn thành.");
+        }
+
+        // Kiểm tra thời hạn (4 ngày)
+        if (order.getCompletedAt() != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            if (now.isAfter(order.getCompletedAt().plusDays(4))) {
+                throw new IllegalStateException("Đã quá thời hạn 4 ngày cho phép trả hàng.");
+            }
+        }
+
+        order.setStatus(OrderStatusEnum.RETURN_REQUESTED);
+        order.setReturnReason(request.reason());
+        order.setReturnRequestedAt(java.time.LocalDateTime.now());
+
+        if (request.evidenceUrls() != null && !request.evidenceUrls().isEmpty()) {
+            order.setReturnEvidence(String.join(",", request.evidenceUrls()));
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Customer requested return for order: {}. Reason: {}", orderId, request.reason());
+
+        // Gửi email thông báo cho Admin/Customer
+        sendOrderStatusEmail(order);
+    }
+
+    @Override
+    @Transactional
+    public void handleReturnRequestByAdmin(UUID orderId, AdminHandleReturnRequest request, String adminUsername) {
+        Order order = getById(orderId);
+
+        if (order.getStatus() != OrderStatusEnum.RETURN_REQUESTED) {
+            throw new IllegalStateException("Đơn hàng này không ở trong trạng thái yêu cầu trả hàng.");
+        }
+
+        order.setAdminReturnNote(request.adminNote());
+
+        if (request.approved()) {
+            // Đồng ý trả -> RETURNED
+            order.setStatus(OrderStatusEnum.RETURNED);
+            order.setCancelledAt(java.time.LocalDateTime.now());
+            order.setCancelledBy(adminUsername);
+
+            // Hoàn kho (Lệnh nhập kho lại)
+            returnOrderStock(order);
+
+            // Hoàn tiền hoặc xử lý payment
+            if (order.getPayments() != null) {
+                for (Payment payment : order.getPayments()) {
+                    if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                        payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                        payment.setNotes("Hoàn tiền sau khi duyệt trả hàng bởi " + adminUsername);
+                    }
+                }
+            }
+            log.info("Admin {} APPROVED return request for order: {}", adminUsername, orderId);
+        } else {
+            // Từ chối -> Quay lại COMPLETED
+            order.setStatus(OrderStatusEnum.COMPLETED);
+            log.info("Admin {} REJECTED return request for order: {}. Note: {}", adminUsername, orderId,
+                    request.adminNote());
+        }
+
+        orderRepositoryPort.save(order);
+
+        // Gửi thông báo email
+        sendOrderStatusEmail(order);
     }
 
 }

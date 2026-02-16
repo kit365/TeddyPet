@@ -40,7 +40,7 @@ public class EmailServiceAdapter implements EmailServicePort {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
-    private EmailServiceAdapter self; //vi goi truc tiep se ko quan ly dc spring proxy nen phai inject lai
+    private EmailServiceAdapter self; // vi goi truc tiep se ko quan ly dc spring proxy nen phai inject lai
 
     @Autowired
     public void setSelf(@Lazy EmailServiceAdapter self) {
@@ -216,6 +216,12 @@ public class EmailServiceAdapter implements EmailServicePort {
         context.setVariable(EmailMessages.VAR_ADDRESS, order.getShippingAddress());
         context.setVariable(EmailMessages.VAR_NOTES, order.getNotes());
 
+        // Return details
+        if (order.getStatus() == OrderStatusEnum.RETURN_REQUESTED || order.getReturnRequestedAt() != null) {
+            context.setVariable("returnReason", order.getReturnReason());
+            context.setVariable("adminReturnNote", order.getAdminReturnNote());
+        }
+
         String method = EmailMessages.LABEL_METHOD_COD;
         if (!order.getPayments().isEmpty()) {
             Payment p = order.getPayments().getFirst();
@@ -270,15 +276,29 @@ public class EmailServiceAdapter implements EmailServicePort {
             subject = String.format(EmailMessages.SUBJECT_ORDER_CANCELLED, appName, order.getOrderCode());
             statusText = EmailMessages.STATUS_TEXT_CANCELLED;
         } else if (order.getStatus() == OrderStatusEnum.COMPLETED) {
-            emailHeadline = EmailMessages.HEADLINE_ORDER_COMPLETED;
-            subHeadline = EmailMessages.SUB_HEADLINE_ORDER_COMPLETED;
-            subject = String.format(EmailMessages.SUBJECT_ORDER_STATUS_UPDATE, appName, order.getOrderCode());
-            statusText = EmailMessages.STATUS_TEXT_COMPLETED;
+            // Check if this is a Rejected Return
+            if (order.getReturnRequestedAt() != null && order.getAdminReturnNote() != null
+                    && !order.getAdminReturnNote().isBlank()) {
+                emailHeadline = EmailMessages.HEADLINE_ORDER_RETURN_REJECTED;
+                subHeadline = EmailMessages.SUB_HEADLINE_ORDER_RETURN_REJECTED;
+                subject = String.format(EmailMessages.SUBJECT_ORDER_RETURN_REJECTED, appName, order.getOrderCode());
+                statusText = EmailMessages.STATUS_TEXT_RETURN_REJECTED;
+            } else {
+                emailHeadline = EmailMessages.HEADLINE_ORDER_COMPLETED;
+                subHeadline = EmailMessages.SUB_HEADLINE_ORDER_COMPLETED;
+                subject = String.format(EmailMessages.SUBJECT_ORDER_STATUS_UPDATE, appName, order.getOrderCode());
+                statusText = EmailMessages.STATUS_TEXT_COMPLETED;
+            }
         } else if (order.getStatus() == OrderStatusEnum.RETURNED) {
             emailHeadline = EmailMessages.HEADLINE_ORDER_RETURNED;
             subHeadline = EmailMessages.SUB_HEADLINE_ORDER_RETURNED;
             subject = String.format(EmailMessages.SUBJECT_ORDER_RETURNED, appName, order.getOrderCode());
             statusText = EmailMessages.STATUS_TEXT_RETURNED;
+        } else if (order.getStatus() == OrderStatusEnum.RETURN_REQUESTED) {
+            emailHeadline = EmailMessages.HEADLINE_ORDER_RETURN_REQUESTED;
+            subHeadline = EmailMessages.SUB_HEADLINE_ORDER_RETURN_REQUESTED;
+            subject = String.format(EmailMessages.SUBJECT_ORDER_RETURN_REQUESTED, appName, order.getOrderCode());
+            statusText = EmailMessages.STATUS_TEXT_RETURN_REQUESTED;
         }
 
         context.setVariable(EmailMessages.VAR_EMAIL_HEADLINE, emailHeadline);
