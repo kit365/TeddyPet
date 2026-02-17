@@ -44,6 +44,26 @@ public class AppSettingDataInit implements CommandLineRunner {
                 AppSettingsConstants.DEFAULT_SHOP_EMAIL,
                 AppSettingsConstants.DESC_SHOP_EMAIL);
 
+        ensureSetting(AppSettingsConstants.SOCIAL_FACEBOOK,
+                AppSettingsConstants.DEFAULT_SOCIAL_FACEBOOK,
+                AppSettingsConstants.DESC_SOCIAL_FACEBOOK);
+
+        ensureSetting(AppSettingsConstants.SOCIAL_INSTAGRAM,
+                AppSettingsConstants.DEFAULT_SOCIAL_INSTAGRAM,
+                AppSettingsConstants.DESC_SOCIAL_INSTAGRAM);
+
+        ensureSetting(AppSettingsConstants.SOCIAL_APPLE_STORE,
+                AppSettingsConstants.DEFAULT_SOCIAL_APPLE_STORE,
+                AppSettingsConstants.DESC_SOCIAL_APPLE_STORE);
+
+        ensureSetting(AppSettingsConstants.SOCIAL_PLAY_STORE,
+                AppSettingsConstants.DEFAULT_SOCIAL_PLAY_STORE,
+                AppSettingsConstants.DESC_SOCIAL_PLAY_STORE);
+
+        ensureSetting(AppSettingsConstants.SHOP_WEBSITE,
+                AppSettingsConstants.DEFAULT_SHOP_WEBSITE,
+                AppSettingsConstants.DESC_SHOP_WEBSITE);
+
         log.info("✅ App Settings initialized.");
     }
 
