@@ -13,9 +13,10 @@ interface CustomFile extends File {
 interface UploadFilesProps {
     files: CustomFile[];
     onFilesChange: (files: CustomFile[]) => void;
+    folder?: string;
 }
 
-export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => {
+export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: UploadFilesProps) => {
     const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
     const [isTouched, setIsTouched] = useState(false);
@@ -64,7 +65,7 @@ export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => 
 
         try {
             setIsUploading(true);
-            const uploadedUrls = await uploadImagesToCloudinary(filesToUpload);
+            const uploadedUrls = await uploadImagesToCloudinary(filesToUpload, folder);
 
             // Giữ lại các ảnh đã là URL, thay thế các File object bằng URL mới nhận được
             const currentLinks = files.filter(f => typeof f === 'string');
