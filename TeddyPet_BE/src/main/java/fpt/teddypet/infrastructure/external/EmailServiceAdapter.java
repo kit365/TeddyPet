@@ -47,8 +47,11 @@ public class EmailServiceAdapter implements EmailServicePort {
         this.self = self;
     }
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.from:noreply@teddypet.id.vn}")
     private String fromEmail;
+
+    @Value("${spring.mail.display-name:TeddyPet Support}")
+    private String displayName;
 
     @Value("${app.name:TeddyPet}")
     private String appName;
@@ -65,7 +68,7 @@ public class EmailServiceAdapter implements EmailServicePort {
     public void sendEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            message.setFrom(displayName + " <" + fromEmail + ">");
             message.setTo(to);
             message.setSubject(subject);
             message.setText(body);
@@ -83,7 +86,7 @@ public class EmailServiceAdapter implements EmailServicePort {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
+            helper.setFrom(fromEmail, displayName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
