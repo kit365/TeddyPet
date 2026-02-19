@@ -82,7 +82,16 @@ apiApp.interceptors.response.use(
 
             const refreshToken = Cookies.get(refreshTokenKey);
 
+            // Không redirect sang login khi 401 từ API đặt lịch (service-categories, services)
+            // để khách có thể xem trang đặt lịch mà không bắt buộc đăng nhập
+            const isBookingPublicApi =
+                !isAdmin &&
+                (originalRequest.url?.includes('/api/service-categories') || originalRequest.url?.includes('/api/services'));
+
             if (!refreshToken) {
+                if (isBookingPublicApi) {
+                    return Promise.reject(error);
+                }
                 if (isAdmin) {
                     Cookies.remove(tokenKey);
                     Cookies.remove(refreshTokenKey);
