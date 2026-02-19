@@ -1,0 +1,102 @@
+package fpt.teddypet.domain.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "booking_pet_services")
+@EqualsAndHashCode(callSuper = true)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
+public class BookingPetService extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_pet_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private BookingPet bookingPet;
+
+    @Column(name = "assigned_staff_id")
+    private Long assignedStaffId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Service service;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_combo_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private ServiceCombo serviceCombo;
+
+    @Column(name = "time_slot_id")
+    private Long timeSlotId;
+
+    @Column(name = "room_id")
+    private Long roomId;
+
+    @Column(name = "during_photos", columnDefinition = "TEXT")
+    private String duringPhotos;
+
+    @Column(name = "after_photos", columnDefinition = "TEXT")
+    private String afterPhotos;
+
+    @Column(name = "before_photos", columnDefinition = "TEXT")
+    private String beforePhotos;
+
+    @Column(name = "videos", columnDefinition = "TEXT")
+    private String videos;
+
+    @Column(name = "check_in_date")
+    private LocalDate checkInDate;
+
+    @Column(name = "check_out_date")
+    private LocalDate checkOutDate;
+
+    @Column(name = "number_of_nights")
+    private Integer numberOfNights;
+
+    @Column(name = "scheduled_start_time")
+    private LocalDateTime scheduledStartTime;
+
+    @Column(name = "scheduled_end_time")
+    private LocalDateTime scheduledEndTime;
+
+    @Column(name = "actual_start_time")
+    private LocalDateTime actualStartTime;
+
+    @Column(name = "actual_end_time")
+    private LocalDateTime actualEndTime;
+
+    @Column(name = "unit_price", precision = 12, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "subtotal", precision = 12, scale = 2)
+    private BigDecimal subtotal;
+
+    @Column(name = "status", length = 50)
+    private String status;
+
+    @Column(name = "staff_notes", columnDefinition = "TEXT")
+    private String staffNotes;
+
+    @Column(name = "customer_rating")
+    private Integer customerRating;
+
+    @Column(name = "customer_review", columnDefinition = "TEXT")
+    private String customerReview;
+}
+

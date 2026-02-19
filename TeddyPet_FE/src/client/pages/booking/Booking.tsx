@@ -1,45 +1,38 @@
 import { FooterSub } from "../../components/layouts/FooterSub";
 import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import PhoneEnabledOutlinedIcon from '@mui/icons-material/PhoneEnabledOutlined';
-import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined';
+import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+
+export interface BookingStep1FormData {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    message: string;
+}
 
 export const BookingPage = () => {
-    const [isOpenTime, setIsOpenTime] = useState(false);
-    const [isOpenService, setIsOpenService] = useState(false);
-    const [selectedTime, setSelectedTime] = useState("8:00");
-    const [selectedService, setSelectedService] = useState("Chọn dịch vụ");
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState<BookingStep1FormData>({
+        fullName: "",
+        email: "",
+        phone: "",
+        address: "",
+        message: "",
+    });
 
-    const times = [
-        "8:00",
-        "9:00",
-        "10:00",
-        "11:00",
-        "12:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-        "17:00",
-    ];
-
-    const services = [
-        "Khách sạn cho chó",
-        "Khách sạn cho mèo",
-        "Spa & Chăm sóc thú cưng",
-    ];
-
-    const handleSelectTime = (time: string) => {
-        setSelectedTime(time);
-        setIsOpenTime(false);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSelectService = (service: string) => {
-        setSelectedService(service);
-        setIsOpenService(false);
+    const handleNext = (e: React.FormEvent) => {
+        e.preventDefault();
+        navigate("/dat-lich/chi-tiet", { state: formData });
     };
 
     return (
@@ -116,123 +109,114 @@ export const BookingPage = () => {
                     </div>
                 </div>
 
-                <div className="w-[50%] px-[30px] py-[50px]">
-                    <form className="p-[40px] bg-[#e67e2026] rounded-[50px] w-[580px]">
-                        <input
-                            type="text"
-                            placeholder="Họ và tên"
-                            name="fullname"
-                            className="w-full mb-[30px] py-[16px] text-[#181818] outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[50px]"
-                        />
-
-                        <div className="flex justify-between">
-                            <input
-                                type="email"
-                                placeholder="Email"
-                                name="email"
-                                className="w-[230px] mb-[30px] py-[16px] text-[#181818] outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[50px]"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Số điện thoại"
-                                name="phone"
-                                className="w-[230px] mb-[30px] py-[16px] text-[#181818] outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[50px]"
-                            />
-                        </div>
-
-                        <input
-                            type="text"
-                            placeholder="Địa chỉ"
-                            name="address"
-                            className="w-full mb-[30px] py-[16px] text-[#181818] outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[50px]"
-                        />
-
-                        {/* Select thời gian */}
-                        <div className="flex justify-between relative mb-[30px]">
-                            <input
-                                type="date"
-                                name="date"
-                                className="w-[234px] py-[16px] text-[#181818] outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[50px]"
-                            />
-
-                            <div className="relative w-[250px]">
-                                <div
-                                    onClick={() => {
-                                        setIsOpenTime(!isOpenTime);
-                                        setIsOpenService(false);
-                                    }}
-                                    className="w-full rounded-[50px] py-[16px] text-[#828282] cursor-pointer outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 flex justify-between items-center"
-                                >
-                                    <span>{selectedTime}</span>
-                                    {isOpenTime ? (
-                                        <KeyboardArrowUpIcon
-                                            className="text-[#828282]"
-                                            style={{ fontSize: "3rem" }}
-                                        />
-                                    ) : (
-                                        <KeyboardArrowDownIcon
-                                            className="text-[#828282]"
-                                            style={{ fontSize: "3rem" }}
-                                        />
-                                    )}
+                <div className="w-[50%] px-[30px] py-[50px] flex justify-start">
+                    <form
+                        onSubmit={handleNext}
+                        className="w-full max-w-[520px] bg-white rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-[#eee] overflow-hidden"
+                    >
+                        <div className="bg-gradient-to-r from-[#ffbaa0]/20 to-[#e67e2026] px-[32px] py-[24px] border-b border-[#eee]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-[48px] h-[48px] rounded-full bg-[#ffbaa0]/30 flex items-center justify-center">
+                                    <PersonOutlineOutlinedIcon sx={{ fontSize: 28, color: "#c45a3a" }} />
                                 </div>
-
-                                {isOpenTime && (
-                                    <ul className="absolute right-0 top-[70px] w-full max-h-[320px] overflow-y-auto border border-[#00000012] text-[#181818] bg-white rounded-[20px] shadow-lg z-10">
-                                        {times.map((time) => (
-                                            <li
-                                                key={time}
-                                                onClick={() => handleSelectTime(time)}
-                                                className="py-[8px] px-[16px] hover:text-[#ffbaa0] transition-colors duration-150 cursor-pointer"
-                                            >
-                                                {time}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                <div>
+                                    <h3 className="text-[2rem] font-[700] text-[#181818]">Thông tin liên hệ</h3>
+                                    <p className="text-[1.4rem] text-[#505050] mt-[4px]">Phần 1/3 — Thông tin cơ bản khách hàng</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Select dịch vụ */}
-                        <div className="relative w-full mb-[30px]">
-                            <div
-                                onClick={() => {
-                                    setIsOpenService(!isOpenService);
-                                    setIsOpenTime(false);
-                                }}
-                                className="w-full rounded-[50px] py-[16px] text-[#828282] cursor-pointer outline-none px-[24px] border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 flex justify-between items-center"
-                            >
-                                <span>{selectedService}</span>
-                                {isOpenService ? (
-                                    <KeyboardArrowUpIcon
-                                        className="text-[#828282]"
-                                        style={{ fontSize: "3rem" }}
-                                    />
-                                ) : (
-                                    <KeyboardArrowDownIcon
-                                        className="text-[#828282]"
-                                        style={{ fontSize: "3rem" }}
-                                    />
-                                )}
+                        <div className="p-[32px] space-y-[24px]">
+                            <div>
+                                <label htmlFor="fullname" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                    Họ và tên <span className="text-[#e67e20]">*</span>
+                                </label>
+                                <input
+                                    id="fullname"
+                                    type="text"
+                                    placeholder="Nguyễn Văn A"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                />
                             </div>
 
-                            {isOpenService && (
-                                <ul className="absolute right-0 top-[70px] w-full max-h-[320px] overflow-y-auto border border-[#00000012] text-[#181818] bg-white rounded-[20px] shadow-lg z-10">
-                                    {services.map((service) => (
-                                        <li
-                                            key={service}
-                                            onClick={() => handleSelectService(service)}
-                                            className="py-[8px] px-[16px] hover:text-[#ffbaa0] transition-colors duration-150 cursor-pointer"
-                                        >
-                                            {service}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
+                            <div className="grid grid-cols-2 gap-[20px]">
+                                <div>
+                                    <label htmlFor="email" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                        Email <span className="text-[#e67e20]">*</span>
+                                    </label>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        placeholder="email@example.com"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="phone" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                        Số điện thoại <span className="text-[#e67e20]">*</span>
+                                    </label>
+                                    <input
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="0900 000 000"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                    />
+                                </div>
+                            </div>
 
-                        <textarea name="message" maxLength={2000} placeholder="Lời nhắn" rows={10} className="mb-[40px] w-full h-[110px] text-[#181818] py-[16px] px-[24px] outline-none border border-[#181818] focus:border-[#ffbaa0] transition-colors duration-500 rounded-[20px]"></textarea>
-                        <button type="submit" className="text-[#181818] rounded-[50px] shadow-[0_0_0_72px_#ffbaa0_inset] hover:shadow-[0_0_0_2px_#ffbaa0_inset] w-[120px] h-[41px] font-[500] cursor-pointer transition-all duration-300">Gửi</button>
+                            <div>
+                                <label htmlFor="address" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                    Địa chỉ
+                                </label>
+                                <input
+                                    id="address"
+                                    type="text"
+                                    placeholder="Số nhà, đường, phường/xã, quận/huyện..."
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="message" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                    Lời nhắn
+                                </label>
+                                <textarea
+                                    id="message"
+                                    name="message"
+                                    maxLength={2000}
+                                    placeholder="Ghi chú hoặc yêu cầu đặc biệt (nếu có)..."
+                                    rows={4}
+                                    value={formData.message}
+                                    onChange={handleChange}
+                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px] resize-none"
+                                />
+                                <p className="text-[1.2rem] text-[#888] mt-[6px]">{formData.message.length}/2000</p>
+                            </div>
+
+                            <div className="pt-[8px]">
+                                <button
+                                    type="submit"
+                                    className="w-full py-[16px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1.6rem] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                >
+                                    Tiếp theo
+                                </button>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -245,9 +229,7 @@ export const BookingPage = () => {
                     <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <EditLocationAltIcon style={{
-                                    fontSize: "4rem"
-                                }} />
+                                <EditLocationAltIcon style={{ fontSize: "4rem" }} />
                             </div>
                             <div className="pl-[20px]">
                                 <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
@@ -256,9 +238,7 @@ export const BookingPage = () => {
                         </div>
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <PhoneEnabledOutlinedIcon style={{
-                                    fontSize: "4rem"
-                                }} />
+                                <PhoneEnabledOutlinedIcon style={{ fontSize: "4rem" }} />
                             </div>
                             <div className="pl-[20px]">
                                 <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
@@ -268,9 +248,7 @@ export const BookingPage = () => {
                         </div>
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <MailOutlineOutlinedIcon style={{
-                                    fontSize: "4rem"
-                                }} />
+                                <MailOutlineOutlinedIcon style={{ fontSize: "4rem" }} />
                             </div>
                             <div className="pl-[20px]">
                                 <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
