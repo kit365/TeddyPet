@@ -111,6 +111,20 @@ public class Order extends BaseEntity {
     @Column(name = "cancelled_by", length = 100)
     private String cancelledBy;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "return_reason", columnDefinition = "TEXT")
+    private String returnReason;
+
+    @Column(name = "return_evidence", columnDefinition = "TEXT")
+    private String returnEvidence; // Comma separated URLs
+
+    @Column(name = "return_requested_at")
+    private LocalDateTime returnRequestedAt;
+
+    @Column(name = "admin_return_note", columnDefinition = "TEXT")
+    private String adminReturnNote;
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
