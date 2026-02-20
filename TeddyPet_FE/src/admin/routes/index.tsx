@@ -45,6 +45,7 @@ import { CalendarPage } from "../pages/calendar/CalendarPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "product/list", element: <ProductListPage /> },
     { path: "product/create", element: <ProductCreatePage /> },
     { path: "product/edit/:id", element: <ProductEditPage /> },
