@@ -74,6 +74,9 @@ public class SecurityConfig {
                                 "/dev/**",
                                 "/error")
                         .permitAll()
+                        // Booking: cho phép khách (chưa đăng nhập) xem danh mục & dịch vụ để đặt lịch
+                        .requestMatchers(HttpMethod.GET, "/api/service-categories", "/api/service-categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/services", "/api/services/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

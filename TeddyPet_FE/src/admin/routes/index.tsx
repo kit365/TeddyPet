@@ -31,6 +31,17 @@ import { OrderListPage } from "../pages/order/OrderListPage";
 import { OrderDetailPage } from "../pages/order/OrderDetailPage";
 import { ShippingRuleListPage } from "../pages/shipping/ShippingRuleListPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
+import { ServiceManagementPage } from "../pages/service/ServiceManagementPage";
+import { ServiceCategoryListPage } from "../pages/service/ServiceCategoryListPage";
+import { ServiceCategoryCreatePage } from "../pages/service/ServiceCategoryCreatePage";
+import { ServiceCategoryEditPage } from "../pages/service/ServiceCategoryEditPage";
+import { ServiceCreatePage } from "../pages/service/ServiceCreatePage";
+import { ServiceEditPage } from "../pages/service/ServiceEditPage";
+import { ServiceComboCreatePage } from "../pages/service/ServiceComboCreatePage";
+import { ServiceComboEditPage } from "../pages/service/ServiceComboEditPage";
+import { BookingListPage } from "../pages/booking/BookingListPage";
+import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
+import { CalendarPage } from "../pages/calendar/CalendarPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -62,8 +73,19 @@ export const AdminRoutes: RouteObject[] = [
     { path: "user/detail/:id", element: <UserDetailPage /> },
     { path: "order/list", element: <OrderListPage /> },
     { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "booking/list", element: <BookingListPage /> },
+    { path: "booking/detail/:id", element: <BookingDetailPage /> },
+    { path: "calendar", element: <CalendarPage /> },
     { path: "shipping/list", element: <ShippingRuleListPage /> },
     { path: "settings", element: <SettingsPage /> },
+    { path: "service/list", element: <ServiceManagementPage /> },
+    { path: "service/create", element: <ServiceCreatePage /> },
+    { path: "service/edit/:id", element: <ServiceEditPage /> },
+    { path: "service-combo/create", element: <ServiceComboCreatePage /> },
+    { path: "service-combo/edit/:id", element: <ServiceComboEditPage /> },
+    { path: "service-category/list", element: <ServiceCategoryListPage /> },
+    { path: "service-category/create", element: <ServiceCategoryCreatePage /> },
+    { path: "service-category/edit/:id", element: <ServiceCategoryEditPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [
