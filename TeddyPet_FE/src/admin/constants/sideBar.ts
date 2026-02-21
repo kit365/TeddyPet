@@ -35,6 +35,14 @@ export const menuManagementData = [
         ]
     },
     {
+        id: "bookings",
+        label: "Đặt lịch",
+        Icon: ScheduleSendIcon,
+        children: [
+            { id: "list", label: "Danh sách đặt lịch", path: `/${prefixAdmin}/booking/list` },
+        ]
+    },
+    {
         id: "users",
         label: "Tài khoản",
         Icon: PersonIcon,

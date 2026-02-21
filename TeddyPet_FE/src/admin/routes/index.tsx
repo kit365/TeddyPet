@@ -31,9 +31,12 @@ import { OrderListPage } from "../pages/order/OrderListPage";
 import { OrderDetailPage } from "../pages/order/OrderDetailPage";
 import { ShippingRuleListPage } from "../pages/shipping/ShippingRuleListPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
+import { BookingListPage } from "../pages/booking/BookingListPage";
+import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "product/list", element: <ProductListPage /> },
     { path: "product/create", element: <ProductCreatePage /> },
     { path: "product/edit/:id", element: <ProductEditPage /> },
@@ -62,6 +65,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "user/detail/:id", element: <UserDetailPage /> },
     { path: "order/list", element: <OrderListPage /> },
     { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "booking/list", element: <BookingListPage /> },
+    { path: "booking/detail/:id", element: <BookingDetailPage /> },
     { path: "shipping/list", element: <ShippingRuleListPage /> },
     { path: "settings", element: <SettingsPage /> },
 ];
