@@ -28,13 +28,7 @@ import {
   getPaymentMethodLabel,
   getPaymentMethodColor,
 } from "./constants";
-import { BookingPetDetailDrawer } from "./sections/BookingPetDetailDrawer";
-import { BookingPetServiceDetailDrawer } from "./sections/BookingPetServiceDetailDrawer";
-import type {
-  BookingResponse,
-  BookingPetResponse,
-  BookingPetServiceResponse,
-} from "../../../types/booking.type";
+import type { BookingResponse } from "../../../types/booking.type";
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
@@ -68,9 +62,6 @@ export const BookingDetailPage = () => {
   const navigate = useNavigate();
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [petDetail, setPetDetail] = useState<BookingPetResponse | null>(null);
-  const [serviceDetail, setServiceDetail] = useState<BookingPetServiceResponse | null>(null);
-  const [servicePetName, setServicePetName] = useState<string>("");
 
   useEffect(() => {
     if (id) {
@@ -102,7 +93,7 @@ export const BookingDetailPage = () => {
   const statusColor = getBookingStatusColor(booking.status);
   const paymentColor = getPaymentStatusColor(booking.paymentStatus);
   const allServices = (booking.pets ?? []).flatMap((p) =>
-    (p.services ?? []).map((s) => ({ service: s, petName: p.petName }))
+    (p.services ?? []).map((s) => ({ service: s, petName: p.petName, petId: p.id }))
   );
 
   return (
@@ -263,12 +254,12 @@ export const BookingDetailPage = () => {
                       )}
                       <TableCell sx={{ py: 2 }} align="right">
                         <IconButton
-                          size="small"
-                          onClick={() => setPetDetail(pet)}
-                          sx={{ color: "#00A76F" }}
+                          size="medium"
+                          onClick={() => navigate(`/${prefixAdmin}/booking/detail/${id}/pet/${pet.id}`)}
+                          sx={{ color: "#00A76F", p: 1 }}
                           title="Xem chi tiết"
                         >
-                          <VisibilityIcon fontSize="small" />
+                          <VisibilityIcon sx={{ fontSize: 22 }} />
                         </IconButton>
                       </TableCell>
                     </TableRow>
@@ -307,7 +298,7 @@ export const BookingDetailPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {allServices.map(({ service, petName }) => (
+                  {allServices.map(({ service, petName, petId }) => (
                     <TableRow key={service.id}>
                       <TableCell sx={{ fontSize: "1.5rem", fontWeight: 600, py: 2 }}>{service.serviceName ?? `#${service.id}`}</TableCell>
                       <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{petName}</TableCell>
@@ -323,15 +314,16 @@ export const BookingDetailPage = () => {
                       </TableCell>
                       <TableCell sx={{ py: 2 }} align="right">
                         <IconButton
-                          size="small"
-                          onClick={() => {
-                            setServiceDetail(service);
-                            setServicePetName(petName);
-                          }}
-                          sx={{ color: "#00A76F" }}
+                          size="medium"
+                          onClick={() =>
+                            navigate(
+                              `/${prefixAdmin}/booking/detail/${id}/pet/${petId}/service/${service.id}`
+                            )
+                          }
+                          sx={{ color: "#00A76F", p: 1 }}
                           title="Xem chi tiết"
                         >
-                          <VisibilityIcon fontSize="small" />
+                          <VisibilityIcon sx={{ fontSize: 22 }} />
                         </IconButton>
                       </TableCell>
                     </TableRow>
@@ -343,20 +335,6 @@ export const BookingDetailPage = () => {
         </Stack>
       </Box>
 
-      <BookingPetDetailDrawer
-        open={!!petDetail}
-        onClose={() => setPetDetail(null)}
-        pet={petDetail}
-      />
-      <BookingPetServiceDetailDrawer
-        open={!!serviceDetail}
-        onClose={() => {
-          setServiceDetail(null);
-          setServicePetName("");
-        }}
-        service={serviceDetail}
-        petName={servicePetName}
-      />
     </Box>
   );
 };

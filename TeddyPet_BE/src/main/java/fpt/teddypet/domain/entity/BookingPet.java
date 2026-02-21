@@ -60,8 +60,8 @@ public class BookingPet extends BaseEntity {
     @Column(name = "departure_photos", columnDefinition = "TEXT")
     private String departurePhotos;
 
-    @Column(name = "belongings", columnDefinition = "TEXT")
-    private String belongings;
+    @Column(name = "belonging_photos", columnDefinition = "TEXT")
+    private String belongingPhotos;
 
     @Column(name = "food_brought", columnDefinition = "TEXT")
     private String foodBrought;
