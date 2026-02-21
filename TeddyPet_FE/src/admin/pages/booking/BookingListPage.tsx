@@ -21,7 +21,7 @@ export const BookingListPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-[32px]">
+        <div className={`flex flex-col ${mainTab === "calendar" ? "gap-3" : "gap-8"}`}>
             <ListHeader
                 title="Quản lý đặt lịch"
                 breadcrumbItems={[
@@ -30,7 +30,7 @@ export const BookingListPage = () => {
                     { label: t("admin.common.list") },
                 ]}
             />
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ mb: mainTab === "calendar" ? 1 : 2 }}>
                 <Tabs
                     value={mainTab}
                     onChange={handleMainTabChange}

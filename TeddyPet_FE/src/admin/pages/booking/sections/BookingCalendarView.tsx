@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -14,10 +14,8 @@ import ViewWeek from "@mui/icons-material/ViewWeek";
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import FilterList from "@mui/icons-material/FilterList";
-import Close from "@mui/icons-material/Close";
 import { DeleteIcon } from "../../../assets/icons";
 import { CalendarFiltersDrawer } from "../../calendar/sections/CalendarFiltersDrawer";
-import { Title } from "../../../components/ui/Title";
 import {
   Badge,
   Box,
@@ -28,7 +26,10 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { prefixAdmin } from "../../../constants/routes";
 import { MOCK_BOOKINGS } from "../mockBookingData";
@@ -54,8 +55,10 @@ export const BookingCalendarView = () => {
   const [date, setDate] = useState(new Date("2025-02-10"));
   const [openFilters, setOpenFilters] = useState(false);
   const [openEventDialog, setOpenEventDialog] = useState(false);
+  const [startDateFilter, setStartDateFilter] = useState<Dayjs | null>(null);
+  const [endDateFilter, setEndDateFilter] = useState<Dayjs | null>(null);
 
-  const events = useMemo(() => {
+  const allEvents = useMemo(() => {
     return MOCK_BOOKINGS.map((b) => {
       const statusColor = STATUS_COLORS[b.status] ?? "#637381";
       return {
@@ -69,6 +72,27 @@ export const BookingCalendarView = () => {
       };
     });
   }, []);
+
+  const events = useMemo(() => {
+    if (!startDateFilter && !endDateFilter) return allEvents;
+    return allEvents.filter((e) => {
+      const d = dayjs(e.start);
+      if (startDateFilter && d.isBefore(startDateFilter, "day")) return false;
+      if (endDateFilter && d.isAfter(endDateFilter, "day")) return false;
+      return true;
+    });
+  }, [allEvents, startDateFilter, endDateFilter]);
+
+  useEffect(() => {
+    if (startDateFilter && calendarRef.current) {
+      calendarRef.current.getApi().gotoDate(startDateFilter.toDate());
+    }
+  }, [startDateFilter]);
+
+  const handleClearDateFilter = () => {
+    setStartDateFilter(null);
+    setEndDateFilter(null);
+  };
 
   const handleOpenFilters = () => setOpenFilters(true);
   const handleCloseFilters = () => setOpenFilters(false);
@@ -122,101 +146,142 @@ export const BookingCalendarView = () => {
   };
 
   return (
-    <>
-      <div className="mb-[40px] gap-[16px] flex items-start justify-end">
-        <div className="mr-auto">
-          <Title title="Lịch" />
-        </div>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 1.5,
+          mb: 1.5,
+        }}
+      >
+        <Typography sx={{ fontWeight: 700, fontSize: "1.6rem", color: "#1C252E", mr: 1 }}>
+          Lịch
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 400, fontSize: "1.3rem", color: "#637381" }}>
+          <Box component="span" sx={{ color: "#1C252E", fontWeight: 600 }}>
+            {events.length}
+          </Box>{" "}
+          kết quả tìm thấy
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <DatePicker
+            label="Ngày bắt đầu"
+            value={startDateFilter}
+            onChange={(v) => setStartDateFilter(v)}
+            format="DD/MM/YYYY"
+            slotProps={{
+              textField: {
+                size: "small",
+                sx: {
+                  minWidth: 160,
+                  "& .MuiInputBase-input": { fontSize: "1.35rem" },
+                  "& .MuiInputLabel-root": { fontSize: "1.35rem" },
+                },
+              },
+              popper: {
+                sx: {
+                  "& .MuiPaper-root": {
+                    minWidth: 340,
+                    minHeight: 380,
+                    padding: "16px",
+                  },
+                  "& .MuiPickersDay-root": {
+                    fontSize: "1.6rem",
+                    width: 42,
+                    height: 42,
+                  },
+                  "& .MuiDayCalendar-weekDayLabel": {
+                    fontSize: "1.5rem",
+                  },
+                  "& .MuiPickersCalendarHeader-label": {
+                    fontSize: "1.8rem",
+                    fontWeight: 600,
+                  },
+                  "& .MuiPickersArrowSwitcher-button .MuiSvgIcon-root": {
+                    fontSize: 28,
+                  },
+                },
+              },
+            }}
+          />
+          <DatePicker
+            label="Ngày kết thúc"
+            value={endDateFilter}
+            onChange={(v) => setEndDateFilter(v)}
+            format="DD/MM/YYYY"
+            minDate={startDateFilter ?? undefined}
+            slotProps={{
+              textField: {
+                size: "small",
+                sx: {
+                  minWidth: 160,
+                  "& .MuiInputBase-input": { fontSize: "1.35rem" },
+                  "& .MuiInputLabel-root": { fontSize: "1.35rem" },
+                },
+              },
+              popper: {
+                sx: {
+                  "& .MuiPaper-root": {
+                    minWidth: 340,
+                    minHeight: 380,
+                    padding: "16px",
+                  },
+                  "& .MuiPickersDay-root": {
+                    fontSize: "1.6rem",
+                    width: 42,
+                    height: 42,
+                  },
+                  "& .MuiDayCalendar-weekDayLabel": {
+                    fontSize: "1.5rem",
+                  },
+                  "& .MuiPickersCalendarHeader-label": {
+                    fontSize: "1.8rem",
+                    fontWeight: 600,
+                  },
+                  "& .MuiPickersArrowSwitcher-button .MuiSvgIcon-root": {
+                    fontSize: 28,
+                  },
+                },
+              },
+            }}
+          />
+          <Button
+            startIcon={<DeleteIcon style={{ marginRight: 0 }} sx={{ fontSize: 16 }} />}
+            size="small"
+            onClick={handleClearDateFilter}
+            sx={{
+              color: "#FF5630",
+              fontWeight: 600,
+              fontSize: "1.3rem",
+              textTransform: "none",
+              py: 0.5,
+              minHeight: "auto",
+              "&:hover": { bgcolor: "rgba(255, 86, 48, 0.08)" },
+            }}
+          >
+            Xoá
+          </Button>
+        </Box>
+        <Box sx={{ flex: 1 }} />
         <Button
           onClick={handleOpenEventDialog}
+          size="small"
           sx={{
             background: "#1C252E",
-            minHeight: "3.6rem",
-            minWidth: "6.4rem",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            padding: "6px 12px",
+            minHeight: "32px",
+            fontWeight: 600,
+            fontSize: "1.3rem",
             borderRadius: "8px",
             textTransform: "none",
             boxShadow: "none",
-            "&:hover": {
-              background: "#454F5B",
-              boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)",
-            },
+            "&:hover": { background: "#454F5B", boxShadow: "none" },
           }}
           variant="contained"
-          startIcon={<AddIcon />}
+          startIcon={<AddIcon sx={{ fontSize: 18 }} />}
         >
           Thêm sự kiện
-        </Button>
-      </div>
-
-      <Typography variant="body2" sx={{ fontWeight: 400, fontSize: "1.4rem", display: "block", mb: "10px" }}>
-        <Box component="span" sx={{ color: "#1C252E", fontWeight: 600 }}>
-          {events.length}
-        </Box>{" "}
-        <Box component="span" sx={{ color: "#637381", fontWeight: 400 }}>
-          kết quả tìm thấy
-        </Box>
-      </Typography>
-      <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            p: "8px",
-            borderRadius: "8px",
-            border: "1px solid #919eab33",
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ fontSize: "1.4rem", color: "#1C252E", fontWeight: 600 }}>
-            Ngày:
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              px: "8px",
-              py: 0,
-              borderRadius: "6px",
-              bgcolor: "rgba(145, 158, 171, 0.16)",
-            }}
-          >
-            <Typography sx={{ fontSize: "1.3rem", fontWeight: 500 }}>
-              {dayjs(date).format("DD")} - {dayjs(date).endOf("month").format("DD")} Tháng {dayjs(date).month() + 1} {dayjs(date).year()}
-            </Typography>
-            <IconButton
-              size="small"
-              sx={{
-                p: 0.25,
-                ml: "5px",
-                opacity: 0.48,
-                bgcolor: "#1C252E",
-                color: "#fff",
-                mr: "-3px",
-                "&:hover": {
-                  opacity: 1,
-                  bgcolor: "#1C252E",
-                },
-              }}
-            >
-              <Close sx={{ fontSize: 8 }} />
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Button
-          startIcon={<DeleteIcon style={{ marginRight: 0 }} sx={{ fontSize: 18 }} />}
-          sx={{
-            color: "#FF5630",
-            fontWeight: 600,
-            fontSize: "1.4rem",
-            textTransform: "none",
-            "&:hover": { bgcolor: "rgba(255, 86, 48, 0.08)" },
-          }}
-        >
-          Xoá
         </Button>
       </Box>
 
@@ -264,8 +329,8 @@ export const BookingCalendarView = () => {
           "& .fc-theme-standard .fc-scrollgrid": { border: "none" },
           "& .fc table": { width: "100% !important" },
           "& .fc-view-harness": {
-            height: "calc(100vh - 380px)",
-            minHeight: "520px",
+            height: "calc(100vh - 300px)",
+            minHeight: "480px",
             overflowY: "auto",
           },
           "& .fc .fc-scrollgrid": { border: "none" },
@@ -279,7 +344,7 @@ export const BookingCalendarView = () => {
             backgroundColor: "#fff",
           },
           "& .fc .fc-col-header-cell": {
-            height: "52px",
+            height: "44px",
             padding: "0",
             borderLeft: "none",
             borderRight: "none",
@@ -331,9 +396,9 @@ export const BookingCalendarView = () => {
             },
           },
           "& .fc .fc-daygrid-day-number": {
-            fontSize: "1.5rem",
+            fontSize: "1.4rem",
             fontWeight: 500,
-            padding: "6px 10px",
+            padding: "4px 8px",
             color: "#637381",
             textDecoration: "none !important",
           },
@@ -341,12 +406,12 @@ export const BookingCalendarView = () => {
             color: "#1C252E",
           },
           "& .fc .fc-daygrid-event": {
-            borderRadius: "8px",
+            borderRadius: "6px",
             padding: 0,
             border: "none !important",
-            marginLeft: "6px",
-            marginRight: "6px",
-            marginBottom: "6px",
+            marginLeft: "4px",
+            marginRight: "4px",
+            marginBottom: "4px",
             marginTop: 0,
             overflow: "hidden",
             minWidth: 0,
@@ -354,7 +419,7 @@ export const BookingCalendarView = () => {
           },
           "& .fc .fc-daygrid-event-dot": { display: "none" },
           "& .fc .fc-event-main": {
-            padding: "6px 10px",
+            padding: "4px 8px",
             fontSize: "1.5rem",
             display: "flex",
             alignItems: "center",
@@ -402,7 +467,7 @@ export const BookingCalendarView = () => {
           },
         }}
       >
-        <Box sx={{ p: "20px", pr: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(145, 158, 171, 0.12)" }}>
           <ToggleButtonGroup
             value={view}
             exclusive
@@ -527,6 +592,6 @@ export const BookingCalendarView = () => {
         onClose={handleCloseFilters}
         events={events}
       />
-    </>
+    </LocalizationProvider>
   );
 };

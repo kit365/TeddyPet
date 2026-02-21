@@ -81,7 +81,7 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
         <InfoRow label="Loại thú cưng" value={pet.petType} />
         <InfoRow label="Liên hệ khẩn cấp" value={pet.emergencyContactName} />
         <InfoRow label="SĐT khẩn cấp" value={pet.emergencyContactPhone} />
-        <InfoRow label="Cân nặng khi đặt" value={pet.weightAtBooking} />
+        <InfoRow label="Cân nặng khi đặt" value={pet.weightAtBooking != null ? `${pet.weightAtBooking} kg` : undefined} />
         <InfoRow label="Ghi chú tình trạng" value={pet.petConditionNotes} />
         <InfoRow label="Vấn đề sức khỏe" value={pet.healthIssues} />
 
@@ -95,8 +95,7 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
         <InfoRow label="Ảnh khi về" value={pet.departurePhotos ? "Đã có" : "—"} />
 
         <Divider sx={{ my: 2 }} />
-        <InfoRow label="Đồ đạc mang theo" value={pet.belongings} />
-        <InfoRow label="Ảnh đồ đạc" value={pet.belongingPhotos ? "Đã có" : "—"} />
+        <InfoRow label="Ảnh đồ đạc mang theo" value={pet.belongingPhotos ? "Đã có" : "—"} />
 
         <Divider sx={{ my: 2 }} />
         <InfoRow label="Mang theo thức ăn" value={formatBool(pet.foodBrought)} />

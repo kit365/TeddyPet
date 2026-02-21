@@ -63,7 +63,6 @@ export interface BookingPetResponse {
   departureCondition?: string;
   arrivalPhotos?: string;
   departurePhotos?: string;
-  belongings?: string;
   belongingPhotos?: string;
   foodBrought?: boolean | string;
   foodBrand?: string;

@@ -24,6 +24,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "Mã đặt lịch",
     minWidth: 128,
     flex: 0.7,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography
         component="span"
@@ -49,6 +51,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "Khách hàng",
     minWidth: 140,
     flex: 0.9,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography sx={{ fontWeight: 600, fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>{params.value}</Typography>
     ),
@@ -58,6 +62,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "SĐT",
     minWidth: 120,
     flex: 0.65,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography sx={{ fontSize: "1.5rem", fontWeight: 500, color: "#1C252E", width: "100%" }}>
         {params.value ?? "—"}
@@ -69,6 +75,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "Loại dịch vụ",
     minWidth: 140,
     flex: 0.75,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>{getBookingTypeLabel(String(params.value ?? ""))}</Typography>
     ),
@@ -78,6 +86,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "Bắt đầu",
     minWidth: 130,
     flex: 0.7,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>
         {formatDateTime(params.value as string)}
@@ -89,6 +99,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerName: "Kết thúc",
     minWidth: 130,
     flex: 0.7,
+    align: "left",
+    headerAlign: "left",
     renderCell: (params) => (
       <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>
         {params.value ? formatDateTime(params.value as string) : "—"}
