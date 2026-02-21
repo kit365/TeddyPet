@@ -50,7 +50,6 @@ export const menuManagementData = [
         Icon: ScheduleSendIcon,
         children: [
             { id: "list", label: "Danh sách đặt lịch", path: `/${prefixAdmin}/booking/list` },
-            { id: "calendar", label: "Lịch", path: `/${prefixAdmin}/calendar` },
         ]
     },
     {

@@ -41,7 +41,6 @@ import { ServiceComboCreatePage } from "../pages/service/ServiceComboCreatePage"
 import { ServiceComboEditPage } from "../pages/service/ServiceComboEditPage";
 import { BookingListPage } from "../pages/booking/BookingListPage";
 import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
-import { CalendarPage } from "../pages/calendar/CalendarPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -76,7 +75,6 @@ export const AdminRoutes: RouteObject[] = [
     { path: "order/detail/:id", element: <OrderDetailPage /> },
     { path: "booking/list", element: <BookingListPage /> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },
-    { path: "calendar", element: <CalendarPage /> },
     { path: "shipping/list", element: <ShippingRuleListPage /> },
     { path: "settings", element: <SettingsPage /> },
     { path: "service/list", element: <ServiceManagementPage /> },
