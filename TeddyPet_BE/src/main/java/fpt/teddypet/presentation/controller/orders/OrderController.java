@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.controller.orders;
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
+import fpt.teddypet.application.dto.request.orders.order.AdminHandleReturnRequest;
 import fpt.teddypet.application.dto.request.orders.order.CancelOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
@@ -214,5 +215,28 @@ public class OrderController {
         String adminUsername = SecurityUtil.getCurrentUsername();
         orderService.returnOrder(id, request.reason(), adminUsername);
         return ResponseEntity.ok(ApiResponse.success("Đơn hàng đã được đánh dấu hoàn trả."));
+    }
+
+    @PatchMapping("/{id}/request-return")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Yêu cầu trả hàng (Customer)", description = "Khách hàng yêu cầu trả hàng sau khi đơn hàng đã hoàn thành (trong vòng 4 ngày)")
+    public ResponseEntity<ApiResponse<Void>> requestReturnByCustomer(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReturnOrderRequest request) {
+        orderService.requestReturnByCustomer(id, request);
+        return ResponseEntity
+                .ok(ApiResponse.success("Yêu cầu trả hàng của bạn đã được gửi. Vui lòng chờ Admin xử lý."));
+    }
+
+    @PatchMapping("/{id}/handle-return")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Xử lý yêu cầu trả hàng (Admin)", description = "Admin/Staff phê duyệt hoặc từ chối yêu cầu trả hàng của khách")
+    public ResponseEntity<ApiResponse<Void>> handleReturnRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody AdminHandleReturnRequest request) {
+        String adminUsername = SecurityUtil.getCurrentUsername();
+        orderService.handleReturnRequestByAdmin(id, request, adminUsername);
+        String message = request.approved() ? "Đã chấp nhận yêu cầu trả hàng." : "Đã từ chối yêu cầu trả hàng.";
+        return ResponseEntity.ok(ApiResponse.success(message));
     }
 }

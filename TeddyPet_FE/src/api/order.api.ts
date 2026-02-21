@@ -2,7 +2,9 @@ import { apiApp } from "./index";
 import { ApiResponse } from "../types/common.type";
 import {
     OrderRequest,
-    OrderResponse
+    OrderResponse,
+    ReturnOrderRequest,
+    AdminHandleReturnRequest
 } from "../types/order.type";
 
 const BASE_PATH = "/api/orders";
@@ -47,5 +49,23 @@ export const cancelOrder = async (id: string, reason: string) => {
 
 export const confirmReceived = async (id: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/received`);
+    return response.data;
+};
+
+// Customer requesting return
+export const requestReturn = async (id: string, data: ReturnOrderRequest) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/request-return`, data);
+    return response.data;
+};
+
+// Admin handling return request
+export const handleReturnRequest = async (id: string, data: AdminHandleReturnRequest) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/handle-return`, data);
+    return response.data;
+};
+
+// Admin marking order as returned directly
+export const returnOrder = async (id: string, reason: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/return`, { reason });
     return response.data;
 };

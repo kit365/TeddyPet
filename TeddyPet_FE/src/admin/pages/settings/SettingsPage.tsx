@@ -66,8 +66,17 @@ export const SettingsPage = () => {
     const [shopAddress, setShopAddress] = useState('');
     const [shopLat, setShopLat] = useState('10.7410');
     const [shopLng, setShopLng] = useState('106.7145');
+    const [shopPhone, setShopPhone] = useState('');
+    const [shopEmail, setShopEmail] = useState('');
+    const [shopWebsite, setShopWebsite] = useState('');
+    const [facebookUrl, setFacebookUrl] = useState('');
+    const [instagramUrl, setInstagramUrl] = useState('');
+    const [appleStoreUrl, setAppleStoreUrl] = useState('');
+    const [playStoreUrl, setPlayStoreUrl] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [originalSettings, setOriginalSettings] = useState<any>(null);
 
     // Map States
     const [pos, setPos] = useState<L.LatLng | null>(null);
@@ -88,10 +97,28 @@ export const SettingsPage = () => {
                 const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue || '';
                 const lat = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_LAT)?.settingValue || '10.7410';
                 const lng = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_LNG)?.settingValue || '106.7145';
+                const phone = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_PHONE)?.settingValue || '';
+                const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue || '';
+                const website = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_WEBSITE)?.settingValue || '';
+                const facebook = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_FACEBOOK)?.settingValue || '';
+                const instagram = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_INSTAGRAM)?.settingValue || '';
+                const apple = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_APPLE_STORE)?.settingValue || '';
+                const play = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_PLAY_STORE)?.settingValue || '';
 
                 setShopAddress(address);
                 setShopLat(lat);
                 setShopLng(lng);
+                setShopPhone(phone);
+                setShopEmail(email);
+                setShopWebsite(website);
+                setFacebookUrl(facebook);
+                setInstagramUrl(instagram);
+                setAppleStoreUrl(apple);
+                setPlayStoreUrl(play);
+
+                setOriginalSettings({
+                    address, lat, lng, phone, email, website, facebook, instagram, apple, play
+                });
 
                 const latitude = parseFloat(lat);
                 const longitude = parseFloat(lng);
@@ -112,8 +139,28 @@ export const SettingsPage = () => {
             await Promise.all([
                 updateSetting(APP_SETTING_KEYS.SHOP_ADDRESS, shopAddress, 'Địa chỉ cửa hàng'),
                 updateSetting(APP_SETTING_KEYS.SHOP_LAT, shopLat, 'Vĩ độ cửa hàng'),
-                updateSetting(APP_SETTING_KEYS.SHOP_LNG, shopLng, 'Kinh độ cửa hàng')
+                updateSetting(APP_SETTING_KEYS.SHOP_LNG, shopLng, 'Kinh độ cửa hàng'),
+                updateSetting(APP_SETTING_KEYS.SHOP_PHONE, shopPhone, 'Số điện thoại cửa hàng'),
+                updateSetting(APP_SETTING_KEYS.SHOP_EMAIL, shopEmail, 'Email cửa hàng'),
+                updateSetting(APP_SETTING_KEYS.SHOP_WEBSITE, shopWebsite, 'Website cửa hàng'),
+                updateSetting(APP_SETTING_KEYS.SOCIAL_FACEBOOK, facebookUrl, 'Facebook URL'),
+                updateSetting(APP_SETTING_KEYS.SOCIAL_INSTAGRAM, instagramUrl, 'Instagram URL'),
+                updateSetting(APP_SETTING_KEYS.SOCIAL_APPLE_STORE, appleStoreUrl, 'Apple Store URL'),
+                updateSetting(APP_SETTING_KEYS.SOCIAL_PLAY_STORE, playStoreUrl, 'Play Store URL')
             ]);
+            setOriginalSettings({
+                address: shopAddress,
+                lat: shopLat,
+                lng: shopLng,
+                phone: shopPhone,
+                email: shopEmail,
+                website: shopWebsite,
+                facebook: facebookUrl,
+                instagram: instagramUrl,
+                apple: appleStoreUrl,
+                play: playStoreUrl
+            });
+            setIsEditing(false);
             toast.success("Cập nhật cài đặt thành công");
         } catch (error) {
             console.error("Error updating settings:", error);
@@ -123,7 +170,29 @@ export const SettingsPage = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (originalSettings) {
+            setShopAddress(originalSettings.address);
+            setShopLat(originalSettings.lat);
+            setShopLng(originalSettings.lng);
+            setShopPhone(originalSettings.phone);
+            setShopEmail(originalSettings.email);
+            setShopWebsite(originalSettings.website);
+            setFacebookUrl(originalSettings.facebook);
+            setInstagramUrl(originalSettings.instagram);
+            setAppleStoreUrl(originalSettings.apple);
+            setPlayStoreUrl(originalSettings.play);
+
+            const latitude = parseFloat(originalSettings.lat);
+            const longitude = parseFloat(originalSettings.lng);
+            setPos(new L.LatLng(latitude, longitude));
+            setMapCenter([latitude, longitude]);
+        }
+        setIsEditing(false);
+    };
+
     const handleLocationSelect = async (lat: number, lon: number) => {
+        if (!isEditing) return;
         setShopLat(lat.toString());
         setShopLng(lon.toString());
 
@@ -199,6 +268,7 @@ export const SettingsPage = () => {
                             variant="outlined"
                             multiline
                             rows={2}
+                            disabled={!isEditing}
                             InputProps={{
                                 startAdornment: <InputAdornment position="start"><LocationOnIcon sx={{ color: '#00AB55' }} /></InputAdornment>,
                                 sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' }
@@ -216,6 +286,7 @@ export const SettingsPage = () => {
                                     value={searchKeyword}
                                     onChange={(e) => setSearchKeyword(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                    disabled={!isEditing}
                                     InputProps={{
                                         startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#637381' }} /></InputAdornment>,
                                         sx: { bgcolor: 'white', borderRadius: '12px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', border: '1px solid #E5E8EB' }
@@ -263,26 +334,149 @@ export const SettingsPage = () => {
                     </Stack>
                 </Card>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        disabled={saving}
-                        onClick={handleSave}
-                        sx={{
-                            borderRadius: '16px',
-                            px: 10,
-                            py: 2.2,
-                            fontSize: '1.6rem',
-                            fontWeight: 900,
-                            bgcolor: '#00AB55',
-                            boxShadow: '0 8px 32px rgba(0, 171, 85, 0.3)',
-                            '&:hover': { bgcolor: '#007B55', boxShadow: '0 12px 40px rgba(0, 171, 85, 0.4)' },
-                            textTransform: 'none'
-                        }}
-                    >
-                        {saving ? 'Đang lưu...' : 'Lưu cài đặt cửa hàng'}
-                    </Button>
+                {/* Contact & Social Settings */}
+                <Card sx={{ p: 4, borderRadius: '32px', border: '1px solid #F4F6F8', boxShadow: '0 8px 32px rgba(145, 158, 171, 0.05)' }}>
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                        <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#546E7A', 0.1), color: '#546E7A', display: 'flex' }}>
+                            <PushPinIcon sx={{ fontSize: '2.4rem' }} />
+                        </Box>
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 900, color: '#1C252E' }}>Thông tin liên hệ & Mạng xã hội</Typography>
+                            <Typography variant="body2" sx={{ color: '#637381' }}>Quản lý các liên kết mạng xã hội và thông tin liên hệ hiển thị trên toàn hệ thống.</Typography>
+                        </Box>
+                    </Stack>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3.5 }}>
+                        <TextField
+                            fullWidth
+                            label="Số điện thoại"
+                            value={shopPhone}
+                            onChange={(e) => setShopPhone(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Email cửa hàng"
+                            value={shopEmail}
+                            onChange={(e) => setShopEmail(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Website cửa hàng"
+                            value={shopWebsite}
+                            onChange={(e) => setShopWebsite(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Facebook URL"
+                            value={facebookUrl}
+                            onChange={(e) => setFacebookUrl(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Instagram URL"
+                            value={instagramUrl}
+                            onChange={(e) => setInstagramUrl(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <Box /> {/* Spacer */}
+                        <TextField
+                            fullWidth
+                            label="Apple Store URL"
+                            value={appleStoreUrl}
+                            onChange={(e) => setAppleStoreUrl(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Google Play Store URL"
+                            value={playStoreUrl}
+                            onChange={(e) => setPlayStoreUrl(e.target.value)}
+                            variant="outlined"
+                            disabled={!isEditing}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                        />
+                    </Box>
+                </Card>
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    {!isEditing ? (
+                        <Button
+                            variant="contained"
+                            size="large"
+                            onClick={() => setIsEditing(true)}
+                            sx={{
+                                borderRadius: '16px',
+                                px: 6,
+                                py: 2,
+                                fontSize: '1.6rem',
+                                fontWeight: 900,
+                                bgcolor: '#1C252E',
+                                color: 'white',
+                                boxShadow: '0 8px 32px rgba(28, 37, 46, 0.2)',
+                                '&:hover': { bgcolor: '#000000', boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)' },
+                                textTransform: 'none'
+                            }}
+                        >
+                            Chỉnh sửa cài đặt
+                        </Button>
+                    ) : (
+                        <>
+                            <Button
+                                variant="outlined"
+                                size="large"
+                                onClick={handleCancel}
+                                disabled={saving}
+                                sx={{
+                                    borderRadius: '16px',
+                                    px: 6,
+                                    py: 2,
+                                    fontSize: '1.6rem',
+                                    fontWeight: 900,
+                                    borderColor: '#637381',
+                                    color: '#637381',
+                                    '&:hover': { borderColor: '#1C252E', color: '#1C252E', bgcolor: alpha('#637381', 0.04) },
+                                    textTransform: 'none'
+                                }}
+                            >
+                                Hủy bỏ
+                            </Button>
+                            <Button
+                                variant="contained"
+                                size="large"
+                                disabled={saving}
+                                onClick={handleSave}
+                                sx={{
+                                    borderRadius: '16px',
+                                    px: 10,
+                                    py: 2.2,
+                                    fontSize: '1.6rem',
+                                    fontWeight: 900,
+                                    bgcolor: '#00AB55',
+                                    boxShadow: '0 8px 32px rgba(0, 171, 85, 0.3)',
+                                    '&:hover': { bgcolor: '#007B55', boxShadow: '0 12px 40px rgba(0, 171, 85, 0.4)' },
+                                    textTransform: 'none'
+                                }}
+                            >
+                                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            </Button>
+                        </>
+                    )}
                 </Box>
             </Stack>
         </Box>

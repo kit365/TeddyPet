@@ -1,8 +1,10 @@
 package fpt.teddypet.application.port.input.orders.order;
 
 import fpt.teddypet.application.dto.common.PageResponse;
+import fpt.teddypet.application.dto.request.orders.order.AdminHandleReturnRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
+import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 
 import fpt.teddypet.domain.entity.Order;
@@ -66,4 +68,10 @@ public interface OrderService {
 
     // Return order (for DELIVERING or DELIVERED status - customer boom or return)
     void returnOrder(UUID orderId, String reason, String adminUsername);
+
+    // Customer requests return (after COMPLETED status)
+    void requestReturnByCustomer(UUID orderId, ReturnOrderRequest request);
+
+    // Admin handles return requested by customer
+    void handleReturnRequestByAdmin(UUID orderId, AdminHandleReturnRequest request, String adminUsername);
 }

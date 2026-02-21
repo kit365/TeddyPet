@@ -46,6 +46,12 @@ export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg
         color: "#B76E00",
         bgColor: "rgba(255, 171, 0, 0.12)",
         dotColor: "#FFAB00"
+    },
+    RETURN_REQUESTED: {
+        label: "Yêu cầu trả",
+        color: "#006C9C",
+        bgColor: "rgba(0, 184, 217, 0.12)",
+        dotColor: "#00B8D9"
     }
 };
 

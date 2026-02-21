@@ -2,6 +2,8 @@ import { MailSolid } from "iconoir-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom"
 import { SocialIcon } from "../ui/SocialIcon";
+import { getAllSettings } from "../../../admin/api/setting.api";
+import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
 
 export const TopBar = () => {
     const texts = [
@@ -10,6 +12,9 @@ export const TopBar = () => {
         "Giá nóng, ưu đãi mát – Nhận giao hàng miễn phí cho đơn trên 300k!"
     ];
     const [index, setIndex] = useState(0);
+    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+    const [facebookUrl, setFacebookUrl] = useState<string>('#');
+    const [instagramUrl, setInstagramUrl] = useState<string>('#');
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -18,6 +23,27 @@ export const TopBar = () => {
 
         return () => clearInterval(interval);
     }, [texts.length]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await getAllSettings();
+                if (response.success && response.data) {
+                    const settings = response.data;
+                    const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue;
+                    const facebook = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_FACEBOOK)?.settingValue;
+                    const instagram = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_INSTAGRAM)?.settingValue;
+
+                    if (email) setShopEmail(email);
+                    if (facebook) setFacebookUrl(facebook);
+                    if (instagram) setInstagramUrl(instagram);
+                }
+            } catch (error) {
+                console.error("Error fetching TopBar settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const handlePrev = () => {
         setIndex((prev) => (prev - 1 + texts.length) % texts.length);
@@ -31,7 +57,7 @@ export const TopBar = () => {
         <>
             <div className="px-[30px] py-[10px] bg-client-primary">
                 <div className="flex items-center justify-between app-container">
-                    <SocialIcon />
+                    <SocialIcon facebookUrl={facebookUrl} instagramUrl={instagramUrl} />
                     <div className="flex items-center justify-center">
                         <div className="w-[35px] h-[35px] cursor-pointer flex items-center justify-center">
                             <svg
@@ -58,9 +84,9 @@ export const TopBar = () => {
                         </div>
 
                     </div>
-                    <Link to={"/"} className="flex items-center text-white hover:text-[#FFFFFFBF] transition-[color] duration-300">
+                    <Link to={`mailto:${shopEmail}`} className="flex items-center text-white hover:text-[#FFFFFFBF] transition-[color] duration-300">
                         <MailSolid className="w-[1.7rem] h-[1.7rem] mr-[10px] text-white" />
-                        <span>teddypet@gmail.com</span>
+                        <span>{shopEmail}</span>
                     </Link>
                 </div>
             </div>
