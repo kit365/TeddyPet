@@ -21,7 +21,7 @@ export const BookingListPage = () => {
     };
 
     return (
-        <div className={`flex flex-col ${mainTab === "calendar" ? "gap-3" : "gap-8"}`}>
+        <div className={`flex flex-col min-w-0 ${mainTab === "calendar" ? "gap-3" : "gap-8"}`}>
             <ListHeader
                 title="Quản lý đặt lịch"
                 breadcrumbItems={[

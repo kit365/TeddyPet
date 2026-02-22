@@ -86,21 +86,26 @@ export const BookingList = () => {
           border: "1px solid rgba(145, 158, 171, 0.2)",
           boxShadow: "0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12)",
           borderRadius: "24px",
+          maxWidth: "100%",
+          overflow: "hidden",
         }}
       >
         <Tabs
           value={status}
           onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
-            px: 3,
-            pt: 1,
+            px: 2,
+            pt: 0.5,
             borderBottom: "1px solid rgba(145, 158, 171, 0.1)",
             "& .MuiTab-root": {
-              fontSize: "1.4rem",
+              fontSize: "1.3rem",
               fontWeight: 700,
               textTransform: "none",
-              minWidth: 100,
-              py: 2,
+              minWidth: 70,
+              py: 1.5,
               color: "#637381",
               "&.Mui-selected": { color: "#1C252E" },
             },
@@ -138,11 +143,11 @@ export const BookingList = () => {
 
         <Stack
           direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          sx={{ p: 3, alignItems: { md: "center" }, justifyContent: "space-between" }}
+          spacing={1.5}
+          sx={{ p: 2, alignItems: { md: "center" }, justifyContent: "space-between" }}
         >
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1C252E", fontSize: "1.8rem" }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1C252E", fontSize: "1.6rem" }}>
               {status === "ALL" ? "Tất cả đặt lịch" : BOOKING_STATUS_OPTIONS.find((o) => o.value === status)?.label}
               <Box component="span" sx={{ ml: 1, color: "text.secondary", fontWeight: 500 }}>
                 ({filteredRows.length})
@@ -156,7 +161,7 @@ export const BookingList = () => {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             sx={{
-              width: { xs: "100%", md: 400 },
+              width: { xs: "100%", md: 280 },
               "& .MuiOutlinedInput-root": {
                 borderRadius: "12px",
                 bgcolor: "#F4F6F8",
@@ -175,7 +180,7 @@ export const BookingList = () => {
           />
         </Stack>
 
-        <div style={{ ...dataGridContainerStyles, padding: "0 24px 24px" }}>
+        <div style={{ ...dataGridContainerStyles, padding: "0 16px 16px", minWidth: 0 }}>
           <DataGrid
             rows={filteredRows}
             columns={columns}
@@ -188,7 +193,7 @@ export const BookingList = () => {
             }}
             showCellVerticalBorder={false}
             showColumnVerticalBorder={false}
-            density="comfortable"
+            density="compact"
             sx={{
               ...dataGridStyles,
               border: "none",
@@ -196,12 +201,16 @@ export const BookingList = () => {
                 bgcolor: "#F4F6F8",
                 color: "#637381",
                 fontWeight: 700,
-                fontSize: "1.5rem",
+                fontSize: "1.45rem",
+                alignItems: "center",
+                justifyContent: "center",
               },
               "& .MuiDataGrid-cell": {
                 borderBottom: "1px dashed rgba(145, 158, 171, 0.2)",
-                fontSize: "1.5rem",
+                fontSize: "1.45rem",
                 alignItems: "center",
+                justifyContent: "center",
+                display: "flex",
               },
             }}
             slots={{
