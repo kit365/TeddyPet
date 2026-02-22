@@ -13,13 +13,13 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(1) // Run first
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
-    
+
     private final RoleRepository roleRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -63,7 +63,7 @@ public class DataInitializer implements CommandLineRunner {
         // In application layer, use RoleService.getByName() instead
         Role adminRole = roleRepository.findByName(RoleEnum.ADMIN.name())
                 .orElseThrow(() -> new RuntimeException("ADMIN role not found. Please initialize roles first."));
-        
+
         Role userRole = roleRepository.findByName(RoleEnum.USER.name())
                 .orElseThrow(() -> new RuntimeException("USER role not found. Please initialize roles first."));
 
@@ -102,4 +102,3 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 }
-

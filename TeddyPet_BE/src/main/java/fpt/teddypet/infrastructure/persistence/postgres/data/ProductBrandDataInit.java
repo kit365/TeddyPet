@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(4)
 @RequiredArgsConstructor
 public class ProductBrandDataInit implements CommandLineRunner {

@@ -22,11 +22,14 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 /**
- * Seeds service_categories, services, service_pricing, service_combo, and service_combo_service.
- * Idempotent: skips when data already exists (by slug/code or existing pricing).
+ * Seeds service_categories, services, service_pricing, service_combo, and
+ * service_combo_service.
+ * Idempotent: skips when data already exists (by slug/code or existing
+ * pricing).
  */
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(10)
 @RequiredArgsConstructor
 public class ServiceDataInitializer implements CommandLineRunner {
@@ -70,13 +73,15 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 "Tắm, cạo lông, vệ sinh, tắm thảo dược", "#50C878");
 
         // Add-on is a property of `services` (isAddon), not a separate category.
-        // If older seed created "nhom-addon", migrate its services to Spa and remove the category.
+        // If older seed created "nhom-addon", migrate its services to Spa and remove
+        // the category.
         removeAddonCategoryIfExists();
     }
 
     private void removeAddonCategoryIfExists() {
         ServiceCategory addonCat = categoryRepository.findBySlug("nhom-addon").orElse(null);
-        if (addonCat == null) return;
+        if (addonCat == null)
+            return;
 
         ServiceCategory spaCat = categoryRepository.findBySlug("nhom-spa").orElse(null);
         if (spaCat == null) {
@@ -84,8 +89,10 @@ public class ServiceDataInitializer implements CommandLineRunner {
             return;
         }
 
-        // Re-assign any services currently under addon category to Spa to avoid FK issues.
-        var servicesUnderAddon = serviceRepository.findByServiceCategory_IdAndIsActiveTrueAndIsDeletedFalse(addonCat.getId());
+        // Re-assign any services currently under addon category to Spa to avoid FK
+        // issues.
+        var servicesUnderAddon = serviceRepository
+                .findByServiceCategory_IdAndIsActiveTrueAndIsDeletedFalse(addonCat.getId());
         if (!servicesUnderAddon.isEmpty()) {
             servicesUnderAddon.forEach(s -> s.setServiceCategory(spaCat));
             serviceRepository.saveAll(servicesUnderAddon);
@@ -97,7 +104,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private ServiceCategory createCategoryIfNotExists(String categoryName, String slug, String serviceType,
-                                                      String pricingModel, String description, String colorCode) {
+            String pricingModel, String description, String colorCode) {
         if (categoryRepository.existsBySlug(slug)) {
             log.debug("ServiceCategory slug {} already exists, skipping", slug);
             return categoryRepository.findBySlug(slug).orElseThrow();
@@ -128,31 +135,40 @@ public class ServiceDataInitializer implements CommandLineRunner {
         Service meoRieng = createServiceIfNotExists(hotelCat, "HOTEL-MEO-RIENG", "Mèo Riêng",
                 "Trong giữ, chăm sóc theo ngày - Mèo Riêng", 1440, new BigDecimal("125000"), "ngày", false, 3);
 
-        addHotelPricingIfEmpty(phongChuong, new BigDecimal("125000"), new BigDecimal("175000"), new BigDecimal("225000"), new BigDecimal("350000"));
-        addHotelPricingIfEmpty(phongRieng, new BigDecimal("225000"), new BigDecimal("275000"), new BigDecimal("375000"), new BigDecimal("500000"));
-        addHotelPricingIfEmpty(meoRieng, new BigDecimal("125000"), new BigDecimal("125000"), new BigDecimal("125000"), new BigDecimal("125000"));
+        addHotelPricingIfEmpty(phongChuong, new BigDecimal("125000"), new BigDecimal("175000"),
+                new BigDecimal("225000"), new BigDecimal("350000"));
+        addHotelPricingIfEmpty(phongRieng, new BigDecimal("225000"), new BigDecimal("275000"), new BigDecimal("375000"),
+                new BigDecimal("500000"));
+        addHotelPricingIfEmpty(meoRieng, new BigDecimal("125000"), new BigDecimal("125000"), new BigDecimal("125000"),
+                new BigDecimal("125000"));
 
         // --- Spa (4 services) ---
         Service tamVeSinh = createServiceIfNotExists(spaCat, "SPA-TAM-VE-SINH", "Tắm vệ sinh (Basic Bath)",
                 "Tắm vệ sinh cơ bản", 60, new BigDecimal("150000"), "lần", false, 1);
         Service caoLong = createServiceIfNotExists(spaCat, "SPA-CAO-LONG", "Cạo lông toàn thân (Full Shave)",
                 "Cạo lông toàn thân", 90, new BigDecimal("300000"), "lần", false, 2);
-        Service veSinhTongQuat = createServiceIfNotExists(spaCat, "SPA-VE-SINH-TONG-QUAT", "Vệ sinh tổng quát (Hygiene Groom)",
-                "Chỉ làm vệ sinh tai, móng, cạo bàn chân, bụng, hậu môn, không tắm", 45, new BigDecimal("65000"), "lần", false, 3);
+        Service veSinhTongQuat = createServiceIfNotExists(spaCat, "SPA-VE-SINH-TONG-QUAT",
+                "Vệ sinh tổng quát (Hygiene Groom)",
+                "Chỉ làm vệ sinh tai, móng, cạo bàn chân, bụng, hậu môn, không tắm", 45, new BigDecimal("65000"), "lần",
+                false, 3);
         Service tamThaoDuoc = createServiceIfNotExists(spaCat, "SPA-TAM-THAO-DUOC", "Tắm dưỡng thảo dược (Herbal Bath)",
                 "Ngâm bồn thảo dược", 30, new BigDecimal("75000"), "lần", false, 4);
 
-        addSpaPricingIfEmpty(tamVeSinh, new BigDecimal("125000"), new BigDecimal("200000"), new BigDecimal("325000"), new BigDecimal("525000"));
-        addSpaPricingIfEmpty(caoLong, new BigDecimal("225000"), new BigDecimal("325000"), new BigDecimal("550000"), new BigDecimal("800000"));
+        addSpaPricingIfEmpty(tamVeSinh, new BigDecimal("125000"), new BigDecimal("200000"), new BigDecimal("325000"),
+                new BigDecimal("525000"));
+        addSpaPricingIfEmpty(caoLong, new BigDecimal("225000"), new BigDecimal("325000"), new BigDecimal("550000"),
+                new BigDecimal("800000"));
         addHygienePricingIfEmpty(veSinhTongQuat, new BigDecimal("65000"), new BigDecimal("110000"));
         addHerbalPricingIfEmpty(tamThaoDuoc, new BigDecimal("75000"));
 
         // --- Add-on (3 services) ---
         Service goRoiLong = createServiceIfNotExists(spaCat, "ADDON-GO-ROI-LONG", "Gỡ rối lông",
-                "Theo thời gian (khoảng 50–100k/30 phút). Giá cơ sở mỗi 30 phút.", 30, new BigDecimal("75000"), "30 phút", true, 1);
+                "Theo thời gian (khoảng 50–100k/30 phút). Giá cơ sở mỗi 30 phút.", 30, new BigDecimal("75000"),
+                "30 phút", true, 1);
         Service triVeRan = createServiceIfNotExists(spaCat, "ADDON-TRI-VE-RAN", "Trị ve rận (Flea & Tick)",
                 "Labor 50–100k hoặc gói 150–300k", 30, new BigDecimal("75000"), "lần", true, 2);
-        Service duongAmDemChan = createServiceIfNotExists(spaCat, "ADDON-DUONG-AM-DEM-CHAN", "Dưỡng ẩm đệm chân (Paw Balm)",
+        Service duongAmDemChan = createServiceIfNotExists(spaCat, "ADDON-DUONG-AM-DEM-CHAN",
+                "Dưỡng ẩm đệm chân (Paw Balm)",
                 "Dưỡng ẩm đệm chân", 15, new BigDecimal("40000"), "lần", true, 3);
 
         addAddonPricingIfEmpty(goRoiLong, new BigDecimal("75000"));
@@ -161,8 +177,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private Service createServiceIfNotExists(ServiceCategory category, String code, String serviceName,
-                                             String description, int durationMinutes, BigDecimal basePrice,
-                                             String priceUnit, boolean isAddon, int displayOrder) {
+            String description, int durationMinutes, BigDecimal basePrice,
+            String priceUnit, boolean isAddon, int displayOrder) {
         if (serviceRepository.existsByCode(code)) {
             log.debug("Service code {} already exists, skipping", code);
             return serviceRepository.findByCode(code).orElseThrow();
@@ -187,7 +203,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private void addHotelPricingIfEmpty(Service service, BigDecimal s, BigDecimal m, BigDecimal l, BigDecimal xl) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         BigDecimal xsPrice = s; // XS use S price (image has no XS)
         savePricing(service, "XS", W_XS_MIN, W_XS_MAX, xsPrice, 1);
         savePricing(service, "S", W_S_MIN, W_S_MAX, s, 2);
@@ -198,7 +215,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private void addSpaPricingIfEmpty(Service service, BigDecimal s, BigDecimal m, BigDecimal l, BigDecimal xl) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         BigDecimal xsPrice = s;
         savePricing(service, "XS", W_XS_MIN, W_XS_MAX, xsPrice, 1);
         savePricing(service, "S", W_S_MIN, W_S_MAX, s, 2);
@@ -209,7 +227,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private void addHygienePricingIfEmpty(Service service, BigDecimal smPrice, BigDecimal xlPrice) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         savePricing(service, "XS", W_XS_MIN, W_XS_MAX, smPrice, 1);
         savePricing(service, "S", W_S_MIN, W_S_MAX, smPrice, 2);
         savePricing(service, "M", W_M_MIN, W_M_MAX, smPrice, 3);
@@ -219,26 +238,29 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     private void addHerbalPricingIfEmpty(Service service, BigDecimal price) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         savePricing(service, "Flat", null, null, price, 0);
         log.info("✅ Added herbal pricing for service: {}", service.getServiceName());
     }
 
     private void addAddonPricingIfEmpty(Service service, BigDecimal price) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         savePricing(service, "Default", null, null, price, 0);
         log.info("✅ Added addon pricing for service: {}", service.getServiceName());
     }
 
     private void addFleaPricingIfEmpty(Service service, BigDecimal laborPrice, BigDecimal packagePrice) {
-        if (!pricingRepository.findByServiceId(service.getId()).isEmpty()) return;
+        if (!pricingRepository.findByServiceId(service.getId()).isEmpty())
+            return;
         savePricing(service, "Labor", null, null, laborPrice, 1);
         savePricing(service, "Package", null, null, packagePrice, 2);
         log.info("✅ Added flea pricing for service: {}", service.getServiceName());
     }
 
     private void savePricing(Service service, String pricingName, BigDecimal minWeight, BigDecimal maxWeight,
-                             BigDecimal price, int priority) {
+            BigDecimal price, int priority) {
         ServicePricing p = ServicePricing.builder()
                 .service(service)
                 .pricingName(pricingName)
@@ -277,11 +299,13 @@ public class ServiceDataInitializer implements CommandLineRunner {
                     .build();
             combo = comboRepository.save(combo);
             comboServiceRepository.save(ServiceComboService.builder()
-                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(tamVeSinh.getId()).build())
+                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(tamVeSinh.getId())
+                            .build())
                     .quantity(1)
                     .build());
             comboServiceRepository.save(ServiceComboService.builder()
-                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(veSinhTongQuat.getId()).build())
+                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(veSinhTongQuat.getId())
+                            .build())
                     .quantity(1)
                     .build());
             log.info("✅ Created combo: Spa cơ bản");
@@ -303,7 +327,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
                     .build();
             combo = comboRepository.save(combo);
             comboServiceRepository.save(ServiceComboService.builder()
-                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(phongChuong.getId()).build())
+                    .id(ServiceComboServiceId.builder().serviceComboId(combo.getId()).serviceId(phongChuong.getId())
+                            .build())
                     .quantity(1)
                     .build());
             log.info("✅ Created combo: Gói lưu trú 1 ngày");
