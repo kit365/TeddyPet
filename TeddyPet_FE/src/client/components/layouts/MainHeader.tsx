@@ -141,9 +141,9 @@ export const MainHeader = () => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-[30px] w-[34.2%] justify-end mr-[16px]">
-                        <div className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                        <Link to="/wishlist" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
                             <Heart stroke="2" className="w-[2.5rem] h-[2.5rem]" />
-                        </div>
+                        </Link>
                         <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
                             <Link to="/cart">
                                 <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />

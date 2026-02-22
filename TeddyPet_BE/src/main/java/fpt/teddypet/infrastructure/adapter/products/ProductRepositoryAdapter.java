@@ -39,6 +39,12 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     }
 
     @Override
+    public Page<Product> findRelatedProducts(List<Long> categoryIds, Long productId, Pageable pageable) {
+        return productRepository.findDistinctByCategoriesIdInAndIdNotAndIsActiveTrueAndIsDeletedFalse(categoryIds,
+                productId, pageable);
+    }
+
+    @Override
     public Optional<Product> findByIdAndIsActiveTrueAndIsDeletedFalse(Long productId) {
         return productRepository.findByIdAndIsActiveTrueAndIsDeletedFalse(productId);
     }

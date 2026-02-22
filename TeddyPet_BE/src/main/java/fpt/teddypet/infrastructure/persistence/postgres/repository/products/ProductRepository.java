@@ -16,6 +16,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     // Get all products by category ID (no pagination, JPA derived query)
     List<Product> findDistinctByCategoriesIdAndIsActiveTrueAndIsDeletedFalse(Long categoryId);
 
+    // Get related products by category IDs excluding current product
+    Page<Product> findDistinctByCategoriesIdInAndIdNotAndIsActiveTrueAndIsDeletedFalse(List<Long> categoryIds,
+            Long productId, Pageable pageable);
+
     // Get products by brand ID with pagination (JPA derived query)
     Page<Product> findByBrandIdAndIsActiveTrueAndIsDeletedFalse(Long brandId, Pageable pageable);
 

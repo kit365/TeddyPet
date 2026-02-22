@@ -22,11 +22,12 @@ import {
     Calendar,
     Wallet,
     ShieldCheck,
-    Star
+    Star,
+    Download
 } from "iconoir-react";
 import { toast } from "react-toastify";
 import { useState } from "react";
-import { confirmReceived, cancelOrder, requestReturn } from "../../../api/order.api";
+import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice } from "../../../api/order.api";
 import { ORDER_STATUS_MAP } from "../../../constants/status";
 
 // Component Stepper Siêu Cấp
@@ -148,6 +149,7 @@ export const OrderDetailPage = () => {
         "Lý do khác"
     ];
     const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
+    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
     if (fetching || !order) {
         return (
@@ -196,6 +198,28 @@ export const OrderDetailPage = () => {
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success("Đã sao chép mã đơn hàng!");
+    };
+
+    const handleDownloadInvoice = async () => {
+        if (!order) return;
+        setIsDownloadingInvoice(true);
+        try {
+            const blob = await downloadMyOrderInvoice(order.id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice-${order.orderCode}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Đã tải hóa đơn thành công!");
+        } catch (error) {
+            console.error("Lỗi khi tải hóa đơn:", error);
+            toast.error("Không thể tải hóa đơn. Vui lòng thử lại sau.");
+        } finally {
+            setIsDownloadingInvoice(false);
+        }
     };
 
     const handleCancelOrder = async () => {
@@ -280,6 +304,14 @@ export const OrderDetailPage = () => {
                                     title="Sao chép mã đơn"
                                 >
                                     <Copy className="w-[2rem] h-[2rem]" />
+                                </button>
+                                <button
+                                    onClick={handleDownloadInvoice}
+                                    disabled={isDownloadingInvoice}
+                                    className="ml-2 px-4 py-2 bg-client-primary/10 text-client-primary rounded-lg font-bold flex items-center gap-2 hover:bg-client-primary hover:text-white transition-all disabled:opacity-50"
+                                >
+                                    {isDownloadingInvoice ? <RefreshDouble className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                                    <span className="hidden sm:inline">Xuất hóa đơn</span>
                                 </button>
                             </div>
                             <Link to="/dashboard/orders" className="text-[1.4rem] font-bold text-gray-400 hover:text-client-primary flex items-center gap-2 transition-all">
