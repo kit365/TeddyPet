@@ -5,6 +5,7 @@ import { servicePricingUpsertSchema, type ServicePricingUpsertFormValues } from 
 import { SwitchButton } from '../../../components/ui/SwitchButton';
 import type { IServicePricing } from '../configs/types';
 import { usePetTypes } from '../hooks/useEnums';
+import { getPetTypeLabel } from '../configs/constants';
 
 type Props = {
     open: boolean;
@@ -113,15 +114,19 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule,
                                     <Select
                                         labelId="pricing-suitable-pet-types-label"
                                         multiple
-                                        value={field.value ?? []}
+                                        value={Array.isArray(field.value) ? field.value : []}
                                         label="Loại thú cưng phù hợp"
-                                        renderValue={(selected) => (selected as string[]).join(', ')}
+                                        renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
                                         onChange={(e) => field.onChange(e.target.value as string[])}
+                                        sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                        MenuProps={{
+                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                        }}
                                     >
                                         {petTypes.map((pt) => (
                                             <MenuItem key={pt} value={pt}>
-                                                <Checkbox checked={(field.value ?? []).includes(pt)} />
-                                                <ListItemText primary={pt} />
+                                                <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
+                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
                                             </MenuItem>
                                         ))}
                                     </Select>

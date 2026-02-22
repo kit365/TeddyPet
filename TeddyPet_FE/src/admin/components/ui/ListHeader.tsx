@@ -16,6 +16,7 @@ interface ListHeaderProps {
     addButtonLabel?: string;
     addButtonPath?: string;
     action?: ReactNode;
+    titleSx?: React.CSSProperties;
 }
 
 import { Box } from "@mui/material";
@@ -25,7 +26,8 @@ export const ListHeader = ({
     breadcrumbItems,
     addButtonLabel,
     addButtonPath,
-    action
+    action,
+    titleSx
 }: ListHeaderProps) => {
     const navigate = useNavigate();
 
@@ -41,7 +43,7 @@ export const ListHeader = ({
         }}>
             <div className="flex items-start justify-end flex-wrap gap-[16px]">
                 <div className="mr-auto">
-                    <Title title={title} />
+                    <Title title={title} sx={titleSx} />
                     <Breadcrumb items={breadcrumbItems} />
                 </div>
 

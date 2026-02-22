@@ -6,9 +6,10 @@ interface FormUploadMultiFileProps {
     control: Control<any>;
     disabled?: boolean;
     title?: string;
+    compact?: boolean;
 }
 
-export const FormUploadMultiFile = ({ name, control, disabled, title }: FormUploadMultiFileProps) => {
+export const FormUploadMultiFile = ({ name, control, disabled, title, compact = false }: FormUploadMultiFileProps) => {
     return (
         <Controller
             name={name}
@@ -20,6 +21,7 @@ export const FormUploadMultiFile = ({ name, control, disabled, title }: FormUplo
                     disabled={disabled}
                     error={fieldState.error?.message}
                     title={title}
+                    compact={compact}
                 />
             )}
         />

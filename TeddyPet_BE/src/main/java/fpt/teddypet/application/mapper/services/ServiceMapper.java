@@ -44,5 +44,6 @@ public interface ServiceMapper {
     @Mapping(target = "isCritical", defaultExpression = "java(false)")
     @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "priceUnit", ignore = true)
     void updateServiceFromRequest(ServiceUpsertRequest request, @MappingTarget Service entity);
 }

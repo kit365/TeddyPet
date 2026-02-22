@@ -13,6 +13,7 @@ import { useForm, Controller, useWatch } from 'react-hook-form';
 import { serviceUpsertSchema, type ServiceUpsertFormValues } from '../../schemas/service.schema';
 import { SwitchButton } from '../../components/ui/SwitchButton';
 import { getServiceTheme } from './configs/theme';
+import { getPetTypeLabel } from './configs/constants';
 import { prefixAdmin } from '../../constants/routes';
 import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFile';
 import { FormUploadMultiFile } from '../../components/upload/FormUploadMultiFile';
@@ -30,6 +31,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { createDeletePricingHandler, createOnPricingSubmit } from './serviceEditHelpers';
 import dayjs from 'dayjs';
+import { TimeSlotsSection } from './components/TimeSlotsSection';
 
 export const ServiceEditPage = () => {
     const { id } = useParams();
@@ -80,7 +82,6 @@ export const ServiceEditPage = () => {
                 slug: d.slug ?? '',
                 shortDescription: d.shortDescription ?? '',
                 description: d.description ?? '',
-                priceUnit: d.priceUnit ?? '',
                 duration: d.duration ?? 60,
                 bufferTime: d.bufferTime ?? undefined,
                 maxPetsPerSession: d.maxPetsPerSession ?? undefined,
@@ -113,7 +114,6 @@ export const ServiceEditPage = () => {
             slug: data.slug || null,
             shortDescription: data.shortDescription || null,
             description: data.description || null,
-            priceUnit: data.priceUnit || null,
             duration: data.duration,
             bufferTime: data.bufferTime ?? null,
             maxPetsPerSession: data.maxPetsPerSession ?? null,
@@ -233,11 +233,6 @@ export const ServiceEditPage = () => {
                                         )}
                                     />
                                     <Controller
-                                        name="priceUnit"
-                                        control={control}
-                                        render={({ field }) => <TextField {...field} label="Đơn vị giá" fullWidth />}
-                                    />
-                                    <Controller
                                         name="suitablePetTypes"
                                         control={control}
                                         render={({ field }) => (
@@ -246,15 +241,19 @@ export const ServiceEditPage = () => {
                                                 <Select
                                                     labelId="suitable-pet-types-label"
                                                     multiple
-                                                    value={field.value ?? []}
+                                                    value={Array.isArray(field.value) ? field.value : []}
                                                     label="Loại thú cưng phù hợp"
-                                                    renderValue={(selected) => (selected as string[]).join(', ')}
+                                                    renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
                                                     onChange={(e) => field.onChange(e.target.value as string[])}
+                                                    sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                                    MenuProps={{
+                                                        PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                                    }}
                                                 >
                                                     {petTypes.map((pt) => (
                                                         <MenuItem key={pt} value={pt}>
-                                                            <Checkbox checked={(field.value ?? []).includes(pt)} />
-                                                            <ListItemText primary={pt} />
+                                                            <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
+                                                            <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
                                                         </MenuItem>
                                                     ))}
                                                 </Select>
@@ -268,8 +267,10 @@ export const ServiceEditPage = () => {
                                     render={({ field }) => <TextField {...field} label="Mô tả ngắn" multiline rows={2} fullWidth />}
                                 />
                                 <Controller name="description" control={control} render={({ field }) => <TextField {...field} label="Mô tả chi tiết" multiline rows={4} fullWidth />} />
-                                <FormUploadSingleFile name="imageURL" control={control} />
-                                <FormUploadMultiFile name="galleryImages" control={control} title="Gallery images" />
+                                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                    <FormUploadSingleFile name="imageURL" control={control} compact />
+                                    <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
+                                </Box>
                             </Stack>
                         </CollapsibleCard>
                         <CollapsibleCard title="Cài đặt thêm" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
@@ -313,20 +314,21 @@ export const ServiceEditPage = () => {
                         <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
                             <Stack p="24px" gap="24px">
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '1.4rem', color: '#637381' }}>Thêm, sửa hoặc xóa quy tắc giá cho dịch vụ này.</span>
+                                    <span style={{ fontSize: '1.25rem', color: '#637381' }}>Thêm, sửa hoặc xóa quy tắc giá cho dịch vụ này.</span>
                                     <Button
                                         startIcon={<AddIcon />}
                                         variant="outlined"
-                                        size="small"
+                                        size="medium"
                                         onClick={() => {
                                             setEditingPricing(null);
                                             setPricingModalOpen(true);
                                         }}
+                                        sx={{ fontSize: '1.125rem' }}
                                     >
                                         Thêm quy tắc giá
                                     </Button>
                                 </Box>
-                                <Table size="small">
+                                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.125rem' }, '& .MuiTableHead-root .MuiTableCell-root': { fontSize: '1.25rem', fontWeight: 600 } }}>
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Tên quy tắc</TableCell>
@@ -342,7 +344,7 @@ export const ServiceEditPage = () => {
                                     <TableBody>
                                         {pricings.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} sx={{ color: '#637381', py: 3 }}>
+                                                <TableCell colSpan={5} sx={{ color: '#637381', py: 3, fontSize: '1.125rem' }}>
                                                     Chưa có quy tắc giá. Nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>
@@ -358,7 +360,12 @@ export const ServiceEditPage = () => {
                                                     </TableCell>
                                                     <TableCell>
                                                         {p.suitablePetTypes
-                                                            ? p.suitablePetTypes.split(',').map((s) => s.trim()).filter(Boolean).join(', ')
+                                                            ? p.suitablePetTypes
+                                                                  .split(',')
+                                                                  .map((s) => s.trim())
+                                                                  .filter(Boolean)
+                                                                  .map(getPetTypeLabel)
+                                                                  .join(', ')
                                                             : '—'}
                                                     </TableCell>
                                                     <TableCell>
@@ -385,6 +392,7 @@ export const ServiceEditPage = () => {
                                 </Table>
                             </Stack>
                         </CollapsibleCard>
+                        <TimeSlotsSection serviceId={serviceId} expanded={true} />
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Button
                                 type="submit"

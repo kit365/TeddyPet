@@ -49,3 +49,6 @@ app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   password-reset:
     token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
+  slot:
+    duration-minutes: ${APP_SLOT_DURATION_MINUTES:30}
+    generate-days-ahead: ${APP_SLOT_GENERATE_DAYS_AHEAD:60}
