@@ -1,3 +1,10 @@
+/** Map enum value (DOG, CAT...) to Vietnamese display label */
+export const PET_TYPE_LABELS: Record<string, string> = {
+    DOG: 'Chó',
+    CAT: 'Mèo',
+};
+export const getPetTypeLabel = (value: string) => PET_TYPE_LABELS[value] ?? value;
+
 export const COLORS = {
     primary: '#1C252E',
     secondary: '#637381',

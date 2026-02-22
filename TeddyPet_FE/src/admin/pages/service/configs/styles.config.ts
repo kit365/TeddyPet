@@ -41,8 +41,32 @@ export const dataGridStyles: SxProps<Theme> = {
     '& .MuiDataGrid-footerContainer': {
         borderTop: '1px dashed',
         minHeight: 'auto',
-        fontSize: '1.4rem',
+        fontSize: '1.5rem',
         color: 'inherit',
+        display: 'flex',
+        alignItems: 'center',
+        '& .MuiTablePagination-root': {
+            alignItems: 'center',
+        },
+        '& .MuiTablePagination-selectLabel': {
+            fontSize: '1.5rem',
+            color: 'inherit',
+            lineHeight: 1.5,
+            marginBottom: 0,
+        },
+        '& .MuiSelect-select': {
+            fontSize: '1.5rem',
+            lineHeight: 1.5,
+            paddingTop: 0,
+            paddingBottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+        },
+        '& .MuiTablePagination-displayedRows': {
+            fontSize: '1.5rem',
+            color: 'inherit',
+            lineHeight: 1.5,
+        },
     },
     '& .MuiDataGrid-cell': {
         color: 'inherit',
