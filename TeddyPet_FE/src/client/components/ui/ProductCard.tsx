@@ -36,6 +36,8 @@ export const ProductCard = ({ product }: { product: Product }) => {
                     {product.isSoldOut && (
                         <div className="absolute inset-0 bg-white/50 z-1 pointer-events-none"></div>
                     )}
+
+                    {/* Wishlist Icon removed temporarily */}
                 </Link>
             </div>
 

@@ -67,6 +67,21 @@ export interface OrderResponse {
     cancelledAt?: string;
     cancelledBy?: string;
     deliveredAt?: string;
+    completedAt?: string;
+    returnReason?: string;
+    returnEvidence?: string;
+    returnRequestedAt?: string;
+    adminReturnNote?: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface ReturnOrderRequest {
+    reason: string;
+    evidenceUrls?: string[];
+}
+
+export interface AdminHandleReturnRequest {
+    approved: boolean;
+    adminNote?: string;
 }

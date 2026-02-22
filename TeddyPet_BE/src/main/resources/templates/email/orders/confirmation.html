@@ -62,6 +62,33 @@
                 </td>
             </tr>
 
+            <!-- Return Request Information -->
+            <tr th:if="${returnReason != null or adminReturnNote != null}">
+                <td style="padding: 0 40px 20px;">
+                    <div
+                        style="background-color: #fff1f2; border-radius: 12px; padding: 20px; border: 1px solid #fda4af;">
+                        <div
+                            style="font-size: 16px; font-weight: 800; color: #be123c; margin-bottom: 10px; text-transform: uppercase;">
+                            Thông tin hoàn trả
+                        </div>
+                        <div th:if="${returnReason}" style="margin-bottom: 10px;">
+                            <div
+                                style="font-size: 13px; font-weight: 700; color: #9f1239; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Lý do yêu cầu:</div>
+                            <div style="font-size: 15px; color: #1e293b; font-style: italic; margin-top: 4px;"
+                                th:text="${returnReason}">...</div>
+                        </div>
+                        <div th:if="${adminReturnNote}" style="border-top: 1px dashed #f43f5e; padding-top: 10px;">
+                            <div
+                                style="font-size: 13px; font-weight: 700; color: #9f1239; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Phản hồi từ Admin:</div>
+                            <div style="font-size: 15px; color: #1e293b; font-weight: 600; margin-top: 4px;"
+                                th:text="${adminReturnNote}">...</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+
             <!-- Order Details (Screenshot 2 style) -->
             <tr>
                 <td style="padding: 20px 0;">

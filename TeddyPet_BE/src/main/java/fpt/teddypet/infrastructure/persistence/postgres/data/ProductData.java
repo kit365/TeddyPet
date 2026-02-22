@@ -236,6 +236,126 @@ public class ProductData implements CommandLineRunner {
 
                 createDefaultVariant(toy, new BigDecimal("35000"), toyImg1);
 
+                // =================================================================================
+                // 3. SẢN PHẨM BỔ SUNG (để test tính năng "Sản phẩm liên quan")
+                // =================================================================================
+
+                // --- CASE 5: THỨC ĂN HẠT PEDIGREE (Cùng danh mục "Dành cho chó") ---
+                Product dogFood2 = createProduct(
+                                "Thức ăn hạt Pedigree cho chó con",
+                                "Thức ăn hạt Pedigree dành cho chó con dưới 12 tháng, bổ sung DHA giúp phát triển trí não.",
+                                "Pedigree Puppy", "Thức ăn cho chó con Pedigree",
+                                new BigDecimal("89000"), new BigDecimal("89000"),
+                                "Mỹ", "Ngũ cốc, Thịt gà",
+                                List.of(PetTypeEnum.DOG),
+                                getCategoryByName("Dành cho chó"),
+                                null,
+                                List.of(getTagByName("NEW")),
+                                List.of(getAgeRangeByName("PUPPY")));
+                dogFood2.setProductType(ProductTypeEnum.SIMPLE);
+
+                ProductImage dogFood2Img1 = createProductImage(dogFood2,
+                                "https://images.unsplash.com/photo-1587300003388-59208cc962cb",
+                                "Pedigree Puppy 1", 0);
+                createProductImage(dogFood2,
+                                "https://images.unsplash.com/photo-1560807707-8cc77767d783",
+                                "Pedigree Puppy 2", 1);
+
+                createDefaultVariant(dogFood2, new BigDecimal("89000"), dogFood2Img1);
+
+                // --- CASE 6: SNACK JERHIGH (Cùng danh mục "Dành cho chó") ---
+                Product dogSnack = createProduct(
+                                "Snack thưởng Jerhigh Stick cho chó",
+                                "Thanh snack thưởng Jerhigh dành cho chó, vị gà thật 100%, giúp răng miệng chắc khỏe.",
+                                "Jerhigh Stick Dog Snack", "Snack cho chó Jerhigh",
+                                new BigDecimal("25000"), new BigDecimal("25000"),
+                                "Thái Lan", "Thịt gà",
+                                List.of(PetTypeEnum.DOG),
+                                getCategoryByName("Dành cho chó"),
+                                null,
+                                List.of(getTagByName("SALE")),
+                                List.of(getAgeRangeByName("ALL")));
+                dogSnack.setProductType(ProductTypeEnum.SIMPLE);
+
+                ProductImage dogSnackImg1 = createProductImage(dogSnack,
+                                "https://images.unsplash.com/photo-1601758228041-f3b2795255f1",
+                                "Jerhigh Stick 1", 0);
+                createProductImage(dogSnack,
+                                "https://images.unsplash.com/photo-1583337130417-13104dec14a3",
+                                "Jerhigh Stick 2", 1);
+
+                createDefaultVariant(dogSnack, new BigDecimal("25000"), dogSnackImg1);
+
+                // --- CASE 7: THỨC ĂN ƯỚT SMARTHEART (Cùng danh mục "Dành cho chó") ---
+                Product dogWetFood = createProduct(
+                                "Thức ăn ướt SmartHeart cho chó vị bò nướng",
+                                "Thức ăn ướt SmartHeart cho chó trưởng thành, hương vị bò nướng hấp dẫn, giàu protein và vitamin.",
+                                "SmartHeart Beef Dog Food", "Thức ăn ướt cho chó SmartHeart",
+                                new BigDecimal("28000"), new BigDecimal("35000"),
+                                "Thái Lan", "Thịt bò, rau củ",
+                                List.of(PetTypeEnum.DOG),
+                                getCategoryByName("Dành cho chó"),
+                                null,
+                                List.of(getTagByName("SALE")),
+                                List.of(getAgeRangeByName("ADULT")));
+                dogWetFood.setProductType(ProductTypeEnum.SIMPLE);
+
+                ProductImage dogWetFoodImg1 = createProductImage(dogWetFood,
+                                "https://images.unsplash.com/photo-1558618666-fcd25c85f82e",
+                                "SmartHeart Beef 1", 0);
+                createProductImage(dogWetFood,
+                                "https://images.unsplash.com/photo-1548199973-03cce0bbc87b",
+                                "SmartHeart Beef 2", 1);
+
+                createVariantWithSale(dogWetFood, "Lon 400g", "SH-BEEF-400", new BigDecimal("35000"),
+                                new BigDecimal("28000"), 80, UnitEnum.CAN, dogWetFoodImg1);
+
+                // --- CASE 8: THỨC ĂN HẠT ME-O (Cùng danh mục "Dành cho mèo") ---
+                Product catFood2 = createProduct(
+                                "Thức ăn hạt Me-O cho mèo trưởng thành vị cá ngừ",
+                                "Thức ăn hạt Me-O dành cho mèo trưởng thành, vị cá ngừ thơm ngon, giàu Taurine giúp sáng mắt.",
+                                "Me-O Tuna Adult Cat", "Thức ăn cho mèo Me-O",
+                                new BigDecimal("65000"), new BigDecimal("65000"),
+                                "Thái Lan", "Cá ngừ, Ngũ cốc",
+                                List.of(PetTypeEnum.CAT),
+                                getCategoryByName("Dành cho mèo"),
+                                null,
+                                List.of(getTagByName("BEST_SELLER")),
+                                List.of(getAgeRangeByName("ADULT")));
+                catFood2.setProductType(ProductTypeEnum.SIMPLE);
+
+                ProductImage catFood2Img1 = createProductImage(catFood2,
+                                "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+                                "Me-O Tuna 1", 0);
+                createProductImage(catFood2,
+                                "https://images.unsplash.com/photo-1573865526739-10659fec78a5",
+                                "Me-O Tuna 2", 1);
+
+                createDefaultVariant(catFood2, new BigDecimal("65000"), catFood2Img1);
+
+                // --- CASE 9: CÁT VỆ SINH MÈO (Cùng danh mục "Dành cho mèo") ---
+                Product catLitter = createProduct(
+                                "Cát vệ sinh đậu nành cho mèo Cat's Best",
+                                "Cát vệ sinh hữu cơ từ đậu nành, không bụi, khử mùi mạnh, an toàn cho mèo.",
+                                "Cat's Best Soybean Litter", "Cát vệ sinh cho mèo",
+                                new BigDecimal("120000"), new BigDecimal("120000"),
+                                "Đức", "Đậu nành",
+                                List.of(PetTypeEnum.CAT),
+                                getCategoryByName("Dành cho mèo"),
+                                null,
+                                List.of(getTagByName("HOT")),
+                                List.of(getAgeRangeByName("ALL")));
+                catLitter.setProductType(ProductTypeEnum.SIMPLE);
+
+                ProductImage catLitterImg1 = createProductImage(catLitter,
+                                "https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13",
+                                "Cat Litter 1", 0);
+                createProductImage(catLitter,
+                                "https://images.unsplash.com/photo-1495360010541-f48722b34f7d",
+                                "Cat Litter 2", 1);
+
+                createDefaultVariant(catLitter, new BigDecimal("120000"), catLitterImg1);
+
                 log.info("✅ Products initialization completed!");
         }
 
@@ -361,6 +481,30 @@ public class ProductData implements CommandLineRunner {
                                 .stockQuantity(StockQuantity.of(stock))
                                 .unit(salesUnit) // Đơn vị bán (Cái, Hộp, Gói)
                                 .attributeValues(new ArrayList<>(Arrays.asList(values)))
+                                .featuredImage(featuredImage)
+                                .status(ProductStatusEnum.ACTIVE)
+                                .isActive(true)
+                                .isDeleted(false)
+                                .build();
+
+                product.getVariants().add(variant);
+                productVariantRepository.save(variant);
+        }
+
+        private void createVariantWithSale(Product product, String name, String skuValue, BigDecimal price,
+                        BigDecimal salePrice, int stock, UnitEnum salesUnit, ProductImage featuredImage) {
+                if (productVariantRepository.existsBySkuValue(skuValue)) {
+                        return;
+                }
+
+                ProductVariant variant = ProductVariant.builder()
+                                .product(product)
+                                .name(name)
+                                .sku(Sku.of(skuValue))
+                                .price(Price.of(price, salePrice))
+                                .stockQuantity(StockQuantity.of(stock))
+                                .unit(salesUnit)
+                                .attributeValues(new ArrayList<>())
                                 .featuredImage(featuredImage)
                                 .status(ProductStatusEnum.ACTIVE)
                                 .isActive(true)

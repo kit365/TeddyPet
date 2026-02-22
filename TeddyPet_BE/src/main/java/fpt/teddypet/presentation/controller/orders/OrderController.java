@@ -3,12 +3,14 @@ package fpt.teddypet.presentation.controller.orders;
 import fpt.teddypet.application.constants.orders.order.OrderMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
+import fpt.teddypet.application.dto.request.orders.order.AdminHandleReturnRequest;
 import fpt.teddypet.application.dto.request.orders.order.CancelOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
+import fpt.teddypet.application.port.input.pdf.PdfService;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
@@ -19,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +34,7 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final PdfService pdfService;
 
     // ========== USER ENDPOINTS ==========
 
@@ -60,6 +65,23 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> getMyOrderById(@PathVariable UUID id) {
         OrderResponse order = orderService.getMyOrderById(id);
         return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    @GetMapping("/my-orders/{id}/invoice/pdf")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Tải PDF hóa đơn của tôi", description = "Tải tệp PDF hóa đơn cho đơn hàng của tôi")
+    public ResponseEntity<byte[]> downloadMyOrderInvoicePdf(@PathVariable UUID id) {
+        // validateOwnership ensures that the current user actually owns the order
+        orderService.validateOwnership(id, SecurityUtil.getCurrentUserId());
+        byte[] pdfBytes = pdfService.generateInvoicePdf(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 
     @GetMapping("/my-orders/code/{code}")
@@ -135,6 +157,21 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> getById(@PathVariable UUID id) {
         OrderResponse order = orderService.getByIdResponse(id);
         return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    @GetMapping("/{id}/invoice/pdf")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Tải PDF hóa đơn theo ID", description = "Tải tệp PDF hóa đơn cho đơn hàng (Staff/Admin)")
+    public ResponseEntity<byte[]> downloadOrderInvoicePdf(@PathVariable UUID id) {
+        byte[] pdfBytes = pdfService.generateInvoicePdf(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 
     @GetMapping("/code/{code}")
@@ -214,5 +251,28 @@ public class OrderController {
         String adminUsername = SecurityUtil.getCurrentUsername();
         orderService.returnOrder(id, request.reason(), adminUsername);
         return ResponseEntity.ok(ApiResponse.success("Đơn hàng đã được đánh dấu hoàn trả."));
+    }
+
+    @PatchMapping("/{id}/request-return")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Yêu cầu trả hàng (Customer)", description = "Khách hàng yêu cầu trả hàng sau khi đơn hàng đã hoàn thành (trong vòng 4 ngày)")
+    public ResponseEntity<ApiResponse<Void>> requestReturnByCustomer(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReturnOrderRequest request) {
+        orderService.requestReturnByCustomer(id, request);
+        return ResponseEntity
+                .ok(ApiResponse.success("Yêu cầu trả hàng của bạn đã được gửi. Vui lòng chờ Admin xử lý."));
+    }
+
+    @PatchMapping("/{id}/handle-return")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Xử lý yêu cầu trả hàng (Admin)", description = "Admin/Staff phê duyệt hoặc từ chối yêu cầu trả hàng của khách")
+    public ResponseEntity<ApiResponse<Void>> handleReturnRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody AdminHandleReturnRequest request) {
+        String adminUsername = SecurityUtil.getCurrentUsername();
+        orderService.handleReturnRequestByAdmin(id, request, adminUsername);
+        String message = request.approved() ? "Đã chấp nhận yêu cầu trả hàng." : "Đã từ chối yêu cầu trả hàng.";
+        return ResponseEntity.ok(ApiResponse.success(message));
     }
 }

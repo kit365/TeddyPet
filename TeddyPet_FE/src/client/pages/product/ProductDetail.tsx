@@ -12,9 +12,10 @@ import { FooterSub } from "../../components/layouts/FooterSub";
 import { useCartStore } from "../../../stores/useCartStore";
 import { CartItem } from "../../../types/cart.type";
 import { getProductBySlug } from "../../../api/product.api";
-import { APIProduct, APIProductVariant, APIProductAttributeValue } from "../../../types/products.type";
+import { APIProduct, APIProductVariant, APIProductAttributeValue, Product } from "../../../types/products.type";
 import { FeedbackResponse, getProductFeedbacks } from "../../../api/feedback.api";
-
+import { wishlistApi } from "../../../api/wishlist.api";
+import Cookies from "js-cookie";
 export const ProductDetailPage = () => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
@@ -30,6 +31,8 @@ export const ProductDetailPage = () => {
     const [selectedVariant, setSelectedVariant] = useState<APIProductVariant | null>(null);
     const [canAddToCart, setCanAddToCart] = useState(false);
     const [outOfStock, setOutOfStock] = useState(false);
+    const [isWishloading, setIsWishloading] = useState(false);
+    const [isWishlisted, setIsWishlisted] = useState(false);
 
     // Toast
     const [showToast, setShowToast] = useState(false);
@@ -47,6 +50,25 @@ export const ProductDetailPage = () => {
                 const res = await getProductBySlug(slug);
                 if (res && res.data) {
                     setProduct(res.data);
+
+                    // Check if wishlisted initially
+                    const token = Cookies.get("token");
+                    if (token) {
+                        try {
+                            const wishRes = await wishlistApi.checkWishlist(res.data.id);
+                            if (wishRes.data) {
+                                setIsWishlisted(true);
+                            }
+                        } catch (wishErr: any) {
+                            console.error("Failed to check wishlist status", wishErr);
+                        }
+                    } else {
+                        const guestWishlist: Product[] = JSON.parse(localStorage.getItem("guest_wishlist") || "[]");
+                        if (guestWishlist.find(p => p.id === res.data.id)) {
+                            setIsWishlisted(true);
+                        }
+                    }
+
                     // Fetch feedbacks
                     try {
                         const fbRes = await getProductFeedbacks(res.data.id);
@@ -219,6 +241,52 @@ export const ProductDetailPage = () => {
         setQuantity(Math.max(1, Math.min(currentMaxQuantity, val)));
     };
 
+    const handleToggleWishlist = async () => {
+        if (!product || isWishloading) return;
+        setIsWishloading(true);
+        const token = Cookies.get("token");
+
+        if (token) {
+            try {
+                await wishlistApi.toggleWishlist(product.id);
+                setIsWishlisted(!isWishlisted);
+                toast.success(isWishlisted ? "Đã xóa khỏi danh sách yêu thích!" : "Đã thêm vào danh sách yêu thích!");
+            } catch (error: any) {
+                toast.error("Có lỗi xảy ra, vui lòng thử lại sau!");
+            } finally {
+                setIsWishloading(false);
+            }
+        } else {
+            // Handling Guest Wishlist
+            let guestWishlist: Product[] = JSON.parse(localStorage.getItem("guest_wishlist") || "[]");
+
+            const existingIndex = guestWishlist.findIndex(p => p.id === product.id);
+            if (existingIndex !== -1) {
+                guestWishlist.splice(existingIndex, 1);
+                setIsWishlisted(false);
+                toast.success("Đã xóa khỏi danh sách yêu thích!");
+            } else {
+                const wishlistItem: Product = {
+                    id: product.id,
+                    title: product.name,
+                    price: `${product.minPrice.toLocaleString("vi-VN")}đ`,
+                    oldPrice: product.minPrice !== product.maxPrice ? `${product.maxPrice.toLocaleString("vi-VN")}đ` : undefined,
+                    primaryImage: product.images[0]?.imageUrl || "https://placehold.co/600x600",
+                    secondaryImage: product.images[1]?.imageUrl || product.images[0]?.imageUrl || "https://placehold.co/600x600",
+                    rating: product.averageRating || 5,
+                    isSale: false,
+                    url: `/product/detail/${product.slug}`,
+                    isSoldOut: product.stockStatus === 'OUT_OF_STOCK'
+                };
+                guestWishlist.push(wishlistItem);
+                setIsWishlisted(true);
+                toast.success("Đã thêm vào danh sách yêu thích!");
+            }
+            localStorage.setItem("guest_wishlist", JSON.stringify(guestWishlist));
+            setIsWishloading(false);
+        }
+    };
+
     // Breadcrumbs
     const breadcrumbs = [
         { label: "Trang chủ", to: "/" },
@@ -382,8 +450,13 @@ export const ProductDetailPage = () => {
                                 >
                                     {outOfStock ? "Hết hàng" : "Thêm vào giỏ hàng"}
                                 </button>
-                                <div className="w-[55px] h-full flex items-center justify-center text-client-secondary hover:text-client-primary transition-default text-[2rem] p-[10px] bg-transparent border border-[#d7d7d7] rounded-full">
-                                    <Heart className="w-[2.5rem] h-[2.5rem]" />
+                                <div
+                                    onClick={handleToggleWishlist}
+                                    className={`w-[55px] h-[55px] flex items-center justify-center transition-default text-[2.5rem] p-[10px] bg-transparent border border-[#d7d7d7] rounded-full 
+                                    ${isWishloading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-client-primary'}
+                                    ${isWishlisted ? 'text-client-primary fill-client-primary bg-client-primary/10 border-client-primary' : 'text-[#102937] hover:text-client-primary'}
+                                    `}>
+                                    <Heart className="w-[3rem] h-[3rem]" strokeWidth={2} fill={isWishlisted ? 'currentColor' : 'none'} />
                                 </div>
                             </div>
 
@@ -405,8 +478,7 @@ export const ProductDetailPage = () => {
                                         },
                                         quantity: quantity,
                                     };
-                                    // Add to cart first so it appears in the persistent cart
-                                    addToCart(buyNowItem);
+                                    // Set buyNowItem only, don't add to persistent cart to avoid lingering items
                                     useCartStore.getState().setBuyNowItem(buyNowItem);
                                     navigate("/checkout");
                                 }}
@@ -432,7 +504,7 @@ export const ProductDetailPage = () => {
             </section>
             <ProductDesc />
             <ProductComment feedbacks={feedbacks} />
-            <ProductRelated />
+            <ProductRelated productId={product?.id} />
             <FooterSub />
 
             {showToast && selectedVariant && (

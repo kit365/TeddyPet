@@ -130,7 +130,7 @@ export const OrderHistoryPage = () => {
                             <th className="p-6 text-[1.3rem] font-black text-slate-400 uppercase tracking-widest text-center">Ngày đặt</th>
                             <th className="p-6 text-[1.3rem] font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                             <th className="p-6 text-[1.3rem] font-black text-slate-400 uppercase tracking-widest text-right">Tổng tiền</th>
-                            <th className="p-6 rounded-r-2xl text-[1.3rem] font-black text-slate-400 uppercase tracking-widest text-center">Thao tác</th>
+                            <th className="p-6 rounded-r-2xl text-[1.3rem] font-black text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="before:block before:h-2">
@@ -161,7 +161,7 @@ export const OrderHistoryPage = () => {
                                         <span className="text-[1.7rem] font-black text-slate-800">{order.finalAmount.toLocaleString()}đ</span>
                                     </td>
                                     <td className="p-6 border-t border-b border-r border-slate-100 rounded-r-3xl">
-                                        <div className="flex items-center justify-center gap-3">
+                                        <div className="flex items-center justify-end gap-3">
                                             {order.status === "DELIVERED" && (
                                                 <button
                                                     onClick={() => handleOpenConfirm(order.id)}
@@ -281,14 +281,14 @@ export const OrderHistoryPage = () => {
                                         }
                                     }}
                                     className={`p-4 rounded-2xl text-left transition-all border-2 ${(reason === "Lý do khác" && isCustomReason) || cancelReason === reason
-                                            ? 'border-rose-500 bg-rose-50 text-rose-600'
-                                            : 'border-slate-100 hover:border-slate-200 text-slate-600'
+                                        ? 'border-rose-500 bg-rose-50 text-rose-600'
+                                        : 'border-slate-100 hover:border-slate-200 text-slate-600'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${(reason === "Lý do khác" && isCustomReason) || cancelReason === reason
-                                                ? 'border-rose-500 bg-rose-500'
-                                                : 'border-slate-300'
+                                            ? 'border-rose-500 bg-rose-500'
+                                            : 'border-slate-300'
                                             }`}>
                                             {((reason === "Lý do khác" && isCustomReason) || cancelReason === reason) && (
                                                 <CheckCircle className="w-3 h-3 text-white" />

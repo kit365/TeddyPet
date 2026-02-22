@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { Facebook, Instagram } from "iconoir-react";
 
-export const SocialIconCircle = ({ className }: { className?: string }) => {
+export const SocialIconCircle = ({ className, facebookUrl = "#", instagramUrl = "#" }: { className?: string, facebookUrl?: string, instagramUrl?: string }) => {
     return (
         <ul className={`flex gap-[10px] ${className}`}>
             <li
@@ -9,7 +9,7 @@ export const SocialIconCircle = ({ className }: { className?: string }) => {
                                              rounded-full flex items-center justify-center cursor-pointer 
                                              hover:text-white hover:bg-client-primary hover:border-client-primary transition-default"
             >
-                <Link to={"#"}>
+                <Link to={instagramUrl}>
                     <Instagram strokeWidth={2} className="w-[1.6rem] h-[1.6rem]" />
                 </Link>
             </li>
@@ -18,7 +18,7 @@ export const SocialIconCircle = ({ className }: { className?: string }) => {
                                                                 rounded-full flex items-center justify-center cursor-pointer 
                                                                 hover:text-white hover:bg-client-primary hover:border-client-primary transition-default"
             >
-                <Link to={"#"}>
+                <Link to={facebookUrl}>
                     <Facebook strokeWidth={2} className="w-[1.6rem] h-[1.6rem]" />
                 </Link>
             </li>

@@ -3,9 +3,8 @@ import plugin from "tailwindcss/plugin"
 
 const config: Config = {
   content: [
-    "./src/components/**/*.{ts,tsx}",
-    "./src/layouts/**/*.{ts,tsx}",
-    "./src/pages/**/*.{ts,tsx}",
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

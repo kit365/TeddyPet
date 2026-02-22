@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { showConfirmDialog } from "../../../utils/confirmation";
 import { Link, useParams } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { Sidebar } from "./sections/Sidebar";
@@ -21,11 +22,12 @@ import {
     Calendar,
     Wallet,
     ShieldCheck,
-    Star
+    Star,
+    Download
 } from "iconoir-react";
 import { toast } from "react-toastify";
 import { useState } from "react";
-import { confirmReceived, cancelOrder } from "../../../api/order.api";
+import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice } from "../../../api/order.api";
 import { ORDER_STATUS_MAP } from "../../../constants/status";
 
 // Component Stepper Siêu Cấp
@@ -38,6 +40,10 @@ const OrderStepper = ({ status }: { status: string }) => {
         { key: 'DELIVERED', label: ORDER_STATUS_MAP.DELIVERED.label, icon: <HomeSimple className="w-[2.4rem] h-[2.4rem]" /> },
         { key: 'COMPLETED', label: ORDER_STATUS_MAP.COMPLETED.label, icon: <Package className="w-[2.4rem] h-[2.4rem]" /> },
     ];
+
+    if (status === 'RETURN_REQUESTED') {
+        steps.push({ key: 'RETURN_REQUESTED', label: 'Yêu cầu trả', icon: <RefreshDouble className="w-[2.4rem] h-[2.4rem]" /> });
+    }
 
     const currentIdx = steps.findIndex(s => s.key === status);
     const isCancelled = status === 'CANCELLED';
@@ -120,7 +126,10 @@ export const OrderDetailPage = () => {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCustomReason, setIsCustomReason] = useState(false);
 
-    // Quick cancel reason options
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState("");
+    const [returnEvidence, setReturnEvidence] = useState(""); // Comma separated URLs
+    const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
     const quickReasons = [
         "Tôi đổi ý, không muốn mua nữa",
         "Tôi muốn thay đổi sản phẩm khác",
@@ -129,6 +138,18 @@ export const OrderDetailPage = () => {
         "Tôi đặt nhầm số lượng",
         "Lý do khác"
     ];
+
+    // Quick return reason options
+    const quickReturnReasons = [
+        "Sản phẩm bị vỡ, hỏng hóc",
+        "Giao sai mẫu mã, kích thước",
+        "Sản phẩm không giống mô tả",
+        "Sản phẩm hết hạn sử dụng",
+        "Chất lượng sản phẩm kém",
+        "Lý do khác"
+    ];
+    const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
+    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
     if (fetching || !order) {
         return (
@@ -149,22 +170,56 @@ export const OrderDetailPage = () => {
     ];
 
     const handleConfirmReceived = async () => {
-        setIsSubmitting(true);
-        try {
-            await confirmReceived(order.id);
-            toast.success("Xác nhận đã nhận hàng thành công. TeddyPet cảm ơn bạn!");
-            await refresh();
-            setShowFeedbackModal(true);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
-        } finally {
-            setIsSubmitting(false);
+        const result = await showConfirmDialog({
+            title: 'Bạn đã nhận được hàng?',
+            text: "Vui lòng chỉ xác nhận khi bạn đã nhận và kiểm tra sản phẩm.",
+            icon: 'question',
+            confirmButtonColor: '#10B981',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đúng, tôi đã nhận!',
+            cancelButtonText: 'Chưa nhận được'
+        });
+
+        if (result.isConfirmed) {
+            setIsSubmitting(true);
+            try {
+                await confirmReceived(order.id);
+                toast.success("Xác nhận đã nhận hàng thành công. TeddyPet cảm ơn bạn!");
+                await refresh();
+                setShowFeedbackModal(true);
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     };
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success("Đã sao chép mã đơn hàng!");
+    };
+
+    const handleDownloadInvoice = async () => {
+        if (!order) return;
+        setIsDownloadingInvoice(true);
+        try {
+            const blob = await downloadMyOrderInvoice(order.id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice-${order.orderCode}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Đã tải hóa đơn thành công!");
+        } catch (error) {
+            console.error("Lỗi khi tải hóa đơn:", error);
+            toast.error("Không thể tải hóa đơn. Vui lòng thử lại sau.");
+        } finally {
+            setIsDownloadingInvoice(false);
+        }
     };
 
     const handleCancelOrder = async () => {
@@ -184,6 +239,38 @@ export const OrderDetailPage = () => {
         } finally {
             setIsCancelling(false);
         }
+    };
+
+    const handleRequestReturn = async () => {
+        if (!returnReason.trim() || returnReason.length < 5) {
+            toast.error("Vui lòng nhập lý do trả hàng (ít nhất 5 ký tự)");
+            return;
+        }
+        setIsSubmittingReturn(true);
+        try {
+            const evidenceArray = returnEvidence ? returnEvidence.split(',').map(url => url.trim()).filter(url => url !== '') : [];
+            await requestReturn(order.id, {
+                reason: returnReason.trim(),
+                evidenceUrls: evidenceArray
+            });
+            toast.success("Đã gửi yêu cầu trả hàng. Vui lòng chờ phản hồi từ TeddyPet!");
+            setShowReturnModal(false);
+            setReturnReason("");
+            setReturnEvidence("");
+            await refresh();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể gửi yêu cầu trả hàng!");
+        } finally {
+            setIsSubmittingReturn(false);
+        }
+    };
+
+    const isWithinReturnPeriod = () => {
+        if (!order.completedAt) return false;
+        const completeDate = new Date(order.completedAt);
+        const now = new Date();
+        const diffInDays = Math.floor((now.getTime() - completeDate.getTime()) / (1000 * 3600 * 24));
+        return diffInDays <= 7;
     };
 
     const paymentInfo = order.payments?.[0];
@@ -218,6 +305,14 @@ export const OrderDetailPage = () => {
                                 >
                                     <Copy className="w-[2rem] h-[2rem]" />
                                 </button>
+                                <button
+                                    onClick={handleDownloadInvoice}
+                                    disabled={isDownloadingInvoice}
+                                    className="ml-2 px-4 py-2 bg-client-primary/10 text-client-primary rounded-lg font-bold flex items-center gap-2 hover:bg-client-primary hover:text-white transition-all disabled:opacity-50"
+                                >
+                                    {isDownloadingInvoice ? <RefreshDouble className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                                    <span className="hidden sm:inline">Xuất hóa đơn</span>
+                                </button>
                             </div>
                             <Link to="/dashboard/orders" className="text-[1.4rem] font-bold text-gray-400 hover:text-client-primary flex items-center gap-2 transition-all">
                                 <NavArrowRight className="w-5 h-5 rotate-180" /> Quay lại danh sách
@@ -225,7 +320,123 @@ export const OrderDetailPage = () => {
                         </div>
 
                         {/* 1. TIMELINE (STEPPER) */}
+                        {/* Hiển thị lý do hủy/hoàn trả nếu có - Di chuyển lên đầu */}
                         <OrderStepper status={order.status} />
+
+                        {/* Hiển thị lý do hủy/hoàn trả nếu có - Di chuyển xuống dưới Stepper */}
+                        {(order.status === 'CANCELLED' || order.status === 'RETURNED' || order.status === 'RETURN_REQUESTED' || ((order.status as string) === 'COMPLETED' && (order.returnReason || order.adminReturnNote))) && (
+                            <div className="space-y-6 animate-fadeIn mt-6">
+                                {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
+                                    <div className="p-6 bg-gray-50 rounded-[24px] border border-gray-200">
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-[40px] h-[40px] rounded-xl flex items-center justify-center shrink-0 ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-500' : 'bg-orange-100 text-orange-500'}`}>
+                                                <WarningCircle className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-wider mb-1">Lý do {order.status === 'CANCELLED' ? 'hủy' : 'hoàn trả'}</div>
+                                                <div className="text-[1.4rem] font-bold text-gray-600">{order.cancelReason}</div>
+                                                {order.cancelledBy && (
+                                                    <div className="text-[1.2rem] text-gray-400 mt-2">Thực hiện bởi: <span className="font-bold">{order.cancelledBy}</span></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Hiển thị yêu cầu trả hàng của khách - PHIÊN BẢN COMPACT & BALANCED */}
+                                {((order.status as string) === 'RETURNED' || (order.status as string) === 'RETURN_REQUESTED' || ((order.status as string) === 'COMPLETED' && (order.returnReason || order.adminReturnNote))) && (
+                                    <div className={`relative overflow-hidden rounded-[24px] p-6 border transition-all duration-300
+                                        ${(order.status as string) === 'COMPLETED' && order.adminReturnNote
+                                            ? 'bg-red-50/60 border-red-100'
+                                            : 'bg-blue-50/60 border-blue-100'
+                                        }`}>
+
+                                        {/* Background Icon Decoration - Reduced opacity & size */}
+                                        <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+                                            {(order.status as string) === 'COMPLETED' && order.adminReturnNote ? (
+                                                <WarningCircle className="w-[12rem] h-[12rem] text-red-500" />
+                                            ) : (
+                                                <RefreshDouble className="w-[12rem] h-[12rem] text-blue-500" />
+                                            )}
+                                        </div>
+
+                                        <div className="relative z-10">
+                                            {/* Header Section - Compact */}
+                                            <div className="flex items-start gap-5 mb-6">
+                                                <div className={`w-[56px] h-[56px] rounded-[16px] flex items-center justify-center shrink-0 shadow-md
+                                                    ${(order.status as string) === 'COMPLETED' && order.adminReturnNote
+                                                        ? 'bg-red-500 text-white shadow-red-200'
+                                                        : 'bg-blue-500 text-white shadow-blue-200'
+                                                    }`}>
+                                                    {(order.status as string) === 'COMPLETED' && order.adminReturnNote ? (
+                                                        <WarningCircle className="w-[2.8rem] h-[2.8rem]" />
+                                                    ) : (
+                                                        <RefreshDouble className="w-[2.8rem] h-[2.8rem]" />
+                                                    )}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className={`text-[2rem] font-black uppercase leading-[1.2] mb-1.5
+                                                        ${(order.status as string) === 'COMPLETED' && order.adminReturnNote
+                                                            ? 'text-red-600'
+                                                            : 'text-blue-600'
+                                                        }`}>
+                                                        {(order.status as string) === 'RETURN_REQUESTED' ? 'Đang xử lý yêu cầu' :
+                                                            ((order.status as string) === 'COMPLETED' && order.adminReturnNote ? 'Yêu cầu trả hàng bị từ chối' : 'Thông tin trả hàng')}
+                                                    </h3>
+                                                    <p className="text-[1.4rem] font-medium text-gray-500 pr-4 leading-relaxed">
+                                                        {(order.status as string) === 'COMPLETED' && order.adminReturnNote
+                                                            ? 'Admin đã xem xét và từ chối yêu cầu. Vui lòng kiểm tra lý do bên dưới.'
+                                                            : 'Yêu cầu trả hàng của bạn đang được TeddyPet xem xét.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Content Section - Simplified */}
+                                            <div className="bg-white/60 backdrop-blur-sm rounded-[20px] p-6 border border-white/50 space-y-6 shadow-sm">
+
+                                                {/* Admin Response Highlight */}
+                                                {order.adminReturnNote && (
+                                                    <div className="pb-6 border-b border-dashed border-gray-300">
+                                                        <span className="text-[1.3rem] font-bold text-gray-400 uppercase tracking-wider block mb-3 flex items-center gap-2">
+                                                            <ChatBubble className="w-4 h-4" /> Lý do từ chối
+                                                        </span>
+                                                        <div className="text-[1.6rem] font-bold text-red-600 leading-relaxed pl-4 border-l-4 border-red-400">
+                                                            "{order.adminReturnNote}"
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* User Request Reason */}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className="text-[1.3rem] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                            <HelpCircle className="w-4 h-4" /> Lý do bạn gửi
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[1.5rem] font-medium text-gray-600 italic pl-4">
+                                                        "{order.returnReason}"
+                                                    </div>
+
+                                                    {/* Evidence Images */}
+                                                    {order.returnEvidence && (
+                                                        <div className="mt-4 flex flex-wrap gap-2 pl-4">
+                                                            {order.returnEvidence.split(',').map((url, i) => (
+                                                                <a key={i} href={url} target="_blank" className="w-[70px] h-[70px] rounded-[16px] overflow-hidden border-2 border-white shadow-sm hover:scale-105 transition-all hover:border-client-primary">
+                                                                    <img src={url} alt="Bằng chứng" className="w-full h-full object-cover" />
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* 2. ĐỊA CHỈ & HỖ TRỢ (Grid 1:1) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-[30px] animate-fadeIn">
@@ -245,7 +456,7 @@ export const OrderDetailPage = () => {
                                     </div>
                                     <div>
                                         <div className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-widest mb-1">Địa chỉ</div>
-                                        <div className="text-[1.4rem] font-bold text-gray-600 leading-relaxed font-secondary italic">
+                                        <div className="text-[1.4rem] font-bold text-gray-600 leading-relaxed italic">
                                             {order.shippingAddress}
                                         </div>
                                     </div>
@@ -408,23 +619,18 @@ export const OrderDetailPage = () => {
                                 </button>
                             )}
 
-                            {/* Hiển thị lý do hủy/hoàn trả nếu có */}
-                            {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
-                                <div className="mt-10 p-6 bg-gray-50 rounded-[24px] border border-gray-200">
-                                    <div className="flex items-start gap-4">
-                                        <div className={`w-[40px] h-[40px] rounded-xl flex items-center justify-center shrink-0 ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-500' : 'bg-orange-100 text-orange-500'}`}>
-                                            <WarningCircle className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <div className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-wider mb-1">Lý do {order.status === 'CANCELLED' ? 'hủy' : 'hoàn trả'}</div>
-                                            <div className="text-[1.4rem] font-bold text-gray-600">{order.cancelReason}</div>
-                                            {order.cancelledBy && (
-                                                <div className="text-[1.2rem] text-gray-400 mt-2">Thực hiện bởi: <span className="font-bold">{order.cancelledBy}</span></div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                            {/* Nút yêu cầu trả hàng khi đã hoàn thành trong vòng 4 ngày */}
+                            {order.status === 'COMPLETED' && isWithinReturnPeriod() && (
+                                <button
+                                    onClick={() => setShowReturnModal(true)}
+                                    className="w-full h-[65px] bg-orange-50 hover:bg-orange-100 text-orange-600 border-2 border-orange-200 font-black text-[1.7rem] rounded-[24px] transition-all flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
+                                >
+                                    <RefreshDouble className="w-[2.4rem] h-[2.4rem]" />
+                                    {order.adminReturnNote ? "GỬI LẠI YÊU CẦU TRẢ HÀNG" : "YÊU CẦU TRẢ HÀNG / HOÀN TIỀN"}
+                                </button>
                             )}
+
+
                         </div>
 
                     </div>
@@ -459,6 +665,109 @@ export const OrderDetailPage = () => {
                                 className="h-[55px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
                             >
                                 Để sau nhé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Yêu Cầu Trả Hàng */}
+            {showReturnModal && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-client-secondary/40 backdrop-blur-md"
+                        onClick={() => { setShowReturnModal(false); setReturnReason(""); setReturnEvidence(""); setIsCustomReturnReason(false); }}
+                    ></div>
+                    <div className="bg-white rounded-[40px] p-10 max-w-[540px] w-full relative z-10 shadow-2xl border border-gray-100 animate-scaleUp">
+                        <div className="w-[80px] h-[80px] bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mx-auto mb-6 shadow-sm border border-orange-100">
+                            <RefreshDouble className="w-[4rem] h-[4rem]" />
+                        </div>
+                        <h3 className="text-[2.4rem] font-black text-client-secondary mb-2 leading-tight uppercase text-center">
+                            Yêu cầu trả hàng
+                        </h3>
+                        <p className="text-[1.4rem] text-gray-500 font-medium mb-6 leading-relaxed text-center px-6">
+                            TeddyPet cam kết hỗ trợ đổi trả nếu sản phẩm lỗi, vỡ hoặc không đúng cam kết trong vòng 4 ngày.
+                        </p>
+
+                        <div className="space-y-6 mb-8 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {/* Quick Return Reasons */}
+                            <div className="grid grid-cols-1 gap-3">
+                                <label className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-widest mb-1 block">Chọn lý do trả hàng <span className="text-red-500">*</span></label>
+                                {quickReturnReasons.map((reason, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => {
+                                            if (reason === "Lý do khác") {
+                                                setIsCustomReturnReason(true);
+                                                setReturnReason('');
+                                            } else {
+                                                setIsCustomReturnReason(false);
+                                                setReturnReason(reason);
+                                            }
+                                        }}
+                                        className={`p-4 rounded-[16px] text-left transition-all border-2 ${(reason === "Lý do khác" && isCustomReturnReason) || returnReason === reason
+                                            ? 'border-orange-400 bg-orange-50 text-orange-600'
+                                            : 'border-gray-100 hover:border-gray-200 text-gray-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${(reason === "Lý do khác" && isCustomReturnReason) || returnReason === reason
+                                                ? 'border-orange-500 bg-orange-500'
+                                                : 'border-gray-300'
+                                                }`}>
+                                                {((reason === "Lý do khác" && isCustomReturnReason) || returnReason === reason) && (
+                                                    <CheckCircle className="w-3 h-3 text-white" />
+                                                )}
+                                            </div>
+                                            <span className="text-[1.4rem] font-bold">{reason}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Custom Return Reason Input */}
+                            {isCustomReturnReason && (
+                                <div className="animate-fadeIn">
+                                    <label className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-widest mb-2 block">Mô tả chi tiết lý do <span className="text-red-500">*</span></label>
+                                    <textarea
+                                        value={returnReason}
+                                        onChange={(e) => setReturnReason(e.target.value)}
+                                        placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải..."
+                                        className="w-full h-[100px] p-5 border-2 border-gray-100 rounded-[20px] text-[1.4rem] font-medium text-gray-700 focus:border-orange-300 focus:outline-none transition-all resize-none italic"
+                                        maxLength={500}
+                                        autoFocus
+                                    />
+                                    <div className="text-right text-[1.1rem] text-gray-400 mt-1">{returnReason.length}/500</div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-[1.2rem] text-gray-400 font-bold uppercase tracking-widest mb-2 block">Link ảnh bằng chứng (nếu có)</label>
+                                <input
+                                    type="text"
+                                    value={returnEvidence}
+                                    onChange={(e) => setReturnEvidence(e.target.value)}
+                                    placeholder="Link 1, Link 2..."
+                                    className="w-full h-[55px] px-5 border-2 border-gray-100 rounded-[20px] text-[1.4rem] font-medium text-gray-700 focus:border-orange-300 focus:outline-none transition-all italic"
+                                />
+                                <p className="text-[1.1rem] text-gray-400 mt-2 italic px-2">Phân cách các link ảnh bằng dấu phẩy</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => { setShowReturnModal(false); setReturnReason(""); setReturnEvidence(""); setIsCustomReturnReason(false); }}
+                                className="flex-1 h-[60px] bg-gray-100 text-gray-600 rounded-[20px] font-bold text-[1.5rem] hover:bg-gray-200 transition-all"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={handleRequestReturn}
+                                disabled={isSubmittingReturn || !returnReason.trim()}
+                                className="flex-1 h-[60px] bg-client-secondary text-white rounded-[20px] font-black text-[1.5rem] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-client-secondary/20 flex items-center justify-center gap-2 uppercase"
+                            >
+                                {isSubmittingReturn ? <RefreshDouble className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
+                                {isSubmittingReturn ? "Đang gửi..." : "Gửi yêu cầu"}
                             </button>
                         </div>
                     </div>

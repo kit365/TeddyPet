@@ -1,6 +1,6 @@
 import { apiApp } from "../../api/index";
 import { ApiResponse, PageResponse } from "../../types/common.type";
-import { OrderResponse } from "../../types/order.type";
+import { OrderResponse, AdminHandleReturnRequest } from "../../types/order.type";
 
 const BASE_PATH = "/api/orders";
 
@@ -26,6 +26,13 @@ export const getOrdersByStatus = async (status: string, params?: {
 
 export const getOrderById = async (id: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/${id}`);
+    return response.data;
+};
+
+export const downloadOrderInvoice = async (id: string) => {
+    const response = await apiApp.get(`${BASE_PATH}/${id}/invoice/pdf`, {
+        responseType: 'blob'
+    });
     return response.data;
 };
 
@@ -64,5 +71,11 @@ export const cancelOrderByAdmin = async (id: string, reason: string) => {
 // Return order (DELIVERING or DELIVERED status - customer boom/return)
 export const returnOrder = async (id: string, reason: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/return`, { reason });
+    return response.data;
+};
+
+// Admin handle return request from customer
+export const handleReturnRequest = async (id: string, data: AdminHandleReturnRequest) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/handle-return`, data);
     return response.data;
 };

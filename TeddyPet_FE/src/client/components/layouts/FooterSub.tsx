@@ -13,6 +13,10 @@ export const FooterSub = () => {
     const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
     const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
     const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+    const [facebookUrl, setFacebookUrl] = useState<string>('#');
+    const [instagramUrl, setInstagramUrl] = useState<string>('#');
+    const [appleStoreUrl, setAppleStoreUrl] = useState<string>('#');
+    const [playStoreUrl, setPlayStoreUrl] = useState<string>('#');
 
     useEffect(() => {
         const fetchShopSettings = async () => {
@@ -23,10 +27,18 @@ export const FooterSub = () => {
                     const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue;
                     const phone = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_PHONE)?.settingValue;
                     const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue;
+                    const facebook = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_FACEBOOK)?.settingValue;
+                    const instagram = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_INSTAGRAM)?.settingValue;
+                    const appleStore = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_APPLE_STORE)?.settingValue;
+                    const playStore = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_PLAY_STORE)?.settingValue;
 
                     if (address) setShopAddress(address);
                     if (phone) setShopPhone(phone);
                     if (email) setShopEmail(email);
+                    if (facebook) setFacebookUrl(facebook);
+                    if (instagram) setInstagramUrl(instagram);
+                    if (appleStore) setAppleStoreUrl(appleStore);
+                    if (playStore) setPlayStoreUrl(playStore);
                 }
             } catch (error) {
                 console.error("Error fetching shop settings for FooterSub:", error);
@@ -94,10 +106,10 @@ export const FooterSub = () => {
                         <div className="flex items-center gap-[20px]">
                             <div className="font-secondary text-client-primary text-[2.5rem]">Tải ứng dụng: </div>
                             <div className="flex items-center">
-                                <Link to={"#"} className="m-[5px]">
+                                <Link to={appleStoreUrl} className="m-[5px]">
                                     <img src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/apple-store.png" alt="Teddy Pet" />
                                 </Link>
-                                <Link to={"#"} className="m-[5px]">
+                                <Link to={playStoreUrl} className="m-[5px]">
                                     <img src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/play-store.png" alt="Teddy Pet" />
                                 </Link>
                             </div>
@@ -126,7 +138,7 @@ export const FooterSub = () => {
                                     </span>
                                 </li>
                             </ul>
-                            <SocialIconCircle />
+                            <SocialIconCircle facebookUrl={facebookUrl} instagramUrl={instagramUrl} />
                         </div>
                         <div className="pt-[30px]">
                             <h3 className="mb-[20px] text-[2.5rem] font-secondary text-client-secondary">Tìm hiểu chúng tôi</h3>

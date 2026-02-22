@@ -103,6 +103,9 @@ export const MainFooter = () => {
     const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
     const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
     const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+    const [shopWebsite, setShopWebsite] = useState<string>('www.teddypet.id.vn');
+    const [facebookUrl, setFacebookUrl] = useState<string>('#');
+    const [instagramUrl, setInstagramUrl] = useState<string>('#');
 
     useEffect(() => {
         const fetchShopSettings = async () => {
@@ -113,10 +116,16 @@ export const MainFooter = () => {
                     const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue;
                     const phone = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_PHONE)?.settingValue;
                     const email = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_EMAIL)?.settingValue;
+                    const website = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_WEBSITE)?.settingValue;
+                    const facebook = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_FACEBOOK)?.settingValue;
+                    const instagram = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_INSTAGRAM)?.settingValue;
 
                     if (address) setShopAddress(address);
                     if (phone) setShopPhone(phone);
                     if (email) setShopEmail(email);
+                    if (website) setShopWebsite(website);
+                    if (facebook) setFacebookUrl(facebook);
+                    if (instagram) setInstagramUrl(instagram);
                 }
             } catch (error) {
                 console.error("Error fetching shop settings for footer:", error);
@@ -144,7 +153,7 @@ export const MainFooter = () => {
                                 <div className="text-center text-client-text leading-[1.75] px-[20px] font-[500]">
                                     Khám phá thế giới tuyệt vời của thú cưng tại TeddyPet! Chúng tôi cam kết mang đến những sản phẩm chất lượng cao, từ thức ăn dinh dưỡng đến đồ chơi an toàn, giúp những người bạn bốn chân của bạn luôn khỏe mạnh và vui vẻ.
                                 </div>
-                                <SocialIconCircle className="justify-center" />
+                                <SocialIconCircle className="justify-center" facebookUrl={facebookUrl} instagramUrl={instagramUrl} />
                             </div>
                             <div className="w-[22%] px-[30px] relative">
                                 <img width={400} height={270} src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/footer-dogs-walking-300x203.png" className="object-cover w-full h-auto mb-[-80px]" alt="" />
@@ -181,7 +190,9 @@ export const MainFooter = () => {
                                     </li>
                                     <li className="flex items-center">
                                         <LanguageIcon className="text-client-text" style={{ fontSize: "2.2rem" }} />
-                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">www.example.com</span>
+                                        <span className="pl-[8px] text-client-text text-[1.7rem] hover:text-client-primary transition-default cursor-pointer">
+                                            <Link to={shopWebsite.startsWith('http') ? shopWebsite : `https://${shopWebsite}`}>{shopWebsite}</Link>
+                                        </span>
                                     </li>
                                 </ul>
                             </div>
