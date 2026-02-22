@@ -1,76 +1,67 @@
 import { Navigation } from "swiper/modules";
-import type { Product } from "../../../../types/products.type";
+import type { Product, APIProduct } from "../../../../types/products.type";
 import { ProductCard } from "../../../components/ui/ProductCard"
 import { Swiper, SwiperSlide } from 'swiper/react';
 import type { Swiper as SwiperType } from "swiper";
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getRelatedProducts } from "../../../../api/product.api";
 
-const products: Product[] = [
-    {
-        id: 1,
-        title: "Thẻ tên",
-        price: "360.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
-        rating: 5,
-        isSale: true,
-        url: "/san-pham/the-ten",
-    },
-    {
-        id: 2,
-        title: "Vòng cổ",
-        price: "220.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-11-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-11c-1000x1048.jpg",
-        rating: 4,
-        isSale: false,
-        url: "/san-pham/vong-co",
-    },
-    {
-        id: 3,
-        title: "Đồ chơi mèo",
-        price: "150.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12c-1000x1048.jpg",
-        rating: 3,
-        isSale: true,
-        url: "/san-pham/do-choi-meo",
-    },
-    {
-        id: 4,
-        title: "Nệm nylon",
-        price: "540.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-9-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-9a-1000x1048.jpg",
-        rating: 4,
-        isSale: true,
-        url: "/san-pham/nem-nylon",
-    },
-    {
-        id: 5,
-        title: "Đồ chơi mèo",
-        price: "150.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12c-1000x1048.jpg",
-        rating: 3,
-        isSale: true,
-        url: "/san-pham/do-choi-meo",
-    },
-    {
-        id: 6,
-        title: "Đồ chơi mèo",
-        price: "150.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12c-1000x1048.jpg",
-        rating: 3,
-        isSale: true,
-        url: "/san-pham/do-choi-meo",
-    },
-];
+interface ProductRelatedProps {
+    productId?: number;
+}
 
-export const ProductRelated = () => {
+export const ProductRelated = ({ productId }: ProductRelatedProps) => {
     const prevButtonRef = useRef<HTMLDivElement>(null);
     const nextButtonRef = useRef<HTMLDivElement>(null);
+
+    const { data: relatedRes, isLoading } = useQuery({
+        queryKey: ['related-products', productId],
+        queryFn: () => productId ? getRelatedProducts(productId, 6) : Promise.resolve(null),
+        enabled: !!productId
+    });
+
+    const productsData = relatedRes?.data?.content || [];
+
+    const mappedProducts: Product[] = productsData.map((p: APIProduct) => {
+        const hasSale = p.variants?.some(v => v.salePrice && v.salePrice > 0) || false;
+        let isSoldOut = false;
+
+        if (p.variants && p.variants.length > 0) {
+            const activeVariants = p.variants.filter(v => v.status === "ACTIVE" || v.isActive);
+            if (activeVariants.length > 0) {
+                const everyVariantZeroStock = activeVariants.every(v => v.stockQuantity === 0);
+                if (everyVariantZeroStock) {
+                    isSoldOut = true;
+                }
+            }
+        }
+
+        let oldPriceStr: string | undefined = undefined;
+        if (hasSale) {
+            const minPriceVariant = p.variants.find(v => (v.salePrice || v.price) === p.minPrice);
+            if (minPriceVariant && minPriceVariant.salePrice) {
+                oldPriceStr = minPriceVariant.price.toLocaleString('vi-VN') + 'đ';
+            }
+        }
+
+        return {
+            id: p.id,
+            title: p.name,
+            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            oldPrice: oldPriceStr,
+            primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
+            secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
+            rating: p.averageRating || 5,
+            isSale: hasSale || p.tags.some(t => t.slug === 'sale'),
+            isSoldOut: isSoldOut,
+            url: `/product/detail/${p.slug}`
+        };
+    });
+
+    if (!productId || isLoading || mappedProducts.length === 0) {
+        return null;
+    }
 
     return (
         <div className="app-container pb-[150px] 2xl:pb-[120px] relative">
@@ -99,7 +90,7 @@ export const ProductRelated = () => {
                 }}
                 className="mySwiper"
             >
-                {products.map((item: Product) => (
+                {mappedProducts.map((item: Product) => (
                     <SwiperSlide key={item.id}>
                         <ProductCard product={item} />
                     </SwiperSlide>
