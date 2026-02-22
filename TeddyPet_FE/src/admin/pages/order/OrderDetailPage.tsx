@@ -34,7 +34,7 @@ import IconButton from '@mui/material/IconButton';
 import { toast } from "react-toastify";
 
 import { prefixAdmin } from "../../constants/routes";
-import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder, handleReturnRequest } from "../../api/order.api";
+import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder, handleReturnRequest, downloadOrderInvoice } from "../../api/order.api";
 import { getShippingFeeSuggestion } from "../../api/shipping.api";
 import { OrderResponse } from "../../../types/order.type";
 import { COLORS } from "../product/configs/constants";
@@ -81,6 +81,7 @@ export const OrderDetailPage = () => {
         "Không đúng sản phẩm đã giao"
     ];
 
+    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -265,6 +266,28 @@ export const OrderDetailPage = () => {
         return { bg: bgColor, color: color };
     };
 
+    const handleDownloadInvoice = async () => {
+        if (!order) return;
+        setIsDownloadingInvoice(true);
+        try {
+            const blob = await downloadOrderInvoice(order.id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice-${order.orderCode}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Đã tải hóa đơn thành công!");
+        } catch (error) {
+            console.error("Lỗi khi tải hóa đơn:", error);
+            toast.error("Không thể tải hóa đơn. Vui lòng thử lại sau.");
+        } finally {
+            setIsDownloadingInvoice(false);
+        }
+    };
+
     if (loading) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -327,10 +350,12 @@ export const OrderDetailPage = () => {
                 </Box>
                 <Button
                     variant="contained"
-                    startIcon={<LocalPrintshopIcon />}
+                    startIcon={isDownloadingInvoice ? <CircularProgress size={20} color="inherit" /> : <LocalPrintshopIcon />}
+                    onClick={handleDownloadInvoice}
+                    disabled={isDownloadingInvoice}
                     sx={{ borderRadius: '12px', px: 3, py: 1, fontWeight: 800, bgcolor: '#1C252E', textTransform: 'none', '&:hover': { bgcolor: '#333' } }}
                 >
-                    In hóa đơn
+                    {isDownloadingInvoice ? "Đang xuất..." : "Xuất hóa đơn"}
                 </Button>
             </Box>
 

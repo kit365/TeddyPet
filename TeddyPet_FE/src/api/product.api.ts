@@ -16,3 +16,8 @@ export const getProductBySlug = async (slug: string): Promise<ApiResponse<APIPro
     const response = await apiApp.get(`${HOME_BASE_PATH}/${slug}`);
     return response.data;
 };
+
+export const getRelatedProducts = async (productId: number, limit: number = 4): Promise<ProductsResponse> => {
+    const response = await apiApp.get(`${BASE_PATH}/${productId}/related?limit=${limit}`);
+    return response.data;
+};

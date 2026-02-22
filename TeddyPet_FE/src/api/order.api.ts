@@ -24,6 +24,13 @@ export const getMyOrderById = async (id: string) => {
     return response.data;
 };
 
+export const downloadMyOrderInvoice = async (id: string) => {
+    const response = await apiApp.get(`${BASE_PATH}/my-orders/${id}/invoice/pdf`, {
+        responseType: 'blob'
+    });
+    return response.data;
+};
+
 export const getMyOrderByCode = async (code: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/code/${code}`);
     return response.data;

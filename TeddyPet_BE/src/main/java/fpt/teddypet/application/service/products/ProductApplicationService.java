@@ -447,6 +447,28 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductResponse> getRelatedProducts(Long productId, int limit) {
+        log.info("Getting related products for product: {}, limit: {}", productId, limit);
+
+        Product product = getByIdAndIsDeletedFalse(productId);
+        List<Long> categoryIds = product.getCategories().stream()
+                .map(fpt.teddypet.domain.entity.ProductCategory::getId)
+                .toList();
+
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Product> productPage;
+
+        if (categoryIds.isEmpty()) {
+            productPage = Page.empty();
+        } else {
+            productPage = productRepositoryPort.findRelatedProducts(categoryIds, productId, pageable);
+        }
+
+        return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    @Override
     public List<ProductSuggestionResponse> getSuggestions(String keyword) {
         log.info("Getting search suggestions for keyword: {}", keyword);
 
@@ -462,7 +484,7 @@ public class ProductApplicationService implements ProductService {
                         .productId(product.getId())
                         .name(product.getName())
                         .slug(product.getSlug())
-                        .imageUrl(product.getImages().isEmpty() ? null : product.getImages().get(0).getImageUrl())
+                        .imageUrl(product.getImages().isEmpty() ? null : product.getImages().getFirst().getImageUrl())
                         .build())
                 .toList();
     }
