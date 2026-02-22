@@ -119,4 +119,8 @@ public class Service extends BaseEntity {
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ServicePricing> pricingRules = new ArrayList<>();
+
+    @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TimeSlot> timeSlots = new ArrayList<>();
 }

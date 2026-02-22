@@ -43,6 +43,9 @@ import { BookingListPage } from "../pages/booking/BookingListPage";
 import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
 import { BookingPetDetailPage } from "../pages/booking/BookingPetDetailPage";
 import { BookingPetServiceDetailPage } from "../pages/booking/BookingPetServiceDetailPage";
+import { ShopOperationHoursPage } from "../pages/shop/ShopOperationHoursPage";
+import { TimeSlotExceptionListPage } from "../pages/shop/TimeSlotExceptionListPage";
+import { TimeSlotExceptionFormPage } from "../pages/shop/TimeSlotExceptionFormPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -89,6 +92,10 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-category/list", element: <ServiceCategoryListPage /> },
     { path: "service-category/create", element: <ServiceCategoryCreatePage /> },
     { path: "service-category/edit/:id", element: <ServiceCategoryEditPage /> },
+    { path: "shop-operation-hours", element: <ShopOperationHoursPage /> },
+    { path: "time-slot-exception/list", element: <TimeSlotExceptionListPage /> },
+    { path: "time-slot-exception/create", element: <TimeSlotExceptionFormPage /> },
+    { path: "time-slot-exception/edit/:id", element: <TimeSlotExceptionFormPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

@@ -62,22 +62,8 @@ export const ProductCreatePage = () => {
     const createProductMutation = useCreateProduct();
 
     useEffect(() => {
-        // Pre-populate with test images as requested
-        const testImages = [
-            {
-                name: "meo-cute-1.jpg",
-                preview: "https://www.robins.vn/wp-content/uploads/2026/01/anh-meo-cute-1.jpg.jpg",
-                size: 0,
-                type: "image/jpeg",
-            },
-            {
-                name: "meo-cute-2.jpg",
-                preview: "https://cdn2.fptshop.com.vn/unsafe/Anh_meo_cute_30_ece4ac0bba.jpg",
-                size: 0,
-                type: "image/jpeg",
-            }
-        ];
-        setFiles(testImages as any);
+        // No longer pre-populating with test images.
+        setFiles([]);
     }, []);
 
     // Function to reset all form states
@@ -360,6 +346,7 @@ export const ProductCreatePage = () => {
                                 <UploadFiles
                                     files={files}
                                     onFilesChange={(newFiles) => setFiles(newFiles)}
+                                    folder="products"
                                 />
                             </Stack>
                         </CollapsibleCard>

@@ -2,19 +2,21 @@ import { z } from 'zod';
 
 export const serviceUpsertSchema = z.object({
     serviceId: z.number().optional().nullable(),
-    serviceCategoryId: z
-        .coerce
-        .number({ required_error: 'Danh mục dịch vụ là bắt buộc' })
-        .int()
-        .min(1, 'Danh mục dịch vụ là bắt buộc'),
-    code: z.string().min(1, 'Mã dịch vụ là bắt buộc').max(50),
+    serviceCategoryId: z.preprocess(
+        (val) => {
+            if (val === '' || val === null || val === undefined) return undefined;
+            const n = Number(val);
+            return Number.isNaN(n) ? undefined : n;
+        },
+        z.number({ required_error: 'Vui lòng chọn danh mục dịch vụ', invalid_type_error: 'Vui lòng chọn danh mục dịch vụ' }).min(1, 'Vui lòng chọn danh mục dịch vụ'),
+    ),
+    code: z.string().max(50).optional(),
     serviceName: z.string().min(1, 'Tên dịch vụ là bắt buộc').max(255),
     suitablePetTypes: z.array(z.string()).optional(),
     slug: z.string().optional(),
     shortDescription: z.string().max(500).optional(),
     description: z.string().optional(),
-    priceUnit: z.string().max(50).optional(),
-    duration: z.coerce.number().min(1, 'Thời lượng là bắt buộc'),
+    duration: z.coerce.number().min(1, 'Thời lượng phải lớn hơn 0'),
     bufferTime: z.coerce.number().optional(),
     maxPetsPerSession: z.coerce.number().optional(),
     advanceBookingHours: z.coerce.number().optional(),

@@ -10,6 +10,7 @@ import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
+import fpt.teddypet.application.port.input.pdf.PdfService;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
@@ -20,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +34,7 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final PdfService pdfService;
 
     // ========== USER ENDPOINTS ==========
 
@@ -61,6 +65,23 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> getMyOrderById(@PathVariable UUID id) {
         OrderResponse order = orderService.getMyOrderById(id);
         return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    @GetMapping("/my-orders/{id}/invoice/pdf")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Tải PDF hóa đơn của tôi", description = "Tải tệp PDF hóa đơn cho đơn hàng của tôi")
+    public ResponseEntity<byte[]> downloadMyOrderInvoicePdf(@PathVariable UUID id) {
+        // validateOwnership ensures that the current user actually owns the order
+        orderService.validateOwnership(id, SecurityUtil.getCurrentUserId());
+        byte[] pdfBytes = pdfService.generateInvoicePdf(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 
     @GetMapping("/my-orders/code/{code}")
@@ -136,6 +157,21 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> getById(@PathVariable UUID id) {
         OrderResponse order = orderService.getByIdResponse(id);
         return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    @GetMapping("/{id}/invoice/pdf")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Tải PDF hóa đơn theo ID", description = "Tải tệp PDF hóa đơn cho đơn hàng (Staff/Admin)")
+    public ResponseEntity<byte[]> downloadOrderInvoicePdf(@PathVariable UUID id) {
+        byte[] pdfBytes = pdfService.generateInvoicePdf(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 
     @GetMapping("/code/{code}")

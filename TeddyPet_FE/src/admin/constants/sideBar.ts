@@ -133,5 +133,14 @@ export const menuManagementData = [
             { id: "list", label: "Quản lý dịch vụ", path: `/${prefixAdmin}/service/list` },
             { id: "category", label: "Danh mục dịch vụ", path: `/${prefixAdmin}/service-category/list` },
         ]
+    },
+    {
+        id: "shop-schedule",
+        label: "Cài đặt lịch",
+        Icon: ScheduleSendIcon,
+        children: [
+            { id: "operation-hours", label: "Giờ hoạt động", path: `/${prefixAdmin}/shop-operation-hours` },
+            { id: "exceptions", label: "Ngoại lệ lịch", path: `/${prefixAdmin}/time-slot-exception/list` },
+        ]
     }
 ];

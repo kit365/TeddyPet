@@ -5,9 +5,10 @@ import { Path } from "react-hook-form";
 interface SwitchButtonProps<T extends FieldValues> {
     control: Control<T>;
     name: Path<T>;
+    label?: string;
 }
 
-export const SwitchButton = <T extends FieldValues>({ control, name }: SwitchButtonProps<T>) => {
+export const SwitchButton = <T extends FieldValues>({ control, name, label = 'Hoạt động' }: SwitchButtonProps<T>) => {
     return (
         <Controller
             name={name}
@@ -55,7 +56,7 @@ export const SwitchButton = <T extends FieldValues>({ control, name }: SwitchBut
                     }
                     label={
                         <Typography variant="body1" sx={{ fontSize: "1.4rem", color: "#1C252E", mt: "5px" }}>
-                            Hoạt động
+                            {label}
                         </Typography>
                     }
                     labelPlacement="end"

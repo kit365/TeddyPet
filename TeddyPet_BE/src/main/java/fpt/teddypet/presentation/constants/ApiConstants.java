@@ -86,4 +86,9 @@ public final class ApiConstants {
     public static final String API_SERVICE_COMBOS = BASE_API + "/service-combos";
     public static final String API_SERVICE_PRICINGS = BASE_API + "/service-pricings";
 
+    // Shop / Schedule API base paths
+    public static final String API_TIME_SLOT_EXCEPTIONS = BASE_API + "/time-slot-exceptions";
+    public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";
+    public static final String API_TIME_SLOTS = BASE_API + "/time-slots";
+
 }

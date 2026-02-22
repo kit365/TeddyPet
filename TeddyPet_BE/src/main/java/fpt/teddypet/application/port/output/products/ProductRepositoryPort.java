@@ -21,6 +21,9 @@ public interface ProductRepositoryPort {
     // Find all products by brand ID (no pagination)
     List<Product> findAllByBrandId(Long brandId);
 
+    // Find related products by category IDs excluding current product
+    Page<Product> findRelatedProducts(List<Long> categoryIds, Long productId, Pageable pageable);
+
     Optional<Product> findByIdAndIsActiveTrueAndIsDeletedFalse(Long productId);
 
     Optional<Product> findByIdAndIsDeletedFalse(Long productId);
