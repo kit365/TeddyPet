@@ -171,6 +171,12 @@ export const getServiceComboColumns = (): GridColDef<IServiceCombo>[] => [
         width: 120,
     },
     {
+        field: 'slug',
+        headerName: 'Slug',
+        width: 160,
+        valueGetter: (value: string | undefined) => value ?? '—',
+    },
+    {
         field: 'comboPrice',
         headerName: 'Giá gói',
         width: 120,

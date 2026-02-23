@@ -91,4 +91,8 @@ public final class ApiConstants {
     public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";
     public static final String API_TIME_SLOTS = BASE_API + "/time-slots";
 
+    // Room management
+    public static final String API_ROOM_TYPES = BASE_API + "/room-types";
+    public static final String API_ROOMS = BASE_API + "/rooms";
+
 }

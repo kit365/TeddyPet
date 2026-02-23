@@ -46,6 +46,12 @@ import { BookingPetServiceDetailPage } from "../pages/booking/BookingPetServiceD
 import { ShopOperationHoursPage } from "../pages/shop/ShopOperationHoursPage";
 import { TimeSlotExceptionListPage } from "../pages/shop/TimeSlotExceptionListPage";
 import { TimeSlotExceptionFormPage } from "../pages/shop/TimeSlotExceptionFormPage";
+import { RoomTypeListPage } from "../pages/room/RoomTypeListPage";
+import { RoomTypeCreatePage } from "../pages/room/RoomTypeCreatePage";
+import { RoomTypeEditPage } from "../pages/room/RoomTypeEditPage";
+import { RoomListPage } from "../pages/room/RoomListPage";
+import { RoomCreatePage } from "../pages/room/RoomCreatePage";
+import { RoomEditPage } from "../pages/room/RoomEditPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -96,6 +102,12 @@ export const AdminRoutes: RouteObject[] = [
     { path: "time-slot-exception/list", element: <TimeSlotExceptionListPage /> },
     { path: "time-slot-exception/create", element: <TimeSlotExceptionFormPage /> },
     { path: "time-slot-exception/edit/:id", element: <TimeSlotExceptionFormPage /> },
+    { path: "room-type/list", element: <RoomTypeListPage /> },
+    { path: "room-type/create", element: <RoomTypeCreatePage /> },
+    { path: "room-type/edit/:id", element: <RoomTypeEditPage /> },
+    { path: "room/list", element: <RoomListPage /> },
+    { path: "room/create", element: <RoomCreatePage /> },
+    { path: "room/edit/:id", element: <RoomEditPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

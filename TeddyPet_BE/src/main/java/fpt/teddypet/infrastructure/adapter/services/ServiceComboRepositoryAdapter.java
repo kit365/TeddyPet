@@ -31,6 +31,11 @@ public class ServiceComboRepositoryAdapter implements ServiceComboRepositoryPort
     }
 
     @Override
+    public Optional<ServiceCombo> findBySlug(String slug) {
+        return serviceComboRepository.findBySlug(slug);
+    }
+
+    @Override
     public List<ServiceCombo> findAll() {
         return serviceComboRepository.findAll();
     }
@@ -48,6 +53,16 @@ public class ServiceComboRepositoryAdapter implements ServiceComboRepositoryPort
     @Override
     public boolean existsByCodeAndIdNot(String code, Long id) {
         return serviceComboRepository.existsByCodeAndIdNot(code, id);
+    }
+
+    @Override
+    public boolean existsBySlug(String slug) {
+        return serviceComboRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public boolean existsBySlugAndIdNot(String slug, Long id) {
+        return serviceComboRepository.existsBySlugAndIdNot(slug, id);
     }
 
     @Override

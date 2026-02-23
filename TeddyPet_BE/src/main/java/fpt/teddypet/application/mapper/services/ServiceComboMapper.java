@@ -17,12 +17,14 @@ public interface ServiceComboMapper {
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     @Mapping(target = "serviceItems", source = "serviceItems", qualifiedByName = "comboItemsToResponse")
+    @Mapping(target = "slug", source = "slug")
     ServiceComboResponse toResponse(ServiceCombo entity);
 
     @Mapping(target = "comboId", source = "id")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     @Mapping(target = "serviceItems", source = "serviceItems", qualifiedByName = "comboItemsToResponse")
+    @Mapping(target = "slug", source = "slug")
     ServiceComboDetailResponse toDetailResponse(ServiceCombo entity);
 
     @Named("comboItemsToResponse")
@@ -46,6 +48,8 @@ public interface ServiceComboMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "serviceItems", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "originalPrice", ignore = true)
     @Mapping(target = "comboName", source = "comboName")
     @Mapping(target = "imgURL", source = "imgURL")
     @Mapping(target = "discountPercentage", defaultExpression = "java(java.math.BigDecimal.ZERO)")
