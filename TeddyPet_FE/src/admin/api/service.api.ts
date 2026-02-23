@@ -11,8 +11,8 @@ const withAuth = () => ({
     },
 });
 
-export const getServices = async (): Promise<ApiResponse<IService[]>> => {
-    const response = await apiApp.get(BASE_URL, withAuth());
+export const getServices = async (params?: { isRequiredRoom?: boolean }): Promise<ApiResponse<IService[]>> => {
+    const response = await apiApp.get(BASE_URL, { ...withAuth(), params });
     return response.data;
 };
 

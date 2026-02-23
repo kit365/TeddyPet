@@ -34,6 +34,7 @@ export const serviceUpsertSchema = z.object({
     metaTitle: z.string().max(255).optional(),
     metaDescription: z.string().max(500).optional(),
     isActive: z.boolean().default(true),
+    isRequiredRoom: z.boolean().optional().default(false),
 });
 
 export type ServiceUpsertFormValues = z.infer<typeof serviceUpsertSchema>;
