@@ -6,6 +6,7 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.services.Serv
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +36,14 @@ public class ServicePricingRepositoryAdapter implements ServicePricingRepository
         return active
                 ? servicePricingRepository.findByServiceIdAndIsActiveTrueAndIsDeletedFalse(serviceId)
                 : servicePricingRepository.findByServiceId(serviceId);
+    }
+
+    @Override
+    public Optional<BigDecimal> findMinActivePriceByServiceId(Long serviceId) {
+        return servicePricingRepository.findByServiceIdAndIsActiveTrueAndIsDeletedFalse(serviceId).stream()
+                .map(ServicePricing::getPrice)
+                .filter(p -> p != null)
+                .min(BigDecimal::compareTo);
     }
 
     @Override
