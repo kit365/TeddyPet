@@ -44,6 +44,7 @@ public record ServiceUpsertRequest(
         String metaTitle,
         @Size(max = 500)
         String metaDescription,
-        Boolean isActive
+        Boolean isActive,
+        Boolean isRequiredRoom
 ) {
 }
