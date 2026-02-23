@@ -1,0 +1,17 @@
+package fpt.teddypet.application.port.input.room;
+
+import fpt.teddypet.application.dto.request.room.RoomUpsertRequest;
+import fpt.teddypet.application.dto.response.room.RoomResponse;
+
+import java.util.List;
+
+public interface RoomService {
+
+    RoomResponse upsert(RoomUpsertRequest request);
+
+    RoomResponse getById(Long id);
+
+    List<RoomResponse> getAll(Long roomTypeId);
+
+    void delete(Long id);
+}
