@@ -7,6 +7,7 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import DiscountIcon from '@mui/icons-material/Discount';
 import PersonIcon from '@mui/icons-material/Person';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 
 export const menuOverviewData = [
     {
@@ -132,6 +133,15 @@ export const menuManagementData = [
         children: [
             { id: "list", label: "Quản lý dịch vụ", path: `/${prefixAdmin}/service/list` },
             { id: "category", label: "Danh mục dịch vụ", path: `/${prefixAdmin}/service-category/list` },
+        ]
+    },
+    {
+        id: "room",
+        label: "Quản lý phòng",
+        Icon: MeetingRoomIcon,
+        children: [
+            { id: "room-type-list", label: "Danh sách loại phòng", path: `/${prefixAdmin}/room-type/list` },
+            { id: "room-list", label: "Danh sách phòng", path: `/${prefixAdmin}/room/list` },
         ]
     },
     {
