@@ -89,9 +89,16 @@ public class ServiceApplicationService implements ServiceService {
 
     @Override
     public List<ServiceResponse> getAll() {
-        return serviceRepositoryPort.findAllActive().stream()
-                .map(serviceMapper::toResponse)
-                .toList();
+        return getAll(null);
+    }
+
+    @Override
+    public List<ServiceResponse> getAll(Boolean isRequiredRoom) {
+        var stream = serviceRepositoryPort.findAllActive().stream();
+        if (isRequiredRoom != null && isRequiredRoom) {
+            stream = stream.filter(s -> Boolean.TRUE.equals(s.getIsRequiredRoom()));
+        }
+        return stream.map(serviceMapper::toResponse).toList();
     }
 
     @Override
