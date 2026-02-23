@@ -50,6 +50,7 @@ export interface IService {
     metaTitle?: string;
     metaDescription?: string;
     isActive: boolean;
+    isRequiredRoom?: boolean;
     isDeleted?: boolean;
     createdAt?: string;
     updatedAt?: string;
@@ -59,6 +60,7 @@ export interface IServiceCombo {
     comboId: number;
     code: string;
     comboName: string;
+    slug?: string;
     description?: string;
     comboPrice?: number;
     originalPrice?: number;
@@ -68,7 +70,7 @@ export interface IServiceCombo {
     discountPercentage?: number;
     minPetWeight?: number;
     maxPetWeight?: number;
-    applicablePetTypes?: string;
+    suitablePetTypes?: string;
     displayOrder?: number;
     tags?: string;
     isPopular?: boolean;

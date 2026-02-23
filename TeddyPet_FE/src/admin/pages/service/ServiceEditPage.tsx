@@ -1,7 +1,7 @@
 import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, MenuItem, IconButton, Select, InputLabel, FormControl, Checkbox, ListItemText } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
 import { useServiceDetail, useUpdateService } from './hooks/useService';
 import { useServiceCategories } from './hooks/useServiceCategory';
@@ -32,6 +32,8 @@ import TableRow from '@mui/material/TableRow';
 import { createDeletePricingHandler, createOnPricingSubmit } from './serviceEditHelpers';
 import dayjs from 'dayjs';
 import { TimeSlotsSection } from './components/TimeSlotsSection';
+import { useRoomTypes } from '../room/hooks/useRoomType';
+import { updateRoomTypeServiceId } from '../../api/room.api';
 
 export const ServiceEditPage = () => {
     const { id } = useParams();
@@ -41,6 +43,8 @@ export const ServiceEditPage = () => {
     const [expandedPricing, setExpandedPricing] = useState(true);
     const [pricingModalOpen, setPricingModalOpen] = useState(false);
     const [editingPricing, setEditingPricing] = useState<IServicePricing | null>(null);
+    const [selectedRoomTypeIds, setSelectedRoomTypeIds] = useState<number[]>([]);
+    const selectedRoomTypeIdsRef = useRef<number[]>([]);
 
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
@@ -48,6 +52,7 @@ export const ServiceEditPage = () => {
     const { data: categories = [] } = useServiceCategories();
     const { data: petTypes = [] } = usePetTypes();
     const { data: pricings = [] } = useServicePricings(serviceId);
+    const { data: roomTypes = [] } = useRoomTypes();
     const { mutate: update, isPending } = useUpdateService();
     const { mutate: createPricing, isPending: isPricingCreating } = useCreateServicePricing();
     const { mutate: updatePricing, isPending: isPricingUpdating } = useUpdateServicePricing();
@@ -69,6 +74,18 @@ export const ServiceEditPage = () => {
     });
 
     const isAddon = useWatch({ control, name: 'isAddon' });
+    const isRequiredRoom = useWatch({ control, name: 'isRequiredRoom' });
+
+    useEffect(() => {
+        selectedRoomTypeIdsRef.current = selectedRoomTypeIds;
+    }, [selectedRoomTypeIds]);
+
+    useEffect(() => {
+        if (detailRes?.data && roomTypes.length > 0) {
+            const linked = roomTypes.filter((rt) => rt.serviceId === serviceId).map((rt) => rt.roomTypeId);
+            setSelectedRoomTypeIds(linked);
+        }
+    }, [detailRes?.data, serviceId, roomTypes.length]);
 
     useEffect(() => {
         if (detailRes?.data) {
@@ -100,6 +117,7 @@ export const ServiceEditPage = () => {
                 metaTitle: d.metaTitle ?? '',
                 metaDescription: d.metaDescription ?? '',
                 isActive: d.isActive ?? true,
+                isRequiredRoom: d.isRequiredRoom ?? false,
             });
         }
     }, [detailRes, reset]);
@@ -132,11 +150,35 @@ export const ServiceEditPage = () => {
             metaTitle: data.metaTitle || null,
             metaDescription: data.metaDescription || null,
             isActive: data.isActive,
+            isRequiredRoom: data.isRequiredRoom ?? false,
         };
         update(payload, {
-            onSuccess: (res: any) => {
-                if (res?.success) toast.success(res.message ?? 'Cập nhật thành công');
-                else toast.error(res?.message ?? 'Có lỗi');
+            onSuccess: async (res: any) => {
+                if (res?.success) {
+                    const ids = selectedRoomTypeIdsRef.current;
+                    if (payload.isRequiredRoom && roomTypes.length > 0) {
+                        try {
+                            for (const rt of roomTypes) {
+                                const shouldLink = ids.includes(rt.roomTypeId);
+                                const currentlyLinked = rt.serviceId === serviceId;
+                                if (shouldLink && !currentlyLinked) {
+                                    await updateRoomTypeServiceId(rt.roomTypeId, serviceId);
+                                } else if (!shouldLink && currentlyLinked) {
+                                    await updateRoomTypeServiceId(rt.roomTypeId, null);
+                                }
+                            }
+                        } catch {
+                            toast.error('Cập nhật dịch vụ thành công nhưng gắn loại phòng có lỗi.');
+                        }
+                    } else if (!payload.isRequiredRoom) {
+                        for (const rt of roomTypes) {
+                            if (rt.serviceId === serviceId) {
+                                await updateRoomTypeServiceId(rt.roomTypeId, null);
+                            }
+                        }
+                    }
+                    toast.success(res.message ?? 'Cập nhật thành công');
+                } else toast.error(res?.message ?? 'Có lỗi');
             },
         });
     };
@@ -308,7 +350,43 @@ export const ServiceEditPage = () => {
                                     <SwitchButton control={control} name="isAddon" label="Dịch vụ add-on" />
                                     <SwitchButton control={control} name="isCritical" label="Quan trọng" />
                                     <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
+                                    <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                 </Box>
+                                {isRequiredRoom && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này</Box>
+                                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Tên loại phòng</TableCell>
+                                                    <TableCell>Dịch vụ hiện tại</TableCell>
+                                                    <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {roomTypes.map((rt) => (
+                                                    <TableRow key={rt.roomTypeId}>
+                                                        <TableCell>{rt.typeName}</TableCell>
+                                                        <TableCell>{rt.serviceName ?? '—'}</TableCell>
+                                                        <TableCell padding="checkbox">
+                                                            <Checkbox
+                                                                checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
+                                                                onChange={(_, checked) => {
+                                                                    setSelectedRoomTypeIds((prev) =>
+                                                                        checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                        {roomTypes.length === 0 && (
+                                            <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                        )}
+                                    </Box>
+                                )}
                             </Stack>
                         </CollapsibleCard>
                         <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
