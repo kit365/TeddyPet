@@ -12,7 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getServiceCategories, getServices } from "../../../api/service.api";
 import type { BookingPetForm } from "../../../types/booking.type";
@@ -34,6 +34,11 @@ function createEmptyPet(): BookingPetForm {
         petType: "dog",
         weight: "",
         notes: "",
+        emergencyContactName: "",
+        emergencyContactPhone: "",
+        foodBrought: false,
+        foodBrand: "",
+        feedingInstructions: "",
         serviceId: null,
         pricingModel: null,
         dateFrom: "",
@@ -82,6 +87,24 @@ export const BookingDetailPage = () => {
         [categories, services]
     );
 
+    const isHotelCategory = useCallback(
+        (category: ServiceCategoryClient | undefined): boolean => {
+            if (!category) return false;
+            const slug = (category.slug ?? "").toLowerCase();
+            const name = (category.categoryName ?? "").toLowerCase();
+            return (
+                slug.includes("hotel") ||
+                slug.includes("luu-tru") ||
+                slug.includes("khach-san") ||
+                slug.includes("luu tru") ||
+                name.includes("lưu trú") ||
+                name.includes("khách sạn") ||
+                name.includes("hotel")
+            );
+        },
+        []
+    );
+
     const addPet = () => setPets((prev) => [...prev, createEmptyPet()]);
     const removePet = (id: string) => {
         if (pets.length <= 1) return;
@@ -103,11 +126,22 @@ export const BookingDetailPage = () => {
                         next.sessionDate = "";
                         next.sessionSlot = SESSION_SLOTS[0] ?? "08:00";
                     }
+                    if (!isHotelCategory(cat)) {
+                        next.foodBrought = false;
+                        next.foodBrand = "";
+                        next.feedingInstructions = "";
+                    }
                 }
                 return next;
             })
         );
     };
+
+    const formSectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -138,7 +172,7 @@ export const BookingDetailPage = () => {
                 />
             </div>
 
-            <div className="app-container flex py-[60px] gap-[48px] justify-center">
+            <div ref={formSectionRef} className="app-container flex py-[60px] gap-[48px] justify-center">
                 <aside className="w-[320px] shrink-0 hidden lg:block">
                     <h2 className="text-[2.4rem] font-third text-[#181818] mb-[24px]">Thông tin</h2>
                     <div className="space-y-[20px]">
@@ -325,6 +359,79 @@ export const BookingDetailPage = () => {
                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
                                                     />
                                                 </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Liên hệ khẩn cấp</label>
+                                                    <input
+                                                        type="text"
+                                                        value={pet.emergencyContactName ?? ""}
+                                                        onChange={(e) => updatePet(pet.id, { emergencyContactName: e.target.value })}
+                                                        placeholder="Họ tên người liên hệ"
+                                                        className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">SĐT khẩn cấp</label>
+                                                    <input
+                                                        type="tel"
+                                                        value={pet.emergencyContactPhone ?? ""}
+                                                        onChange={(e) => updatePet(pet.id, { emergencyContactPhone: e.target.value })}
+                                                        placeholder="Số điện thoại"
+                                                        className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
+                                                    />
+                                                </div>
+                                                {pet.serviceId && isHotelCategory(getCategoryByServiceId(pet.serviceId)) && (
+                                                    <>
+                                                        <div className="sm:col-span-2 lg:col-span-4">
+                                                            <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Mang theo thức ăn</label>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updatePet(pet.id, { foodBrought: true })}
+                                                                    className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
+                                                                        pet.foodBrought
+                                                                            ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
+                                                                            : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
+                                                                    }`}
+                                                                >
+                                                                    Có
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updatePet(pet.id, { foodBrought: false, foodBrand: "" })}
+                                                                    className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
+                                                                        !pet.foodBrought
+                                                                            ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
+                                                                            : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
+                                                                    }`}
+                                                                >
+                                                                    Không
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {pet.foodBrought && (
+                                                            <div className="sm:col-span-2 lg:col-span-4">
+                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Nhãn hiệu thức ăn</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={pet.foodBrand ?? ""}
+                                                                    onChange={(e) => updatePet(pet.id, { foodBrand: e.target.value })}
+                                                                    placeholder="Ví dụ: Royal Canin"
+                                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <div className="sm:col-span-2 lg:col-span-4">
+                                                            <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Hướng dẫn cho ăn</label>
+                                                            <input
+                                                                type="text"
+                                                                value={pet.feedingInstructions ?? ""}
+                                                                onChange={(e) => updatePet(pet.id, { feedingInstructions: e.target.value })}
+                                                                placeholder="Ví dụ: 2 bữa/ngày, mỗi bữa 200g"
+                                                                className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
 
                                             {/* Chọn dịch vụ */}
@@ -423,7 +530,7 @@ export const BookingDetailPage = () => {
                         <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
                             <button
                                 type="button"
-                                onClick={() => navigate("/dat-lich")}
+                                onClick={() => navigate("/dat-lich", { state: step1Data })}
                                 className="py-[14px] px-[28px] rounded-[12px] border border-[#ddd] text-[#181818] font-[600] text-[1.5rem] hover:bg-[#f5f5f5] transition-colors"
                             >
                                 Quay lại

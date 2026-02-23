@@ -138,6 +138,11 @@ export interface BookingPetForm {
     petType: string; // dog | cat | other
     weight?: string;
     notes?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    foodBrought?: boolean;
+    foodBrand?: string;
+    feedingInstructions?: string;
     /** Selected service id */
     serviceId: number | null;
     /** Category pricing model for selected service */
