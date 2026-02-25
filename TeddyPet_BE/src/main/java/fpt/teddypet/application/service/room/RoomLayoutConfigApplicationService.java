@@ -36,7 +36,6 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
                 .block(request.block() != null ? request.block().trim() : null)
                 .maxRows(request.maxRows())
                 .maxCols(request.maxCols())
-                .floor(request.floor() != null ? request.floor().trim() : null)
                 .backgroundImage(request.backgroundImage() != null ? request.backgroundImage().trim() : null)
                 .build();
         entity = repositoryPort.save(entity);
@@ -52,7 +51,6 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
         entity.setBlock(request.block() != null ? request.block().trim() : null);
         entity.setMaxRows(request.maxRows());
         entity.setMaxCols(request.maxCols());
-        entity.setFloor(request.floor() != null ? request.floor().trim() : null);
         entity.setBackgroundImage(request.backgroundImage() != null ? request.backgroundImage().trim() : null);
         entity = repositoryPort.save(entity);
         return toResponse(entity);
@@ -77,7 +75,6 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
                 e.getBlock(),
                 e.getMaxRows(),
                 e.getMaxCols(),
-                e.getFloor(),
                 e.getBackgroundImage(),
                 e.getCreatedAt(),
                 e.getUpdatedAt()

@@ -30,9 +30,6 @@ public class RoomLayoutConfig {
     @Column(name = "max_cols", nullable = false)
     private Integer maxCols;
 
-    @Column(name = "floor", length = 50)
-    private String floor;
-
     @Column(name = "background_image", length = 500)
     private String backgroundImage;
 

@@ -50,12 +50,13 @@ public class RoomApplicationService implements RoomService {
         roomMapper.updateRoomFromRequest(request, entity);
         entity.setRoomType(roomType);
 
-        // roomNumber, block, floor are not settable via API; they are set by other logic
+        // roomNumber, block, tier are not settable via API; they are set by other logic
 
         if (request.isActive() != null) {
             entity.setActive(request.isActive());
         }
-        // BLOCKED status is only set when creating a Room_Blockings record; user cannot set it directly
+        // BLOCKED status is only set when creating a Room_Blockings record; user cannot
+        // set it directly
         if (request.status() != null && request.status() != fpt.teddypet.domain.enums.RoomStatusEnum.BLOCKED) {
             entity.setStatus(request.status());
         }
@@ -91,7 +92,8 @@ public class RoomApplicationService implements RoomService {
     public RoomResponse setRoomPosition(Long roomId, RoomSetPositionRequest request) {
         Room room = getEntityById(roomId);
         RoomLayoutConfig layout = roomLayoutConfigRepositoryPort.findById(request.roomLayoutConfigId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cấu hình layout với ID: " + request.roomLayoutConfigId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy cấu hình layout với ID: " + request.roomLayoutConfigId()));
 
         String roomNumber = request.roomNumber().trim();
         String tier = request.tier().trim();
@@ -102,7 +104,7 @@ public class RoomApplicationService implements RoomService {
         if (roomRepositoryPort.existsByRoomLayoutConfigIdAndGridRowAndGridColAndTierAndIdNot(
                 layout.getId(), request.gridRow(), request.gridCol(), tier, roomId)) {
             throw new IllegalStateException(String.format(RoomMessages.MESSAGE_ROOM_POSITION_OCCUPIED,
-                    layout.getBlock(), layout.getFloor(), request.gridRow(), request.gridCol(), tier));
+                    layout.getBlock(), request.gridRow(), request.gridCol(), tier));
         }
 
         room.setRoomNumber(roomNumber);
