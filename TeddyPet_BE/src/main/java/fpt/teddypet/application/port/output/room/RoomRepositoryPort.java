@@ -18,4 +18,12 @@ public interface RoomRepositoryPort {
     boolean existsByRoomNumberAndRoomTypeId(String roomNumber, Long roomTypeId);
 
     boolean existsByRoomNumberAndRoomTypeIdAndIdNot(String roomNumber, Long roomTypeId, Long id);
+
+    boolean existsByRoomNumber(String roomNumber);
+
+    boolean existsByRoomNumberAndIdNot(String roomNumber, Long id);
+
+    boolean existsByRoomLayoutConfigIdAndGridRowAndGridColAndTier(Long layoutId, Integer gridRow, Integer gridCol, String tier);
+
+    boolean existsByRoomLayoutConfigIdAndGridRowAndGridColAndTierAndIdNot(Long layoutId, Integer gridRow, Integer gridCol, String tier, Long id);
 }

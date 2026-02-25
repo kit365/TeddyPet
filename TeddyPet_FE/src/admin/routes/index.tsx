@@ -52,6 +52,14 @@ import { RoomTypeEditPage } from "../pages/room/RoomTypeEditPage";
 import { RoomListPage } from "../pages/room/RoomListPage";
 import { RoomCreatePage } from "../pages/room/RoomCreatePage";
 import { RoomEditPage } from "../pages/room/RoomEditPage";
+import { RoomLayoutConfigListPage } from "../pages/room/RoomLayoutConfigListPage";
+import { RoomLayoutEditorPage } from "../pages/room/RoomLayoutEditorPage";
+import { AmenityListPage } from "../pages/amenity/AmenityListPage";
+import { AmenityCreatePage } from "../pages/amenity/AmenityCreatePage";
+import { AmenityEditPage } from "../pages/amenity/AmenityEditPage";
+import { AmenityCategoryListPage } from "../pages/amenity/AmenityCategoryListPage";
+import { AmenityCategoryCreatePage } from "../pages/amenity/AmenityCategoryCreatePage";
+import { AmenityCategoryEditPage } from "../pages/amenity/AmenityCategoryEditPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -108,6 +116,14 @@ export const AdminRoutes: RouteObject[] = [
     { path: "room/list", element: <RoomListPage /> },
     { path: "room/create", element: <RoomCreatePage /> },
     { path: "room/edit/:id", element: <RoomEditPage /> },
+    { path: "room-layout-config/list", element: <RoomLayoutConfigListPage /> },
+    { path: "room-layout-config/editor/:id", element: <RoomLayoutEditorPage /> },
+    { path: "amenity/list", element: <AmenityListPage /> },
+    { path: "amenity/create", element: <AmenityCreatePage /> },
+    { path: "amenity/edit/:id", element: <AmenityEditPage /> },
+    { path: "amenity-category/list", element: <AmenityCategoryListPage /> },
+    { path: "amenity-category/create", element: <AmenityCategoryCreatePage /> },
+    { path: "amenity-category/edit/:id", element: <AmenityCategoryEditPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

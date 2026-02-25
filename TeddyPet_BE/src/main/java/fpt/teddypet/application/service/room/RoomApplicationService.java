@@ -1,14 +1,16 @@
 package fpt.teddypet.application.service.room;
 
 import fpt.teddypet.application.constants.room.RoomMessages;
+import fpt.teddypet.application.dto.request.room.RoomSetPositionRequest;
 import fpt.teddypet.application.dto.request.room.RoomUpsertRequest;
 import fpt.teddypet.application.dto.response.room.RoomResponse;
 import fpt.teddypet.application.mapper.room.RoomMapper;
 import fpt.teddypet.application.port.input.room.RoomService;
+import fpt.teddypet.application.port.output.room.RoomLayoutConfigRepositoryPort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.room.RoomTypeRepositoryPort;
-import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Room;
+import fpt.teddypet.domain.entity.RoomLayoutConfig;
 import fpt.teddypet.domain.entity.RoomType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class RoomApplicationService implements RoomService {
 
     private final RoomRepositoryPort roomRepositoryPort;
     private final RoomTypeRepositoryPort roomTypeRepositoryPort;
+    private final RoomLayoutConfigRepositoryPort roomLayoutConfigRepositoryPort;
     private final RoomMapper roomMapper;
 
     @Override
@@ -47,22 +50,13 @@ public class RoomApplicationService implements RoomService {
         roomMapper.updateRoomFromRequest(request, entity);
         entity.setRoomType(roomType);
 
-        String roomNumber = (request.roomNumber() != null ? request.roomNumber() : "").trim();
-        ValidationUtils.ensureUnique(
-                () -> isNew
-                        ? roomRepositoryPort.existsByRoomNumberAndRoomTypeId(roomNumber, request.roomTypeId())
-                        : roomRepositoryPort.existsByRoomNumberAndRoomTypeIdAndIdNot(roomNumber, request.roomTypeId(), entity.getId()),
-                String.format(RoomMessages.MESSAGE_ROOM_NUMBER_ALREADY_EXISTS, roomNumber)
-        );
-        entity.setRoomNumber(roomNumber);
+        // roomNumber, block, floor are not settable via API; they are set by other logic
 
         if (request.isActive() != null) {
             entity.setActive(request.isActive());
         }
-        if (request.isAvailableForBooking() != null) {
-            entity.setIsAvailableForBooking(request.isAvailableForBooking());
-        }
-        if (request.status() != null) {
+        // BLOCKED status is only set when creating a Room_Blockings record; user cannot set it directly
+        if (request.status() != null && request.status() != fpt.teddypet.domain.enums.RoomStatusEnum.BLOCKED) {
             entity.setStatus(request.status());
         }
 
@@ -90,6 +84,36 @@ public class RoomApplicationService implements RoomService {
         entity.setDeleted(true);
         entity.setActive(false);
         roomRepositoryPort.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public RoomResponse setRoomPosition(Long roomId, RoomSetPositionRequest request) {
+        Room room = getEntityById(roomId);
+        RoomLayoutConfig layout = roomLayoutConfigRepositoryPort.findById(request.roomLayoutConfigId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cấu hình layout với ID: " + request.roomLayoutConfigId()));
+
+        String roomNumber = request.roomNumber().trim();
+        String tier = request.tier().trim();
+
+        if (roomRepositoryPort.existsByRoomNumberAndIdNot(roomNumber, roomId)) {
+            throw new IllegalStateException(RoomMessages.MESSAGE_ROOM_NUMBER_DUPLICATE);
+        }
+        if (roomRepositoryPort.existsByRoomLayoutConfigIdAndGridRowAndGridColAndTierAndIdNot(
+                layout.getId(), request.gridRow(), request.gridCol(), tier, roomId)) {
+            throw new IllegalStateException(String.format(RoomMessages.MESSAGE_ROOM_POSITION_OCCUPIED,
+                    layout.getBlock(), layout.getFloor(), request.gridRow(), request.gridCol(), tier));
+        }
+
+        room.setRoomNumber(roomNumber);
+        room.setTier(tier);
+        room.setGridRow(request.gridRow());
+        room.setGridCol(request.gridCol());
+        room.setRoomLayoutConfig(layout);
+        room.setBlock(layout.getBlock());
+        room.setIsSorted(true);
+        Room saved = roomRepositoryPort.save(room);
+        return roomMapper.toResponse(saved);
     }
 
     private Room getEntityById(Long id) {
