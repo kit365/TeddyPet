@@ -148,7 +148,6 @@ export interface IRoomLayoutConfig {
     block?: string | null;
     maxRows: number;
     maxCols: number;
-    floor?: string | null;
     backgroundImage?: string | null;
     createdAt?: string;
     updatedAt?: string;
