@@ -17,8 +17,6 @@ public record RoomLayoutConfigUpsertRequest(
         @NotNull(message = "maxCols là bắt buộc")
         @Min(1) @Max(100)
         Integer maxCols,
-        @Size(max = 50)
-        String floor,
         @Size(max = 500)
         String backgroundImage
 ) {

@@ -8,7 +8,6 @@ public record RoomLayoutConfigResponse(
         String block,
         Integer maxRows,
         Integer maxCols,
-        String floor,
         String backgroundImage,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

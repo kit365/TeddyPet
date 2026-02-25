@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping(ApiConstants.API_ROOM_LAYOUT_CONFIGS)
 @RequiredArgsConstructor
-@Tag(name = "Room Layout Config", description = "Cấu hình lưới sắp xếp phòng (maxRows, maxCols, block, floor)")
+@Tag(name = "Room Layout Config", description = "Cấu hình lưới sắp xếp phòng (maxRows, maxCols, block)")
 public class RoomLayoutConfigController {
 
     private final RoomLayoutConfigService layoutConfigService;
@@ -37,8 +37,10 @@ public class RoomLayoutConfigController {
 
     @PostMapping
     @Operation(summary = "Create layout config (sân chơi: maxRows, maxCols)")
-    public ResponseEntity<ApiResponse<RoomLayoutConfigResponse>> create(@Valid @RequestBody RoomLayoutConfigUpsertRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo cấu hình layout thành công.", layoutConfigService.create(request)));
+    public ResponseEntity<ApiResponse<RoomLayoutConfigResponse>> create(
+            @Valid @RequestBody RoomLayoutConfigUpsertRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo cấu hình layout thành công.", layoutConfigService.create(request)));
     }
 
     @PutMapping("/{id}")
@@ -48,8 +50,9 @@ public class RoomLayoutConfigController {
             @Valid @RequestBody RoomLayoutConfigUpsertRequest request) {
         RoomLayoutConfigUpsertRequest withId = new RoomLayoutConfigUpsertRequest(
                 id, request.layoutName(), request.block(), request.maxRows(), request.maxCols(),
-                request.floor(), request.backgroundImage());
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật layout thành công.", layoutConfigService.update(withId)));
+                request.backgroundImage());
+        return ResponseEntity
+                .ok(ApiResponse.success("Cập nhật layout thành công.", layoutConfigService.update(withId)));
     }
 
     @DeleteMapping("/{id}")
