@@ -2,14 +2,12 @@ import { z } from 'zod';
 
 export const serviceUpsertSchema = z.object({
     serviceId: z.number().optional().nullable(),
-    serviceCategoryId: z.preprocess(
-        (val) => {
-            if (val === '' || val === null || val === undefined) return undefined;
+    serviceCategoryId: z.any()
+        .refine((val) => {
             const n = Number(val);
-            return Number.isNaN(n) ? undefined : n;
-        },
-        z.number({ required_error: 'Vui lòng chọn danh mục dịch vụ', invalid_type_error: 'Vui lòng chọn danh mục dịch vụ' }).min(1, 'Vui lòng chọn danh mục dịch vụ'),
-    ),
+            return !isNaN(n) && n > 0;
+        }, { message: 'Vui lòng chọn danh mục dịch vụ' })
+        .transform((val) => Number(val)),
     code: z.string().max(50).optional(),
     serviceName: z.string().min(1, 'Tên dịch vụ là bắt buộc').max(255),
     suitablePetTypes: z.array(z.string()).optional(),
