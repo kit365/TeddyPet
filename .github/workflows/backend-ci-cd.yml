@@ -63,16 +63,15 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high
-          directory: ${{ env.WORKING_DIRECTORY }}
+          args: --severity-threshold=high --file=${{ env.WORKING_DIRECTORY }}/pom.xml
         continue-on-error: true # Không chặn build nếu là bản test, nhưng sẽ báo đỏ trong tab Security
 
-  # Cấp độ 3: Đóng gói Docker (Chỉ push khi lên main)
+  # Cấp độ 3: Đóng gói Docker (Chạy trên main và test/cicd để kiểm tra)
   docker-build-push:
     name: 🐳 Docker Build & Push
     needs: [compile-and-test, security-scan]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/cicd')
     
     steps:
       - name: Checkout code
