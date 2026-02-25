@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@org.springframework.context.annotation.Profile("!prod")
 @Order(1) // Run first
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {

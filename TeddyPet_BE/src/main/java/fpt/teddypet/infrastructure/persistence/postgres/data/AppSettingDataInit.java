@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@org.springframework.context.annotation.Profile("!prod")
 @Order(10) // Run after core data
 @RequiredArgsConstructor
 public class AppSettingDataInit implements CommandLineRunner {
