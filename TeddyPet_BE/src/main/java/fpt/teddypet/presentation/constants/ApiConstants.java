@@ -94,5 +94,11 @@ public final class ApiConstants {
     // Room management
     public static final String API_ROOM_TYPES = BASE_API + "/room-types";
     public static final String API_ROOMS = BASE_API + "/rooms";
+    public static final String API_ROOM_BLOCKINGS = BASE_API + "/room-blockings";
+    public static final String API_ROOM_LAYOUT_CONFIGS = BASE_API + "/room-layout-configs";
+
+    // Amenities (for room / room-type dropdowns)
+    public static final String API_AMENITY_CATEGORIES = BASE_API + "/amenity-categories";
+    public static final String API_AMENITIES = BASE_API + "/amenities";
 
 }

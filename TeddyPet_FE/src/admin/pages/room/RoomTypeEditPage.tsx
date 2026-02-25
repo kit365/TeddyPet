@@ -13,6 +13,7 @@ import { SwitchButton } from '../../components/ui/SwitchButton';
 import { getServiceTheme } from '../service/configs/theme';
 import { prefixAdmin } from '../../constants/routes';
 import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFile';
+import { AmenityMultiSelect } from '../../components/ui/AmenityMultiSelect';
 import { toast } from 'react-toastify';
 import { useParams } from 'react-router-dom';
 
@@ -390,7 +391,14 @@ export const RoomTypeEditPage = () => {
                                 <Controller
                                     name="standardAmenities"
                                     control={control}
-                                    render={({ field }) => <TextField {...field} label="Tiện nghi chuẩn" multiline rows={3} fullWidth placeholder="Mỗi mục một dòng hoặc cách nhau bằng dấu phẩy" />}
+                                    render={({ field }) => (
+                                        <AmenityMultiSelect
+                                            label="Tiện nghi chuẩn"
+                                            placeholder="Chọn tiện nghi chuẩn của loại phòng..."
+                                            value={field.value ?? ''}
+                                            onChange={field.onChange}
+                                        />
+                                    )}
                                 />
                                 <Controller
                                     name="features"

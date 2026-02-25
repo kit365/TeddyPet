@@ -102,10 +102,9 @@ public class RoomDataInitializer implements CommandLineRunner {
                     .roomType(roomType)
                     .roomNumber(roomNumber)
                     .roomName(roomName)
-                    .building(null)
-                    .floor(null)
+                    .block(null)
+                    .tier(null)
                     .status(RoomStatusEnum.AVAILABLE)
-                    .isAvailableForBooking(true)
                     .build();
             roomRepository.save(room);
         }

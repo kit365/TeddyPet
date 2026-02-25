@@ -19,4 +19,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     boolean existsByRoomNumberAndRoomType_Id(String roomNumber, Long roomTypeId);
 
     boolean existsByRoomNumberAndRoomType_IdAndIdNot(String roomNumber, Long roomTypeId, Long id);
+
+    boolean existsByRoomNumber(String roomNumber);
+
+    boolean existsByRoomNumberAndIdNot(String roomNumber, Long id);
+
+    boolean existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTier(Long roomLayoutConfigId, Integer gridRow, Integer gridCol, String tier);
+
+    boolean existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTierAndIdNot(Long roomLayoutConfigId, Integer gridRow, Integer gridCol, String tier, Long id);
 }

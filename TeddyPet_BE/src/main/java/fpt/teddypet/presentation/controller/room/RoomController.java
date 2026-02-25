@@ -2,6 +2,7 @@ package fpt.teddypet.presentation.controller.room;
 
 import fpt.teddypet.application.constants.room.RoomMessages;
 import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.request.room.RoomSetPositionRequest;
 import fpt.teddypet.application.dto.request.room.RoomUpsertRequest;
 import fpt.teddypet.application.dto.response.room.RoomResponse;
 import fpt.teddypet.application.port.input.room.RoomService;
@@ -45,6 +46,19 @@ public class RoomController {
     @Operation(summary = "Get Room by ID")
     public ResponseEntity<ApiResponse<RoomResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(roomService.getById(id)));
+    }
+
+    @PutMapping("/{id}/position")
+    @Operation(summary = "Set room position on layout grid (sắp xếp vị trí phòng)")
+    public ResponseEntity<ApiResponse<RoomResponse>> setRoomPosition(
+            @PathVariable Long id,
+            @Valid @RequestBody RoomSetPositionRequest request) {
+        try {
+            RoomResponse response = roomService.setRoomPosition(id, request);
+            return ResponseEntity.ok(ApiResponse.success("Đã đặt vị trí phòng.", response));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -44,4 +44,26 @@ public class RoomRepositoryAdapter implements RoomRepositoryPort {
     public boolean existsByRoomNumberAndRoomTypeIdAndIdNot(String roomNumber, Long roomTypeId, Long id) {
         return roomRepository.existsByRoomNumberAndRoomType_IdAndIdNot(roomNumber, roomTypeId, id);
     }
+
+    @Override
+    public boolean existsByRoomNumber(String roomNumber) {
+        return roomNumber != null && roomRepository.existsByRoomNumber(roomNumber);
+    }
+
+    @Override
+    public boolean existsByRoomNumberAndIdNot(String roomNumber, Long id) {
+        return roomNumber != null && roomRepository.existsByRoomNumberAndIdNot(roomNumber, id);
+    }
+
+    @Override
+    public boolean existsByRoomLayoutConfigIdAndGridRowAndGridColAndTier(Long layoutId, Integer gridRow, Integer gridCol, String tier) {
+        return layoutId != null && gridRow != null && gridCol != null && tier != null
+                && roomRepository.existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTier(layoutId, gridRow, gridCol, tier);
+    }
+
+    @Override
+    public boolean existsByRoomLayoutConfigIdAndGridRowAndGridColAndTierAndIdNot(Long layoutId, Integer gridRow, Integer gridCol, String tier, Long id) {
+        return layoutId != null && gridRow != null && gridCol != null && tier != null && id != null
+                && roomRepository.existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTierAndIdNot(layoutId, gridRow, gridCol, tier, id);
+    }
 }

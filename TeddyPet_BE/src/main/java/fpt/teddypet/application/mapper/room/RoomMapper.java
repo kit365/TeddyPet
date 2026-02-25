@@ -11,7 +11,7 @@ public interface RoomMapper {
     @Mapping(target = "roomId", source = "id")
     @Mapping(target = "roomTypeId", source = "roomType.id")
     @Mapping(target = "roomTypeName", source = "roomType.typeName")
-    @Mapping(target = "isAvailableForBooking", source = "isAvailableForBooking")
+    @Mapping(target = "roomLayoutConfigId", source = "roomLayoutConfig.id")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     RoomResponse toResponse(Room entity);
@@ -25,6 +25,5 @@ public interface RoomMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "status", defaultExpression = "java(fpt.teddypet.domain.enums.RoomStatusEnum.AVAILABLE)")
-    @Mapping(target = "isAvailableForBooking", defaultExpression = "java(true)")
     void updateRoomFromRequest(RoomUpsertRequest request, @MappingTarget Room entity);
 }

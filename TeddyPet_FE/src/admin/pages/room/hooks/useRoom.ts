@@ -4,7 +4,9 @@ import {
     getRoomById,
     createOrUpdateRoom,
     deleteRoom,
+    createRoomBlocking,
     type IRoom,
+    type IRoomBlockingCreateRequest,
 } from '../../../api/room.api';
 import { ApiResponse } from '../../../config/type';
 
@@ -49,6 +51,16 @@ export const useDeleteRoom = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: deleteRoom,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['rooms'] });
+        },
+    });
+};
+
+export const useCreateRoomBlocking = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: IRoomBlockingCreateRequest) => createRoomBlocking(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
         },

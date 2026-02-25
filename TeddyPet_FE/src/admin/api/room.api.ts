@@ -54,30 +54,19 @@ export interface IRoom {
     roomTypeName?: string;
     roomNumber: string;
     roomName?: string | null;
-    building?: string | null;
-    floor?: string | null;
-    locationNote?: string | null;
-    customPricePerNight?: number | null;
-    priceNote?: string | null;
+    block?: string | null;
+    tier?: string | null;
+    gridRow?: number | null;
+    gridCol?: number | null;
+    isSorted?: boolean | null;
+    roomLayoutConfigId?: number | null;
     additionalAmenities?: string | null;
     removedAmenities?: string | null;
     images?: string | null;
     capacity?: number | null;
-    expectedCheckoutDate?: string | null;
-    currentCheckInDate?: string | null;
-    lastCleanedAt?: string | null;
-    lastMaintenanceAt?: string | null;
-    maintenanceNotes?: string | null;
     notes?: string | null;
-    internalNotes?: string | null;
     area?: number | null;
     status: string;
-    isAvailableForBooking: boolean;
-    isBlocked?: boolean;
-    blockReason?: string | null;
-    blockedFrom?: string | null;
-    blockedTo?: string | null;
-    blockedBy?: string | null;
     isActive: boolean;
     isDeleted?: boolean;
     createdAt?: string;
@@ -134,5 +123,86 @@ export const createOrUpdateRoom = async (data: Record<string, unknown>): Promise
 
 export const deleteRoom = async (id: string | number): Promise<ApiResponse<unknown>> => {
     const response = await apiApp.delete(`${ROOMS_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+export interface IRoomSetPositionRequest {
+    roomLayoutConfigId: number;
+    gridRow: number;
+    gridCol: number;
+    tier: string;
+    roomNumber: string;
+}
+
+export const setRoomPosition = async (roomId: number, data: IRoomSetPositionRequest): Promise<ApiResponse<IRoom>> => {
+    const response = await apiApp.put(`${ROOMS_URL}/${roomId}/position`, data, withAuth());
+    return response.data;
+};
+
+// Room Layout Config
+const ROOM_LAYOUT_CONFIGS_URL = '/api/room-layout-configs';
+
+export interface IRoomLayoutConfig {
+    id: number;
+    layoutName?: string | null;
+    block?: string | null;
+    maxRows: number;
+    maxCols: number;
+    floor?: string | null;
+    backgroundImage?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export const getRoomLayoutConfigs = async (): Promise<ApiResponse<IRoomLayoutConfig[]>> => {
+    const response = await apiApp.get(ROOM_LAYOUT_CONFIGS_URL, withAuth());
+    return response.data;
+};
+
+export const getRoomLayoutConfigById = async (id: number): Promise<ApiResponse<IRoomLayoutConfig>> => {
+    const response = await apiApp.get(`${ROOM_LAYOUT_CONFIGS_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+export const createRoomLayoutConfig = async (data: Record<string, unknown>): Promise<ApiResponse<IRoomLayoutConfig>> => {
+    const response = await apiApp.post(ROOM_LAYOUT_CONFIGS_URL, data, withAuth());
+    return response.data;
+};
+
+export const updateRoomLayoutConfig = async (id: number, data: Record<string, unknown>): Promise<ApiResponse<IRoomLayoutConfig>> => {
+    const response = await apiApp.put(`${ROOM_LAYOUT_CONFIGS_URL}/${id}`, data, withAuth());
+    return response.data;
+};
+
+export const deleteRoomLayoutConfig = async (id: number): Promise<ApiResponse<unknown>> => {
+    const response = await apiApp.delete(`${ROOM_LAYOUT_CONFIGS_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+// Room_Blockings: tạo khóa phòng → BE set room.status = BLOCKED
+const ROOM_BLOCKINGS_URL = '/api/room-blockings';
+
+export interface IRoomBlockingCreateRequest {
+    roomId: number;
+    blockReason?: string | null;
+    blockedFrom: string; // ISO datetime
+    blockedTo: string;
+    blockedBy?: string | null;
+}
+
+export interface IRoomBlockingResponse {
+    id: number;
+    roomId: number;
+    roomNumber?: string;
+    blockReason?: string | null;
+    blockedFrom: string;
+    blockedTo: string;
+    blockedBy?: string | null;
+    createdAt?: string;
+    createdBy?: string | null;
+}
+
+export const createRoomBlocking = async (data: IRoomBlockingCreateRequest): Promise<ApiResponse<IRoomBlockingResponse>> => {
+    const response = await apiApp.post(ROOM_BLOCKINGS_URL, data, withAuth());
     return response.data;
 };

@@ -142,6 +142,9 @@ export const menuManagementData = [
         children: [
             { id: "room-type-list", label: "Danh sách loại phòng", path: `/${prefixAdmin}/room-type/list` },
             { id: "room-list", label: "Danh sách phòng", path: `/${prefixAdmin}/room/list` },
+            { id: "room-layout-config", label: "Sắp xếp vị trí phòng", path: `/${prefixAdmin}/room-layout-config/list` },
+            { id: "amenity-list", label: "Tiện nghi", path: `/${prefixAdmin}/amenity/list` },
+            { id: "amenity-category-list", label: "Danh mục tiện nghi", path: `/${prefixAdmin}/amenity-category/list` },
         ]
     },
     {
