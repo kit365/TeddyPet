@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getRoomLayoutConfigs, createRoomLayoutConfig } from '../../api/room.api';
+import { getRoomLayoutConfigs, createRoomLayoutConfig, updateRoomLayoutStatus } from '../../api/room.api';
+import { getServices } from '../../api/service.api';
 import {
     Box,
     Button,
@@ -13,10 +14,16 @@ import {
     DialogTitle,
     TextField,
     Stack,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Chip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ApiResponse } from '../../config/type';
 import type { IRoomLayoutConfig } from '../../api/room.api';
+import type { IService } from '../service/configs/types';
 import { toast } from 'react-toastify';
 import AddIcon from '@mui/icons-material/Add';
 import GridOnIcon from '@mui/icons-material/GridOn';
@@ -28,6 +35,15 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Toolbar from '@mui/material/Toolbar';
 import { UploadSingleFile } from '../../components/upload/UploadSingleFile';
 
+const STATUS_OPTIONS = [
+    { value: 'DRAFT', label: 'Bản nháp', color: '#637381' },
+    { value: 'IN_USE', label: 'Đang sử dụng', color: '#00A76F' },
+    { value: 'READY_FOR_USE', label: 'Sẵn sàng sử dụng', color: '#00B8D9' },
+    { value: 'NO_ROOMS_IS_SORTED', label: 'Chưa sắp xếp phòng', color: '#FFAB00' },
+];
+
+const getStatusOption = (value: string) => STATUS_OPTIONS.find((o) => o.value === value) ?? STATUS_OPTIONS[3];
+
 export const RoomLayoutConfigListPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -37,21 +53,27 @@ export const RoomLayoutConfigListPage = () => {
         select: (res: ApiResponse<IRoomLayoutConfig[]>) => res.data ?? [],
     });
 
+    const { data: services = [] } = useQuery({
+        queryKey: ['services', 'isRequiredRoom'],
+        queryFn: () => getServices({ isRequiredRoom: true }),
+        select: (res: ApiResponse<IService[]>) => res.data ?? [],
+    });
+
     const [dialogOpen, setDialogOpen] = useState(false);
     const [layoutName, setLayoutName] = useState('Layout mới');
-    const [block, setBlock] = useState('');
     const [maxRows, setMaxRows] = useState<number | ''>('');
     const [maxCols, setMaxCols] = useState<number | ''>('');
     const [backgroundImage, setBackgroundImage] = useState('');
+    const [selectedServiceId, setSelectedServiceId] = useState<number | ''>('');
 
     const { mutate: create, isPending: isCreating } = useMutation({
         mutationFn: () =>
             createRoomLayoutConfig({
                 layoutName: layoutName.trim() || 'Layout mới',
-                block: block.trim() || null,
                 maxRows: typeof maxRows === 'number' ? maxRows : Number(maxRows),
                 maxCols: typeof maxCols === 'number' ? maxCols : Number(maxCols),
                 backgroundImage: backgroundImage.trim() || null,
+                serviceId: selectedServiceId || null,
             }),
         onSuccess: (res: ApiResponse<IRoomLayoutConfig>) => {
             queryClient.invalidateQueries({ queryKey: ['room-layout-configs'] });
@@ -67,21 +89,92 @@ export const RoomLayoutConfigListPage = () => {
         },
     });
 
+    const { mutate: mutateStatus } = useMutation({
+        mutationFn: ({ id, status }: { id: number; status: string }) => updateRoomLayoutStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['room-layout-configs'] });
+            toast.success('Cập nhật trạng thái thành công');
+        },
+        onError: (e: any) => {
+            toast.error(e?.response?.data?.message ?? 'Cập nhật trạng thái thất bại');
+        },
+    });
+
     const handleClose = () => {
         setDialogOpen(false);
         setLayoutName('Layout mới');
-        setBlock('');
         setMaxRows('');
         setMaxCols('');
         setBackgroundImage('');
+        setSelectedServiceId('');
     };
 
     const columns = [
         { field: 'id', headerName: 'Mã layout', width: 100 },
         { field: 'layoutName', headerName: 'Tên cấu hình', flex: 1, minWidth: 200, renderCell: (params: any) => params.row?.layoutName ?? '—' },
-        { field: 'block', headerName: 'Khu / Tòa nhà', width: 150, renderCell: (params: any) => params.row?.block ?? '—' },
-        { field: 'maxRows', headerName: 'Số hàng tối đa', width: 150 },
-        { field: 'maxCols', headerName: 'Số cột tối đa', width: 150 },
+        { field: 'serviceName', headerName: 'Dịch vụ', width: 180, renderCell: (params: any) => params.row?.serviceName ?? '—' },
+        { field: 'maxRows', headerName: 'Số hàng tối đa', width: 130 },
+        { field: 'maxCols', headerName: 'Số cột tối đa', width: 130 },
+        {
+            field: 'status',
+            headerName: 'Trạng thái',
+            width: 220,
+            sortable: false,
+            renderCell: (params: any) => {
+                const currentStatus = params.row?.status ?? 'NO_ROOMS_IS_SORTED';
+                const opt = getStatusOption(currentStatus);
+                return (
+                    <Select
+                        size="small"
+                        value={currentStatus}
+                        onChange={(e) => {
+                            mutateStatus({ id: params.row.id, status: e.target.value as string });
+                        }}
+                        sx={{
+                            fontSize: '1.3rem',
+                            fontWeight: 600,
+                            minWidth: 180,
+                            borderRadius: '8px',
+                            '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(145,158,171,0.32)' },
+                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: opt.color },
+                        }}
+                        renderValue={(value) => {
+                            const o = getStatusOption(value);
+                            return (
+                                <Chip
+                                    label={o.label}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: `${o.color}14`,
+                                        color: o.color,
+                                        fontWeight: 700,
+                                        fontSize: '1.2rem',
+                                        height: 28,
+                                    }}
+                                />
+                            );
+                        }}
+                    >
+                        {STATUS_OPTIONS.map((o) => (
+                            <MenuItem key={o.value} value={o.value} sx={{ fontSize: '1.3rem' }}>
+                                <Chip
+                                    label={o.label}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: `${o.color}14`,
+                                        color: o.color,
+                                        fontWeight: 700,
+                                        fontSize: '1.2rem',
+                                        height: 28,
+                                        mr: 1,
+                                    }}
+                                />
+                            </MenuItem>
+                        ))}
+                    </Select>
+                );
+            },
+        },
         {
             field: 'actions',
             headerName: 'Thao tác',
@@ -203,15 +296,22 @@ export const RoomLayoutConfigListPage = () => {
                         InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
                         InputProps={{ sx: { fontSize: '1.4rem' } }}
                     />
-                    <TextField
-                        fullWidth
-                        label="Block"
-                        margin="dense"
-                        value={block}
-                        onChange={(e) => setBlock(e.target.value)}
-                        InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                        InputProps={{ sx: { fontSize: '1.4rem' } }}
-                    />
+                    <FormControl fullWidth margin="dense">
+                        <InputLabel sx={{ fontSize: '1.4rem' }}>Dịch vụ yêu cầu phòng</InputLabel>
+                        <Select
+                            value={selectedServiceId}
+                            onChange={(e) => setSelectedServiceId(e.target.value as number)}
+                            label="Dịch vụ yêu cầu phòng"
+                            sx={{ fontSize: '1.4rem' }}
+                        >
+                            <MenuItem value="" sx={{ fontSize: '1.4rem' }}><em>— Không chọn —</em></MenuItem>
+                            {services.map((s) => (
+                                <MenuItem key={s.serviceId} value={s.serviceId} sx={{ fontSize: '1.4rem' }}>
+                                    {s.serviceName}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <TextField
                             fullWidth
@@ -293,4 +393,3 @@ export const RoomLayoutConfigListPage = () => {
         </>
     );
 };
-

@@ -1,5 +1,6 @@
 package fpt.teddypet.domain.entity;
 
+import fpt.teddypet.domain.enums.RoomLayoutStatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,9 +22,6 @@ public class RoomLayoutConfig {
     @Column(name = "layout_name", length = 255)
     private String layoutName;
 
-    @Column(name = "block", length = 100)
-    private String block;
-
     @Column(name = "max_rows", nullable = false)
     private Integer maxRows;
 
@@ -32,6 +30,15 @@ public class RoomLayoutConfig {
 
     @Column(name = "background_image", length = 500)
     private String backgroundImage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    @Builder.Default
+    private RoomLayoutStatusEnum status = RoomLayoutStatusEnum.NO_ROOMS_IS_SORTED;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id")
+    private Service service;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -42,8 +49,10 @@ public class RoomLayoutConfig {
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) createdAt = now;
-        if (updatedAt == null) updatedAt = now;
+        if (createdAt == null)
+            createdAt = now;
+        if (updatedAt == null)
+            updatedAt = now;
     }
 
     @PreUpdate
