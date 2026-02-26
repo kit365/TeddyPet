@@ -15,6 +15,7 @@ public interface ServiceMapper {
     @Mapping(target = "imageURL", source = "imageURL")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
+    @Mapping(target = "isRequiredRoom", source = "isRequiredRoom")
     ServiceResponse toResponse(Service entity);
 
     @Mapping(target = "serviceId", source = "id")
@@ -44,5 +45,7 @@ public interface ServiceMapper {
     @Mapping(target = "isCritical", defaultExpression = "java(false)")
     @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "priceUnit", ignore = true)
+    @Mapping(target = "isRequiredRoom", defaultExpression = "java(false)")
     void updateServiceFromRequest(ServiceUpsertRequest request, @MappingTarget Service entity);
 }

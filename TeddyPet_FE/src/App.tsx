@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { Layout } from './client/layouts/Layout';
 import { LayoutAdmin } from './admin/layouts/LayoutAdmin';
+import { AdminGuard } from './admin/components/guards/AdminGuard';
 import { ClientAuthRoutes, ClientRoutes } from './client/routes/index';
 import { AdminRoutes, AdminAuthRoutes } from './admin/routes/index';
 import { useScrollToTop } from './client/hooks/useScrollToTop';
@@ -44,16 +45,18 @@ function App() {
             <Route key={path} path={path} element={element} />
           ))}
 
-          {/* Admin Routes */}
+          {/* Admin: auth (login) không guard; còn lại qua AdminGuard + LayoutAdmin */}
           <Route path='/admin'>
             {AdminAuthRoutes.map(({ path, element }) => (
               <Route key={path} path={path} element={element} />
             ))}
-          </Route>
-          <Route path='/admin' element={<LayoutAdmin />}>
-            {AdminRoutes.map(({ path, element }) => (
-              <Route key={path} path={path} element={element} />
-            ))}
+            <Route path='*' element={<AdminGuard />}>
+              <Route element={<LayoutAdmin />}>
+                {AdminRoutes.map(({ path, element }) => (
+                  <Route key={path} path={path} element={element} />
+                ))}
+              </Route>
+            </Route>
           </Route>
         </Routes>
       </ScrollToTopWrapper>

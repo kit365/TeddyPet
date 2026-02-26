@@ -112,6 +112,10 @@ public class Service extends BaseEntity {
     @Column(name = "price_unit", length = 50)
     private String priceUnit;
 
+    @Column(name = "is_required_room", nullable = false)
+    @Builder.Default
+    private Boolean isRequiredRoom = false;
+
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ServiceComboService> comboItems = new ArrayList<>();
@@ -119,4 +123,8 @@ public class Service extends BaseEntity {
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ServicePricing> pricingRules = new ArrayList<>();
+
+    @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TimeSlot> timeSlots = new ArrayList<>();
 }

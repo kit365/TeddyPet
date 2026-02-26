@@ -2,19 +2,19 @@ import { z } from 'zod';
 
 export const serviceUpsertSchema = z.object({
     serviceId: z.number().optional().nullable(),
-    serviceCategoryId: z
-        .coerce
-        .number({ required_error: 'Danh mục dịch vụ là bắt buộc' })
-        .int()
-        .min(1, 'Danh mục dịch vụ là bắt buộc'),
-    code: z.string().min(1, 'Mã dịch vụ là bắt buộc').max(50),
+    serviceCategoryId: z.any()
+        .refine((val) => {
+            const n = Number(val);
+            return !isNaN(n) && n > 0;
+        }, { message: 'Vui lòng chọn danh mục dịch vụ' })
+        .transform((val) => Number(val)),
+    code: z.string().max(50).optional(),
     serviceName: z.string().min(1, 'Tên dịch vụ là bắt buộc').max(255),
     suitablePetTypes: z.array(z.string()).optional(),
     slug: z.string().optional(),
     shortDescription: z.string().max(500).optional(),
     description: z.string().optional(),
-    priceUnit: z.string().max(50).optional(),
-    duration: z.coerce.number().min(1, 'Thời lượng là bắt buộc'),
+    duration: z.coerce.number().min(1, 'Thời lượng phải lớn hơn 0'),
     bufferTime: z.coerce.number().optional(),
     maxPetsPerSession: z.coerce.number().optional(),
     advanceBookingHours: z.coerce.number().optional(),
@@ -32,6 +32,7 @@ export const serviceUpsertSchema = z.object({
     metaTitle: z.string().max(255).optional(),
     metaDescription: z.string().max(500).optional(),
     isActive: z.boolean().default(true),
+    isRequiredRoom: z.boolean().optional().default(false),
 });
 
 export type ServiceUpsertFormValues = z.infer<typeof serviceUpsertSchema>;

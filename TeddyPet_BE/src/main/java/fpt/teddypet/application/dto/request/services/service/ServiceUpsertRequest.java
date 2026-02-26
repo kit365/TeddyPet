@@ -20,8 +20,6 @@ public record ServiceUpsertRequest(
         @Size(max = 500)
         String shortDescription,
         String description,
-        @Size(max = 50)
-        String priceUnit,
         @NotNull(message = "Thời lượng là bắt buộc")
         @Min(1)
         Integer duration,
@@ -46,6 +44,7 @@ public record ServiceUpsertRequest(
         String metaTitle,
         @Size(max = 500)
         String metaDescription,
-        Boolean isActive
+        Boolean isActive,
+        Boolean isRequiredRoom
 ) {
 }

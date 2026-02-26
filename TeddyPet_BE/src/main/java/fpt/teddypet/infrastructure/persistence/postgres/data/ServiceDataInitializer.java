@@ -7,11 +7,16 @@ import fpt.teddypet.domain.entity.ServiceCombo;
 import fpt.teddypet.domain.entity.ServiceComboService;
 import fpt.teddypet.domain.entity.ServiceComboServiceId;
 import fpt.teddypet.domain.entity.ServicePricing;
+import fpt.teddypet.domain.entity.TimeSlot;
+import fpt.teddypet.domain.enums.PetTypeEnum;
+import fpt.teddypet.domain.enums.scheduling.DayTypeEnum;
+import fpt.teddypet.domain.enums.scheduling.SlotTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServiceCategoryRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServiceComboRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServiceComboServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServicePricingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServiceRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.shop.TimeSlotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +25,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Seeds service_categories, services, service_pricing, service_combo, and
@@ -29,7 +37,6 @@ import java.math.BigDecimal;
  */
 @Slf4j
 @Component
-@org.springframework.context.annotation.Profile("!prod")
 @Order(10)
 @RequiredArgsConstructor
 public class ServiceDataInitializer implements CommandLineRunner {
@@ -38,6 +45,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
     private final ServiceRepository serviceRepository;
     private final ServicePricingRepository pricingRepository;
     private final ServiceComboRepository comboRepository;
+    private final TimeSlotRepository timeSlotRepository;
     private final ServiceComboServiceRepository comboServiceRepository;
 
     @Value("${data.init.services.enabled:true}")
@@ -63,6 +71,9 @@ public class ServiceDataInitializer implements CommandLineRunner {
         }
         initCategories();
         initServicesAndPricing();
+        updateHotelServicesRequiresRoom();
+        updateSuitablePetTypes();
+        initTimeSlots();
         initCombos();
     }
 
@@ -127,13 +138,13 @@ public class ServiceDataInitializer implements CommandLineRunner {
         ServiceCategory hotelCat = categoryRepository.findBySlug("nhom-luu-tru").orElseThrow();
         ServiceCategory spaCat = categoryRepository.findBySlug("nhom-spa").orElseThrow();
 
-        // --- Hotel (3 services) ---
+        // --- Hotel (3 services) — isRequiredRoom = true ---
         Service phongChuong = createServiceIfNotExists(hotelCat, "HOTEL-PHONG-CHUONG", "Phòng Chuồng",
-                "Trong giữ, chăm sóc theo ngày - Phòng Chuồng", 1440, new BigDecimal("150000"), "ngày", false, 1);
+                "Trong giữ, chăm sóc theo ngày - Phòng Chuồng", 1440, new BigDecimal("150000"), "ngày", false, 1, true);
         Service phongRieng = createServiceIfNotExists(hotelCat, "HOTEL-PHONG-RIENG", "Phòng Riêng",
-                "Trong giữ, chăm sóc theo ngày - Phòng Riêng", 1440, new BigDecimal("225000"), "ngày", false, 2);
+                "Trong giữ, chăm sóc theo ngày - Phòng Riêng", 1440, new BigDecimal("225000"), "ngày", false, 2, true);
         Service meoRieng = createServiceIfNotExists(hotelCat, "HOTEL-MEO-RIENG", "Mèo Riêng",
-                "Trong giữ, chăm sóc theo ngày - Mèo Riêng", 1440, new BigDecimal("125000"), "ngày", false, 3);
+                "Trong giữ, chăm sóc theo ngày - Mèo Riêng", 1440, new BigDecimal("125000"), "ngày", false, 3, true);
 
         addHotelPricingIfEmpty(phongChuong, new BigDecimal("125000"), new BigDecimal("175000"),
                 new BigDecimal("225000"), new BigDecimal("350000"));
@@ -144,15 +155,15 @@ public class ServiceDataInitializer implements CommandLineRunner {
 
         // --- Spa (4 services) ---
         Service tamVeSinh = createServiceIfNotExists(spaCat, "SPA-TAM-VE-SINH", "Tắm vệ sinh (Basic Bath)",
-                "Tắm vệ sinh cơ bản", 60, new BigDecimal("150000"), "lần", false, 1);
+                "Tắm vệ sinh cơ bản", 60, new BigDecimal("150000"), "lần", false, 1, false);
         Service caoLong = createServiceIfNotExists(spaCat, "SPA-CAO-LONG", "Cạo lông toàn thân (Full Shave)",
-                "Cạo lông toàn thân", 90, new BigDecimal("300000"), "lần", false, 2);
+                "Cạo lông toàn thân", 90, new BigDecimal("300000"), "lần", false, 2, false);
         Service veSinhTongQuat = createServiceIfNotExists(spaCat, "SPA-VE-SINH-TONG-QUAT",
                 "Vệ sinh tổng quát (Hygiene Groom)",
                 "Chỉ làm vệ sinh tai, móng, cạo bàn chân, bụng, hậu môn, không tắm", 45, new BigDecimal("65000"), "lần",
-                false, 3);
+                false, 3, false);
         Service tamThaoDuoc = createServiceIfNotExists(spaCat, "SPA-TAM-THAO-DUOC", "Tắm dưỡng thảo dược (Herbal Bath)",
-                "Ngâm bồn thảo dược", 30, new BigDecimal("75000"), "lần", false, 4);
+                "Ngâm bồn thảo dược", 30, new BigDecimal("75000"), "lần", false, 4, false);
 
         addSpaPricingIfEmpty(tamVeSinh, new BigDecimal("125000"), new BigDecimal("200000"), new BigDecimal("325000"),
                 new BigDecimal("525000"));
@@ -164,12 +175,12 @@ public class ServiceDataInitializer implements CommandLineRunner {
         // --- Add-on (3 services) ---
         Service goRoiLong = createServiceIfNotExists(spaCat, "ADDON-GO-ROI-LONG", "Gỡ rối lông",
                 "Theo thời gian (khoảng 50–100k/30 phút). Giá cơ sở mỗi 30 phút.", 30, new BigDecimal("75000"),
-                "30 phút", true, 1);
+                "30 phút", true, 1, false);
         Service triVeRan = createServiceIfNotExists(spaCat, "ADDON-TRI-VE-RAN", "Trị ve rận (Flea & Tick)",
-                "Labor 50–100k hoặc gói 150–300k", 30, new BigDecimal("75000"), "lần", true, 2);
+                "Labor 50–100k hoặc gói 150–300k", 30, new BigDecimal("75000"), "lần", true, 2, false);
         Service duongAmDemChan = createServiceIfNotExists(spaCat, "ADDON-DUONG-AM-DEM-CHAN",
                 "Dưỡng ẩm đệm chân (Paw Balm)",
-                "Dưỡng ẩm đệm chân", 15, new BigDecimal("40000"), "lần", true, 3);
+                "Dưỡng ẩm đệm chân", 15, new BigDecimal("40000"), "lần", true, 3, false);
 
         addAddonPricingIfEmpty(goRoiLong, new BigDecimal("75000"));
         addFleaPricingIfEmpty(triVeRan, new BigDecimal("75000"), new BigDecimal("225000"));
@@ -178,7 +189,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
 
     private Service createServiceIfNotExists(ServiceCategory category, String code, String serviceName,
             String description, int durationMinutes, BigDecimal basePrice,
-            String priceUnit, boolean isAddon, int displayOrder) {
+            String priceUnit, boolean isAddon, int displayOrder, boolean isRequiredRoom) {
         if (serviceRepository.existsByCode(code)) {
             log.debug("Service code {} already exists, skipping", code);
             return serviceRepository.findByCode(code).orElseThrow();
@@ -195,11 +206,168 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .basePrice(basePrice)
                 .priceUnit(priceUnit)
                 .isAddon(isAddon)
+                .isRequiredRoom(isRequiredRoom)
                 .displayOrder(displayOrder)
+                .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
                 .build();
         svc = serviceRepository.save(svc);
-        log.info("✅ Created Service: {} ({})", serviceName, code);
+        log.info("✅ Created Service: {} ({}) [isRequiredRoom={}]", serviceName, code, isRequiredRoom);
         return svc;
+    }
+
+    /**
+     * Idempotent migration: ensure existing Hotel services have
+     * isRequiredRoom=true.
+     * Handles cases where services were seeded before this flag was introduced.
+     */
+    private void updateHotelServicesRequiresRoom() {
+        String[] hotelCodes = { "HOTEL-PHONG-CHUONG", "HOTEL-PHONG-RIENG", "HOTEL-MEO-RIENG" };
+        for (String code : hotelCodes) {
+            serviceRepository.findByCode(code).ifPresent(svc -> {
+                if (!Boolean.TRUE.equals(svc.getIsRequiredRoom())) {
+                    svc.setIsRequiredRoom(true);
+                    serviceRepository.save(svc);
+                    log.info("✅ Updated isRequiredRoom=true for service: {} ({})", svc.getServiceName(), code);
+                }
+            });
+        }
+    }
+
+    /**
+     * Idempotent migration: ensure all services have suitablePetTypes = [DOG, CAT].
+     */
+    private void updateSuitablePetTypes() {
+        List<PetTypeEnum> dogCat = Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT);
+        serviceRepository.findAll().forEach(svc -> {
+            if (svc.getSuitablePetTypes() == null || svc.getSuitablePetTypes().isEmpty()) {
+                svc.setSuitablePetTypes(dogCat);
+                serviceRepository.save(svc);
+                log.info("✅ Updated suitablePetTypes=[DOG,CAT] for service: {} ({})", svc.getServiceName(),
+                        svc.getCode());
+            }
+        });
+    }
+
+    /**
+     * Seed time slots for all non-addon services if they don't already have any.
+     */
+    private void initTimeSlots() {
+        // Hotel services — daily check-in / check-out slots
+        addTimeSlotsIfEmpty("HOTEL-PHONG-CHUONG", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "12:00", 5, SlotTypeEnum.REGULAR, "Ca sáng"),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "17:00", 5, SlotTypeEnum.REGULAR, "Ca chiều"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "12:00", 3, SlotTypeEnum.PEAK, "Ca sáng cuối tuần"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "17:00", 3, SlotTypeEnum.PEAK, "Ca chiều cuối tuần"),
+        });
+        addTimeSlotsIfEmpty("HOTEL-PHONG-RIENG", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "12:00", 3, SlotTypeEnum.REGULAR, "Ca sáng"),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "17:00", 3, SlotTypeEnum.REGULAR, "Ca chiều"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "12:00", 2, SlotTypeEnum.PEAK, "Ca sáng cuối tuần"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "17:00", 2, SlotTypeEnum.PEAK, "Ca chiều cuối tuần"),
+        });
+        addTimeSlotsIfEmpty("HOTEL-MEO-RIENG", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "12:00", 4, SlotTypeEnum.REGULAR, "Ca sáng"),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "17:00", 4, SlotTypeEnum.REGULAR, "Ca chiều"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "12:00", 3, SlotTypeEnum.PEAK, "Ca sáng cuối tuần"),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "17:00", 3, SlotTypeEnum.PEAK, "Ca chiều cuối tuần"),
+        });
+
+        // Spa services — hourly slots
+        addTimeSlotsIfEmpty("SPA-TAM-VE-SINH", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "09:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "09:00", "10:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "10:00", "11:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "14:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "14:00", "15:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "15:00", "16:00", 3, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "09:00", 4, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "09:00", "10:00", 4, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "10:00", "11:00", 4, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "14:00", 4, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "14:00", "15:00", 4, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "15:00", "16:00", 4, SlotTypeEnum.PEAK, null),
+        });
+        addTimeSlotsIfEmpty("SPA-CAO-LONG", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "09:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "09:30", "11:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "14:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "14:30", "16:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "09:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "09:30", "11:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "14:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "14:30", "16:00", 3, SlotTypeEnum.PEAK, null),
+        });
+        addTimeSlotsIfEmpty("SPA-VE-SINH-TONG-QUAT", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "08:45", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:45", "09:30", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "09:30", "10:15", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "10:15", "11:00", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "13:45", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:45", "14:30", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "14:30", "15:15", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "15:15", "16:00", 4, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "08:45", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:45", "09:30", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "09:30", "10:15", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "10:15", "11:00", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "13:45", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:45", "14:30", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "14:30", "15:15", 5, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "15:15", "16:00", 5, SlotTypeEnum.PEAK, null),
+        });
+        addTimeSlotsIfEmpty("SPA-TAM-THAO-DUOC", new TimeSlotDef[] {
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:00", "08:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "08:30", "09:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "09:00", "09:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "09:30", "10:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "10:00", "10:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "10:30", "11:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:00", "13:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "13:30", "14:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "14:00", "14:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "14:30", "15:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "15:00", "15:30", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKDAY, "15:30", "16:00", 2, SlotTypeEnum.REGULAR, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:00", "08:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "08:30", "09:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "09:00", "09:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "09:30", "10:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "10:00", "10:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "10:30", "11:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:00", "13:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "13:30", "14:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "14:00", "14:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "14:30", "15:00", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "15:00", "15:30", 3, SlotTypeEnum.PEAK, null),
+                new TimeSlotDef(DayTypeEnum.WEEKEND, "15:30", "16:00", 3, SlotTypeEnum.PEAK, null),
+        });
+    }
+
+    private void addTimeSlotsIfEmpty(String serviceCode, TimeSlotDef[] defs) {
+        Service service = serviceRepository.findByCode(serviceCode).orElse(null);
+        if (service == null)
+            return;
+        if (!timeSlotRepository.findByService_IdAndIsDeletedFalse(service.getId()).isEmpty())
+            return;
+
+        for (TimeSlotDef d : defs) {
+            TimeSlot slot = TimeSlot.builder()
+                    .service(service)
+                    .dayType(d.dayType)
+                    .startTime(LocalTime.parse(d.start))
+                    .endTime(LocalTime.parse(d.end))
+                    .maxCapacity(d.capacity)
+                    .currentBookings(0)
+                    .slotType(d.slotType)
+                    .notes(d.notes)
+                    .build();
+            timeSlotRepository.save(slot);
+        }
+        log.info("✅ Added {} time slots for service: {} ({})", defs.length, service.getServiceName(), serviceCode);
+    }
+
+    private record TimeSlotDef(DayTypeEnum dayType, String start, String end, int capacity, SlotTypeEnum slotType,
+            String notes) {
     }
 
     private void addHotelPricingIfEmpty(Service service, BigDecimal s, BigDecimal m, BigDecimal l, BigDecimal xl) {

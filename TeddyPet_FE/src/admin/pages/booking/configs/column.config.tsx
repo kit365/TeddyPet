@@ -5,7 +5,6 @@ import {
   getBookingStatusColor,
   getPaymentStatusLabel,
   getPaymentStatusColor,
-  getBookingTypeLabel,
   getPaymentMethodLabel,
   getPaymentMethodColor,
 } from "../constants";
@@ -17,24 +16,29 @@ const formatDate = (value: string) =>
   value ? new Date(value).toLocaleDateString("vi-VN") : "—";
 const formatDateTime = (value: string) =>
   value ? new Date(value).toLocaleString("vi-VN") : "—";
+/** Định dạng ngắn cho cột thời gian: dd/MM HH:mm */
+const formatDateTimeShort = (value?: string) =>
+  value ? new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
 export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void): GridColDef[] => [
   {
     field: "bookingCode",
     headerName: "Mã đặt lịch",
-    minWidth: 128,
-    flex: 0.7,
-    align: "left",
-    headerAlign: "left",
+    minWidth: 88,
+    flex: 0.55,
+    align: "center",
+    headerAlign: "center",
     renderCell: (params) => (
       <Typography
         component="span"
         sx={{
           fontWeight: 700,
-          fontSize: "1.5rem",
+          fontSize: "1.45rem",
           color: "#1C252E",
           cursor: "pointer",
           width: "100%",
+          textAlign: "center",
+          display: "block",
           "&:hover": { color: "#00A76F" },
         }}
         onClick={(e) => {
@@ -49,102 +53,69 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
   {
     field: "customerName",
     headerName: "Khách hàng",
-    minWidth: 140,
-    flex: 0.9,
-    align: "left",
-    headerAlign: "left",
+    minWidth: 92,
+    flex: 0.55,
+    align: "center",
+    headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontWeight: 600, fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>{params.value}</Typography>
-    ),
-  },
-  {
-    field: "customerPhone",
-    headerName: "SĐT",
-    minWidth: 120,
-    flex: 0.65,
-    align: "left",
-    headerAlign: "left",
-    renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 500, color: "#1C252E", width: "100%" }}>
-        {params.value ?? "—"}
-      </Typography>
-    ),
-  },
-  {
-    field: "bookingType",
-    headerName: "Loại dịch vụ",
-    minWidth: 140,
-    flex: 0.75,
-    align: "left",
-    headerAlign: "left",
-    renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>{getBookingTypeLabel(String(params.value ?? ""))}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: "1.45rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
     ),
   },
   {
     field: "bookingStartDate",
-    headerName: "Bắt đầu",
-    minWidth: 130,
+    headerName: "Thời gian",
+    minWidth: 128,
     flex: 0.7,
-    align: "left",
-    headerAlign: "left",
-    renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>
-        {formatDateTime(params.value as string)}
-      </Typography>
-    ),
-  },
-  {
-    field: "bookingEndDate",
-    headerName: "Kết thúc",
-    minWidth: 130,
-    flex: 0.7,
-    align: "left",
-    headerAlign: "left",
-    renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", color: "#1C252E", width: "100%" }}>
-        {params.value ? formatDateTime(params.value as string) : "—"}
-      </Typography>
-    ),
+    align: "center",
+    headerAlign: "center",
+    renderCell: (params) => {
+      const start = params.value as string;
+      const end = (params.row as BookingResponse).bookingEndDate;
+      return (
+        <Typography sx={{ fontSize: "1.45rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
+          {formatDateTimeShort(start)} → {formatDateTimeShort(end)}
+        </Typography>
+      );
+    },
   },
   {
     field: "totalAmount",
-    headerName: "Tổng tiền",
-    minWidth: 120,
-    flex: 0.7,
+    headerName: "Tổng",
+    minWidth: 80,
+    flex: 0.45,
     type: "number",
-    align: "right",
-    headerAlign: "right",
+    align: "center",
+    headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 600, color: "#1C252E", width: "100%", textAlign: "right" }}>
+      <Typography sx={{ fontSize: "1.45rem", fontWeight: 600, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
   },
   {
     field: "paidAmount",
-    headerName: "Đã thanh toán",
-    minWidth: 130,
-    flex: 0.7,
+    headerName: "Đã TT",
+    minWidth: 80,
+    flex: 0.45,
     type: "number",
-    align: "right",
-    headerAlign: "right",
+    align: "center",
+    headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "right" }}>
+      <Typography sx={{ fontSize: "1.45rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
   },
   {
     field: "remainingAmount",
-    headerName: "Còn lại",
-    minWidth: 115,
-    flex: 0.65,
+    headerName: "Còn",
+    minWidth: 70,
+    flex: 0.4,
     type: "number",
-    align: "right",
-    headerAlign: "right",
+    align: "center",
+    headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "right" }}>
+      <Typography sx={{ fontSize: "1.45rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
@@ -152,8 +123,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
   {
     field: "paymentStatus",
     headerName: "TT thanh toán",
-    minWidth: 120,
-    flex: 0.7,
+    minWidth: 92,
+    flex: 0.5,
     align: "center",
     headerAlign: "center",
     renderCell: (params) => {
@@ -166,7 +137,7 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.25rem",
+              fontSize: "1.2rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,
@@ -179,8 +150,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
   {
     field: "paymentMethod",
     headerName: "Hình thức",
-    minWidth: 110,
-    flex: 0.6,
+    minWidth: 82,
+    flex: 0.42,
     align: "center",
     headerAlign: "center",
     renderCell: (params) => {
@@ -195,7 +166,7 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.25rem",
+              fontSize: "1.2rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,
@@ -208,8 +179,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
   {
     field: "status",
     headerName: "Trạng thái",
-    minWidth: 118,
-    flex: 0.7,
+    minWidth: 88,
+    flex: 0.45,
     align: "center",
     headerAlign: "center",
     renderCell: (params) => {
@@ -222,7 +193,7 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.25rem",
+              fontSize: "1.2rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,

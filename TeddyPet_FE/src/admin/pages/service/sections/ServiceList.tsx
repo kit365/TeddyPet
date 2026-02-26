@@ -15,9 +15,11 @@ import type { CategoryInfoMap } from '../configs/types';
 type Props = {
     mode?: 'all' | 'addon' | 'non_addon';
     showAddonColumn?: boolean;
+    categoryId?: number | null;
+    hideCategoryColumn?: boolean;
 };
 
-export const ServiceList = ({ mode = 'all', showAddonColumn }: Props) => {
+export const ServiceList = ({ mode = 'all', showAddonColumn, categoryId = null, hideCategoryColumn }: Props) => {
     const { data: services = [], isLoading } = useServices();
     const { data: categories = [] } = useServiceCategories();
 
@@ -29,13 +31,18 @@ export const ServiceList = ({ mode = 'all', showAddonColumn }: Props) => {
         return map;
     }, [categories]);
 
-    const columns = useMemo(() => getServiceColumns(categoryInfoMap, { showAddonColumn: !!showAddonColumn }), [categoryInfoMap, showAddonColumn]);
+    const columns = useMemo(
+        () => getServiceColumns(categoryInfoMap, { showAddonColumn: !!showAddonColumn, hideCategoryColumn: !!hideCategoryColumn }),
+        [categoryInfoMap, showAddonColumn, hideCategoryColumn]
+    );
 
     const filtered = useMemo(() => {
-        if (mode === 'addon') return services.filter((s) => !!s.isAddon);
-        if (mode === 'non_addon') return services.filter((s) => !s.isAddon);
-        return services;
-    }, [services, mode]);
+        let list = services;
+        if (mode === 'addon') list = list.filter((s) => !!s.isAddon);
+        else if (mode === 'non_addon') list = list.filter((s) => !s.isAddon);
+        if (categoryId != null) list = list.filter((s) => s.serviceCategoryId === categoryId);
+        return list;
+    }, [services, mode, categoryId]);
 
     return (
         <Card elevation={0} sx={dataGridCardStyles}>

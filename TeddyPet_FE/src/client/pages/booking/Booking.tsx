@@ -3,8 +3,8 @@ import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 export interface BookingStep1FormData {
@@ -15,20 +15,40 @@ export interface BookingStep1FormData {
     message: string;
 }
 
+const defaultFormData: BookingStep1FormData = {
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+    message: "",
+};
+
 export const BookingPage = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState<BookingStep1FormData>({
-        fullName: "",
-        email: "",
-        phone: "",
-        address: "",
-        message: "",
+    const location = useLocation();
+    const [formData, setFormData] = useState<BookingStep1FormData>(() => {
+        const state = location.state as BookingStep1FormData | undefined;
+        return state && typeof state === "object"
+            ? {
+                  fullName: state.fullName ?? "",
+                  email: state.email ?? "",
+                  phone: state.phone ?? "",
+                  address: state.address ?? "",
+                  message: state.message ?? "",
+              }
+            : defaultFormData;
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
+
+    const formSectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, []);
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
@@ -109,7 +129,7 @@ export const BookingPage = () => {
                     </div>
                 </div>
 
-                <div className="w-[50%] px-[30px] py-[50px] flex justify-start">
+                <div ref={formSectionRef} className="w-[50%] px-[30px] py-[50px] flex justify-start">
                     <form
                         onSubmit={handleNext}
                         className="w-full max-w-[520px] bg-white rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-[#eee] overflow-hidden"
