@@ -86,6 +86,9 @@ public final class ApiConstants {
     public static final String API_SERVICE_COMBOS = BASE_API + "/service-combos";
     public static final String API_SERVICE_PRICINGS = BASE_API + "/service-pricings";
 
+    // Admin Work Shifts API base path
+    public static final String API_ADMIN_WORK_SHIFTS = BASE_API + "/admin/work-shifts";
+
     // Shop / Schedule API base paths
     public static final String API_TIME_SLOT_EXCEPTIONS = BASE_API + "/time-slot-exceptions";
     public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";
@@ -100,5 +103,8 @@ public final class ApiConstants {
     // Amenities (for room / room-type dropdowns)
     public static final String API_AMENITY_CATEGORIES = BASE_API + "/amenity-categories";
     public static final String API_AMENITIES = BASE_API + "/amenities";
+
+    // Pet profiles (user's pets - dashboard)
+    public static final String API_PET_PROFILES = BASE_API + "/pet-profiles";
 
 }
