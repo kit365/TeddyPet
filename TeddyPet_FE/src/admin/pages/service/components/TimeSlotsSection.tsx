@@ -77,6 +77,10 @@ export const TimeSlotsSection = ({ serviceId, expanded: expandedProp = true, onE
                 setForm({ dayType: 'WEEKDAY', startTime: '08:00', endTime: '09:00', maxCapacity: 1, slotType: 'REGULAR', notes: '' });
             } else toast.error(res?.message ?? 'Lỗi');
         },
+        onError: (error: any) => {
+            const msg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi lưu khung giờ';
+            toast.error(msg);
+        },
     });
 
     const { mutate: remove } = useMutation({
@@ -202,12 +206,12 @@ export const TimeSlotsSection = ({ serviceId, expanded: expandedProp = true, onE
                 <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.25rem', py: 2 } }}>
                     <TableHead>
                         <TableRow>
-                                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại ngày</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Giờ</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Số pet tối đa</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại slot</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Ghi chú</TableCell>
-                                            <TableCell width={100} sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }} />
+                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại ngày</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Giờ</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Số pet tối đa</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại slot</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Ghi chú</TableCell>
+                            <TableCell width={100} sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }} />
                         </TableRow>
                     </TableHead>
                     <TableBody>

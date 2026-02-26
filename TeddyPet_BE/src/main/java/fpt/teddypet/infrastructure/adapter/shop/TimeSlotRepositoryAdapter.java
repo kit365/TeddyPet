@@ -39,4 +39,10 @@ public class TimeSlotRepositoryAdapter implements TimeSlotRepositoryPort {
     public void delete(TimeSlot entity) {
         repository.delete(entity);
     }
+
+    @Override
+    public List<TimeSlot> findByServiceIdAndDayType(Long serviceId,
+            fpt.teddypet.domain.enums.scheduling.DayTypeEnum dayType) {
+        return repository.findByService_IdAndDayTypeAndIsDeletedFalse(serviceId, dayType);
+    }
 }
