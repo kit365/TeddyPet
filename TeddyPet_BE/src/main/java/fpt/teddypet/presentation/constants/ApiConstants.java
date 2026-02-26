@@ -104,4 +104,7 @@ public final class ApiConstants {
     public static final String API_AMENITY_CATEGORIES = BASE_API + "/amenity-categories";
     public static final String API_AMENITIES = BASE_API + "/amenities";
 
+    // Pet profiles (user's pets - dashboard)
+    public static final String API_PET_PROFILES = BASE_API + "/pet-profiles";
+
 }
