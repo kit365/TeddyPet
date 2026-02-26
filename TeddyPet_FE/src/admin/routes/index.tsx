@@ -25,6 +25,48 @@ import { ProductAttributeEditPage } from "../pages/product-attribute/ProductAttr
 import { ProductAttributeDetailPage } from "../pages/product-attribute/ProductAttributeDetailPage";
 import { UserListPage } from "../pages/user/UserListPage";
 import { UserDetailPage } from "../pages/user/UserDetailPage";
+import { OrderListPage } from "../pages/order/OrderListPage";
+import { OrderDetailPage } from "../pages/order/OrderDetailPage";
+import { ShippingRuleListPage } from "../pages/shipping/ShippingRuleListPage";
+import { SettingsPage } from "../pages/settings/SettingsPage";
+import { ServiceManagementPage } from "../pages/service/ServiceManagementPage";
+import { ServiceCategoryListPage } from "../pages/service/ServiceCategoryListPage";
+import { ServiceCategoryCreatePage } from "../pages/service/ServiceCategoryCreatePage";
+import { ServiceCategoryEditPage } from "../pages/service/ServiceCategoryEditPage";
+import { ServiceCreatePage } from "../pages/service/ServiceCreatePage";
+import { ServiceEditPage } from "../pages/service/ServiceEditPage";
+import { ServiceComboCreatePage } from "../pages/service/ServiceComboCreatePage";
+import { ServiceComboEditPage } from "../pages/service/ServiceComboEditPage";
+import { BookingListPage } from "../pages/booking/BookingListPage";
+import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
+import { BookingPetDetailPage } from "../pages/booking/BookingPetDetailPage";
+import { BookingPetServiceDetailPage } from "../pages/booking/BookingPetServiceDetailPage";
+import { ShopOperationHoursPage } from "../pages/shop/ShopOperationHoursPage";
+import { TimeSlotExceptionListPage } from "../pages/shop/TimeSlotExceptionListPage";
+import { TimeSlotExceptionFormPage } from "../pages/shop/TimeSlotExceptionFormPage";
+import { RoomTypeListPage } from "../pages/room/RoomTypeListPage";
+import { RoomTypeCreatePage } from "../pages/room/RoomTypeCreatePage";
+import { RoomTypeEditPage } from "../pages/room/RoomTypeEditPage";
+import { RoomListPage } from "../pages/room/RoomListPage";
+import { RoomCreatePage } from "../pages/room/RoomCreatePage";
+import { RoomEditPage } from "../pages/room/RoomEditPage";
+import { SkillListPage } from "../pages/staff/skill/SkillListPage";
+import { SkillCreatePage } from "../pages/staff/skill/SkillCreatePage";
+import { SkillEditPage } from "../pages/staff/skill/SkillEditPage";
+import { StaffPositionListPage } from "../pages/staff/position/StaffPositionListPage";
+import { StaffPositionCreatePage } from "../pages/staff/position/StaffPositionCreatePage";
+import { StaffPositionEditPage } from "../pages/staff/position/StaffPositionEditPage";
+import { StaffProfileListPage } from "../pages/staff/profile/StaffProfileListPage";
+import { StaffProfileOnboardingPage } from "../pages/staff/profile/StaffProfileOnboardingPage";
+import { StaffProfileEditPage } from "../pages/staff/profile/StaffProfileEditPage";
+import { ContractListPage } from "../pages/staff/contract/ContractListPage";
+import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
+import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
+import { WorkShiftAdminPage } from "../pages/staff/workShift/WorkShiftAdminPage";
+import { WorkShiftStaffPage } from "../pages/staff/workShift/WorkShiftStaffPage";
+import { StaffRealtimePage } from "../pages/staff/realtime/StaffRealtimePage";
+import { PayrollPage } from "../pages/staff/payroll/PayrollPage";
+import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -52,6 +94,49 @@ export const AdminRoutes: RouteObject[] = [
     { path: "blog-category/detail/:id", element: <BlogCategoryDetailPage /> },
     { path: "user/list", element: <UserListPage /> },
     { path: "user/detail/:id", element: <UserDetailPage /> },
+    { path: "order/list", element: <OrderListPage /> },
+    { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "booking/list", element: <BookingListPage /> },
+    { path: "booking/detail/:id", element: <BookingDetailPage /> },
+    { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },
+    { path: "booking/detail/:id/pet/:petId/service/:serviceId", element: <BookingPetServiceDetailPage /> },
+    { path: "shipping/list", element: <ShippingRuleListPage /> },
+    { path: "settings", element: <SettingsPage /> },
+    { path: "service/list", element: <ServiceManagementPage /> },
+    { path: "service/create", element: <ServiceCreatePage /> },
+    { path: "service/edit/:id", element: <ServiceEditPage /> },
+    { path: "service-combo/create", element: <ServiceComboCreatePage /> },
+    { path: "service-combo/edit/:id", element: <ServiceComboEditPage /> },
+    { path: "service-category/list", element: <ServiceCategoryListPage /> },
+    { path: "service-category/create", element: <ServiceCategoryCreatePage /> },
+    { path: "service-category/edit/:id", element: <ServiceCategoryEditPage /> },
+    { path: "shop-operation-hours", element: <ShopOperationHoursPage /> },
+    { path: "time-slot-exception/list", element: <TimeSlotExceptionListPage /> },
+    { path: "time-slot-exception/create", element: <TimeSlotExceptionFormPage /> },
+    { path: "time-slot-exception/edit/:id", element: <TimeSlotExceptionFormPage /> },
+    { path: "room-type/list", element: <RoomTypeListPage /> },
+    { path: "room-type/create", element: <RoomTypeCreatePage /> },
+    { path: "room-type/edit/:id", element: <RoomTypeEditPage /> },
+    { path: "room/list", element: <RoomListPage /> },
+    { path: "room/create", element: <RoomCreatePage /> },
+    { path: "room/edit/:id", element: <RoomEditPage /> },
+    { path: "staff/profile/list", element: <StaffProfileListPage /> },
+    { path: "staff/profile/onboarding", element: <StaffProfileOnboardingPage /> },
+    { path: "staff/profile/edit/:id", element: <StaffProfileEditPage /> },
+    { path: "staff/position/list", element: <StaffPositionListPage /> },
+    { path: "staff/position/create", element: <StaffPositionCreatePage /> },
+    { path: "staff/position/edit/:id", element: <StaffPositionEditPage /> },
+    { path: "staff/skill/list", element: <SkillListPage /> },
+    { path: "staff/skill/create", element: <SkillCreatePage /> },
+    { path: "staff/skill/edit/:id", element: <SkillEditPage /> },
+    { path: "staff/skills-map/list", element: <StaffSkillListPage /> },
+    { path: "staff/contract/list", element: <ContractListPage /> },
+    { path: "staff/contract/create", element: <ContractCreatePage /> },
+    { path: "staff/contract/edit/:id", element: <ContractEditPage /> },
+    { path: "staff/work-shifts", element: <WorkShiftAdminPage /> },
+    { path: "staff/work-shifts/register", element: <WorkShiftStaffPage /> },
+    { path: "staff/realtime", element: <StaffRealtimePage /> },
+    { path: "staff/payroll", element: <PayrollPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [
