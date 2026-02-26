@@ -2,7 +2,7 @@ import axios from "axios"
 import Cookies from "js-cookie"
 import { useAuthStore } from "../stores/useAuthStore"
 
-const BASE_URL = "http://localhost:8080"
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080"
 
 let isRefreshing = false
 const failedQueue: { resolve: (value: string | null) => void; reject: (err?: unknown) => void }[] = []
