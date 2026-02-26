@@ -4,6 +4,17 @@ import { useAuthStore } from "../stores/useAuthStore"
 
 const BASE_URL = "http://localhost:8080"
 
+let isRefreshing = false
+const failedQueue: { resolve: (value: string | null) => void; reject: (err?: unknown) => void }[] = []
+
+const processQueue = (error: unknown, token: string | null) => {
+    failedQueue.forEach((prom) => {
+        if (error) prom.reject(error)
+        else prom.resolve(token)
+    })
+    failedQueue.length = 0
+}
+
 const apiApp = axios.create({
     baseURL: BASE_URL,
     headers: {
@@ -26,23 +37,6 @@ apiApp.interceptors.request.use(
     }
 );
 
-// Flag to prevent multiple refresh requests
-let isRefreshing = false;
-// Queue of failed requests
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
-    });
-
-    failedQueue = [];
-};
-
 apiApp.interceptors.response.use(
     (response) => {
         return response;
@@ -56,7 +50,6 @@ apiApp.interceptors.response.use(
 
         if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
 
-            // Determine if Admin or Client
             const isAdmin = window.location.pathname.startsWith("/admin");
             const tokenKey = isAdmin ? "tokenAdmin" : "token";
             const refreshTokenKey = isAdmin ? "refreshTokenAdmin" : "refreshToken";
@@ -78,12 +71,8 @@ apiApp.interceptors.response.use(
             }
 
             originalRequest._retry = true;
-            isRefreshing = true;
-
             const refreshToken = Cookies.get(refreshTokenKey);
 
-            // Không redirect sang login khi 401 từ API đặt lịch (service-categories, services)
-            // để khách có thể xem trang đặt lịch mà không bắt buộc đăng nhập
             const isBookingPublicApi =
                 !isAdmin &&
                 (originalRequest.url?.includes('/api/service-categories') || originalRequest.url?.includes('/api/services'));
@@ -98,12 +87,16 @@ apiApp.interceptors.response.use(
                 } else {
                     useAuthStore.getState().logout();
                 }
-                window.location.href = loginPath;
+                processQueue(error, null);
+                isRefreshing = false;
+                if (window.location.pathname !== loginPath) {
+                    window.location.href = loginPath;
+                }
                 return Promise.reject(error);
             }
 
+            isRefreshing = true;
             try {
-                // Use a separate axios instance or direct axios to avoid interceptor loop
                 const response = await axios.post(`${BASE_URL}/api/auth/refresh-token`, {
                     refreshToken: refreshToken
                 });
@@ -123,14 +116,15 @@ apiApp.interceptors.response.use(
 
             } catch (err) {
                 processQueue(err, null);
-                // Clear tokens and redirect
                 if (isAdmin) {
                     Cookies.remove(tokenKey);
                     Cookies.remove(refreshTokenKey);
                 } else {
                     useAuthStore.getState().logout();
                 }
-                window.location.href = loginPath;
+                if (window.location.pathname !== loginPath) {
+                    window.location.href = loginPath;
+                }
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;

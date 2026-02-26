@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(ApiConstants.API_AUTH)
-@Tag(name = "Authentication", description = "Authentication APIs")
+@Tag(name = "Xác thực", description = "API đăng ký, đăng nhập và quản lý xác thực người dùng")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -32,7 +32,7 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
-    @Operation(summary = "Register a new user", description = "Register a new user with email and password. Returns resend cooldown info.")
+    @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản bằng email và mật khẩu, trả về thông tin xác thực lại email (resend cooldown).")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = authService.registerWithResponse(request);
         return ResponseEntity
@@ -41,7 +41,7 @@ public class AuthController {
     }
 
     @PostMapping("/resend-email")
-    @Operation(summary = "Resend verification email", description = "Resend verification email to the user. Has a 2-minute cooldown.")
+    @Operation(summary = "Gửi lại email xác thực", description = "Gửi lại email xác thực cho người dùng, có giới hạn thời gian chờ 2 phút.")
     public ResponseEntity<ApiResponse<RegisterResponse>> resendVerificationEmail(
             @Valid @RequestBody ResendEmailRequest request) {
         RegisterResponse response = authService.resendVerificationEmail(request);
@@ -49,14 +49,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login user", description = "Login with email/username and password. Returns token and refresh token.")
+    @Operation(summary = "Đăng nhập", description = "Đăng nhập bằng email/username và mật khẩu. Trả về access token và refresh token.")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
         TokenResponse response = authService.loginForToken(request);
         return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_LOGIN_SUCCESS, response));
     }
 
     @PostMapping("/refresh-token")
-    @Operation(summary = "Refresh token", description = "Get new access token using refresh token")
+    @Operation(summary = "Làm mới token", description = "Lấy access token mới bằng refresh token.")
     public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(
             @Valid @RequestBody fpt.teddypet.application.dto.request.auth.RefreshTokenRequest request) {
         TokenResponse response = authService.refreshToken(request.refreshToken());
@@ -64,21 +64,21 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    @Operation(summary = "Verify user email", description = "Verify email using the token sent during registration. Returns only the token.")
+    @Operation(summary = "Xác thực email", description = "Xác thực email bằng token đã gửi trong email sau khi đăng ký.")
     public ResponseEntity<ApiResponse<TokenResponse>> verifyEmail(@RequestParam String token) {
         TokenResponse response = authService.verifyEmailForToken(token);
         return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_VERIFY_EMAIL_SUCCESS, response));
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get current user profile", description = "Get the authenticated user's profile information. Requires a valid JWT token.")
+    @Operation(summary = "Lấy thông tin tài khoản hiện tại", description = "Lấy thông tin hồ sơ người dùng đang đăng nhập (yêu cầu JWT hợp lệ).")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getCurrentUser() {
         UserProfileResponse response = authService.getCurrentUserProfile();
         return ResponseEntity.ok(ApiResponse.success("User profile retrieved successfully", response));
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Logout user", description = "Logout the current user by blacklisting their token. Requires a valid JWT token.")
+    @Operation(summary = "Đăng xuất", description = "Đăng xuất người dùng hiện tại bằng cách đưa token vào blacklist (yêu cầu JWT hợp lệ).")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
@@ -89,9 +89,7 @@ public class AuthController {
 
     // request reset password
     @PostMapping("/forgot-password")
-    @Operation(summary = "Request password reset", description = "Send a password reset link to the provided email address. "
-            +
-            "The link will be valid for 15 minutes.")
+    @Operation(summary = "Yêu cầu đặt lại mật khẩu", description = "Gửi email chứa đường dẫn đặt lại mật khẩu tới địa chỉ email cung cấp. Link có hiệu lực trong 15 phút.")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         passwordResetService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success(PasswordResetMessages.MESSAGE_FORGOT_PASSWORD_SUCCESS));
@@ -99,7 +97,7 @@ public class AuthController {
 
     // after verify token, reset password
     @PostMapping("/reset-password")
-    @Operation(summary = "Reset password", description = "Reset password using the token received via email")
+    @Operation(summary = "Đặt lại mật khẩu", description = "Đặt lại mật khẩu bằng token nhận được qua email.")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         passwordResetService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success(PasswordResetMessages.MESSAGE_RESET_PASSWORD_SUCCESS));
@@ -107,7 +105,7 @@ public class AuthController {
 
     // verify token
     @GetMapping("/validate-reset-token")
-    @Operation(summary = "Validate reset token", description = "Check if the password reset token is still valid")
+    @Operation(summary = "Kiểm tra token đặt lại mật khẩu", description = "Kiểm tra token đặt lại mật khẩu còn hiệu lực hay không.")
     public ResponseEntity<ApiResponse<Boolean>> validateResetToken(@RequestParam String token) {
         boolean isValid = passwordResetService.validateToken(token);
         if (isValid) {
