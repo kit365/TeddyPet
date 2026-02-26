@@ -57,6 +57,25 @@ Lưu ý: Không lạm dụng bước 3 liên tục, nó sẽ làm phình to cụ
 
 ---
 
-## ⚠️ NHỮNG ĐIỀU CẤM KỴ TỚI GIÀ
-1. **KHÔNG BAO GIỜ** chỉnh sửa nội dung bên trong file Flyway cũ (ví dụ `V1__baseline.sql`) một khi file đó đã được chạy lần đầu và được Push lên nhánh Chung. Chỉnh sửa phát DB đứt bóng ngót nghẻo ngay lập tức!
-2. **KHÔNG BAO GIỜ** lén đổi `ddl-auto: validate` về `update` - Việc cập nhật DB chỉ được chạy trên xe đẩy độc đạo của ông nội Flyway thôi!
+## 4️⃣ Kịch Bản 4: Xử lý khi Merge Code bị lệch cấu trúc Database (RẤT QUAN TRỌNG)
+Đây là trường hợp bồ vừa Pull code mới về, trong code Java có thêm Entity/Field mới nhưng DB Local của bồ là đồ cũ.
+
+**❌ Cách Sai:** Sửa nội dung file `V1__baseline.sql` cũ. (Flyway sẽ không chạy lại file này và bồ sẽ bị lỗi "Missing Column").
+**✅ Cách Đúng (Chọn 1 trong 2):**
+*   **Cách A (Reset nhanh):** Nếu dữ liệu local không quan trọng, hãy Xóa Schema (Clean DB) để Flyway chạy lại từ đầu file Baseline mới nhất.
+*   **Cách B (Tạo file bù):** Tạo file migration mới (ví dụ `V20__patch_missing_columns.sql`) để thêm những cột còn thiếu.
+
+---
+
+## ⚠️ NHỮNG ĐIỀU CẤM KỴ & QUY TẮC VÀNG
+1.  **QUY TẮC VÀNG (Idempotent):** Luôn dùng `CREATE TABLE IF NOT EXISTS` và `ADD COLUMN IF NOT EXISTS` trong các file SQL. Nó giúp script của bồ chạy ở máy nào cũng không bị lỗi "Relation already exists".
+2.  **KHÔNG BAO GIỜ** chỉnh sửa nội dung bên trong file Flyway cũ một khi file đó đã được Push lên nhánh Chung. Flyway dùng cơ chế Checksum, bồ sửa 1 dấu phẩy là nó báo lỗi "Migration checksum mismatch" ngay.
+3.  **BASELINE LÀ DUY NHẤT:** File `V1__baseline.sql` chỉ nên được "xây lại" (Re-baseline) khi team thống nhất tổng lực (thường là sau khi merge một Feature lớn). Khi đã chốt xong, tuyệt đối đóng băng nó.
+4.  **KHÔNG LÉN ĐỔI:** Giữ nguyên `ddl-auto: validate`. Nếu bồ đổi sang `update`, bồ sẽ không biết DB của mình đang lệch với team như thế nào cho đến khi lên Prod và... BÙM!
+
+---
+
+## 🛠 XỬ LÝ LỖI THƯỜNG GẶP
+*   **Lỗi "Missing column [xyz]":** Do code Java có field `xyz` nhưng DB chưa có cột. -> Tạo file migration mới để `ADD COLUMN`.
+*   **Lỗi "Migration checksum mismatch":** Do bồ lỡ tay sửa file SQL cũ. -> Dùng lệnh `mvn flyway:repair` (nếu có cài plugin) hoặc nhờ Lead check lại.
+*   **Lỗi "Relation [abc] already exists":** Do bồ chạy lệnh `CREATE TABLE` mà bảng đó đã có rồi. -> Hãy thêm `IF NOT EXISTS` vào câu lệnh.
