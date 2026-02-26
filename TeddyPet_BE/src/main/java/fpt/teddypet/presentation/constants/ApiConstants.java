@@ -65,4 +65,43 @@ public final class ApiConstants {
 
     // User Address API base path
     public static final String API_USER_ADDRESSES = BASE_API + "/user-addresses";
+
+    // Shipping API base path
+    public static final String API_SHIPPING = BASE_API + "/shipping";
+
+    // App Setting API base path
+    public static final String API_SETTINGS = BASE_API + "/settings";
+
+    // User API base path
+    public static final String API_USER = BASE_API + "/users";
+
+    public static final String API_FEEDBACKS = BASE_API + "/feedbacks";
+
+    // OTP API base path
+    public static final String API_OTP = BASE_API + "/otp";
+
+    // Service API base paths
+    public static final String API_SERVICES = BASE_API + "/services";
+    public static final String API_SERVICE_CATEGORIES = BASE_API + "/service-categories";
+    public static final String API_SERVICE_COMBOS = BASE_API + "/service-combos";
+    public static final String API_SERVICE_PRICINGS = BASE_API + "/service-pricings";
+
+    // Admin Work Shifts API base path
+    public static final String API_ADMIN_WORK_SHIFTS = BASE_API + "/admin/work-shifts";
+
+    // Shop / Schedule API base paths
+    public static final String API_TIME_SLOT_EXCEPTIONS = BASE_API + "/time-slot-exceptions";
+    public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";
+    public static final String API_TIME_SLOTS = BASE_API + "/time-slots";
+
+    // Room management
+    public static final String API_ROOM_TYPES = BASE_API + "/room-types";
+    public static final String API_ROOMS = BASE_API + "/rooms";
+    public static final String API_ROOM_BLOCKINGS = BASE_API + "/room-blockings";
+    public static final String API_ROOM_LAYOUT_CONFIGS = BASE_API + "/room-layout-configs";
+
+    // Amenities (for room / room-type dropdowns)
+    public static final String API_AMENITY_CATEGORIES = BASE_API + "/amenity-categories";
+    public static final String API_AMENITIES = BASE_API + "/amenities";
+
 }
