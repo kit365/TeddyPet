@@ -27,7 +27,33 @@ export const menuOverviewData = [
     },
 ];
 
+/** Menu item for booking management (list/detail) - can be added under a parent or as link from dashboard. */
+export const bookingManagementItem = {
+    id: "bookings",
+    label: "Đặt lịch",
+    Icon: ScheduleSendIcon,
+    children: [
+        { id: "list", label: "Danh sách đặt lịch", path: `/${prefixAdmin}/booking/list` },
+    ],
+};
+
 export const menuManagementData = [
+    {
+        id: "orders",
+        label: "Đơn hàng",
+        Icon: ArticleIcon,
+        children: [
+            { id: "list", label: "Danh sách đơn hàng", path: `/${prefixAdmin}/order/list` },
+        ]
+    },
+    {
+        id: "bookings",
+        label: "Đặt lịch",
+        Icon: ScheduleSendIcon,
+        children: [
+            { id: "list", label: "Danh sách đặt lịch", path: `/${prefixAdmin}/booking/list` },
+        ]
+    },
     {
         id: "users",
         label: "Tài khoản",

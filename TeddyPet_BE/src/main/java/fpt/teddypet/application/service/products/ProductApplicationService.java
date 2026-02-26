@@ -22,6 +22,7 @@ import fpt.teddypet.application.port.input.products.ProductService;
 import fpt.teddypet.application.port.input.products.ProductTagService;
 import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.output.products.ProductRepositoryPort;
+import fpt.teddypet.application.port.output.products.ProductVariantRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Product;
@@ -39,9 +40,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest;
+import fpt.teddypet.domain.entity.ProductVariant;
+import fpt.teddypet.domain.enums.ProductTypeEnum;
+import fpt.teddypet.domain.enums.StockStatusEnum;
+import fpt.teddypet.domain.enums.UnitEnum;
+import fpt.teddypet.application.util.SkuUtil;
 
 @Slf4j
 @Service
@@ -57,6 +66,7 @@ public class ProductApplicationService implements ProductService {
     private final ProductTagService productTagService;
     private final ProductAgeRangeService productAgeRangeService;
     private final ProductAttributeService productAttributeService;
+    private final ProductVariantRepositoryPort productVariantRepositoryPort;
 
     @Override
     public Product getById(Long productId) {
@@ -96,7 +106,7 @@ public class ProductApplicationService implements ProductService {
 
         // Set default values
         if (request.status() == null) {
-            product.setStatus(ProductStatusEnum.IN_STOCK);
+            product.setStatus(ProductStatusEnum.DRAFT);
         }
         if (product.getViewCount() == null) {
             product.setViewCount(0);
@@ -113,14 +123,17 @@ public class ProductApplicationService implements ProductService {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
 
         if (request.images() != null && !request.images().isEmpty()) {
-            productImageService
-                    .saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(
-                            savedProduct.getId(), request.images()));
+            productImageService.saveImages(new ProductImageSaveRequest(savedProduct.getId(), request.images()));
         }
 
         if (request.variants() != null && !request.variants().isEmpty()) {
             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
+        } else if (ProductTypeEnum.SIMPLE.equals(product.getProductType())) {
+            // Case: Simple product without variants provided - create a default variant
+            createDefaultVariant(savedProduct);
         }
+
+        recalculateProductMetadata(savedProduct.getId());
     }
 
     @Override
@@ -162,14 +175,80 @@ public class ProductApplicationService implements ProductService {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
 
         if (request.images() != null) {
-            productImageService
-                    .saveImages(new fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest(
-                            savedProduct.getId(), request.images()));
+            productImageService.saveImages(new ProductImageSaveRequest(savedProduct.getId(), request.images()));
         }
 
         if (request.variants() != null) {
             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
         }
+
+        recalculateProductMetadata(savedProduct.getId());
+    }
+
+    @Override
+    @Transactional
+    public void recalculateProductMetadata(Long productId) {
+        Product product = getById(productId);
+
+        // Fetch variants explicitly to ensure fresh data
+        List<ProductVariant> variants = productVariantRepositoryPort.findByProductId(productId);
+
+        if (variants == null || variants.isEmpty()) {
+            product.setMinPrice(BigDecimal.ZERO);
+            product.setMaxPrice(BigDecimal.ZERO);
+            product.setStockStatus(StockStatusEnum.OUT_OF_STOCK);
+        } else {
+            List<ProductVariant> activeVariants = variants.stream()
+                    .filter(v -> !v.isDeleted() && v.isActive() && ProductStatusEnum.ACTIVE.equals(v.getStatus()))
+                    .toList();
+
+            if (activeVariants.isEmpty()) {
+                product.setMinPrice(BigDecimal.ZERO);
+                product.setMaxPrice(BigDecimal.ZERO);
+            } else {
+                BigDecimal min = activeVariants.stream()
+                        .map(v -> v.getPrice().getEffectivePrice())
+                        .min(BigDecimal::compareTo)
+                        .orElse(BigDecimal.ZERO);
+
+                BigDecimal max = activeVariants.stream()
+                        .map(v -> v.getPrice().getEffectivePrice())
+                        .max(BigDecimal::compareTo)
+                        .orElse(BigDecimal.ZERO);
+
+                product.setMinPrice(min);
+                product.setMaxPrice(max);
+            }
+
+            int totalStock = activeVariants.stream()
+                    .mapToInt(v -> v.getStockQuantity().getValue())
+                    .sum();
+
+            product.updateStockStatus(totalStock);
+        }
+
+        productRepositoryPort.save(product);
+        log.info("Updated metadata for product {}: Price Range [{} - {}], Stock Status: {}",
+                productId, product.getMinPrice(), product.getMaxPrice(), product.getStockStatus());
+    }
+
+    private void createDefaultVariant(Product product) {
+        log.info("Creating default variant for simple product: {}", product.getName());
+        productVariantService.saveVariants(new ProductVariantSaveRequest(
+                product.getId(),
+                List.of(new fpt.teddypet.application.dto.request.products.variant.ProductVariantRequest(
+                        null,
+                        product.getId(),
+                        0, 0, 0, 0, // Dimensions (Integer)
+                        BigDecimal.valueOf(100000), // Base Price
+                        null, // Sale Price
+                        100, // Stock
+                        UnitEnum.PIECE,
+                        null,
+                        "Mặc định",
+                        null,
+                        ProductStatusEnum.ACTIVE,
+                        new ArrayList<>()))));
     }
 
     @Override
@@ -368,6 +447,28 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductResponse> getRelatedProducts(Long productId, int limit) {
+        log.info("Getting related products for product: {}, limit: {}", productId, limit);
+
+        Product product = getByIdAndIsDeletedFalse(productId);
+        List<Long> categoryIds = product.getCategories().stream()
+                .map(fpt.teddypet.domain.entity.ProductCategory::getId)
+                .toList();
+
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Product> productPage;
+
+        if (categoryIds.isEmpty()) {
+            productPage = Page.empty();
+        } else {
+            productPage = productRepositoryPort.findRelatedProducts(categoryIds, productId, pageable);
+        }
+
+        return PageResponse.fromPage(productPage.map(productMapper::toResponse));
+    }
+
+    @Override
     public List<ProductSuggestionResponse> getSuggestions(String keyword) {
         log.info("Getting search suggestions for keyword: {}", keyword);
 
@@ -383,7 +484,7 @@ public class ProductApplicationService implements ProductService {
                         .productId(product.getId())
                         .name(product.getName())
                         .slug(product.getSlug())
-                        .imageUrl(product.getImages().isEmpty() ? null : product.getImages().get(0).getImageUrl())
+                        .imageUrl(product.getImages().isEmpty() ? null : product.getImages().getFirst().getImageUrl())
                         .build())
                 .toList();
     }
@@ -483,7 +584,7 @@ public class ProductApplicationService implements ProductService {
             }
         }
 
-        String generatedSku = fpt.teddypet.application.util.SkuUtil.generateProductSku(
+        String generatedSku = SkuUtil.generateProductSku(
                 brandName, categoryName, request.name());
 
         if (!generatedSku.equals(product.getSku())) {

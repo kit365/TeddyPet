@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.response.product.image.ProductImageInfo;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
+import fpt.teddypet.domain.enums.ProductTypeEnum;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ public record ProductDetailResponse(
                 String name,
                 String description,
                 String content,
+                String barcode,
                 BigDecimal minPrice,
                 BigDecimal maxPrice,
                 Integer viewCount,
@@ -39,6 +41,7 @@ public record ProductDetailResponse(
                 String origin,
                 String material,
                 ProductStatusEnum status,
+                ProductTypeEnum productType,
                 boolean isActive,
                 boolean isDeleted,
                 LocalDateTime createdAt) {

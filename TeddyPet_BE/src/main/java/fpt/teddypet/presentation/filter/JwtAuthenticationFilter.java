@@ -1,6 +1,7 @@
 package fpt.teddypet.presentation.filter;
 
 import fpt.teddypet.infrastructure.adapter.JwtTokenProviderAdapter;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +23,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProviderAdapter jwtTokenProviderAdapter;
     private final UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtTokenProviderAdapter jwtTokenProviderAdapter, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtTokenProviderAdapter jwtTokenProviderAdapter,
+            UserDetailsService userDetailsService) {
         this.jwtTokenProviderAdapter = jwtTokenProviderAdapter;
         this.userDetailsService = userDetailsService;
     }
@@ -31,8 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String email;
@@ -45,16 +46,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
         try {
             email = jwtTokenProviderAdapter.extractEmail(jwt);
-            
+
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
-                
+
                 if (jwtTokenProviderAdapter.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
-                            userDetails.getAuthorities()
-                    );
+                            userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     logger.info("User authenticated: " + email);
@@ -62,12 +62,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     logger.warn("Token validation failed for email: " + email);
                 }
             }
+        } catch (ExpiredJwtException e) {
+            logger.warn("JWT expired: " + e.getMessage());
         } catch (Exception e) {
             // Token is invalid, continue without authentication
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication: " + e.getMessage());
         }
-        
+
         filterChain.doFilter(request, response);
     }
 }
-

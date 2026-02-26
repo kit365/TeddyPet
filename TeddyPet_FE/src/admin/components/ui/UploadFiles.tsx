@@ -13,9 +13,10 @@ interface CustomFile extends File {
 interface UploadFilesProps {
     files: CustomFile[];
     onFilesChange: (files: CustomFile[]) => void;
+    folder?: string;
 }
 
-export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => {
+export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: UploadFilesProps) => {
     const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
     const [isTouched, setIsTouched] = useState(false);
@@ -64,7 +65,7 @@ export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => 
 
         try {
             setIsUploading(true);
-            const uploadedUrls = await uploadImagesToCloudinary(filesToUpload);
+            const uploadedUrls = await uploadImagesToCloudinary(filesToUpload, folder);
 
             // Giữ lại các ảnh đã là URL, thay thế các File object bằng URL mới nhận được
             const currentLinks = files.filter(f => typeof f === 'string');
@@ -106,6 +107,18 @@ export const UploadFiles = memo(({ files, onFilesChange }: UploadFilesProps) => 
                         src={imgSrc}
                         sx={{ width: 1, height: 1, objectFit: 'cover', borderRadius: '10px' }}
                     />
+
+                    {/* Badge thứ tự */}
+                    <Box sx={{
+                        position: 'absolute', top: -8, left: -8,
+                        bgcolor: '#1C252E', color: '#fff',
+                        width: 22, height: 22, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.2rem', fontWeight: 'bold',
+                        border: '2px solid #fff', zIndex: 1
+                    }}>
+                        {index + 1}
+                    </Box>
 
                     {/* Nút xóa ảnh */}
                     <ButtonBase

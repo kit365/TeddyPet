@@ -1,6 +1,10 @@
 import { NavLink } from "react-router-dom"
+import { useAuthStore } from "../../../stores/useAuthStore";
 
 export const MenuBar = () => {
+    const { user } = useAuthStore();
+    const isAuthenticated = !!user;
+
     const menuItems = [
         {
             label: "Trang chủ",
@@ -29,13 +33,18 @@ export const MenuBar = () => {
         },
         {
             label: "Chó cưng",
-            to: "/danh-muc-san-pham/cho-cung",
+            to: "/danh-muc-san-pham/danh-cho-cho",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-4.png",
         },
         {
             label: "Mèo cưng",
-            to: "/danh-muc-san-pham/meo-cung",
+            to: "/danh-muc-san-pham/danh-cho-meo",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-5.png",
+        },
+        {
+            label: isAuthenticated ? "Đơn hàng của tôi" : "Tra cứu đơn hàng",
+            to: isAuthenticated ? "/dashboard/orders" : "/tra-cuu-don-hang",
+            img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-3.png",
         },
     ];
 

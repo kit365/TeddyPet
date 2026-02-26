@@ -13,13 +13,13 @@ import fpt.teddypet.domain.enums.UserStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -56,12 +56,10 @@ public class PasswordResetApplicationService implements PasswordResetService {
             throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_USER_NOT_ACTIVE);
         }
 
-
         String token = generateResetToken();
 
         passwordResetTokenPort.saveToken(request.email(), token);
         log.info(PasswordResetLogMessages.LOG_FORGOT_PASSWORD_TOKEN_GENERATED, request.email());
-
 
         try {
             sendPasswordResetEmail(user, token);
@@ -75,7 +73,6 @@ public class PasswordResetApplicationService implements PasswordResetService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         log.info(PasswordResetLogMessages.LOG_RESET_PASSWORD_START);
-
 
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_PASSWORD_NOT_MATCH);
@@ -118,25 +115,13 @@ public class PasswordResetApplicationService implements PasswordResetService {
         return isValid;
     }
 
-
     private String generateResetToken() {
-        return UUID.randomUUID().toString().replace("-", "") + 
-               UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        return UUID.randomUUID().toString().replace("-", "") +
+                UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
-
 
     private void sendPasswordResetEmail(User user, String token) {
         String resetLink = frontendUrl + "/reset-password?token=" + token;
-        
-        String subject = PasswordResetMessages.EMAIL_SUBJECT;
-        String htmlBody = buildPasswordResetEmailBody(user, resetLink);
-        
-        emailServicePort.sendHtmlEmail(user.getEmail(), subject, htmlBody);
-    }
-
-
-    private String buildPasswordResetEmailBody(User user, String resetLink) {
-        String userName = user.getFirstName() != null ? user.getFirstName() : user.getUsername();
-        return PasswordResetMessages.EMAIL_HTML_TEMPLATE.formatted(userName, resetLink, resetLink, tokenExpirationMinutes);
+        emailServicePort.sendPasswordResetEmail(user.getEmail(), token, resetLink);
     }
 }

@@ -10,36 +10,33 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record ProductSearchRequest(
-        @Min(value = 0, message = "Page number must be greater than or equal to 0")
-        Integer page,
-        
-        @Min(value = 1, message = "Page size must be greater than or equal to 1")
-        @Max(value = 100, message = "Page size must be less than or equal to 100")
-        Integer size,
-        
+        @Min(value = 0, message = "Page number must be greater than or equal to 0") Integer page,
+
+        @Min(value = 1, message = "Page size must be greater than or equal to 1") @Max(value = 100, message = "Page size must be less than or equal to 100") Integer size,
+
         String keyword,
-        
+
         String sortKey,
-        
+
         String sortDirection,
-        
+
         // A. Bộ lọc Phân tích dữ liệu
-        List<Long> categoryIds,          
-        Long brandId,                     
-        List<PetTypeEnum> petTypes,      
-        List<Long> ageRangeIds,        
-        
+        List<Long> categoryIds,
+        Long brandId,
+        List<PetTypeEnum> petTypes,
+        List<Long> ageRangeIds,
+
         // B. Bộ lọc Trạng thái & Vận hành
-        ProductStatusEnum status,        
-        String stockStatus,             
-        Integer stockThreshold,           // Threshold cho TỒN_KHO_THẤP (default: 10)
-        Boolean includeDeletedVariants,   // Checkbox: Include deleted variants (ProductVariant.isDeleted)
-        
+        ProductStatusEnum status,
+        fpt.teddypet.domain.enums.StockStatusEnum stockStatus,
+        Integer stockThreshold, // Threshold cho TỒN_KHO_THẤP (default: 10)
+        Boolean includeDeletedVariants, // Checkbox: Include deleted variants (ProductVariant.isDeleted)
+
         // C. Bộ lọc Kiểm toán & Chất lượng
-        LocalDateTime createdAtFrom,    
-        LocalDateTime createdAtTo,       
-        Boolean missingFeaturedImage,     // Checkbox: Thiếu featuredImage
-        Boolean missingDescription        // Checkbox: Thiếu description
+        LocalDateTime createdAtFrom,
+        LocalDateTime createdAtTo,
+        Boolean missingFeaturedImage, // Checkbox: Thiếu featuredImage
+        Boolean missingDescription // Checkbox: Thiếu description
 ) {
     public ProductSearchRequest {
         // Default values
@@ -70,33 +67,32 @@ public record ProductSearchRequest(
     public SortDirection getSortDir() {
         return SortDirection.fromString(sortDirection);
     }
-    
+
     public boolean hasCategoryFilter() {
         return categoryIds != null && !categoryIds.isEmpty();
     }
-    
+
     public boolean hasBrandFilter() {
         return brandId != null;
     }
-    
+
     public boolean hasPetTypeFilter() {
         return petTypes != null && !petTypes.isEmpty();
     }
-    
+
     public boolean hasAgeRangeFilter() {
         return ageRangeIds != null && !ageRangeIds.isEmpty();
     }
-    
+
     public boolean hasStatusFilter() {
         return status != null;
     }
-    
+
     public boolean hasStockFilter() {
-        return stockStatus != null && !stockStatus.trim().isEmpty();
+        return stockStatus != null;
     }
-    
+
     public boolean hasDateRangeFilter() {
         return createdAtFrom != null || createdAtTo != null;
     }
 }
-

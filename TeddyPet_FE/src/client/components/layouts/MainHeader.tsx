@@ -6,11 +6,12 @@ import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
 import { useState, useEffect } from "react";
 import { getSearchSuggestions } from "../../../api/home.api";
+import { LocationSelector } from "../ui/LocationSelector";
 
 export const MainHeader = () => {
-    const totalItemsCount = useCartStore((state) => state.totalItems());
-    const totalAmount = useCartStore((state) => state.totalAmount());
     const items = useCartStore((state) => state.items);
+    const totalItemsCount = items.reduce((sum, item) => (item.checked ? sum + item.quantity : sum), 0);
+    const totalAmount = items.reduce((sum, item) => (item.checked ? sum + (item.option?.price || 0) * item.quantity : sum), 0);
     const isHydrated = useCartStore((state) => state.isHydrated);
     const cartCount = isHydrated ? totalItemsCount : 0;
     const removeFromCart = useCartStore((state) => state.removeFromCart);
@@ -75,6 +76,10 @@ export const MainHeader = () => {
                         </Link>
                     </div>
 
+                    <div className="flex-1 px-[20px] max-w-[200px]">
+                        <LocationSelector />
+                    </div>
+
                     {/* Form Search */}
                     <div className="w-[34.2%] relative z-50">
                         <form
@@ -136,11 +141,11 @@ export const MainHeader = () => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-[30px] w-[34.2%] justify-end mr-[16px]">
-                        <div className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                        <Link to="/wishlist" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
                             <Heart stroke="2" className="w-[2.5rem] h-[2.5rem]" />
-                        </div>
+                        </Link>
                         <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
-                            <Link to="/gio-hang">
+                            <Link to="/cart">
                                 <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />
                             </Link>
                             {cartCount > 0 && (
@@ -152,7 +157,7 @@ export const MainHeader = () => {
                                 {items.length > 0 ? (
                                     <ul>
                                         {items.map((item) => (
-                                            <li className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
+                                            <li key={item.id} className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
                                                 <div
                                                     onClick={() => handleRemove(item.id as string)}
                                                     className="absolute left-[-7px] top-[-7px] text-[1.2rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
@@ -163,8 +168,16 @@ export const MainHeader = () => {
                                                 </Link>
                                                 <div>
                                                     <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
-                                                    <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option.size}</div>
-                                                    <div className="text-client-text text-[1.4rem]">{item.quantity} x {item.option.price.toLocaleString()}đ</div>
+                                                    <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
+                                                    <div className="text-client-text text-[1.4rem] flex items-center gap-2">
+                                                        <span>{item.quantity} x </span>
+                                                        <span className="text-client-secondary font-bold">{item.option?.price?.toLocaleString()}đ</span>
+                                                        {item.option?.originalPrice && (
+                                                            <span className="text-[#999] line-through text-[1.1rem] opacity-70">
+                                                                {item.option.originalPrice.toLocaleString()}đ
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </li>
                                         ))}
@@ -173,8 +186,8 @@ export const MainHeader = () => {
                                             <span>{totalAmount.toLocaleString()}đ</span>
                                         </div>
                                         <div className="mt-[20px] mb-[5px]">
-                                            <Link to="/gio-hang" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
-                                            <Link to="/thanh-toan" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
+                                            <Link to="/cart" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
+                                            <Link to="/checkout" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
                                         </div>
                                     </ul>
                                 ) : (
@@ -187,11 +200,12 @@ export const MainHeader = () => {
                             <div className="group relative">
                                 <Link to="/dashboard/profile" className="w-[3.5rem] h-[3.5rem] rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:border-client-primary transition-default">
                                     <img
-                                        src={user.avatarUrl || "https://i.imgur.com/L8j8x7x.png"}
+                                        src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
                                         alt={user.username}
                                         className="w-full h-full object-cover"
                                     />
                                 </Link>
+                                <div className="absolute top-[35px] right-0 w-[120px] h-[20px] bg-transparent"></div>
                                 <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[200px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-50 py-[10px] animate-fadeIn">
                                     <div className="px-[20px] py-[10px] border-b border-[#f0f0f0]">
                                         <p className="font-bold text-client-secondary truncate">{user.lastName} {user.firstName}</p>

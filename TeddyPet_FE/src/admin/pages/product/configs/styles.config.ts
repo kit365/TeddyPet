@@ -181,7 +181,7 @@ export const dataGridCardStyles = {
     background: COLORS.background,
     color: COLORS.primary,
     borderRadius: '16px',
-    height: '640px',
+    height: '800px',
     display: 'flex',
     flexDirection: 'column' as const,
     boxShadow: COLORS.shadow,

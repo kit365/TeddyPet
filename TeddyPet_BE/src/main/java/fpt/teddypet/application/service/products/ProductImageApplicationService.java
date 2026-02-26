@@ -110,8 +110,10 @@ public class ProductImageApplicationService implements ProductImageService {
         if (image == null) {
             return null;
         }
-        if (!includeDeleted && image.isDeleted()) return null;
-        if (onlyActive && !image.isActive()) return null;
+        if (!includeDeleted && image.isDeleted())
+            return null;
+        if (onlyActive && !image.isActive())
+            return null;
 
         return productImageMapper.toInfo(image);
     }
@@ -145,45 +147,47 @@ public class ProductImageApplicationService implements ProductImageService {
     public void saveImages(ProductImageSaveRequest request) {
         Long productId = request.productId();
         List<ProductImageItemRequest> newImages = request.images() != null ? request.images() : List.of();
-        
+
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_START, productId);
-        
+
         Product product = getProductById(productId);
-        
+
         // Lấy danh sách images hiện tại của product (chưa bị xóa)
         List<ProductImage> existingImages = productImageRepositoryPort.findByProductId(productId);
-        
+
         // Lấy danh sách imageId từ request mới
         Set<Long> newImageIds = newImages.stream()
                 .map(ProductImageItemRequest::imageId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        
-        // Xóa các images có trong DB nhưng không có trong request mới (sử dụng bulk update)
+
+        // Xóa các images có trong DB nhưng không có trong request mới (sử dụng bulk
+        // update)
         Set<Long> imageIdsToDelete = existingImages.stream()
                 .map(ProductImage::getId)
                 .filter(imageId -> !newImageIds.contains(imageId))
                 .collect(Collectors.toSet());
-        
+
         if (!imageIdsToDelete.isEmpty()) {
             productImageRepositoryPort.softDeleteByIds(imageIdsToDelete);
             log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_DELETE, imageIdsToDelete.size());
         }
-        
+
         // Nếu không có images mới, trả về danh sách rỗng
         if (newImages.isEmpty()) {
             log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, 0, productId);
             return;
         }
-        
+
         // Tính max displayOrder từ danh sách images còn lại sau khi xóa
         List<ProductImage> remainingImages = existingImages.stream()
                 .filter(img -> !imageIdsToDelete.contains(img.getId()))
                 .toList();
-        int nextDisplayOrderValue = DisplayOrderUtil.getNextDisplayOrder(remainingImages, ProductImage::getDisplayOrder);
-        
+        int nextDisplayOrderValue = DisplayOrderUtil.getNextDisplayOrder(remainingImages,
+                ProductImage::getDisplayOrder);
+
         // Tạo hoặc cập nhật các images
-        final int[] nextDisplayOrder = {nextDisplayOrderValue};
+        final int[] nextDisplayOrder = { nextDisplayOrderValue };
         List<ProductImage> imagesToSave = newImages.stream()
                 .map(itemRequest -> {
                     ProductImage image;
@@ -198,7 +202,7 @@ public class ProductImageApplicationService implements ProductImageService {
                         // Create new image
                         image = ProductImage.builder().build();
                     }
-                    
+
                     // Map fields from request
                     image.setProduct(product);
                     image.setImageUrl(itemRequest.imageUrl());
@@ -213,12 +217,20 @@ public class ProductImageApplicationService implements ProductImageService {
                     setAltTextIfEmpty(image, product, itemRequest.altText());
                     image.setActive(true);
                     image.setDeleted(false);
-                    
+
                     return image;
                 })
                 .toList();
-        
+
         List<ProductImage> savedImages = productImageRepositoryPort.saveAll(imagesToSave);
+
+        // Synchronize the product's image collection to ensure other services in the
+        // same transaction see the updates
+        if (product.getImages() != null) {
+            product.getImages().clear();
+            product.getImages().addAll(savedImages);
+        }
+
         log.info(ProductImageLogMessages.LOG_PRODUCT_IMAGE_SAVE_IMAGES_SUCCESS, savedImages.size(), productId);
     }
 
@@ -249,7 +261,6 @@ public class ProductImageApplicationService implements ProductImageService {
         }
     }
 
-
     private void setDisplayOrderIfNull(ProductImage image, Long productId, Integer displayOrder) {
         if (displayOrder == null) {
             // Lấy max displayOrder hiện tại và +1 để đẩy lên cuối danh sách
@@ -261,4 +272,3 @@ public class ProductImageApplicationService implements ProductImageService {
         }
     }
 }
-

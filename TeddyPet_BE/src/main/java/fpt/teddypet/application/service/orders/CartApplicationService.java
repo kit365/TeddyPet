@@ -27,7 +27,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -49,14 +48,13 @@ public class CartApplicationService implements CartService {
         List<ProductVariant> variants = loadVariantsForCart(cart);
 
         List<CartItemResponse> itemResponses = cartItemService.toResponses(cart.getItems(), variants);
-        
 
         BigDecimal totalAmount = calculateTotalAmount(itemResponses);
         int totalItems = calculateTotalItems(cart.getItems());
-        
+
         CartResponse response = cartMapper.toResponse(cart, itemResponses, totalAmount, totalItems);
         log.info(CartLogMessages.LOG_CART_GET_SUCCESS, totalItems);
-        
+
         return response;
     }
 
@@ -117,7 +115,7 @@ public class CartApplicationService implements CartService {
 
         item.setQuantity(request.quantity());
         cartRepositoryPort.save(cart);
-        
+
         log.info(CartLogMessages.LOG_CART_UPDATE_SUCCESS, request.variantId(), request.quantity());
     }
 
@@ -153,9 +151,52 @@ public class CartApplicationService implements CartService {
         log.info(CartLogMessages.LOG_CART_CLEAR_SUCCESS);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CartResponse syncGuestCart(List<AddToCartRequest> items) {
+        if (items == null || items.isEmpty()) {
+            return CartResponse.builder()
+                    .items(List.of())
+                    .totalAmount(BigDecimal.ZERO)
+                    .totalItems(0)
+                    .build();
+        }
+
+        List<CartItem> cartItems = items.stream()
+                .map(item -> CartItem.builder()
+                        .variantId(item.variantId())
+                        .quantity(item.quantity())
+                        .build())
+                .toList();
+
+        List<ProductVariant> variants = items.stream()
+                .map(item -> {
+                    try {
+                        ProductVariant variant = productVariantService.getByIdForCart(item.variantId());
+                        if (variant.isDeleted() || !variant.isActive())
+                            return null;
+                        return variant;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        List<CartItemResponse> itemResponses = cartItemService.toResponses(cartItems, variants);
+        BigDecimal totalAmount = calculateTotalAmount(itemResponses);
+        int totalItems = itemResponses.stream().mapToInt(CartItemResponse::quantity).sum();
+
+        return CartResponse.builder()
+                .items(itemResponses)
+                .totalAmount(totalAmount)
+                .totalItems(totalItems)
+                .build();
+    }
+
     private Cart getOrCreateCart(UUID userId) {
         Optional<Cart> existingCart = cartRepositoryPort.findByUserId(userId.toString());
-        
+
         if (existingCart.isPresent()) {
             return existingCart.get();
         }
@@ -212,15 +253,15 @@ public class CartApplicationService implements CartService {
 
     private ProductVariant validateAndGetVariant(Long variantId) {
         log.info(CartLogMessages.LOG_CART_VALIDATE_VARIANT, variantId);
-        
+
         try {
             ProductVariant variant = productVariantService.getByIdForCart(variantId);
-            
+
             if (variant.isDeleted() || !variant.isActive()) {
                 log.warn(CartLogMessages.LOG_CART_VALIDATE_FAILED, "Product not available");
                 throw new IllegalStateException(CartMessages.MESSAGE_CART_PRODUCT_NOT_AVAILABLE);
             }
-            
+
             return variant;
         } catch (EntityNotFoundException e) {
             throw new EntityNotFoundException(
@@ -230,7 +271,7 @@ public class CartApplicationService implements CartService {
 
     private void validateStock(ProductVariant variant, int requestedQuantity) {
         int availableStock = variant.getStockQuantity().getValue();
-        log.info(CartLogMessages.LOG_CART_VALIDATE_STOCK, 
+        log.info(CartLogMessages.LOG_CART_VALIDATE_STOCK,
                 variant.getVariantId(), availableStock, requestedQuantity);
 
         if (availableStock <= 0) {
@@ -239,8 +280,8 @@ public class CartApplicationService implements CartService {
         }
 
         if (requestedQuantity > availableStock) {
-            log.warn(CartLogMessages.LOG_CART_VALIDATE_FAILED, 
-                    String.format("Insufficient stock: requested %d, available %d", 
+            log.warn(CartLogMessages.LOG_CART_VALIDATE_FAILED,
+                    String.format("Insufficient stock: requested %d, available %d",
                             requestedQuantity, availableStock));
             throw new IllegalStateException(
                     String.format(CartMessages.MESSAGE_CART_INSUFFICIENT_STOCK, availableStock));

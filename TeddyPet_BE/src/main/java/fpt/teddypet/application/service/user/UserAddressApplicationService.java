@@ -90,6 +90,11 @@ public class UserAddressApplicationService implements UserAddressService {
         }
     }
 
+    @Override
+    public UserAddress getEntityById(Long addressId, UUID userId) {
+        return getByIdAndUserId(addressId, userId);
+    }
+
     private UserAddress getByIdAndUserId(Long addressId, UUID userId) {
         UserAddress address = userAddressRepositoryPort.findById(addressId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy địa chỉ"));

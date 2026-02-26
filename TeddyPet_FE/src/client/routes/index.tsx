@@ -2,15 +2,19 @@ import type { RouteObject } from "react-router-dom";
 import { HomePage } from "../pages/home/HomePage";
 import { ProductDetailPage } from "../pages/product/ProductDetail";
 import { ProductListPage } from "../pages/product/ProductList";
+import { ProductCategoryPage } from "../pages/product/ProductCategoryPage";
 import { BlogListPage } from "../pages/blog/BlogList";
 import { BlogDetailPage } from "../pages/blog/BlogDetail";
 import { RegisterPage } from "../pages/auth/Register";
 import { LoginPage } from "../pages/auth/Login";
 import { BookingPage } from "../pages/booking/Booking";
+import { BookingDetailPage } from "../pages/booking/BookingDetail";
 import { ServicePage } from "../pages/service/Service";
 import { CartPage } from "../pages/cart/Cart";
+import { FeedbackPage } from "../pages/FeedbackPage";
 import { CheckoutPage } from "../pages/checkout/Checkout";
 import { CheckSuccessPage } from "../pages/checkout/CheckoutSuccess";
+import { OrderTrackingPage } from "../pages/checkout/OrderTracking";
 import { ProfilePage } from "../pages/dashboard/Profile";
 import { OverviewPage } from "../pages/dashboard/Overview";
 import { ProfileEditPage } from "../pages/dashboard/ProfileEdit";
@@ -23,6 +27,7 @@ import { ReviewPage } from "../pages/dashboard/Review";
 import { OrderDetailPage } from "../pages/dashboard/OrderDetail";
 import { OrderHistoryPage } from "../pages/dashboard/OrderHistory";
 import { OrderInvoicePage } from "../pages/dashboard/OrderInvoice";
+import { PetsPage } from "../pages/dashboard/Pets";
 import { AuthGuard } from "../components/guards/AuthGuard";
 
 import { ForgotPasswordPage } from "../pages/auth/ForgotPassword";
@@ -53,10 +58,16 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/blogs", element: <BlogListPage /> },
     { path: "/blog/detail/:slug", element: <BlogDetailPage /> },
     { path: "/dat-lich", element: <BookingPage /> },
+    { path: "/dat-lich/chi-tiet", element: <BookingDetailPage /> },
     { path: "/cart", element: <CartPage /> },
+    { path: "/wishlist", element: <WishlistPage /> },
+    { path: "/feedback", element: <FeedbackPage /> },
     { path: "/checkout", element: <CheckoutPage /> },
-    { path: "/order/success", element: <CheckSuccessPage /> },
+    { path: "/checkout/success", element: <CheckSuccessPage /> },
+    { path: "/tra-cuu-don-hang", element: <OrderTrackingPage /> },
+    { path: "/tracking", element: <OrderTrackingPage /> },
     { path: "/dich-vu", element: <ServicePage /> },
+    { path: "/danh-muc-san-pham/:slug", element: <ProductCategoryPage /> },
     {
         path: "/dashboard",
         element: <AuthGuard />,
@@ -67,12 +78,12 @@ export const ClientRoutes: RouteObject[] = [
             { path: "address", element: <AddressListPage /> },
             { path: "address/create", element: <AddressCreatePage /> },
             { path: "address/edit/:id", element: <AddressEditPage /> },
-            { path: "wishlist", element: <WishlistPage /> },
             { path: "change-password", element: <ChangePasswordPage /> },
             { path: "review", element: <ReviewPage /> },
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },
             { path: "order/detail/:id", element: <OrderDetailPage /> },
             { path: "orders", element: <OrderHistoryPage /> },
+            { path: "pets", element: <PetsPage /> },
         ]
     },
 ];

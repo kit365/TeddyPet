@@ -232,9 +232,10 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get(Product_.status), status);
     }
 
-    public static Specification<Product> buildStockFilterSpecification(String stockStatus, Integer threshold,
+    public static Specification<Product> buildStockFilterSpecification(
+            fpt.teddypet.domain.enums.StockStatusEnum stockStatus, Integer threshold,
             Boolean includeDeleted) {
-        if (stockStatus == null || stockStatus.trim().isEmpty()) {
+        if (stockStatus == null) {
             return null;
         }
 
@@ -250,7 +251,7 @@ public class ProductSpecification {
             variantSubquery.select(variantRoot.get(ProductVariant_.product).get(Product_.id));
 
             List<Predicate> variantPredicates = buildStockStatusPredicates(
-                    variantRoot, criteriaBuilder, stockStatus.trim().toUpperCase(), threshold);
+                    variantRoot, criteriaBuilder, stockStatus, threshold);
 
             addDeletedFilterIfNeeded(variantRoot, criteriaBuilder, includeDeleted, variantPredicates);
 
@@ -262,6 +263,40 @@ public class ProductSpecification {
         };
     }
 
+    private static List<Predicate> buildStockStatusPredicates(
+            Root<ProductVariant> variantRoot,
+            CriteriaBuilder criteriaBuilder,
+            fpt.teddypet.domain.enums.StockStatusEnum stockStatus,
+            Integer threshold) {
+        List<Predicate> predicates = new ArrayList<>();
+
+        Expression<Integer> stockValue = variantRoot.get(ProductVariant_.stockQuantity).get(StockQuantity_.value);
+
+        switch (stockStatus) {
+            case OUT_OF_STOCK:
+                predicates.add(criteriaBuilder.equal(stockValue, 0));
+                break;
+            case LOW_STOCK:
+                int stockThresholdValue = (threshold != null && threshold > 0) ? threshold : 10;
+                predicates.add(criteriaBuilder.and(
+                        criteriaBuilder.greaterThan(stockValue, 0),
+                        criteriaBuilder.lessThanOrEqualTo(stockValue, stockThresholdValue)));
+                break;
+            case IN_STOCK:
+                // In Stock generally means greater than 0
+                // But if we want strictly "Healthy Stock" (not low), we could do > threshold.
+                // However, "In Stock" usually just means available.
+                // If the user selects "In Stock", asking to exclude "Low Stock" is implicit or
+                // explicit?
+                // Typically "In Stock" = All items > 0. Filters are usually XOR or inclusive?
+                // Let's assume IN_STOCK means > 0.
+                predicates.add(criteriaBuilder.greaterThan(stockValue, 0));
+                break;
+        }
+
+        return predicates;
+    }
+
     private static void addDeletedFilterIfNeeded(
             Root<ProductVariant> variantRoot,
             CriteriaBuilder criteriaBuilder,
@@ -271,26 +306,6 @@ public class ProductSpecification {
             variantPredicates.add(
                     criteriaBuilder.equal(variantRoot.get(BaseEntity_.isDeleted), false));
         }
-    }
-
-    private static List<Predicate> buildStockStatusPredicates(
-            Root<ProductVariant> variantRoot,
-            CriteriaBuilder criteriaBuilder,
-            String stockStatusUpper,
-            Integer threshold) {
-        List<Predicate> predicates = new ArrayList<>();
-
-        if ("OUT_OF_STOCK".equals(stockStatusUpper)) {
-            predicates.add(
-                    criteriaBuilder.equal(variantRoot.get(ProductVariant_.stockQuantity).get(StockQuantity_.value), 0));
-        } else if ("LOW_STOCK".equals(stockStatusUpper)) {
-            int stockThresholdValue = (threshold != null && threshold > 0) ? threshold : 10;
-            predicates.add(
-                    criteriaBuilder.lessThan(variantRoot.get(ProductVariant_.stockQuantity).get(StockQuantity_.value),
-                            stockThresholdValue));
-        }
-
-        return predicates;
     }
 
     // C. Bộ lọc Kiểm toán & Chất lượng

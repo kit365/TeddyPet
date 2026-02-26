@@ -66,6 +66,15 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{productId}/related")
+    @Operation(summary = "Lấy sản phẩm liên quan", description = "Lấy danh sách các sản phẩm liên quan (cùng danh mục)")
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getRelatedProducts(
+            @PathVariable Long productId,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        PageResponse<ProductResponse> response = productService.getRelatedProducts(productId, limit);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping
     @Operation(summary = "Lấy danh sách sản phẩm có phân trang", description = "Lấy danh sách sản phẩm với phân trang, tìm kiếm và bộ lọc. ")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllPaged(
@@ -81,7 +90,7 @@ public class ProductController {
             @RequestParam(required = false) String ageRangeIds,
             // B. Bộ lọc Trạng thái & Vận hành
             @RequestParam(required = false) ProductStatusEnum status,
-            @RequestParam(required = false) String stockStatus,
+            @RequestParam(required = false) fpt.teddypet.domain.enums.StockStatusEnum stockStatus,
             @RequestParam(required = false) Integer stockThreshold,
             @RequestParam(required = false) Boolean includeDeletedVariants,
             // C. Bộ lọc Kiểm toán & Chất lượng

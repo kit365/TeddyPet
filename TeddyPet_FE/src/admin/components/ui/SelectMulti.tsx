@@ -15,6 +15,8 @@ interface Option {
 interface SelectMultiProps {
     label: string;
     options: Option[];
+    value?: string[];
+    onChange?: (value: string[]) => void;
 }
 
 // CSS
@@ -67,14 +69,23 @@ const CHECKBOX_STYLE = {
     marginRight: "4px",
 }
 
-export const SelectMulti = memo(({ label, options }: SelectMultiProps) => {
+export const SelectMulti = memo(({ label, options, value: valueProp, onChange }: SelectMultiProps) => {
     const { t } = useTranslation();
-    const [selectedValues, setSelectedValues] = useState<string[]>([]);
+    const [internalSelectedValues, setInternalSelectedValues] = useState<string[]>([]);
+
+    // Determine which values to use: from props or internal state
+    const selectedValues = valueProp !== undefined ? valueProp : internalSelectedValues;
 
     const handleChange = useCallback((event: SelectChangeEvent<string[]>) => {
         const { target: { value } } = event;
-        setSelectedValues(typeof value === 'string' ? value.split(',') : value);
-    }, []);
+        const newValue = typeof value === 'string' ? value.split(',') : value;
+
+        if (onChange) {
+            onChange(newValue);
+        } else {
+            setInternalSelectedValues(newValue);
+        }
+    }, [onChange]);
 
     const handleClose = useCallback(() => {
         setTimeout(() => {

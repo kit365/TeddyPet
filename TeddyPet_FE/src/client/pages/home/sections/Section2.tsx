@@ -6,25 +6,25 @@ const services = [
         image: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/service-png-img-alt-04.png",
         title: "Đồ dùng thú cưng",
         description: "Cung cấp đầy đủ các sản phẩm chăm sóc và phụ kiện chất lượng cao cho thú cưng.",
-        link: "/shop",
+        link: "/danh-muc-san-pham/bo-suu-tap-do-choi",
     },
     {
         image: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/service-png-img-alt-08.png",
         title: "Vui chơi",
         description: "Các hoạt động thể chất và vui chơi giúp thú cưng khỏe mạnh và năng động.",
-        link: "/shop",
+        link: "/danh-muc-san-pham/thuc-an-cho-meo",
     },
     {
         image: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/service-png-img-alt-07.png",
         title: "Nhà thú cưng",
         description: "Cung cấp không gian sống an toàn và thoải mái nhất cho thú cưng yêu quý.",
-        link: "/shop",
+        link: "/danh-muc-san-pham/thuc-an-cho-cho",
     },
     {
         image: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/service-png-img-alt-05.png",
         title: "Yêu thương",
         description: "Đồng hành cùng bạn trong hành trình tìm kiếm và nhận nuôi thú cưng phù hợp nhất.",
-        link: "/shop",
+        link: "/danh-muc-san-pham/phu-kien-cham-soc",
     }
 ];
 

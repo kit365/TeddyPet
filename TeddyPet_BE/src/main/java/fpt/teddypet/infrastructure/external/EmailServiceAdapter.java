@@ -1,6 +1,9 @@
 package fpt.teddypet.infrastructure.external;
 
+import fpt.teddypet.application.constants.common.GeneralConstants;
+import fpt.teddypet.application.constants.email.EmailConstants;
 import fpt.teddypet.application.port.output.EmailServicePort;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,11 +11,24 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import fpt.teddypet.domain.entity.Order;
+import fpt.teddypet.domain.entity.OrderItem;
+import fpt.teddypet.domain.entity.Payment;
+import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+import java.time.LocalDate;
 
 /**
  * Email service implementation using Spring Mail
@@ -24,12 +40,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmailServiceAdapter implements EmailServicePort {
 
     private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
+    private final AppSettingRepository appSettingRepository;
+    private EmailServiceAdapter self;
 
-    @Value("${spring.mail.username}")
+    @Autowired
+    public void setSelf(@Lazy EmailServiceAdapter self) {
+        this.self = self;
+    }
+
+    @Value("${spring.mail.from:noreply@teddypet.id.vn}")
     private String fromEmail;
+
+    @Value("${spring.mail.display-name:TeddyPet Support}")
+    private String displayName;
 
     @Value("${app.name:TeddyPet}")
     private String appName;
+
+    @Value("${app.hotline:1900 1234}")
+    private String hotline;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Async
     @Override
@@ -37,14 +70,14 @@ public class EmailServiceAdapter implements EmailServicePort {
     public void sendEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            message.setFrom(displayName + " <" + fromEmail + ">");
             message.setTo(to);
             message.setSubject(subject);
             message.setText(body);
             mailSender.send(message);
-            log.info("[EmailServiceAdapter] Email sent successfully to: {}", to);
+            log.info(EmailConstants.LOG_EMAIL_SENT_SUCCESS, to);
         } catch (Exception e) {
-            log.error("[EmailServiceAdapter] Failed to send email to: {}", to, e);
+            log.error(EmailConstants.LOG_EMAIL_SENT_FAILED, to, e);
         }
     }
 
@@ -55,128 +88,248 @@ public class EmailServiceAdapter implements EmailServicePort {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
+            helper.setFrom(fromEmail, displayName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
             mailSender.send(message);
-            log.info("[EmailServiceAdapter] HTML email sent successfully to: {}", to);
+            log.info(EmailConstants.LOG_HTML_EMAIL_SENT_SUCCESS, to);
         } catch (Exception e) {
-            log.error("[EmailServiceAdapter] Failed to send HTML email to: {}", to, e);
+            log.error(EmailConstants.LOG_HTML_EMAIL_SENT_FAILED, to, e);
         }
     }
 
     @Override
     public void sendBookingConfirmation(String to, Object bookingDetails) {
-        String subject = appName + " - Xác nhận đặt lịch";
-        String body = "Đặt lịch của bạn đã được xác nhận. Chi tiết: " + bookingDetails.toString();
-        sendEmail(to, subject, body);
+        String subject = String.format(EmailConstants.SUBJECT_BOOKING_CONFIRMATION, appName);
+        String body = String.format("Đặt lịch của bạn đã được xác nhận. Chi tiết: %s", bookingDetails.toString());
+        self.sendEmail(to, subject, body);
     }
 
     @Override
     public void sendOrderConfirmation(String to, Object orderDetails) {
-        String subject = appName + " - Xác nhận đơn hàng";
-        String body = "Đơn hàng của bạn đã được xác nhận. Chi tiết: " + orderDetails.toString();
-        sendEmail(to, subject, body);
+        String subject = String.format(EmailConstants.SUBJECT_ORDER_CONFIRMATION, appName);
+        String body = String.format("Đơn hàng của bạn đã được xác nhận. Chi tiết: %s", orderDetails.toString());
+        self.sendEmail(to, subject, body);
     }
 
     @Override
     public void sendPasswordResetEmail(String to, String resetToken, String resetLink) {
-        log.info("[EmailServiceAdapter] Sending password reset email to: {}", to);
-        
-        String subject = appName + " - Đặt lại mật khẩu";
-        
-        String htmlBody = """
-            <!DOCTYPE html>
-            <html lang="vi">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Đặt lại mật khẩu</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <!-- Header -->
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #FF6B6B; margin: 0; font-size: 28px;">🐾 %s</h1>
-                        <p style="color: #666; margin-top: 10px;">Yêu cầu đặt lại mật khẩu</p>
-                    </div>
-                    
-                    <!-- Content -->
-                    <div style="color: #333; line-height: 1.6;">
-                        <p>Xin chào,</p>
-                        <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Nhấn vào nút bên dưới để tiếp tục:</p>
-                        
-                        <!-- Button -->
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="%s" style="background: linear-gradient(135deg, #FF6B6B 0%%, #FF8E53 100%%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);">
-                                Đặt lại mật khẩu
-                            </a>
-                        </div>
-                        
-                        <!-- Alternative Link -->
-                        <p style="font-size: 14px; color: #666;">Hoặc sao chép đường link sau vào trình duyệt:</p>
-                        <p style="font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; color: #0066cc;">%s</p>
-                        
-                        <!-- Warning -->
-                        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0;">
-                            <p style="margin: 0; color: #856404; font-size: 14px;">
-                                ⚠️ <strong>Lưu ý:</strong> Link này sẽ hết hạn sau 15 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <!-- Footer -->
-                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #999; font-size: 12px;">
-                        <p>Email này được gửi tự động, vui lòng không trả lời.</p>
-                        <p>© 2026 %s. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """.formatted(appName, resetLink, resetLink, appName);
-        
-        sendHtmlEmail(to, subject, htmlBody);
-        log.info("[EmailServiceAdapter] Password reset email sent successfully to: {}", to);
+        log.info(EmailConstants.LOG_SEND_PASSWORD_RESET, to);
+
+        String subject = String.format(EmailConstants.SUBJECT_PASSWORD_RESET, appName);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_RESET_LINK, resetLink);
+
+        String htmlBody = templateEngine.process("email/auth/forgot-password", context);
+
+        self.sendHtmlEmail(to, subject, htmlBody);
     }
 
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendVerificationEmail(String to, String token, String link) {
-        log.info("[EmailServiceAdapter] Sending verification email to: {}", to);
-        String subject = "Xác nhận tài khoản - " + appName;
-        String htmlBody = """
-            <!DOCTYPE html>
-            <html lang="vi">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #4A90A4; margin: 0; font-size: 28px;">🐾 %s</h1>
-                        <p style="color: #666; margin-top: 10px;">Chào mừng bạn đến với mái nhà của các bé thú cưng!</p>
-                    </div>
-                    <div style="color: #333; line-height: 1.6;">
-                        <p>Xin chào,</p>
-                        <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>%s</strong>. Chỉ còn một bước cuối cùng nữa thôi, hãy nhấn vào nút bên dưới để xác thực tài khoản của bạn:</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="%s" style="background-color: #4A90A4; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
-                                Xác thực tài khoản
-                            </a>
-                        </div>
-                        <p style="font-size: 14px; color: #666;">Nếu nút trên không hoạt động, bạn có thể copy link sau vào trình duyệt:</p>
-                        <p style="font-size: 12px; word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; color: #0066cc;">%s</p>
-                    </div>
-                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #999; font-size: 12px;">
-                        <p>© 2026 %s. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """.formatted(appName, appName, link, link, appName);
-        sendHtmlEmail(to, subject, htmlBody);
+        log.info(EmailConstants.LOG_SEND_VERIFICATION, to);
+        String subject = String.format(EmailConstants.SUBJECT_ACCOUNT_VERIFICATION, appName);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_VERIFY_LINK, link);
+
+        String htmlBody = templateEngine.process("email/auth/verify-account", context);
+
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendGuestOrderOtp(String to, String otp) {
+        log.info(EmailConstants.LOG_SEND_GUEST_OTP, to);
+        String subject = String.format(EmailConstants.SUBJECT_GUEST_OTP, appName);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_OTP, otp);
+
+        String htmlBody = templateEngine.process("email/otp/guest-order", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendSecurityOtp(String to, String otp) {
+        log.info(EmailConstants.LOG_SEND_SECURITY_OTP, to);
+        String subject = String.format(EmailConstants.SUBJECT_SECURITY_OTP, appName);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_OTP, otp);
+
+        String htmlBody = templateEngine.process("email/auth/security-otp", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendOrderConfirmation(Order order) {
+        String logEmail = order.getGuestEmail() != null ? order.getGuestEmail()
+                : (order.getUser() != null ? order.getUser().getEmail() : "N/A");
+
+        String to = order.getGuestEmail() != null ? order.getGuestEmail()
+                : (order.getUser() != null ? order.getUser().getEmail() : null);
+        if (to == null) {
+            log.warn(EmailConstants.LOG_NO_RECIPIENT, order.getId());
+            return;
+        }
+
+        log.info(EmailConstants.LOG_SEND_ORDER_EMAIL, order.getOrderCode(), logEmail);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_WEB_URL, frontendUrl);
+        context.setVariable(EmailConstants.VAR_ORDER_CODE, order.getOrderCode());
+        context.setVariable(EmailConstants.VAR_ORDER_DATE,
+                order.getCreatedAt() != null
+                        ? order.getCreatedAt().atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        : LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+        // Payment Status Text
+        String paymentStatus = EmailConstants.LABEL_PAYMENT_PENDING;
+        if (!order.getPayments().isEmpty()) {
+            Payment p = order.getPayments().getFirst();
+            if (p.getStatus() == PaymentStatusEnum.COMPLETED) {
+                paymentStatus = EmailConstants.LABEL_PAYMENT_SUCCESS;
+            } else if (p.getPaymentMethod() == PaymentMethodEnum.CASH) {
+                paymentStatus = EmailConstants.LABEL_PAYMENT_COD;
+            }
+        }
+        context.setVariable(EmailConstants.VAR_PAYMENT_STATUS, paymentStatus);
+
+        context.setVariable(EmailConstants.VAR_FULL_NAME, order.getShippingName());
+        context.setVariable(EmailConstants.VAR_ITEMS, order.getOrderItems());
+        context.setVariable(EmailConstants.VAR_ITEM_COUNT,
+                order.getOrderItems().stream().mapToInt(OrderItem::getQuantity).sum());
+        context.setVariable(EmailConstants.VAR_SUBTOTAL, order.getSubtotal());
+        context.setVariable(EmailConstants.VAR_SHIPPING_FEE, order.getShippingFee());
+        context.setVariable(EmailConstants.VAR_SHIPPING_METHOD, EmailConstants.LABEL_SHIPPING_DEFAULT);
+        context.setVariable(EmailConstants.VAR_DISCOUNT, order.getDiscountAmount());
+        context.setVariable(EmailConstants.VAR_TOTAL, order.getFinalAmount());
+
+        context.setVariable(EmailConstants.VAR_PHONE_NUMBER, order.getShippingPhone());
+        context.setVariable(EmailConstants.VAR_ADDRESS, order.getShippingAddress());
+        context.setVariable(EmailConstants.VAR_NOTES, order.getNotes());
+
+        // Return details
+        if (order.getStatus() == OrderStatusEnum.RETURN_REQUESTED || order.getReturnRequestedAt() != null) {
+            context.setVariable("returnReason", order.getReturnReason());
+            context.setVariable("adminReturnNote", order.getAdminReturnNote());
+        }
+
+        String method = EmailConstants.LABEL_METHOD_COD;
+        if (!order.getPayments().isEmpty()) {
+            Payment p = order.getPayments().getFirst();
+            method = p.getPaymentMethod().name();
+            if ("VNPAY".equals(method) || "E_WALLET".equals(method)) {
+                method = EmailConstants.LABEL_METHOD_ONLINE;
+            }
+        }
+        context.setVariable(EmailConstants.VAR_PAYMENT_METHOD, method);
+
+        context.setVariable(EmailConstants.VAR_TRACK_ORDER_URL, frontendUrl + "/tracking?code=" + order.getOrderCode());
+
+        String cName = order.getUser() != null
+                ? (order.getUser().getFirstName() + " " + order.getUser().getLastName())
+                : order.getShippingName();
+        context.setVariable(EmailConstants.VAR_CUSTOMER_NAME, cName);
+
+        context.setVariable(EmailConstants.VAR_CUSTOMER_EMAIL, order.getUser() != null ? order.getUser().getEmail()
+                : (order.getGuestEmail() != null ? order.getGuestEmail() : EmailConstants.LABEL_NOT_AVAILABLE));
+        context.setVariable(EmailConstants.VAR_SHIPPING_EMAIL, order.getGuestEmail() != null ? order.getGuestEmail()
+                : (order.getUser() != null ? order.getUser().getEmail() : EmailConstants.LABEL_NOT_AVAILABLE));
+
+        // Headline dynamic based on status
+        String emailHeadline = EmailConstants.HEADLINE_ORDER_RECEIVED;
+        String subHeadline = EmailConstants.SUB_HEADLINE_ORDER_RECEIVED;
+        String subject = String.format(EmailConstants.SUBJECT_ORDER_RECEIVED, appName, order.getOrderCode());
+        String statusText = EmailConstants.STATUS_TEXT_RECEIVED;
+
+        if (order.getStatus() == OrderStatusEnum.CONFIRMED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_CONFIRMED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_CONFIRMED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_CONFIRMED, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_CONFIRMED;
+        } else if (order.getStatus() == OrderStatusEnum.PROCESSING) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_PREPARING;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_PREPARING;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_PREPARING, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_PREPARING;
+        } else if (order.getStatus() == OrderStatusEnum.DELIVERING) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_DELIVERING;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_DELIVERING;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_DELIVERING, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_DELIVERING;
+        } else if (order.getStatus() == OrderStatusEnum.DELIVERED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_DELIVERED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_DELIVERED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_DELIVERED, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_DELIVERED;
+        } else if (order.getStatus() == OrderStatusEnum.CANCELLED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_CANCELLED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_CANCELLED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_CANCELLED, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_CANCELLED;
+        } else if (order.getStatus() == OrderStatusEnum.COMPLETED) {
+            // Check if this is a Rejected Return
+            if (order.getReturnRequestedAt() != null && order.getAdminReturnNote() != null
+                    && !order.getAdminReturnNote().isBlank()) {
+                emailHeadline = EmailConstants.HEADLINE_ORDER_RETURN_REJECTED;
+                subHeadline = EmailConstants.SUB_HEADLINE_ORDER_RETURN_REJECTED;
+                subject = String.format(EmailConstants.SUBJECT_ORDER_RETURN_REJECTED, appName, order.getOrderCode());
+                statusText = EmailConstants.STATUS_TEXT_RETURN_REJECTED;
+            } else {
+                emailHeadline = EmailConstants.HEADLINE_ORDER_COMPLETED;
+                subHeadline = EmailConstants.SUB_HEADLINE_ORDER_COMPLETED;
+                subject = String.format(EmailConstants.SUBJECT_ORDER_STATUS_UPDATE, appName, order.getOrderCode());
+                statusText = EmailConstants.STATUS_TEXT_COMPLETED;
+            }
+        } else if (order.getStatus() == OrderStatusEnum.RETURNED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_RETURNED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_RETURNED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_RETURNED, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_RETURNED;
+        } else if (order.getStatus() == OrderStatusEnum.RETURN_REQUESTED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_RETURN_REQUESTED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_RETURN_REQUESTED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_RETURN_REQUESTED, appName, order.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_RETURN_REQUESTED;
+        }
+
+        context.setVariable(EmailConstants.VAR_EMAIL_HEADLINE, emailHeadline);
+        context.setVariable(EmailConstants.VAR_SUB_HEADLINE, subHeadline);
+        context.setVariable(EmailConstants.VAR_ORDER_STATUS, order.getStatus().name());
+        context.setVariable(EmailConstants.VAR_ORDER_STATUS_TEXT, statusText);
+
+        String htmlBody = templateEngine.process("email/orders/confirmation", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    private Context prepareContext() {
+        Context context = new Context();
+        context.setVariable(EmailConstants.VAR_APP_NAME, appName);
+        context.setVariable(EmailConstants.VAR_HOTLINE, hotline);
+
+        String facebookUrl = appSettingRepository.findBySettingKey("SOCIAL_FACEBOOK")
+                .map(fpt.teddypet.domain.entity.AppSetting::getSettingValue)
+                .orElse(GeneralConstants.FACEBOOK_URL);
+
+        String instagramUrl = appSettingRepository.findBySettingKey("SOCIAL_INSTAGRAM")
+                .map(fpt.teddypet.domain.entity.AppSetting::getSettingValue)
+                .orElse(GeneralConstants.INSTAGRAM_URL);
+
+        context.setVariable(EmailConstants.VAR_FACEBOOK_URL, facebookUrl);
+        context.setVariable(EmailConstants.VAR_INSTAGRAM_URL, instagramUrl);
+        return context;
     }
 }

@@ -1,4 +1,5 @@
 package fpt.teddypet.application.service.auth;
+
 import fpt.teddypet.application.constants.auth.AuthConstants;
 import fpt.teddypet.application.constants.user.UserLogMessages;
 import fpt.teddypet.application.port.input.UserService;
@@ -138,5 +139,35 @@ public class UserApplicationService implements UserService {
         user.setLockedAt(null);
         userRepositoryPort.save(user);
         log.info(UserLogMessages.LOG_USER_UNLOCKED, user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public fpt.teddypet.application.dto.response.UserProfileResponse updateProfile(User user,
+            fpt.teddypet.application.dto.request.user.UpdateProfileRequest request) {
+        log.info("Updating profile for user: {}", user.getUsername());
+
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setPhoneNumber(request.phoneNumber());
+        user.setDateOfBirth(request.dateOfBirth());
+        user.setGender(request.gender());
+
+        User savedUser = userRepositoryPort.save(user);
+        log.info("Profile updated successfully for user: {}", savedUser.getUsername());
+
+        return new fpt.teddypet.application.dto.response.UserProfileResponse(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                savedUser.getFirstName(),
+                savedUser.getLastName(),
+                savedUser.getPhoneNumber(),
+                savedUser.getAvatarUrl(),
+                savedUser.getAltImage(),
+                savedUser.getGender(),
+                savedUser.getDateOfBirth(),
+                savedUser.getStatus(),
+                savedUser.getRole().getName());
     }
 }

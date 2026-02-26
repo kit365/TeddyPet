@@ -12,29 +12,24 @@ export interface HomeProductParams {
     sortDirection?: string;
 }
 
-export const getHomeProducts = async (params: HomeProductParams) => {
-    // Convert array params to comma-separated strings or let axios handle it (usually axios handles arrays as repeated params or brackets depending on config)
-    // Spring Boot often expects repeated params like ?categorySlugs=a&categorySlugs=b. Axios does this by default with arrayFormat: 'repeat' usually, or default behavior.
-    // However, if the backend expects comma separated, we might need to join. 
-    // Let's assume standard axios behavior is fine for now, or check if we need paramsSerializer.
-    // If we simply pass params, axios will do params handling.
+const BASE_PATH = "/api/home";
 
-    const response = await apiApp.get("/api/home/products", { params });
+export const getHomeProducts = async (params: HomeProductParams) => {
+    const response = await apiApp.get(`${BASE_PATH}/products`, { params });
     return response.data;
 };
 
-
 export const getProductBrands = async () => {
-    const response = await apiApp.get("/api/home/product-brands");
+    const response = await apiApp.get(`${BASE_PATH}/product-brands`);
     return response.data;
 };
 
 export const getProductCategoryLeaves = async () => {
-    const response = await apiApp.get("/api/home/product-categories/leaves");
+    const response = await apiApp.get(`${BASE_PATH}/product-categories/leaves`);
     return response.data;
 };
 
 export const getSearchSuggestions = async (keyword: string) => {
-    const response = await apiApp.get("/api/home/products/search/suggestions", { params: { keyword } });
+    const response = await apiApp.get(`${BASE_PATH}/products/search/suggestions`, { params: { keyword } });
     return response.data;
 };

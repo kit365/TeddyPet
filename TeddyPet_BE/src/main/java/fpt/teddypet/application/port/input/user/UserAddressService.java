@@ -17,4 +17,7 @@ public interface UserAddressService {
     List<UserAddressResponse> getAllByUserId(UUID userId);
 
     void setDefault(Long addressId, UUID userId);
+
+    // Lấy entity để dùng trong Order service
+    fpt.teddypet.domain.entity.UserAddress getEntityById(Long addressId, UUID userId);
 }

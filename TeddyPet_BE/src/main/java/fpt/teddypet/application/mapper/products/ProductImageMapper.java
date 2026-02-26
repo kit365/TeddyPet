@@ -28,7 +28,7 @@ public interface ProductImageMapper {
     ProductImageResponse toResponse(ProductImage image);
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "url", source = "imageUrl")
+    @Mapping(target = "imageUrl", source = "imageUrl")
     @Mapping(target = "alt", source = "altText")
     ProductImageInfo toInfo(ProductImage image);
 

@@ -1,6 +1,8 @@
 import type { RouteObject } from "react-router-dom";
 import { ProductListPage } from "../pages/product/ProductListPage";
 import { ProductCreatePage } from "../pages/product/ProductCreatePage";
+import { ProductEditPage } from "../pages/product/ProductEditPage";
+import { ProductDetailPage } from "../pages/product/ProductDetailPage";
 import { ProductCategoryListPage } from "../pages/product-category/ProductCategoryListPage";
 import { ProductCategoryCreatePage } from "../pages/product-category/ProductCategoryCreatePage";
 import { ProductCategoryEditPage } from "../pages/product-category/ProductCategoryEditPage";
@@ -50,6 +52,14 @@ import { RoomTypeEditPage } from "../pages/room/RoomTypeEditPage";
 import { RoomListPage } from "../pages/room/RoomListPage";
 import { RoomCreatePage } from "../pages/room/RoomCreatePage";
 import { RoomEditPage } from "../pages/room/RoomEditPage";
+import { RoomLayoutConfigListPage } from "../pages/room/RoomLayoutConfigListPage";
+import { RoomLayoutEditorPage } from "../pages/room/RoomLayoutEditorPage";
+import { AmenityListPage } from "../pages/amenity/AmenityListPage";
+import { AmenityCreatePage } from "../pages/amenity/AmenityCreatePage";
+import { AmenityEditPage } from "../pages/amenity/AmenityEditPage";
+import { AmenityCategoryListPage } from "../pages/amenity/AmenityCategoryListPage";
+import { AmenityCategoryCreatePage } from "../pages/amenity/AmenityCategoryCreatePage";
+import { AmenityCategoryEditPage } from "../pages/amenity/AmenityCategoryEditPage";
 import { SkillListPage } from "../pages/staff/skill/SkillListPage";
 import { SkillCreatePage } from "../pages/staff/skill/SkillCreatePage";
 import { SkillEditPage } from "../pages/staff/skill/SkillEditPage";
@@ -70,8 +80,11 @@ import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "product/list", element: <ProductListPage /> },
     { path: "product/create", element: <ProductCreatePage /> },
+    { path: "product/edit/:id", element: <ProductEditPage /> },
+    { path: "product/detail/:id", element: <ProductDetailPage /> },
     { path: "product/attribute/list", element: <ProductAttributeListPage /> },
     { path: "product-attribute/create", element: <ProductAttributeCreatePage /> },
     { path: "product-attribute/edit/:id", element: <ProductAttributeEditPage /> },
@@ -120,6 +133,14 @@ export const AdminRoutes: RouteObject[] = [
     { path: "room/list", element: <RoomListPage /> },
     { path: "room/create", element: <RoomCreatePage /> },
     { path: "room/edit/:id", element: <RoomEditPage /> },
+    { path: "room-layout-config/list", element: <RoomLayoutConfigListPage /> },
+    { path: "room-layout-config/editor/:id", element: <RoomLayoutEditorPage /> },
+    { path: "amenity/list", element: <AmenityListPage /> },
+    { path: "amenity/create", element: <AmenityCreatePage /> },
+    { path: "amenity/edit/:id", element: <AmenityEditPage /> },
+    { path: "amenity-category/list", element: <AmenityCategoryListPage /> },
+    { path: "amenity-category/create", element: <AmenityCategoryCreatePage /> },
+    { path: "amenity-category/edit/:id", element: <AmenityCategoryEditPage /> },
     { path: "staff/profile/list", element: <StaffProfileListPage /> },
     { path: "staff/profile/onboarding", element: <StaffProfileOnboardingPage /> },
     { path: "staff/profile/edit/:id", element: <StaffProfileEditPage /> },

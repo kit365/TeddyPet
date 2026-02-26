@@ -45,5 +45,10 @@ public interface ProductService {
         // Dynamic search for home page
         PageResponse<ProductResponse> getHomeProducts(ProductHomeSearchRequest request);
 
+        // Get related products
+        PageResponse<ProductResponse> getRelatedProducts(Long productId, int limit);
+
         List<ProductSuggestionResponse> getSuggestions(String keyword);
+
+        void recalculateProductMetadata(Long productId);
 }

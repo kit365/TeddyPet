@@ -14,10 +14,14 @@ interface UploadSingleFileProps {
     onChange: (value: string) => void;
     disabled?: boolean;
     error?: string;
+    /** Nhãn hiển thị phía trên (mặc định: "Hình ảnh") */
+    title?: string;
+    /** Chế độ nhỏ gọn: nút/ô nhỏ thay vì vùng kéo thả lớn */
+    compact?: boolean;
 }
 
 export const UploadSingleFile = memo(
-    ({ value, onChange, disabled, error }: UploadSingleFileProps) => {
+    ({ value, onChange, disabled, error, title = "Hình ảnh", compact = false }: UploadSingleFileProps) => {
         const [localFile, setLocalFile] = useState<CustomFile | null>(null);
         const [isUploading, setIsUploading] = useState(false);
 
@@ -139,92 +143,118 @@ export const UploadSingleFile = memo(
             return error;
         };
 
-        return (
-            <Stack>
-                <Typography variant="h6" sx={{ fontSize: "1.4rem", fontWeight: 600, mb: "12px" }}>
-                    Hình ảnh
-                </Typography>
-
-                <div
-                    {...getRootProps()}
-                    className={`min-h-[280px] border border-[#919eab33] bg-[#919eab14] flex items-center justify-center cursor-pointer relative outline-none overflow-hidden p-[24px] rounded-[8px] hover:opacity-[0.72] transition-opacity duration-300 ease-linear ${isDragActive && "opacity-[0.72]"
-                        }`}
-                >
-                    <input {...getInputProps()} />
-
-                    <div className="w-full flex items-center justify-center flex-col">
-                        <UploadFileIcon />
-                        <div className="flex flex-col gap-[8px] text-center">
-                            <div className="text-[1.8rem] font-[600]">Kéo thả hoặc chọn tệp</div>
-                            <div className="text-[1.4rem] text-[#637381]">
-                                Kéo tệp vào đây, hoặc <span className="underline text-[#00A76F]">chọn tệp</span>
-                            </div>
+        const dropzoneContent = compact ? (
+            <div
+                {...getRootProps()}
+                className={`w-[72px] h-[72px] border-2 border-dashed border-[#919eab52] bg-[#919eab0d] flex items-center justify-center cursor-pointer rounded-[8px] hover:border-[#00A76F] hover:bg-[#00a76f0d] transition-colors ${isDragActive ? "border-[#00A76F] bg-[#00a76f14]" : ""}`}
+            >
+                <input {...getInputProps()} />
+                <UploadIcon sx={{ fontSize: 28, color: "#637381" }} />
+            </div>
+        ) : (
+            <div
+                {...getRootProps()}
+                className={`min-h-[280px] border border-[#919eab33] bg-[#919eab14] flex items-center justify-center cursor-pointer relative outline-none overflow-hidden p-[24px] rounded-[8px] hover:opacity-[0.72] transition-opacity duration-300 ease-linear ${isDragActive && "opacity-[0.72]"}`}
+            >
+                <input {...getInputProps()} />
+                <div className="w-full flex items-center justify-center flex-col">
+                    <UploadFileIcon />
+                    <div className="flex flex-col gap-[8px] text-center">
+                        <div className="text-[1.8rem] font-[600]">Kéo thả hoặc chọn tệp</div>
+                        <div className="text-[1.4rem] text-[#637381]">
+                            Kéo tệp vào đây, hoặc <span className="underline text-[#00A76F]">chọn tệp</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        );
 
-                {(error || (localFile && !value)) && (
-                    <FormHelperText error>
-                        {getErrorMessage()}
-                    </FormHelperText>
-                )}
+        return (
+            <Stack>
+                <Typography variant="h6" sx={{ fontSize: "1.4rem", fontWeight: 600, mb: "12px" }}>
+                    {title}
+                </Typography>
 
-                {(localFile || value) && (
+                {compact ? (
+                    <Stack direction="row" alignItems="flex-start" spacing={2} flexWrap="wrap" sx={{ gap: 2 }}>
+                        {dropzoneContent}
+                        {(localFile || value) && (
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                                <ul className="flex gap-[12px] flex-wrap list-none p-0 m-0">{renderThumb()}</ul>
+                                {localFile && (
+                                    <Stack direction="row" spacing={1}>
+                                        <Button
+                                            size="small"
+                                            onClick={handleRemove}
+                                            sx={{
+                                                p: "0px 8px", minHeight: "30px", fontSize: "1.2rem", fontWeight: 700,
+                                                textTransform: "none", border: "1px solid #919eab52", borderRadius: "8px",
+                                                color: "#1C252E", "&:hover": { bgcolor: "#919eab14" },
+                                            }}
+                                        >
+                                            Xóa
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            onClick={handleUpload}
+                                            startIcon={<UploadIcon />}
+                                            disabled={isUploading}
+                                            sx={{
+                                                p: "4px 8px", minHeight: "30px", fontSize: "1.2rem", fontWeight: 700,
+                                                textTransform: "none", color: "#fff", bgcolor: "#1C252E",
+                                                "&:hover": { bgcolor: "#454F5B" },
+                                            }}
+                                        >
+                                            {isUploading ? "Đang tải..." : "Tải lên"}
+                                        </Button>
+                                    </Stack>
+                                )}
+                            </Stack>
+                        )}
+                    </Stack>
+                ) : (
                     <>
-                        <Box sx={{ my: 3 }}>
-                            <ul className="flex gap-[12px] flex-wrap">{renderThumb()}</ul>
-                        </Box>
-
-                        {localFile && (
-                            <Box sx={{ gap: "12px", display: "flex", justifyContent: "flex-end" }}>
-                                <Button
-                                    size="small"
-                                    onClick={handleRemove}
-                                    sx={{
-                                        p: "0px 8px",
-                                        minHeight: "30px",
-                                        minWidth: "64px",
-                                        fontSize: "1.2rem",
-                                        fontWeight: "700",
-                                        textTransform: "none",
-                                        border: "1px solid #919eab52",
-                                        borderRadius: "8px",
-                                        color: "#1C252E",
-
-                                        '&:hover': {
-                                            bgcolor: "#919eab14",
-                                            borderColor: "currentColor",
-                                            boxShadow: "currentColor 0px 0px 0px 0.75px"
-                                        }
-                                    }}>
-                                    Xóa tất cả
-                                </Button>
-                                <Button
-                                    size="small"
-                                    onClick={handleUpload}
-                                    startIcon={<UploadIcon />}
-                                    sx={{
-                                        p: "4px 8px",
-                                        minHeight: "30px",
-                                        minWidth: "64px",
-                                        fontSize: "1.2rem",
-                                        fontWeight: "700",
-                                        textTransform: "none",
-                                        border: "1px solid #919eab52",
-                                        borderRadius: "8px",
-                                        color: "#fff",
-                                        bgcolor: "#1C252E",
-
-                                        '&:hover': {
-                                            bgcolor: "#454F5B",
-                                            boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                        }
-                                    }}>
-                                    {isUploading ? "Đang tải..." : "Tải lên"}
-                                </Button>
-                            </Box>
+                        {dropzoneContent}
+                        {(localFile || value) && (
+                            <>
+                                <Box sx={{ my: 3 }}>
+                                    <ul className="flex gap-[12px] flex-wrap">{renderThumb()}</ul>
+                                </Box>
+                                {localFile && (
+                                    <Box sx={{ gap: "12px", display: "flex", justifyContent: "flex-end" }}>
+                                        <Button
+                                            size="small"
+                                            onClick={handleRemove}
+                                            sx={{
+                                                p: "0px 8px", minHeight: "30px", minWidth: "64px", fontSize: "1.2rem",
+                                                fontWeight: 700, textTransform: "none", border: "1px solid #919eab52",
+                                                borderRadius: "8px", color: "#1C252E",
+                                                "&:hover": { bgcolor: "#919eab14", borderColor: "currentColor" },
+                                            }}
+                                        >
+                                            Xóa tất cả
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            onClick={handleUpload}
+                                            startIcon={<UploadIcon />}
+                                            sx={{
+                                                p: "4px 8px", minHeight: "30px", minWidth: "64px", fontSize: "1.2rem",
+                                                fontWeight: 700, textTransform: "none", color: "#fff", bgcolor: "#1C252E",
+                                                "&:hover": { bgcolor: "#454F5B", boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)" },
+                                            }}
+                                        >
+                                            {isUploading ? "Đang tải..." : "Tải lên"}
+                                        </Button>
+                                    </Box>
+                                )}
+                            </>
                         )}
                     </>
+                )}
+
+                {(error || (localFile && !value)) && (
+                    <FormHelperText error>{getErrorMessage()}</FormHelperText>
                 )}
             </Stack>
         );

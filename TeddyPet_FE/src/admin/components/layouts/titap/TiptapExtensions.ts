@@ -1,13 +1,13 @@
-import { TextStyleKit } from '@tiptap/extension-text-style'
+import { TextStyle } from '@tiptap/extension-text-style'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
-import Ai from '@tiptap-pro/extension-ai'
+
 
 export const getExtensions = (placeholder?: string) => [
-    TextStyleKit,
+    TextStyle,
     StarterKit,
     TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -59,9 +59,5 @@ export const getExtensions = (placeholder?: string) => [
     }),
     Placeholder.configure({
         placeholder: placeholder || 'Hãy viết điều gì đó tuyệt vời...',
-    }),
-    Ai.configure({
-        appId: 'APP_ID_HERE',
-        token: 'TOKEN_HERE',
     }),
 ]

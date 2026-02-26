@@ -23,7 +23,7 @@ public interface ProductMapper {
 
         @Mapping(target = "id", ignore = true)
         @Mapping(target = "slug", ignore = true)
-        @Mapping(target = "barcode", ignore = true)
+        // Barcode should be updatable
         @Mapping(target = "variants", ignore = true)
         @Mapping(target = "images", ignore = true)
         @Mapping(target = "ratings", ignore = true)

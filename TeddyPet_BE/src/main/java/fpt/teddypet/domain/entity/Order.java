@@ -1,4 +1,5 @@
 package fpt.teddypet.domain.entity;
+
 import fpt.teddypet.domain.entity.promotions.Promotion;
 import fpt.teddypet.domain.enums.promotions.DiscountTypeEnum;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
@@ -13,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Entity
 @Table(name = "orders")
@@ -32,8 +34,14 @@ public class Order extends BaseEntity {
     private String orderCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id") // Nullable cho guest checkout
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_address_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private UserAddress userAddress;
 
     @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
@@ -46,7 +54,6 @@ public class Order extends BaseEntity {
     @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
-    // mã voucher được lưu
     @Column(name = "voucher_code", length = 50)
     private String voucherCode;
 
@@ -56,7 +63,6 @@ public class Order extends BaseEntity {
     @EqualsAndHashCode.Exclude
     private Promotion promotion;
 
-    // (finalAmount = subtotal + shippingFee - discountAmount)
     @Column(name = "final_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal finalAmount;
 
@@ -81,6 +87,44 @@ public class Order extends BaseEntity {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "guest_email", length = 255)
+    private String guestEmail;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "delivering_at")
+    private LocalDateTime deliveringAt;
+
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelled_by", length = 100)
+    private String cancelledBy;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "return_reason", columnDefinition = "TEXT")
+    private String returnReason;
+
+    @Column(name = "return_evidence", columnDefinition = "TEXT")
+    private String returnEvidence; // Comma separated URLs
+
+    @Column(name = "return_requested_at")
+    private LocalDateTime returnRequestedAt;
+
+    @Column(name = "admin_return_note", columnDefinition = "TEXT")
+    private String adminReturnNote;
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
@@ -99,7 +143,6 @@ public class Order extends BaseEntity {
         payment.setOrder(this);
     }
 
-
     public void removePayment(Payment payment) {
         this.payments.remove(payment);
         payment.setOrder(null);
@@ -112,13 +155,31 @@ public class Order extends BaseEntity {
         this.finalAmount = safeSubTotal.add(safeShipping).subtract(safeDiscount).max(BigDecimal.ZERO);
     }
 
-    public void generateAndSetOrderCode() {
-        LocalDateTime now = LocalDateTime.now();
-        String datePart = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String timePart = now.format(DateTimeFormatter.ofPattern("HHmmss"));
-        this.orderCode = datePart + "-" + timePart + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+    @PrePersist
+    public void prePersist() {
+        if (this.orderCode == null) {
+            generateAndSetOrderCode();
+        }
     }
 
+    public void generateAndSetOrderCode() {
+        LocalDateTime now = LocalDateTime.now();
+        String datePart = now.format(DateTimeFormatter.ofPattern("yyMMdd")); // VD: 240131
+        String randomPart = generateSafeRandomString(5); // 5 ký tự an toàn
+        // Format: ORD-240131-A7K92
+        this.orderCode = "ORD-" + datePart + "-" + randomPart;
+    }
+
+    private static final String ALLOWED_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // Loại bỏ 0, O, 1, I
+
+    private String generateSafeRandomString(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int i = 0; i < length; i++) {
+            sb.append(ALLOWED_CHARS.charAt(random.nextInt(ALLOWED_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
     public void applyPromotion(Promotion promotion) {
         if (promotion == null) {

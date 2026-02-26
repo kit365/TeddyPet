@@ -24,7 +24,7 @@ public class Product extends BaseEntity {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 255)
-    private String slug; 
+    private String slug;
 
     @Column(name = "barcode", unique = true, length = 50)
     private String barcode; // Mã vạch/mã quét sản phẩm (do nhà sản xuất cung cấp)
@@ -74,39 +74,36 @@ public class Product extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     @Builder.Default
-    private ProductStatusEnum status = ProductStatusEnum.IN_STOCK;
+    private ProductStatusEnum status = ProductStatusEnum.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_type", nullable = false, length = 50)
+    @Builder.Default
+    private fpt.teddypet.domain.enums.ProductTypeEnum productType = fpt.teddypet.domain.enums.ProductTypeEnum.SIMPLE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "stock_status", nullable = false, length = 50)
+    @Builder.Default
+    private fpt.teddypet.domain.enums.StockStatusEnum stockStatus = fpt.teddypet.domain.enums.StockStatusEnum.OUT_OF_STOCK;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_product_categories",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "product_category_id")
-    )
+    @JoinTable(name = "product_product_categories", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "product_category_id"))
     @Builder.Default
     private List<ProductCategory> categories = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_product_tags",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "product_tag_id")
-    )
+    @JoinTable(name = "product_product_tags", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "product_tag_id"))
     @Builder.Default
     private List<ProductTag> tags = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_age_ranges",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "age_range_id")
-    )
+    @JoinTable(name = "product_age_ranges", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "age_range_id"))
     @Builder.Default
     private List<ProductAgeRange> ageRanges = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_brand_id")
     private ProductBrand brand;
-
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -122,12 +119,45 @@ public class Product extends BaseEntity {
     private List<Rating> ratings = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_product_attributes",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "attribute_id")
-    )
+    @JoinTable(name = "product_product_attributes", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "attribute_id"))
     @Builder.Default
     private List<ProductAttribute> attributes = new ArrayList<>();
-}
 
+    public void updateStockStatus(int totalStock) {
+        if (totalStock <= 0) {
+            this.stockStatus = fpt.teddypet.domain.enums.StockStatusEnum.OUT_OF_STOCK;
+        } else if (totalStock <= 10) {
+            this.stockStatus = fpt.teddypet.domain.enums.StockStatusEnum.LOW_STOCK;
+        } else {
+            this.stockStatus = fpt.teddypet.domain.enums.StockStatusEnum.IN_STOCK;
+        }
+    }
+
+    public void updatePriceRange() {
+        if (variants == null || variants.isEmpty()) {
+            this.minPrice = BigDecimal.ZERO;
+            this.maxPrice = BigDecimal.ZERO;
+            return;
+        }
+
+        List<ProductVariant> activeVariants = variants.stream()
+                .filter(v -> !v.isDeleted() && v.isActive())
+                .toList();
+
+        if (activeVariants.isEmpty()) {
+            this.minPrice = BigDecimal.ZERO;
+            this.maxPrice = BigDecimal.ZERO;
+            return;
+        }
+
+        this.minPrice = activeVariants.stream()
+                .map(v -> v.getPrice().getEffectivePrice())
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        this.maxPrice = activeVariants.stream()
+                .map(v -> v.getPrice().getEffectivePrice())
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+    }
+}

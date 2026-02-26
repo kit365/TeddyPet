@@ -47,10 +47,15 @@ public class Price {
         return saleAmount;
     }
 
-    public static Price toPrice(BigDecimal salePrice,BigDecimal price ) {
-        return salePrice != null
-                ? Price.of(price, salePrice)
-                : Price.of(price);
+    public static Price toPrice(BigDecimal salePrice, BigDecimal price) {
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) <= 0
+                || (price != null && salePrice.compareTo(price) >= 0)) {
+            return Price.of(price);
+        }
+        return Price.of(price, salePrice);
+    }
+
+    public BigDecimal getEffectivePrice() {
+        return saleAmount != null ? saleAmount : amount;
     }
 }
-

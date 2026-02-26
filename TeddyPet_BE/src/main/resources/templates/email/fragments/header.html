@@ -1,0 +1,36 @@
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Email Header</title>
+</head>
+
+<body>
+    <div th:fragment="header">
+        <!-- Kiểu Centered Logo mặc định cho Auth emails -->
+        <div th:if="${orderCode == null}" style="text-align: center; margin-bottom: 30px;">
+            <img src="https://i.imgur.com/V2kwkkK.png" alt="TeddyPet Logo"
+                style="width: 170px; display: inline-block;" />
+        </div>
+
+        <!-- Kiểu Top Bar cho Order emails -->
+        <table th:if="${orderCode != null}"
+            style="width: 100%; padding: 25px 40px; border-bottom: 1px solid #e2e8f0; border-spacing: 0;">
+            <tr>
+                <td style="text-align: left;">
+                    <a th:href="${webUrl != null ? webUrl : '#'}" style="text-decoration: none;">
+                        <img src="https://i.imgur.com/V2kwkkK.png" alt="TeddyPet Logo"
+                            style="width: 140px; display: block;" />
+                    </a>
+                </td>
+                <td
+                    style="text-align: right; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
+                    ĐƠN HÀNG #<span th:text="${orderCode}">ORD-000000</span><br />
+                    <span style="font-weight: 500; text-transform: none; letter-spacing: 0;">Ngày đặt: <span
+                            th:text="${orderDate}">01/01/2026</span></span>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>

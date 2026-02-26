@@ -16,4 +16,12 @@ public interface JwtTokenProviderPort {
      * Check if a token is blacklisted
      */
     boolean isTokenBlacklisted(String token);
+
+    String generateRefreshToken(String email);
+
+    void saveRefreshToken(String email, String refreshToken);
+
+    String getRefreshToken(String email);
+
+    void deleteRefreshToken(String email);
 }

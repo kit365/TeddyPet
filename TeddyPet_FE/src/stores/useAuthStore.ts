@@ -1,31 +1,7 @@
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import Cookies from "js-cookie";
-
-interface User {
-    id?: string;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber?: string;
-    avatarUrl?: string;
-    altImage?: string;
-    gender?: string;
-    dateOfBirth?: string;
-    status?: string;
-    role?: string;
-    expiresAt?: string;
-}
-
-interface AuthState {
-    user: User | null;
-    token: string | null;
-    isHydrated: boolean;
-    login: (user: User, token: string) => void;
-    logout: () => void;
-    set: (newState: Partial<AuthState>) => void;
-}
+import { AuthState } from "../types/auth.type";
 
 export const useAuthStore = create<AuthState>()(
     devtools(
@@ -34,12 +10,16 @@ export const useAuthStore = create<AuthState>()(
                 user: null,
                 token: null,
                 isHydrated: false,
-                login: (user, token) => {
+                login: (user, token, refreshToken) => {
                     Cookies.set("token", token);
+                    if (refreshToken) {
+                        Cookies.set("refreshToken", refreshToken);
+                    }
                     set({ user, token });
                 },
                 logout: () => {
                     Cookies.remove("token");
+                    Cookies.remove("refreshToken");
                     set({ user: null, token: null });
                 },
                 set: (newState) => set(newState),

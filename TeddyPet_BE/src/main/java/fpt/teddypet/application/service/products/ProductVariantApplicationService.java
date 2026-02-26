@@ -49,7 +49,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
         this.productAttributeValueRepositoryPort = productAttributeValueRepositoryPort;
     }
 
-
     private ProductVariant upsertVariant(ProductVariantRequest request) {
         Product product = productService.getById(request.productId());
 
@@ -64,8 +63,7 @@ public class ProductVariantApplicationService implements ProductVariantService {
                 request.weight(),
                 request.length(),
                 request.width(),
-                request.height()
-        );
+                request.height());
 
         if (isUpdate) {
             variant = getById(request.variantId());
@@ -80,6 +78,8 @@ public class ProductVariantApplicationService implements ProductVariantService {
         variant.setPrice(price);
         variant.setStockQuantity(stockQuantity);
         variant.setDimensions(dimensions);
+        variant.setStatus(
+                request.status() != null ? request.status() : fpt.teddypet.domain.enums.ProductStatusEnum.ACTIVE);
 
         if (request.featuredImageId() != null) {
             ProductImage featuredImage = product.getImages().stream()
@@ -87,6 +87,18 @@ public class ProductVariantApplicationService implements ProductVariantService {
                     .findFirst()
                     .orElse(null);
             variant.setFeaturedImage(featuredImage);
+        } else if (request.featuredImageUrl() != null && !request.featuredImageUrl().isBlank()) {
+            ProductImage featuredImage = product.getImages().stream()
+                    .filter(img -> img.getImageUrl().equals(request.featuredImageUrl()))
+                    .findFirst()
+                    .orElse(null);
+            variant.setFeaturedImage(featuredImage);
+        }
+
+        // Fallback: If no featured image is set, use the first image of the product if
+        // available
+        if (variant.getFeaturedImage() == null && product.getImages() != null && !product.getImages().isEmpty()) {
+            variant.setFeaturedImage(product.getImages().get(0));
         }
 
         // Load and set attributeValues if provided
@@ -110,17 +122,21 @@ public class ProductVariantApplicationService implements ProductVariantService {
         }
 
         // Auto-generate name from attributeValues
+        if (request.name() != null && !request.name().isEmpty()) {
+            variant.setName(request.name());
+        }
         generateNameFromAttributeValues(variant);
 
         // Auto-generate SKU
         String generatedSku = generateSkuForVariant(product, attributeValues);
         Sku sku = Sku.of(generatedSku);
-        
+
         // Validate SKU uniqueness only if SKU changed
         if (!isUpdate || variant.getSku() == null || !variant.getSku().getValue().equals(sku.getValue())) {
-            validateSkuUniqueness(sku.getValue(), variant.getSku() != null ? variant.getSku().getValue() : null, variant.getVariantId());
+            validateSkuUniqueness(sku.getValue(), variant.getSku() != null ? variant.getSku().getValue() : null,
+                    variant.getVariantId());
         }
-        
+
         variant.setSku(sku);
 
         return variant;
@@ -131,10 +147,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
                 .map(this::upsertVariant)
                 .toList();
     }
-
-
-
-
 
     @Override
     @Transactional
@@ -185,13 +197,20 @@ public class ProductVariantApplicationService implements ProductVariantService {
                             variantRequest.stockQuantity(),
                             variantRequest.unit(),
                             variantRequest.featuredImageId(),
-                            variantRequest.attributeValueIds()
-                    ))
+                            variantRequest.name(),
+                            variantRequest.featuredImageUrl(),
+                            variantRequest.status(),
+                            variantRequest.attributeValueIds()))
                     .toList();
 
             // Tạo hoặc cập nhật các variants (sử dụng batch save)
-            List<ProductVariant> savedVariants = productVariantRepositoryPort.saveAll(prepareVariantsForBatch(requestsWithProductId));
-            log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_SAVE_VARIANTS_SUCCESS, savedVariants.size(), productId);
+            List<ProductVariant> savedVariants = productVariantRepositoryPort
+                    .saveAll(prepareVariantsForBatch(requestsWithProductId));
+            log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_SAVE_VARIANTS_SUCCESS, savedVariants.size(),
+                    productId);
+
+            productService.recalculateProductMetadata(productId);
+
             return savedVariants.stream()
                     .map(productVariantMapper::toResponse)
                     .toList();
@@ -214,15 +233,14 @@ public class ProductVariantApplicationService implements ProductVariantService {
     public ProductVariant getByIdForCart(Long variantId) {
         log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_GET_BY_ID, variantId);
 
-
         ProductVariant variant = getById(variantId);
-        
+
         // Validate variant is available for cart (active and not deleted)
         if (variant.isDeleted() || !variant.isActive()) {
             throw new IllegalStateException(
                     String.format(ProductVariantMessages.MESSAGE_PRODUCT_VARIANT_NOT_AVAILABLE, variantId));
         }
-        
+
         return variant;
     }
 
@@ -250,11 +268,43 @@ public class ProductVariantApplicationService implements ProductVariantService {
 
     @Override
     @Transactional
+    public void deductStock(Long variantId, int quantity) {
+        log.info("Deducting stock for variant: {}, quantity: {}", variantId, quantity);
+        ProductVariant variant = getById(variantId);
+        int currentStock = variant.getStockQuantity().getValue();
+
+        if (currentStock < quantity) {
+            throw new IllegalStateException(
+                    String.format("Sản phẩm %s không đủ hàng. Còn lại: %d, Yêu cầu: %d",
+                            variant.getName(), currentStock, quantity));
+        }
+
+        variant.setStockQuantity(StockQuantity.of(currentStock - quantity));
+        productVariantRepositoryPort.save(variant);
+        log.info("Stock deducted successfully for variant: {}. New stock: {}", variantId, currentStock - quantity);
+    }
+
+    @Override
+    @Transactional
+    public void returnStock(Long variantId, int quantity) {
+        log.info("Returning stock for variant: {}, quantity: {}", variantId, quantity);
+        ProductVariant variant = getById(variantId);
+        int currentStock = variant.getStockQuantity().getValue();
+
+        variant.setStockQuantity(StockQuantity.of(currentStock + quantity));
+        productVariantRepositoryPort.save(variant);
+        log.info("Stock returned successfully for variant: {}. New stock: {}", variantId, currentStock + quantity);
+    }
+
+    @Override
+    @Transactional
     public void delete(Long variantId) {
         log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_DELETE_START, variantId);
         try {
             ProductVariant variant = getById(variantId);
+            Long productId = variant.getProduct().getId();
             deleteVariant(variant);
+            productService.recalculateProductMetadata(productId);
             log.info(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_DELETE_SUCCESS, variantId);
         } catch (Exception e) {
             log.error(ProductVariantLogMessages.LOG_PRODUCT_VARIANT_DELETE_ERROR, e.getMessage(), e);
@@ -280,11 +330,10 @@ public class ProductVariantApplicationService implements ProductVariantService {
         }
 
         ValidationUtils.ensureUnique(
-            () -> variantId != null
-                ? productVariantRepositoryPort.existsBySkuAndVariantIdNot(newSku, variantId)
-                : productVariantRepositoryPort.existsBySku(newSku),
-            ProductVariantMessages.MESSAGE_SKU_ALREADY_EXISTS
-        );
+                () -> variantId != null
+                        ? productVariantRepositoryPort.existsBySkuAndVariantIdNot(newSku, variantId)
+                        : productVariantRepositoryPort.existsBySku(newSku),
+                ProductVariantMessages.MESSAGE_SKU_ALREADY_EXISTS);
     }
 
     /**
@@ -293,21 +342,18 @@ public class ProductVariantApplicationService implements ProductVariantService {
      * Sắp xếp theo displayOrder của attribute và value
      */
     private void generateNameFromAttributeValues(ProductVariant variant) {
-        ValidationUtils.ensureNotNull(
-            variant.getAttributeValues(),
-            "attributeValueIds là bắt buộc để tự động sinh tên biến thể."
-        );
-        
-        ValidationUtils.ensure(
-            !variant.getAttributeValues().isEmpty(),
-            "attributeValueIds là bắt buộc để tự động sinh tên biến thể."
-        );
+        // Nếu không có variant attributes thì giữ nguyên tên cũ (hoặc tên Default)
+        if (variant.getAttributeValues() == null || variant.getAttributeValues().isEmpty()) {
+            return;
+        }
 
-        // Lấy danh sách attributeValues và sắp xếp theo displayOrder của attribute và value
+        // Lấy danh sách attributeValues và sắp xếp theo displayOrder của attribute và
+        // value
         // So sánh theo displayOrder của attribute trước
         // Nếu cùng attribute, so sánh theo displayOrder của value
         List<ProductAttributeValue> sortedValues = variant.getAttributeValues().stream()
-                .sorted(Comparator.comparingInt((ProductAttributeValue v) -> v.getAttribute().getDisplayOrder()).thenComparingInt(ProductAttributeValue::getDisplayOrder))
+                .sorted(Comparator.comparingInt((ProductAttributeValue v) -> v.getAttribute().getDisplayOrder())
+                        .thenComparingInt(ProductAttributeValue::getDisplayOrder))
                 .toList();
 
         // Ghép chuỗi: "Attribute: Value - Attribute: Value"
@@ -326,24 +372,23 @@ public class ProductVariantApplicationService implements ProductVariantService {
     private String generateSkuForVariant(Product product, List<ProductAttributeValue> attributeValues) {
         // Get parent SKU from product sku field
         String parentSku = product.getSku();
-        
+
         if (parentSku == null || parentSku.isBlank()) {
             // Fallback: generate parent SKU if not exists
             String brandName = product.getBrand() != null ? product.getBrand().getName() : "NB";
-            String categoryName = !product.getCategories().isEmpty() 
+            String categoryName = !product.getCategories().isEmpty()
                     ? product.getCategories().getFirst().getName()
                     : "GEN";
             parentSku = fpt.teddypet.application.util.SkuUtil.generateProductSku(
                     brandName, categoryName, product.getName());
         }
-        
+
         // Extract attribute value names
         List<String> attrNames = attributeValues.stream()
                 .map(ProductAttributeValue::getValue)
                 .toList();
-        
+
         // Generate variant SKU: PARENT-ATTR1-ATTR2
         return fpt.teddypet.application.util.SkuUtil.generateVariantSku(parentSku, attrNames);
     }
 }
-

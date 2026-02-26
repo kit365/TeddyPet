@@ -1,6 +1,31 @@
 import { Link } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { getAllSettings } from "../../../admin/api/setting.api";
+import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
 
 export const FooterCHPlay = () => {
+    const [appleStoreUrl, setAppleStoreUrl] = useState<string>('#');
+    const [playStoreUrl, setPlayStoreUrl] = useState<string>('#');
+
+    useEffect(() => {
+        const fetchShopSettings = async () => {
+            try {
+                const response = await getAllSettings();
+                if (response.success && response.data) {
+                    const settings = response.data;
+                    const appleStore = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_APPLE_STORE)?.settingValue;
+                    const playStore = settings.find(s => s.settingKey === APP_SETTING_KEYS.SOCIAL_PLAY_STORE)?.settingValue;
+
+                    if (appleStore) setAppleStoreUrl(appleStore);
+                    if (playStore) setPlayStoreUrl(playStore);
+                }
+            } catch (error) {
+                console.error("Error fetching shop settings for FooterCHPlay:", error);
+            }
+        };
+        fetchShopSettings();
+    }, []);
+
     return (
         <section className="relative px-[30px] py-[150px] footer-desc">
             <div className="app-container max-w-[1680px] flex gap-[60px] 2xl:gap-[40px]">
@@ -59,10 +84,10 @@ export const FooterCHPlay = () => {
                         </li>
                     </ul>
                     <div className="flex items-center gap-[15px]">
-                        <Link to={"#"}>
+                        <Link to={appleStoreUrl}>
                             <img src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/apple-store.png" alt="Teddy Pet" />
                         </Link>
-                        <Link to={"#"}>
+                        <Link to={playStoreUrl}>
                             <img src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/play-store.png" alt="Teddy Pet" />
                         </Link>
                     </div>
