@@ -13,8 +13,10 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Khởi tạo dữ liệu: 2 loại phòng (Phòng thường, VIP) và các phòng (24 phòng thường + 12 phòng VIP).
- * Chỉ tạo khi chưa tồn tại (theo slug cho room_type, theo room_type chưa có phòng cho rooms).
+ * Khởi tạo dữ liệu: 2 loại phòng (Phòng thường, VIP) và các phòng (24 phòng
+ * thường + 12 phòng VIP).
+ * Chỉ tạo khi chưa tồn tại (theo slug cho room_type, theo room_type chưa có
+ * phòng cho rooms).
  */
 @Slf4j
 @Component
@@ -48,8 +50,7 @@ public class RoomDataInitializer implements CommandLineRunner {
                 "Phòng giữ thú cưng tiêu chuẩn",
                 "Phòng tiêu chuẩn",
                 1,
-                24
-        );
+                24);
         createRoomsIfNone(phongThuong, "P", 24, "Phòng thường %d");
 
         RoomType vip = createRoomTypeIfNotExists(
@@ -59,14 +60,13 @@ public class RoomDataInitializer implements CommandLineRunner {
                 "Phòng cao cấp cho thú cưng",
                 "Phòng VIP",
                 2,
-                12
-        );
+                12);
         createRoomsIfNone(vip, "VIP", 12, "Phòng VIP %d");
     }
 
     private RoomType createRoomTypeIfNotExists(String typeName, String displayTypeName, String slug,
-                                               String description, String shortDescription,
-                                               int displayOrder, int totalRooms) {
+            String description, String shortDescription,
+            int displayOrder, int totalRooms) {
         if (roomTypeRepository.existsBySlug(slug)) {
             return roomTypeRepository.findBySlug(slug).orElseThrow();
         }
@@ -102,7 +102,6 @@ public class RoomDataInitializer implements CommandLineRunner {
                     .roomType(roomType)
                     .roomNumber(roomNumber)
                     .roomName(roomName)
-                    .block(null)
                     .tier(null)
                     .status(RoomStatusEnum.AVAILABLE)
                     .build();

@@ -5,11 +5,12 @@ import java.time.LocalDateTime;
 public record RoomLayoutConfigResponse(
         Long id,
         String layoutName,
-        String block,
         Integer maxRows,
         Integer maxCols,
         String backgroundImage,
+        String status,
+        Long serviceId,
+        String serviceName,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

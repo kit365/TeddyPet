@@ -14,11 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(ApiConstants.API_ROOM_LAYOUT_CONFIGS)
 @RequiredArgsConstructor
-@Tag(name = "Room Layout Config", description = "Cấu hình lưới sắp xếp phòng (maxRows, maxCols, block)")
+@Tag(name = "Room Layout Config", description = "Cấu hình lưới sắp xếp phòng (maxRows, maxCols, status, serviceId)")
 public class RoomLayoutConfigController {
 
     private final RoomLayoutConfigService layoutConfigService;
@@ -36,7 +37,7 @@ public class RoomLayoutConfigController {
     }
 
     @PostMapping
-    @Operation(summary = "Create layout config (sân chơi: maxRows, maxCols)")
+    @Operation(summary = "Create layout config")
     public ResponseEntity<ApiResponse<RoomLayoutConfigResponse>> create(
             @Valid @RequestBody RoomLayoutConfigUpsertRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,10 +50,20 @@ public class RoomLayoutConfigController {
             @PathVariable Long id,
             @Valid @RequestBody RoomLayoutConfigUpsertRequest request) {
         RoomLayoutConfigUpsertRequest withId = new RoomLayoutConfigUpsertRequest(
-                id, request.layoutName(), request.block(), request.maxRows(), request.maxCols(),
-                request.backgroundImage());
+                id, request.layoutName(), request.maxRows(), request.maxCols(),
+                request.backgroundImage(), request.serviceId());
         return ResponseEntity
                 .ok(ApiResponse.success("Cập nhật layout thành công.", layoutConfigService.update(withId)));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Update layout config status")
+    public ResponseEntity<ApiResponse<RoomLayoutConfigResponse>> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công.",
+                layoutConfigService.updateStatus(id, status)));
     }
 
     @DeleteMapping("/{id}")

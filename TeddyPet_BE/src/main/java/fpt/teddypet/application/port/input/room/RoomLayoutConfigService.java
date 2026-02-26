@@ -15,5 +15,7 @@ public interface RoomLayoutConfigService {
 
     RoomLayoutConfigResponse update(RoomLayoutConfigUpsertRequest request);
 
+    RoomLayoutConfigResponse updateStatus(Long id, String status);
+
     void delete(Long id);
 }

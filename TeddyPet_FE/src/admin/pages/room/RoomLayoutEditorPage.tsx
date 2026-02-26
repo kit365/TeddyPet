@@ -1,14 +1,15 @@
-import { Box, Button, Card, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, Stack, Divider } from '@mui/material';
+import { Box, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Typography, Stack, Divider } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getRoomLayoutConfigById, getRooms, setRoomPosition, type IRoom, type IRoomLayoutConfig } from '../../api/room.api';
+import { getRoomLayoutConfigById, getRooms, getRoomTypes, setRoomPosition, type IRoom, type IRoomLayoutConfig, type IRoomType } from '../../api/room.api';
 import { ApiResponse } from '../../config/type';
 import { prefixAdmin } from '../../constants/routes';
 import { toast } from 'react-toastify';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { ListHeader } from '../../components/ui/ListHeader';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 const cellSize = 64;
 
@@ -21,8 +22,9 @@ export const RoomLayoutEditorPage = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [roomNumber, setRoomNumber] = useState('');
     const [tier, setTier] = useState('');
+    const [selectedRoomTypeFilter, setSelectedRoomTypeFilter] = useState<number | ''>('');
     const leftCardRef = useRef<HTMLDivElement>(null);
-    const [leftHeight, setLeftHeight] = useState<number | 'auto'>('auto');
+    const [leftHeight, setLeftHeight] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         if (!leftCardRef.current) return;
@@ -46,10 +48,51 @@ export const RoomLayoutEditorPage = () => {
         queryFn: () => getRooms(),
         select: (res: ApiResponse<IRoom[]>) => res.data ?? [],
     });
+    const { data: roomTypes = [] } = useQuery({
+        queryKey: ['room-types'],
+        queryFn: () => getRoomTypes(),
+        select: (res: ApiResponse<IRoomType[]>) => res.data ?? [],
+    });
 
     const layoutId = layout?.id;
-    const placedRooms = (rooms as IRoom[]).filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null);
-    const unplacedRooms = (rooms as IRoom[]).filter((r) => !r.roomLayoutConfigId || r.roomLayoutConfigId !== layoutId);
+    const layoutServiceId = layout?.serviceId;
+
+    // Build a map from roomTypeId -> serviceId
+    const roomTypeServiceMap = useMemo(() => {
+        const map = new Map<number, number | null>();
+        roomTypes.forEach((rt) => {
+            map.set(rt.roomTypeId, rt.serviceId ?? null);
+        });
+        return map;
+    }, [roomTypes]);
+
+    // Room types that belong to the layout's service (used for the filter dropdown)
+    const serviceRoomTypes = useMemo(() => {
+        if (!layoutServiceId) return roomTypes;
+        return roomTypes.filter((rt) => rt.serviceId === layoutServiceId);
+    }, [roomTypes, layoutServiceId]);
+
+    const placedRooms = useMemo(() =>
+        (rooms as IRoom[]).filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
+        [rooms, layoutId]);
+
+    const unplacedRooms = useMemo(() => {
+        let filtered = (rooms as IRoom[]).filter((r) => {
+            // Must be unplaced for this layout
+            if (r.roomLayoutConfigId && r.roomLayoutConfigId === layoutId) return false;
+            // If the layout has a serviceId, only show rooms whose RoomType is linked to the same service
+            if (layoutServiceId) {
+                const roomServiceId = roomTypeServiceMap.get(r.roomTypeId);
+                return roomServiceId === layoutServiceId;
+            }
+            return true;
+        });
+        // Apply room type filter
+        if (selectedRoomTypeFilter) {
+            filtered = filtered.filter((r) => r.roomTypeId === selectedRoomTypeFilter);
+        }
+        return filtered;
+    }, [rooms, layoutId, layoutServiceId, roomTypeServiceMap, selectedRoomTypeFilter]);
 
     const { mutate: placeRoom, isPending: isPlacing } = useMutation({
         mutationFn: ({ roomId, row, col }: { roomId: number; row: number; col: number }) =>
@@ -134,8 +177,31 @@ export const RoomLayoutEditorPage = () => {
                     { label: 'Sắp xếp phòng' },
                 ]}
                 addButtonLabel="Thêm phòng mới"
-                addButtonPath={`/${prefixAdmin}/room/create`} // Or wherever room creation points
+                addButtonPath={`/${prefixAdmin}/room/create`}
             />
+
+            {/* Layout info banner */}
+            {layout.serviceName && (
+                <Box sx={{ mx: '40px', display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, py: 1.5, borderRadius: '12px', background: 'rgba(0, 184, 217, 0.08)', border: '1px solid rgba(0, 184, 217, 0.24)' }}>
+                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: '#006C9C' }}>
+                        Dịch vụ:
+                    </Typography>
+                    <Chip
+                        label={layout.serviceName}
+                        size="small"
+                        sx={{
+                            bgcolor: 'rgba(0, 184, 217, 0.16)',
+                            color: '#006C9C',
+                            fontWeight: 700,
+                            fontSize: '1.3rem',
+                            height: 28,
+                        }}
+                    />
+                    <Typography sx={{ fontSize: '1.3rem', color: '#637381', ml: 1 }}>
+                        Chỉ hiển thị phòng thuộc loại phòng của dịch vụ này
+                    </Typography>
+                </Box>
+            )}
 
             <Box sx={{ display: 'flex', gap: 3, mx: '40px', mb: '40px', flexWrap: { xs: 'wrap', md: 'nowrap' }, justifyContent: 'center', alignItems: 'flex-start' }}>
                 <Card
@@ -222,10 +288,12 @@ export const RoomLayoutEditorPage = () => {
                     elevation={0}
                     sx={{
                         width: { xs: '100%', md: 320 },
-                        height: leftHeight,
+                        height: leftHeight ? `${leftHeight}px` : 'auto',
+                        maxHeight: leftHeight ? `${leftHeight}px` : 'none',
                         flexShrink: 0,
                         backgroundColor: '#fff',
                         borderRadius: '16px',
+                        overflow: 'hidden',
                         boxShadow: '0 12px 24px 0 rgba(145,158,171,0.16)',
                         border: '1px solid rgba(145,158,171,0.24)',
                         display: 'flex',
@@ -241,12 +309,61 @@ export const RoomLayoutEditorPage = () => {
                         </Typography>
                     </Box>
 
+                    {/* Room type filter */}
+                    <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: '1.3rem' }}>
+                                <FilterListIcon sx={{ fontSize: '1.4rem', mr: 0.5, verticalAlign: 'middle' }} />
+                                Lọc theo loại phòng
+                            </InputLabel>
+                            <Select
+                                value={selectedRoomTypeFilter}
+                                onChange={(e) => setSelectedRoomTypeFilter(e.target.value as number | '')}
+                                label="Lọc theo loại phòng___"
+                                sx={{
+                                    fontSize: '1.3rem',
+                                    borderRadius: '10px',
+                                    '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(145,158,171,0.32)' },
+                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#919EAB' },
+                                }}
+                            >
+                                <MenuItem value="" sx={{ fontSize: '1.3rem' }}>
+                                    <em>Tất cả loại phòng ({unplacedRooms.length + (selectedRoomTypeFilter ? (rooms as IRoom[]).filter((r) => {
+                                        if (r.roomLayoutConfigId && r.roomLayoutConfigId === layoutId) return false;
+                                        if (layoutServiceId) {
+                                            const roomServiceId = roomTypeServiceMap.get(r.roomTypeId);
+                                            return roomServiceId === layoutServiceId;
+                                        }
+                                        return true;
+                                    }).length - unplacedRooms.length : 0)})</em>
+                                </MenuItem>
+                                {serviceRoomTypes.map((rt) => {
+                                    const count = (rooms as IRoom[]).filter((r) => {
+                                        if (r.roomLayoutConfigId && r.roomLayoutConfigId === layoutId) return false;
+                                        if (layoutServiceId) {
+                                            const roomServiceId = roomTypeServiceMap.get(r.roomTypeId);
+                                            if (roomServiceId !== layoutServiceId) return false;
+                                        }
+                                        return r.roomTypeId === rt.roomTypeId;
+                                    }).length;
+                                    return (
+                                        <MenuItem key={rt.roomTypeId} value={rt.roomTypeId} sx={{ fontSize: '1.3rem' }}>
+                                            {rt.displayTypeName || rt.typeName} ({count})
+                                        </MenuItem>
+                                    );
+                                })}
+                            </Select>
+                        </FormControl>
+                    </Box>
+
                     <Box sx={{ p: 2, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         {roomsLoading ? (
                             <Typography sx={{ fontSize: '1.4rem', color: '#637381', textAlign: 'center', py: 4 }}>Đang tải...</Typography>
                         ) : unplacedRooms.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 4, px: 2, background: '#F9FAFB', borderRadius: '12px', border: '1px dashed rgba(145, 158, 171, 0.24)' }}>
-                                <Typography sx={{ fontSize: '1.4rem', color: '#637381' }}>Không có chuồng nào cần xếp.</Typography>
+                                <Typography sx={{ fontSize: '1.4rem', color: '#637381' }}>
+                                    {selectedRoomTypeFilter ? 'Không có chuồng nào thuộc loại phòng này.' : 'Không có chuồng nào cần xếp.'}
+                                </Typography>
                             </Box>
                         ) : (
                             unplacedRooms.map((room) => (
@@ -272,11 +389,11 @@ export const RoomLayoutEditorPage = () => {
                                     }}
                                 >
                                     <DragIndicatorIcon sx={{ color: '#919EAB' }} />
-                                    <Box>
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
                                         <Typography sx={{ fontSize: '1.4rem', fontWeight: 600 }}>
                                             {room.roomName || room.roomNumber || `Phòng #${room.roomId}`}
                                         </Typography>
-                                        <Typography sx={{ fontSize: '1.2rem', color: '#637381' }}>
+                                        <Typography sx={{ fontSize: '1.2rem', color: '#637381', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {room.roomTypeName || 'Chưa phân loại'}
                                         </Typography>
                                     </Box>

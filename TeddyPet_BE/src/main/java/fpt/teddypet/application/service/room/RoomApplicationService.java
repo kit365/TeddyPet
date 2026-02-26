@@ -50,7 +50,7 @@ public class RoomApplicationService implements RoomService {
         roomMapper.updateRoomFromRequest(request, entity);
         entity.setRoomType(roomType);
 
-        // roomNumber, block, tier are not settable via API; they are set by other logic
+        // roomNumber, tier are not settable via API; they are set by other logic
 
         if (request.isActive() != null) {
             entity.setActive(request.isActive());
@@ -104,7 +104,7 @@ public class RoomApplicationService implements RoomService {
         if (roomRepositoryPort.existsByRoomLayoutConfigIdAndGridRowAndGridColAndTierAndIdNot(
                 layout.getId(), request.gridRow(), request.gridCol(), tier, roomId)) {
             throw new IllegalStateException(String.format(RoomMessages.MESSAGE_ROOM_POSITION_OCCUPIED,
-                    layout.getBlock(), request.gridRow(), request.gridCol(), tier));
+                    request.gridRow(), request.gridCol(), tier));
         }
 
         room.setRoomNumber(roomNumber);
@@ -112,7 +112,6 @@ public class RoomApplicationService implements RoomService {
         room.setGridRow(request.gridRow());
         room.setGridCol(request.gridCol());
         room.setRoomLayoutConfig(layout);
-        room.setBlock(layout.getBlock());
         room.setIsSorted(true);
         Room saved = roomRepositoryPort.save(room);
         return roomMapper.toResponse(saved);

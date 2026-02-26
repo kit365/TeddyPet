@@ -14,7 +14,6 @@ export const roomUpsertSchema = z.object({
     ),
     roomNumber: z.string().max(50).optional(),
     roomName: z.string().max(255).optional(),
-    block: z.string().max(100).optional(),
     floor: z.string().max(50).optional(),
     additionalAmenities: z.string().optional().nullable(),
     removedAmenities: z.string().optional().nullable(),
