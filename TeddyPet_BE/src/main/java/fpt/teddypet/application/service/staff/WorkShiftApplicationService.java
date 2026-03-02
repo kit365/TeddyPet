@@ -14,12 +14,16 @@ import fpt.teddypet.domain.enums.staff.RegistrationStatus;
 import fpt.teddypet.domain.enums.staff.ShiftStatus;
 import fpt.teddypet.domain.exception.AlreadyRegisteredException;
 import fpt.teddypet.domain.exception.InvalidShiftStatusException;
+import fpt.teddypet.domain.exception.ShiftMustBeNextWeekException;
 import fpt.teddypet.domain.exception.ShiftNotFoundException;
+import fpt.teddypet.domain.exception.ShiftOverlapException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,9 +36,36 @@ public class WorkShiftApplicationService implements WorkShiftService {
     private final WorkShiftRegistrationRepositoryPort registrationRepositoryPort;
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
 
+    /** Tuần tiếp theo: từ Thứ 2 00:00 đến Chủ nhật 23:59:59 */
+    private static LocalDateTime[] getNextWeekRange() {
+        LocalDate today = LocalDate.now();
+        DayOfWeek dow = today.getDayOfWeek();
+        int daysUntilNextMonday = dow == DayOfWeek.SUNDAY ? 1 : (dow == DayOfWeek.MONDAY ? 7 : 8 - dow.getValue());
+        LocalDate nextMonday = today.plusDays(daysUntilNextMonday);
+        LocalDate nextSunday = nextMonday.plusDays(6);
+        LocalDateTime start = nextMonday.atStartOfDay();
+        LocalDateTime end = nextSunday.atTime(23, 59, 59);
+        return new LocalDateTime[]{start, end};
+    }
+
     @Override
     @Transactional
     public WorkShiftResponse createOpenShift(OpenShiftRequest request) {
+        LocalDateTime[] nextWeek = getNextWeekRange();
+        LocalDateTime weekStart = nextWeek[0];
+        LocalDateTime weekEnd = nextWeek[1];
+        if (request.startTime().isBefore(weekStart) || request.startTime().isAfter(weekEnd)) {
+            throw new ShiftMustBeNextWeekException("Chỉ được tạo ca trống cho tuần tiếp theo. Giờ bắt đầu phải trong khoảng " + weekStart + " đến " + weekEnd);
+        }
+        if (request.endTime().isBefore(weekStart) || request.endTime().isAfter(weekEnd)) {
+            throw new ShiftMustBeNextWeekException("Chỉ được tạo ca trống cho tuần tiếp theo. Giờ kết thúc phải trong khoảng " + weekStart + " đến " + weekEnd);
+        }
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu");
+        }
+        if (!workShiftRepositoryPort.findOverlapping(request.startTime(), request.endTime(), null).isEmpty()) {
+            throw new ShiftOverlapException("Ca làm trùng với ca đã có. Vui lòng chọn giờ khác.");
+        }
         WorkShift shift = WorkShift.builder()
                 .startTime(request.startTime())
                 .endTime(request.endTime())
@@ -43,6 +74,92 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 .build();
         WorkShift saved = workShiftRepositoryPort.save(shift);
         return toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public List<WorkShiftResponse> createOpenShiftsBatch(List<OpenShiftRequest> requests) {
+        LocalDateTime[] nextWeek = getNextWeekRange();
+        LocalDateTime weekStart = nextWeek[0];
+        LocalDateTime weekEnd = nextWeek[1];
+        for (OpenShiftRequest req : requests) {
+            if (req.startTime().isBefore(weekStart) || req.startTime().isAfter(weekEnd)) {
+                throw new ShiftMustBeNextWeekException("Chỉ được tạo ca trống cho tuần tiếp theo. Giờ bắt đầu phải trong khoảng " + weekStart + " đến " + weekEnd);
+            }
+            if (req.endTime().isBefore(weekStart) || req.endTime().isAfter(weekEnd)) {
+                throw new ShiftMustBeNextWeekException("Chỉ được tạo ca trống cho tuần tiếp theo. Giờ kết thúc phải trong khoảng " + weekStart + " đến " + weekEnd);
+            }
+            if (!req.endTime().isAfter(req.startTime())) {
+                throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu");
+            }
+        }
+        // Trong batch không cho phép hai ca trùng giờ
+        for (int i = 0; i < requests.size(); i++) {
+            for (int j = i + 1; j < requests.size(); j++) {
+                OpenShiftRequest a = requests.get(i);
+                OpenShiftRequest b = requests.get(j);
+                if (a.startTime().isBefore(b.endTime()) && b.startTime().isBefore(a.endTime())) {
+                    throw new ShiftOverlapException("Trong danh sách có ca trùng giờ. Vui lòng kiểm tra lại.");
+                }
+            }
+        }
+        // Chỉ tạo những ca chưa có (bỏ qua ca trùng với DB)
+        List<WorkShiftResponse> created = new java.util.ArrayList<>();
+        for (OpenShiftRequest req : requests) {
+            if (!workShiftRepositoryPort.findOverlapping(req.startTime(), req.endTime(), null).isEmpty()) {
+                continue; // đã có ca trùng → bỏ qua
+            }
+            WorkShift shift = WorkShift.builder()
+                    .startTime(req.startTime())
+                    .endTime(req.endTime())
+                    .status(ShiftStatus.OPEN)
+                    .staff(null)
+                    .build();
+            WorkShift saved = workShiftRepositoryPort.save(shift);
+            created.add(toResponse(saved));
+        }
+        return created;
+    }
+
+    @Override
+    @Transactional
+    public WorkShiftResponse updateOpenShift(Long shiftId, OpenShiftRequest request) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "chỉnh sửa ca trống");
+        }
+        LocalDateTime[] nextWeek = getNextWeekRange();
+        LocalDateTime weekStart = nextWeek[0];
+        LocalDateTime weekEnd = nextWeek[1];
+        if (request.startTime().isBefore(weekStart) || request.startTime().isAfter(weekEnd)) {
+            throw new ShiftMustBeNextWeekException("Giờ bắt đầu phải trong tuần tiếp theo: " + weekStart + " đến " + weekEnd);
+        }
+        if (request.endTime().isBefore(weekStart) || request.endTime().isAfter(weekEnd)) {
+            throw new ShiftMustBeNextWeekException("Giờ kết thúc phải trong tuần tiếp theo: " + weekStart + " đến " + weekEnd);
+        }
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu");
+        }
+        if (!workShiftRepositoryPort.findOverlapping(request.startTime(), request.endTime(), shiftId).isEmpty()) {
+            throw new ShiftOverlapException("Ca làm trùng với ca đã có. Vui lòng chọn giờ khác.");
+        }
+        shift.setStartTime(request.startTime());
+        shift.setEndTime(request.endTime());
+        WorkShift saved = workShiftRepositoryPort.save(shift);
+        return toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void cancelOpenShift(Long shiftId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "hủy ca trống (chỉ hủy được ca đang trống)");
+        }
+        shift.setStatus(ShiftStatus.CANCELLED);
+        shift.setActive(false);
+        shift.setDeleted(true);
+        workShiftRepositoryPort.save(shift);
     }
 
     @Override

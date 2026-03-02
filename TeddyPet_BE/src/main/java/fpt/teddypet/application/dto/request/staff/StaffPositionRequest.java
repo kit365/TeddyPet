@@ -4,15 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record StaffPositionRequest(
-        @NotBlank
-        @Size(max = 50)
+        @NotBlank(message = "Mã chức vụ không được để trống")
+        @Size(max = 50, message = "Mã chức vụ không được vượt quá 50 ký tự")
         String code,
 
-        @NotBlank
-        @Size(max = 150)
+        @NotBlank(message = "Tên chức vụ không được để trống")
+        @Size(max = 150, message = "Tên chức vụ không được vượt quá 150 ký tự")
         String name,
 
-        @Size(max = 500)
+        @Size(max = 500, message = "Mô tả không được vượt quá 500 ký tự")
         String description
 ) {
 }

@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     createOpenShift,
+    createOpenShiftsBatch,
+    updateOpenShift,
+    cancelOpenShift,
     getWorkShiftById,
     getRegistrationsForShift,
     approveRegistration,
@@ -33,6 +36,40 @@ export const useCreateOpenShift = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (data: IOpenShiftRequest) => createOpenShift(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['work-shift'] });
+            qc.invalidateQueries({ queryKey: ['available-shifts'] });
+            qc.refetchQueries({ queryKey: ['available-shifts'] });
+        },
+    });
+};
+
+export const useCreateOpenShiftsBatch = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (shifts: IOpenShiftRequest[]) => createOpenShiftsBatch(shifts),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['work-shift'] });
+            qc.invalidateQueries({ queryKey: ['available-shifts'] });
+        },
+    });
+};
+
+export const useUpdateOpenShift = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ shiftId, data }: { shiftId: number; data: IOpenShiftRequest }) => updateOpenShift(shiftId, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['work-shift'] });
+            qc.invalidateQueries({ queryKey: ['available-shifts'] });
+        },
+    });
+};
+
+export const useCancelOpenShift = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (shiftId: number) => cancelOpenShift(shiftId),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['work-shift'] });
             qc.invalidateQueries({ queryKey: ['available-shifts'] });

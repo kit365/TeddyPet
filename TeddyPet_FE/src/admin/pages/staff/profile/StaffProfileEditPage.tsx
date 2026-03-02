@@ -8,13 +8,18 @@ import { prefixAdmin } from '../../../constants/routes';
 import { toast } from 'react-toastify';
 import { useEffect, useState } from 'react';
 import { useStaffPositions } from '../position/hooks/useStaffPosition';
-import type { IStaffProfileUpdateRequest, GenderEnum } from '../../../api/staffProfile.api';
+import type { IStaffProfileUpdateRequest, GenderEnum, EmploymentTypeEnum } from '../../../api/staffProfile.api';
 import type { IAccountProvisionRequest } from '../../../api/staffProfile.api';
 
 const GENDER_OPTIONS: { value: GenderEnum; label: string }[] = [
     { value: 'MALE', label: 'Nam' },
     { value: 'FEMALE', label: 'Nữ' },
     { value: 'OTHER', label: 'Khác' },
+];
+
+const EMPLOYMENT_TYPE_OPTIONS: { value: EmploymentTypeEnum; label: string }[] = [
+    { value: 'PART_TIME', label: 'Bán thời gian' },
+    { value: 'FULL_TIME', label: 'Toàn thời gian' },
 ];
 
 type FormValues = IStaffProfileUpdateRequest;
@@ -41,6 +46,7 @@ export const StaffProfileEditPage = () => {
             bankName: '',
             hireDate: '',
             positionId: undefined as number | undefined,
+            employmentType: undefined as EmploymentTypeEnum | undefined,
         },
     });
 
@@ -61,6 +67,7 @@ export const StaffProfileEditPage = () => {
                 bankName: profile.bankName ?? '',
                 hireDate: profile.hireDate ?? '',
                 positionId: profile.positionId ?? undefined,
+                employmentType: profile.employmentType ?? undefined,
             });
         }
     }, [profile, reset]);
@@ -88,6 +95,7 @@ export const StaffProfileEditPage = () => {
                     bankName: data.bankName?.trim() || undefined,
                     hireDate: data.hireDate || undefined,
                     positionId: data.positionId ?? undefined,
+                    employmentType: data.employmentType ?? undefined,
                 },
             },
             {
@@ -211,6 +219,29 @@ export const StaffProfileEditPage = () => {
                                     {positions.map((p) => (
                                         <MenuItem key={p.id} value={p.id}>
                                             {p.name} ({p.code})
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            )}
+                        />
+                        <Controller
+                            name="employmentType"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    select
+                                    label="Loại hình"
+                                    fullWidth
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value || undefined)}
+                                >
+                                    <MenuItem value="">
+                                        <em>— Chọn loại hình —</em>
+                                    </MenuItem>
+                                    {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
+                                        <MenuItem key={o.value} value={o.value}>
+                                            {o.label}
                                         </MenuItem>
                                     ))}
                                 </TextField>

@@ -59,6 +59,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .bankName(request.bankName())
                 .hireDate(request.hireDate() != null ? request.hireDate() : LocalDate.now())
                 .position(position)
+                .employmentType(request.employmentType())
                 .build();
         StaffProfile saved = staffProfileRepositoryPort.save(staff);
         tryLinkExistingUserByEmail(saved);
@@ -207,6 +208,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
         } else {
             staff.setPosition(null);
         }
+        staff.setEmploymentType(request.employmentType());
 
         StaffProfile saved = staffProfileRepositoryPort.save(staff);
 
@@ -316,6 +318,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 position != null ? position.getId() : null,
                 position != null ? position.getCode() : null,
                 position != null ? position.getName() : null,
+                staff.getEmploymentType(),
                 staff.isActive()
         );
     }

@@ -74,6 +74,8 @@ import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
 import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
 import { WorkShiftAdminPage } from "../pages/staff/workShift/WorkShiftAdminPage";
 import { WorkShiftStaffPage } from "../pages/staff/workShift/WorkShiftStaffPage";
+import { RoleRouteGuard } from "../components/guards/RoleRouteGuard";
+import { prefixAdmin } from "../constants/routes";
 import { StaffRealtimePage } from "../pages/staff/realtime/StaffRealtimePage";
 import { PayrollPage } from "../pages/staff/payroll/PayrollPage";
 import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage";
@@ -154,8 +156,22 @@ export const AdminRoutes: RouteObject[] = [
     { path: "staff/contract/list", element: <ContractListPage /> },
     { path: "staff/contract/create", element: <ContractCreatePage /> },
     { path: "staff/contract/edit/:id", element: <ContractEditPage /> },
-    { path: "staff/work-shifts", element: <WorkShiftAdminPage /> },
-    { path: "staff/work-shifts/register", element: <WorkShiftStaffPage /> },
+    {
+        path: "staff/work-shifts",
+        element: (
+            <RoleRouteGuard allowedRoles={["ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts/register`}>
+                <WorkShiftAdminPage />
+            </RoleRouteGuard>
+        ),
+    },
+    {
+        path: "staff/work-shifts/register",
+        element: (
+            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
+                <WorkShiftStaffPage />
+            </RoleRouteGuard>
+        ),
+    },
     { path: "staff/realtime", element: <StaffRealtimePage /> },
     { path: "staff/payroll", element: <PayrollPage /> },
 ];

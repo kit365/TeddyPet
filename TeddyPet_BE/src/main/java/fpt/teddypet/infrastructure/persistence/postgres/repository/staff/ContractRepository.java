@@ -16,9 +16,9 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
             SELECT c FROM Contract c
             WHERE c.staff.id = :staffId
               AND c.status = 'ACTIVE'
-              AND (
-                    (c.startDate <= :to AND (c.endDate IS NULL OR c.endDate >= :from))
-                  )
+              AND c.isDeleted = false
+              AND c.isActive = true
+              AND (c.startDate <= :to AND (c.endDate IS NULL OR c.endDate >= :from))
             """)
     List<Contract> findActiveContractsForStaffInRange(@Param("staffId") Long staffId,
                                                      @Param("from") LocalDate from,

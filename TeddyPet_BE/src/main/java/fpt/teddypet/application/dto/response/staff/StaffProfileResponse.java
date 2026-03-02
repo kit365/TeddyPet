@@ -1,6 +1,7 @@
 package fpt.teddypet.application.dto.response.staff;
 
 import fpt.teddypet.domain.enums.GenderEnum;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public record StaffProfileResponse(
         Long positionId,
         String positionCode,
         String positionName,
+        EmploymentTypeEnum employmentType,
         boolean active
 ) {
 }

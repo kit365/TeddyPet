@@ -28,6 +28,11 @@ public class WorkShiftRepositoryAdapter implements WorkShiftRepositoryPort {
     }
 
     @Override
+    public List<WorkShift> findOverlapping(LocalDateTime startTime, LocalDateTime endTime, Long excludeShiftId) {
+        return workShiftRepository.findOverlapping(startTime, endTime, excludeShiftId);
+    }
+
+    @Override
     public List<WorkShift> findByStatus(ShiftStatus status) {
         return workShiftRepository.findByStatus(status);
     }

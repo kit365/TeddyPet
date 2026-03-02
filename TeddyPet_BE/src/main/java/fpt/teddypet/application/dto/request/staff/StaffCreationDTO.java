@@ -3,6 +3,7 @@ package fpt.teddypet.application.dto.request.staff;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fpt.teddypet.domain.enums.GenderEnum;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -63,6 +64,9 @@ public record StaffCreationDTO(
         LocalDate hireDate,
 
         @JsonProperty("positionId")
-        Long positionId
+        Long positionId,
+
+        @JsonProperty("employmentType")
+        EmploymentTypeEnum employmentType
 ) {
 }

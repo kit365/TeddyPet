@@ -10,6 +10,8 @@ const withAuth = () => ({
 
 export type GenderEnum = 'MALE' | 'FEMALE' | 'OTHER';
 
+export type EmploymentTypeEnum = 'PART_TIME' | 'FULL_TIME';
+
 export interface IStaffProfile {
     staffId: number;
     userId?: string | null;
@@ -29,6 +31,7 @@ export interface IStaffProfile {
     positionId?: number | null;
     positionCode?: string | null;
     positionName?: string | null;
+    employmentType?: EmploymentTypeEnum | null;
     active: boolean;
 }
 
@@ -46,6 +49,7 @@ export interface IStaffOnboardingRequest {
     bankName?: string | null;
     hireDate?: string | null;
     positionId?: number | null;
+    employmentType?: EmploymentTypeEnum | null;
 }
 
 export interface IStaffProfileUpdateRequest {
@@ -62,6 +66,7 @@ export interface IStaffProfileUpdateRequest {
     bankName?: string | null;
     hireDate?: string | null;
     positionId?: number | null;
+    employmentType?: EmploymentTypeEnum | null;
 }
 
 export interface IAccountProvisionRequest {

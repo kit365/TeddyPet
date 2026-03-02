@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useStaffPositions } from '../position/hooks/useStaffPosition';
-import type { IStaffOnboardingRequest, GenderEnum } from '../../../api/staffProfile.api';
+import type { IStaffOnboardingRequest, GenderEnum, EmploymentTypeEnum } from '../../../api/staffProfile.api';
 
 type FormValues = IStaffOnboardingRequest & {};
 
@@ -16,6 +16,11 @@ const GENDER_OPTIONS: { value: GenderEnum; label: string }[] = [
     { value: 'MALE', label: 'Nam' },
     { value: 'FEMALE', label: 'Nữ' },
     { value: 'OTHER', label: 'Khác' },
+];
+
+const EMPLOYMENT_TYPE_OPTIONS: { value: EmploymentTypeEnum; label: string }[] = [
+    { value: 'PART_TIME', label: 'Bán thời gian' },
+    { value: 'FULL_TIME', label: 'Toàn thời gian' },
 ];
 
 export const StaffProfileOnboardingPage = () => {
@@ -39,6 +44,7 @@ export const StaffProfileOnboardingPage = () => {
             bankName: '',
             hireDate: '',
             positionId: undefined as number | undefined,
+            employmentType: undefined as EmploymentTypeEnum | undefined,
         },
     });
 
@@ -71,6 +77,7 @@ export const StaffProfileOnboardingPage = () => {
                 bankName: data.bankName?.trim() || undefined,
                 hireDate: data.hireDate || undefined,
                 positionId: data.positionId ?? undefined,
+                employmentType: data.employmentType ?? undefined,
             },
             {
                 onSuccess: (res: any) => {
@@ -188,6 +195,29 @@ export const StaffProfileOnboardingPage = () => {
                                 {positions.map((p) => (
                                     <MenuItem key={p.id} value={p.id}>
                                         {p.name} ({p.code})
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        )}
+                    />
+                    <Controller
+                        name="employmentType"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                select
+                                label="Loại hình"
+                                fullWidth
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value || undefined)}
+                            >
+                                <MenuItem value="">
+                                    <em>— Chọn loại hình —</em>
+                                </MenuItem>
+                                {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
+                                    <MenuItem key={o.value} value={o.value}>
+                                        {o.label}
                                     </MenuItem>
                                 ))}
                             </TextField>

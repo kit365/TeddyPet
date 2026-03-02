@@ -8,9 +8,16 @@ import { useForm, Controller } from 'react-hook-form';
 import { prefixAdmin } from '../../../constants/routes';
 import { toast } from 'react-toastify';
 import { useEffect } from 'react';
+import type { ContractType } from '../../../api/contract.api';
+
+const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string }[] = [
+    { value: 'FULL_TIME', label: 'Full-time (Toàn thời gian)' },
+    { value: 'PART_TIME', label: 'Part-time (Bán thời gian)' },
+];
 
 interface FormValues {
     staffId: number;
+    contractType: ContractType;
     baseSalary: number;
     startDate: string;
     endDate: string;
@@ -23,15 +30,24 @@ export const ContractEditPage = () => {
     const contract = (res as any)?.data;
     const { data: profiles = [] } = useStaffProfiles();
 
-    const { control, handleSubmit, reset } = useForm<FormValues>({
-        defaultValues: { staffId: 0, baseSalary: 0, startDate: '', endDate: '', status: 'ACTIVE' },
+    const { control, handleSubmit, reset, watch } = useForm<FormValues>({
+        defaultValues: {
+            staffId: 0,
+            contractType: 'FULL_TIME',
+            baseSalary: 0,
+            startDate: '',
+            endDate: '',
+            status: 'ACTIVE',
+        },
     });
+    const contractType = watch('contractType');
 
     useEffect(() => {
         if (contract) {
             reset({
                 staffId: contract.staffId,
-                baseSalary: contract.baseSalary,
+                contractType: contract.contractType ?? 'FULL_TIME',
+                baseSalary: contract.baseSalary ?? 0,
                 startDate: contract.startDate?.slice(0, 10) ?? '',
                 endDate: contract.endDate?.slice(0, 10) ?? '',
                 status: contract.status ?? 'ACTIVE',
@@ -39,15 +55,25 @@ export const ContractEditPage = () => {
         }
     }, [contract, reset]);
 
+    const salaryLabel =
+        contractType === 'FULL_TIME'
+            ? 'Lương cơ bản (VNĐ/tháng)'
+            : 'Lương theo giờ (VNĐ/giờ)';
+
     const { mutate: update, isPending } = useUpdateContract();
 
     const onSubmit = (data: FormValues) => {
         if (!id) return;
+        if (data.baseSalary <= 0) {
+            toast.error('Lương phải lớn hơn 0');
+            return;
+        }
         update(
             {
                 contractId: Number(id),
                 data: {
                     staffId: data.staffId,
+                    contractType: data.contractType,
                     baseSalary: data.baseSalary,
                     startDate: data.startDate,
                     endDate: data.endDate || undefined,
@@ -58,6 +84,10 @@ export const ContractEditPage = () => {
                 onSuccess: (r: any) => {
                     if (r?.success) toast.success(r.message ?? 'Cập nhật thành công');
                     else toast.error(r?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message ?? err?.message ?? 'Có lỗi xảy ra';
+                    toast.error(msg);
                 },
             }
         );
@@ -92,11 +122,22 @@ export const ContractEditPage = () => {
                         )}
                     />
                     <Controller
+                        name="contractType"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField {...field} select label="Loại hợp đồng" fullWidth onChange={(e) => field.onChange(e.target.value as ContractType)}>
+                                {CONTRACT_TYPE_OPTIONS.map((opt) => (
+                                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                                ))}
+                            </TextField>
+                        )}
+                    />
+                    <Controller
                         name="baseSalary"
                         control={control}
-                        rules={{ required: true, min: 0 }}
+                        rules={{ required: true, min: { value: 0.01, message: 'Lương phải lớn hơn 0' } }}
                         render={({ field, fieldState }) => (
-                            <TextField {...field} type="number" label="Lương cơ bản" fullWidth error={!!fieldState.error} onChange={(e) => field.onChange(Number(e.target.value))} />
+                            <TextField {...field} type="number" label={salaryLabel} fullWidth error={!!fieldState.error} helperText={fieldState.error?.message} inputProps={{ min: 0.01, step: 'any' }} onChange={(e) => field.onChange(Number(e.target.value))} />
                         )}
                     />
                     <Controller name="startDate" control={control} render={({ field }) => <TextField {...field} type="date" label="Ngày bắt đầu" fullWidth InputLabelProps={{ shrink: true }} />} />

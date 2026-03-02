@@ -44,6 +44,24 @@ export const createOpenShift = async (data: IOpenShiftRequest): Promise<ApiRespo
     return res.data;
 };
 
+/** Admin: create many open shifts at once (e.g. standard week template) */
+export const createOpenShiftsBatch = async (shifts: IOpenShiftRequest[]): Promise<ApiResponse<IWorkShift[]>> => {
+    const res = await apiApp.post(`${ADMIN_BASE}/batch`, { shifts }, withAuth());
+    return res.data;
+};
+
+/** Admin: update open shift (OPEN only) */
+export const updateOpenShift = async (shiftId: number, data: IOpenShiftRequest): Promise<ApiResponse<IWorkShift>> => {
+    const res = await apiApp.put(`${ADMIN_BASE}/${shiftId}`, data, withAuth());
+    return res.data;
+};
+
+/** Admin: cancel/delete open shift (OPEN only) */
+export const cancelOpenShift = async (shiftId: number): Promise<ApiResponse<unknown>> => {
+    const res = await apiApp.delete(`${ADMIN_BASE}/${shiftId}`, withAuth());
+    return res.data;
+};
+
 /** Admin: get shift by id */
 export const getWorkShiftById = async (shiftId: number): Promise<ApiResponse<IWorkShift>> => {
     const res = await apiApp.get(`${ADMIN_BASE}/${shiftId}`, withAuth());

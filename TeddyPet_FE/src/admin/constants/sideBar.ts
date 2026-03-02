@@ -167,8 +167,8 @@ export const menuManagementData = [
             { id: "staff-skills", label: "Danh mục kỹ năng", path: `/${prefixAdmin}/staff/skill/list` },
             { id: "staff-skills-map", label: "Kỹ năng nhân viên", path: `/${prefixAdmin}/staff/skills-map/list` },
             { id: "staff-contracts", label: "Hợp đồng", path: `/${prefixAdmin}/staff/contract/list` },
-            { id: "staff-work-shifts", label: "Ca làm việc (QL)", path: `/${prefixAdmin}/staff/work-shifts` },
-            { id: "staff-register-shifts", label: "Đăng ký ca", path: `/${prefixAdmin}/staff/work-shifts/register` },
+            { id: "staff-work-shifts", label: "Ca làm việc (QL)", path: `/${prefixAdmin}/staff/work-shifts`, role: "ADMIN" as const },
+            { id: "staff-register-shifts", label: "Đăng ký ca", path: `/${prefixAdmin}/staff/work-shifts/register`, role: "STAFF" as const },
             { id: "staff-realtime", label: "Trạng thái realtime", path: `/${prefixAdmin}/staff/realtime` },
             { id: "staff-payroll", label: "Lương", path: `/${prefixAdmin}/staff/payroll` },
         ]
