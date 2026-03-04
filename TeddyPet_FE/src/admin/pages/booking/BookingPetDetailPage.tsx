@@ -260,7 +260,16 @@ export const BookingPetDetailPage = () => {
               <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
                 Thức ăn
               </Typography>
-              <InfoRow label="Nhãn hiệu thức ăn" value={pet.foodBrand} />
+              <InfoRow
+                label="Loại thức ăn mang theo"
+                value={
+                  pet.foodBroughtType
+                    ? Array.isArray(pet.foodBroughtType)
+                      ? pet.foodBroughtType.join(", ")
+                      : String(pet.foodBroughtType)
+                    : "—"
+                }
+              />
               <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
             </Card>
           )}

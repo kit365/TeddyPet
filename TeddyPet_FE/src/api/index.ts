@@ -79,6 +79,7 @@ apiApp.interceptors.response.use(
                 !isAdmin &&
                 (originalRequest.url?.includes('/api/service-categories') ||
                     originalRequest.url?.includes('/api/services') ||
+                    originalRequest.url?.includes('/api/service-pricings') ||
                     originalRequest.url?.includes('/api/room-layout-configs') ||
                     originalRequest.url?.includes('/api/rooms') ||
                     originalRequest.url?.includes('/api/bookings'));

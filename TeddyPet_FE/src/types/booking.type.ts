@@ -65,7 +65,7 @@ export interface BookingPetResponse {
   departurePhotos?: string;
   belongingPhotos?: string;
   foodBrought?: boolean | string;
-  foodBrand?: string;
+  foodBroughtType?: string | string[] | null;
   feedingInstructions?: string;
   services?: BookingPetServiceResponse[];
 }
@@ -141,7 +141,7 @@ export interface BookingPetForm {
     emergencyContactName?: string;
     emergencyContactPhone?: string;
     foodBrought?: boolean;
-    foodBrand?: string;
+  foodBroughtType?: string[];
     feedingInstructions?: string;
     /** Selected service id */
     serviceId: number | null;
