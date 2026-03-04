@@ -15,11 +15,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping(ApiConstants.API_USER)
-@Tag(name = "User", description = "User Management APIs")
+@Tag(name = "Tài khoản người dùng", description = "API quản lý thông tin tài khoản người dùng")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -27,8 +30,16 @@ public class UserController {
     private final AuthService authService;
     private final OtpService otpService;
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "[Admin] Danh sách người dùng", description = "Lấy danh sách tất cả user (chỉ ADMIN).")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getAllUsers() {
+        List<UserProfileResponse> list = userService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
     @PutMapping("/profile")
-    @Operation(summary = "Update user profile", description = "Update the authenticated user's profile information. Requires a valid JWT token.")
+    @Operation(summary = "Cập nhật hồ sơ người dùng", description = "Cập nhật thông tin hồ sơ của người dùng đang đăng nhập (yêu cầu JWT hợp lệ).")
     public ResponseEntity<ApiResponse<UserProfileResponse>> updateProfile(
             @Valid @RequestBody UpdateProfileRequest request) {
         User currentUser = authService.getCurrentUser();

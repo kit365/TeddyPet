@@ -11,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.teddypet.application.dto.response.UserProfileResponse;
+
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,8 +62,32 @@ public class UserApplicationService implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<UserProfileResponse> getAllUsers() {
+        return userRepositoryPort.findAll().stream()
+                .map(this::toProfileResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public User getById(UUID userId) {
         return userRepositoryPort.getById(userId);
+    }
+
+    private UserProfileResponse toProfileResponse(User u) {
+        return new UserProfileResponse(
+                u.getId(),
+                u.getUsername(),
+                u.getEmail(),
+                u.getFirstName(),
+                u.getLastName(),
+                u.getPhoneNumber(),
+                u.getAvatarUrl(),
+                u.getAltImage(),
+                u.getGender(),
+                u.getDateOfBirth(),
+                u.getStatus(),
+                u.getRole() != null ? u.getRole().getName() : null);
     }
 
     @Override
