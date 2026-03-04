@@ -1,13 +1,27 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { LogoAdmin } from "../../../../assets/admin/logo";
 import { NavGroup } from "./NavGroup";
 import { menuManagementData, menuOverviewData } from "../../../constants/sideBar";
 import { IconButton } from "@mui/material";
 import { ArrowIcon } from "../../../assets/icons";
 import { useSidebar } from "../../../context/sidebar/useSidebar";
+import { getMe } from "../../../../api/auth.api";
+import { useMemo } from "react";
 
 export const SideBar = () => {
     const { isOpen, toggleSidebar } = useSidebar();
+    const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: getMe });
+    const role = meRes?.data?.role;
+
+    const filteredManagementData = useMemo(() => {
+        if (!role) return menuManagementData;
+        return menuManagementData.map((group) => {
+            if (group.id !== "staff") return group;
+            const children = (group.children ?? []).filter((child: { role?: string }) => !child.role || child.role === role);
+            return { ...group, children };
+        });
+    }, [role]);
 
     return (
         <div className={`flex fixed top-0 left-0 flex-col z-[1200] h-full bg-white border-r border-[#919eab1f] transition-[width] duration-[120ms] ease-linear ${isOpen ? 'w-[300px]' : 'w-[88px]'}`}>
@@ -46,7 +60,7 @@ export const SideBar = () => {
                     <nav className={`text-[#637381] ${isOpen ? 'px-[16px]' : 'px-[4px]'}`}>
                         <ul>
                             <NavGroup title={"admin.overview"} data={menuOverviewData} />
-                            <NavGroup title={"admin.management"} data={menuManagementData} />
+                            <NavGroup title={"admin.management"} data={filteredManagementData} />
                         </ul>
                     </nav>
                 </div>

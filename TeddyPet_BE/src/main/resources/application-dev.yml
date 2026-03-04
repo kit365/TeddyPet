@@ -11,7 +11,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -22,15 +22,19 @@ spring:
           batch_size: 50
         order_inserts: true
         order_updates: true
-    defer-datasource-initialization: true
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
   
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://admin:admin123@localhost:27017/teddypet}
     
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT:6380}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       ssl:

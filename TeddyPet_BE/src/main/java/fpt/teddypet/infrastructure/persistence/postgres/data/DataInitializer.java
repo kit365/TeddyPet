@@ -13,19 +13,21 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-
 @Slf4j
 @Component
 @Order(1) // Run first
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
-    
+
     private final RoleRepository roleRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${data.init.admin.password:1}")
     private String adminPassword;
+
+    @Value("${data.init.staff.password:1}")
+    private String staffPassword;
 
     @Value("${data.init.user.password:1}")
     private String userPassword;
@@ -56,6 +58,16 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(adminRole);
             log.info("✅ Created {} role", RoleEnum.ADMIN.name());
         }
+
+        // Create STAFF role if not exists
+        if (!roleRepository.existsByName(RoleEnum.STAFF.name())) {
+            Role staffRole = Role.builder()
+                    .name(RoleEnum.STAFF.name())
+                    .description("Staff role for shop employees")
+                    .build();
+            roleRepository.save(staffRole);
+            log.info("✅ Created {} role", RoleEnum.STAFF.name());
+        }
     }
 
     private void initializeUsers() {
@@ -63,9 +75,12 @@ public class DataInitializer implements CommandLineRunner {
         // In application layer, use RoleService.getByName() instead
         Role adminRole = roleRepository.findByName(RoleEnum.ADMIN.name())
                 .orElseThrow(() -> new RuntimeException("ADMIN role not found. Please initialize roles first."));
-        
+
         Role userRole = roleRepository.findByName(RoleEnum.USER.name())
                 .orElseThrow(() -> new RuntimeException("USER role not found. Please initialize roles first."));
+
+        Role staffRole = roleRepository.findByName(RoleEnum.STAFF.name())
+                .orElseThrow(() -> new RuntimeException("STAFF role not found. Please initialize roles first."));
 
         // Create admin user if not exists
         if (!userService.existsByEmail("admin@gmail.com")) {
@@ -100,6 +115,22 @@ public class DataInitializer implements CommandLineRunner {
             userService.save(regularUser);
             log.info("✅ Created user (email: user@gmail.com)");
         }
+
+        // Create staff user if not exists
+        if (!userService.existsByEmail("staff@gmail.com")) {
+            User staffUser = User.builder()
+                    .username("staff")
+                    .email("staff@gmail.com")
+                    .password(passwordEncoder.encode(staffPassword))
+                    .firstName("Staff")
+                    .lastName("TeddyPet")
+                    .phoneNumber("0912345678")
+                    .gender(fpt.teddypet.domain.enums.GenderEnum.MALE)
+                    .dateOfBirth(java.time.LocalDate.of(1992, 2, 2))
+                    .role(staffRole)
+                    .build();
+            userService.save(staffUser);
+            log.info("✅ Created staff user (email: staff@gmail.com)");
+        }
     }
 }
-

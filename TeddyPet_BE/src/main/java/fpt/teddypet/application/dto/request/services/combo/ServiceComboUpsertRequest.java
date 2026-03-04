@@ -17,6 +17,8 @@ public record ServiceComboUpsertRequest(
         @NotBlank(message = "Tên gói dịch vụ là bắt buộc")
         @Size(max = 255)
         String comboName,
+        @Size(max = 255)
+        String slug,
         String description,
         BigDecimal comboPrice,
         BigDecimal originalPrice,
@@ -27,7 +29,7 @@ public record ServiceComboUpsertRequest(
         BigDecimal discountPercentage,
         BigDecimal minPetWeight,
         BigDecimal maxPetWeight,
-        String applicablePetTypes,
+        String suitablePetTypes,
         Integer displayOrder,
         String tags,
         Boolean isPopular,

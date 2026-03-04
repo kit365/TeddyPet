@@ -12,4 +12,5 @@ FROM amazoncorretto:21.0.4
 WORKDIR /app
 EXPOSE 8080
 COPY --from=build /app/target/*jar app.jar
+ENV SPRING_PROFILES_ACTIVE=prod
 ENTRYPOINT ["java", "-jar", "app.jar"]

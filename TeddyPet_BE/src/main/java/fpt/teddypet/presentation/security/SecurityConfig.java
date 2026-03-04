@@ -9,6 +9,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -75,8 +77,16 @@ public class SecurityConfig {
                                 "/error")
                         .permitAll()
                         // Booking: cho phép khách (chưa đăng nhập) xem danh mục & dịch vụ để đặt lịch
-                        .requestMatchers(HttpMethod.GET, "/api/service-categories", "/api/service-categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/service-categories", "/api/service-categories/**")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/services", "/api/services/**").permitAll()
+                        // Booking: cho phép khách xem bố trí phòng & danh sách phòng để chọn phòng
+                        .requestMatchers(HttpMethod.GET, "/api/room-layout-configs", "/api/room-layout-configs/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/rooms", "/api/rooms/**").permitAll()
+                        // Booking: cho phép khách đặt lịch và tra cứu booking
+                        .requestMatchers(HttpMethod.POST, "/api/bookings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bookings/code/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -116,5 +126,12 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+        hierarchy.setHierarchy("ROLE_STAFF > ROLE_CUSTOMER");
+        return hierarchy;
     }
 }

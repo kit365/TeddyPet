@@ -17,6 +17,9 @@ public interface ServiceService {
 
     List<ServiceResponse> getAll();
 
+    /** @param isRequiredRoom if true, return only services with isRequiredRoom=true */
+    List<ServiceResponse> getAll(Boolean isRequiredRoom);
+
     List<ServiceResponse> getByCategoryId(Long categoryId);
 
     void delete(Long id);

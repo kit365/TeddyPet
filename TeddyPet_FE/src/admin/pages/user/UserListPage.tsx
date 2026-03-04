@@ -1,5 +1,6 @@
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
+import { UserList } from "./sections/UserList";
 
 export const UserListPage = () => {
     return (
@@ -14,8 +15,7 @@ export const UserListPage = () => {
                 addButtonLabel="Tạo tài khoản"
                 addButtonPath={`/${prefixAdmin}/user/create`}
             />
-
-            {/* <BrandList /> */}
+            <UserList />
         </>
     )
 }
