@@ -25,10 +25,12 @@ export const SkillCreatePage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo kỹ năng thành công');
-                        const id = res?.data?.id;
-                        if (id) window.location.href = `/${prefixAdmin}/staff/skill/edit/${id}`;
-                        else window.location.href = `/${prefixAdmin}/staff/skill/list`;
+                        window.location.href = `/${prefixAdmin}/staff/skill/list`;
                     } else toast.error(res?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message ?? err?.message ?? 'Có lỗi xảy ra';
+                    toast.error(msg);
                 },
             }
         );

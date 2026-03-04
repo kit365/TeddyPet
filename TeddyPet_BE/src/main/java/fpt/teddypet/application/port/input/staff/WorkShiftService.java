@@ -15,6 +15,15 @@ public interface WorkShiftService {
     /** Admin: Tạo ca trống (status = OPEN, staff = null) */
     WorkShiftResponse createOpenShift(OpenShiftRequest request);
 
+    /** Admin: Tạo nhiều ca trống cùng lúc (cho tuần chuẩn). Có thể chỉnh sửa/xóa từng ca sau. */
+    List<WorkShiftResponse> createOpenShiftsBatch(List<OpenShiftRequest> requests);
+
+    /** Admin: Cập nhật ca trống (chỉ khi status = OPEN) */
+    WorkShiftResponse updateOpenShift(Long shiftId, OpenShiftRequest request);
+
+    /** Admin: Hủy/Xóa ca trống (chỉ khi status = OPEN, chưa gán nhân viên) */
+    void cancelOpenShift(Long shiftId);
+
     /** Staff: Lấy danh sách ca trống có thể đăng ký */
     List<WorkShiftResponse> getAvailableShifts(LocalDateTime from, LocalDateTime to);
 

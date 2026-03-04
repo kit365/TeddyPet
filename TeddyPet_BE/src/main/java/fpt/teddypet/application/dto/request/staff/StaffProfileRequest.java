@@ -1,6 +1,7 @@
 package fpt.teddypet.application.dto.request.staff;
 
 import fpt.teddypet.domain.enums.GenderEnum;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
@@ -40,7 +41,9 @@ public record StaffProfileRequest(
 
         LocalDate hireDate,
 
-        Long positionId
+        Long positionId,
+
+        EmploymentTypeEnum employmentType
 ) {
 }
 

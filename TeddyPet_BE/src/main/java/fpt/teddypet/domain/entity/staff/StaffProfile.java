@@ -25,6 +25,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import fpt.teddypet.domain.enums.GenderEnum;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -94,6 +95,10 @@ public class StaffProfile extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private StaffPosition position;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "employment_type", length = 20)
+    private EmploymentTypeEnum employmentType;
 
     @OneToMany(mappedBy = "staff", fetch = FetchType.LAZY)
     @Builder.Default

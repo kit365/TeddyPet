@@ -6,31 +6,70 @@ import { useStaffProfiles } from '../hooks/useStaffProfile';
 import { useForm, Controller } from 'react-hook-form';
 import { prefixAdmin } from '../../../constants/routes';
 import { toast } from 'react-toastify';
+import { useEffect } from 'react';
+import type { ContractType } from '../../../api/contract.api';
 
 interface FormValues {
     staffId: number | '';
-    baseSalary: number | '';
+    contractType: ContractType;
+    salaryAmount: number | '';
     startDate: string;
     endDate: string;
     status: string;
 }
 
+const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string }[] = [
+    { value: 'FULL_TIME', label: 'Full-time (Toàn thời gian)' },
+    { value: 'PART_TIME', label: 'Part-time (Bán thời gian)' },
+];
+
 export const ContractCreatePage = () => {
     const { data: profiles = [] } = useStaffProfiles();
-    const { control, handleSubmit } = useForm<FormValues>({
-        defaultValues: { staffId: '', baseSalary: '', startDate: '', endDate: '', status: 'ACTIVE' },
+    const { control, handleSubmit, watch, setValue } = useForm<FormValues>({
+        defaultValues: {
+            staffId: '',
+            contractType: 'FULL_TIME',
+            salaryAmount: '',
+            startDate: '',
+            endDate: '',
+            status: 'ACTIVE',
+        },
     });
+    const contractType = watch('contractType');
+    const staffId = watch('staffId');
+
     const { mutate: create, isPending } = useCreateContract();
 
+    // Optional: khi chọn nhân viên xong, set mặc định Loại hợp đồng theo employmentType của nhân viên
+    useEffect(() => {
+        if (staffId !== '' && typeof staffId === 'number') {
+            const profile = profiles.find((p) => p.staffId === staffId);
+            if (profile?.employmentType) {
+                setValue('contractType', profile.employmentType);
+            }
+        }
+    }, [staffId, profiles, setValue]);
+
+    const salaryLabel =
+        contractType === 'FULL_TIME'
+            ? 'Lương cơ bản (VNĐ/tháng)'
+            : 'Lương theo giờ (VNĐ/giờ)';
+
     const onSubmit = (data: FormValues) => {
-        if (data.staffId === '' || data.baseSalary === '') {
-            toast.error('Chọn nhân viên và nhập lương cơ bản');
+        if (data.staffId === '' || data.salaryAmount === '') {
+            toast.error('Chọn nhân viên và nhập lương');
+            return;
+        }
+        const amount = Number(data.salaryAmount);
+        if (amount <= 0) {
+            toast.error('Lương phải lớn hơn 0');
             return;
         }
         create(
             {
                 staffId: Number(data.staffId),
-                baseSalary: Number(data.baseSalary),
+                contractType: data.contractType,
+                baseSalary: amount,
                 startDate: data.startDate,
                 endDate: data.endDate || undefined,
                 status: data.status || 'ACTIVE',
@@ -41,6 +80,10 @@ export const ContractCreatePage = () => {
                         toast.success(res.message ?? 'Tạo hợp đồng thành công');
                         window.location.href = `/${prefixAdmin}/staff/contract/list`;
                     } else toast.error(res?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message ?? err?.message ?? 'Có lỗi xảy ra';
+                    toast.error(msg);
                 },
             }
         );
@@ -66,20 +109,69 @@ export const ContractCreatePage = () => {
                         control={control}
                         rules={{ required: 'Chọn nhân viên' }}
                         render={({ field, fieldState }) => (
-                            <TextField {...field} select label="Nhân viên" required fullWidth error={!!fieldState.error} helperText={fieldState.error?.message} value={field.value || ''} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}>
+                            <TextField
+                                {...field}
+                                select
+                                label="Nhân viên"
+                                required
+                                fullWidth
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
+                                value={field.value === '' ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                            >
                                 <MenuItem value="">— Chọn —</MenuItem>
                                 {profiles.map((p) => (
-                                    <MenuItem key={p.staffId} value={p.staffId}>{p.fullName}</MenuItem>
+                                    <MenuItem key={p.staffId} value={p.staffId}>
+                                        {p.fullName}
+                                    </MenuItem>
                                 ))}
                             </TextField>
                         )}
                     />
                     <Controller
-                        name="baseSalary"
+                        name="contractType"
                         control={control}
-                        rules={{ required: 'Nhập lương cơ bản', min: { value: 0, message: 'Lương >= 0' } }}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                select
+                                label="Loại hợp đồng"
+                                fullWidth
+                                value={field.value}
+                                onChange={(e) => field.onChange(e.target.value as ContractType)}
+                            >
+                                {CONTRACT_TYPE_OPTIONS.map((opt) => (
+                                    <MenuItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        )}
+                    />
+                    <Controller
+                        name="salaryAmount"
+                        control={control}
+                        rules={{
+                            required: contractType === 'FULL_TIME' ? 'Nhập lương cơ bản' : 'Nhập lương theo giờ',
+                            min: { value: 0.01, message: 'Lương phải lớn hơn 0' },
+                        }}
                         render={({ field, fieldState }) => (
-                            <TextField {...field} type="number" label="Lương cơ bản" required fullWidth error={!!fieldState.error} helperText={fieldState.error?.message} onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                            <TextField
+                                {...field}
+                                type="number"
+                                label={salaryLabel}
+                                required
+                                fullWidth
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
+                                inputProps={{ min: 0.01, step: 'any' }}
+                                value={field.value === '' ? '' : field.value}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    field.onChange(v === '' ? '' : Number(v));
+                                }}
+                            />
                         )}
                     />
                     <Controller
@@ -87,10 +179,31 @@ export const ContractCreatePage = () => {
                         control={control}
                         rules={{ required: 'Chọn ngày bắt đầu' }}
                         render={({ field, fieldState }) => (
-                            <TextField {...field} type="date" label="Ngày bắt đầu" required fullWidth InputLabelProps={{ shrink: true }} error={!!fieldState.error} helperText={fieldState.error?.message} />
+                            <TextField
+                                {...field}
+                                type="date"
+                                label="Ngày bắt đầu"
+                                required
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
+                            />
                         )}
                     />
-                    <Controller name="endDate" control={control} render={({ field }) => <TextField {...field} type="date" label="Ngày kết thúc" fullWidth InputLabelProps={{ shrink: true }} />} />
+                    <Controller
+                        name="endDate"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                type="date"
+                                label="Ngày kết thúc"
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        )}
+                    />
                     <Controller
                         name="status"
                         control={control}
@@ -102,8 +215,16 @@ export const ContractCreatePage = () => {
                         )}
                     />
                     <Box sx={{ display: 'flex', gap: 2, pt: 2 }}>
-                        <Button type="submit" variant="contained" disabled={isPending}>{isPending ? 'Đang tạo...' : 'Tạo hợp đồng'}</Button>
-                        <Button type="button" variant="outlined" onClick={() => (window.location.href = `/${prefixAdmin}/staff/contract/list`)}>Hủy</Button>
+                        <Button type="submit" variant="contained" disabled={isPending}>
+                            {isPending ? 'Đang tạo...' : 'Tạo hợp đồng'}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => (window.location.href = `/${prefixAdmin}/staff/contract/list`)}
+                        >
+                            Hủy
+                        </Button>
                     </Box>
                 </Stack>
             </Box>

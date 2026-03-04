@@ -48,8 +48,11 @@ export const StaffPositionEditPage = () => {
             },
             {
                 onSuccess: (r: any) => {
-                    if (r?.success) toast.success(r.message ?? 'Cập nhật thành công');
-                    else toast.error(r?.message ?? 'Có lỗi');
+                    if (r?.success === false) {
+                        toast.error(r?.message ?? 'Có lỗi');
+                    } else {
+                        toast.success(r?.message ?? 'Cập nhật thành công');
+                    }
                 },
                 onError: (err: any) => {
                     const msg = err?.response?.data?.message ?? err?.message ?? 'Cập nhật thất bại.';
@@ -109,7 +112,19 @@ export const StaffPositionEditPage = () => {
                     <Controller
                         name="description"
                         control={control}
-                        render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
+                        rules={{ maxLength: { value: 500, message: 'Mô tả không được vượt quá 500 ký tự' } }}
+                        render={({ field, fieldState }) => (
+                            <TextField
+                                {...field}
+                                label="Mô tả"
+                                fullWidth
+                                multiline
+                                rows={3}
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message ?? (field.value?.length != null && field.value.length > 0 ? `${field.value.length}/500` : '')}
+                                inputProps={{ maxLength: 500 }}
+                            />
+                        )}
                     />
                     <Box sx={{ display: 'flex', gap: 2, pt: 2 }}>
                         <Button type="submit" variant="contained" disabled={isPending}>

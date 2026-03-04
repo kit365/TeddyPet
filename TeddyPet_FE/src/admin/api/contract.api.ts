@@ -8,9 +8,12 @@ const withAuth = () => ({
     headers: { Authorization: `Bearer ${Cookies.get('tokenAdmin')}` },
 });
 
+export type ContractType = 'FULL_TIME' | 'PART_TIME';
+
 export interface IContract {
     contractId: number;
     staffId: number;
+    contractType?: ContractType | null;
     baseSalary: number;
     startDate: string;
     endDate?: string | null;
@@ -19,6 +22,7 @@ export interface IContract {
 
 export interface IContractRequest {
     staffId: number;
+    contractType?: ContractType | null;
     baseSalary: number;
     startDate: string;
     endDate?: string | null;

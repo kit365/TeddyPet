@@ -3,19 +3,35 @@ import { Box, Button, MenuItem, TextField } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useStaffProfiles } from '../hooks/useStaffProfile';
-import { useContractsByStaffId } from '../hooks/useContract';
+import { useContractsByStaffId, useDeleteContract } from '../hooks/useContract';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import { dataGridCardStyles, dataGridContainerStyles, dataGridStyles } from '../../service/configs/styles.config';
 import { DATA_GRID_LOCALE_VN } from '../../service/configs/localeText.config';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import type { IContract } from '../../../api/contract.api';
 
 export const ContractListPage = () => {
     const [staffId, setStaffId] = useState<number | ''>('');
     const { data: profiles = [] } = useStaffProfiles();
     const { data: contracts = [], isLoading } = useContractsByStaffId(staffId || null);
+    const { mutate: deleteContract } = useDeleteContract();
     const navigate = useNavigate();
+
+    const handleDelete = (row: IContract) => {
+        if (!window.confirm(`Bạn có chắc muốn xóa hợp đồng #${row.contractId}?`)) return;
+        deleteContract(row.contractId, {
+            onSuccess: (res: any) => {
+                if (res?.success) toast.success(res.message ?? 'Đã xóa hợp đồng');
+                else toast.error(res?.message ?? 'Có lỗi');
+            },
+            onError: (err: any) => {
+                const msg = err?.response?.data?.message ?? err?.message ?? 'Có lỗi xảy ra';
+                toast.error(msg);
+            },
+        });
+    };
 
     const columns: GridColDef<IContract>[] = [
         { field: 'contractId', headerName: 'ID', width: 80 },
@@ -31,13 +47,18 @@ export const ContractListPage = () => {
         { field: 'status', headerName: 'Trạng thái', width: 120 },
         {
             field: 'actions',
-            headerName: '',
-            width: 80,
+            headerName: 'Thao tác',
+            width: 140,
             sortable: false,
             renderCell: (params) => (
-                <Button size="small" onClick={() => navigate(`/${prefixAdmin}/staff/contract/edit/${params.row.contractId}`)}>
-                    Sửa
-                </Button>
+                <>
+                    <Button size="small" onClick={() => navigate(`/${prefixAdmin}/staff/contract/edit/${params.row.contractId}`)}>
+                        Sửa
+                    </Button>
+                    <Button size="small" color="error" onClick={() => handleDelete(params.row)}>
+                        Xóa
+                    </Button>
+                </>
             ),
         },
     ];

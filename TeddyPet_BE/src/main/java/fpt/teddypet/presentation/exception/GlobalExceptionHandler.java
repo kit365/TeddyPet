@@ -20,13 +20,29 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
-        String errorMessage = "Validation failed";
+        String errorMessage = "Dữ liệu không hợp lệ.";
         if (ex.getBindingResult().hasErrors()) {
             errorMessage = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+            errorMessage = toVietnameseValidationMessage(errorMessage);
         }
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(errorMessage, HttpStatus.BAD_REQUEST.value()));
+    }
+
+    /** Chuyển một số thông báo validation mặc định (tiếng Anh) sang tiếng Việt. */
+    private static String toVietnameseValidationMessage(String message) {
+        if (message == null) return "Dữ liệu không hợp lệ.";
+        if (message.startsWith("size must be between")) {
+            return "Độ dài không hợp lệ. Vui lòng kiểm tra giới hạn ký tự cho trường này.";
+        }
+        if (message.startsWith("must not be blank") || message.equals("must not be blank")) {
+            return "Trường này không được để trống.";
+        }
+        if (message.startsWith("must not be null")) {
+            return "Trường này là bắt buộc.";
+        }
+        return message;
     }
 
     @ExceptionHandler(BadCredentialsException.class)

@@ -14,6 +14,7 @@ import type { IStaffProfile } from '../../../../api/staffProfile.api';
 import { GridActionsCell, GridActionsCellItem } from '@mui/x-data-grid';
 
 const GENDER_LABELS: Record<string, string> = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = { PART_TIME: 'Bán thời gian', FULL_TIME: 'Toàn thời gian' };
 
 const RenderStaffActionsCell = (params: { row: IStaffProfile }) => {
     const navigate = useNavigate();
@@ -69,6 +70,12 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
     { field: 'email', headerName: 'Email', width: 180, valueGetter: (v: string) => v ?? '—' },
     { field: 'phoneNumber', headerName: 'SĐT', width: 120, valueGetter: (v: string) => v ?? '—' },
     { field: 'positionName', headerName: 'Chức vụ', width: 140, valueGetter: (v: string) => v ?? '—' },
+    {
+        field: 'employmentType',
+        headerName: 'Loại hình',
+        width: 120,
+        valueGetter: (v: string) => (v ? EMPLOYMENT_TYPE_LABELS[v] ?? v : '—'),
+    },
     {
         field: 'gender',
         headerName: 'Giới tính',

@@ -25,8 +25,8 @@ export const DashboardChart = () => {
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.8rem", mb: "24px", color: "#1C252E" }}>
                 Thống kê doanh thu
             </Typography>
-            <Box sx={{ width: '100%', height: '300px' }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <Box sx={{ width: '100%', height: 300, minHeight: 300, minWidth: 200 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                     <AreaChart
                         data={data}
                         margin={{ top: 10, right: 30, left: 0, bottom: 0 }}

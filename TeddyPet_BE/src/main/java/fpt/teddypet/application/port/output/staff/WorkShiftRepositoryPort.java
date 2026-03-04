@@ -13,6 +13,9 @@ public interface WorkShiftRepositoryPort {
 
     Optional<WorkShift> findById(Long id);
 
+    /** Ca trùng khoảng [startTime, endTime]. excludeShiftId = null khi tạo mới; set khi cập nhật để bỏ qua chính ca đó. */
+    List<WorkShift> findOverlapping(LocalDateTime startTime, LocalDateTime endTime, Long excludeShiftId);
+
     List<WorkShift> findByStatus(ShiftStatus status);
 
     List<WorkShift> findByStatusAndStartTimeBetween(
