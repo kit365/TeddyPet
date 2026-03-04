@@ -101,7 +101,16 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
         <InfoRow label="Mang theo thức ăn" value={formatBool(pet.foodBrought)} />
         {formatBool(pet.foodBrought) === "Có" && (
           <>
-            <InfoRow label="Nhãn hiệu thức ăn" value={pet.foodBrand} />
+            <InfoRow
+              label="Loại thức ăn mang theo"
+              value={
+                pet.foodBroughtType
+                  ? Array.isArray(pet.foodBroughtType)
+                    ? pet.foodBroughtType.join(", ")
+                    : String(pet.foodBroughtType)
+                  : "—"
+              }
+            />
             <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
           </>
         )}
