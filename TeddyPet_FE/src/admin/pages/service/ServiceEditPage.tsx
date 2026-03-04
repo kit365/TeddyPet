@@ -432,7 +432,7 @@ export const ServiceEditPage = () => {
                                 )}
                             </Stack>
                         </CollapsibleCard>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                             <Button
                                 type="submit"
                                 disabled={isPending}
@@ -451,10 +451,10 @@ export const ServiceEditPage = () => {
                                 {isPending ? 'Đang lưu...' : 'Cập nhật dịch vụ'}
                             </Button>
                         </Box>
-                        <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
+                                <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
                             <Stack p="24px" gap="24px">
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '1.25rem', color: '#637381' }}>Thêm, sửa hoặc xóa quy tắc giá cho dịch vụ này.</span>
+                                    <span style={{ fontSize: '1.4rem', color: '#637381' }}>Thêm, sửa hoặc xóa quy tắc giá cho dịch vụ này.</span>
                                     <Button
                                         startIcon={<AddIcon />}
                                         variant="outlined"
@@ -468,23 +468,36 @@ export const ServiceEditPage = () => {
                                         Thêm quy tắc giá
                                     </Button>
                                 </Box>
-                                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.125rem' }, '& .MuiTableHead-root .MuiTableCell-root': { fontSize: '1.25rem', fontWeight: 600 } }}>
+                                <Table
+                                    size="medium"
+                                    sx={{
+                                        '& .MuiTableCell-root': {
+                                            fontSize: '1.35rem',
+                                            paddingTop: '10px',
+                                            paddingBottom: '10px',
+                                        },
+                                        '& .MuiTableHead-root .MuiTableCell-root': {
+                                            fontSize: '1.5rem',
+                                            fontWeight: 700,
+                                        },
+                                    }}
+                                >
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Tên quy tắc</TableCell>
-                                            <TableCell align="right">Giá (VNĐ)</TableCell>
-                                            <TableCell align="right">Cân nặng (kg)</TableCell>
+                                            <TableCell align="left">Giá (VNĐ)</TableCell>
+                                            <TableCell align="left">Cân nặng (kg)</TableCell>
                                             <TableCell>Loại thú phù hợp</TableCell>
                                             <TableCell>Hiệu lực (từ / đến)</TableCell>
-                                            <TableCell align="right">Ưu tiên</TableCell>
+                                            <TableCell align="left">Ưu tiên</TableCell>
                                             <TableCell>Trạng thái</TableCell>
-                                            <TableCell align="right"></TableCell>
+                                            <TableCell align="left"></TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {pricings.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={5} sx={{ color: '#637381', py: 3, fontSize: '1.125rem' }}>
+                                                <TableRow>
+                                                    <TableCell colSpan={5} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
                                                     Chưa có quy tắc giá. Nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>
@@ -492,8 +505,8 @@ export const ServiceEditPage = () => {
                                             [...pricings].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)).map((p) => (
                                                 <TableRow key={p.pricingId}>
                                                     <TableCell>{p.pricingName}</TableCell>
-                                                    <TableCell align="right">{Number(p.price).toLocaleString('vi-VN')}</TableCell>
-                                                    <TableCell align="right">
+                                                    <TableCell align="left">{Number(p.price).toLocaleString('vi-VN')}</TableCell>
+                                                    <TableCell align="left">
                                                         {p.minWeight != null || p.maxWeight != null
                                                             ? `${p.minWeight ?? '—'} - ${p.maxWeight ?? '—'}`
                                                             : '—'}
@@ -514,9 +527,9 @@ export const ServiceEditPage = () => {
                                                             }`
                                                             : '—'}
                                                     </TableCell>
-                                                    <TableCell align="right">{p.priority}</TableCell>
+                                                    <TableCell align="left">{p.priority}</TableCell>
                                                     <TableCell>{p.isActive ? 'Hoạt động' : 'Tạm dừng'}</TableCell>
-                                                    <TableCell align="right">
+                                                    <TableCell align="left">
                                                         <IconButton size="small" onClick={() => { setEditingPricing(p); setPricingModalOpen(true); }}>
                                                             <EditIcon fontSize="small" />
                                                         </IconButton>

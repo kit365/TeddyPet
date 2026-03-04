@@ -73,6 +73,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
         initServicesAndPricing();
         updateHotelServicesRequiresRoom();
         updateSuitablePetTypes();
+        updatePricingSuitablePetTypes();
         initTimeSlots();
         initCombos();
     }
@@ -244,6 +245,21 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 serviceRepository.save(svc);
                 log.info("✅ Updated suitablePetTypes=[DOG,CAT] for service: {} ({})", svc.getServiceName(),
                         svc.getCode());
+            }
+        });
+    }
+
+    /**
+     * Idempotent migration: ensure all ServicePricing rows have suitablePetTypes populated.
+     * Để đơn giản cho giai đoạn test FE, nếu rule chưa có suitablePetTypes
+     * thì set mặc định "DOG,CAT".
+     */
+    private void updatePricingSuitablePetTypes() {
+        pricingRepository.findAll().forEach(p -> {
+            if (p.getSuitablePetTypes() == null || p.getSuitablePetTypes().isBlank()) {
+                p.setSuitablePetTypes("DOG,CAT");
+                pricingRepository.save(p);
+                log.info("✅ Backfilled default suitablePetTypes=DOG,CAT for pricing rule {}", p.getPricingName());
             }
         });
     }
@@ -436,7 +452,9 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .maxWeight(maxWeight)
                 .price(price)
                 .priority(priority)
-                .suitablePetTypes(null)
+                // By default, inherit all pet types from parent Service (DOG & CAT)
+                .suitablePetTypes(service.getSuitablePetTypes() == null ? null
+                        : String.join(",", service.getSuitablePetTypes().stream().map(Enum::name).toList()))
                 .build();
         pricingRepository.save(p);
     }
