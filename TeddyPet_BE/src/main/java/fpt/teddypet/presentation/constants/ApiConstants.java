@@ -107,4 +107,10 @@ public final class ApiConstants {
     // Pet profiles (user's pets - dashboard)
     public static final String API_PET_PROFILES = BASE_API + "/pet-profiles";
 
+    // Bookings (client + admin)
+    /** Public client booking APIs (tạo booking, tra cứu theo mã...) */
+    public static final String API_BOOKINGS = BASE_API + "/bookings";
+    /** Admin booking management APIs */
+    public static final String API_ADMIN_BOOKINGS = BASE_API + "/admin/bookings";
+
 }

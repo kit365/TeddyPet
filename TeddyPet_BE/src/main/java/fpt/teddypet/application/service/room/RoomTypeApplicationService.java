@@ -42,16 +42,7 @@ public class RoomTypeApplicationService implements RoomTypeService {
 
         roomTypeMapper.updateRoomTypeFromRequest(request, entity);
 
-        if (request.serviceId() != null) {
-            fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(request.serviceId())
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy dịch vụ với ID: " + request.serviceId()));
-            if (!Boolean.TRUE.equals(service.getIsRequiredRoom())) {
-                throw new IllegalArgumentException("Chỉ dịch vụ có bật 'Yêu cầu phòng' mới được gán cho loại phòng.");
-            }
-            entity.setService(service);
-        } else {
-            entity.setService(null);
-        }
+        // Service mapping is now many-to-many via ServiceRoomType, handled elsewhere.
 
         if (request.slug() != null && !request.slug().isBlank()) {
             String slug = request.slug().trim();
@@ -88,17 +79,7 @@ public class RoomTypeApplicationService implements RoomTypeService {
     @Transactional
     public void updateServiceId(Long roomTypeId, Long serviceId) {
         RoomType entity = getEntityById(roomTypeId);
-        if (serviceId != null) {
-            fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(serviceId)
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy dịch vụ với ID: " + serviceId));
-            if (!Boolean.TRUE.equals(service.getIsRequiredRoom())) {
-                throw new IllegalArgumentException("Chỉ dịch vụ có bật 'Yêu cầu phòng' mới được gán cho loại phòng.");
-            }
-            entity.setService(service);
-        } else {
-            entity.setService(null);
-        }
-        roomTypeRepositoryPort.save(entity);
+        // Service mapping is now many-to-many via ServiceRoomType, handled elsewhere.
     }
 
     @Override
