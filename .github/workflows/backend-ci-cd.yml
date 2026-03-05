@@ -97,7 +97,7 @@ jobs:
         with:
           context: ./${{ env.WORKING_DIRECTORY }}
           file: ./${{ env.WORKING_DIRECTORY }}/Dockerfile
-          push: false
+          push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
