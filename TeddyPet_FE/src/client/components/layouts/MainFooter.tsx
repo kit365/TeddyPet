@@ -145,14 +145,6 @@ export const MainFooter = () => {
                                 <img width={400} height={270} src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/footer-cats-walking-300x203.png" className="object-cover w-full h-auto mb-[-80px]" alt="" />
                             </div>
                             <div className="w-[54%] flex flex-col gap-[30px]">
-                                <div className="">
-                                    <Link to={"/"}>
-                                        <FooterLogoSVG />
-                                    </Link>
-                                </div>
-                                <div className="text-center text-client-text leading-[1.75] px-[20px] font-[500]">
-                                    Khám phá thế giới tuyệt vời của thú cưng tại TeddyPet! Chúng tôi cam kết mang đến những sản phẩm chất lượng cao, từ thức ăn dinh dưỡng đến đồ chơi an toàn, giúp những người bạn bốn chân của bạn luôn khỏe mạnh và vui vẻ.
-                                </div>
                                 <SocialIconCircle className="justify-center" facebookUrl={facebookUrl} instagramUrl={instagramUrl} />
                             </div>
                             <div className="w-[22%] px-[30px] relative">

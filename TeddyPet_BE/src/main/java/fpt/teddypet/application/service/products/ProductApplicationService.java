@@ -283,6 +283,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductDetailResponse getDetailBySlug(String slug) {
         Product product = productRepositoryPort.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -304,6 +305,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ProductResponse> getAllPaged(ProductSearchRequest request) {
         log.info("Searching products with keyword: {}, page: {}, size: {}",
                 request.keyword(), request.page(), request.size());
@@ -388,6 +390,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ProductResponse> getProductsByCategorySlug(String slug, int page, int size, String sortKey,
             String sortDirection) {
         log.info("Getting products by category slug: {}, page: {}, size: {}, sortKey: {}, sortDirection: {}", slug,
@@ -408,6 +411,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ProductResponse> getProductsByBrandSlug(String slug, int page, int size, String sortKey,
             String sortDirection) {
         log.info("Getting products by brand slug: {}, page: {}, size: {}, sortKey: {}, sortDirection: {}", slug, page,
@@ -428,6 +432,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ProductResponse> getHomeProducts(ProductHomeSearchRequest request) {
         log.info("Searching home products with filters: {}", request);
 
@@ -469,6 +474,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductSuggestionResponse> getSuggestions(String keyword) {
         log.info("Getting search suggestions for keyword: {}", keyword);
 

@@ -51,8 +51,7 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
             String slug = SlugUtil.toSlug(request.name());
             ValidationUtils.ensureUnique(
                     () -> blogCategoryRepositoryPort.existsBySlugAndIdNot(slug, isNew ? -1L : category.getId()),
-                    String.format(BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_SLUG_ALREADY_EXISTS, slug)
-            );
+                    String.format(BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_SLUG_ALREADY_EXISTS, slug));
             category.setSlug(slug);
         }
 
@@ -104,6 +103,7 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BlogCategoryNestedResponse> getNestedCategories() {
         List<BlogCategory> rootCategories = blogCategoryRepositoryPort.findRootCategories();
         return blogCategoryMapper.toNestedResponseList(rootCategories);
@@ -121,15 +121,15 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
     public void delete(Long id) {
         log.info(BlogCategoryLogMessages.LOG_BLOG_CATEGORY_DELETE_START, id);
         BlogCategory category = getById(id);
-        
+
         // Soft delete
         category.setDeleted(true);
         category.setActive(false);
         blogCategoryRepositoryPort.save(category);
-        
+
         // Normalize display orders of siblings
         normalizeSiblingsDisplayOrder(category.getParent());
-        
+
         log.info(BlogCategoryLogMessages.LOG_BLOG_CATEGORY_DELETE_SUCCESS, id);
     }
 
@@ -148,8 +148,9 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
     // --- Helper Methods ---
 
     private void validateNoCircularReference(BlogCategory category, BlogCategory parent) {
-        if (category.getId() == null) return; // New category cannot have circular ref yet
-        
+        if (category.getId() == null)
+            return; // New category cannot have circular ref yet
+
         if (category.getId().equals(parent.getId())) {
             throw new IllegalArgumentException(BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_CIRCULAR_REFERENCE);
         }
@@ -192,13 +193,12 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
         } else {
             siblings = blogCategoryRepositoryPort.findChildCategories(parent.getId());
         }
-        
+
         if (DisplayOrderUtil.hasGaps(siblings, BlogCategory::getDisplayOrder)) {
             DisplayOrderUtil.normalizeDisplayOrders(
-                siblings,
-                BlogCategory::getDisplayOrder,
-                BlogCategory::setDisplayOrder
-            );
+                    siblings,
+                    BlogCategory::getDisplayOrder,
+                    BlogCategory::setDisplayOrder);
             blogCategoryRepositoryPort.saveAll(siblings);
         }
     }

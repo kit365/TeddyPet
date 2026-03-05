@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { InputAdornment, TextField } from "@mui/material";
 import { Search } from "iconoir-react";
 import { Link } from "react-router-dom";
+import { LogoTeddyPet } from "../../../assets/admin/LogoTeddyPet";
 
 interface Props {
     window?: () => Window;
@@ -130,15 +131,8 @@ export const Header = () => {
                             height: "72px"
                         }}
                     >
-                        <div className="flex items-center gap-[8px] py-[4px]">
-                            <img
-                                src="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/workspaces/logo-1.webp"
-                                width={24}
-                                height={24}
-                                alt="TeddyPet"
-                                className="w-[24px] h-[24px] object-cover"
-                            />
-                            <span className="text-[1.4rem] font-[600] text-[#1c252e]">TeddyPet</span>
+                        <div className="flex items-center gap-[12px] py-[4px]">
+                            <span className="text-[1.8rem] font-[800] text-[#1c252e] uppercase tracking-wider">TeddyPet Dashboard</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">
                             <Box onClick={handleOpenSearchDialog} className="flex items-center pr-[8px] cursor-pointer bg-[#919eab14] hover:bg-[#919eab29] rounded-[12px] transition-colors duration-150 ease-in-out">

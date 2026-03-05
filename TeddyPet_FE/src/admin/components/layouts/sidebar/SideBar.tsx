@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LogoAdmin } from "../../../../assets/admin/logo";
+import { LogoTeddyPet } from "../../../../assets/admin/LogoTeddyPet";
 import { NavGroup } from "./NavGroup";
 import { menuManagementData, menuOverviewData } from "../../../constants/sideBar";
 import { IconButton } from "@mui/material";
@@ -18,7 +18,7 @@ export const SideBar = () => {
         if (!role) return menuManagementData;
         return menuManagementData.map((group) => {
             if (group.id !== "staff") return group;
-            const children = (group.children ?? []).filter((child: { role?: string }) => !child.role || child.role === role);
+            const children = (group.children ?? []).filter((child: any) => !child.role || child.role === role);
             return { ...group, children };
         });
     }, [role]);
@@ -44,13 +44,12 @@ export const SideBar = () => {
                 <ArrowIcon sx={{ fontSize: "1.6rem", rotate: isOpen ? "90deg" : "270deg" }} />
             </IconButton>
 
-            {/* Logo */}
             <div className={isOpen
-                ? "pl-[28px] pt-[20px] pb-[8px]"
+                ? "pl-[28px] pt-[24px] pb-[20px]"
                 : "py-[20px] flex justify-center"
             }>
-                <Link to="/" className="inline-block w-[40px] h-[40px]">
-                    <LogoAdmin />
+                <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
+                    <LogoTeddyPet width={isOpen ? "56px" : "44px"} height={isOpen ? "56px" : "44px"} />
                 </Link>
             </div>
 

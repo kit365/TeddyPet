@@ -172,6 +172,7 @@ public class ProductBrandApplicationService implements ProductBrandService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductBrandHomeResponse> getAllHomeBrands() {
         List<ProductBrand> brands = productBrandRepositoryPort.findAll();
         log.info("Getting home brands, found: {}", brands.size());
