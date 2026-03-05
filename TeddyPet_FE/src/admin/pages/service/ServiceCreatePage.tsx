@@ -593,11 +593,6 @@ export const ServiceCreatePage = () => {
                                         )}
                                     />
 
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                        <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
-                                        <Controller name="metaDescription" control={control} render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />} />
-                                    </Box>
-
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                                         <SwitchButton control={control} name="isActive" label="Hoạt động" />
                                         <SwitchButton control={control} name="isPopular" label="Nổi bật" />
@@ -983,6 +978,19 @@ export const ServiceCreatePage = () => {
                                         )}
                                     </TableBody>
                                 </Table>
+                            </Stack>
+                        </CollapsibleCard>
+
+                        <CollapsibleCard title="SEO & Metadata" expanded={true} onToggle={() => undefined}>
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                    <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
+                                    <Controller
+                                        name="metaDescription"
+                                        control={control}
+                                        render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />}
+                                    />
+                                </Box>
                             </Stack>
                         </CollapsibleCard>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
