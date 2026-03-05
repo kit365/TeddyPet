@@ -77,7 +77,7 @@ export const DashboardOrderStatusChart = () => {
                 </Box>
             ) : (
                 <Box sx={{ flex: 1, width: '100%', position: 'relative' }}>
-                    <ResponsiveContainer width="99%" height="100%" minWidth={0} debounce={1}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                             <Pie
                                 data={chartData}

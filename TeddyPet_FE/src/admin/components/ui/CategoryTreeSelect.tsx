@@ -31,10 +31,13 @@ export const CategoryParentSelect = ({ control, categories }: Props) => {
         currentValue: any,
         level = 0
     ): React.ReactNode[] => {
+        if (!nodes) return [];
         return nodes.reduce((acc: React.ReactNode[], node) => {
+            if (!node || node.categoryId === null || node.categoryId === undefined) return acc;
+
             // Ép kiểu ID sang string để so sánh và làm value cho MenuItem
             const stringId = node.categoryId.toString();
-            const isSelected = currentValue?.toString() === stringId;
+            const isSelected = currentValue != null && currentValue.toString() === stringId;
 
             const item = (
                 <MenuItem
@@ -96,7 +99,9 @@ export const CategoryParentSelect = ({ control, categories }: Props) => {
     };
 
     const findCategoryName = (nodes: BlogCategoryNode[], id: number): string | undefined => {
+        if (!nodes) return undefined;
         for (const node of nodes) {
+            if (!node) continue;
             if (node.categoryId === id) return node.name;
             if (node.children?.length) {
                 const found = findCategoryName(node.children, id);

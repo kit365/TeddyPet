@@ -47,6 +47,10 @@ public interface ProductCategoryMapper {
 
     List<ProductCategoryInfo> toInfoList(List<ProductCategory> categories);
 
+    @Mapping(target = "categoryId", source = "id")
+    @Mapping(target = "parentId", source = "parent.id")
+    @Mapping(target = "isDeleted", source = "deleted")
+    @Mapping(target = "isActive", source = "active")
     @Mapping(target = "children", ignore = true)
     ProductCategoryNestedResponse toNestedResponse(ProductCategory category);
 

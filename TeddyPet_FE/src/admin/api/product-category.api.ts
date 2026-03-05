@@ -23,16 +23,15 @@ export const getCategories = async (): Promise<ApiResponse<any[]>> => {
 };
 
 export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNode[]>> => {
-    const token = Cookies.get('tokenAdmin');
-    const response = await apiApp.get('/api/product-categories/nested', {
-        headers: { Authorization: `Bearer ${token}` },
-    });
+    console.log('Fetching nested product categories...');
+    const response = await apiApp.get(`${BASE_URL}/nested`);
     return response.data;
 };
 
 /** Tạo danh mục */
 export const createCategory = async (data: any): Promise<any> => {
-    const response = await apiApp.post(BASE_URL, data, withAuth());
+    // Backend uses @PutMapping for both create and update
+    const response = await apiApp.put(BASE_URL, data);
     return response.data;
 };
 

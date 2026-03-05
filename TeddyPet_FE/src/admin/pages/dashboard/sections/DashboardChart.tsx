@@ -88,8 +88,8 @@ export const DashboardChart = () => {
             {loading ? (
                 <Skeleton variant="rounded" height={340} sx={{ borderRadius: "16px" }} />
             ) : (
-                <Box sx={{ width: '100%', height: '340px', position: 'relative', overflow: 'hidden' }}>
-                    <ResponsiveContainer width="99%" height="100%" minWidth={0} debounce={1}>
+                <Box sx={{ width: '100%', height: '340px', position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         {chartType === "area" ? (
                             <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
