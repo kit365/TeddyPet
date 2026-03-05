@@ -15,9 +15,11 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Delete as DeleteIcon, Close as CloseIcon } from "@mui/icons-material";
-import { useProductTags, useCreateProductTag, useDeleteProductTag } from "../hooks/useProduct";
+import { Delete as DeleteIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, FileDownload as FileDownloadIcon, FileUpload as FileUploadIcon, SimCardDownload as SimCardDownloadIcon, Description as DescriptionIcon } from "@mui/icons-material";
+import { useProductTags, useCreateProductTag, useDeleteProductTag, useDownloadTagsTemplate, useExportTagsExcel, useImportTagsExcel } from "../hooks/useProduct";
 import { toast } from "react-toastify";
+import { Menu, MenuItem } from "@mui/material";
+import { ImportExcelModal } from "./ImportExcelModal";
 
 interface ProductTagDialogProps {
     open: boolean;
@@ -32,6 +34,22 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
     const { data: tags = [], isLoading } = useProductTags();
     const { mutate: createTag, isPending: isCreating } = useCreateProductTag();
     const { mutate: deleteTag } = useDeleteProductTag();
+
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const openMenu = Boolean(anchorEl);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    const importMutation = useImportTagsExcel();
+    const exportMutation = useExportTagsExcel();
+    const templateMutation = useDownloadTagsTemplate();
+
+    const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     const handleCreate = () => {
         if (!tagName.trim()) return;
@@ -87,11 +105,48 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                 padding: "8px 8px 16px 8px"
             }}>
                 {t("admin.product.tags.title")}
-                <Tooltip title={t("admin.common.close")}>
-                    <IconButton onClick={onClose} size="small" sx={{ '&:hover': { backgroundColor: '#f4f6f8' } }}>
-                        <CloseIcon />
-                    </IconButton>
-                </Tooltip>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleMenuClick}
+                        endIcon={<ArrowDropDownIcon />}
+                        startIcon={
+                            (importMutation.isPending || exportMutation.isPending || templateMutation.isPending) ?
+                                <CircularProgress size={16} /> : <DescriptionIcon />
+                        }
+                        sx={{
+                            fontSize: '1.2rem',
+                            textTransform: 'none',
+                            color: '#1C252E',
+                            borderColor: 'rgba(145, 158, 171, 0.32)',
+                            fontWeight: 600,
+                            height: '32px',
+                        }}
+                    >
+                        Excel
+                    </Button>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={openMenu}
+                        onClose={handleMenuClose}
+                    >
+                        <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <FileUploadIcon fontSize="small" /> Nhập Excel
+                        </MenuItem>
+                        <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <FileDownloadIcon fontSize="small" /> Xuất Excel
+                        </MenuItem>
+                        <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <SimCardDownloadIcon fontSize="small" /> Tải Template
+                        </MenuItem>
+                    </Menu>
+                    <Tooltip title={t("admin.common.close")}>
+                        <IconButton onClick={onClose} size="small" sx={{ '&:hover': { backgroundColor: '#f4f6f8' } }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
             </DialogTitle>
 
             <DialogContent sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '500px', p: 0 }}>
@@ -182,6 +237,13 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                 </Box>
 
             </DialogContent>
+            <ImportExcelModal
+                open={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={(file) => importMutation.mutate(file)}
+                isPending={importMutation.isPending}
+                isSuccess={importMutation.isSuccess}
+            />
         </Dialog>
     );
 };

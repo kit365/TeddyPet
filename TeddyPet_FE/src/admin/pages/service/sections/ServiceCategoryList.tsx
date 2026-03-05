@@ -74,9 +74,11 @@ export const ServiceCategoryList = () => {
                     }}
                     localeText={DATA_GRID_LOCALE_VN}
                     pagination
-                    pageSizeOptions={[5, 10, 20]}
+                    pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
                     initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
                     getRowHeight={() => 'auto'}
+                    checkboxSelection
+                    disableRowSelectionOnClick
                     sx={dataGridStyles}
                 />
             </div>

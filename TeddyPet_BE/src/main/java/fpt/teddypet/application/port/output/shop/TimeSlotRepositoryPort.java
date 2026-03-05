@@ -16,6 +16,10 @@ public interface TimeSlotRepositoryPort {
     List<TimeSlot> findByServiceId(Long serviceId);
 
     void delete(TimeSlot entity);
+<<<<<<< HEAD
+
+    List<TimeSlot> findByServiceIdAndDayType(Long serviceId, fpt.teddypet.domain.enums.scheduling.DayTypeEnum dayType);
+=======
 <<<<<<< Updated upstream
 =======
 
@@ -25,4 +29,5 @@ public interface TimeSlotRepositoryPort {
     /** All non-deleted slots across all services. */
     List<TimeSlot> findAllActive();
 >>>>>>> Stashed changes
+>>>>>>> shop_management_feature/phudm
 }

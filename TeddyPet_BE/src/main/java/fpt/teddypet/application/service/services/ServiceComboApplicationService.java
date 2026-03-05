@@ -9,7 +9,9 @@ import fpt.teddypet.application.mapper.services.ServiceComboMapper;
 import fpt.teddypet.application.port.input.services.ServiceComboServiceInput;
 import fpt.teddypet.application.port.output.services.ServiceComboRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceComboServiceRepositoryPort;
+import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ServiceCombo;
 import fpt.teddypet.domain.entity.ServiceComboService;
@@ -32,6 +34,7 @@ public class ServiceComboApplicationService implements ServiceComboServiceInput 
     private final ServiceComboRepositoryPort serviceComboRepositoryPort;
     private final ServiceComboServiceRepositoryPort serviceComboServiceRepositoryPort;
     private final ServiceRepositoryPort serviceRepositoryPort;
+    private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final ServiceComboMapper serviceComboMapper;
 
     @Override
@@ -50,6 +53,26 @@ public class ServiceComboApplicationService implements ServiceComboServiceInput 
         }
 
         serviceComboMapper.updateComboFromRequest(request, combo);
+
+        String slugToUse;
+        if (request.slug() != null && !request.slug().isBlank()) {
+            slugToUse = request.slug().trim();
+            ValidationUtils.ensureUnique(
+                    () -> isNew
+                            ? serviceComboRepositoryPort.existsBySlug(slugToUse)
+                            : serviceComboRepositoryPort.existsBySlugAndIdNot(slugToUse, combo.getId()),
+                    String.format(ServiceComboMessages.MESSAGE_SERVICE_COMBO_SLUG_ALREADY_EXISTS, slugToUse)
+            );
+        } else {
+            slugToUse = SlugUtil.toSlug(request.comboName());
+            ValidationUtils.ensureUnique(
+                    () -> isNew
+                            ? serviceComboRepositoryPort.existsBySlug(slugToUse)
+                            : serviceComboRepositoryPort.existsBySlugAndIdNot(slugToUse, combo.getId()),
+                    String.format(ServiceComboMessages.MESSAGE_SERVICE_COMBO_SLUG_ALREADY_EXISTS, slugToUse)
+            );
+        }
+        combo.setSlug(slugToUse);
 
         String code = request.code().trim();
         ValidationUtils.ensureUnique(
@@ -93,6 +116,15 @@ public class ServiceComboApplicationService implements ServiceComboServiceInput 
         }
         savedCombo.getServiceItems().clear();
         savedCombo.getServiceItems().addAll(items);
+
+        BigDecimal originalPrice = BigDecimal.ZERO;
+        for (ServiceComboService item : items) {
+            BigDecimal minPrice = servicePricingRepositoryPort.findMinActivePriceByServiceId(item.getService().getId())
+                    .orElse(BigDecimal.ZERO);
+            originalPrice = originalPrice.add(minPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+        savedCombo.setOriginalPrice(originalPrice);
+        serviceComboRepositoryPort.save(savedCombo);
 
         log.info(ServiceComboLogMessages.LOG_SERVICE_COMBO_UPSERT_SUCCESS, savedCombo.getId());
     }

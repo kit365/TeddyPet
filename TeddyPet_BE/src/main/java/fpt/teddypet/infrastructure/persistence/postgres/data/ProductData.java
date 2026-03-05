@@ -30,6 +30,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(10) // Chạy sau các bảng Master
 @RequiredArgsConstructor
 public class ProductData implements CommandLineRunner {

@@ -16,6 +16,8 @@ import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import fpt.teddypet.application.service.orders.OrderExcelService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final PdfService pdfService;
+    private final OrderExcelService orderExcelService;
 
     // ========== USER ENDPOINTS ==========
 
@@ -137,6 +140,13 @@ public class OrderController {
     }
 
     // ========== STAFF/ADMIN ENDPOINTS ==========
+
+    @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Xuất đơn hàng ra Excel", description = "Xuất toàn bộ đơn hàng ra file Excel (Staff/Admin)")
+    public void exportOrdersToExcel(HttpServletResponse response) throws java.io.IOException {
+        orderExcelService.exportOrdersToExcel(response);
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")

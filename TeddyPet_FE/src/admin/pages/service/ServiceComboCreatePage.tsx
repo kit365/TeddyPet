@@ -31,6 +31,7 @@ export const ServiceComboCreatePage = () => {
         defaultValues: {
             code: '',
             comboName: '',
+            slug: '',
             comboPrice: undefined,
             originalPrice: undefined,
             isActive: true,
@@ -44,16 +45,17 @@ export const ServiceComboCreatePage = () => {
         const payload = {
             code: data.code,
             comboName: data.comboName,
+            slug: data.slug || null,
             description: data.description || null,
             comboPrice: data.comboPrice ?? null,
-            originalPrice: data.originalPrice ?? null,
+            originalPrice: null,
             validFrom: data.validFrom ? new Date(data.validFrom).toISOString() : null,
             validTo: data.validTo ? new Date(data.validTo).toISOString() : null,
             imgURL: data.imgURL || null,
             discountPercentage: data.discountPercentage ?? null,
             minPetWeight: data.minPetWeight ?? null,
             maxPetWeight: data.maxPetWeight ?? null,
-            applicablePetTypes: data.applicablePetTypes || null,
+            suitablePetTypes: data.suitablePetTypes || null,
             displayOrder: data.displayOrder ?? null,
             tags: data.tags || null,
             isPopular: data.isPopular ?? null,
@@ -105,6 +107,13 @@ export const ServiceComboCreatePage = () => {
                                         )}
                                     />
                                     <Controller
+                                        name="slug"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField {...field} label="Slug" fullWidth helperText="Để trống sẽ tự tạo từ tên gói." />
+                                        )}
+                                    />
+                                    <Controller
                                         name="comboPrice"
                                         control={control}
                                         render={({ field }) => (
@@ -127,8 +136,9 @@ export const ServiceComboCreatePage = () => {
                                                 type="number"
                                                 label="Giá gốc (VNĐ)"
                                                 fullWidth
+                                                disabled
                                                 value={field.value ?? ''}
-                                                onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                                helperText="Tự động tính từ tổng giá thấp nhất (service_pricing) của các dịch vụ trong gói."
                                             />
                                         )}
                                     />

@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${PROD_DB_URL}
-    username: ${PROD_DB_USERNAME}
-    password: ${PROD_DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL_PROD}
+    username: ${SPRING_DATASOURCE_USERNAME_PROD}
+    password: ${SPRING_DATASOURCE_PASSWORD_PROD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -11,11 +11,11 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+#         dialect: org.hibernate.dialect.PostgreSQLDialect # Let Hibernate auto-detect for Neon (Postgres 17+)
         format_sql: true
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
@@ -24,24 +24,25 @@ spring:
         order_updates: true
     open-in-view: false
 
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
+
   sql:
     init:
       mode: never
 
   data:
     mongodb:
-      uri: ${PROD_MONGODB_URI}
+      uri: ${SPRING_DATA_MONGODB_URI_PROD}
     
     redis:
-      host: ${PROD_REDIS_HOST}
-      port: ${PROD_REDIS_PORT}
-      password: ${PROD_REDIS_PASSWORD}
+      url: ${SPRING_DATA_REDIS_URL_PROD}
       timeout: 2000ms
-      ssl:
-        enabled: ${PROD_REDIS_SSL}
   
   kafka:
-    bootstrap-servers: ${PROD_KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS_PROD:localhost:9092}
     consumer:
       group-id: teddypet-consumer-group
       auto-offset-reset: earliest
@@ -52,9 +53,9 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
   elasticsearch:
-    uris: ${PROD_ELASTICSEARCH_URIS}
-    connection-timeout: ${PROD_ELASTICSEARCH_CONNECTION_TIMEOUT:5s}
-    socket-timeout: ${PROD_ELASTICSEARCH_SOCKET_TIMEOUT:60s}
+    uris: ${SPRING_ELASTICSEARCH_URIS_PROD:http://localhost:9200}
+    connection-timeout: ${SPRING_ELASTICSEARCH_CONNECTION_TIMEOUT_PROD:5s}
+    socket-timeout: ${SPRING_ELASTICSEARCH_SOCKET_TIMEOUT_PROD:60s}
 
 # Logging for production
 logging:

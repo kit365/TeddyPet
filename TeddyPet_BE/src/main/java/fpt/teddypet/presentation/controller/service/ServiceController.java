@@ -38,9 +38,10 @@ public class ServiceController {
     }
 
     @GetMapping
-    @Operation(summary = "Get All Services", description = "Retrieves a list of all active services.")
-    public ResponseEntity<ApiResponse<List<ServiceResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.success(serviceService.getAll()));
+    @Operation(summary = "Get All Services", description = "Retrieves a list of all active services. Optional isRequiredRoom=true to filter only services that require room.")
+    public ResponseEntity<ApiResponse<List<ServiceResponse>>> getAll(
+            @RequestParam(required = false) Boolean isRequiredRoom) {
+        return ResponseEntity.ok(ApiResponse.success(serviceService.getAll(isRequiredRoom)));
     }
 
     @GetMapping("/category/{categoryId}")

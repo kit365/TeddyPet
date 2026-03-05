@@ -1,6 +1,6 @@
 package fpt.teddypet.infrastructure.persistence.postgres.specification;
+
 import fpt.teddypet.domain.entity.Order;
-import fpt.teddypet.domain.entity.Order_;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -10,7 +10,6 @@ import java.util.List;
 public class OrderSpecification {
 
     private OrderSpecification() {
-
     }
 
     /**
@@ -25,17 +24,12 @@ public class OrderSpecification {
             String likePattern = "%" + keyword.toLowerCase() + "%";
             List<Predicate> predicates = new ArrayList<>();
 
-            // Search in orderCode using Metamodel
             predicates.add(criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get(Order_.orderCode)), likePattern));
-
-            // Search in shippingName using Metamodel
+                    criteriaBuilder.lower(root.get("orderCode")), likePattern));
             predicates.add(criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get(Order_.shippingName)), likePattern));
-
-            // Search in shippingPhone using Metamodel
+                    criteriaBuilder.lower(root.get("shippingName")), likePattern));
             predicates.add(criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get(Order_.shippingPhone)), likePattern));
+                    criteriaBuilder.lower(root.get("shippingPhone")), likePattern));
 
             return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
         };

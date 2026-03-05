@@ -31,6 +31,9 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import { useRoomTypes } from '../room/hooks/useRoomType';
+import { updateRoomTypeServiceId } from '../../api/room.api';
+
 export const ServiceCreatePage = () => {
     const navigate = useNavigate();
     const [expanded1, setExpanded1] = useState(true);
@@ -59,11 +62,13 @@ export const ServiceCreatePage = () => {
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
     const [lastAddedDraftId, setLastAddedDraftId] = useState<string | null>(null);
     const [openCreateNowDialog, setOpenCreateNowDialog] = useState(false);
+    const [selectedRoomTypeIds, setSelectedRoomTypeIds] = useState<number[]>([]);
 
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
     const { data: categories = [] } = useServiceCategories();
     const { data: petTypes = [] } = usePetTypes();
+    const { data: roomTypes = [] } = useRoomTypes();
     const { data: timeSlots = [] } = useQuery({
         queryKey: ['time-slots', createdServiceId],
         queryFn: () => getTimeSlotsByService(createdServiceId!),
@@ -84,6 +89,7 @@ export const ServiceCreatePage = () => {
             isPopular: false,
             isAddon: false,
             isCritical: false,
+            isRequiredRoom: false,
             requiresVaccination: false,
             bufferTime: 15,
             advanceBookingHours: 24,
@@ -95,6 +101,7 @@ export const ServiceCreatePage = () => {
 
     const isAddon = useWatch({ control, name: 'isAddon' });
     const addonType = useWatch({ control, name: 'addonType' });
+    const isRequiredRoom = useWatch({ control, name: 'isRequiredRoom' });
 
     const slugify = (input: string) => {
         return (input ?? '')
@@ -146,6 +153,7 @@ export const ServiceCreatePage = () => {
         metaTitle: data.metaTitle || null,
         metaDescription: data.metaDescription || null,
         isActive: data.isActive,
+        isRequiredRoom: data.isRequiredRoom ?? false,
     });
 
     // Step 1 -> Step 2: chỉ chuyển màn hình, không gọi API.
@@ -215,6 +223,10 @@ export const ServiceCreatePage = () => {
                         } as Record<string, unknown>);
                     })
                 );
+            }
+
+            if (formValues.isRequiredRoom && selectedRoomTypeIds.length > 0) {
+                await Promise.all(selectedRoomTypeIds.map((rtId) => updateRoomTypeServiceId(rtId, serviceId)));
             }
 
             setOpenCreateNowDialog(false);
@@ -587,7 +599,43 @@ export const ServiceCreatePage = () => {
                                         <SwitchButton control={control} name="isAddon" label="Dịch vụ add-on" />
                                         <SwitchButton control={control} name="isCritical" label="Quan trọng" />
                                         <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
+                                        <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                     </Box>
+                                    {isRequiredRoom && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
+                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>Tên loại phòng</TableCell>
+                                                        <TableCell>Dịch vụ hiện tại</TableCell>
+                                                        <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {roomTypes.map((rt) => (
+                                                        <TableRow key={rt.roomTypeId}>
+                                                            <TableCell>{rt.typeName}</TableCell>
+                                                            <TableCell>{rt.serviceName ?? '—'}</TableCell>
+                                                            <TableCell padding="checkbox">
+                                                                <Checkbox
+                                                                    checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
+                                                                    onChange={(_, checked) => {
+                                                                        setSelectedRoomTypeIds((prev) =>
+                                                                            checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                            {roomTypes.length === 0 && (
+                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                            )}
+                                        </Box>
+                                    )}
                                 </Stack>
                             </CollapsibleCard>
 
@@ -1062,6 +1110,10 @@ export const ServiceCreatePage = () => {
                                                 return createOrUpdateServicePricing(payload);
                                             })
                                         );
+
+                                        if (getValues('isRequiredRoom') && selectedRoomTypeIds.length > 0) {
+                                            await Promise.all(selectedRoomTypeIds.map((rtId) => updateRoomTypeServiceId(rtId, serviceId)));
+                                        }
 
                                         toast.success('Tạo dịch vụ và quy tắc giá thành công');
                                         navigate(`/${prefixAdmin}/service/edit/${serviceId}`);

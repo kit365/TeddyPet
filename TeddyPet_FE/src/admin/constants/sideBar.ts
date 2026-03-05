@@ -7,6 +7,8 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import DiscountIcon from '@mui/icons-material/Discount';
 import PersonIcon from '@mui/icons-material/Person';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import BadgeIcon from '@mui/icons-material/Badge';
 
 export const menuOverviewData = [
     {
@@ -135,12 +137,40 @@ export const menuManagementData = [
         ]
     },
     {
+        id: "room",
+        label: "Quản lý phòng",
+        Icon: MeetingRoomIcon,
+        children: [
+            { id: "room-type-list", label: "Danh sách loại phòng", path: `/${prefixAdmin}/room-type/list` },
+            { id: "room-list", label: "Danh sách phòng", path: `/${prefixAdmin}/room/list` },
+            { id: "room-layout-config", label: "Sắp xếp vị trí phòng", path: `/${prefixAdmin}/room-layout-config/list` },
+            { id: "amenity-list", label: "Tiện nghi", path: `/${prefixAdmin}/amenity/list` },
+            { id: "amenity-category-list", label: "Danh mục tiện nghi", path: `/${prefixAdmin}/amenity-category/list` },
+        ]
+    },
+    {
         id: "shop-schedule",
         label: "Cài đặt lịch",
         Icon: ScheduleSendIcon,
         children: [
             { id: "operation-hours", label: "Giờ hoạt động", path: `/${prefixAdmin}/shop-operation-hours` },
             { id: "exceptions", label: "Ngoại lệ lịch", path: `/${prefixAdmin}/time-slot-exception/list` },
+        ]
+    },
+    {
+        id: "staff",
+        label: "Nhân sự",
+        Icon: BadgeIcon,
+        children: [
+            { id: "staff-profiles", label: "Hồ sơ nhân viên", path: `/${prefixAdmin}/staff/profile/list` },
+            { id: "staff-positions", label: "Danh mục chức vụ", path: `/${prefixAdmin}/staff/position/list` },
+            { id: "staff-skills", label: "Danh mục kỹ năng", path: `/${prefixAdmin}/staff/skill/list` },
+            { id: "staff-skills-map", label: "Kỹ năng nhân viên", path: `/${prefixAdmin}/staff/skills-map/list` },
+            { id: "staff-contracts", label: "Hợp đồng", path: `/${prefixAdmin}/staff/contract/list` },
+            { id: "staff-work-shifts", label: "Ca làm việc (QL)", path: `/${prefixAdmin}/staff/work-shifts`, role: "ADMIN" as const },
+            { id: "staff-register-shifts", label: "Đăng ký ca", path: `/${prefixAdmin}/staff/work-shifts/register`, role: "STAFF" as const },
+            { id: "staff-realtime", label: "Trạng thái realtime", path: `/${prefixAdmin}/staff/realtime` },
+            { id: "staff-payroll", label: "Lương", path: `/${prefixAdmin}/staff/payroll` },
         ]
     }
 ];

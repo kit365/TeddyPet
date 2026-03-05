@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton } from "@mui/material"
-import { Link } from "react-router-dom"
+import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton, Alert } from "@mui/material"
+import { Link, useSearchParams } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LogoAdmin } from "../../../assets/admin/logo"
@@ -19,6 +19,8 @@ const LOGOS = [
 ]
 
 export const LoginPage = () => {
+    const [searchParams] = useSearchParams();
+    const forbidden = searchParams.get("forbidden") === "1";
     const [showPassword, setShowPassword] = useState(false);
     const handleTogglePasswordVisibility = () => {
         setShowPassword(prev => !prev)
@@ -113,6 +115,11 @@ export const LoginPage = () => {
                                 <h5 className="text-[1.9rem] font-[700] mb-[40px]">Đăng nhập vào tài khoản của bạn</h5>
                                 <form onSubmit={handleSubmit(onSubmit)}>
                                     <Box sx={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                                        {forbidden && (
+                                            <Alert severity="warning" sx={{ fontSize: "1.3rem" }}>
+                                                Bạn không có quyền truy cập trang quản trị. Chỉ tài khoản Admin hoặc Nhân viên mới được đăng nhập.
+                                            </Alert>
+                                        )}
                                         <Controller
                                             name="usernameOrEmail"
                                             control={control}

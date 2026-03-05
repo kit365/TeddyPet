@@ -37,6 +37,7 @@ public record ServiceResponse(
         String metaDescription,
         @JsonProperty("isActive")
         boolean isActive,
+        Boolean isRequiredRoom,
         boolean isDeleted,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

@@ -12,4 +12,7 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     List<TimeSlot> findByIsDeletedFalse();
 
     List<TimeSlot> findByService_IdAndIsDeletedFalse(Long serviceId);
+
+    List<TimeSlot> findByService_IdAndDayTypeAndIsDeletedFalse(Long serviceId,
+            fpt.teddypet.domain.enums.scheduling.DayTypeEnum dayType);
 }

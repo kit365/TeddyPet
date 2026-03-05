@@ -13,6 +13,8 @@ public interface ServiceComboRepositoryPort {
 
     Optional<ServiceCombo> findByCode(String code);
 
+    Optional<ServiceCombo> findBySlug(String slug);
+
     List<ServiceCombo> findAll();
 
     List<ServiceCombo> findAllActive();
@@ -20,6 +22,10 @@ public interface ServiceComboRepositoryPort {
     boolean existsByCode(String code);
 
     boolean existsByCodeAndIdNot(String code, Long id);
+
+    boolean existsBySlug(String slug);
+
+    boolean existsBySlugAndIdNot(String slug, Long id);
 
     void delete(ServiceCombo serviceCombo);
 }

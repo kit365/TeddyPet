@@ -15,10 +15,12 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon } from "@mui/icons-material";
-import { useDeleteProductAgeRange, useProductAgeRanges } from "../hooks/useProduct";
+import { Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, Description as DescriptionIcon, FileUpload as FileUploadIcon, FileDownload as FileDownloadIcon, SimCardDownload as SimCardDownloadIcon } from "@mui/icons-material";
+import { useDeleteProductAgeRange, useProductAgeRanges, useDownloadAgeRangesTemplate, useExportAgeRangesExcel, useImportAgeRangesExcel } from "../hooks/useProduct";
 import { toast } from "react-toastify";
 import { AgeRangeFormDialog } from "./AgeRangeFormDialog";
+import { Menu, MenuItem } from "@mui/material";
+import { ImportExcelModal } from "./ImportExcelModal";
 
 interface AgeRangeListDialogProps {
     open: boolean;
@@ -32,6 +34,22 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
 
     const { data: ageRanges = [], isLoading } = useProductAgeRanges();
     const { mutate: deleteAgeRange } = useDeleteProductAgeRange();
+
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const openMenu = Boolean(anchorEl);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    const importMutation = useImportAgeRangesExcel();
+    const exportMutation = useExportAgeRangesExcel();
+    const templateMutation = useDownloadAgeRangesTemplate();
+
+    const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     const handleCreate = () => {
         setEditId(null);
@@ -79,11 +97,48 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                     padding: "8px 8px 16px 8px"
                 }}>
                     {t("admin.product.age_range.title")}
-                    <Tooltip title={t("admin.common.close")}>
-                        <IconButton onClick={onClose} size="small" sx={{ '&:hover': { backgroundColor: '#f4f6f8' } }}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={handleMenuClick}
+                            endIcon={<ArrowDropDownIcon />}
+                            startIcon={
+                                (importMutation.isPending || exportMutation.isPending || templateMutation.isPending) ?
+                                    <CircularProgress size={16} /> : <DescriptionIcon />
+                            }
+                            sx={{
+                                fontSize: '1.2rem',
+                                textTransform: 'none',
+                                color: '#1C252E',
+                                borderColor: 'rgba(145, 158, 171, 0.32)',
+                                fontWeight: 600,
+                                height: '32px',
+                            }}
+                        >
+                            Excel
+                        </Button>
+                        <Menu
+                            anchorEl={anchorEl}
+                            open={openMenu}
+                            onClose={handleMenuClose}
+                        >
+                            <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                                <FileUploadIcon fontSize="small" /> Nhập Excel
+                            </MenuItem>
+                            <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                                <FileDownloadIcon fontSize="small" /> Xuất Excel
+                            </MenuItem>
+                            <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                                <SimCardDownloadIcon fontSize="small" /> Tải Template
+                            </MenuItem>
+                        </Menu>
+                        <Tooltip title={t("admin.common.close")}>
+                            <IconButton onClick={onClose} size="small" sx={{ '&:hover': { backgroundColor: '#f4f6f8' } }}>
+                                <CloseIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 </DialogTitle>
 
                 <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
@@ -177,6 +232,13 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                     editId={editId}
                 />
             )}
+            <ImportExcelModal
+                open={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={(file) => importMutation.mutate(file)}
+                isPending={importMutation.isPending}
+                isSuccess={importMutation.isSuccess}
+            />
         </>
     );
 };

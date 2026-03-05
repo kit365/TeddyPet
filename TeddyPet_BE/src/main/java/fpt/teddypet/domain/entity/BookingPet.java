@@ -63,17 +63,15 @@ public class BookingPet extends BaseEntity {
     @Column(name = "belonging_photos", columnDefinition = "TEXT")
     private String belongingPhotos;
 
-    @Column(name = "food_brought", columnDefinition = "TEXT")
-    private String foodBrought;
-
-    @Column(name = "food_brand", columnDefinition = "TEXT")
-    private String foodBrand;
-
-    @Column(name = "feeding_instructions", columnDefinition = "TEXT")
-    private String feedingInstructions;
-
     @OneToMany(mappedBy = "bookingPet", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BookingPetService> services = new ArrayList<>();
+
+    @Column(name = "food_brought", columnDefinition = "TEXT")
+    private String foodBrought;
+
+    @OneToMany(mappedBy = "bookingPet", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PetFoodBrought> foodItems = new ArrayList<>();
 }
 

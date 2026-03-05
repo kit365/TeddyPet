@@ -2,6 +2,7 @@
 export const PET_TYPE_LABELS: Record<string, string> = {
     DOG: 'Chó',
     CAT: 'Mèo',
+    OTHER: 'Khác'
 };
 export const getPetTypeLabel = (value: string) => PET_TYPE_LABELS[value] ?? value;
 

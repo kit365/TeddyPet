@@ -79,3 +79,18 @@ export const handleReturnRequest = async (id: string, data: AdminHandleReturnReq
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/handle-return`, data);
     return response.data;
 };
+
+// Export orders to Excel
+export const exportOrdersToExcel = async () => {
+    const response = await apiApp.get(`${BASE_PATH}/export`, {
+        responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `orders_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};

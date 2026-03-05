@@ -28,6 +28,9 @@ public class ServiceCombo extends BaseEntity {
     @Column(name = "combo_name", nullable = false, length = 255)
     private String comboName;
 
+    @Column(unique = true, length = 255)
+    private String slug;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -56,8 +59,8 @@ public class ServiceCombo extends BaseEntity {
     @Column(name = "max_pet_weight", precision = 6, scale = 2)
     private BigDecimal maxPetWeight;
 
-    @Column(name = "applicable_pet_types", columnDefinition = "TEXT")
-    private String applicablePetTypes;
+    @Column(name = "suitable_pet_types", columnDefinition = "TEXT")
+    private String suitablePetTypes;
 
     @Column(name = "display_order")
     @Builder.Default
