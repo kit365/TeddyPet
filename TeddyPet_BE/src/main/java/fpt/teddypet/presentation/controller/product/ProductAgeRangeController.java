@@ -5,14 +5,17 @@ import fpt.teddypet.application.dto.request.products.agerange.ProductAgeRangeReq
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeResponse;
 import fpt.teddypet.application.port.input.products.ProductAgeRangeService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ import java.util.List;
 public class ProductAgeRangeController {
 
     private final ProductAgeRangeService productAgeRangeService;
+    private final SimpleEntityExcelService excelService;
 
     @PostMapping
     @Operation(summary = "Tạo độ tuổi sản phẩm", description = "Tạo độ tuổi sản phẩm mới")
@@ -65,14 +69,37 @@ public class ProductAgeRangeController {
     @Operation(summary = "Xóa độ tuổi sản phẩm", description = "Xóa mềm độ tuổi sản phẩm theo ID")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long ageRangeId) {
         productAgeRangeService.delete(ageRangeId);
-        return ResponseEntity.ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS));
+        return ResponseEntity
+                .ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS));
     }
 
     @DeleteMapping("/batch")
     @Operation(summary = "Xóa nhiều độ tuổi sản phẩm", description = "Xóa mềm nhiều độ tuổi sản phẩm theo danh sách ID")
     public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
         int count = productAgeRangeService.deleteMany(ids);
-        return ResponseEntity.ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS, count));
+        return ResponseEntity
+                .ok(ApiResponse.success(ProductAgeRangeMessages.MESSAGE_PRODUCT_AGE_RANGE_DELETED_SUCCESS, count));
+    }
+
+    // ─── Excel ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất danh sách độ tuổi ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        excelService.exportAgeRanges(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel để nhập độ tuổi")
+    public void downloadTemplate(HttpServletResponse response) {
+        excelService.downloadAgeRangeTemplate(response);
+    }
+
+    @PostMapping("/excel/import")
+    @Operation(summary = "Nhập độ tuổi từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = excelService.importAgeRanges(file);
+        return ResponseEntity.ok(ApiResponse.success("Import độ tuổi hoàn tất.", result));
     }
 }
-

@@ -16,4 +16,6 @@ public interface TimeSlotRepositoryPort {
     List<TimeSlot> findByServiceId(Long serviceId);
 
     void delete(TimeSlot entity);
+
+    List<TimeSlot> findByServiceIdAndDayType(Long serviceId, fpt.teddypet.domain.enums.scheduling.DayTypeEnum dayType);
 }

@@ -12,12 +12,14 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getServiceCategories, getServices } from "../../../api/service.api";
 import type { BookingPetForm } from "../../../types/booking.type";
 import type { ServiceCategoryClient, ServiceClient } from "../../../types/booking.type";
 import { SESSION_SLOTS, PET_TYPES } from "./constants";
+import type { IServicePricing } from "../../../admin/pages/service/configs/types";
+import { getServicePricingsByServiceId } from "../../../admin/api/service-pricing.api";
 
 const defaultStep1Data: BookingStep1FormData = {
     fullName: "",
@@ -27,17 +29,17 @@ const defaultStep1Data: BookingStep1FormData = {
     message: "",
 };
 
-function createEmptyPet(): BookingPetForm {
+function createEmptyPet(step1: BookingStep1FormData): BookingPetForm {
     return {
         id: crypto.randomUUID?.() ?? `pet-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         petName: "",
         petType: "dog",
         weight: "",
         notes: "",
-        emergencyContactName: "",
-        emergencyContactPhone: "",
+        emergencyContactName: step1.fullName,
+        emergencyContactPhone: step1.phone,
         foodBrought: false,
-        foodBrand: "",
+        foodBroughtType: [],
         feedingInstructions: "",
         serviceId: null,
         pricingModel: null,
@@ -53,7 +55,8 @@ export const BookingDetailPage = () => {
     const location = useLocation();
     const step1Data: BookingStep1FormData = (location.state as BookingStep1FormData) ?? defaultStep1Data;
 
-    const [pets, setPets] = useState<BookingPetForm[]>(() => [createEmptyPet()]);
+    const [pets, setPets] = useState<BookingPetForm[]>(() => [createEmptyPet(step1Data)]);
+    const [openServicePetId, setOpenServicePetId] = useState<string | null>(null);
     /** Ids of pet cards that are collapsed (ẩn bớt thông tin) */
     const [collapsedPetIds, setCollapsedPetIds] = useState<Set<string>>(new Set());
 
@@ -77,6 +80,116 @@ export const BookingDetailPage = () => {
 
     const categories: ServiceCategoryClient[] = categoriesData?.data ?? [];
     const services: ServiceClient[] = servicesData?.data ?? [];
+
+    // Map serviceId -> danh sách pricing rule
+    const { data: servicePricingMap } = useQuery({
+        queryKey: ["service-pricings-client", services.map((s) => s.serviceId)],
+        queryFn: async (): Promise<Record<number, IServicePricing[]>> => {
+            const result: Record<number, IServicePricing[]> = {};
+            await Promise.all(
+                services.map(async (s) => {
+                    try {
+                        const res = await getServicePricingsByServiceId(s.serviceId);
+                        result[s.serviceId] = res.data ?? [];
+                    } catch {
+                        result[s.serviceId] = [];
+                    }
+                })
+            );
+            return result;
+        },
+        enabled: services.length > 0,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const normalizePetType = (v?: string | null) => v?.toString().trim().toLowerCase() || "";
+
+    const petTypeOptions = useMemo(() => {
+        const result = new Set<string>();
+        services.forEach((s) => {
+            s.suitablePetTypes?.forEach((t) => {
+                if (t) result.add(normalizePetType(t));
+            });
+        });
+        // Nếu BE chưa trả suitablePetTypes thì fallback về hằng PET_TYPES cũ
+        if (result.size === 0) {
+            PET_TYPES.forEach((t) => result.add(t.value));
+        }
+        return Array.from(result);
+    }, [services]);
+
+    const renderPetTypeLabel = (value: string) => {
+        const norm = normalizePetType(value);
+        switch (norm) {
+            case "dog":
+                return "Chó";
+            case "cat":
+                return "Mèo";
+            case "other":
+                return "Khác";
+            default:
+                return value;
+        }
+    };
+
+    const parseWeight = (weightStr?: string | null): number | null => {
+        if (!weightStr) return null;
+        const n = Number(weightStr.toString().replace(",", "."));
+        return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    /**
+     * Tìm rule giá phù hợp cho 1 dịch vụ theo cân nặng + loại thú cưng.
+     * Nếu không có rule nào match thì trả về undefined.
+     */
+    const findMatchingPricingRule = (
+        serviceId: number,
+        petWeightStr?: string | null,
+        petType?: string | null
+    ): IServicePricing | undefined => {
+        const rules = servicePricingMap?.[serviceId] ?? [];
+        if (!rules.length) return undefined;
+
+        const weight = parseWeight(petWeightStr);
+        if (weight == null) return undefined;
+
+        const petNorm = normalizePetType(petType);
+
+        const activeRules = rules.filter((r) => r.isActive && !r.isDeleted);
+        activeRules.sort((a, b) => a.priority - b.priority);
+
+        return activeRules.find((r) => {
+            const minOk = r.minWeight == null || weight >= r.minWeight;
+            const maxOk = r.maxWeight == null || weight <= r.maxWeight;
+            if (!minOk || !maxOk) return false;
+
+            if (!r.suitablePetTypes || !r.suitablePetTypes.trim()) return true;
+            if (!petNorm) return false;
+            const list = r.suitablePetTypes
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean);
+            return list.includes(petNorm);
+        });
+    };
+
+    const getServicePriceForWeight = (
+        service: ServiceClient,
+        petWeightStr?: string | null,
+        petType?: string | null
+    ): number | undefined => {
+        const rule = findMatchingPricingRule(service.serviceId, petWeightStr, petType);
+        return rule?.price;
+    };
+
+    const getServiceDisplayLabel = (pet: BookingPetForm): string => {
+        if (!pet.serviceId) return "";
+        const svc = services.find((s) => s.serviceId === pet.serviceId);
+        if (!svc) return "";
+        const price = getServicePriceForWeight(svc, pet.weight, pet.petType);
+        const priceText = price != null ? ` — ${Number(price).toLocaleString("vi-VN")}đ` : "";
+        return `${svc.serviceName}${priceText}`;
+    };
 
     const getCategoryByServiceId = useCallback(
         (serviceId: number): ServiceCategoryClient | undefined => {
@@ -105,7 +218,7 @@ export const BookingDetailPage = () => {
         []
     );
 
-    const addPet = () => setPets((prev) => [...prev, createEmptyPet()]);
+    const addPet = () => setPets((prev) => [...prev, createEmptyPet(step1Data)]);
     const removePet = (id: string) => {
         if (pets.length <= 1) return;
         setPets((prev) => prev.filter((p) => p.id !== id));
@@ -116,8 +229,21 @@ export const BookingDetailPage = () => {
             prev.map((p) => {
                 if (p.id !== id) return p;
                 const next = { ...p, ...updates };
+
+                // Nếu thay đổi petType hoặc weight thì reset dịch vụ và các field phụ thuộc
+                if (updates.petType !== undefined || updates.weight !== undefined) {
+                    next.serviceId = null;
+                    next.pricingModel = null;
+                    next.dateFrom = "";
+                    next.dateTo = "";
+                    next.sessionDate = "";
+                    next.sessionSlot = SESSION_SLOTS[0] ?? "08:00";
+                    next.foodBrought = false;
+                    next.foodBroughtType = [];
+                    next.feedingInstructions = "";
+                }
                 if (updates.serviceId !== undefined) {
-                    const cat = getCategoryByServiceId(updates.serviceId);
+                    const cat = updates.serviceId != null ? getCategoryByServiceId(updates.serviceId) : null;
                     const pricingModel = cat?.pricingModel === "per_day" ? "per_day" : cat?.pricingModel === "per_session" ? "per_session" : null;
                     next.pricingModel = pricingModel ?? null;
                     if (!pricingModel) {
@@ -126,9 +252,9 @@ export const BookingDetailPage = () => {
                         next.sessionDate = "";
                         next.sessionSlot = SESSION_SLOTS[0] ?? "08:00";
                     }
-                    if (!isHotelCategory(cat)) {
+                    if (cat && !isHotelCategory(cat)) {
                         next.foodBrought = false;
-                        next.foodBrand = "";
+                        next.foodBroughtType = [];
                         next.feedingInstructions = "";
                     }
                 }
@@ -266,7 +392,7 @@ export const BookingDetailPage = () => {
                                 {pets.map((pet, index) => (
                                     <div
                                         key={pet.id}
-                                        className="bg-white rounded-[16px] shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#eee] overflow-hidden"
+                                        className="bg-white rounded-[16px] shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#eee]"
                                     >
                                         <div className="bg-[#f8f9fa] px-[24px] py-[14px] border-b border-[#eee] flex items-center justify-between flex-wrap gap-2">
                                             <span className="flex items-center gap-2 text-[1.5rem] font-[600] text-[#181818]">
@@ -305,7 +431,7 @@ export const BookingDetailPage = () => {
                                         </div>
 
                                         <div
-                                            className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+                                            className={`transition-[max-height,opacity] duration-300 ease-out ${
                                                 collapsedPetIds.has(pet.id)
                                                     ? "max-h-0 opacity-0 pointer-events-none"
                                                     : "max-h-[2000px] opacity-100"
@@ -332,9 +458,9 @@ export const BookingDetailPage = () => {
                                                         onChange={(e) => updatePet(pet.id, { petType: e.target.value })}
                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] outline-none text-[1.5rem] bg-white"
                                                     >
-                                                        {PET_TYPES.map((t) => (
-                                                            <option key={t.value} value={t.value}>
-                                                                {t.label}
+                                                        {petTypeOptions.map((v) => (
+                                                            <option key={v} value={v}>
+                                                                {renderPetTypeLabel(v)}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -379,118 +505,208 @@ export const BookingDetailPage = () => {
                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
                                                     />
                                                 </div>
-                                                {pet.serviceId && isHotelCategory(getCategoryByServiceId(pet.serviceId)) && (
-                                                    <>
-                                                        <div className="sm:col-span-2 lg:col-span-4">
-                                                            <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Mang theo thức ăn</label>
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => updatePet(pet.id, { foodBrought: true })}
-                                                                    className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
-                                                                        pet.foodBrought
-                                                                            ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
-                                                                            : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
-                                                                    }`}
-                                                                >
-                                                                    Có
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => updatePet(pet.id, { foodBrought: false, foodBrand: "" })}
-                                                                    className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
-                                                                        !pet.foodBrought
-                                                                            ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
-                                                                            : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
-                                                                    }`}
-                                                                >
-                                                                    Không
-                                                                </button>
-                                                            </div>
+                                            </div>
+
+                                            {/* Chọn dịch vụ + các tuỳ chọn phụ thuộc */}
+                                            {/* Chọn dịch vụ */}
+                                            <div className="mt-[8px] relative">
+                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Chọn dịch vụ *</label>
+                                                <button
+                                                    type="button"
+                                                    disabled={!pet.weight || !pet.petType}
+                                                    onClick={() => {
+                                                        if (!pet.weight || !pet.petType) return;
+                                                        setOpenServicePetId((prev) => (prev === pet.id ? null : pet.id));
+                                                    }}
+                                                    className={`w-full flex items-center justify-between py-[12px] px-[16px] rounded-[10px] border text-left text-[1.5rem] transition-colors ${
+                                                        !pet.weight || !pet.petType
+                                                            ? "border-[#ddd] bg-[#f5f5f5] text-[#999] cursor-not-allowed"
+                                                            : "border-[#ddd] bg-white text-[#181818] hover:border-[#ffbaa0] cursor-pointer"
+                                                    }`}
+                                                >
+                                                    <span className="truncate">
+                                                        {!pet.weight || !pet.petType
+                                                            ? "Vui lòng chọn loại thú cưng và cân nặng trước"
+                                                            : getServiceDisplayLabel(pet) || "— Chọn dịch vụ —"}
+                                                    </span>
+                                                    <span className="ml-3 text-[#999] text-[1.3rem]">{openServicePetId === pet.id ? "▲" : "▼"}</span>
+                                                </button>
+
+                                                {openServicePetId === pet.id && pet.weight && pet.petType && (
+                                                    <div className="absolute left-0 right-0 mt-[6px] z-30 bg-white border border-[#e5e7eb] rounded-[14px] shadow-[0_12px_30px_rgba(15,23,42,0.18)] max-h-[360px] overflow-y-auto">
+                                                        <div className="py-[8px]">
+                                                            {categories.map((cat) => {
+                                                                const catServices = services.filter((s) => {
+                                                                    if (s.serviceCategoryId !== cat.categoryId || !s.isActive)
+                                                                        return false;
+
+                                                                    // 1) Dịch vụ phải hỗ trợ loại thú cưng (service-level suitablePetTypes)
+                                                                    const petTypeNorm = normalizePetType(pet.petType);
+                                                                    const serviceSupportsPetType =
+                                                                        !s.suitablePetTypes || s.suitablePetTypes.length === 0
+                                                                            ? true
+                                                                            : s.suitablePetTypes.some(
+                                                                                  (t) => normalizePetType(t) === petTypeNorm
+                                                                              );
+                                                                    if (!serviceSupportsPetType) return false;
+
+                                                                    // 2) Phải có ít nhất 1 quy tắc giá match loại thú cưng + cân nặng
+                                                                    const matchedRule = findMatchingPricingRule(
+                                                                        s.serviceId,
+                                                                        pet.weight,
+                                                                        pet.petType
+                                                                    );
+                                                                    return !!matchedRule;
+                                                                });
+                                                                if (catServices.length === 0) return null;
+                                                                return (
+                                                                    <div key={cat.categoryId} className="px-[12px] py-[6px]">
+                                                                        <div className="text-[1.3rem] font-[600] text-[#6b7280] mb-[4px]">
+                                                                            {cat.categoryName}
+                                                                        </div>
+                                                                        <div className="space-y-[4px]">
+                                                                            {catServices.map((s) => {
+                                                                                const price = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                                                                const isSelected = pet.serviceId === s.serviceId;
+                                                                                return (
+                                                                                    <button
+                                                                                        key={s.serviceId}
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            updatePet(pet.id, { serviceId: s.serviceId });
+                                                                                            setOpenServicePetId(null);
+                                                                                        }}
+                                                                                        className={`w-full text-left rounded-[10px] px-[10px] py-[8px] border transition-colors ${
+                                                                                            isSelected
+                                                                                                ? "border-[#ffbaa0] bg-[#fff7f3]"
+                                                                                                : "border-transparent hover:border-[#ffe0ce] hover:bg-[#fff7f3]"
+                                                                                        }`}
+                                                                                    >
+                                                                                        <div className="flex items-center justify-between gap-3">
+                                                                                            <span className="text-[1.45rem] font-[600] text-[#181818]">{s.serviceName}</span>
+                                                                                            {price != null && (
+                                                                                                <span className="text-[1.4rem] font-[600] text-[#c45a3a] whitespace-nowrap">
+                                                                                                    {Number(price).toLocaleString("vi-VN")}đ
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
-                                                        {pet.foodBrought && (
-                                                            <div className="sm:col-span-2 lg:col-span-4">
-                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Nhãn hiệu thức ăn</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={pet.foodBrand ?? ""}
-                                                                    onChange={(e) => updatePet(pet.id, { foodBrand: e.target.value })}
-                                                                    placeholder="Ví dụ: Royal Canin"
-                                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        <div className="sm:col-span-2 lg:col-span-4">
-                                                            <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Hướng dẫn cho ăn</label>
-                                                            <input
-                                                                type="text"
-                                                                value={pet.feedingInstructions ?? ""}
-                                                                onChange={(e) => updatePet(pet.id, { feedingInstructions: e.target.value })}
-                                                                placeholder="Ví dụ: 2 bữa/ngày, mỗi bữa 200g"
-                                                                className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
-                                                            />
-                                                        </div>
-                                                    </>
+                                                    </div>
                                                 )}
                                             </div>
 
-                                            {/* Chọn dịch vụ */}
-                                            <div>
-                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Chọn dịch vụ *</label>
-                                                <select
-                                                    value={pet.serviceId ?? ""}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value;
-                                                        updatePet(pet.id, { serviceId: v ? Number(v) : null });
-                                                    }}
-                                                    required
-                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] outline-none text-[1.5rem] bg-white"
-                                                >
-                                                    <option value="">— Chọn dịch vụ —</option>
-                                                    {categories.map((cat) => {
-                                                        const catServices = services.filter((s) => s.serviceCategoryId === cat.categoryId && s.isActive);
-                                                        if (catServices.length === 0) return null;
-                                                        return (
-                                                            <optgroup key={cat.categoryId} label={cat.categoryName}>
-                                                                {catServices.map((s) => (
-                                                                    <option key={s.serviceId} value={s.serviceId}>
-                                                                        {s.serviceName}
-                                                                        {s.basePrice != null ? ` — ${Number(s.basePrice).toLocaleString("vi-VN")}đ` : ""}
-                                                                    </option>
-                                                                ))}
-                                                            </optgroup>
-                                                        );
-                                                    })}
-                                                </select>
-                                            </div>
+                                            {/* Mang theo thức ăn & hướng dẫn (chỉ khi dịch vụ thuộc nhóm hotel) */}
+                                            {pet.serviceId && isHotelCategory(getCategoryByServiceId(pet.serviceId)) && (
+                                                        <div className="mt-[16px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
+                                                            <div className="sm:col-span-2 lg:col-span-4">
+                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Mang theo thức ăn</label>
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updatePet(pet.id, { foodBrought: true })}
+                                                                        className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
+                                                                            pet.foodBrought
+                                                                                ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
+                                                                                : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
+                                                                        }`}
+                                                                    >
+                                                                        Có
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updatePet(pet.id, { foodBrought: false, foodBroughtType: [] })}
+                                                                        className={`py-[12px] px-[24px] rounded-[10px] font-[600] text-[1.5rem] transition-colors ${
+                                                                            !pet.foodBrought
+                                                                                ? "bg-[#ffbaa0] text-[#181818] border-2 border-[#ffbaa0]"
+                                                                                : "bg-white text-[#888] border-2 border-[#ddd] hover:border-[#ffbaa0]/50"
+                                                                        }`}
+                                                                    >
+                                                                        Không
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            {pet.foodBrought && (
+                                                                <div className="sm:col-span-2 lg:col-span-4">
+                                                                    <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Loại thức ăn mang theo</label>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {[
+                                                                            { value: "hat", label: "Hạt" },
+                                                                            { value: "sup_thuong", label: "Súp thưởng" },
+                                                                            { value: "pate", label: "Pate" },
+                                                                            { value: "khac", label: "Khác" },
+                                                                        ].map((opt) => {
+                                                                            const current = pet.foodBroughtType ?? [];
+                                                                            const selected = current.includes(opt.value as any);
+                                                                            return (
+                                                                                <button
+                                                                                    key={opt.value}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        const next = selected
+                                                                                            ? current.filter((x) => x !== opt.value)
+                                                                                            : [...current, opt.value];
+                                                                                        updatePet(pet.id, { foodBroughtType: next });
+                                                                                    }}
+                                                                                    className={`py-[10px] px-[18px] rounded-[999px] text-[1.4rem] font-[600] border-2 transition-colors ${
+                                                                                        selected
+                                                                                            ? "bg-[#ffbaa0] text-[#181818] border-[#ffbaa0]"
+                                                                                            : "bg-white text-[#888] border-[#ddd] hover:border-[#ffbaa0]/60"
+                                                                                    }`}
+                                                                                >
+                                                                                    {opt.label}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            <div className="sm:col-span-2 lg:col-span-4">
+                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Hướng dẫn cho ăn</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={pet.feedingInstructions ?? ""}
+                                                                    onChange={(e) => updatePet(pet.id, { feedingInstructions: e.target.value })}
+                                                                    placeholder="Ví dụ: 2 bữa/ngày, mỗi bữa 200g"
+                                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[1.5rem]"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                             {/* Theo pricingModel: per_day hoặc per_session */}
-                                            {pet.serviceId && pet.pricingModel === "per_day" && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] p-[16px] bg-[#f0f9ff] rounded-[12px] border border-[#bae6fd]">
-                                                    <div>
-                                                        <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày gửi *</label>
-                                                        <input
-                                                            type="date"
-                                                            value={pet.dateFrom}
-                                                            onChange={(e) => updatePet(pet.id, { dateFrom: e.target.value })}
-                                                            required
-                                                            className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#7dd3fc] focus:border-[#0ea5e9] outline-none text-[1.5rem] bg-white"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày trả *</label>
-                                                        <input
-                                                            type="date"
-                                                            value={pet.dateTo}
-                                                            onChange={(e) => updatePet(pet.id, { dateTo: e.target.value })}
-                                                            required
-                                                            className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#7dd3fc] focus:border-[#0ea5e9] outline-none text-[1.5rem] bg-white"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            {pet.pricingModel === "per_day" && (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] p-[16px] bg-[#f0f9ff] rounded-[12px] border border-[#bae6fd]">
+                                                            <div>
+                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày gửi *</label>
+                                                                <input
+                                                                    type="date"
+                                                                    value={pet.dateFrom}
+                                                                    onChange={(e) => updatePet(pet.id, { dateFrom: e.target.value })}
+                                                                    required
+                                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#7dd3fc] focus:border-[#0ea5e9] outline-none text-[1.5rem] bg-white"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày trả *</label>
+                                                                <input
+                                                                    type="date"
+                                                                    value={pet.dateTo}
+                                                                    onChange={(e) => updatePet(pet.id, { dateTo: e.target.value })}
+                                                                    required
+                                                                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#7dd3fc] focus:border-[#0ea5e9] outline-none text-[1.5rem] bg-white"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
 
-                                            {pet.serviceId && pet.pricingModel === "per_session" && (
+                                            {pet.pricingModel === "per_session" && (
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] p-[16px] bg-[#f0fdf4] rounded-[12px] border border-[#bbf7d0]">
                                                     <div>
                                                         <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày hẹn *</label>
@@ -519,79 +735,79 @@ export const BookingDetailPage = () => {
                                                     </div>
                                                 </div>
                                             )}
-                                            </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </section>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
 
-                        {/* ========== PHẦN 3: Nút hành động ========== */}
-                        <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
-                            <button
-                                type="button"
-                                onClick={() => navigate("/dat-lich", { state: step1Data })}
-                                className="py-[14px] px-[28px] rounded-[12px] border border-[#ddd] text-[#181818] font-[600] text-[1.5rem] hover:bg-[#f5f5f5] transition-colors"
-                            >
-                                Quay lại
-                            </button>
-                            <button
-                                type="submit"
-                                className="py-[14px] px-[36px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1.5rem] transition-colors shadow-sm hover:shadow-md"
-                            >
-                                Hoàn tất đặt lịch
-                            </button>
-                        </section>
-                    </form>
-                </main>
-            </div>
+                    {/* ========== PHẦN 3: Nút hành động ========== */}
+                    <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/dat-lich", { state: step1Data })}
+                            className="py-[14px] px-[28px] rounded-[12px] border border-[#ddd] text-[#181818] font-[600] text-[1.5rem] hover:bg-[#f5f5f5] transition-colors"
+                        >
+                            Quay lại
+                        </button>
+                        <button
+                            type="submit"
+                            className="py-[14px] px-[36px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1.5rem] transition-colors shadow-sm hover:shadow-md"
+                        >
+                            Hoàn tất đặt lịch
+                        </button>
+                    </section>
+                </form>
+            </main>
+        </div>
 
-            <div className="app-container flex gap-[30px] pb-[100px]">
-                <div className="w-[413px] px-[20px]">
-                    <div className="w-full h-[206px]">
-                        <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+        <div className="app-container flex gap-[30px] pb-[100px]">
+            <div className="w-[413px] px-[20px]">
+                <div className="w-full h-[206px]">
+                    <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+                </div>
+                <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
+                    <div className="flex mb-[32px]">
+                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                            <EditLocationAltIcon style={{ fontSize: "4rem" }} />
+                        </div>
+                        <div className="pl-[20px]">
+                            <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
+                            <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
+                        </div>
                     </div>
-                    <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
-                        <div className="flex mb-[32px]">
-                            <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <EditLocationAltIcon style={{ fontSize: "4rem" }} />
-                            </div>
-                            <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
-                                <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
-                            </div>
+                    <div className="flex mb-[32px]">
+                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                            <PhoneEnabledOutlinedIcon style={{ fontSize: "4rem" }} />
                         </div>
-                        <div className="flex mb-[32px]">
-                            <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <PhoneEnabledOutlinedIcon style={{ fontSize: "4rem" }} />
-                            </div>
-                            <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
-                                <p className="text-[#181818]">+84346587796</p>
-                            </div>
+                        <div className="pl-[20px]">
+                            <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
+                            <p className="text-[#181818]">+84346587796</p>
                         </div>
-                        <div className="flex mb-[32px]">
-                            <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <MailOutlineOutlinedIcon style={{ fontSize: "4rem" }} />
-                            </div>
-                            <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
-                                <p className="text-[#181818]">teddypet@gmail.com</p>
-                            </div>
+                    </div>
+                    <div className="flex mb-[32px]">
+                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                            <MailOutlineOutlinedIcon style={{ fontSize: "4rem" }} />
+                        </div>
+                        <div className="pl-[20px]">
+                            <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
+                            <p className="text-[#181818]">teddypet@gmail.com</p>
                         </div>
                     </div>
                 </div>
-                <div className="flex-1">
-                    <iframe
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
-                        width="100%"
-                        height="100%"
-                        loading="lazy"
-                    />
-                </div>
             </div>
+            <div className="flex-1">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
+                    width="100%"
+                    height="100%"
+                    loading="lazy"
+                />
+            </div>
+        </div>
 
-            <FooterSub />
-        </>
-    );
+        <FooterSub />
+    </>
+);
 };

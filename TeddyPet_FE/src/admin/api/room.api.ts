@@ -54,7 +54,6 @@ export interface IRoom {
     roomTypeName?: string;
     roomNumber: string;
     roomName?: string | null;
-    block?: string | null;
     tier?: string | null;
     gridRow?: number | null;
     gridCol?: number | null;
@@ -145,11 +144,12 @@ const ROOM_LAYOUT_CONFIGS_URL = '/api/room-layout-configs';
 export interface IRoomLayoutConfig {
     id: number;
     layoutName?: string | null;
-    block?: string | null;
     maxRows: number;
     maxCols: number;
-    floor?: string | null;
     backgroundImage?: string | null;
+    status?: string | null;
+    serviceId?: number | null;
+    serviceName?: string | null;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -176,6 +176,11 @@ export const updateRoomLayoutConfig = async (id: number, data: Record<string, un
 
 export const deleteRoomLayoutConfig = async (id: number): Promise<ApiResponse<unknown>> => {
     const response = await apiApp.delete(`${ROOM_LAYOUT_CONFIGS_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+export const updateRoomLayoutStatus = async (id: number, status: string): Promise<ApiResponse<IRoomLayoutConfig>> => {
+    const response = await apiApp.patch(`${ROOM_LAYOUT_CONFIGS_URL}/${id}/status`, { status }, withAuth());
     return response.data;
 };
 

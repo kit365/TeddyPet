@@ -77,7 +77,6 @@ const roomColumnsBase = (onOpenBlocking: (room: IRoom) => void): GridColDef<IRoo
         width: 160,
         valueGetter: (_, row) => row.roomTypeName ?? '—',
     },
-    { field: 'block', headerName: 'Block', width: 120, valueGetter: (_, row) => row.block ?? '—' },
     {
         field: 'status',
         headerName: 'Trạng thái',

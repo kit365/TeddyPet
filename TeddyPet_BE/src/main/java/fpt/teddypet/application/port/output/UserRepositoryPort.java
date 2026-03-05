@@ -1,10 +1,14 @@
 package fpt.teddypet.application.port.output;
 
 import fpt.teddypet.domain.entity.User;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepositoryPort {
+    List<User> findAll();
+
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);

@@ -60,6 +60,25 @@ import { AmenityEditPage } from "../pages/amenity/AmenityEditPage";
 import { AmenityCategoryListPage } from "../pages/amenity/AmenityCategoryListPage";
 import { AmenityCategoryCreatePage } from "../pages/amenity/AmenityCategoryCreatePage";
 import { AmenityCategoryEditPage } from "../pages/amenity/AmenityCategoryEditPage";
+import { SkillListPage } from "../pages/staff/skill/SkillListPage";
+import { SkillCreatePage } from "../pages/staff/skill/SkillCreatePage";
+import { SkillEditPage } from "../pages/staff/skill/SkillEditPage";
+import { StaffPositionListPage } from "../pages/staff/position/StaffPositionListPage";
+import { StaffPositionCreatePage } from "../pages/staff/position/StaffPositionCreatePage";
+import { StaffPositionEditPage } from "../pages/staff/position/StaffPositionEditPage";
+import { StaffProfileListPage } from "../pages/staff/profile/StaffProfileListPage";
+import { StaffProfileOnboardingPage } from "../pages/staff/profile/StaffProfileOnboardingPage";
+import { StaffProfileEditPage } from "../pages/staff/profile/StaffProfileEditPage";
+import { ContractListPage } from "../pages/staff/contract/ContractListPage";
+import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
+import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
+import { WorkShiftAdminPage } from "../pages/staff/workShift/WorkShiftAdminPage";
+import { WorkShiftStaffPage } from "../pages/staff/workShift/WorkShiftStaffPage";
+import { RoleRouteGuard } from "../components/guards/RoleRouteGuard";
+import { prefixAdmin } from "../constants/routes";
+import { StaffRealtimePage } from "../pages/staff/realtime/StaffRealtimePage";
+import { PayrollPage } from "../pages/staff/payroll/PayrollPage";
+import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -124,6 +143,37 @@ export const AdminRoutes: RouteObject[] = [
     { path: "amenity-category/list", element: <AmenityCategoryListPage /> },
     { path: "amenity-category/create", element: <AmenityCategoryCreatePage /> },
     { path: "amenity-category/edit/:id", element: <AmenityCategoryEditPage /> },
+    { path: "staff/profile/list", element: <StaffProfileListPage /> },
+    { path: "staff/profile/onboarding", element: <StaffProfileOnboardingPage /> },
+    { path: "staff/profile/edit/:id", element: <StaffProfileEditPage /> },
+    { path: "staff/position/list", element: <StaffPositionListPage /> },
+    { path: "staff/position/create", element: <StaffPositionCreatePage /> },
+    { path: "staff/position/edit/:id", element: <StaffPositionEditPage /> },
+    { path: "staff/skill/list", element: <SkillListPage /> },
+    { path: "staff/skill/create", element: <SkillCreatePage /> },
+    { path: "staff/skill/edit/:id", element: <SkillEditPage /> },
+    { path: "staff/skills-map/list", element: <StaffSkillListPage /> },
+    { path: "staff/contract/list", element: <ContractListPage /> },
+    { path: "staff/contract/create", element: <ContractCreatePage /> },
+    { path: "staff/contract/edit/:id", element: <ContractEditPage /> },
+    {
+        path: "staff/work-shifts",
+        element: (
+            <RoleRouteGuard allowedRoles={["ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts/register`}>
+                <WorkShiftAdminPage />
+            </RoleRouteGuard>
+        ),
+    },
+    {
+        path: "staff/work-shifts/register",
+        element: (
+            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
+                <WorkShiftStaffPage />
+            </RoleRouteGuard>
+        ),
+    },
+    { path: "staff/realtime", element: <StaffRealtimePage /> },
+    { path: "staff/payroll", element: <PayrollPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

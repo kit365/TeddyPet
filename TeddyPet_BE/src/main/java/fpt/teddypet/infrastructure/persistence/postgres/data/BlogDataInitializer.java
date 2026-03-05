@@ -19,6 +19,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(2) // Run after DataInitializer
 @RequiredArgsConstructor
 public class BlogDataInitializer implements CommandLineRunner {
@@ -26,6 +27,7 @@ public class BlogDataInitializer implements CommandLineRunner {
     private final BlogCategoryApplicationService blogCategoryService;
     private final BlogTagApplicationService blogTagService;
     private final BlogPostApplicationService blogPostService;
+    private final fpt.teddypet.application.port.output.blogs.BlogPostRepositoryPort blogPostRepository;
 
     @Override
     public void run(String... args) {
@@ -50,7 +52,6 @@ public class BlogDataInitializer implements CommandLineRunner {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Category 'Pet Care Tips' not found after seeding"));
 
-
         // 2. Child Categories for Tips
         createCategory("Dog Care", "Tips specifically for dogs", tips.categoryId(), 1);
         createCategory("Cat Care", "Tips specifically for cats", tips.categoryId(), 2);
@@ -61,8 +62,7 @@ public class BlogDataInitializer implements CommandLineRunner {
 
     private void createCategory(String name, String description, Long parentId, Integer order) {
         blogCategoryService.upsert(new BlogCategoryUpsertRequest(
-                null, name, description, null, true, parentId, order
-        ));
+                null, name, description, null, true, parentId, order));
     }
 
     private void initializeBlogTags() {
@@ -85,70 +85,67 @@ public class BlogDataInitializer implements CommandLineRunner {
     private void createTag(String name, String description, Integer order) {
 
         blogTagService.upsert(new BlogTagUpsertRequest(
-                null, name, order
-        ));
+                null, name, order));
     }
 
     private void initializeBlogPosts() {
-        try {
-            blogPostService.getPostBySlug("welcome-to-teddypet");
-            return; // Exists
-        } catch (Exception e) {
-            // Not found, proceed
-        }
-
-        log.info("🌱 Seeding Blog Posts...");
-
         // Get IDs for linking
         List<BlogCategoryResponse> categories = blogCategoryService.getAll();
-        if (categories.isEmpty()) return;
-        
-        Long newsId = categories.stream().filter(c -> c.name().equals("News")).findFirst().map(BlogCategoryResponse::categoryId).orElse(null);
-        Long tipsId = categories.stream().filter(c -> c.name().equals("Pet Care Tips")).findFirst().map(BlogCategoryResponse::categoryId).orElse(null);
-        
+        if (categories.isEmpty())
+            return;
+
+        Long newsId = categories.stream().filter(c -> c.name().equals("News")).findFirst()
+                .map(BlogCategoryResponse::categoryId).orElse(null);
+        Long tipsId = categories.stream().filter(c -> c.name().equals("Pet Care Tips")).findFirst()
+                .map(BlogCategoryResponse::categoryId).orElse(null);
+
         List<BlogTagResponse> tags = blogTagService.getAll();
         List<Long> tagIds = tags.stream().map(BlogTagResponse::tagId).limit(3).toList();
 
+        log.info("🌱 Checking/Seeding Blog Posts...");
+
         // Post 1
-        createPost(
+        createPostIfNotExists(
                 "Welcome to TeddyPet Blog",
                 "We are excited to launch our new blog! Here you will find...",
                 "This is the full content of the welcome post. We cover everything from...",
                 newsId,
                 tagIds,
                 BlogPostStatusEnum.PUBLISHED,
-                1
-        );
+                1);
 
         // Post 2
-        createPost(
+        createPostIfNotExists(
                 "Top 10 Dog Training Tips",
                 "Train your dog like a pro with these simple tips.",
                 "Training a dog can be challenging. Here are 10 tips...",
                 tipsId,
                 tagIds,
                 BlogPostStatusEnum.PUBLISHED,
-                2
-        );
+                2);
 
         // Post 3 (Draft)
-        createPost(
+        createPostIfNotExists(
                 "Upcoming Pet Fair 2023",
                 "Join us for the biggest pet event of the year.",
                 "Details coming soon...",
                 newsId,
                 null,
                 BlogPostStatusEnum.DRAFT,
-                3
-        );
-
-        log.info("✅ Blog Posts seeded.");
+                3);
     }
 
-    private void createPost(String title, String excerpt, String content, Long categoryId, List<Long> tagIds, BlogPostStatusEnum status, Integer order) {
+    private void createPostIfNotExists(String title, String excerpt, String content, Long categoryId, List<Long> tagIds,
+            BlogPostStatusEnum status, Integer order) {
+        String slug = fpt.teddypet.application.util.SlugUtil.toSlug(title);
+        if (blogPostRepository.existsBySlug(slug)) {
+            log.debug("Blog post with slug '{}' already exists, skipping.", slug);
+            return;
+        }
+
         BlogPostCreateRequest request = new BlogPostCreateRequest(
                 title,
-                content, // Swapped content and excerpt if needed, but checking DTO first
+                content,
                 excerpt,
                 null, // featuredImage
                 categoryId,
@@ -157,8 +154,8 @@ public class BlogDataInitializer implements CommandLineRunner {
                 status,
                 null, // metaTitle
                 null, // metaDescription
-                order
-        );
+                order);
         blogPostService.create(request);
+        log.info("✅ Created Blog Post: {}", title);
     }
 }

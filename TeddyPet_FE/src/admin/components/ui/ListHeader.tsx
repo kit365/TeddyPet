@@ -38,8 +38,7 @@ export const ListHeader = ({
             bgcolor: '#F4F6F880',
             borderBottom: '1px dashed #919eab33',
             mx: '-40px',
-            mt: '-8px',
-            mb: '40px'
+            mt: '-8px'
         }}>
             <div className="flex items-start justify-end flex-wrap gap-[16px]">
                 <div className="mr-auto">

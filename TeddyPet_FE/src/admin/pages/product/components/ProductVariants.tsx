@@ -1,5 +1,6 @@
 import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, Select, MenuItem } from "@mui/material";
 import { useProductAttributes } from "../../product-attribute/hooks/useProductAttribute";
+import { useSalesUnits } from "../hooks/useProduct";
 import { useState, useMemo, useEffect } from "react";
 import { CollapsibleCard } from "../../../components/ui/CollapsibleCard";
 import { DeleteIcon } from "../../../assets/icons";
@@ -26,6 +27,8 @@ export const ProductVariants = ({
     const [openAttributeDialog, setOpenAttributeDialog] = useState(false);
     const [currentAttribute, setCurrentAttribute] = useState<any | null>(null);
     const [tempSelectedValues, setTempSelectedValues] = useState<Set<string>>(new Set());
+
+    const { data: salesUnitOptions = [] } = useSalesUnits();
 
     const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
     const [previewVariants, setPreviewVariants] = useState<Variant[]>([]);
@@ -179,6 +182,8 @@ export const ProductVariants = ({
                 originalPrice: 0,
                 price: 0,
                 stock: 0,
+                weight: 0,
+                unit: "PIECE",
                 status: "ACTIVE",
                 active: isActive,
             };
@@ -362,11 +367,13 @@ export const ProductVariants = ({
                                             );
                                         })}
 
-                                        <TableCell width={80} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
-                                        <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
-                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá bán</TableCell>
-                                        <TableCell width={150} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Giá khuyến mãi</TableCell>
-                                        <TableCell width={120} sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
+                                        <TableCell sx={{ minWidth: 80, fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
+                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
+                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Giá bán</TableCell>
+                                        <TableCell sx={{ minWidth: 140, fontSize: '1.4rem', fontWeight: 600 }}>Giá khuyến mãi</TableCell>
+                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
+                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Trọng lượng</TableCell>
+                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Đơn vị</TableCell>
                                         <TableCell width={50} align="center"></TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -456,6 +463,7 @@ export const ProductVariants = ({
                                                         // Ensure sale price is reset if needed, but mainly this is the Price
                                                         onVariantsChange(newVariants);
                                                     }}
+                                                    sx={{ minWidth: 100 }}
                                                     fullWidth
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
@@ -471,8 +479,8 @@ export const ProductVariants = ({
                                                         newVariants[index].price = Number(e.target.value);
                                                         onVariantsChange(newVariants);
                                                     }}
+                                                    sx={{ minWidth: 100 }}
                                                     fullWidth
-                                                    helperText="Nhập 0 = Không sale"
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
                                             </TableCell>
@@ -487,9 +495,44 @@ export const ProductVariants = ({
                                                         newVariants[index].stock = Number(e.target.value);
                                                         onVariantsChange(newVariants);
                                                     }}
+                                                    sx={{ minWidth: 80 }}
                                                     fullWidth
                                                     InputProps={{ sx: { fontSize: '1.4rem' } }}
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                <TextField
+                                                    size="small"
+                                                    type="number"
+                                                    placeholder="0"
+                                                    value={variant.weight || 0}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].weight = Number(e.target.value);
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 80 }}
+                                                    fullWidth
+                                                    InputProps={{ sx: { fontSize: '1.4rem' } }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Select
+                                                    size="small"
+                                                    value={variant.unit || "PIECE"}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].unit = e.target.value as string;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 80, fontSize: '1.3rem' }}
+                                                >
+                                                    {salesUnitOptions.map((opt) => (
+                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '1.3rem' }}>
+                                                            {opt.label}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
                                             </TableCell>
                                             <TableCell align="center">
                                                 <IconButton
@@ -504,6 +547,10 @@ export const ProductVariants = ({
                                 </TableBody>
                             </Table>
                         </TableContainer>
+
+                        <Typography variant="body2" sx={{ fontSize: '1.3rem', color: 'text.secondary', mt: 1.5 }}>
+                            <span style={{ color: '#FF5630', fontWeight: 'bold' }}>*</span> Ghi chú: Nhập <strong>Giá khuyến mãi = 0</strong> nếu biến thể này <strong>không có giảm giá</strong>.
+                        </Typography>
                     </Box>
                 )}
             </Stack>

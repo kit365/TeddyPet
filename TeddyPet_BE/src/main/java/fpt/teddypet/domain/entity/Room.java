@@ -30,9 +30,6 @@ public class Room extends BaseEntity {
     @Column(name = "room_name", length = 255)
     private String roomName;
 
-    @Column(name = "block", length = 100)
-    private String block;
-
     @Column(name = "tier", length = 50)
     private String tier;
 

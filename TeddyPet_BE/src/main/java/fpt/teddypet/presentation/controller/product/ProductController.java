@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import fpt.teddypet.application.port.input.products.ProductExcelService;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping(ApiConstants.API_PRODUCTS)
@@ -30,6 +33,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductExcelService productExcelService;
 
     @PostMapping
     @Operation(summary = "Tạo sản phẩm", description = "Tạo sản phẩm mới")
@@ -130,5 +134,27 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long productId) {
         productService.delete(productId);
         return ResponseEntity.ok(ApiResponse.success(ProductMessages.MESSAGE_PRODUCT_DELETED_SUCCESS));
+    }
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất Excel sản phẩm", description = "Tải xuống file Excel chứa toàn bộ sản phẩm và biến thể")
+    public void exportToExcel(HttpServletResponse response) {
+        productExcelService.exportProductsToExcel(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải Template import", description = "Tải file mẫu để import sản phẩm")
+    public void downloadTemplate(HttpServletResponse response) {
+        productExcelService.downloadTemplate(response);
+    }
+
+    @PostMapping(value = "/excel/import", consumes = "multipart/form-data")
+    @Operation(summary = "Nhập Excel sản phẩm", description = "Trả về kết quả chi tiết: tạo mới, cập nhật, bỏ qua, lỗi.")
+    public ResponseEntity<ApiResponse<ProductExcelService.ImportResult>> importFromExcel(
+            @RequestParam("file") MultipartFile file) {
+        ProductExcelService.ImportResult result = productExcelService.importProductsFromExcel(file);
+        String message = String.format("Nhập Excel hoàn tất: tạo mới %d, cập nhật %d, bỏ qua %d.",
+                result.created(), result.updated(), result.skipped());
+        return ResponseEntity.ok(ApiResponse.success(message, result));
     }
 }

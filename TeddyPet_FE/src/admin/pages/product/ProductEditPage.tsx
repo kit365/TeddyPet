@@ -1,6 +1,6 @@
 import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material"
 import { useTranslation } from "react-i18next";
-import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct } from "./hooks/useProduct";
+import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, usePetTypes, useProductStatuses, useProductTypes } from "./hooks/useProduct";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
 import { useState, useEffect } from "react"
@@ -17,6 +17,23 @@ import { ProductVariant as Variant, APIProduct } from "../../../types/products.t
 import { CustomFile } from "../../../types/common.type";
 import { useParams, useNavigate } from "react-router-dom";
 import Barcode from 'react-barcode';
+
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+    SIMPLE: "Sản phẩm đơn giản",
+    VARIABLE: "Sản phẩm nhiều phân loại"
+};
+
+const PET_TYPE_LABELS: Record<string, string> = {
+    "DOG": "Chó",
+    "CAT": "Mèo",
+    "OTHER": "Khác"
+};
+
+const PRODUCT_STATUS_LABELS: Record<string, string> = {
+    "DRAFT": "Nháp (Draft)",
+    "ACTIVE": "Hoạt động (Active)",
+    "HIDDEN": "Ẩn (Hidden)"
+};
 
 export const ProductEditPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -69,6 +86,11 @@ export const ProductEditPage = () => {
 
     const [productType, setProductType] = useState<"SIMPLE" | "VARIABLE">("SIMPLE");
     const [status, setStatus] = useState<string>("DRAFT");
+    const [petTypes, setPetTypes] = useState<string[]>(["DOG"]);
+
+    const { data: petTypeOptions = [] } = usePetTypes();
+    const { data: productStatusOptions = [] } = useProductStatuses();
+    const { data: productTypeOptions = [] } = useProductTypes();
 
     // Simple Product State
     const [simplePrice, setSimplePrice] = useState<number>(0);
@@ -104,6 +126,7 @@ export const ProductEditPage = () => {
             setSelectedTags(product.tags || []);
             setSelectedAgeIds(product.ageRanges?.map((a: any) => a.id || a.ageRangeId) || []);
             setDescription(product.description || "");
+            setPetTypes(product.petTypes || ["DOG"]);
 
             // Images
             const productImages = product.images?.map((img: any) => ({
@@ -160,6 +183,11 @@ export const ProductEditPage = () => {
         }
 
         setSelectedAgeIds(newValues);
+    };
+
+    const handleChangePetTypes = (event: SelectChangeEvent<string[]>) => {
+        const { target: { value } } = event;
+        setPetTypes(typeof value === 'string' ? value.split(',') : value);
     };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -234,7 +262,7 @@ export const ProductEditPage = () => {
             content: product?.content || "Nội dung chi tiết",
             origin: origin,
             material: formData.get('material') as string,
-            petTypes: product?.petTypes || ["DOG"],
+            petTypes: petTypes,
             brandId: Number(brandId),
             status: status,
             productType: productType,
@@ -320,8 +348,11 @@ export const ProductEditPage = () => {
                                         onChange={(e) => setProductType(e.target.value as any)}
                                         disabled={product?.productType !== undefined} // Prevent switching type after creation
                                     >
-                                        <MenuItem value="SIMPLE">Sản phẩm đơn (Simple)</MenuItem>
-                                        <MenuItem value="VARIABLE">Sản phẩm biến thể (Variable)</MenuItem>
+                                        {productTypeOptions.map((type) => (
+                                            <MenuItem key={type} value={type}>
+                                                {PRODUCT_TYPE_LABELS[type] || type}
+                                            </MenuItem>
+                                        ))}
                                     </Select>
                                 </FormControl>
                             </Stack>
@@ -377,14 +408,35 @@ export const ProductEditPage = () => {
                                         </Select>
                                     </FormControl>
                                 </Stack>
-                                <TextField
-                                    label="Nguyên vật liệu"
-                                    name="material"
-                                    multiline
-                                    rows={2}
-                                    fullWidth
-                                    defaultValue={product?.material}
-                                />
+
+                                <Stack direction="row" gap={2}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="pet-type-label">Dành cho giống (Species)</InputLabel>
+                                        <Select
+                                            labelId="pet-type-label"
+                                            multiple
+                                            value={petTypes}
+                                            onChange={handleChangePetTypes}
+                                            input={<OutlinedInput label="Dành cho giống (Species)" />}
+                                            renderValue={(selected) => selected.map(val => PET_TYPE_LABELS[val] || val).join(', ')}
+                                        >
+                                            {petTypeOptions.map((type) => (
+                                                <MenuItem key={type} value={type}>
+                                                    {PET_TYPE_LABELS[type] || type}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    <TextField
+                                        label="Nguyên vật liệu"
+                                        name="material"
+                                        multiline
+                                        rows={1}
+                                        fullWidth
+                                        defaultValue={product?.material}
+                                    />
+                                </Stack>
                                 <Tiptap value={description} onChange={setDescription} />
                                 <UploadFiles
                                     files={files}
@@ -485,9 +537,11 @@ export const ProductEditPage = () => {
                                             label="Trạng thái"
                                             onChange={handleChangeStatus}
                                         >
-                                            <MenuItem value="DRAFT">Nháp (Draft)</MenuItem>
-                                            <MenuItem value="ACTIVE">Hoạt động (Active)</MenuItem>
-                                            <MenuItem value="HIDDEN">Ẩn (Hidden)</MenuItem>
+                                            {productStatusOptions.map((s) => (
+                                                <MenuItem key={s} value={s}>
+                                                    {PRODUCT_STATUS_LABELS[s] || s}
+                                                </MenuItem>
+                                            ))}
                                         </Select>
                                     </FormControl>
                                     <TextField label={t('admin.common.position')} name="position" />

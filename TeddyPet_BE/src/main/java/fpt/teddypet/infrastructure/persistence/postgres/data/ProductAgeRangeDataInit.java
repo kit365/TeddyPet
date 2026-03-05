@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 import java.util.EnumMap;
 import java.util.Map;
 
-
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(2)
 @RequiredArgsConstructor
 public class ProductAgeRangeDataInit implements CommandLineRunner {
@@ -45,11 +45,11 @@ public class ProductAgeRangeDataInit implements CommandLineRunner {
                         .description(AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum))
                         .build();
                 productAgeRangeRepository.save(ageRange);
-                log.info("✅ Created ProductAgeRange: {} - {}", ageRangeEnum.name(), AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum));
+                log.info("✅ Created ProductAgeRange: {} - {}", ageRangeEnum.name(),
+                        AGE_RANGE_DESCRIPTIONS.get(ageRangeEnum));
             } else {
                 log.debug("ProductAgeRange {} already exists, skipping", ageRangeEnum.name());
             }
         }
     }
 }
-

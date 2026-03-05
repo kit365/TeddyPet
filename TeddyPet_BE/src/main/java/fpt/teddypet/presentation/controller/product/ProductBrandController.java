@@ -5,14 +5,17 @@ import fpt.teddypet.application.dto.request.products.brand.ProductBrandRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandResponse;
 import fpt.teddypet.application.port.input.products.ProductBrandService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ import java.util.List;
 public class ProductBrandController {
 
     private final ProductBrandService productBrandService;
+    private final SimpleEntityExcelService excelService;
 
     @PostMapping
     @Operation(summary = "Tạo thương hiệu sản phẩm", description = "Tạo thương hiệu sản phẩm mới")
@@ -70,7 +74,29 @@ public class ProductBrandController {
     @Operation(summary = "Xóa nhiều thương hiệu sản phẩm", description = "Xóa mềm nhiều thương hiệu sản phẩm theo danh sách ID")
     public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
         int count = productBrandService.deleteMany(ids);
-        return ResponseEntity.ok(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_DELETED_SUCCESS, count));
+        return ResponseEntity
+                .ok(ApiResponse.success(ProductBrandMessages.MESSAGE_PRODUCT_BRAND_DELETED_SUCCESS, count));
+    }
+
+    // ─── Excel ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất danh sách thương hiệu ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        excelService.exportBrands(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel để nhập thương hiệu")
+    public void downloadTemplate(HttpServletResponse response) {
+        excelService.downloadBrandTemplate(response);
+    }
+
+    @PostMapping("/excel/import")
+    @Operation(summary = "Nhập thương hiệu từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = excelService.importBrands(file);
+        return ResponseEntity.ok(ApiResponse.success("Import thương hiệu hoàn tất.", result));
     }
 }
-
