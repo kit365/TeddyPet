@@ -22,10 +22,6 @@ public class RoomType extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id")
-    private Service service;
-
     @Column(name = "type_name", nullable = false, length = 255)
     private String typeName;
 

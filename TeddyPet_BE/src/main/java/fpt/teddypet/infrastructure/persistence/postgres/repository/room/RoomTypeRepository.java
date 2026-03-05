@@ -14,8 +14,6 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 
     List<RoomType> findByIsActiveTrueAndIsDeletedFalseOrderByDisplayOrderAsc();
 
-    List<RoomType> findByServiceIdAndIsActiveTrueAndIsDeletedFalseOrderByDisplayOrderAsc(Long serviceId);
-
     Optional<RoomType> findBySlug(String slug);
 
     boolean existsBySlug(String slug);

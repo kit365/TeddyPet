@@ -3,9 +3,11 @@ package fpt.teddypet.infrastructure.adapter.room;
 import fpt.teddypet.application.port.output.room.RoomTypeRepositoryPort;
 import fpt.teddypet.domain.entity.RoomType;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.room.RoomTypeRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.room.ServiceRoomTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,7 @@ import java.util.Optional;
 public class RoomTypeRepositoryAdapter implements RoomTypeRepositoryPort {
 
     private final RoomTypeRepository roomTypeRepository;
+    private final ServiceRoomTypeRepository serviceRoomTypeRepository;
 
     @Override
     public RoomType save(RoomType roomType) {
@@ -35,7 +38,17 @@ public class RoomTypeRepositoryAdapter implements RoomTypeRepositoryPort {
         if (serviceId == null) {
             return findAllActive();
         }
-        return roomTypeRepository.findByServiceIdAndIsActiveTrueAndIsDeletedFalseOrderByDisplayOrderAsc(serviceId);
+        List<Long> roomTypeIds = serviceRoomTypeRepository.findRoomTypeIdsByServiceId(serviceId);
+        if (roomTypeIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return roomTypeRepository.findAllById(roomTypeIds).stream()
+                .filter(rt -> rt.isActive() && !rt.isDeleted())
+                .sorted((a, b) -> Integer.compare(
+                        a.getDisplayOrder() != null ? a.getDisplayOrder() : 0,
+                        b.getDisplayOrder() != null ? b.getDisplayOrder() : 0
+                ))
+                .toList();
     }
 
     @Override

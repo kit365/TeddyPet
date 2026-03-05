@@ -27,4 +27,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     boolean existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTier(Long roomLayoutConfigId, Integer gridRow, Integer gridCol, String tier);
 
     boolean existsByRoomLayoutConfig_IdAndGridRowAndGridColAndTierAndIdNot(Long roomLayoutConfigId, Integer gridRow, Integer gridCol, String tier, Long id);
+
+    /**
+     * All active, non-deleted rooms on a layout, ordered by grid row/col.
+     * Used by RoomLayoutPositionInitializer to compute placedCount.
+     */
+    List<Room> findByRoomLayoutConfig_IdAndIsActiveTrueAndIsDeletedFalseOrderByGridRowAscGridColAsc(Long roomLayoutConfigId);
 }

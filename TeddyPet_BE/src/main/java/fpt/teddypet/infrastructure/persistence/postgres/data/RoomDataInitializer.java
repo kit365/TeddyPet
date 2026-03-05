@@ -71,7 +71,6 @@ public class RoomDataInitializer implements CommandLineRunner {
             return roomTypeRepository.findBySlug(slug).orElseThrow();
         }
         RoomType roomType = RoomType.builder()
-                .service(null) // Will be updated if a Hotel service exists
                 .typeName(typeName)
                 .displayTypeName(displayTypeName)
                 .slug(slug)
