@@ -5,10 +5,12 @@ on:
     branches: [ "main", "test/cicd" ]
     paths:
       - "TeddyPet_BE/**"
+      - ".github/workflows/**"
   pull_request:
     branches: [ "main", "test/cicd" ]
     paths:
       - "TeddyPet_BE/**"
+      - ".github/workflows/**"
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/teddypet-be
