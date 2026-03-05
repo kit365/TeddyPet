@@ -9,13 +9,15 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface ProductAttributeValueRepository extends JpaRepository<ProductAttributeValue, Long> {
-    
+
     ProductAttributeValue findByValueIdAndIsDeletedFalse(Long valueId);
-    
+
     List<ProductAttributeValue> findByValueIdInAndIsDeletedFalse(Set<Long> valueIds);
-    
+
     List<ProductAttributeValue> findByAttribute_AttributeIdAndIsDeletedFalseOrderByDisplayOrderAsc(Long attributeId);
 
     Optional<ProductAttributeValue> findByAttributeAndValue(ProductAttribute attribute, String value);
-}
 
+    Optional<ProductAttributeValue> findByAttribute_NameIgnoreCaseAndValueIgnoreCase(String attributeName,
+            String value);
+}

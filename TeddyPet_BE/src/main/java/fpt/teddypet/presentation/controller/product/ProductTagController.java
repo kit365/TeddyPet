@@ -5,14 +5,17 @@ import fpt.teddypet.application.dto.request.products.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.port.input.products.ProductTagService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ import java.util.List;
 public class ProductTagController {
 
     private final ProductTagService productTagService;
+    private final SimpleEntityExcelService excelService;
 
     @PostMapping
     @Operation(summary = "Tạo tag sản phẩm", description = "Tạo tag sản phẩm mới")
@@ -72,5 +76,26 @@ public class ProductTagController {
         int count = productTagService.deleteMany(ids);
         return ResponseEntity.ok(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_DELETED_SUCCESS, count));
     }
-}
 
+    // ─── Excel ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất danh sách tag ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        excelService.exportTags(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel để nhập tag")
+    public void downloadTemplate(HttpServletResponse response) {
+        excelService.downloadTagTemplate(response);
+    }
+
+    @PostMapping("/excel/import")
+    @Operation(summary = "Nhập tag từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = excelService.importTags(file);
+        return ResponseEntity.ok(ApiResponse.success("Import tag hoàn tất.", result));
+    }
+}

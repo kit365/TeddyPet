@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCategories, createCategory, getNestedCategories, getCategoryById, deleteCategory } from '../../../api/product-category.api';
+import { getCategories, createCategory, getNestedCategories, getCategoryById, deleteCategory, downloadCategoriesTemplate, exportCategoriesExcel, importCategoriesExcel } from '../../../api/product-category.api';
 import { ApiResponse } from '../../../config/type';
+import { toast } from 'react-toastify';
 
 export const useProductCategories = () => {
     return useQuery({
@@ -60,5 +61,67 @@ export const useDeleteProductCategory = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['product-categories'] });
         },
+    });
+};
+
+// ─── Excel ───────────────────────────────────────────────────────────────
+
+export const useDownloadCategoriesTemplate = () => {
+    return useMutation({
+        mutationFn: downloadCategoriesTemplate,
+        onSuccess: (data: Blob) => {
+            const url = window.URL.createObjectURL(data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'categories_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+    });
+};
+
+export const useExportCategoriesExcel = () => {
+    return useMutation({
+        mutationFn: exportCategoriesExcel,
+        onSuccess: (data: Blob) => {
+            const url = window.URL.createObjectURL(data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'categories_export.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+    });
+};
+
+export const useImportCategoriesExcel = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: importCategoriesExcel,
+        onSuccess: (response: any) => {
+            queryClient.invalidateQueries({ queryKey: ['product-categories'] });
+            const result = response?.data;
+            const created = result?.created ?? 0;
+            const updated = result?.updated ?? 0;
+            const skipped = result?.skipped ?? 0;
+            const errors = result?.errors ?? [];
+
+            if (errors && errors.length > 0) {
+                const errorStr = errors.map((e: string) => `• ${e}`).join('\n');
+                toast.warn(
+                    `Hoàn tất nhập dữ liệu:\n  Tạo mới: ${created}\n  Cập nhật: ${updated}\n  Bỏ qua: ${skipped}\n\nLỗi:\n${errorStr}`,
+                    { autoClose: 8000 }
+                );
+            } else {
+                toast.success(`Import thành công! Đã tạo ${created}, tự động cập nhật ${updated}, bỏ qua ${skipped} dòng.`);
+            }
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu từ Excel');
+        }
     });
 };

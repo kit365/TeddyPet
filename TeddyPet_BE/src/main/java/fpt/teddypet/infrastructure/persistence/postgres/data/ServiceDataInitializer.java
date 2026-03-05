@@ -129,6 +129,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .description(description)
                 .displayOrder(0)
                 .colorCode(colorCode)
+                .isActive(true)
+                .isDeleted(false)
                 .build();
         cat = categoryRepository.save(cat);
         log.info("✅ Created ServiceCategory: {}", categoryName);
@@ -210,6 +212,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .isRequiredRoom(isRequiredRoom)
                 .displayOrder(displayOrder)
                 .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
+                .isActive(true)
+                .isDeleted(false)
                 .build();
         svc = serviceRepository.save(svc);
         log.info("✅ Created Service: {} ({}) [isRequiredRoom={}]", serviceName, code, isRequiredRoom);
@@ -250,7 +254,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
     }
 
     /**
-     * Idempotent migration: ensure all ServicePricing rows have suitablePetTypes populated.
+     * Idempotent migration: ensure all ServicePricing rows have suitablePetTypes
+     * populated.
      * Để đơn giản cho giai đoạn test FE, nếu rule chưa có suitablePetTypes
      * thì set mặc định "DOG,CAT".
      */
@@ -455,6 +460,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 // By default, inherit all pet types from parent Service (DOG & CAT)
                 .suitablePetTypes(service.getSuitablePetTypes() == null ? null
                         : String.join(",", service.getSuitablePetTypes().stream().map(Enum::name).toList()))
+                .isActive(true)
+                .isDeleted(false)
                 .build();
         pricingRepository.save(p);
     }
@@ -482,6 +489,8 @@ public class ServiceDataInitializer implements CommandLineRunner {
                     .validTo(null)
                     .displayOrder(1)
                     .isPopular(true)
+                    .isActive(true)
+                    .isDeleted(false)
                     .build();
             combo = comboRepository.save(combo);
             comboServiceRepository.save(ServiceComboService.builder()

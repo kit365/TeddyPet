@@ -8,7 +8,11 @@ import Placeholder from '@tiptap/extension-placeholder'
 
 export const getExtensions = (placeholder?: string) => [
     TextStyle,
-    StarterKit,
+    StarterKit.configure({
+        // Tắt link mặc định trong StarterKit vì đã khai báo Link riêng bên dưới
+        // @ts-ignore
+        link: false,
+    }),
     TextAlign.configure({
         types: ['heading', 'paragraph'],
     }),

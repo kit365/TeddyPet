@@ -42,7 +42,6 @@ export const RenderProductCell = (params: GridRenderCellParams) => {
                         underline="hover"
                         onClick={(e) => {
                             e.preventDefault();
-                            // Logic navigate will be handled if needed, or just let href work
                         }}
                         sx={{
                             color: COLORS.primary,
@@ -54,17 +53,24 @@ export const RenderProductCell = (params: GridRenderCellParams) => {
                         {product}
                     </Link>
                 }
-                secondary={category}
+                secondary={
+                    <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Box component="span" sx={{ color: '#919EAB', fontSize: "1.2rem" }}>{category}</Box>
+                        {params.row.petTypes && params.row.petTypes.length > 0 && (
+                            <>
+                                <Box component="span" sx={{ color: '#919EAB', fontSize: "1.2rem" }}>•</Box>
+                                <Box component="span" sx={{ color: '#00B8D9', fontSize: "1.2rem", fontWeight: 600 }}>
+                                    {params.row.petTypes.map((t: string) => t === 'DOG' ? 'Chó' : (t === 'CAT' ? 'Mèo' : 'Khác')).join(', ')}
+                                </Box>
+                            </>
+                        )}
+                    </Box>
+                }
                 slotProps={{
                     primary: {
                         component: 'span',
                         variant: 'body1',
                         noWrap: true,
-                    },
-                    secondary: {
-                        component: 'span',
-                        variant: 'body2',
-                        sx: { color: '#919EAB', fontSize: "1.3rem" }
                     }
                 }}
                 sx={{ m: 0 }}
@@ -183,35 +189,56 @@ export const RenderStockCell = (params: GridRenderCellParams) => {
 }
 
 // Status
-export const RenderStatusCell = (params: GridRenderCellParams) => {
-    const { t } = useTranslation();
-    const status = (params.row.status as string)?.toUpperCase();
+interface RenderStatusCellProps extends GridRenderCellParams {
+}
 
-    let label = t("admin.product.status.draft");
+export const RenderStatusCell = (params: RenderStatusCellProps) => {
+    const { t } = useTranslation();
+    const status = (params.value as string || params.row?.status as string || '')?.toUpperCase();
+
+    let label = t("admin.product.status.draft") || "BẢN NHÁP";
     let bg = "#919EAB29";
     let text = "#637381";
 
     if (status === "ACTIVE") {
-        label = t("admin.product.status.active");
-        bg = "#E1F9EB";
-        text = "#00A76F";
+        label = t("admin.product.status.active") || "HOẠT ĐỘNG";
+        bg = "rgba(17, 141, 87, 0.16)";
+        text = "#118D57";
+    } else if (status === "DRAFT") {
+        label = t("admin.product.status.draft") || "BẢN NHÁP";
+        bg = "rgba(183, 110, 0, 0.16)";
+        text = "#B76E00";
     } else if (status === "HIDDEN" || status === "INACTIVE") {
-        label = t("admin.product.status.inactive"); // or Hidden
-        bg = "#FFF5F5";
-        text = "#FF5630";
+        label = t("admin.product.status.inactive") || "TẠM ẨN";
+        bg = "rgba(183, 29, 24, 0.16)";
+        text = "#B71D18";
+    } else {
+        label = status;
     }
 
     return (
-        <span
-            className="inline-flex items-center justify-center min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[8px] font-[700] rounded-[6px]"
-            style={{
-                backgroundColor: bg,
-                color: text,
-                textTransform: 'uppercase'
-            }}
-        >
-            {label}
-        </span>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Box
+                component="span"
+                sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '24px',
+                    lineHeight: '24px',
+                    px: '8px',
+                    minWidth: '50px',
+                    borderRadius: '6px',
+                    fontSize: '1.2rem',
+                    fontWeight: 700,
+                    color: text,
+                    bgcolor: bg,
+                    textTransform: 'uppercase'
+                }}
+            >
+                {label}
+            </Box>
+        </Box>
     );
 }
 

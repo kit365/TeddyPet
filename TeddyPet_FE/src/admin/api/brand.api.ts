@@ -45,3 +45,36 @@ export const deleteBrand = async (id: string | number): Promise<any> => {
     const response = await apiApp.delete(`${BASE_URL}/${id}`, withAuth());
     return response.data;
 };
+
+// ─── Excel ───────────────────────────────────────────────────────────────
+
+/** Xuất danh sách thương hiệu ra Excel */
+export const exportBrandsExcel = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/export`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+/** Tải template Excel để nhập thương hiệu */
+export const downloadBrandsTemplate = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/template`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+/** Nhập thương hiệu từ file Excel */
+export const importBrandsExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL}/excel/import`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};

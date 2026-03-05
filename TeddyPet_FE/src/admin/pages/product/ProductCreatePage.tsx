@@ -1,6 +1,6 @@
 import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button } from "@mui/material"
 import { useTranslation } from "react-i18next";
-import { useProductTags, useProductAgeRanges, useCountries, useBrands, useCreateProduct } from "./hooks/useProduct";
+import { useProductTags, useProductAgeRanges, useCountries, useBrands, useCreateProduct, usePetTypes, useSalesUnits, useProductStatuses, useProductTypes } from "./hooks/useProduct";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
 import { useState, useEffect } from "react"
@@ -15,6 +15,23 @@ import { useProductAttributes } from "../product-attribute/hooks/useProductAttri
 import { toast } from "react-toastify";
 import { ProductVariant as Variant } from "../../../types/products.type";
 import { CustomFile } from "../../../types/common.type";
+
+const PET_TYPE_LABELS: Record<string, string> = {
+    "DOG": "Chó",
+    "CAT": "Mèo",
+    "OTHER": "Khác"
+};
+
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+    "SIMPLE": "Sản phẩm đơn (Simple)",
+    "VARIABLE": "Sản phẩm biến thể (Variable)"
+};
+
+const PRODUCT_STATUS_LABELS: Record<string, string> = {
+    "DRAFT": "Nháp (Draft)",
+    "ACTIVE": "Hoạt động (Active)",
+    "HIDDEN": "Ẩn (Hidden)"
+};
 
 export const ProductCreatePage = () => {
     const { t } = useTranslation();
@@ -58,6 +75,20 @@ export const ProductCreatePage = () => {
     const { data: allAttributes = [] } = useProductAttributes();
 
     const [description, setDescription] = useState("");
+    const [petTypes, setPetTypes] = useState<string[]>(["DOG"]);
+
+    // SEO States
+    const [metaTitle, setMetaTitle] = useState("");
+    const [metaDescription, setMetaDescription] = useState("");
+
+    // Weight & Unit (for Simple Product)
+    const [simpleWeight, setSimpleWeight] = useState<number>(0);
+    const [simpleUnit, setSimpleUnit] = useState<string>("PIECE");
+
+    const { data: petTypeOptions = [] } = usePetTypes();
+    const { data: salesUnitOptions = [] } = useSalesUnits();
+    const { data: productStatusOptions = [] } = useProductStatuses();
+    const { data: productTypeOptions = [] } = useProductTypes();
 
     const createProductMutation = useCreateProduct();
 
@@ -76,6 +107,11 @@ export const ProductCreatePage = () => {
         setBrandId('');
         setVariants([]);
         setStatus("draft");
+        setPetTypes(["DOG"]);
+        setMetaTitle("");
+        setMetaDescription("");
+        setSimpleWeight(0);
+        setSimpleUnit("PIECE");
 
         const form = document.querySelector('form');
         if (form) {
@@ -140,6 +176,11 @@ export const ProductCreatePage = () => {
         setSelectedAgeIds(typeof value === 'string' ? value.split(',').map(Number) : value);
     };
 
+    const handleChangePetTypes = (event: SelectChangeEvent<string[]>) => {
+        const value = event.target.value;
+        setPetTypes(typeof value === 'string' ? value.split(',') : value);
+    };
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -148,10 +189,12 @@ export const ProductCreatePage = () => {
             name: formData.get('name') as string,
             barcode: formData.get('barcode') as string,
             description: description,
+            metaTitle: metaTitle,
+            metaDescription: metaDescription,
             content: "Nội dung chi tiết",
             origin: origin,
             material: formData.get('material') as string,
-            petTypes: ["DOG"],
+            petTypes: petTypes,
             brandId: Number(brandId),
             status: status, // uses the status state containing DRAFT, ACTIVE, HIDDEN
             categoryIds: selectedCategoryIds,
@@ -186,7 +229,8 @@ export const ProductCreatePage = () => {
                 salePrice: (Number(simpleSalePrice) > 0 && Number(simpleSalePrice) < Number(simplePrice)) ? Number(simpleSalePrice) : null,
                 stockQuantity: Number(simpleStock),
                 sku: simpleSku || undefined,
-                unit: "PIECE",
+                weight: Number(simpleWeight),
+                unit: simpleUnit,
                 status: status,
                 attributeValueIds: []
             }];
@@ -217,7 +261,8 @@ export const ProductCreatePage = () => {
                     price: Number(v.originalPrice),
                     salePrice: (Number(v.price) > 0 && Number(v.price) < Number(v.originalPrice)) ? Number(v.price) : null,
                     stockQuantity: Number(v.stock),
-                    unit: "PIECE",
+                    unit: v.unit || "PIECE",
+                    weight: Number(v.weight) || 0,
                     featuredImageUrl: v.featuredImage,
                     status: v.status || "ACTIVE",
                     attributeValueIds: attributeValueIds
@@ -230,9 +275,11 @@ export const ProductCreatePage = () => {
             name: payload.name,
             barcode: payload.barcode || "BARCODE-" + Date.now(),
             description: payload.description,
+            metaTitle: payload.metaTitle,
+            metaDescription: payload.metaDescription,
             origin: payload.origin,
             material: payload.material,
-            petTypes: ["DOG"],
+            petTypes: payload.petTypes,
             brandId: Number(payload.brandId),
             status: payload.status,
             productType: productType,
@@ -290,8 +337,11 @@ export const ProductCreatePage = () => {
                                         label="Loại sản phẩm"
                                         onChange={(e) => setProductType(e.target.value as any)}
                                     >
-                                        <MenuItem value="SIMPLE">Sản phẩm đơn (Simple)</MenuItem>
-                                        <MenuItem value="VARIABLE">Sản phẩm biến thể (Variable)</MenuItem>
+                                        {productTypeOptions.map((type) => (
+                                            <MenuItem key={type} value={type}>
+                                                {PRODUCT_TYPE_LABELS[type] || type}
+                                            </MenuItem>
+                                        ))}
                                     </Select>
                                 </FormControl>
                             </Stack>
@@ -341,7 +391,29 @@ export const ProductCreatePage = () => {
                                         </Select>
                                     </FormControl>
                                 </Stack>
-                                <TextField label="Nguyên vật liệu" name="material" multiline rows={2} fullWidth />
+
+                                <Stack direction="row" gap={2}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="pet-type-label">Dành cho giống (Species)</InputLabel>
+                                        <Select
+                                            labelId="pet-type-label"
+                                            multiple
+                                            value={petTypes}
+                                            onChange={handleChangePetTypes}
+                                            input={<OutlinedInput label="Dành cho giống (Species)" />}
+                                            renderValue={(selected) => selected.map(val => PET_TYPE_LABELS[val] || val).join(', ')}
+                                        >
+                                            {petTypeOptions.map((type) => (
+                                                <MenuItem key={type} value={type}>
+                                                    {PET_TYPE_LABELS[type] || type}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    <TextField label="Nguyên vật liệu" name="material" fullWidth />
+                                </Stack>
+
                                 <Tiptap value={description} onChange={setDescription} />
                                 <UploadFiles
                                     files={files}
@@ -395,6 +467,29 @@ export const ProductCreatePage = () => {
                                         onChange={(e) => setSimpleSku(e.target.value)}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
+                                    <TextField
+                                        label="Trọng lượng (gram)"
+                                        type="number"
+                                        fullWidth
+                                        value={simpleWeight}
+                                        onChange={(e) => setSimpleWeight(Number(e.target.value))}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                    />
+                                    <FormControl sx={{ flex: 1, minWidth: '200px' }}>
+                                        <InputLabel id="unit-label">Đơn vị</InputLabel>
+                                        <Select
+                                            labelId="unit-label"
+                                            value={simpleUnit}
+                                            label="Đơn vị"
+                                            onChange={(e) => setSimpleUnit(e.target.value)}
+                                        >
+                                            {salesUnitOptions.map((option) => (
+                                                <MenuItem key={option.code} value={option.code}>
+                                                    {option.label}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Stack>
                             </CollapsibleCard>
                         ) : (
@@ -430,9 +525,11 @@ export const ProductCreatePage = () => {
                                             label="Trạng thái"
                                             onChange={handleChangeStatus}
                                         >
-                                            <MenuItem value="DRAFT">Nháp (Draft)</MenuItem>
-                                            <MenuItem value="ACTIVE">Hoạt động (Active)</MenuItem>
-                                            <MenuItem value="HIDDEN">Ẩn (Hidden)</MenuItem>
+                                            {productStatusOptions.map((s) => (
+                                                <MenuItem key={s} value={s}>
+                                                    {PRODUCT_STATUS_LABELS[s] || s}
+                                                </MenuItem>
+                                            ))}
                                         </Select>
                                     </FormControl>
                                     <TextField label={t('admin.common.position')} name="position" />
@@ -548,6 +645,35 @@ export const ProductCreatePage = () => {
                             </Stack>
                         </CollapsibleCard>
 
+                        {/* SEO Section */}
+                        <CollapsibleCard
+                            title="Tối ưu SEO"
+                            subheader="Thiết lập các thẻ Meta giúp sản phẩm dễ dàng xuất hiện trên Google"
+                            expanded={true}
+                            onToggle={() => { }}
+                        >
+                            <Stack p="24px" gap="24px">
+                                <TextField
+                                    label="Thẻ tiêu đề (Meta Title)"
+                                    placeholder="Nên dưới 70 ký tự"
+                                    fullWidth
+                                    value={metaTitle}
+                                    onChange={(e) => setMetaTitle(e.target.value)}
+                                    helperText={`${metaTitle.length}/70 ký tự`}
+                                />
+                                <TextField
+                                    label="Thẻ mô tả (Meta Description)"
+                                    placeholder="Nên dưới 160 ký tự"
+                                    multiline
+                                    rows={3}
+                                    fullWidth
+                                    value={metaDescription}
+                                    onChange={(e) => setMetaDescription(e.target.value)}
+                                    helperText={`${metaDescription.length}/160 ký tự`}
+                                />
+                            </Stack>
+                        </CollapsibleCard>
+
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: "16px" }}>
                             <Button
                                 type="submit"
@@ -568,8 +694,8 @@ export const ProductCreatePage = () => {
                             </Button>
                         </Box>
                     </Stack>
-                </form>
-            </ThemeProvider>
+                </form >
+            </ThemeProvider >
 
         </>
     )
