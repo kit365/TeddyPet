@@ -22,6 +22,8 @@ export interface ProductVariant {
     originalPrice: number;
     price: number;
     stock: number;
+    weight: number;
+    unit: string;
     status: "ACTIVE" | "DRAFT" | "HIDDEN";
     featuredImage?: string;
     featuredImageId?: number;

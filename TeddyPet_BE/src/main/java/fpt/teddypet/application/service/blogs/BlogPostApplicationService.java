@@ -1,4 +1,5 @@
 package fpt.teddypet.application.service.blogs;
+
 import fpt.teddypet.application.constants.blogs.blogpost.BlogPostLogMessages;
 import fpt.teddypet.application.constants.blogs.blogpost.BlogPostMessages;
 import fpt.teddypet.application.dto.common.PageResponse;
@@ -50,13 +51,12 @@ public class BlogPostApplicationService implements BlogPostService {
 
         BlogPost blogPost = BlogPost.builder().build();
         blogPostMapper.updatePostFromCreateRequest(request, blogPost);
-        
+
         // 1. Handle Slug
         String slug = SlugUtil.toSlug(request.title());
         ValidationUtils.ensureUnique(
                 () -> blogPostRepositoryPort.existsBySlug(slug),
-                String.format(BlogPostMessages.MESSAGE_BLOG_POST_SLUG_ALREADY_EXISTS, slug)
-        );
+                String.format(BlogPostMessages.MESSAGE_BLOG_POST_SLUG_ALREADY_EXISTS, slug));
         blogPost.setSlug(slug);
 
         // 2. Handle Category
@@ -92,6 +92,7 @@ public class BlogPostApplicationService implements BlogPostService {
             blogPost.setDisplayOrder(0);
         }
         blogPost.setDeleted(false);
+        blogPost.setActive(true);
         blogPost.setViewCount(0);
 
         BlogPost savedPost = blogPostRepositoryPort.save(blogPost);
@@ -110,8 +111,7 @@ public class BlogPostApplicationService implements BlogPostService {
             String slug = SlugUtil.toSlug(request.title());
             ValidationUtils.ensureUnique(
                     () -> blogPostRepositoryPort.existsBySlugAndIdNot(slug, id),
-                    String.format(BlogPostMessages.MESSAGE_BLOG_POST_SLUG_ALREADY_EXISTS, slug)
-            );
+                    String.format(BlogPostMessages.MESSAGE_BLOG_POST_SLUG_ALREADY_EXISTS, slug));
             blogPost.setSlug(slug);
         }
 
@@ -139,10 +139,10 @@ public class BlogPostApplicationService implements BlogPostService {
         } else {
             blogPost.setParent(null);
         }
-        
+
         // 5. Handle Alt Image
         if (StringUtils.hasText(request.featuredImage())) {
-             blogPost.setAltImage(ImageAltUtil.generateAltText(request.title()));
+            blogPost.setAltImage(ImageAltUtil.generateAltText(request.title()));
         }
 
         BlogPost savedPost = blogPostRepositoryPort.save(blogPost);
@@ -154,11 +154,11 @@ public class BlogPostApplicationService implements BlogPostService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(BlogPostMessages.MESSAGE_BLOG_POST_NOT_FOUND_BY_ID, id)));
     }
-    
+
     public BlogPostResponse getPostDetail(Long id) {
         return blogPostMapper.toResponse(getById(id));
     }
-    
+
     public BlogPostResponse getPostBySlug(String slug) {
         BlogPost post = blogPostRepositoryPort.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -182,7 +182,7 @@ public class BlogPostApplicationService implements BlogPostService {
         Pageable pageable = PageRequest.of(request.page(), request.size(), sort);
 
         List<Specification<BlogPost>> specs = new ArrayList<>();
-        
+
         // 1. Base Specification (Not Deleted)
         specs.add(BlogPostSpecification.buildNotDeletedSpecification());
 
@@ -195,12 +195,13 @@ public class BlogPostApplicationService implements BlogPostService {
         specs.add(BlogPostSpecification.buildCategoryFilterSpecification(request.categoryId()));
         specs.add(BlogPostSpecification.buildTagFilterSpecification(request.tagId()));
         specs.add(BlogPostSpecification.buildStatusFilterSpecification(request.status()));
-        specs.add(BlogPostSpecification.buildDateRangeFilterSpecification(request.createdAtFrom(), request.createdAtTo()));
+        specs.add(BlogPostSpecification.buildDateRangeFilterSpecification(request.createdAtFrom(),
+                request.createdAtTo()));
 
         Specification<BlogPost> spec = BlogPostSpecification.combineAll(specs);
 
         Page<BlogPost> page = blogPostRepositoryPort.findAll(spec, pageable);
-        
+
         return new PageResponse<>(
                 page.map(blogPostMapper::toListResponse).toList(),
                 page.getNumber(),
@@ -208,8 +209,7 @@ public class BlogPostApplicationService implements BlogPostService {
                 page.getTotalElements(),
                 page.getTotalPages(),
                 page.isFirst(),
-                page.isLast()
-        );
+                page.isLast());
     }
 
     @Transactional
@@ -220,7 +220,7 @@ public class BlogPostApplicationService implements BlogPostService {
         blogPostRepositoryPort.save(post);
         log.info(BlogPostLogMessages.LOG_BLOG_POST_DELETE_SUCCESS, id);
     }
-    
+
     @Transactional
     public void incrementViewCount(Long id) {
         BlogPost post = getById(id);

@@ -15,7 +15,7 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+#         dialect: org.hibernate.dialect.PostgreSQLDialect # Let Hibernate auto-detect for Neon (Postgres 17+)
         format_sql: true
         jdbc:
           time_zone: Asia/Ho_Chi_Minh

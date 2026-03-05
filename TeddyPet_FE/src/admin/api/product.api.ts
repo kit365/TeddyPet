@@ -45,6 +45,102 @@ export const deleteProduct = async (id: string | number): Promise<any> => {
     return response.data;
 };
 
+// --- EXCEL PRODUCT API ---
+
+export const exportProductsExcel = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/export`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const downloadProductsTemplate = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/template`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+// ─── TAG EXCEL ──────────────────────────────────────────────────────────
+
+const BASE_URL_TAGS = '/api/product-tags';
+
+export const exportTagsExcel = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL_TAGS}/excel/export`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const downloadTagsTemplate = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL_TAGS}/excel/template`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const importTagsExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL_TAGS}/excel/import`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+// ─── AGE RANGE EXCEL ──────────────────────────────────────────────────────────
+
+const BASE_URL_AGERANGES = '/api/product-age-ranges';
+
+export const exportAgeRangesExcel = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL_AGERANGES}/excel/export`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const downloadAgeRangesTemplate = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL_AGERANGES}/excel/template`, {
+        ...withAuth(),
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const importAgeRangesExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL_AGERANGES}/excel/import`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const importProductsExcel = async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = Cookies.get('tokenAdmin');
+    const response = await apiApp.post(`${BASE_URL}/excel/import`, formData, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
 export const getCountries = async (): Promise<any[]> => {
     const response = await axios.get('https://restcountries.com/v3.1/all?fields=name,cca2');
     return response.data;
@@ -91,5 +187,27 @@ export const updateProductAgeRange = async (id: string | number, data: { name: s
 
 export const deleteProductAgeRange = async (id: string | number): Promise<any> => {
     const response = await apiApp.delete(`${AGE_RANGES_URL}/${id}`, withAuth());
+    return response.data;
+};
+
+// --- ENUMS & METADATA ---
+
+export const getPetTypes = async (): Promise<ApiResponse<string[]>> => {
+    const response = await apiApp.get('/api/enums/pet-types', withAuth());
+    return response.data;
+};
+
+export const getProductStatuses = async (): Promise<ApiResponse<string[]>> => {
+    const response = await apiApp.get('/api/enums/product-statuses', withAuth());
+    return response.data;
+};
+
+export const getProductTypes = async (): Promise<ApiResponse<string[]>> => {
+    const response = await apiApp.get('/api/enums/product-types', withAuth());
+    return response.data;
+};
+
+export const getSalesUnits = async (): Promise<ApiResponse<any[]>> => {
+    const response = await apiApp.get('/api/product-variants/sales', withAuth());
     return response.data;
 };

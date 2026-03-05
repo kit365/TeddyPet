@@ -48,7 +48,7 @@ export const useProductColumns = () => {
         {
             field: "status",
             headerName: t("admin.common.status"),
-            width: 120,
+            width: 140,
             filterable: false,
             renderCell: (params) => <RenderStatusCell {...params} />,
         },
@@ -61,7 +61,11 @@ export const useProductColumns = () => {
             disableColumnMenu: true,
             width: 64,
             align: 'right',
-            renderCell: (params) => <RenderActionsCell {...params} />,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                    <RenderActionsCell {...params} />
+                </Box>
+            ),
         },
     ], [t]);
 

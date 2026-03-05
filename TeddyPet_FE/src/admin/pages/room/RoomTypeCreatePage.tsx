@@ -12,6 +12,8 @@ import { roomTypeUpsertSchema, type RoomTypeUpsertFormValues } from '../../schem
 import { SwitchButton } from '../../components/ui/SwitchButton';
 import { getServiceTheme } from '../service/configs/theme';
 import { prefixAdmin } from '../../constants/routes';
+import { usePetTypes } from '../service/hooks/useEnums';
+import { getPetTypeLabel } from '../service/configs/constants';
 import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFile';
 import { AmenityMultiSelect } from '../../components/ui/AmenityMultiSelect';
 import { toast } from 'react-toastify';
@@ -36,6 +38,8 @@ export const RoomTypeCreatePage = () => {
         queryFn: () => getServices({ isRequiredRoom: true }),
         select: (res) => res.data ?? [],
     });
+
+    const { data: petTypes = [] } = usePetTypes();
 
     const { control, handleSubmit } = useForm<RoomTypeUpsertFormValues>({
         resolver: zodResolver(roomTypeUpsertSchema),
@@ -334,15 +338,34 @@ export const RoomTypeCreatePage = () => {
                                         control={control}
                                         render={({ field }) => (
                                             <TextField
-                                                label="Loại thú cưng phù hợp (cách nhau bằng dấu phẩy)"
+                                                {...field}
+                                                select
+                                                label="Loại thú cưng phù hợp"
                                                 fullWidth
-                                                value={Array.isArray(field.value) ? field.value.join(', ') : ''}
-                                                onChange={(e) => {
-                                                    const arr = parseCommaList(e.target.value);
-                                                    field.onChange(arr && arr.length > 0 ? arr : null);
+                                                SelectProps={{
+                                                    multiple: true,
+                                                    renderValue: (selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')
                                                 }}
-                                                placeholder="VD: dog, cat"
-                                            />
+                                                value={Array.isArray(field.value) ? field.value : []}
+                                                onChange={(e) => field.onChange(e.target.value)}
+                                            >
+                                                {petTypes.map((pt) => {
+                                                    const valArray = Array.isArray(field.value) ? field.value : [];
+                                                    return (
+                                                        <MenuItem key={pt} value={pt} sx={{ p: 0 }}>
+                                                            <Box display="flex" alignItems="center" width="100%" px={2} py={1}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={valArray.includes(pt)}
+                                                                    readOnly
+                                                                    className="mr-3 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                />
+                                                                <Box fontSize="1.4rem">{getPetTypeLabel(pt)}</Box>
+                                                            </Box>
+                                                        </MenuItem>
+                                                    );
+                                                })}
+                                            </TextField>
                                         )}
                                     />
                                 </Box>

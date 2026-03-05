@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Upload, ImageIcon } from "lucide-react";
-import type { PetProfileResponse, PetProfileRequest } from "../../../types/petProfile.type";
+import type { PetProfileResponse, PetProfileRequest } from "../../../../types/petProfile.type";
 import { uploadImage } from "../../../../api/upload.api";
 import { toast } from "react-toastify";
 

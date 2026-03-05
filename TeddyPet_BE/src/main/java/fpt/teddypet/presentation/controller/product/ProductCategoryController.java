@@ -6,14 +6,17 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryResponse;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryNestedResponse;
 import fpt.teddypet.application.port.input.products.ProductCategoryService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,6 +27,7 @@ import java.util.List;
 public class ProductCategoryController {
 
     private final ProductCategoryService productCategoryService;
+    private final SimpleEntityExcelService excelService;
 
     @PutMapping
     @Operation(summary = "Tạo hoặc cập nhật danh mục sản phẩm", description = "Tạo mới nếu categoryId là null, cập nhật nếu categoryId có giá trị")
@@ -87,5 +91,27 @@ public class ProductCategoryController {
         int count = productCategoryService.deleteMany(ids);
         return ResponseEntity
                 .ok(ApiResponse.success(ProductCategoryMessages.MESSAGE_PRODUCT_CATEGORY_DELETED_SUCCESS, count));
+    }
+
+    // ─── Excel ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất danh mục sản phẩm ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        excelService.exportCategories(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel để nhập danh mục sản phẩm")
+    public void downloadTemplate(HttpServletResponse response) {
+        excelService.downloadCategoryTemplate(response);
+    }
+
+    @PostMapping("/excel/import")
+    @Operation(summary = "Nhập danh mục sản phẩm từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = excelService.importCategories(file);
+        return ResponseEntity.ok(ApiResponse.success("Import danh mục hoàn tất.", result));
     }
 }

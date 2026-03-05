@@ -71,7 +71,7 @@ public class RoomDataInitializer implements CommandLineRunner {
             return roomTypeRepository.findBySlug(slug).orElseThrow();
         }
         RoomType roomType = RoomType.builder()
-                .service(null)
+                .service(null) // Will be updated if a Hotel service exists
                 .typeName(typeName)
                 .displayTypeName(displayTypeName)
                 .slug(slug)
@@ -81,6 +81,8 @@ public class RoomDataInitializer implements CommandLineRunner {
                 .basePricePerNight(null)
                 .displayOrder(displayOrder)
                 .totalRooms(totalRooms)
+                .isActive(true)
+                .isDeleted(false)
                 .build();
         roomType = roomTypeRepository.save(roomType);
         log.info("✅ Created RoomType: {} (slug: {})", typeName, slug);
@@ -104,6 +106,8 @@ public class RoomDataInitializer implements CommandLineRunner {
                     .roomName(roomName)
                     .tier(null)
                     .status(RoomStatusEnum.AVAILABLE)
+                    .isActive(true)
+                    .isDeleted(false)
                     .build();
             roomRepository.save(room);
         }
