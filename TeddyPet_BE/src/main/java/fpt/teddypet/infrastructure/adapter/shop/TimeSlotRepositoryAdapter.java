@@ -39,4 +39,18 @@ public class TimeSlotRepositoryAdapter implements TimeSlotRepositoryPort {
     public void delete(TimeSlot entity) {
         repository.delete(entity);
     }
+<<<<<<< Updated upstream
+=======
+
+    @Override
+    public List<TimeSlot> findByServiceIdAndDayType(Long serviceId,
+            fpt.teddypet.domain.enums.scheduling.DayTypeEnum dayType) {
+        return repository.findByService_IdAndDayTypeAndIsDeletedFalse(serviceId, dayType);
+    }
+
+    @Override
+    public List<TimeSlot> findAllActive() {
+        return repository.findByIsDeletedFalse();
+    }
+>>>>>>> Stashed changes
 }
