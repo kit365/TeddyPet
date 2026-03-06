@@ -21,7 +21,6 @@ public record StaffProfileResponse(
         String address,
         String bankAccountNo,
         String bankName,
-        LocalDate hireDate,
         Long positionId,
         String positionCode,
         String positionName,

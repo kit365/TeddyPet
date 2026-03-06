@@ -74,11 +74,14 @@ import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
 import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
 import { WorkShiftAdminPage } from "../pages/staff/workShift/WorkShiftAdminPage";
 import { WorkShiftStaffPage } from "../pages/staff/workShift/WorkShiftStaffPage";
+import { OfficialSchedulePage } from "../pages/staff/workShift/OfficialSchedulePage";
+import { StaffFixedSchedulePage } from "../pages/staff/fixedSchedule/StaffFixedSchedulePage";
 import { RoleRouteGuard } from "../components/guards/RoleRouteGuard";
 import { prefixAdmin } from "../constants/routes";
 import { StaffRealtimePage } from "../pages/staff/realtime/StaffRealtimePage";
 import { PayrollPage } from "../pages/staff/payroll/PayrollPage";
 import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage";
+import { EmployeeDashboardPage } from "../pages/staff/dashboard/EmployeeDashboardPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -156,6 +159,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "staff/contract/list", element: <ContractListPage /> },
     { path: "staff/contract/create", element: <ContractCreatePage /> },
     { path: "staff/contract/edit/:id", element: <ContractEditPage /> },
+    { path: "staff/fixed-schedules", element: <StaffFixedSchedulePage /> },
+    { path: "staff/official-schedule", element: <OfficialSchedulePage /> },
     {
         path: "staff/work-shifts",
         element: (
@@ -174,6 +179,14 @@ export const AdminRoutes: RouteObject[] = [
     },
     { path: "staff/realtime", element: <StaffRealtimePage /> },
     { path: "staff/payroll", element: <PayrollPage /> },
+    {
+        path: "staff/dashboard",
+        element: (
+            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/profile/list`}>
+                <EmployeeDashboardPage />
+            </RoleRouteGuard>
+        ),
+    },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

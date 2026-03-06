@@ -2,6 +2,7 @@ package fpt.teddypet.infrastructure.adapter.staff;
 
 import fpt.teddypet.application.port.output.staff.StaffProfileRepositoryPort;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -34,6 +35,11 @@ public class StaffProfileRepositoryAdapter implements StaffProfileRepositoryPort
     @Override
     public List<StaffProfile> findAllActive() {
         return staffProfileRepository.findAllActive();
+    }
+
+    @Override
+    public List<StaffProfile> findAllActiveByPositionIdAndEmploymentType(Long positionId, EmploymentTypeEnum employmentType) {
+        return staffProfileRepository.findAllActiveByPositionIdAndEmploymentType(positionId, employmentType);
     }
 
     @Override

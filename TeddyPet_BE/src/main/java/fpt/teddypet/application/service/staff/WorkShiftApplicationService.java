@@ -1,18 +1,32 @@
 package fpt.teddypet.application.service.staff;
 
 import fpt.teddypet.application.dto.request.staff.OpenShiftRequest;
+import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
+import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
+import fpt.teddypet.application.dto.response.staff.RoleSlotInfoResponse;
+import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 import fpt.teddypet.application.port.input.staff.WorkShiftService;
+import fpt.teddypet.application.port.output.staff.ShiftRoleConfigRepositoryPort;
+import fpt.teddypet.application.port.output.staff.StaffFixedScheduleRepositoryPort;
+import fpt.teddypet.application.port.output.staff.StaffPositionRepositoryPort;
 import fpt.teddypet.application.port.output.staff.StaffProfileRepositoryPort;
 import fpt.teddypet.application.port.output.staff.WorkShiftRegistrationRepositoryPort;
 import fpt.teddypet.application.port.output.staff.WorkShiftRepositoryPort;
+import fpt.teddypet.domain.entity.staff.ShiftRoleConfig;
+import fpt.teddypet.domain.entity.staff.StaffFixedSchedule;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
+import fpt.teddypet.domain.entity.staff.StaffPosition;
 import fpt.teddypet.domain.entity.staff.WorkShift;
 import fpt.teddypet.domain.entity.staff.WorkShiftRegistration;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import fpt.teddypet.domain.enums.staff.RegistrationStatus;
 import fpt.teddypet.domain.enums.staff.ShiftStatus;
 import fpt.teddypet.domain.exception.AlreadyRegisteredException;
+import fpt.teddypet.domain.exception.FullTimeCannotRegisterException;
+import fpt.teddypet.domain.exception.ShiftRoleQuotaExceededException;
+import fpt.teddypet.domain.exception.ShiftRoleSlotsFullException;
 import fpt.teddypet.domain.exception.InvalidShiftStatusException;
 import fpt.teddypet.domain.exception.ShiftMustBeNextWeekException;
 import fpt.teddypet.domain.exception.ShiftNotFoundException;
@@ -25,7 +39,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +52,17 @@ public class WorkShiftApplicationService implements WorkShiftService {
 
     private final WorkShiftRepositoryPort workShiftRepositoryPort;
     private final WorkShiftRegistrationRepositoryPort registrationRepositoryPort;
+    private final ShiftRoleConfigRepositoryPort shiftRoleConfigRepositoryPort;
+    private final StaffFixedScheduleRepositoryPort staffFixedScheduleRepositoryPort;
+    private final StaffPositionRepositoryPort staffPositionRepositoryPort;
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
+
+    /** Định mức mặc định theo từ khóa tên chức vụ (Thu ngân 1, Spa 2, Chăm sóc 1) – dùng khi khởi tạo ca */
+    private static final List<Map.Entry<String, Integer>> DEFAULT_QUOTA_BY_KEYWORD = List.of(
+            Map.entry("Thu ngân", 1),
+            Map.entry("Spa", 2),
+            Map.entry("Chăm sóc", 1)
+    );
 
     /** Tuần tiếp theo: từ Thứ 2 00:00 đến Chủ nhật 23:59:59 */
     private static LocalDateTime[] getNextWeekRange() {
@@ -73,6 +101,8 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 .staff(null)
                 .build();
         WorkShift saved = workShiftRepositoryPort.save(shift);
+        createDefaultRoleConfigsForShift(saved);
+        autoFillFullTime(saved);
         return toResponse(saved);
     }
 
@@ -116,6 +146,8 @@ public class WorkShiftApplicationService implements WorkShiftService {
                     .staff(null)
                     .build();
             WorkShift saved = workShiftRepositoryPort.save(shift);
+            createDefaultRoleConfigsForShift(saved);
+            autoFillFullTime(saved);
             created.add(toResponse(saved));
         }
         return created;
@@ -163,6 +195,23 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
+    @Transactional
+    public void deleteAllWorkShifts() {
+        shiftRoleConfigRepositoryPort.deleteAll();
+        registrationRepositoryPort.deleteAll();
+        workShiftRepositoryPort.deleteAll();
+    }
+
+    @Override
+    public List<WorkShiftResponse> getShiftsForAdminByDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from == null || to == null) {
+            return List.of();
+        }
+        List<WorkShift> shifts = workShiftRepositoryPort.findByStartTimeBetween(from, to);
+        return shifts.stream().map(this::toResponse).toList();
+    }
+
+    @Override
     public List<WorkShiftResponse> getAvailableShifts(LocalDateTime from, LocalDateTime to) {
         List<WorkShift> shifts;
         if (from != null && to != null) {
@@ -171,6 +220,43 @@ public class WorkShiftApplicationService implements WorkShiftService {
             shifts = workShiftRepositoryPort.findByStatus(ShiftStatus.OPEN);
         }
         return shifts.stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<AvailableShiftForStaffResponse> getAvailableShiftsForStaff(LocalDateTime from, LocalDateTime to) {
+        List<WorkShift> shifts;
+        if (from != null && to != null) {
+            shifts = workShiftRepositoryPort.findByStatusAndStartTimeBetween(ShiftStatus.OPEN, from, to);
+        } else {
+            shifts = workShiftRepositoryPort.findByStatus(ShiftStatus.OPEN);
+        }
+        return shifts.stream().map(this::toAvailableShiftForStaff).toList();
+    }
+
+    private AvailableShiftForStaffResponse toAvailableShiftForStaff(WorkShift shift) {
+        List<ShiftRoleConfig> configs = shiftRoleConfigRepositoryPort.findByWorkShiftId(shift.getId());
+        List<RoleSlotInfoResponse> roleSlots = configs.stream()
+                .map(c -> {
+                    long approved = registrationRepositoryPort.countApprovedByWorkShiftIdAndPositionId(shift.getId(), c.getPosition().getId());
+                    // Slot còn trống = chỉ tính người sẽ đi làm (APPROVED, PENDING, PENDING_LEAVE chưa duyệt nghỉ). Đã duyệt nghỉ thì nhả slot cho part-time.
+                    long participating = registrationRepositoryPort.countParticipatingByWorkShiftIdAndPositionId(shift.getId(), c.getPosition().getId());
+                    int available = Math.max(0, c.getMaxSlots() - (int) participating);
+                    return new RoleSlotInfoResponse(
+                            c.getPosition().getId(),
+                            c.getPosition().getName(),
+                            c.getMaxSlots(),
+                            approved,
+                            available
+                    );
+                })
+                .toList();
+        return new AvailableShiftForStaffResponse(
+                shift.getId(),
+                shift.getStartTime(),
+                shift.getEndTime(),
+                shift.getStatus(),
+                roleSlots
+        );
     }
 
     @Override
@@ -187,9 +273,35 @@ public class WorkShiftApplicationService implements WorkShiftService {
         StaffProfile staff = staffProfileRepositoryPort.findById(staffId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy nhân viên với id: " + staffId));
 
+        if (staff.getEmploymentType() == EmploymentTypeEnum.FULL_TIME) {
+            throw new FullTimeCannotRegisterException();
+        }
+
+        StaffPosition position = staff.getPosition();
+        Long positionId = position != null ? position.getId() : null;
+        int maxSlots = 1;
+        String roleName = position != null ? position.getName() : "Không xác định";
+        if (positionId != null) {
+            maxSlots = shiftRoleConfigRepositoryPort.findByWorkShiftIdAndPositionId(shiftId, positionId)
+                    .map(ShiftRoleConfig::getMaxSlots)
+                    .orElse(1);
+            // Chỉ tính người sẽ đi làm / đang giữ slot. Đã duyệt nghỉ (PENDING_LEAVE + APPROVED_LEAVE) không chiếm slot → part-time có thể đăng ký bù.
+            long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndPositionId(shiftId, positionId);
+            if (occupyingCount >= maxSlots) {
+                throw new ShiftRoleQuotaExceededException(shiftId, roleName, maxSlots);
+            }
+        } else {
+            long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndRoleNull(shiftId);
+            if (occupyingCount >= 1) {
+                throw new ShiftRoleQuotaExceededException(shiftId, roleName, 1);
+            }
+        }
+
         WorkShiftRegistration registration = WorkShiftRegistration.builder()
                 .workShift(shift)
                 .staff(staff)
+                .roleAtRegistration(position)
+                .workType(staff.getEmploymentType())
                 .status(RegistrationStatus.PENDING)
                 .registeredAt(LocalDateTime.now())
                 .build();
@@ -198,12 +310,34 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
-    public List<WorkShiftRegistrationResponse> getRegistrationsForShift(Long shiftId) {
-        WorkShift shift = getShiftOrThrow(shiftId);
-        return registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shift.getId())
-                .stream()
+    public List<WorkShiftRegistrationResponse> getMyRegistrations(Long staffId, LocalDateTime from, LocalDateTime to) {
+        List<WorkShiftRegistration> list = registrationRepositoryPort.findByStaffIdAndStatusIn(
+                staffId, List.of(RegistrationStatus.PENDING, RegistrationStatus.PENDING_LEAVE, RegistrationStatus.ON_LEAVE));
+        return list.stream()
+                .filter(reg -> {
+                    if (from == null && to == null) return true;
+                    LocalDateTime start = reg.getWorkShift().getStartTime();
+                    if (from != null && start.isBefore(from)) return false;
+                    if (to != null && start.isAfter(to)) return false;
+                    return true;
+                })
                 .map(this::toRegistrationResponse)
                 .toList();
+    }
+
+    @Override
+    public List<WorkShiftRegistrationResponse> getRegistrationsForShift(Long shiftId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        List<WorkShiftRegistration> list = new ArrayList<>(
+                registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shift.getId()));
+        list.sort(Comparator
+                .comparing(WorkShiftRegistration::getWorkType, (a, b) -> {
+                    if (a == EmploymentTypeEnum.FULL_TIME && b != EmploymentTypeEnum.FULL_TIME) return -1;
+                    if (a != EmploymentTypeEnum.FULL_TIME && b == EmploymentTypeEnum.FULL_TIME) return 1;
+                    return 0;
+                })
+                .thenComparing(WorkShiftRegistration::getRegisteredAt));
+        return list.stream().map(this::toRegistrationResponse).toList();
     }
 
     @Override
@@ -219,24 +353,118 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Không tìm thấy đăng ký id " + registrationId + " cho ca " + shiftId));
 
-        // Duyệt đăng ký đã chọn
+        StaffPosition role = approvedReg.getRoleAtRegistration();
+        Long positionId = role != null ? role.getId() : null;
+        int maxSlots = 1;
+        String roleName = role != null ? role.getName() : "Không xác định";
+        if (positionId != null) {
+            maxSlots = shiftRoleConfigRepositoryPort.findByWorkShiftIdAndPositionId(shiftId, positionId)
+                    .map(ShiftRoleConfig::getMaxSlots)
+                    .orElse(1);
+            // Đếm người đang giữ slot nhưng loại trừ chính đăng ký đang duyệt (PENDING→APPROVED không thêm người).
+            long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndPositionIdExcludingRegistrationId(shiftId, positionId, registrationId);
+            if (occupyingCount >= maxSlots) {
+                throw new ShiftRoleSlotsFullException(shiftId, roleName, maxSlots);
+            }
+        } else {
+            long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndRoleNullExcludingRegistrationId(shiftId, registrationId);
+            if (occupyingCount >= 1) {
+                throw new ShiftRoleSlotsFullException(shiftId, roleName, 1);
+            }
+        }
+
         approvedReg.setStatus(RegistrationStatus.APPROVED);
         registrationRepositoryPort.save(approvedReg);
+        return toResponseFromRegistration(approvedReg);
+    }
 
-        // Reject tất cả các đăng ký khác
-        registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shiftId)
-                .stream()
-                .filter(r -> !r.getId().equals(registrationId))
-                .forEach(r -> {
-                    r.setStatus(RegistrationStatus.REJECTED);
-                    registrationRepositoryPort.save(r);
-                });
+    @Override
+    @Transactional
+    public WorkShiftRegistrationResponse setRegistrationOnLeave(Long shiftId, Long registrationId) {
+        getShiftOrThrow(shiftId);
+        WorkShiftRegistration reg = registrationRepositoryPort.findByIdAndWorkShiftId(registrationId, shiftId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy đăng ký id " + registrationId + " cho ca " + shiftId));
+        if (reg.getStatus() != RegistrationStatus.PENDING_LEAVE) {
+            throw new IllegalStateException("Chỉ khi nhân viên ở trạng thái Đã xin nghỉ (chờ duyệt) mới có nút Duyệt xin nghỉ.");
+        }
+        reg.setLeaveDecision("APPROVED_LEAVE");
+        registrationRepositoryPort.save(reg);
+        return toRegistrationResponse(reg);
+    }
 
-        // Gán nhân viên cho ca, cập nhật status
-        shift.setStaff(approvedReg.getStaff());
-        shift.setStatus(ShiftStatus.ASSIGNED);
-        WorkShift saved = workShiftRepositoryPort.save(shift);
-        return toResponse(saved);
+    @Override
+    @Transactional
+    public WorkShiftRegistrationResponse rejectLeaveRequest(Long shiftId, Long registrationId) {
+        getShiftOrThrow(shiftId);
+        WorkShiftRegistration reg = registrationRepositoryPort.findByIdAndWorkShiftId(registrationId, shiftId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy đăng ký id " + registrationId + " cho ca " + shiftId));
+        if (reg.getStatus() != RegistrationStatus.PENDING_LEAVE) {
+            throw new IllegalStateException("Chỉ khi nhân viên ở trạng thái Đã xin nghỉ (chờ duyệt) mới có nút Từ chối nghỉ.");
+        }
+        reg.setLeaveDecision("REJECTED_LEAVE");
+        registrationRepositoryPort.save(reg);
+        return toRegistrationResponse(reg);
+    }
+
+    @Override
+    @Transactional
+    public WorkShiftRegistrationResponse requestLeave(Long shiftId, Long staffId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "xin nghỉ (ca đã khóa)");
+        }
+        WorkShiftRegistration reg = registrationRepositoryPort.findByWorkShiftIdAndStaffId(shiftId, staffId)
+                .orElseThrow(() -> new EntityNotFoundException("Bạn chưa được gán ca này. Không thể xin nghỉ."));
+        if (reg.getStatus() != RegistrationStatus.APPROVED) {
+            throw new IllegalStateException("Chỉ có thể xin nghỉ khi ca đang ở trạng thái Đã duyệt.");
+        }
+        if (reg.getWorkType() != EmploymentTypeEnum.FULL_TIME) {
+            throw new IllegalStateException("Chỉ nhân viên toàn thời gian mới dùng Xin nghỉ. Part-time vui lòng liên hệ admin để hủy đăng ký.");
+        }
+        reg.setStatus(RegistrationStatus.PENDING_LEAVE);
+        registrationRepositoryPort.save(reg);
+        return toRegistrationResponse(reg);
+    }
+
+    @Override
+    @Transactional
+    public void cancelMyRegistration(Long shiftId, Long staffId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "hủy đăng ký (ca đã khóa)");
+        }
+        WorkShiftRegistration reg = registrationRepositoryPort.findByWorkShiftIdAndStaffId(shiftId, staffId)
+                .orElseThrow(() -> new EntityNotFoundException("Bạn chưa đăng ký ca này."));
+        if (reg.getWorkType() != EmploymentTypeEnum.PART_TIME) {
+            throw new IllegalStateException("Chỉ Part-time mới có thể tự hủy đăng ký. Full-time dùng Xin nghỉ.");
+        }
+        if (reg.getStatus() != RegistrationStatus.PENDING) {
+            throw new IllegalStateException("Chỉ có thể hủy khi đăng ký đang ở trạng thái Chờ duyệt.");
+        }
+        registrationRepositoryPort.deleteById(reg.getId());
+    }
+
+    @Override
+    @Transactional
+    public WorkShiftRegistrationResponse undoLeave(Long shiftId, Long staffId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "hoàn tác xin nghỉ (ca đã khóa)");
+        }
+        WorkShiftRegistration reg = registrationRepositoryPort.findByWorkShiftIdAndStaffId(shiftId, staffId)
+                .orElseThrow(() -> new EntityNotFoundException("Bạn chưa được gán ca này."));
+        if (reg.getWorkType() != EmploymentTypeEnum.FULL_TIME) {
+            throw new IllegalStateException("Chỉ nhân viên toàn thời gian mới dùng Hoàn tác xin nghỉ.");
+        }
+        if (reg.getStatus() != RegistrationStatus.ON_LEAVE && reg.getStatus() != RegistrationStatus.PENDING_LEAVE) {
+            throw new IllegalStateException("Chỉ có thể hoàn tác khi bạn đã xin nghỉ (chờ duyệt hoặc đã duyệt).");
+        }
+        reg.setStatus(RegistrationStatus.APPROVED);
+        reg.setLeaveDecision(null);
+        registrationRepositoryPort.save(reg);
+        return toRegistrationResponse(reg);
     }
 
     @Override
@@ -253,10 +481,109 @@ public class WorkShiftApplicationService implements WorkShiftService {
         if (to == null) {
             to = LocalDateTime.now().plusMonths(1);
         }
-        return workShiftRepositoryPort.findByStaffIdAndStartTimeBetween(staffId, from, to)
+        return registrationRepositoryPort.findByStaffIdAndStatusInAndShiftStartTimeBetween(
+                        staffId,
+                        List.of(RegistrationStatus.APPROVED, RegistrationStatus.PENDING_LEAVE, RegistrationStatus.ON_LEAVE),
+                        from,
+                        to)
                 .stream()
-                .map(this::toResponse)
+                .map(this::toResponseFromRegistration)
                 .toList();
+    }
+
+    @Override
+    public List<ShiftRoleConfigResponse> getRoleConfigsForShift(Long shiftId) {
+        getShiftOrThrow(shiftId);
+        return shiftRoleConfigRepositoryPort.findByWorkShiftId(shiftId).stream()
+                .map(c -> new ShiftRoleConfigResponse(
+                        c.getPosition().getId(),
+                        c.getPosition().getName(),
+                        c.getMaxSlots()))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<ShiftRoleConfigResponse> setRoleConfigsForShift(Long shiftId, List<ShiftRoleConfigItemRequest> configs) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "thiết lập định mức theo vai trò");
+        }
+        shiftRoleConfigRepositoryPort.deleteByWorkShiftId(shiftId);
+        shiftRoleConfigRepositoryPort.flush();
+        if (configs != null && !configs.isEmpty()) {
+            for (ShiftRoleConfigItemRequest req : configs) {
+                if (req.maxSlots() < 1) continue;
+                StaffPosition position = staffPositionRepositoryPort.findById(req.positionId())
+                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy chức vụ id: " + req.positionId()));
+                ShiftRoleConfig config = ShiftRoleConfig.builder()
+                        .workShift(shift)
+                        .position(position)
+                        .maxSlots(req.maxSlots())
+                        .build();
+                shiftRoleConfigRepositoryPort.save(config);
+            }
+        }
+        return getRoleConfigsForShift(shiftId);
+    }
+
+    @Override
+    @Transactional
+    public void runAutoFillForShift(Long shiftId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "điền ca theo lịch cố định");
+        }
+        createDefaultRoleConfigsForShift(shift);
+        autoFillFullTime(shift);
+    }
+
+    @Override
+    @Transactional
+    public void finalizeShiftApprovals(Long shiftId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "duyệt lần cuối");
+        }
+        List<WorkShiftRegistration> registrations = registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shiftId);
+        List<ShiftRoleConfig> configs = shiftRoleConfigRepositoryPort.findByWorkShiftId(shiftId);
+        // Chỉ tính người đã xác nhận tham gia: APPROVED + PENDING_LEAVE đã chọn Từ chối nghỉ. PENDING (chờ duyệt) chưa tính.
+        Map<Long, Long> confirmedParticipatingByPositionId = new HashMap<>();
+        for (WorkShiftRegistration reg : registrations) {
+            boolean isConfirmedParticipating = reg.getStatus() == RegistrationStatus.APPROVED
+                    || (reg.getStatus() == RegistrationStatus.PENDING_LEAVE && "REJECTED_LEAVE".equals(reg.getLeaveDecision()));
+            if (!isConfirmedParticipating) continue;
+            StaffPosition role = reg.getRoleAtRegistration();
+            if (role == null) continue;
+            Long positionId = role.getId();
+            confirmedParticipatingByPositionId.merge(positionId, 1L, (a, b) -> a + b);
+        }
+        for (ShiftRoleConfig config : configs) {
+            int maxSlots = config.getMaxSlots();
+            if (maxSlots < 1) continue;
+            Long positionId = config.getPosition().getId();
+            long count = confirmedParticipatingByPositionId.getOrDefault(positionId, 0L);
+            if (count < maxSlots) {
+                throw new IllegalStateException("Số lượng người trong ca chưa đủ. Thêm người hoặc sửa định mức cho từng vai trò.");
+            }
+        }
+        for (WorkShiftRegistration reg : registrations) {
+            if (reg.getStatus() == RegistrationStatus.PENDING_LEAVE) {
+                String decision = reg.getLeaveDecision();
+                if ("APPROVED_LEAVE".equals(decision)) {
+                    reg.setStatus(RegistrationStatus.ON_LEAVE);
+                } else {
+                    reg.setStatus(RegistrationStatus.APPROVED);
+                }
+                reg.setLeaveDecision(null);
+                registrationRepositoryPort.save(reg);
+            } else if (reg.getStatus() == RegistrationStatus.PENDING) {
+                reg.setStatus(RegistrationStatus.APPROVED);
+                registrationRepositoryPort.save(reg);
+            }
+        }
+        shift.setStatus(ShiftStatus.ASSIGNED);
+        workShiftRepositoryPort.save(shift);
     }
 
     private WorkShift getShiftOrThrow(Long shiftId) {
@@ -280,14 +607,113 @@ public class WorkShiftApplicationService implements WorkShiftService {
         );
     }
 
+    private WorkShiftResponse toResponseFromRegistration(WorkShiftRegistration reg) {
+        WorkShift shift = reg.getWorkShift();
+        StaffProfile staff = reg.getStaff();
+        return new WorkShiftResponse(
+                shift.getId(),
+                staff.getId(),
+                staff.getFullName(),
+                shift.getStartTime(),
+                shift.getEndTime(),
+                shift.getStatus(),
+                shift.getCheckInTime(),
+                shift.getCheckOutTime(),
+                shift.getVersion()
+        );
+    }
+
     private WorkShiftRegistrationResponse toRegistrationResponse(WorkShiftRegistration reg) {
         return new WorkShiftRegistrationResponse(
                 reg.getId(),
                 reg.getWorkShift().getId(),
                 reg.getStaff().getId(),
                 reg.getStaff().getFullName(),
+                reg.getRoleAtRegistration() != null ? reg.getRoleAtRegistration().getName() : null,
+                reg.getWorkType(),
                 reg.getStatus(),
-                reg.getRegisteredAt()
+                reg.getRegisteredAt(),
+                reg.getLeaveDecision()
         );
+    }
+
+    /** Tạo định mức mặc định (Thu ngân 1, Spa 2, Chăm sóc 1) cho ca nếu chưa có config. */
+    private void createDefaultRoleConfigsForShift(WorkShift shift) {
+        if (!shiftRoleConfigRepositoryPort.findByWorkShiftId(shift.getId()).isEmpty()) {
+            return;
+        }
+        List<StaffPosition> positions = staffPositionRepositoryPort.findAllActive();
+        for (StaffPosition position : positions) {
+            String name = position.getName() != null ? position.getName() : "";
+            int slots = 0;
+            for (Map.Entry<String, Integer> e : DEFAULT_QUOTA_BY_KEYWORD) {
+                if (name.contains(e.getKey())) {
+                    slots = e.getValue();
+                    break;
+                }
+            }
+            if (slots > 0) {
+                ShiftRoleConfig config = ShiftRoleConfig.builder()
+                        .workShift(shift)
+                        .position(position)
+                        .maxSlots(slots)
+                        .build();
+                shiftRoleConfigRepositoryPort.save(config);
+            }
+        }
+    }
+
+    /**
+     * Tự động điền nhân viên Full-time vào ca theo Lịch cố định (thứ + sáng/chiều + vai trò).
+     * Trạng thái mặc định là APPROVED (Đã xếp ca) – Full-time thấy ca ngay trong "Ca của tôi", không cần Admin duyệt.
+     * Nếu không có lịch cố định cho slot đó thì không điền ai (Part-time đăng ký bù hoặc admin gán).
+     */
+    private void autoFillFullTime(WorkShift shift) {
+        int dayOfWeek = shift.getStartTime().getDayOfWeek().getValue(); // 1 = Thứ 2, 7 = Chủ nhật
+        boolean isAfternoon = shift.getStartTime().getHour() >= 12;
+
+        List<ShiftRoleConfig> configs = shiftRoleConfigRepositoryPort.findByWorkShiftId(shift.getId());
+        for (ShiftRoleConfig config : configs) {
+            Long positionId = config.getPosition().getId();
+            int maxSlots = config.getMaxSlots();
+            long occupiedCount = registrationRepositoryPort.countByWorkShiftIdAndPositionIdAndStatusIn(
+                    shift.getId(), positionId, List.of(RegistrationStatus.APPROVED, RegistrationStatus.PENDING));
+
+            List<StaffProfile> staffToFill = getStaffToFillByPosition(positionId, dayOfWeek, isAfternoon);
+
+            for (StaffProfile staff : staffToFill) {
+                if (occupiedCount >= maxSlots) break;
+                if (registrationRepositoryPort.existsByWorkShiftIdAndStaffId(shift.getId(), staff.getId())) continue;
+                WorkShiftRegistration reg = WorkShiftRegistration.builder()
+                        .workShift(shift)
+                        .staff(staff)
+                        .roleAtRegistration(config.getPosition())
+                        .workType(EmploymentTypeEnum.FULL_TIME)
+                        .status(RegistrationStatus.APPROVED)
+                        .registeredAt(LocalDateTime.now())
+                        .build();
+                registrationRepositoryPort.save(reg);
+                occupiedCount++;
+            }
+        }
+    }
+
+    /**
+     * Lấy danh sách nhân viên để điền vào ca cho một vai trò.
+     * Chỉ dùng lịch cố định: nếu có bản ghi (positionId, dayOfWeek, isAfternoon) thì điền đúng danh sách đó (Full-time, active).
+     * Nếu không có lịch cố định cho slot đó thì trả về rỗng – không điền ai, tránh điền lại người đã bị xóa khỏi lịch cố định.
+     */
+    private List<StaffProfile> getStaffToFillByPosition(Long positionId, int dayOfWeek, boolean isAfternoon) {
+        List<StaffFixedSchedule> fixedSchedules = staffFixedScheduleRepositoryPort
+                .findByPositionIdAndDayOfWeekAndIsAfternoon(positionId, dayOfWeek, isAfternoon);
+        if (fixedSchedules == null || fixedSchedules.isEmpty()) {
+            return List.of();
+        }
+        return fixedSchedules.stream()
+                .map(StaffFixedSchedule::getStaff)
+                .filter(s -> s != null && s.isActive() && !s.isDeleted()
+                        && s.getEmploymentType() == EmploymentTypeEnum.FULL_TIME)
+                .distinct()
+                .toList();
     }
 }

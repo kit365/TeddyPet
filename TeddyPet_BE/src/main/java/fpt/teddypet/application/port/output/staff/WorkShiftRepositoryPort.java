@@ -24,9 +24,13 @@ public interface WorkShiftRepositoryPort {
             LocalDateTime to
     );
 
+    List<WorkShift> findByStartTimeBetween(LocalDateTime from, LocalDateTime to);
+
     List<WorkShift> findByStaffIdAndStartTimeBetween(
             Long staffId,
             LocalDateTime from,
             LocalDateTime to
     );
+
+    void deleteAll();
 }

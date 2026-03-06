@@ -47,11 +47,21 @@ public class WorkShiftRepositoryAdapter implements WorkShiftRepositoryPort {
     }
 
     @Override
+    public List<WorkShift> findByStartTimeBetween(LocalDateTime from, LocalDateTime to) {
+        return workShiftRepository.findByStartTimeBetween(from, to);
+    }
+
+    @Override
     public List<WorkShift> findByStaffIdAndStartTimeBetween(
             Long staffId,
             LocalDateTime from,
             LocalDateTime to
     ) {
         return workShiftRepository.findByStaff_IdAndStartTimeBetween(staffId, from, to);
+    }
+
+    @Override
+    public void deleteAll() {
+        workShiftRepository.deleteAll();
     }
 }

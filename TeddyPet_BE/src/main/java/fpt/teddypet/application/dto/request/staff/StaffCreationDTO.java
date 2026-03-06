@@ -60,9 +60,6 @@ public record StaffCreationDTO(
         @Size(max = 150)
         String bankName,
 
-        @JsonProperty("hireDate")
-        LocalDate hireDate,
-
         @JsonProperty("positionId")
         Long positionId,
 

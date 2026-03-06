@@ -44,7 +44,6 @@ export const StaffProfileEditPage = () => {
             address: '',
             bankAccountNo: '',
             bankName: '',
-            hireDate: '',
             positionId: undefined as number | undefined,
             employmentType: undefined as EmploymentTypeEnum | undefined,
         },
@@ -65,7 +64,6 @@ export const StaffProfileEditPage = () => {
                 address: profile.address ?? '',
                 bankAccountNo: profile.bankAccountNo ?? '',
                 bankName: profile.bankName ?? '',
-                hireDate: profile.hireDate ?? '',
                 positionId: profile.positionId ?? undefined,
                 employmentType: profile.employmentType ?? undefined,
             });
@@ -93,7 +91,6 @@ export const StaffProfileEditPage = () => {
                     address: data.address?.trim() || undefined,
                     bankAccountNo: data.bankAccountNo?.trim() || undefined,
                     bankName: data.bankName?.trim() || undefined,
-                    hireDate: data.hireDate || undefined,
                     positionId: data.positionId ?? undefined,
                     employmentType: data.employmentType ?? undefined,
                 },
@@ -194,13 +191,6 @@ export const StaffProfileEditPage = () => {
                         <Controller name="address" control={control} render={({ field }) => <TextField {...field} label="Địa chỉ" fullWidth multiline />} />
                         <Controller name="bankAccountNo" control={control} render={({ field }) => <TextField {...field} label="Số tài khoản NH" fullWidth />} />
                         <Controller name="bankName" control={control} render={({ field }) => <TextField {...field} label="Ngân hàng" fullWidth />} />
-                        <Controller
-                            name="hireDate"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField {...field} label="Ngày vào làm" type="date" fullWidth InputLabelProps={{ shrink: true }} />
-                            )}
-                        />
                         <Controller
                             name="positionId"
                             control={control}

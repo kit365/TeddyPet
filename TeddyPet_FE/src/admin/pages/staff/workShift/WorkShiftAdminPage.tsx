@@ -7,9 +7,9 @@ import DialogActions from '@mui/material/DialogActions';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useAvailableShifts, useRegistrationsForShift, useApproveRegistration } from '../hooks/useWorkShift';
+import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals } from '../hooks/useWorkShift';
 import { toast } from 'react-toastify';
-import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest } from '../../../api/workShift.api';
+import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff } from '../../../api/workShift.api';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -17,10 +17,31 @@ import dayjs from 'dayjs';
 import Cookies from 'js-cookie';
 import { useQuery } from '@tanstack/react-query';
 import { getMe } from '../../../../api/auth.api';
+import { getStaffPositions } from '../../../api/staffPosition.api';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
+import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
 
-const STATUS_LABELS: Record<string, string> = { OPEN: 'Trống', ASSIGNED: 'Đã gán', COMPLETED: 'Hoàn thành', CANCELLED: 'Hủy' };
+const STATUS_LABELS: Record<string, string> = { OPEN: 'Trống', ASSIGNED: 'Đã khóa', COMPLETED: 'Hoàn thành', CANCELLED: 'Hủy' };
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const ROW_LABELS = ['Sáng', 'Chiều'];
+
+/** Định mức mặc định: nếu tên chức vụ chứa từ khóa thì dùng số slot tương ứng (ca chưa có config; admin có thể sửa và lưu) */
+const DEFAULT_QUOTA_MATCHES: { key: string; slots: number }[] = [
+    { key: 'Thu ngân', slots: 1 },
+    { key: 'Spa', slots: 2 },
+    { key: 'Chăm sóc', slots: 1 },
+];
+
+function getDefaultQuotaForPositionName(positionName: string): number {
+    const name = (positionName ?? '').trim();
+    for (const { key, slots } of DEFAULT_QUOTA_MATCHES) {
+        if (name.includes(key)) return slots;
+    }
+    return 0;
+}
 
 /** Chỉ số cột ngày (0=T2, 6=CN) từ ISO */
 function getDayIndex(iso: string): number {
@@ -86,19 +107,39 @@ export const WorkShiftAdminPage = () => {
     const [createEnd, setCreateEnd] = useState<string>('');
     const [showCreate, setShowCreate] = useState(false);
     const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
-    const [editShift, setEditShift] = useState<IWorkShift | null>(null);
+    const [editShift, setEditShift] = useState<{ shiftId: number; startTime: string; endTime: string } | null>(null);
     const [editStart, setEditStart] = useState<string>('');
     const [editEnd, setEditEnd] = useState<string>('');
     const [deleteConfirmShiftId, setDeleteConfirmShiftId] = useState<number | null>(null);
+    const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
+    /** Định mức theo vai trò: positionId -> maxSlots (chỉ dùng khi selectedShiftId đang mở) */
+    const [roleConfigSlots, setRoleConfigSlots] = useState<Record<number, number>>({});
+    /** Chế độ chỉnh sửa định mức: false = read-only, true = cho phép sửa và hiện "Lưu định mức" */
+    const [isEditingQuota, setIsEditingQuota] = useState(false);
 
     const queryClient = useQueryClient();
-    const { data: shifts = [], isLoading } = useAvailableShifts(from, to);
+    const { data: shifts = [], isLoading } = useShiftsForAdmin(from, to);
     const { data: registrations = [], isLoading: regLoading } = useRegistrationsForShift(selectedShiftId);
+    const { data: roleConfigs = [] } = useShiftRoleConfigs(selectedShiftId);
+    const { data: positionsData } = useQuery({
+        queryKey: ['staff-positions'],
+        queryFn: async () => {
+            const res = await getStaffPositions();
+            const data = res?.data;
+            return Array.isArray(data) ? data : [];
+        },
+    });
+    const positions = Array.isArray(positionsData) ? positionsData : [];
+    const { mutate: setRoleConfigs, isPending: savingRoleConfigs } = useSetShiftRoleConfigs();
     const { mutate: createShift, isPending: creating, isError: createError, error: createErrorObj, reset: resetCreateMutation } = useCreateOpenShift();
     const { mutate: createBatch, isPending: creatingBatch, isError: batchError, error: batchErrorObj, reset: resetBatchMutation } = useCreateOpenShiftsBatch();
     const { mutate: updateShift, isPending: updating } = useUpdateOpenShift();
     const { mutate: cancelShift, isPending: cancelling } = useCancelOpenShift();
+    const { mutate: deleteAllShifts, isPending: deletingAll } = useDeleteAllWorkShifts();
     const { mutate: approve } = useApproveRegistration();
+    const { mutate: setOnLeave, isPending: settingOnLeave } = useSetRegistrationOnLeave();
+    const { mutate: rejectLeave, isPending: rejectingLeave } = useRejectLeaveRequest();
+    const { mutate: finalizeApprovals, isPending: finalizing } = useFinalizeShiftApprovals();
 
     // Hiển thị lỗi từ mutation (đảm bảo toast hiện khi backend trả 400, kể cả khi onError không chạy)
     useEffect(() => {
@@ -115,6 +156,129 @@ export const WorkShiftAdminPage = () => {
         }
     }, [batchError, batchErrorObj, resetBatchMutation]);
 
+    /** Đồng bộ ô nhập định mức khi mở panel ca hoặc khi roleConfigs/positions thay đổi. Chỉ setState khi giá trị thực sự đổi để tránh loop (roleConfigs/positions có thể là ref mới mỗi render). */
+    useEffect(() => {
+        if (!selectedShiftId || positions.length === 0) {
+            setRoleConfigSlots((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+            return;
+        }
+        const initial: Record<number, number> = {};
+        for (const p of positions) {
+            const cfg = roleConfigs.find((c: { positionId: number }) => c.positionId === p.id);
+            const defaultByRole = getDefaultQuotaForPositionName(p.name as string);
+            initial[p.id] = cfg?.maxSlots ?? defaultByRole ?? 0;
+        }
+        setRoleConfigSlots((prev) => {
+            const prevKeys = Object.keys(prev).sort();
+            const nextKeys = Object.keys(initial).sort();
+            if (prevKeys.length !== nextKeys.length) return initial;
+            if (prevKeys.every((k) => prev[Number(k)] === initial[Number(k)])) return prev;
+            return initial;
+        });
+    }, [selectedShiftId, roleConfigs, positions]);
+
+    /** Khi mở/đổi ca khác: luôn về chế độ read-only */
+    useEffect(() => {
+        setIsEditingQuota(false);
+    }, [selectedShiftId]);
+
+    /** Số nhân viên đã duyệt (APPROVED) theo tên vai trò – hiển thị "Đã duyệt: X/Y"; trước khi Duyệt lần cuối thì = 0. */
+    const approvedCountByRoleName = useMemo(() => {
+        const m: Record<string, number> = {};
+        for (const r of registrations as IWorkShiftRegistration[]) {
+            if (r.status !== 'APPROVED') continue;
+            const name = (r.roleAtRegistrationName ?? '').trim();
+            m[name] = (m[name] ?? 0) + 1;
+        }
+        return m;
+    }, [registrations]);
+
+    /** Số chỗ đã chiếm (APPROVED + PENDING + PENDING_LEAVE) theo vai trò – Xin nghỉ chờ duyệt vẫn giữ slot đến khi admin duyệt/từ chối. */
+    const occupiedCountByRoleName = useMemo(() => {
+        const m: Record<string, number> = {};
+        for (const r of registrations as IWorkShiftRegistration[]) {
+            if (r.status !== 'APPROVED' && r.status !== 'PENDING' && r.status !== 'PENDING_LEAVE') continue;
+            const name = (r.roleAtRegistrationName ?? '').trim();
+            m[name] = (m[name] ?? 0) + 1;
+        }
+        return m;
+    }, [registrations]);
+
+    /** Số người xin nghỉ còn đang “giữ” suất theo vai trò: PENDING_LEAVE và chưa được duyệt nghỉ (leaveDecision !== APPROVED_LEAVE). Đã duyệt nghỉ thì suất trống → part-time có thể được duyệt. */
+    const pendingLeaveCountByRoleName = useMemo(() => {
+        const m: Record<string, number> = {};
+        for (const r of registrations as IWorkShiftRegistration[]) {
+            if (r.status !== 'PENDING_LEAVE') continue;
+            if (String(r.leaveDecision ?? '').toUpperCase() === 'APPROVED_LEAVE') continue;
+            const name = (r.roleAtRegistrationName ?? '').trim();
+            m[name] = (m[name] ?? 0) + 1;
+        }
+        return m;
+    }, [registrations]);
+
+    /** Số người tham gia ca hiển thị: chỉ tính Đã xếp ca (APPROVED) + Xin nghỉ mà admin đã chọn Từ chối nghỉ. Chờ duyệt (PENDING) chưa tính cho đến khi admin bấm Duyệt. */
+    const displayParticipatingCountByRoleName = useMemo(() => {
+        const m: Record<string, number> = {};
+        for (const r of registrations as IWorkShiftRegistration[]) {
+            const isConfirmedParticipating =
+                r.status === 'APPROVED' ||
+                (r.status === 'PENDING_LEAVE' && r.leaveDecision === 'REJECTED_LEAVE');
+            if (!isConfirmedParticipating) continue;
+            const name = (r.roleAtRegistrationName ?? '').trim();
+            m[name] = (m[name] ?? 0) + 1;
+        }
+        return m;
+    }, [registrations]);
+
+    /** Đủ người theo định mức mới được Duyệt lần cuối: dùng cùng số đang hiển thị (đã xếp ca + đã chọn Từ chối nghỉ). Chờ duyệt chưa tính → phải Duyệt part-time trước khi được Duyệt lần cuối. */
+    const canFinalizeShift = useMemo(() => {
+        for (const p of positions as { id: number; name: string }[]) {
+            const maxSlots = roleConfigSlots[p.id] ?? 0;
+            if (maxSlots < 1) continue;
+            const count = displayParticipatingCountByRoleName[p.name] ?? 0;
+            if (count < maxSlots) return false;
+        }
+        return true;
+    }, [positions, roleConfigSlots, displayParticipatingCountByRoleName]);
+
+    /**
+     * Kiểm tra đăng ký r có được phép bấm "Duyệt" không.
+     * Slot bị chiếm bởi: APPROVED + PENDING_LEAVE chưa duyệt nghỉ (đã duyệt nghỉ thì suất trống, part-time được duyệt).
+     */
+    const canApproveRegistration = (r: IWorkShiftRegistration): boolean => {
+        if (r.status !== 'PENDING') return false;
+        const roleName = (r.roleAtRegistrationName ?? '').trim();
+        if (!roleName) return true;
+        const position = positions.find((p: { name: string }) => (p.name as string) === roleName);
+        if (!position) return true;
+        const maxSlots = roleConfigSlots[position.id as number] ?? 0;
+        if (maxSlots < 1) return true;
+        const approvedCount = approvedCountByRoleName[roleName] ?? 0;
+        const pendingLeaveCount = pendingLeaveCountByRoleName[roleName] ?? 0;
+        return approvedCount + pendingLeaveCount < maxSlots;
+    };
+
+    const handleSaveRoleConfigs = () => {
+        if (!selectedShiftId) return;
+        const configs: IShiftRoleConfigItemRequest[] = Object.entries(roleConfigSlots)
+            .filter(([, slots]) => slots >= 1)
+            .map(([positionId, maxSlots]) => ({ positionId: Number(positionId), maxSlots }));
+        setRoleConfigs(
+            { shiftId: selectedShiftId, configs },
+            {
+                onSuccess: (res: any) => {
+                    if (res?.success) {
+                        toast.success(res?.message ?? 'Đã cập nhật định mức theo vai trò');
+                        setIsEditingQuota(false);
+                    } else toast.error(res?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) => {
+                    toast.error(err?.response?.data?.message ?? err?.message ?? 'Cập nhật định mức thất bại');
+                },
+            }
+        );
+    };
+
     const handleCreate = () => {
         if (!createStart || !createEnd) {
             toast.error('Chọn giờ bắt đầu và kết thúc');
@@ -128,7 +292,7 @@ export const WorkShiftAdminPage = () => {
                         const newShift = res?.data;
                         if (newShift) {
                             queryClient.setQueryData(
-                                ['available-shifts', from, to],
+                                ['admin-shifts', from, to],
                                 (prev: unknown) => (Array.isArray(prev) ? [...prev, newShift] : [newShift])
                             );
                         }
@@ -153,7 +317,7 @@ export const WorkShiftAdminPage = () => {
                 if (res?.success) {
                     const count = res?.data?.length ?? slots.length;
                     toast.success(res?.message ?? `Đã tạo ${count} ca trống. Bạn có thể Sửa/Xóa từng ca cho ngày đặc biệt (vd: Tết).`);
-                    queryClient.invalidateQueries({ queryKey: ['available-shifts', from, to] });
+                    queryClient.invalidateQueries({ queryKey: ['admin-shifts', from, to] });
                 } else toast.error(res?.message ?? 'Có lỗi');
             },
             onError: () => { /* Lỗi hiển thị qua useEffect khi batch mutation.isError */ },
@@ -168,13 +332,18 @@ export const WorkShiftAdminPage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success('Đã duyệt đăng ký');
+                        queryClient.invalidateQueries({ queryKey: ['work-shift-registrations', selectedShiftId] });
                     } else toast.error(res?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message ?? err?.message ?? 'Duyệt thất bại. Ca có thể đã đủ định mức cho vị trí này.';
+                    toast.error(msg);
                 },
             }
         );
     };
 
-    const openEditDialog = (row: IWorkShift) => {
+    const openEditDialog = (row: IWorkShift | IAvailableShiftForStaff) => {
         setEditShift(row);
         setEditStart(row.startTime ?? '');
         setEditEnd(row.endTime ?? '');
@@ -192,7 +361,7 @@ export const WorkShiftAdminPage = () => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Cập nhật ca trống thành công');
                         setEditShift(null);
-                        queryClient.invalidateQueries({ queryKey: ['available-shifts', from, to] });
+                        queryClient.invalidateQueries({ queryKey: ['admin-shifts', from, to] });
                     } else toast.error(res?.message ?? 'Có lỗi');
                 },
                 onError: (err: any) => {
@@ -208,7 +377,7 @@ export const WorkShiftAdminPage = () => {
                 if (res?.success !== false) {
                     toast.success(res?.message ?? 'Đã hủy ca trống');
                     setDeleteConfirmShiftId(null);
-                    queryClient.invalidateQueries({ queryKey: ['available-shifts', from, to] });
+                    queryClient.invalidateQueries({ queryKey: ['admin-shifts', from, to] });
                 } else toast.error(res?.message ?? 'Có lỗi');
             },
             onError: (err: any) => {
@@ -216,6 +385,12 @@ export const WorkShiftAdminPage = () => {
             },
         });
     };
+
+    /** Trạng thái ca đang xem trong modal (OPEN = còn duyệt lần cuối được, ASSIGNED = đã khóa) */
+    const selectedShiftStatus = useMemo(
+        () => (shifts as IWorkShift[]).find((s: IWorkShift) => s.shiftId === selectedShiftId)?.status ?? null,
+        [shifts, selectedShiftId]
+    );
 
     /** Lưới thời khóa biểu: grid[slotIndex][dayIndex] = IWorkShift | null */
     const timetableGrid = useMemo(() => {
@@ -257,6 +432,7 @@ export const WorkShiftAdminPage = () => {
                                 Tạo ca tự động (tuần chuẩn)
                             </Button>
                             <Button variant="outlined" onClick={() => setShowCreate(true)}>Tạo ca trống (thủ công)</Button>
+                            <Button variant="outlined" color="error" onClick={() => setDeleteAllConfirmOpen(true)}>Xóa tất cả ca</Button>
                         </>
                     )}
                 </Stack>
@@ -297,11 +473,11 @@ export const WorkShiftAdminPage = () => {
                     <Table sx={{ tableLayout: 'fixed', minWidth: 700 }}>
                         <TableHead>
                             <TableRow sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                                <TableCell sx={{ width: 160, py: 2, fontWeight: 700, fontSize: '1rem', borderColor: 'rgba(255,255,255,0.2)' }}>
+                                <TableCell sx={{ width: 160, py: 2, fontWeight: 700, fontSize: '1.0625rem', borderColor: 'rgba(255,255,255,0.2)' }}>
                                     Buổi / Ngày
                                 </TableCell>
                                 {DAY_LABELS.map((label, i) => (
-                                    <TableCell key={i} align="center" sx={{ py: 2, fontWeight: 700, fontSize: '1rem', borderColor: 'rgba(255,255,255,0.2)' }}>
+                                    <TableCell key={i} align="center" sx={{ py: 2, fontWeight: 700, fontSize: '1.0625rem', borderColor: 'rgba(255,255,255,0.2)' }}>
                                         {label}
                                     </TableCell>
                                 ))}
@@ -310,7 +486,7 @@ export const WorkShiftAdminPage = () => {
                         <TableBody>
                             {ROW_LABELS.map((rowLabel, slotIndex) => (
                                 <TableRow key={slotIndex} sx={{ bgcolor: slotIndex === 0 ? 'background.paper' : 'grey.50' }}>
-                                    <TableCell sx={{ width: 160, py: 2, fontWeight: 600, fontSize: '0.9375rem', color: 'text.secondary' }}>
+                                    <TableCell sx={{ width: 160, py: 2, fontWeight: 600, fontSize: '1rem', color: 'text.secondary' }}>
                                         {rowLabel}
                                     </TableCell>
                                     {DAY_LABELS.map((_, dayIndex) => {
@@ -318,28 +494,27 @@ export const WorkShiftAdminPage = () => {
                                         return (
                                             <TableCell key={dayIndex} align="center" sx={{ py: 2, minWidth: 130 }}>
                                                 {isLoading ? (
-                                                    <Typography sx={{ fontSize: '0.875rem' }} color="text.secondary">Đang tải...</Typography>
+                                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Đang tải...</Typography>
                                                 ) : shift ? (
                                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                                        <Typography sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                                        <Typography sx={{ fontWeight: 500, fontSize: '1rem' }}>
                                                             {formatTimeRange(shift.startTime, shift.endTime)}
                                                         </Typography>
-                                                        <Typography sx={{ fontSize: '0.8125rem' }} color="text.secondary">
-                                                            #{shift.shiftId} · {STATUS_LABELS[shift.status] ?? shift.status}
-                                                            {shift.staffFullName ? ` · ${shift.staffFullName}` : ''}
+                                                        <Typography sx={{ fontSize: '0.9375rem' }} color="text.secondary">
+                                                            {STATUS_LABELS[shift.status] ?? shift.status}
                                                         </Typography>
                                                         <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap>
                                                             {shift.status === 'OPEN' && (
                                                                 <>
-                                                                    <Button size="small" variant="outlined" sx={{ px: 1.25, fontSize: '0.8125rem' }} onClick={() => openEditDialog(shift)}>Sửa</Button>
-                                                                    <Button size="small" color="error" variant="outlined" sx={{ px: 1.25, fontSize: '0.8125rem' }} onClick={() => setDeleteConfirmShiftId(shift.shiftId)}>Xóa</Button>
+                                                                    <Button size="small" variant="outlined" sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => openEditDialog(shift)}>Sửa</Button>
+                                                                    <Button size="small" color="error" variant="outlined" sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => setDeleteConfirmShiftId(shift.shiftId)}>Xóa</Button>
                                                                 </>
                                                             )}
-                                                            <Button size="small" variant="contained" disableElevation sx={{ px: 1.25, fontSize: '0.8125rem' }} onClick={() => setSelectedShiftId(shift.shiftId)}>Xem đăng ký</Button>
+                                                            <Button size="small" variant="contained" disableElevation sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => setSelectedShiftId(shift.shiftId)}>Xem đăng ký</Button>
                                                         </Stack>
                                                     </Box>
                                                 ) : (
-                                                    <Typography sx={{ fontSize: '0.875rem' }} color="text.disabled">—</Typography>
+                                                    <Typography sx={{ fontSize: '1rem' }} color="text.disabled">—</Typography>
                                                 )}
                                             </TableCell>
                                         );
@@ -351,26 +526,243 @@ export const WorkShiftAdminPage = () => {
                 </TableContainer>
             </Box>
 
-            <Box sx={{ px: '40px', display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {selectedShiftId && (
-                    <Box sx={{ minWidth: 320, p: 2, border: '1px solid #919eab33', borderRadius: 2 }}>
-                        <strong>Đăng ký ca #{selectedShiftId}</strong>
-                        {regLoading ? <p>Đang tải...</p> : (
-                            <Stack spacing={1} sx={{ mt: 2 }}>
-                                {(registrations as IWorkShiftRegistration[]).map((r) => (
-                                    <Box key={r.registrationId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span>{r.staffFullName} ({r.status})</span>
-                                        {r.status === 'PENDING' && (
-                                            <Button size="small" variant="contained" onClick={() => handleApprove(r.registrationId)}>Duyệt</Button>
+            <Box sx={{ px: '40px' }}>
+                {/* Dialog xem đăng ký ca – popup giữa trang */}
+                <Dialog
+                    open={selectedShiftId !== null}
+                    onClose={() => setSelectedShiftId(null)}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{ sx: { borderRadius: 2, overflow: 'hidden' } }}
+                >
+                    <DialogTitle sx={{ pb: 0, fontWeight: 600, fontSize: '1.25rem', position: 'relative', pr: 5 }}>
+                        <span>Đăng ký ca {selectedShiftId != null ? `#${selectedShiftId}` : ''}</span>
+                        <IconButton aria-label="Đóng" onClick={() => setSelectedShiftId(null)} sx={{ position: 'absolute', right: 8, top: 8 }} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent dividers sx={{ px: 2.5, py: 2 }}>
+                        {selectedShiftId && (
+                            <>
+                                {/* Section: Định mức theo vai trò */}
+                                <Typography sx={{ fontWeight: 600, mb: 1.5, fontSize: '1.0625rem' }}>
+                                    Định mức theo vai trò
+                                </Typography>
+                                <Box sx={{ mb: 2.5 }}>
+                                    {positions.length === 0 ? (
+                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Chưa có chức vụ.</Typography>
+                                    ) : (
+                                        <Stack spacing={1.25}>
+                                            {positions.map((p: { id: number; name: string }) => {
+                                                const maxSlots = roleConfigSlots[p.id] ?? 0;
+                                                // Hiển thị: chỉ tính Đã xếp ca + đã chọn Từ chối nghỉ. Chờ duyệt (part-time chưa duyệt) chưa cộng.
+                                                const participatingCount = displayParticipatingCountByRoleName[p.name] ?? 0;
+                                                const isFull = maxSlots > 0 && participatingCount >= maxSlots;
+                                                return (
+                                                    <Stack key={p.id} direction="row" alignItems="center" spacing={2} sx={{ py: 0.75 }}>
+                                                        <Typography sx={{ minWidth: 220, fontSize: '1rem' }}>{p.name}</Typography>
+                                                        {isEditingQuota ? (
+                                                            <TextField
+                                                                type="number"
+                                                                size="small"
+                                                                inputProps={{ min: 0, max: 99, style: { fontSize: '1rem' } }}
+                                                                value={roleConfigSlots[p.id] ?? 0}
+                                                                onChange={(e) => {
+                                                                    const v = parseInt(e.target.value, 10);
+                                                                    setRoleConfigSlots((prev) => ({ ...prev, [p.id]: isNaN(v) ? 0 : Math.max(0, v) }));
+                                                                }}
+                                                                sx={{ width: 72, '& .MuiInputBase-input': { fontSize: '1rem' } }}
+                                                            />
+                                                        ) : (
+                                                            <Box sx={{ minWidth: 52, py: 0.75, px: 1.25, borderRadius: 1, bgcolor: isFull ? 'action.selected' : 'grey.100', fontSize: '1rem', fontWeight: 600 }}>
+                                                                {maxSlots}
+                                                            </Box>
+                                                        )}
+                                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">người</Typography>
+                                                        {maxSlots > 0 && (
+                                                            <Typography sx={{ fontSize: '1rem', color: isFull ? 'success.main' : 'text.secondary', fontWeight: isFull ? 600 : 500 }}>
+                                                                {isFull ? 'Đủ' : `${participatingCount}/${maxSlots}`}
+                                                            </Typography>
+                                                        )}
+                                                    </Stack>
+                                                );
+                                            })}
+                                        </Stack>
+                                    )}
+                                    <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" sx={{ mt: 2 }} useFlexGap>
+                                        {isEditingQuota ? (
+                                            <>
+                                                <Button size="medium" variant="contained" onClick={handleSaveRoleConfigs} disabled={savingRoleConfigs || positions.length === 0} sx={{ fontSize: '0.9375rem' }}>Lưu định mức</Button>
+                                                <Button size="medium" variant="outlined" onClick={() => setIsEditingQuota(false)} sx={{ fontSize: '0.9375rem' }}>Hủy</Button>
+                                            </>
+                                        ) : (
+                                            <Button size="medium" variant="outlined" onClick={() => setIsEditingQuota(true)} disabled={positions.length === 0 || selectedShiftStatus === 'ASSIGNED'} sx={{ fontSize: '0.9375rem' }}>Sửa định mức</Button>
                                         )}
-                                    </Box>
-                                ))}
-                                {registrations.length === 0 && <span>Chưa có đăng ký</span>}
-                            </Stack>
+                                        {selectedShiftStatus === 'OPEN' && (
+                                            <Tooltip title={!canFinalizeShift ? 'Số lượng người trong ca chưa đủ.' : ''}>
+                                                <span>
+                                                    <Button
+                                                        size="medium"
+                                                        variant="contained"
+                                                        color="primary"
+                                                        disabled={finalizing || !canFinalizeShift}
+                                                        sx={{ fontSize: '0.9375rem' }}
+                                                        onClick={() => {
+                                                            if (!selectedShiftId) return;
+                                                            if (!canFinalizeShift) {
+                                                                toast.error('Số lượng người trong ca chưa đủ. Thêm người hoặc sửa định mức.');
+                                                                return;
+                                                            }
+                                                            finalizeApprovals(selectedShiftId, {
+                                                                onSuccess: (res: any) => {
+                                                                    if (res?.success) toast.success(res?.message ?? 'Đã khóa ca.');
+                                                                    else toast.error(res?.message ?? 'Có lỗi');
+                                                                },
+                                                                onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Duyệt lần cuối thất bại'),
+                                                            });
+                                                        }}
+                                                    >
+                                                        Duyệt lần cuối (khóa ca)
+                                                    </Button>
+                                                </span>
+                                            </Tooltip>
+                                        )}
+                                    </Stack>
+                                    {selectedShiftStatus === 'OPEN' && !canFinalizeShift && (
+                                        <Typography sx={{ display: 'block', mt: 1, color: 'error.main', fontSize: '0.9375rem', fontWeight: 500 }}>
+                                            Số lượng người trong ca chưa đủ. Thêm người hoặc sửa định mức.
+                                        </Typography>
+                                    )}
+                                </Box>
+
+                                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2, mt: 1 }} />
+
+                                {/* Section: Danh sách nhân viên */}
+                                <Typography sx={{ fontWeight: 600, mb: 1.5, fontSize: '1.0625rem' }}>
+                                    Nhân viên trong ca
+                                </Typography>
+                                {regLoading ? (
+                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Đang tải...</Typography>
+                                ) : (registrations as IWorkShiftRegistration[]).length === 0 ? (
+                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Chưa có đăng ký.</Typography>
+                                ) : (
+                                    <Stack spacing={1.25}>
+                                        {(registrations as IWorkShiftRegistration[]).map((r) => {
+                                            const statusLabel = r.status === 'PENDING' ? 'Chờ duyệt' : r.status === 'APPROVED' ? 'Đã xếp ca' : r.status === 'PENDING_LEAVE'
+                                                ? (r.leaveDecision === 'APPROVED_LEAVE' ? 'Sẽ nghỉ' : r.leaveDecision === 'REJECTED_LEAVE' ? 'Sẽ làm' : 'Xin nghỉ chờ duyệt')
+                                                : r.status === 'ON_LEAVE' ? 'Đã nghỉ' : 'Từ chối';
+                                            const statusColor = r.status === 'APPROVED' ? 'success.main' : r.status === 'ON_LEAVE' ? 'warning.main' : r.status === 'PENDING_LEAVE' ? 'info.main' : r.status === 'REJECTED' ? 'error.main' : 'text.secondary';
+                                            return (
+                                                <Box
+                                                    key={r.registrationId}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        gap: 2,
+                                                        p: 1.5,
+                                                        borderRadius: 1.5,
+                                                        bgcolor: 'grey.50',
+                                                        border: '1px solid',
+                                                        borderColor: 'divider',
+                                                    }}
+                                                >
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                        <Typography sx={{ fontWeight: 600, fontSize: '1.0625rem' }}>{r.staffFullName}</Typography>
+                                                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" sx={{ mt: 0.25 }}>
+                                                            <Typography sx={{ fontSize: '0.9375rem' }} color="primary.main">
+                                                                {r.workType === 'FULL_TIME' ? 'Full-time' : 'Part-time'}
+                                                            </Typography>
+                                                            {r.roleAtRegistrationName && (
+                                                                <Typography sx={{ fontSize: '0.9375rem' }} color="text.secondary">· {r.roleAtRegistrationName}</Typography>
+                                                            )}
+                                                            <Typography sx={{ fontSize: '0.9375rem', color: statusColor, fontWeight: 500 }}>{statusLabel}</Typography>
+                                                        </Stack>
+                                                    </Box>
+                                                    <Stack direction="row" spacing={1} flexShrink={0}>
+                                                        {r.status === 'PENDING' && selectedShiftStatus === 'OPEN' && (
+                                                            <Tooltip title={!canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
+                                                                <span>
+                                                                    <Button size="medium" variant="contained" onClick={() => handleApprove(r.registrationId)} disabled={!canApproveRegistration(r)} sx={{ fontSize: '0.9375rem' }}>Duyệt</Button>
+                                                                </span>
+                                                            </Tooltip>
+                                                        )}
+                                                        {r.status === 'PENDING_LEAVE' && selectedShiftStatus === 'OPEN' && (
+                                                            <>
+                                                                <Button
+                                                                    size="medium"
+                                                                    variant={r.leaveDecision === 'APPROVED_LEAVE' ? 'contained' : 'outlined'}
+                                                                    color="primary"
+                                                                    disabled={settingOnLeave || rejectingLeave}
+                                                                    sx={{ fontSize: '0.9375rem' }}
+                                                                    onClick={() => {
+                                                                        if (!selectedShiftId) return;
+                                                                        const regId = r.registrationId;
+                                                                        setOnLeave({ shiftId: selectedShiftId, registrationId: regId }, {
+                                                                            onSuccess: (res: any) => {
+                                                                                if (res?.success !== false) {
+                                                                                    toast.success('Đã ghi nhận.');
+                                                                                    // Cập nhật cache ngay để nút Duyệt part-time bật (leaveDecision = APPROVED_LEAVE → suất trống).
+                                                                                    queryClient.setQueryData(
+                                                                                        ['work-shift-registrations', selectedShiftId],
+                                                                                        (prev: IWorkShiftRegistration[] | undefined) => {
+                                                                                            const list = Array.isArray(prev) ? prev : [];
+                                                                                            return list.map((reg) =>
+                                                                                                reg.registrationId === regId
+                                                                                                    ? { ...reg, leaveDecision: 'APPROVED_LEAVE' as const }
+                                                                                                    : reg
+                                                                                            );
+                                                                                        }
+                                                                                    );
+                                                                                    queryClient.invalidateQueries({ queryKey: ['work-shift-registrations', selectedShiftId] });
+                                                                                } else toast.error(res?.message ?? 'Có lỗi');
+                                                                            },
+                                                                            onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Lỗi'),
+                                                                        });
+                                                                    }}
+                                                                >Duyệt nghỉ</Button>
+                                                                <Button
+                                                                    size="medium"
+                                                                    variant={r.leaveDecision === 'REJECTED_LEAVE' ? 'contained' : 'outlined'}
+                                                                    color={r.leaveDecision === 'REJECTED_LEAVE' ? 'secondary' : 'inherit'}
+                                                                    disabled={settingOnLeave || rejectingLeave}
+                                                                    sx={{ fontSize: '0.9375rem' }}
+                                                                    onClick={() => {
+                                                                        if (!selectedShiftId) return;
+                                                                        rejectLeave({ shiftId: selectedShiftId, registrationId: r.registrationId }, {
+                                                                            onSuccess: (res: any) => {
+                                                                                if (res?.success) { toast.success('Đã ghi nhận.'); queryClient.invalidateQueries({ queryKey: ['work-shift-registrations', selectedShiftId] }); }
+                                                                                else toast.error(res?.message ?? 'Có lỗi');
+                                                                            },
+                                                                            onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Lỗi'),
+                                                                        });
+                                                                    }}
+                                                                >Từ chối</Button>
+                                                            </>
+                                                        )}
+                                                    </Stack>
+                                                </Box>
+                                            );
+                                        })}
+                                        {positions.map((p: { id: number; name: string }) => {
+                                            const maxSlots = roleConfigSlots[p.id] ?? 0;
+                                            const occupied = occupiedCountByRoleName[p.name] ?? 0;
+                                            const remaining = Math.max(0, maxSlots - occupied);
+                                            if (remaining === 0) return null;
+                                            return (
+                                                <Box key={`empty-${p.id}`} sx={{ py: 1.25, px: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px dashed', borderColor: 'divider' }}>
+                                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                                        [Trống] {remaining} suất {p.name} — Part-time có thể đăng ký bù.
+                                                    </Typography>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Stack>
+                                )}
+                            </>
                         )}
-                        <Button size="small" sx={{ mt: 2 }} onClick={() => setSelectedShiftId(null)}>Đóng</Button>
-                    </Box>
-                )}
+                    </DialogContent>
+                </Dialog>
 
                 {/* Dialog chỉnh sửa ca trống */}
                 <Dialog open={!!editShift} onClose={() => setEditShift(null)} maxWidth="sm" fullWidth>
@@ -412,6 +804,19 @@ export const WorkShiftAdminPage = () => {
                         <Button onClick={() => setDeleteConfirmShiftId(null)}>Không</Button>
                         <Button color="error" variant="contained" onClick={() => deleteConfirmShiftId != null && handleCancelShift(deleteConfirmShiftId)} disabled={cancelling}>
                             Hủy ca
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                <Dialog open={deleteAllConfirmOpen} onClose={() => !deletingAll && setDeleteAllConfirmOpen(false)}>
+                    <DialogTitle>Xóa tất cả ca làm</DialogTitle>
+                    <DialogContent>
+                        Bạn có chắc muốn xóa toàn bộ ca làm? Tất cả đăng ký và định mức theo vai trò cũng sẽ bị xóa. Không thể hoàn tác.
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setDeleteAllConfirmOpen(false)} disabled={deletingAll}>Không</Button>
+                        <Button color="error" variant="contained" onClick={() => deleteAllShifts(undefined, { onSuccess: () => { toast.success('Đã xóa tất cả ca làm.'); setDeleteAllConfirmOpen(false); setSelectedShiftId(null); }, onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Xóa thất bại') })} disabled={deletingAll}>
+                            Xóa tất cả
                         </Button>
                     </DialogActions>
                 </Dialog>
