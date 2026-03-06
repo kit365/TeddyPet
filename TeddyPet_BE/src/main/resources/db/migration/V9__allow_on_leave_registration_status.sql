@@ -19,4 +19,3 @@ END $$;
 ALTER TABLE work_shift_registrations
     ADD CONSTRAINT work_shift_registrations_status_check
         CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'ON_LEAVE'));
-
