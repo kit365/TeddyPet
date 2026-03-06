@@ -40,6 +40,7 @@ export const CategoryTreeSelectGeneric = ({
         currentValue: any,
         level = 0
     ): React.ReactNode[] => {
+        if (!nodes || !Array.isArray(nodes)) return [];
         return nodes.reduce((acc: React.ReactNode[], node) => {
             // Ép kiểu ID sang string để so sánh và làm value cho MenuItem
             const stringId = node.categoryId.toString();
@@ -107,6 +108,7 @@ export const CategoryTreeSelectGeneric = ({
     };
 
     const findCategoryName = (nodes: BlogCategoryNode[], id: number): string | undefined => {
+        if (!nodes || !Array.isArray(nodes)) return undefined;
         for (const node of nodes) {
             if (node.categoryId === id) return node.name;
             if (node.children?.length) {

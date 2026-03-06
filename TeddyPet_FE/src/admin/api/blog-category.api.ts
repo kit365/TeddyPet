@@ -24,15 +24,12 @@ export const getCategories = async (): Promise<ApiResponse<any[]>> => {
 
 /** Danh sách dạng cây */
 export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNode[]>> => {
-    const token = Cookies.get('tokenAdmin');
-    const response = await apiApp.get('/api/blog-categories/nested', {
-        headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await apiApp.get('/api/blog-categories/nested');
     return response.data;
 };
 /** Tạo danh mục */
 export const createCategory = async (data: any): Promise<any> => {
-    const response = await apiApp.post(BASE_URL, data, withAuth());
+    const response = await apiApp.post(BASE_URL, data);
     return response.data;
 };
 

@@ -133,6 +133,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryNestedResponse> getNestedCategories() {
         List<ProductCategory> rootCategories = productCategoryRepositoryPort.findRootCategories();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_NESTED_CATEGORIES, rootCategories.size());
@@ -163,6 +164,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryHomeResponse> getLeafCategories() {
         List<ProductCategory> leafCategories = productCategoryRepositoryPort.findLeafCategories();
         log.info("Getting leaf categories (categories without children), found: {}", leafCategories.size());

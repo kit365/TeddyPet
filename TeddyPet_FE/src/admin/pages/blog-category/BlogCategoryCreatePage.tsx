@@ -49,7 +49,12 @@ export const BlogCategoryCreatePage = () => {
     const { mutate: create, isPending } = useCreateBlogCategory();
 
     const onSubmit = (data: CreateCategoryFormValues) => {
-        create(data, {
+        const payload = {
+            ...data,
+            parentId: data.parentId === "" ? null : Number(data.parentId),
+        };
+
+        create(payload as any, {
             onSuccess: (response) => {
                 if (response.success) {
                     toast.success(response.message);
