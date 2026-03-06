@@ -12,6 +12,7 @@ import fpt.teddypet.application.port.output.staff.StaffProfileRepositoryPort;
 import fpt.teddypet.application.util.StaffProfileHelper;
 import fpt.teddypet.domain.entity.Role;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.domain.entity.AvatarImage;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
 import fpt.teddypet.domain.entity.staff.StaffPosition;
 import fpt.teddypet.domain.enums.UserStatusEnum;
@@ -23,8 +24,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.AvatarImageRepository;
+
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
     private final UserRepositoryPort userRepositoryPort;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
+    private final AvatarImageRepository avatarImageRepository;
 
     @Override
     @Transactional
@@ -43,6 +47,10 @@ public class StaffProfileApplicationService implements StaffProfileService {
         validateUniqueOnCreate(request.email(), request.phoneNumber(), request.citizenId());
         StaffPosition position = request.positionId() != null
                 ? staffPositionRepositoryPort.findById(request.positionId()).orElse(null)
+                : null;
+        String avatarUrl = request.avatarUrl();
+        String generatedAltImage = (avatarUrl != null && !avatarUrl.isBlank())
+                ? ("Ảnh đại diện " + (request.fullName() != null ? request.fullName() : "nhân viên"))
                 : null;
         StaffProfile staff = StaffProfile.builder()
                 .user(null)
@@ -52,18 +60,37 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .citizenId(request.citizenId())
                 .dateOfBirth(request.dateOfBirth())
                 .gender(request.gender())
-                .avatarUrl(request.avatarUrl())
-                .altImage(request.altImage())
+                .avatarUrl(avatarUrl)
+                .altImage(request.altImage() != null ? request.altImage() : generatedAltImage)
                 .address(request.address())
                 .bankAccountNo(request.bankAccountNo())
                 .bankName(request.bankName())
-                .hireDate(request.hireDate() != null ? request.hireDate() : LocalDate.now())
                 .position(position)
                 .employmentType(request.employmentType())
                 .build();
+        if (request.avatarUrl() != null && !request.avatarUrl().isBlank()) {
+            createAvatarImageForStaff(request.avatarUrl(), request.fullName());
+        }
         StaffProfile saved = staffProfileRepositoryPort.save(staff);
         tryLinkExistingUserByEmail(saved);
         return toResponse(saved);
+    }
+
+    /**
+     * Tạo bản ghi avatar_images cho avatar của nhân viên (category = "STAFF").
+     */
+    @Transactional
+    protected AvatarImage createAvatarImageForStaff(String avatarUrl, String fullName) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return null;
+        }
+        AvatarImage avatar = AvatarImage.builder()
+                .imageUrl(avatarUrl.trim())
+                .altText(fullName != null && !fullName.isBlank() ? "Ảnh đại diện " + fullName : "Staff avatar")
+                .category("STAFF")
+                .isPredefined(false)
+                .build();
+        return avatarImageRepository.save(avatar);
     }
 
     /**
@@ -192,7 +219,17 @@ public class StaffProfileApplicationService implements StaffProfileService {
             staff.setGender(request.gender());
         }
         if (request.avatarUrl() != null) {
-            staff.setAvatarUrl(request.avatarUrl().isBlank() ? null : request.avatarUrl());
+            String trimmed = request.avatarUrl().isBlank() ? null : request.avatarUrl().trim();
+            if (trimmed != null && !trimmed.equals(staff.getAvatarUrl())) {
+                createAvatarImageForStaff(trimmed, staff.getFullName());
+            }
+            staff.setAvatarUrl(trimmed);
+            // Auto-generate alt image when avatar present (unless explicit altImage provided).
+            if (trimmed != null && request.altImage() == null) {
+                staff.setAltImage("Ảnh đại diện " + (staff.getFullName() != null ? staff.getFullName() : "nhân viên"));
+            } else if (trimmed == null && request.altImage() == null) {
+                staff.setAltImage(null);
+            }
         }
         if (request.altImage() != null) {
             staff.setAltImage(request.altImage().isBlank() ? null : request.altImage());
@@ -200,7 +237,6 @@ public class StaffProfileApplicationService implements StaffProfileService {
         staff.setAddress(request.address());
         staff.setBankAccountNo(request.bankAccountNo());
         staff.setBankName(request.bankName());
-        staff.setHireDate(request.hireDate());
         if (request.positionId() != null) {
             StaffPosition position = staffPositionRepositoryPort.findById(request.positionId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy chức vụ với id: " + request.positionId()));
@@ -260,6 +296,14 @@ public class StaffProfileApplicationService implements StaffProfileService {
     }
 
     @Override
+    public StaffProfileResponse getByUserId(UUID userId) {
+        return staffProfileRepositoryPort.findByUserId(userId)
+                .filter(s -> !s.isDeleted() && s.isActive())
+                .map(this::toResponse)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy hồ sơ nhân viên cho user hiện tại."));
+    }
+
+    @Override
     public List<StaffProfileResponse> getAllActive() {
         return staffProfileRepositoryPort.findAllActive()
                 .stream()
@@ -314,7 +358,6 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 staff.getAddress(),
                 staff.getBankAccountNo(),
                 staff.getBankName(),
-                staff.getHireDate(),
                 position != null ? position.getId() : null,
                 position != null ? position.getCode() : null,
                 position != null ? position.getName() : null,

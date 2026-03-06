@@ -22,6 +22,14 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
             @Param("to") LocalDateTime end
     );
 
+    /** Admin: Lấy tất cả ca trong khoảng (OPEN + ASSIGNED, bỏ CANCELLED) để hiển thị grid kể cả ca đã khóa */
+    @Query("SELECT ws FROM WorkShift ws WHERE ws.startTime >= :from AND ws.startTime <= :to " +
+            "AND ws.isDeleted = false AND ws.isActive = true AND ws.status <> 'CANCELLED' ORDER BY ws.startTime ASC")
+    List<WorkShift> findByStartTimeBetween(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
     /**
      * Tìm ca trùng khoảng thời gian: (startTime < endParam AND endTime > startParam).
      * excludeId = null thì không loại trừ; khác null thì bỏ qua ca có id đó (dùng khi cập nhật).

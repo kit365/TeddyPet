@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.request.staff.StaffProfileRequest;
 import fpt.teddypet.application.dto.response.staff.StaffProfileResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface StaffProfileService {
 
@@ -22,6 +23,9 @@ public interface StaffProfileService {
     StaffProfileResponse reactivate(Long staffId);
 
     StaffProfileResponse getById(Long staffId);
+
+    /** Lấy hồ sơ nhân viên theo userId (đăng nhập) – dùng cho trang Đăng ký ca (work_type, positionId). */
+    StaffProfileResponse getByUserId(UUID userId);
 
     List<StaffProfileResponse> getAllActive();
 }
