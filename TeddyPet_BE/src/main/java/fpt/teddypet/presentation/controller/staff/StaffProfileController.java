@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.request.staff.StaffCreationDTO;
 import fpt.teddypet.application.dto.request.staff.StaffProfileRequest;
 import fpt.teddypet.application.dto.response.staff.StaffProfileResponse;
 import fpt.teddypet.application.port.input.staff.StaffProfileService;
+import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.List;
 public class StaffProfileController {
 
     private final StaffProfileService staffProfileService;
+    private final AuthService authService;
 
     @PostMapping("/onboarding")
     @Operation(summary = "Flow A: Tạo hồ sơ nhân viên (không tài khoản)", description = "Cho nhân viên không cần truy cập hệ thống: lau dọn, bảo vệ,...")
@@ -79,6 +82,14 @@ public class StaffProfileController {
     public ResponseEntity<ApiResponse<List<StaffProfileResponse>>> getAllActive() {
         List<StaffProfileResponse> responses = staffProfileService.getAllActive();
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Lấy hồ sơ nhân viên của user đang đăng nhập (work_type, positionId cho Đăng ký ca)")
+    public ResponseEntity<ApiResponse<StaffProfileResponse>> getMyProfile() {
+        StaffProfileResponse response = staffProfileService.getByUserId(authService.getCurrentUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
 

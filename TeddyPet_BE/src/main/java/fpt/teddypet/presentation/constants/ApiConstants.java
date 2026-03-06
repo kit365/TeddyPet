@@ -89,6 +89,9 @@ public final class ApiConstants {
     // Admin Work Shifts API base path
     public static final String API_ADMIN_WORK_SHIFTS = BASE_API + "/admin/work-shifts";
 
+    // Admin lịch cố định Full-time (auto-fill ca)
+    public static final String API_ADMIN_STAFF_FIXED_SCHEDULES = BASE_API + "/admin/staff-fixed-schedules";
+
     // Shop / Schedule API base paths
     public static final String API_TIME_SLOT_EXCEPTIONS = BASE_API + "/time-slot-exceptions";
     public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";

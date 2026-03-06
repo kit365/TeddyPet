@@ -1,6 +1,7 @@
 package fpt.teddypet.presentation.controller.staff;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 import fpt.teddypet.application.port.input.AuthService;
@@ -37,12 +38,20 @@ public class WorkShiftController {
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
 
     @GetMapping("/available")
-    @Operation(summary = "Lấy danh sách ca trống có thể đăng ký")
-    public ResponseEntity<ApiResponse<List<WorkShiftResponse>>> getAvailableShifts(
+    @Operation(summary = "Lấy danh sách ca trống kèm slot theo vai trò (Part-time: còn chỗ mới hiện Đăng ký; Full-time: không tự đăng ký)")
+    public ResponseEntity<ApiResponse<List<AvailableShiftForStaffResponse>>> getAvailableShifts(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
-        List<WorkShiftResponse> responses = workShiftService.getAvailableShifts(from, to);
+        List<AvailableShiftForStaffResponse> responses = workShiftService.getAvailableShiftsForStaff(from, to);
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @PostMapping("/{shiftId}/request-leave")
+    @Operation(summary = "Full-time: Xin nghỉ ca (chuyển sang Xin nghỉ chờ duyệt, admin duyệt/từ chối trên giao diện ca làm việc)")
+    public ResponseEntity<ApiResponse<WorkShiftRegistrationResponse>> requestLeave(@PathVariable @NotNull Long shiftId) {
+        Long staffId = getCurrentStaffId();
+        WorkShiftRegistrationResponse response = workShiftService.requestLeave(shiftId, staffId);
+        return ResponseEntity.ok(ApiResponse.success("Đã gửi xin nghỉ. Chờ admin duyệt.", response));
     }
 
     @PostMapping("/{shiftId}/register")
@@ -53,6 +62,32 @@ public class WorkShiftController {
         WorkShiftRegistrationResponse response = workShiftService.registerForShift(shiftId, staffId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Đăng ký ca thành công", response));
+    }
+
+    @DeleteMapping("/{shiftId}/register")
+    @Operation(summary = "Part-time: Hoàn tác đăng ký ca (hủy đăng ký PENDING)")
+    public ResponseEntity<ApiResponse<Void>> cancelMyRegistration(@PathVariable @NotNull Long shiftId) {
+        Long staffId = getCurrentStaffId();
+        workShiftService.cancelMyRegistration(shiftId, staffId);
+        return ResponseEntity.ok(ApiResponse.success("Đã hủy đăng ký ca", null));
+    }
+
+    @GetMapping("/my-registrations")
+    @Operation(summary = "Lấy danh sách đăng ký ca (PENDING) của nhân viên đang đăng nhập")
+    public ResponseEntity<ApiResponse<List<WorkShiftRegistrationResponse>>> getMyRegistrations(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        Long staffId = getCurrentStaffId();
+        List<WorkShiftRegistrationResponse> responses = workShiftService.getMyRegistrations(staffId, from, to);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @PostMapping("/{shiftId}/undo-leave")
+    @Operation(summary = "Full-time: Hoàn tác xin nghỉ (ON_LEAVE -> APPROVED)")
+    public ResponseEntity<ApiResponse<WorkShiftRegistrationResponse>> undoLeave(@PathVariable @NotNull Long shiftId) {
+        Long staffId = getCurrentStaffId();
+        WorkShiftRegistrationResponse response = workShiftService.undoLeave(shiftId, staffId);
+        return ResponseEntity.ok(ApiResponse.success("Đã hoàn tác xin nghỉ", response));
     }
 
     @GetMapping("/staff/{staffId}")
