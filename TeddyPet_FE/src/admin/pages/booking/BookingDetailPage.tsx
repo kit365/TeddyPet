@@ -225,9 +225,11 @@ export const BookingDetailPage = () => {
                     <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Mã booking</TableCell>
                     <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Tên thú cưng</TableCell>
                     <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Loại</TableCell>
-                    {booking.pets.some((p) => isFoodBrought(p.foodBrought)) && (
+                    {booking.pets.some(
+                      (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
+                    ) && (
                       <>
-                        <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Loại thức ăn mang theo</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thức ăn mang theo</TableCell>
                         <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Hướng dẫn cho ăn</TableCell>
                       </>
                     )}
@@ -242,19 +244,27 @@ export const BookingDetailPage = () => {
                       <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{booking.bookingCode}</TableCell>
                       <TableCell sx={{ fontSize: "1.5rem", fontWeight: 600, py: 2 }}>{pet.petName}</TableCell>
                       <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{pet.petType}</TableCell>
-                      {booking.pets!.some((p) => isFoodBrought(p.foodBrought)) && (
+                      {booking.pets!.some(
+                        (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
+                      ) && (
                         <>
                           <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
-                            {isFoodBrought(pet.foodBrought)
-                              ? pet.foodBroughtType
-                                ? Array.isArray(pet.foodBroughtType)
-                                  ? pet.foodBroughtType.join(", ")
-                                  : String(pet.foodBroughtType)
-                                : "—"
-                              : "—"}
+                            {pet.foodItems && pet.foodItems.length > 0
+                              ? pet.foodItems.map((i) => i.foodBroughtType ?? "—").join("; ") || "—"
+                              : isFoodBrought(pet.foodBrought)
+                                ? pet.foodBroughtType
+                                  ? Array.isArray(pet.foodBroughtType)
+                                    ? pet.foodBroughtType.join(", ")
+                                    : String(pet.foodBroughtType)
+                                  : "—"
+                                : "—"}
                           </TableCell>
                           <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
-                            {isFoodBrought(pet.foodBrought) ? pet.feedingInstructions ?? "—" : "—"}
+                            {pet.foodItems && pet.foodItems.length > 0
+                              ? pet.foodItems.map((i) => i.feedingInstructions ?? "—").join("; ") || "—"
+                              : isFoodBrought(pet.foodBrought)
+                                ? pet.feedingInstructions ?? "—"
+                                : "—"}
                           </TableCell>
                         </>
                       )}

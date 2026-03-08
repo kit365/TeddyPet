@@ -14,8 +14,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 
+import fpt.teddypet.domain.exception.TimeSlotFullException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(TimeSlotFullException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTimeSlotFullException(TimeSlotFullException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.CONFLICT.value()));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(

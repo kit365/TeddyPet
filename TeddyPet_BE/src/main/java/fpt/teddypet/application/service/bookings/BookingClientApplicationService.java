@@ -3,19 +3,26 @@ package fpt.teddypet.application.service.bookings;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.PetFoodBroughtItemRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
+import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
+import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
+import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
+import fpt.teddypet.domain.exception.TimeSlotFullException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +48,7 @@ public class BookingClientApplicationService implements BookingClientService {
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final RoomRepositoryPort roomRepositoryPort;
+    private final TimeSlotRepositoryPort timeSlotRepositoryPort;
 
     @Override
     public CreateBookingResponse createBooking(CreateBookingRequest request) {
@@ -84,6 +93,29 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setBookingEndDate(range[1]);
 
         Booking saved = bookingRepository.save(booking);
+
+        // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn slot = +1).
+        // Một booking có nhiều thú cưng cùng chọn một khung giờ → +1 cho mỗi con (mỗi bps), không phải +1 theo booking hay booking_pet.
+        try {
+            for (BookingPet pet : saved.getPets()) {
+                for (BookingPetService bps : pet.getServices()) {
+                    Long timeSlotId = bps.getTimeSlotId();
+                    if (timeSlotId == null) continue;
+                    TimeSlot slot = timeSlotRepositoryPort.findById(timeSlotId)
+                            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
+                    int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
+                    int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
+                    if (current >= maxCap) {
+                        throw new TimeSlotFullException("Khung giờ đã đủ chỗ. Vui lòng làm mới trang và chọn khung giờ khác.");
+                    }
+                    slot.setCurrentBookings(current + 1);
+                    timeSlotRepositoryPort.save(slot);
+                }
+            }
+        } catch (OptimisticLockException e) {
+            throw new TimeSlotFullException("Khung giờ vừa được đặt bởi khách khác. Vui lòng làm mới trang và chọn khung giờ khác.");
+        }
+
         return new CreateBookingResponse(saved.getBookingCode());
     }
 
@@ -115,7 +147,21 @@ public class BookingClientApplicationService implements BookingClientService {
         pet.setEmergencyContactPhone(petRequest.emergencyContactPhone());
         pet.setWeightAtBooking(petRequest.weightAtBooking());
         pet.setPetConditionNotes(petRequest.petConditionNotes());
-        // Ghi chú thêm loại thú cưng (dog / cat...) vào petConditionNotes nếu cần ở tương lai
+
+        List<PetFoodBroughtItemRequest> foodItems = petRequest.foodItems() != null
+                ? petRequest.foodItems()
+                : Collections.emptyList();
+        for (PetFoodBroughtItemRequest item : foodItems) {
+            if (item == null) continue;
+            PetFoodBrought entity = new PetFoodBrought();
+            entity.setId(null);
+            entity.setBookingPet(pet);
+            entity.setFoodBroughtType(item.foodBroughtType());
+            entity.setFoodBrand(item.foodBrand());
+            entity.setQuantity(item.quantity());
+            entity.setFeedingInstructions(item.feedingInstructions());
+            pet.getFoodItems().add(entity);
+        }
         return pet;
     }
 
@@ -131,10 +177,10 @@ public class BookingClientApplicationService implements BookingClientService {
         boolean requiresRoom = Boolean.TRUE.equals(service.getIsRequiredRoom()) || svcRequest.requiresRoom();
         if (requiresRoom) {
             if (svcRequest.checkInDate() != null && !svcRequest.checkInDate().isBlank()) {
-                entity.setCheckInDate(LocalDate.parse(svcRequest.checkInDate()));
+                entity.setEstimatedCheckInDate(LocalDate.parse(svcRequest.checkInDate()));
             }
             if (svcRequest.checkOutDate() != null && !svcRequest.checkOutDate().isBlank()) {
-                entity.setCheckOutDate(LocalDate.parse(svcRequest.checkOutDate()));
+                entity.setEstimatedCheckOutDate(LocalDate.parse(svcRequest.checkOutDate()));
             }
             if (svcRequest.roomId() != null) {
                 Room room = roomRepositoryPort.findById(svcRequest.roomId())
@@ -142,12 +188,13 @@ public class BookingClientApplicationService implements BookingClientService {
                 entity.setRoomId(room.getId());
             }
         } else {
-            // Dịch vụ không yêu cầu phòng: ngày hẹn + label khung giờ -> lưu vào scheduledStartTime/EndTime (nếu parse được)
+            // Dịch vụ không yêu cầu phòng: ngày hẹn -> estimatedCheckInDate; estimatedCheckOutDate xử lý logic sau
             String dateStr = (svcRequest.sessionDate() != null && !svcRequest.sessionDate().isBlank())
                     ? svcRequest.sessionDate()
                     : svcRequest.checkInDate();
             if (dateStr != null && !dateStr.isBlank()) {
                 LocalDate date = LocalDate.parse(dateStr);
+                entity.setEstimatedCheckInDate(date);
                 if (svcRequest.sessionSlotLabel() != null && svcRequest.sessionSlotLabel().contains("-")) {
                     String[] parts = svcRequest.sessionSlotLabel().split("-");
                     String start = parts[0].trim();
@@ -161,9 +208,26 @@ public class BookingClientApplicationService implements BookingClientService {
                     }
                 }
             }
+            if (svcRequest.timeSlotId() != null) {
+                entity.setTimeSlotId(svcRequest.timeSlotId());
+            }
         }
 
         entity.setStatus("PENDING");
+
+        // Add-on items (chỉ chấp nhận dịch vụ isAddon=true)
+        for (Long addonId : svcRequest.addonServiceIds()) {
+            if (addonId == null) continue;
+            fpt.teddypet.domain.entity.Service addonService = serviceRepositoryPort.findById(addonId).orElse(null);
+            if (addonService == null || !Boolean.TRUE.equals(addonService.getIsAddon())) continue;
+            BookingPetServiceItem item = new BookingPetServiceItem();
+            item.setBookingPetService(entity);
+            item.setParentServiceId(service.getId());
+            item.setItemService(addonService);
+            item.setItemType("ADDON");
+            entity.getItems().add(item);
+        }
+
         return entity;
     }
 
@@ -180,13 +244,13 @@ public class BookingClientApplicationService implements BookingClientService {
             return unitPrice;
         }
 
-        LocalDate checkIn = bookingPetService.getCheckInDate();
-        LocalDate checkOut = bookingPetService.getCheckOutDate();
+        LocalDate checkIn = bookingPetService.getEstimatedCheckInDate();
+        LocalDate checkOut = bookingPetService.getEstimatedCheckOutDate();
         if (checkIn == null || checkOut == null) {
             throw new IllegalArgumentException("Dịch vụ yêu cầu phòng phải có check-in và check-out.");
         }
         if (!checkOut.isAfter(checkIn)) {
-            throw new IllegalArgumentException("Check-out phải sau check-in.");
+            throw new IllegalArgumentException("Ngày trả phải sau ngày gửi (không được bằng hoặc nhỏ hơn).");
         }
 
         long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
@@ -326,15 +390,15 @@ public class BookingClientApplicationService implements BookingClientService {
                 LocalDateTime start = null;
                 LocalDateTime end = null;
 
-                if (svc.getCheckInDate() != null) {
-                    start = svc.getCheckInDate().atStartOfDay();
+                if (svc.getEstimatedCheckInDate() != null) {
+                    start = svc.getEstimatedCheckInDate().atStartOfDay();
                 }
                 if (svc.getScheduledStartTime() != null) {
                     start = svc.getScheduledStartTime();
                 }
 
-                if (svc.getCheckOutDate() != null) {
-                    end = svc.getCheckOutDate().atTime(23, 59);
+                if (svc.getEstimatedCheckOutDate() != null) {
+                    end = svc.getEstimatedCheckOutDate().atTime(23, 59);
                 }
                 if (svc.getScheduledEndTime() != null) {
                     end = svc.getScheduledEndTime();
