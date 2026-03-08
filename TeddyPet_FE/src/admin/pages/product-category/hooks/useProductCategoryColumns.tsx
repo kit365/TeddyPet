@@ -3,58 +3,84 @@ import { GridColDef } from '@mui/x-data-grid';
 import { useMemo } from 'react';
 import {
     RenderActionsCell,
-    RenderTitleCell,
     RenderStatusCell,
-    RenderCreatedAtCell
+    RenderCategoryImageCell,
+    RenderCategoryNameCell,
+    RenderCategoryTypeCell,
+    RenderSuitablePetTypesCell,
 } from '../utils/render-cells';
 
-export const useProductCategoryColumns = () => {
+/** Cột danh sách: Ảnh, Tên, categoryType, suitablePetTypes, Trạng thái; tùy chọn thêm cột Danh mục cha (tab Tất cả). */
+export const useProductCategoryColumns = (showParentColumn: boolean = false) => {
     const { t } = useTranslation();
 
-    const columns: GridColDef<any>[] = useMemo(() => [
-        {
-            field: "name",
-            headerName: t("admin.product_category.fields.name") || "Category Name",
-            flex: 1,
-            minWidth: 200,
-            hideable: false,
-            renderCell: RenderTitleCell,
-        },
-        {
-            field: "parentName",
-            headerName: t("admin.product_category.fields.parent") || "Parent Category",
-            width: 180,
-        },
-        {
-            field: "createdAt",
-            headerName: t("admin.common.created_at") || "Created At",
-            width: 160,
-            filterable: true,
-            type: "dateTime",
-            valueGetter: (value) => value ? new Date(value) : null,
-            renderCell: (params) => <RenderCreatedAtCell value={params.value} />,
-        },
-        {
-            field: "isActive",
-            headerName: t("admin.common.status"),
-            width: 140,
-            renderCell: RenderStatusCell,
-        },
-        {
-            field: "view",
-            headerName: t("admin.common.views") || "Views",
-            width: 140,
-        },
-        {
+    const columns: GridColDef<any>[] = useMemo(() => {
+        const cols: GridColDef<any>[] = [
+            {
+                field: 'imageUrl',
+                headerName: 'Ảnh danh mục',
+                width: 120,
+                minWidth: 120,
+                sortable: false,
+                resizable: false,
+                renderCell: RenderCategoryImageCell,
+            },
+            {
+                field: 'name',
+                headerName: t('admin.product_category.fields.name') || 'Tên danh mục',
+                flex: 2,
+                minWidth: 220,
+                hideable: false,
+                resizable: false,
+                renderCell: RenderCategoryNameCell,
+            },
+            {
+                field: 'categoryType',
+                headerName: 'Loại danh mục',
+                flex: 1,
+                minWidth: 160,
+                resizable: false,
+                renderCell: RenderCategoryTypeCell,
+            },
+            {
+                field: 'suitablePetTypes',
+                headerName: 'Thú cưng phù hợp',
+                flex: 1,
+                minWidth: 180,
+                resizable: false,
+                renderCell: RenderSuitablePetTypesCell,
+            },
+            {
+                field: 'isActive',
+                headerName: t('admin.common.status') || 'Trạng thái',
+                width: 130,
+                minWidth: 130,
+                resizable: false,
+                renderCell: RenderStatusCell,
+            },
+        ];
+        if (showParentColumn) {
+            cols.push({
+                field: 'parentName',
+                headerName: t('admin.product_category.fields.parent') || 'Danh mục cha',
+                flex: 1,
+                minWidth: 180,
+                resizable: false,
+            });
+        }
+        cols.push({
             field: 'actions',
             headerName: '',
-            width: 80,
+            width: 64,
+            minWidth: 64,
             sortable: false,
             filterable: false,
             align: 'right',
+            resizable: false,
             renderCell: RenderActionsCell,
-        },
-    ], [t]);
+        });
+        return cols;
+    }, [t, showParentColumn]);
 
     return columns;
 };

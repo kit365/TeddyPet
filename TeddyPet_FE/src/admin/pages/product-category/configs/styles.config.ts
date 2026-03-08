@@ -13,7 +13,7 @@ export const toolbarStyles = {
     } as const,
 };
 
-// DataGrid Card
+// DataGrid Card — bảng cố định theo màn hình, không tràn ngang
 export const dataGridCardStyles = {
     background: COLORS.background,
     color: COLORS.primary,
@@ -22,14 +22,20 @@ export const dataGridCardStyles = {
     display: 'flex',
     flexDirection: 'column' as const,
     boxShadow: COLORS.shadow,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden' as const,
 };
 
 export const dataGridContainerStyles = {
     width: '100%',
+    minWidth: 0,
     flex: 1,
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden' as const,
+    maxWidth: '100%',
 };
 
 export const dataGridStyles: SxProps<Theme> = {
@@ -64,6 +70,14 @@ export const dataGridStyles: SxProps<Theme> = {
         '& .MuiButtonBase-root': {
             fontSize: "1.8rem"
         }
+    },
+
+    // Disable column resize UI/drag
+    '& .MuiDataGrid-columnSeparator': {
+        display: 'none',
+    },
+    '& .MuiDataGrid-iconSeparator': {
+        display: 'none',
     },
 
     // Footer
@@ -190,9 +204,32 @@ export const dataGridStyles: SxProps<Theme> = {
     },
 
     '&.MuiDataGrid-root': {
+        width: '100% !important',
+        maxWidth: '100%',
+        minWidth: 0,
         '--DataGrid-t-color-interactive-focus': COLORS.success,
         '--DataGrid-t-color-border-base': COLORS.border,
         overflow: 'auto',
+    },
+    '& .MuiDataGrid-main': {
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+    },
+    '& .MuiDataGrid-virtualScrollerContent': {
+        width: '100% !important',
+        maxWidth: '100%',
+        minWidth: 0,
+    },
+    '& .MuiDataGrid-columnHeadersInner': {
+        width: '100% !important',
+        maxWidth: '100%',
+        minWidth: 0,
+    },
+    '& .MuiDataGrid-columnHeadersInner > div': {
+        width: '100% !important',
+        maxWidth: '100%',
+        minWidth: 0,
     },
 
     borderWidth: "0"
