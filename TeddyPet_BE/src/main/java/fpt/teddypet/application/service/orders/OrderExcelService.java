@@ -4,6 +4,10 @@ import fpt.teddypet.application.service.products.ExcelStyleHelper;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
 import fpt.teddypet.domain.entity.Payment;
+import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
+import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
+import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -12,15 +16,18 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
 
 /**
- * Service xuất file Excel cho Orders.
- * File export có thể dùng làm backup - chứa đầy đủ dữ liệu đơn hàng.
+ * Service Excel cho Đơn hàng.
+ * Hỗ trợ Export và Import.
  */
 @Slf4j
 @Service
@@ -28,7 +35,11 @@ import java.util.List;
 public class OrderExcelService {
 
     private final OrderRepository orderRepository;
+
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+    public record ImportResult(int created, int updated, int skipped, List<String> errors) {
+    }
 
     @Transactional(readOnly = true)
     public void exportOrdersToExcel(HttpServletResponse response) throws IOException {
@@ -36,69 +47,38 @@ public class OrderExcelService {
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Đơn hàng");
-
-            // Header style
             CellStyle headerStyle = ExcelStyleHelper.productHeaderStyle(workbook);
             CellStyle currencyStyle = workbook.createCellStyle();
             DataFormat format = workbook.createDataFormat();
             currencyStyle.setDataFormat(format.getFormat("#,##0"));
 
-            // Create headers
-            String[] headers = {
-                    "Mã đơn hàng", "Loại đơn", "Trạng thái",
-                    "Khách hàng", "Email", "SĐT giao hàng", "Tên người nhận",
-                    "Địa chỉ giao hàng", "Mã giảm giá", "Ghi chú",
-                    // Items
-                    "Tên sản phẩm", "Tên biến thể", "Số lượng", "Đơn giá", "Thành tiền",
-                    // Totals (only on first row of each order)
-                    "Tạm tính", "Phí vận chuyển", "Giảm giá", "Tổng thanh toán",
-                    // Dates
-                    "Ngày tạo", "Ngày giao", "Ngày hoàn thành",
-                    // Return/Cancel
-                    "Lý do hủy", "Ngày hủy", "Người hủy",
-                    "Lý do trả hàng", "Ngày yêu cầu trả", "Ghi chú admin trả hàng",
-                    // Payment
-                    "Phương thức thanh toán", "Trạng thái thanh toán"
-            };
-
             Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
+            for (OrderExcelColumn col : OrderExcelColumn.values()) {
+                Cell cell = headerRow.createCell(col.getIndex());
+                cell.setCellValue(col.getHeader());
                 cell.setCellStyle(headerStyle);
             }
 
             int rowIdx = 1;
             for (Order order : orders) {
                 List<OrderItem> items = order.getOrderItems();
-                List<Payment> payments = order.getPayments();
-
                 if (items == null || items.isEmpty()) {
                     Row row = sheet.createRow(rowIdx++);
                     fillOrderRow(row, order, null, true, currencyStyle);
-                    fillPaymentInfo(row, payments);
                 } else {
                     boolean isFirstItem = true;
                     for (OrderItem item : items) {
                         Row row = sheet.createRow(rowIdx++);
                         fillOrderRow(row, order, item, isFirstItem, currencyStyle);
-                        if (isFirstItem) {
-                            fillPaymentInfo(row, payments);
-                            isFirstItem = false;
-                        }
+                        isFirstItem = false;
                     }
                 }
             }
 
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-                if (sheet.getColumnWidth(i) < 3000) {
-                    sheet.setColumnWidth(i, 3000);
-                }
+            for (OrderExcelColumn col : OrderExcelColumn.values()) {
+                sheet.autoSizeColumn(col.getIndex());
             }
 
-            // Write to response
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition",
                     "attachment; filename=orders_export_" + java.time.LocalDate.now() + ".xlsx");
@@ -106,86 +86,234 @@ public class OrderExcelService {
         }
     }
 
-    private void fillOrderRow(Row row, Order order, OrderItem item,
-            boolean isFirstRow, CellStyle currencyStyle) {
-        int col = 0;
-
-        // Order info (only on first row)
+    private void fillOrderRow(Row row, Order order, OrderItem item, boolean isFirstRow, CellStyle currencyStyle) {
         if (isFirstRow) {
-            row.createCell(col++).setCellValue(safeStr(order.getOrderCode()));
-            row.createCell(col++).setCellValue(order.getOrderType() != null ? order.getOrderType().name() : "");
-            row.createCell(col++).setCellValue(order.getStatus() != null ? order.getStatus().name() : "");
-            // Customer info
-            String customerName = "";
-            String customerEmail = "";
+            row.createCell(OrderExcelColumn.ORDER_CODE.getIndex()).setCellValue(safeStr(order.getOrderCode()));
+            row.createCell(OrderExcelColumn.ORDER_TYPE.getIndex())
+                    .setCellValue(order.getOrderType() != null ? order.getOrderType().name() : "");
+            row.createCell(OrderExcelColumn.STATUS.getIndex())
+                    .setCellValue(order.getStatus() != null ? order.getStatus().name() : "");
+
+            String customerName = order.getShippingName();
+            String customerEmail = order.getGuestEmail();
             if (order.getUser() != null) {
-                String fn = order.getUser().getFirstName() != null ? order.getUser().getFirstName() : "";
-                String ln = order.getUser().getLastName() != null ? order.getUser().getLastName() : "";
-                customerName = (fn + " " + ln).trim();
-                customerEmail = order.getUser().getEmail() != null ? order.getUser().getEmail() : "";
+                customerName = order.getUser().getFirstName() + " " + order.getUser().getLastName();
+                customerEmail = order.getUser().getEmail();
             }
-            if (order.getGuestEmail() != null && !order.getGuestEmail().isEmpty()) {
-                customerEmail = order.getGuestEmail();
-                if (customerName.isEmpty())
-                    customerName = "Khách vãng lai";
+            row.createCell(OrderExcelColumn.CUSTOMER_NAME.getIndex()).setCellValue(safeStr(customerName));
+            row.createCell(OrderExcelColumn.CUSTOMER_EMAIL.getIndex()).setCellValue(safeStr(customerEmail));
+            row.createCell(OrderExcelColumn.SHIPPING_PHONE.getIndex()).setCellValue(safeStr(order.getShippingPhone()));
+            row.createCell(OrderExcelColumn.SHIPPING_NAME.getIndex()).setCellValue(safeStr(order.getShippingName()));
+            row.createCell(OrderExcelColumn.SHIPPING_ADDRESS.getIndex())
+                    .setCellValue(safeStr(order.getShippingAddress()));
+            row.createCell(OrderExcelColumn.VOUCHER_CODE.getIndex()).setCellValue(safeStr(order.getVoucherCode()));
+            row.createCell(OrderExcelColumn.NOTES.getIndex()).setCellValue(safeStr(order.getNotes()));
+
+            setCurrencyCell(row, OrderExcelColumn.SHIPPING_FEE.getIndex(), order.getShippingFee(), currencyStyle);
+            setCurrencyCell(row, OrderExcelColumn.DISCOUNT_AMOUNT.getIndex(), order.getDiscountAmount(), currencyStyle);
+
+            if (order.getPayments() != null && !order.getPayments().isEmpty()) {
+                Payment p = order.getPayments().get(0);
+                row.createCell(OrderExcelColumn.PAYMENT_METHOD.getIndex())
+                        .setCellValue(p.getPaymentMethod() != null ? p.getPaymentMethod().name() : "");
+                row.createCell(OrderExcelColumn.PAYMENT_STATUS.getIndex())
+                        .setCellValue(p.getStatus() != null ? p.getStatus().name() : "");
             }
-            row.createCell(col++).setCellValue(customerName);
-            row.createCell(col++).setCellValue(customerEmail);
-            row.createCell(col++).setCellValue(safeStr(order.getShippingPhone()));
-            row.createCell(col++).setCellValue(safeStr(order.getShippingName()));
-            row.createCell(col++).setCellValue(safeStr(order.getShippingAddress()));
-            row.createCell(col++).setCellValue(safeStr(order.getVoucherCode()));
-            row.createCell(col++).setCellValue(safeStr(order.getNotes()));
-        } else {
-            col = 10; // Skip to item columns
+
+            row.createCell(OrderExcelColumn.CREATED_AT.getIndex())
+                    .setCellValue(order.getCreatedAt() != null ? order.getCreatedAt().format(DT_FMT) : "");
         }
 
-        // Item info from snapshot fields
         if (item != null) {
-            row.createCell(col++).setCellValue(safeStr(item.getProductName()));
-            row.createCell(col++).setCellValue(safeStr(item.getVariantName()));
-            row.createCell(col++).setCellValue(item.getQuantity() != null ? item.getQuantity() : 0);
-            setCurrencyCell(row, col++, item.getUnitPrice(), currencyStyle);
-            setCurrencyCell(row, col++, item.getTotalPrice(), currencyStyle);
-        } else {
-            col += 5;
-        }
-
-        // Totals (only on first row)
-        if (isFirstRow) {
-            setCurrencyCell(row, col++, order.getSubtotal(), currencyStyle);
-            setCurrencyCell(row, col++, order.getShippingFee(), currencyStyle);
-            setCurrencyCell(row, col++, order.getDiscountAmount(), currencyStyle);
-            setCurrencyCell(row, col++, order.getFinalAmount(), currencyStyle);
-
-            // Dates
-            row.createCell(col++).setCellValue(order.getCreatedAt() != null ? order.getCreatedAt().format(DT_FMT) : "");
-            row.createCell(col++)
-                    .setCellValue(order.getDeliveredAt() != null ? order.getDeliveredAt().format(DT_FMT) : "");
-            row.createCell(col++)
-                    .setCellValue(order.getCompletedAt() != null ? order.getCompletedAt().format(DT_FMT) : "");
-
-            // Cancel info
-            row.createCell(col++).setCellValue(safeStr(order.getCancelReason()));
-            row.createCell(col++)
-                    .setCellValue(order.getCancelledAt() != null ? order.getCancelledAt().format(DT_FMT) : "");
-            row.createCell(col++).setCellValue(safeStr(order.getCancelledBy()));
-
-            // Return info
-            row.createCell(col++).setCellValue(safeStr(order.getReturnReason()));
-            row.createCell(col++).setCellValue(
-                    order.getReturnRequestedAt() != null ? order.getReturnRequestedAt().format(DT_FMT) : "");
-            row.createCell(col).setCellValue(safeStr(order.getAdminReturnNote()));
+            row.createCell(OrderExcelColumn.PRODUCT_NAME.getIndex()).setCellValue(safeStr(item.getProductName()));
+            row.createCell(OrderExcelColumn.VARIANT_NAME.getIndex()).setCellValue(safeStr(item.getVariantName()));
+            row.createCell(OrderExcelColumn.QUANTITY.getIndex())
+                    .setCellValue(item.getQuantity() != null ? item.getQuantity() : 0);
+            setCurrencyCell(row, OrderExcelColumn.UNIT_PRICE.getIndex(), item.getUnitPrice(), currencyStyle);
         }
     }
 
-    private void fillPaymentInfo(Row row, List<Payment> payments) {
-        if (payments == null || payments.isEmpty())
-            return;
-        Payment payment = payments.get(0);
-        int col = 28;
-        row.createCell(col++).setCellValue(payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : "");
-        row.createCell(col).setCellValue(payment.getStatus() != null ? payment.getStatus().name() : "");
+    @Transactional
+    public ImportResult importOrdersFromExcel(MultipartFile file) {
+        if (file.isEmpty())
+            throw new IllegalArgumentException("File trống.");
+        int created = 0, skipped = 0;
+        List<String> errors = new ArrayList<>();
+        Map<String, List<Row>> orderGroups = new LinkedHashMap<>();
+
+        try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null)
+                    continue;
+                String code = getCellStr(row.getCell(OrderExcelColumn.ORDER_CODE.getIndex()));
+                if (!StringUtils.hasText(code))
+                    continue;
+                orderGroups.computeIfAbsent(code, k -> new ArrayList<>()).add(row);
+            }
+
+            for (Map.Entry<String, List<Row>> entry : orderGroups.entrySet()) {
+                String code = entry.getKey();
+                List<Row> rows = entry.getValue();
+                try {
+                    if (orderRepository.existsByOrderCode(code)) {
+                        skipped++;
+                        continue;
+                    }
+
+                    Row firstRow = rows.get(0);
+                    Order order = Order.builder()
+                            .orderCode(code)
+                            .orderType(parseEnum(OrderTypeEnum.class,
+                                    getCellStr(firstRow.getCell(OrderExcelColumn.ORDER_TYPE.getIndex())),
+                                    OrderTypeEnum.OFFLINE))
+                            .status(parseEnum(OrderStatusEnum.class,
+                                    getCellStr(firstRow.getCell(OrderExcelColumn.STATUS.getIndex())),
+                                    OrderStatusEnum.COMPLETED))
+                            .shippingPhone(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_PHONE.getIndex())))
+                            .shippingName(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_NAME.getIndex())))
+                            .shippingAddress(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_ADDRESS.getIndex())))
+                            .voucherCode(getCellStr(firstRow.getCell(OrderExcelColumn.VOUCHER_CODE.getIndex())))
+                            .notes(getCellStr(firstRow.getCell(OrderExcelColumn.NOTES.getIndex())))
+                            .shippingFee(getCellDecimal(firstRow.getCell(OrderExcelColumn.SHIPPING_FEE.getIndex())))
+                            .discountAmount(
+                                    getCellDecimal(firstRow.getCell(OrderExcelColumn.DISCOUNT_AMOUNT.getIndex())))
+                            .guestEmail(getCellStr(firstRow.getCell(OrderExcelColumn.CUSTOMER_EMAIL.getIndex())))
+                            .orderItems(new ArrayList<>())
+                            .payments(new ArrayList<>())
+                            .build();
+
+                    // Dates
+                    String createdStr = getCellStr(firstRow.getCell(OrderExcelColumn.CREATED_AT.getIndex()));
+                    if (StringUtils.hasText(createdStr)) {
+                        try {
+                            order.setCreatedAt(LocalDateTime.parse(createdStr, DT_FMT));
+                        } catch (Exception e) {
+                            order.setCreatedAt(LocalDateTime.now());
+                        }
+                    } else {
+                        order.setCreatedAt(LocalDateTime.now());
+                    }
+
+                    BigDecimal subtotal = BigDecimal.ZERO;
+                    for (Row r : rows) {
+                        String sku = getCellStr(r.getCell(OrderExcelColumn.VARIANT_NAME.getIndex()));
+                        String prodName = getCellStr(r.getCell(OrderExcelColumn.PRODUCT_NAME.getIndex()));
+                        int qty = (int) getCellDouble(r.getCell(OrderExcelColumn.QUANTITY.getIndex()));
+                        BigDecimal price = getCellDecimal(r.getCell(OrderExcelColumn.UNIT_PRICE.getIndex()));
+
+                        OrderItem item = OrderItem.builder()
+                                .order(order)
+                                .productName(prodName)
+                                .variantName(sku)
+                                .quantity(qty)
+                                .unitPrice(price)
+                                .totalPrice(price.multiply(BigDecimal.valueOf(qty)))
+                                .build();
+                        order.getOrderItems().add(item);
+                        subtotal = subtotal.add(item.getTotalPrice());
+                    }
+                    order.setSubtotal(subtotal);
+                    order.setFinalAmount(subtotal.add(order.getShippingFee()).subtract(order.getDiscountAmount()));
+
+                    // Payment
+                    PaymentMethodEnum pm = parseEnum(PaymentMethodEnum.class,
+                            getCellStr(firstRow.getCell(OrderExcelColumn.PAYMENT_METHOD.getIndex())),
+                            PaymentMethodEnum.CASH);
+                    PaymentStatusEnum ps = parseEnum(PaymentStatusEnum.class,
+                            getCellStr(firstRow.getCell(OrderExcelColumn.PAYMENT_STATUS.getIndex())),
+                            PaymentStatusEnum.COMPLETED);
+                    Payment payment = Payment.builder()
+                            .order(order)
+                            .paymentMethod(pm)
+                            .status(ps)
+                            .amount(order.getFinalAmount())
+                            .build();
+                    order.getPayments().add(payment);
+
+                    orderRepository.save(order);
+                    created++;
+                } catch (Exception e) {
+                    errors.add("Đơn " + code + ": " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi import order: " + e.getMessage(), e);
+        }
+        return new ImportResult(created, 0, skipped, errors);
+    }
+
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Template Nhập Đơn");
+            CellStyle headerStyle = ExcelStyleHelper.productHeaderStyle(workbook);
+            Row header = sheet.createRow(0);
+            for (OrderExcelColumn col : OrderExcelColumn.values()) {
+                Cell cell = header.createCell(col.getIndex());
+                cell.setCellValue(col.getHeader());
+                cell.setCellStyle(headerStyle);
+            }
+            Row row = sheet.createRow(1);
+            row.createCell(OrderExcelColumn.ORDER_CODE.getIndex()).setCellValue("ORD-IMPORT-001");
+            row.createCell(OrderExcelColumn.ORDER_TYPE.getIndex()).setCellValue("OFFLINE");
+            row.createCell(OrderExcelColumn.STATUS.getIndex()).setCellValue("COMPLETED");
+            row.createCell(OrderExcelColumn.CUSTOMER_NAME.getIndex()).setCellValue("Nguyễn Văn A");
+            row.createCell(OrderExcelColumn.PRODUCT_NAME.getIndex()).setCellValue("Thức ăn Royal Canin");
+            row.createCell(OrderExcelColumn.QUANTITY.getIndex()).setCellValue(2);
+            row.createCell(OrderExcelColumn.UNIT_PRICE.getIndex()).setCellValue(150000);
+            row.createCell(OrderExcelColumn.PAYMENT_METHOD.getIndex()).setCellValue("CASH");
+            row.createCell(OrderExcelColumn.PAYMENT_STATUS.getIndex()).setCellValue("COMPLETED");
+
+            for (OrderExcelColumn col : OrderExcelColumn.values())
+                sheet.autoSizeColumn(col.getIndex());
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=orders_template.xlsx");
+            workbook.write(response.getOutputStream());
+        }
+    }
+
+    private <E extends Enum<E>> E parseEnum(Class<E> clazz, String val, E defaultVal) {
+        if (!StringUtils.hasText(val))
+            return defaultVal;
+        try {
+            return Enum.valueOf(clazz, val.toUpperCase());
+        } catch (Exception e) {
+            return defaultVal;
+        }
+    }
+
+    private String getCellStr(Cell cell) {
+        if (cell == null)
+            return "";
+        try {
+            if (cell.getCellType() == CellType.NUMERIC)
+                return String.valueOf((long) cell.getNumericCellValue());
+            return cell.getStringCellValue().trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private double getCellDouble(Cell cell) {
+        if (cell == null)
+            return 0;
+        try {
+            if (cell.getCellType() == CellType.NUMERIC)
+                return cell.getNumericCellValue();
+            return Double.parseDouble(cell.getStringCellValue());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private BigDecimal getCellDecimal(Cell cell) {
+        return BigDecimal.valueOf(getCellDouble(cell));
+    }
+
+    private String safeStr(String s) {
+        return s != null ? s : "";
     }
 
     private void setCurrencyCell(Row row, int col, BigDecimal value, CellStyle style) {
@@ -196,9 +324,5 @@ public class OrderExcelService {
         } else {
             cell.setCellValue(0);
         }
-    }
-
-    private String safeStr(String val) {
-        return val != null ? val : "";
     }
 }
