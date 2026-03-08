@@ -49,7 +49,7 @@ export const ProductCategoryListPage = () => {
         templateMutation.mutate();
     };
     return (
-        <>
+        <div className="flex flex-col gap-[32px]">
             <ListHeader
                 title="Danh mục sản phẩm"
                 breadcrumbItems={[
@@ -115,6 +115,6 @@ export const ProductCategoryListPage = () => {
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
             />
-        </>
+        </div>
     )
 }

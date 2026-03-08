@@ -13,6 +13,7 @@ import fpt.teddypet.application.util.ImageAltUtil;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ProductBrand;
+import fpt.teddypet.domain.enums.PetTypeEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -179,6 +180,18 @@ public class ProductBrandApplicationService implements ProductBrandService {
         return brands.stream()
                 .filter(b -> b.isActive() && !b.isDeleted())
                 .map(productBrandMapper::toHomeResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductBrandInfo> getFoodBrandOptionsByPetType(PetTypeEnum petType) {
+        if (petType == null) {
+            return List.of();
+        }
+        return productBrandRepositoryPort.findFoodBrandOptionsByPetType(petType).stream()
+                .map(productBrandMapper::toInfo)
+                .filter(i -> i != null && i.isActive() && !i.isDeleted())
                 .toList();
     }
 }

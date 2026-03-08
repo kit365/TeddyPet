@@ -219,6 +219,8 @@ public class ProductCategoryApplicationService implements ProductCategoryService
                 response.imageUrl(),
                 response.altImage(),
                 response.parentId(),
+                response.categoryType(),
+                response.suitablePetTypes(),
                 response.isActive(),
                 response.isDeleted(),
                 response.createdAt(),
