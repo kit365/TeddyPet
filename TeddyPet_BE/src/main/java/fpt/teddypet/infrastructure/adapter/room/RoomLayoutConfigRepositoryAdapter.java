@@ -2,6 +2,7 @@ package fpt.teddypet.infrastructure.adapter.room;
 
 import fpt.teddypet.application.port.output.room.RoomLayoutConfigRepositoryPort;
 import fpt.teddypet.domain.entity.RoomLayoutConfig;
+import fpt.teddypet.domain.enums.RoomLayoutStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.room.RoomLayoutConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,25 @@ public class RoomLayoutConfigRepositoryAdapter implements RoomLayoutConfigReposi
     @Override
     public List<RoomLayoutConfig> findAll() {
         return repository.findAllByOrderByIdAsc();
+    }
+
+    @Override
+    public List<RoomLayoutConfig> findByServiceId(Long serviceId) {
+        if (serviceId == null) {
+            return findAll();
+        }
+        return repository.findByService_IdOrderByIdAsc(serviceId);
+    }
+
+    @Override
+    public List<RoomLayoutConfig> findByServiceIdAndStatus(Long serviceId, RoomLayoutStatusEnum status) {
+        if (serviceId == null) {
+            return findAll();
+        }
+        if (status == null) {
+            return repository.findByService_IdOrderByIdAsc(serviceId);
+        }
+        return repository.findByService_IdAndStatusOrderByIdAsc(serviceId, status);
     }
 
     @Override

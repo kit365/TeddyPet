@@ -1,6 +1,7 @@
 package fpt.teddypet.infrastructure.persistence.postgres.repository.room;
 
 import fpt.teddypet.domain.entity.RoomLayoutConfig;
+import fpt.teddypet.domain.enums.RoomLayoutStatusEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +17,6 @@ public interface RoomLayoutConfigRepository extends JpaRepository<RoomLayoutConf
      * Used by RoomLayoutPositionInitializer to pick the first layout for seeding positions.
      */
     List<RoomLayoutConfig> findByService_IdOrderByIdAsc(Long serviceId);
+
+    List<RoomLayoutConfig> findByService_IdAndStatusOrderByIdAsc(Long serviceId, RoomLayoutStatusEnum status);
 }

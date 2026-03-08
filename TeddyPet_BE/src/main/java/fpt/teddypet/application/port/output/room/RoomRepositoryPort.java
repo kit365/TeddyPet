@@ -15,6 +15,8 @@ public interface RoomRepositoryPort {
 
     List<Room> findByRoomTypeId(Long roomTypeId);
 
+    List<Room> findByRoomLayoutConfigId(Long roomLayoutConfigId);
+
     boolean existsByRoomNumberAndRoomTypeId(String roomNumber, Long roomTypeId);
 
     boolean existsByRoomNumberAndRoomTypeIdAndIdNot(String roomNumber, Long roomTypeId, Long id);
