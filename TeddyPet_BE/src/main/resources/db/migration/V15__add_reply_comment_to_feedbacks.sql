@@ -1,3 +1,3 @@
-ALTER TABLE feedbacks
-ADD COLUMN reply_comment TEXT,
-ADD COLUMN replied_at TIMESTAMP;
+ALTER TABLE feedbacks 
+ADD COLUMN IF NOT EXISTS reply_comment TEXT,
+ADD COLUMN IF NOT EXISTS replied_at TIMESTAMP;
