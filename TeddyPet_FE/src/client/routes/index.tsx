@@ -9,6 +9,7 @@ import { RegisterPage } from "../pages/auth/Register";
 import { LoginPage } from "../pages/auth/Login";
 import { BookingPage } from "../pages/booking/Booking";
 import { BookingDetailPage } from "../pages/booking/BookingDetail";
+import { RoomDetailPage } from "../pages/booking/RoomDetailPage";
 import { ServicePage } from "../pages/service/Service";
 import { CartPage } from "../pages/cart/Cart";
 import { FeedbackPage } from "../pages/FeedbackPage";
@@ -59,6 +60,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/blog/detail/:slug", element: <BlogDetailPage /> },
     { path: "/dat-lich", element: <BookingPage /> },
     { path: "/dat-lich/chi-tiet", element: <BookingDetailPage /> },
+    { path: "/dat-lich/phong/:roomId", element: <RoomDetailPage /> },
     { path: "/cart", element: <CartPage /> },
     { path: "/wishlist", element: <WishlistPage /> },
     { path: "/feedback", element: <FeedbackPage /> },

@@ -74,7 +74,7 @@ apiApp.interceptors.response.use(
             const refreshToken = Cookies.get(refreshTokenKey);
 
             // Không redirect sang login khi 401 từ API đặt lịch (public booking APIs)
-            // để khách có thể xem trang đặt lịch mà không bắt buộc đăng nhập
+            // để khách vãng lai có thể đặt lịch mà không bắt buộc đăng nhập
             const isBookingPublicApi =
                 !isAdmin &&
                 (originalRequest.url?.includes('/api/service-categories') ||
@@ -82,7 +82,10 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/service-pricings') ||
                     originalRequest.url?.includes('/api/room-layout-configs') ||
                     originalRequest.url?.includes('/api/rooms') ||
-                    originalRequest.url?.includes('/api/bookings'));
+                    originalRequest.url?.includes('/api/room-types') ||
+                    originalRequest.url?.includes('/api/bookings') ||
+                    originalRequest.url?.includes('/api/time-slots') ||
+                    originalRequest.url?.includes('/api/settings'));
 
             if (!refreshToken) {
                 if (isBookingPublicApi) {
