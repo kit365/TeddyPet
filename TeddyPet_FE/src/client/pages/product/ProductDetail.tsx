@@ -502,7 +502,7 @@ export const ProductDetailPage = () => {
                     </div>
                 </div>
             </section>
-            <ProductDesc />
+            <ProductDesc description={product.description} />
             <ProductComment feedbacks={feedbacks} />
             <ProductRelated productId={product?.id} />
             <FooterSub />

@@ -20,7 +20,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder } from '../../../api/order.api';
+import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder, downloadOrderInvoice } from '../../../api/order.api';
 import { getShippingFeeSuggestion } from '../../../api/shipping.api';
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
@@ -249,7 +249,26 @@ export const OrderList = () => {
         }
     };
 
-    const columns = getOrderColumns(handleQuickConfirm, handleUpdateStatus, handleCancelOrder, handleReturnOrder);
+    const handlePrintOrder = async (orderId: string, orderCode: string) => {
+        try {
+            toast.info("Đang tạo vận đơn...");
+            const blob = await downloadOrderInvoice(orderId);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice-${orderCode}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Đã tải vận đơn thành công!");
+        } catch (error) {
+            console.error("Lỗi khi tải vận đơn:", error);
+            toast.error("Không thể tải vận đơn. Vui lòng thử lại sau.");
+        }
+    };
+
+    const columns = getOrderColumns(handleQuickConfirm, handleUpdateStatus, handleCancelOrder, handleReturnOrder, handlePrintOrder);
     const localeText = useDataGridLocale();
 
     const handleTabChange = (_: any, newValue: string) => {
@@ -365,7 +384,7 @@ export const OrderList = () => {
                 />
             </Stack>
 
-            <div style={{ ...dataGridContainerStyles, padding: '0 24px 24px' }}>
+            <div style={{ ...dataGridContainerStyles, padding: '0 24px 8px' }}>
                 <DataGrid
                     loading={loading}
                     rows={orders}

@@ -8,6 +8,8 @@ import java.util.UUID;
 public interface FeedbackRepositoryPort {
     Feedback save(Feedback feedback);
 
+    List<Feedback> findAll();
+
     Optional<Feedback> findById(Long id);
 
     List<Feedback> findByProductId(Long productId);

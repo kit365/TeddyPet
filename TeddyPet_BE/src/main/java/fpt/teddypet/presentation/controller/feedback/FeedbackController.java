@@ -26,6 +26,12 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
+    @GetMapping
+    @Operation(summary = "Lấy tất cả feedback (Admin)", description = "Lấy danh sách tất cả feedback của hệ thống.")
+    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedbacks() {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.getAllFeedbacks()));
+    }
+
     @PostMapping
     @Operation(summary = "Gửi đánh giá/feedback", description = "Khách hàng gửi đánh giá cho sản phẩm/đơn hàng.")
     public ResponseEntity<ApiResponse<FeedbackResponse>> submitFeedback(@Valid @RequestBody FeedbackRequest request) {
@@ -40,8 +46,25 @@ public class FeedbackController {
         return ResponseEntity.ok(ApiResponse.success(feedbackService.updateFeedback(id, request)));
     }
 
+    @PutMapping("/{id}/reply")
+    @Operation(summary = "Trả lời feedback (Admin)", description = "Admin hoặc staff trả lời một đánh giá của khách hàng.")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> replyFeedback(
+            @PathVariable Long id,
+            @Valid @RequestBody fpt.teddypet.application.dto.request.feedback.FeedbackReplyRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.replyFeedback(id, request)));
+    }
+
+    @PutMapping("/{id}/admin-edit")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Sửa đánh giá (Cho Super Admin)", description = "Sửa nội dung bình luận của khách hàng (chống spam/toxic).")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> editFeedbackByAdmin(
+            @PathVariable Long id,
+            @Valid @RequestBody fpt.teddypet.application.dto.request.feedback.FeedbackAdminEditRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.editFeedbackByAdmin(id, request)));
+    }
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xóa feedback", description = "Xóa feedback theo ID.")
+    @Operation(summary = "Xóa feedback", description = "Xóa feedback theo ID. Dành cho Admin.")
     public ResponseEntity<ApiResponse<String>> deleteFeedback(@PathVariable Long id) {
         feedbackService.deleteFeedback(id);
         return ResponseEntity.ok(ApiResponse.success(FeedbackMessages.MESSAGE_FEEDBACK_DELETE_SUCCESS));

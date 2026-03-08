@@ -132,7 +132,7 @@ export const Header = () => {
                         }}
                     >
                         <div className="flex items-center gap-[12px] py-[4px]">
-                            <span className="text-[1.8rem] font-[800] text-[#1c252e] uppercase tracking-wider">TeddyPet Dashboard</span>
+                            <span className="text-[2.2rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">
                             <Box onClick={handleOpenSearchDialog} className="flex items-center pr-[8px] cursor-pointer bg-[#919eab14] hover:bg-[#919eab29] rounded-[12px] transition-colors duration-150 ease-in-out">

@@ -508,7 +508,7 @@ export const OrderDetailPage = () => {
                                         {order.status === 'COMPLETED' && (
                                             <div className="flex items-center">
                                                 <Link
-                                                    to={`/feedback?orderId=${order.id}`}
+                                                    to={`/feedback?orderId=${order.id}&productId=${item.productId}${item.variantId ? `&variantId=${item.variantId}` : ''}`}
                                                     className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[1.2rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
                                                 >
                                                     <Star className="w-4 h-4" /> Đánh giá sản phẩm

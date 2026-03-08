@@ -46,6 +46,13 @@ public class FeedbackApplicationService implements FeedbackService {
     private String frontendUrl;
 
     @Override
+    public List<FeedbackResponse> getAllFeedbacks() {
+        return feedbackRepositoryPort.findAll().stream()
+                .map(feedbackMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public FeedbackResponse submitFeedback(FeedbackRequest request) {
 
@@ -151,6 +158,32 @@ public class FeedbackApplicationService implements FeedbackService {
         feedback.setComment(request.comment());
         feedback.setEdited(true);
 
+        Feedback saved = feedbackRepositoryPort.save(feedback);
+        return feedbackMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public FeedbackResponse replyFeedback(Long feedbackId,
+            fpt.teddypet.application.dto.request.feedback.FeedbackReplyRequest request) {
+        Feedback feedback = feedbackRepositoryPort.findById(feedbackId)
+                .orElseThrow(() -> new EntityNotFoundException(FeedbackMessages.MESSAGE_FEEDBACK_NOT_FOUND));
+
+        feedback.setReplyComment(request.replyComment());
+        feedback.setRepliedAt(java.time.LocalDateTime.now());
+
+        Feedback saved = feedbackRepositoryPort.save(feedback);
+        return feedbackMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public FeedbackResponse editFeedbackByAdmin(Long feedbackId,
+            fpt.teddypet.application.dto.request.feedback.FeedbackAdminEditRequest request) {
+        Feedback feedback = feedbackRepositoryPort.findById(feedbackId)
+                .orElseThrow(() -> new EntityNotFoundException(FeedbackMessages.MESSAGE_FEEDBACK_NOT_FOUND));
+
+        feedback.setComment(request.getComment());
         Feedback saved = feedbackRepositoryPort.save(feedback);
         return feedbackMapper.toResponse(saved);
     }

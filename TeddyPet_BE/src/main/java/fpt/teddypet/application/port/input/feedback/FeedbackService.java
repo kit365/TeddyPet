@@ -8,9 +8,17 @@ import java.util.List;
 import java.util.UUID;
 
 public interface FeedbackService {
+    List<FeedbackResponse> getAllFeedbacks();
+
     FeedbackResponse submitFeedback(FeedbackRequest request);
 
     FeedbackResponse updateFeedback(Long feedbackId, FeedbackRequest request);
+
+    FeedbackResponse replyFeedback(Long feedbackId,
+            fpt.teddypet.application.dto.request.feedback.FeedbackReplyRequest request);
+
+    FeedbackResponse editFeedbackByAdmin(Long feedbackId,
+            fpt.teddypet.application.dto.request.feedback.FeedbackAdminEditRequest request);
 
     void deleteFeedback(Long feedbackId);
 

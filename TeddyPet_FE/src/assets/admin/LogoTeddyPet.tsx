@@ -4,7 +4,7 @@ export const LogoTeddyPet = ({ width = "60px", height = "60px", className = "" }
             width={width}
             height={height}
             className={className}
-            viewBox="0 0 600 180"
+            viewBox="150 0 300 120"
             xmlns="http://www.w3.org/2000/svg"
         >
             <g>

@@ -48,8 +48,8 @@ export const SideBar = () => {
                 ? "pl-[28px] pt-[24px] pb-[20px]"
                 : "py-[20px] flex justify-center"
             }>
-                <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
-                    <LogoTeddyPet width={isOpen ? "56px" : "44px"} height={isOpen ? "56px" : "44px"} />
+                <Link to="/" className="inline-block transition-transform duration-200 hover:scale-110 active:scale-95">
+                    <LogoTeddyPet width={isOpen ? "120px" : "60px"} height={isOpen ? "48px" : "24px"} />
                 </Link>
             </div>
 

@@ -1,5 +1,5 @@
 import { GridColDef } from '@mui/x-data-grid';
-import { Stack, Typography, IconButton, Tooltip, Box, Avatar, Chip, Popover, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
+import { Stack, Typography, IconButton, Tooltip, Box } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
@@ -9,110 +9,26 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { getOrderStatus, getPaymentStatus } from '../../../../constants/status';
 import { prefixAdmin } from '../../../constants/routes';
 import { OrderResponse } from '../../../../types/order.type';
-import React, { useState } from 'react';
 
-const ProductCell = ({ items }: { items: any[] }) => {
-    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-    const handleHoverOpen = (event: React.MouseEvent<HTMLElement>) => {
-        if (items.length > 1) {
-            setAnchorEl(event.currentTarget);
-        }
-    };
 
-    const handleHoverClose = () => {
-        setAnchorEl(null);
-    };
-
-    const open = Boolean(anchorEl);
-
-    return (
-        <>
-            <Stack
-                direction="row"
-                alignItems="center"
-                spacing={2}
-                sx={{ py: 1.5, cursor: items.length > 1 ? 'pointer' : 'default' }}
-                onMouseEnter={handleHoverOpen}
-                onMouseLeave={handleHoverClose}
-            >
-                <Avatar
-                    src={items[0]?.imageUrl}
-                    variant="rounded"
-                    sx={{ width: 44, height: 44, borderRadius: '12px', border: '1px solid #F4F6F8' }}
-                />
-                <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ fontWeight: 700, fontSize: '1.35rem', color: '#1C252E', lineHeight: 1.2 }}>
-                        {items[0]?.productName}
-                    </Typography>
-                    {items.length > 1 && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Chip
-                                label={`+${items.length - 1} món khác`}
-                                size="small"
-                                sx={{
-                                    height: 20,
-                                    fontSize: '0.95rem',
-                                    fontWeight: 800,
-                                    bgcolor: 'rgba(51, 102, 255, 0.08)',
-                                    color: '#3366FF',
-                                    borderRadius: '6px',
-                                    '& .MuiChip-label': { px: 1 }
-                                }}
-                            />
-                            <KeyboardArrowDownIcon sx={{ fontSize: '1.4rem', color: '#919EAB' }} />
-                        </Box>
-                    )}
-                </Stack>
-            </Stack>
-            <Popover
-                sx={{ pointerEvents: 'none' }}
-                open={open}
-                anchorEl={anchorEl}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                onClose={handleHoverClose}
-                disableRestoreFocus
-            >
-                <List sx={{ p: 1, width: 280 }}>
-                    <Typography sx={{ px: 2, py: 1, fontWeight: 800, fontSize: '1.1rem', color: '#919EAB', textTransform: 'uppercase' }}>
-                        Danh sách sản phẩm
-                    </Typography>
-                    {items.map((item, idx) => (
-                        <ListItem key={idx} sx={{ px: 2, py: 1 }}>
-                            <ListItemAvatar sx={{ minWidth: 48 }}>
-                                <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 32, height: 32 }} />
-                            </ListItemAvatar>
-                            <ListItemText
-                                primary={item.productName}
-                                secondary={`${item.quantity} x ${item.unitPrice.toLocaleString('vi-VN')}₫`}
-                                primaryTypographyProps={{ fontSize: '1.25rem', fontWeight: 700, noWrap: true }}
-                                secondaryTypographyProps={{ fontSize: '1.1rem', fontWeight: 500 }}
-                            />
-                        </ListItem>
-                    ))}
-                </List>
-            </Popover>
-        </>
-    );
-};
 
 export const getOrderColumns = (
     onQuickConfirm?: (id: string) => void,
     onUpdateStatus?: (id: string, status: string) => void,
     onCancelOrder?: (id: string) => void,
-    onReturnOrder?: (id: string) => void
+    onReturnOrder?: (id: string) => void,
+    onPrintOrder?: (id: string, code: string) => void
 ): GridColDef<OrderResponse>[] => [
         {
             field: 'orderCode',
             headerName: 'Mã đơn',
-            width: 160,
+            width: 140,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
@@ -163,7 +79,7 @@ export const getOrderColumns = (
         {
             field: 'customer',
             headerName: 'Khách hàng',
-            flex: 1,
+            flex: 2,
             minWidth: 180,
             renderCell: (params) => {
                 const row = params.row;
@@ -184,10 +100,20 @@ export const getOrderColumns = (
         },
         {
             field: 'orderItems',
-            headerName: 'Sản phẩm',
-            flex: 2,
-            minWidth: 280,
-            renderCell: (params) => <ProductCell items={params.value as any[]} />
+            headerName: 'Số món',
+            width: 80,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => {
+                const items = params.value as any[];
+                return (
+                    <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#1C252E' }}>
+                            {items.reduce((acc, item) => acc + item.quantity, 0)}
+                        </Typography>
+                    </Box>
+                );
+            }
         },
         {
             field: 'payment',
@@ -292,8 +218,8 @@ export const getOrderColumns = (
         },
         {
             field: 'actions',
-            headerName: '',
-            width: 130,
+            headerName: 'Hành động',
+            width: 150,
             sortable: false,
             align: 'right',
             headerAlign: 'right',
@@ -375,7 +301,11 @@ export const getOrderColumns = (
                     )}
 
                     <Tooltip title="In vận đơn">
-                        <IconButton size="small" sx={{ color: '#637381' }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => onPrintOrder?.(params.row.id, params.row.orderCode)}
+                            sx={{ color: '#637381' }}
+                        >
                             <LocalPrintshopIcon sx={{ fontSize: '1.8rem' }} />
                         </IconButton>
                     </Tooltip>
