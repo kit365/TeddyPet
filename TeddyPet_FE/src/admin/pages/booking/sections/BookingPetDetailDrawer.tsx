@@ -98,21 +98,41 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
         <InfoRow label="Ảnh đồ đạc mang theo" value={pet.belongingPhotos ? "Đã có" : "—"} />
 
         <Divider sx={{ my: 2 }} />
-        <InfoRow label="Mang theo thức ăn" value={formatBool(pet.foodBrought)} />
-        {formatBool(pet.foodBrought) === "Có" && (
+        <InfoRow
+          label="Mang theo thức ăn"
+          value={
+            pet.foodItems && pet.foodItems.length > 0
+              ? "Có"
+              : formatBool(pet.foodBrought)
+          }
+        />
+        {pet.foodItems && pet.foodItems.length > 0 ? (
           <>
-            <InfoRow
-              label="Loại thức ăn mang theo"
-              value={
-                pet.foodBroughtType
-                  ? Array.isArray(pet.foodBroughtType)
-                    ? pet.foodBroughtType.join(", ")
-                    : String(pet.foodBroughtType)
-                  : "—"
-              }
-            />
-            <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
+            {pet.foodItems.map((item, idx) => (
+              <Box key={item.id ?? idx} sx={{ mt: 1.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
+                <InfoRow label="Loại" value={item.foodBroughtType ?? "—"} />
+                <InfoRow label="Nhãn hiệu" value={item.foodBrand ?? "—"} />
+                <InfoRow label="Số lượng" value={item.quantity != null ? String(item.quantity) : "—"} />
+                <InfoRow label="Hướng dẫn cho ăn" value={item.feedingInstructions ?? "—"} />
+              </Box>
+            ))}
           </>
+        ) : (
+          formatBool(pet.foodBrought) === "Có" && (
+            <>
+              <InfoRow
+                label="Loại thức ăn mang theo"
+                value={
+                  pet.foodBroughtType
+                    ? Array.isArray(pet.foodBroughtType)
+                      ? pet.foodBroughtType.join(", ")
+                      : String(pet.foodBroughtType)
+                    : "—"
+                }
+              />
+              <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
+            </>
+          )
         )}
       </Box>
     </Drawer>

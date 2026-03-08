@@ -83,8 +83,10 @@ export const BookingPetServiceDetailDrawer = ({
         <InfoRow label="Slot giờ" value={service.timeSlotId} />
 
         <Divider sx={{ my: 2 }} />
-        <InfoRow label="Check-in" value={formatDate(service.checkInDate)} />
-        <InfoRow label="Check-out" value={formatDate(service.checkoutDate)} />
+        <InfoRow label="Check-in dự kiến" value={formatDate(service.estimatedCheckInDate)} />
+        <InfoRow label="Check-out dự kiến" value={formatDate(service.estimatedCheckOutDate)} />
+        <InfoRow label="Check-in thực tế" value={formatDate(service.actualCheckInDate)} />
+        <InfoRow label="Check-out thực tế" value={formatDate(service.actualCheckOutDate)} />
         <InfoRow label="Số đêm" value={service.numberOfNights} />
         <InfoRow label="Bắt đầu dự kiến" value={formatDateTime(service.scheduledStartTime)} />
         <InfoRow label="Kết thúc dự kiến" value={formatDateTime(service.scheduledEndTime)} />

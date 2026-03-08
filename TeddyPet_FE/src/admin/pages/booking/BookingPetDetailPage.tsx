@@ -247,8 +247,8 @@ export const BookingPetDetailPage = () => {
             </Stack>
           </Card>
 
-          {/* Card 3: Thức ăn (chỉ khi có foodBrought) */}
-          {isFoodBrought(pet.foodBrought) && (
+          {/* Card 3: Thức ăn (foodItems từ API hoặc legacy foodBrought) */}
+          {(pet.foodItems && pet.foodItems.length > 0) || isFoodBrought(pet.foodBrought) ? (
             <Card
               sx={{
                 p: 4,
@@ -260,19 +260,32 @@ export const BookingPetDetailPage = () => {
               <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
                 Thức ăn
               </Typography>
-              <InfoRow
-                label="Loại thức ăn mang theo"
-                value={
-                  pet.foodBroughtType
-                    ? Array.isArray(pet.foodBroughtType)
-                      ? pet.foodBroughtType.join(", ")
-                      : String(pet.foodBroughtType)
-                    : "—"
-                }
-              />
-              <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
+              {pet.foodItems && pet.foodItems.length > 0 ? (
+                pet.foodItems.map((item, idx) => (
+                  <Stack key={item.id ?? idx} spacing={1} sx={{ mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 2 }}>
+                    <InfoRow label="Loại thức ăn" value={item.foodBroughtType ?? "—"} />
+                    <InfoRow label="Nhãn hiệu" value={item.foodBrand ?? "—"} />
+                    <InfoRow label="Số lượng" value={item.quantity != null ? String(item.quantity) : "—"} />
+                    <InfoRow label="Hướng dẫn cho ăn" value={item.feedingInstructions ?? "—"} />
+                  </Stack>
+                ))
+              ) : (
+                <>
+                  <InfoRow
+                    label="Loại thức ăn mang theo"
+                    value={
+                      pet.foodBroughtType
+                        ? Array.isArray(pet.foodBroughtType)
+                          ? pet.foodBroughtType.join(", ")
+                          : String(pet.foodBroughtType)
+                        : "—"
+                    }
+                  />
+                  <InfoRow label="Hướng dẫn cho ăn" value={pet.feedingInstructions} />
+                </>
+              )}
             </Card>
-          )}
+          ) : null}
 
           {/* Card 4: Danh sách dịch vụ (Booking_Pet_Services) */}
           <Card

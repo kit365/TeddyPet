@@ -22,7 +22,10 @@ public record CreateBookingPetRequest(
         String petConditionNotes,
 
         @NotEmpty(message = "Vui lòng chọn ít nhất một dịch vụ cho thú cưng")
-        List<@Valid CreateBookingPetServiceRequest> services
+        List<@Valid CreateBookingPetServiceRequest> services,
+
+        /** Danh sách thức ăn mang theo (bảng pet_food_brought). Có thể null hoặc rỗng. */
+        List<@Valid PetFoodBroughtItemRequest> foodItems
 ) {
 }
 

@@ -15,3 +15,11 @@ export const PET_TYPES = [
     { value: "cat", label: "Mèo" },
     { value: "other", label: "Khác" },
 ] as const;
+
+/** Loại thức ăn mang theo (map sang PetFoodBrought.foodBroughtType) */
+export const FOOD_TYPE_OPTIONS = [
+    { value: "hat", label: "Hạt" },
+    { value: "sup_thuong", label: "Súp thưởng" },
+    { value: "pate", label: "Pate" },
+    { value: "khac", label: "Khác" },
+] as const;

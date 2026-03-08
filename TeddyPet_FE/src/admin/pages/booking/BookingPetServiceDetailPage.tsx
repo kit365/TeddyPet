@@ -8,10 +8,30 @@ import {
   Stack,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { prefixAdmin } from "../../constants/routes";
-import { getBookingById } from "./mockBookingData";
+import {
+  getAdminBookingPetServiceDetail,
+  addAdminChargeItem,
+  approveAdminChargeItem,
+  type AddChargeItemRequest,
+} from "../../api/booking.api";
+import { getServices } from "../../api/service.api";
+import type { IService } from "../service/configs/types";
 import type { BookingPetServiceResponse } from "../../../types/booking.type";
 
 const formatCurrency = (v: number) =>
@@ -43,26 +63,51 @@ export const BookingPetServiceDetailPage = () => {
   const [petName, setPetName] = useState<string>("");
   const [bookingCode, setBookingCode] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [addChargeOpen, setAddChargeOpen] = useState(false);
+  const [approveItemId, setApproveItemId] = useState<number | null>(null);
+  const [chargeForm, setChargeForm] = useState<AddChargeItemRequest>({
+    itemServiceId: 0,
+    chargeReason: "",
+    chargeEvidence: "",
+    chargedBy: "",
+  });
+  const [approveName, setApproveName] = useState("");
+  const [chargeSubmitting, setChargeSubmitting] = useState(false);
+  const [servicesList, setServicesList] = useState<IService[]>([]);
+
+  const fetchService = async () => {
+    if (!id || !petId || !serviceId) return;
+    setLoading(true);
+    try {
+      const res = await getAdminBookingPetServiceDetail(id, petId, serviceId);
+      const data = res.data;
+      if (data) {
+        setService(data);
+        const petsRes = await import("../../api/booking.api").then((m) => m.getAdminBookingPets(id));
+        const pets = petsRes.data ?? [];
+        const pet = pets.find((p) => String(p.id) === petId);
+        if (pet) setPetName(pet.petName ?? "");
+        const bookingRes = await import("../../api/booking.api").then((m) => m.getAdminBookingDetail(id));
+        setBookingCode(bookingRes.data?.bookingCode ?? "");
+      } else setService(null);
+    } catch {
+      setService(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (id && petId && serviceId) {
-      const b = getBookingById(id);
-      if (b) {
-        setBookingCode(b.bookingCode);
-        const p = b.pets?.find((x) => String(x.id) === petId);
-        if (p) {
-          setPetName(p.petName);
-          const s = p.services?.find((x) => String(x.id) === serviceId);
-          setService(s ?? null);
-        } else {
-          setService(null);
-        }
-      } else {
-        setService(null);
-      }
-    }
-    setLoading(false);
+    fetchService();
   }, [id, petId, serviceId]);
+
+  useEffect(() => {
+    getServices()
+      .then((r) => setServicesList(r.data ?? []))
+      .catch(() => setServicesList([]));
+  }, []);
+
+  const chargeServices = servicesList.filter((s) => s.isAdditionalCharge === true);
 
   if (loading) {
     return (
@@ -176,13 +221,15 @@ export const BookingPetServiceDetailPage = () => {
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
               <Box>
-                <InfoRow label="Check-in" value={formatDate(service.checkInDate)} />
-                <InfoRow label="Check-out" value={formatDate(service.checkoutDate)} />
+                <InfoRow label="Check-in dự kiến" value={formatDate(service.estimatedCheckInDate)} />
+                <InfoRow label="Check-out dự kiến" value={formatDate(service.estimatedCheckOutDate)} />
                 <InfoRow label="Số đêm" value={service.numberOfNights} />
                 <InfoRow label="Bắt đầu dự kiến" value={formatDateTime(service.scheduledStartTime)} />
                 <InfoRow label="Kết thúc dự kiến" value={formatDateTime(service.scheduledEndTime)} />
               </Box>
               <Box>
+                <InfoRow label="Check-in thực tế" value={formatDate(service.actualCheckInDate)} />
+                <InfoRow label="Check-out thực tế" value={formatDate(service.actualCheckOutDate)} />
                 <InfoRow label="Bắt đầu thực tế" value={formatDateTime(service.actualStartTime)} />
                 <InfoRow label="Kết thúc thực tế" value={formatDateTime(service.actualEndTime)} />
               </Box>
@@ -247,8 +294,211 @@ export const BookingPetServiceDetailPage = () => {
             <InfoRow label="Đánh giá khách" value={service.customerRating} />
             <InfoRow label="Nhận xét khách" value={service.customerReview} />
           </Card>
+
+          {/* Card 6: Dịch vụ add-on / Additional charge */}
+          <Card
+            sx={{
+              p: 4,
+              borderRadius: "16px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+              border: "1px solid rgba(145, 158, 171, 0.12)",
+            }}
+          >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "#1C252E" }}>
+                Dịch vụ add-on / Additional charge
+              </Typography>
+              {chargeServices.length > 0 && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => {
+                    setChargeForm({
+                      itemServiceId: chargeServices[0]?.serviceId ?? 0,
+                      chargeReason: "",
+                      chargeEvidence: "",
+                      chargedBy: "",
+                    });
+                    setAddChargeOpen(true);
+                  }}
+                  sx={{ bgcolor: "#00A76F", "&:hover": { bgcolor: "#007B55" } }}
+                >
+                  Thêm additional charge
+                </Button>
+              )}
+            </Box>
+            {(!service.items || service.items.length === 0) && (
+              <Typography sx={{ color: "text.secondary", fontSize: "1.4rem" }}>
+                Chưa có dịch vụ add-on hoặc additional charge.
+              </Typography>
+            )}
+            {service.items && service.items.length > 0 && (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Dịch vụ</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Loại</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Lý do charge</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Charge bởi</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Khách xác nhận</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Thao tác</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {service.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.itemServiceName ?? `#${item.itemServiceId}`}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={item.itemType}
+                          size="small"
+                          color={item.itemType === "CHARGE" ? "warning" : "default"}
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </TableCell>
+                      <TableCell>{item.chargeReason ?? "—"}</TableCell>
+                      <TableCell>{item.chargedBy ?? "—"}</TableCell>
+                      <TableCell>
+                        {item.chargeApprovedBy ? (
+                          <>
+                            {item.chargeApprovedBy}
+                            {item.chargeApprovedAt && (
+                              <Typography variant="caption" display="block" sx={{ color: "text.secondary" }}>
+                                {formatDateTime(item.chargeApprovedAt)}
+                              </Typography>
+                            )}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.itemType === "CHARGE" && !item.chargeApprovedAt && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => {
+                              setApproveItemId(item.id);
+                              setApproveName("");
+                            }}
+                          >
+                            Xác nhận khách đồng ý
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
         </Stack>
       </Box>
+
+      {/* Modal: Thêm additional charge */}
+      <Dialog open={addChargeOpen} onClose={() => setAddChargeOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Thêm additional charge</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              select
+              label="Dịch vụ charge"
+              required
+              fullWidth
+              value={chargeForm.itemServiceId || ""}
+              onChange={(e) => setChargeForm((p) => ({ ...p, itemServiceId: Number(e.target.value) }))}
+            >
+              {chargeServices.map((s) => (
+                <MenuItem key={s.serviceId} value={s.serviceId}>
+                  {s.serviceName}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Lý do charge"
+              fullWidth
+              multiline
+              rows={2}
+              value={chargeForm.chargeReason ?? ""}
+              onChange={(e) => setChargeForm((p) => ({ ...p, chargeReason: e.target.value }))}
+            />
+            <TextField
+              label="Bằng chứng (link ảnh/video, không bắt buộc)"
+              fullWidth
+              value={chargeForm.chargeEvidence ?? ""}
+              onChange={(e) => setChargeForm((p) => ({ ...p, chargeEvidence: e.target.value }))}
+            />
+            <TextField
+              label="Charge bởi (tên nhân viên)"
+              required
+              fullWidth
+              value={chargeForm.chargedBy ?? ""}
+              onChange={(e) => setChargeForm((p) => ({ ...p, chargedBy: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddChargeOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={chargeSubmitting || !chargeForm.chargedBy?.trim() || !chargeForm.itemServiceId}
+            onClick={async () => {
+              if (!id || !petId || !serviceId) return;
+              setChargeSubmitting(true);
+              try {
+                await addAdminChargeItem(id, petId, serviceId, {
+                  itemServiceId: chargeForm.itemServiceId,
+                  chargeReason: chargeForm.chargeReason?.trim() || null,
+                  chargeEvidence: chargeForm.chargeEvidence?.trim() || null,
+                  chargedBy: chargeForm.chargedBy!.trim(),
+                });
+                setAddChargeOpen(false);
+                fetchService();
+              } finally {
+                setChargeSubmitting(false);
+              }
+            }}
+          >
+            Thêm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Xác nhận khách đồng ý */}
+      <Dialog open={approveItemId != null} onClose={() => setApproveItemId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Xác nhận khách hàng đồng ý charge</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Tên khách hàng xác nhận"
+            required
+            fullWidth
+            value={approveName}
+            onChange={(e) => setApproveName(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApproveItemId(null)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={!approveName.trim()}
+            onClick={async () => {
+              if (!id || !petId || !serviceId || approveItemId == null) return;
+              try {
+                await approveAdminChargeItem(id, petId, serviceId, approveItemId, {
+                  chargeApprovedBy: approveName.trim(),
+                });
+                setApproveItemId(null);
+                setApproveName("");
+                fetchService();
+              } catch {}
+            }}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

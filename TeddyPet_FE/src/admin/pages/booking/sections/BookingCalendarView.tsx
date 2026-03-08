@@ -32,7 +32,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { prefixAdmin } from "../../../constants/routes";
-import { MOCK_BOOKINGS } from "../mockBookingData";
+import { getAdminBookings } from "../../../api/booking.api";
+import { useQuery } from "@tanstack/react-query";
 
 dayjs.locale("vi");
 
@@ -52,26 +53,45 @@ export const BookingCalendarView = () => {
   const calendarRef = useRef<FullCalendar>(null);
   const navigate = useNavigate();
   const [view, setView] = useState("dayGridMonth");
-  const [date, setDate] = useState(new Date("2025-02-10"));
+  const [date, setDate] = useState(new Date());
   const [openFilters, setOpenFilters] = useState(false);
   const [openEventDialog, setOpenEventDialog] = useState(false);
   const [startDateFilter, setStartDateFilter] = useState<Dayjs | null>(null);
   const [endDateFilter, setEndDateFilter] = useState<Dayjs | null>(null);
 
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["admin-bookings"],
+    queryFn: getAdminBookings,
+    select: (res) => {
+      const list = res?.data;
+      if (!Array.isArray(list)) return [];
+      return list.map((b: Record<string, unknown>) => ({
+        id: String(b.id ?? ""),
+        bookingCode: String(b.bookingCode ?? ""),
+        customerName: String(b.customerName ?? ""),
+        status: String(b.status ?? ""),
+        bookingStartDate: b.bookingStartDate != null ? String(b.bookingStartDate) : "",
+        bookingEndDate: b.bookingEndDate != null ? String(b.bookingEndDate) : undefined,
+      }));
+    },
+  });
+
   const allEvents = useMemo(() => {
-    return MOCK_BOOKINGS.map((b) => {
+    return bookings.map((b) => {
       const statusColor = STATUS_COLORS[b.status] ?? "#637381";
+      const start = b.bookingStartDate || null;
+      const end = b.bookingEndDate || start;
       return {
         id: b.id,
         title: `${b.bookingCode} - ${b.customerName}`,
-        start: b.bookingStartDate,
-        end: b.bookingEndDate || undefined,
+        start: start ?? undefined,
+        end: end ?? undefined,
         color: statusColor,
         textColor: "#fff",
         backgroundColor: statusColor,
       };
     });
-  }, []);
+  }, [bookings]);
 
   const events = useMemo(() => {
     if (!startDateFilter && !endDateFilter) return allEvents;
