@@ -39,8 +39,6 @@ public record StaffProfileRequest(
         @Size(max = 150)
         String bankName,
 
-        LocalDate hireDate,
-
         Long positionId,
 
         EmploymentTypeEnum employmentType

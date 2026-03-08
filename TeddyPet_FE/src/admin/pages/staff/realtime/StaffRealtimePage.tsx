@@ -1,21 +1,26 @@
 import { useState } from 'react';
-import { Box, Button, Stack, Card, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Box, Button, Stack, Card, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Avatar, Typography, Divider } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useStaffProfiles } from '../hooks/useStaffProfile';
 import { useRealtimeStatus, useSetRealtimeAvailable, useSetRealtimeBusy, useSetRealtimeOffline, useSetRealtimeOnBreak } from '../hooks/useStaffRealtime';
 import { toast } from 'react-toastify';
+import type { IStaffProfile } from '../../../api/staffProfile.api';
 
 const STATUS_LABELS: Record<string, string> = { OFFLINE: 'Offline', AVAILABLE: 'Sẵn sàng', BUSY: 'Bận', ON_BREAK: 'Nghỉ' };
 
 const StaffStatusCard = ({
     staffId,
     fullName,
+    avatarUrl,
     onOpenBusyDialog,
+    onOpenProfileDetail,
 }: {
     staffId: number;
     fullName: string;
+    avatarUrl?: string | null;
     onOpenBusyDialog: (staffId: number, fullName: string) => void;
+    onOpenProfileDetail: (staffId: number) => void;
 }) => {
     const { data: res } = useRealtimeStatus(staffId);
     const statusData = (res as any)?.data;
@@ -27,16 +32,39 @@ const StaffStatusCard = ({
     const lastUpdated = statusData?.lastUpdated ? new Date(statusData.lastUpdated).toLocaleString('vi-VN') : '—';
 
     return (
-        <Card sx={{ p: 2, minWidth: 260 }}>
-            <Box sx={{ fontWeight: 600, mb: 1 }}>{fullName} (ID: {staffId})</Box>
-            <Box sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 2 }}>
+        <Card sx={{ p: 2.25, minWidth: 280, borderRadius: 2 }}>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
+                <Avatar
+                    src={avatarUrl ?? undefined}
+                    alt={fullName}
+                    sx={{ width: 44, height: 44, cursor: 'pointer', bgcolor: 'primary.light' }}
+                    onClick={() => onOpenProfileDetail(staffId)}
+                >
+                    {fullName?.charAt(0) ?? '?'}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }} noWrap>
+                        {fullName}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>ID: {staffId}</Typography>
+                </Box>
+            </Stack>
+            <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', mb: 1.5 }}>
                 Trạng thái: {STATUS_LABELS[status] ?? status} · Cập nhật: {lastUpdated}
-            </Box>
+            </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Button size="small" variant={status === 'AVAILABLE' ? 'contained' : 'outlined'} onClick={() => setAvailable(staffId)}>Sẵn sàng</Button>
-                <Button size="small" variant={status === 'BUSY' ? 'contained' : 'outlined'} color="warning" onClick={() => onOpenBusyDialog(staffId, fullName)}>Bận</Button>
-                <Button size="small" variant={status === 'ON_BREAK' ? 'contained' : 'outlined'} onClick={() => setOnBreak(staffId)}>Nghỉ</Button>
-                <Button size="small" variant={status === 'OFFLINE' ? 'contained' : 'outlined'} onClick={() => setOffline(staffId)}>Offline</Button>
+                <Button size="small" variant={status === 'AVAILABLE' ? 'contained' : 'outlined'} onClick={() => setAvailable(staffId)}>
+                    Sẵn sàng
+                </Button>
+                <Button size="small" variant={status === 'BUSY' ? 'contained' : 'outlined'} color="warning" onClick={() => onOpenBusyDialog(staffId, fullName)}>
+                    Bận
+                </Button>
+                <Button size="small" variant={status === 'ON_BREAK' ? 'contained' : 'outlined'} onClick={() => setOnBreak(staffId)}>
+                    Nghỉ
+                </Button>
+                <Button size="small" variant={status === 'OFFLINE' ? 'contained' : 'outlined'} onClick={() => setOffline(staffId)}>
+                    Offline
+                </Button>
             </Stack>
         </Card>
     );
@@ -47,10 +75,18 @@ export const StaffRealtimePage = () => {
     const [busyDialog, setBusyDialog] = useState<{ staffId: number; fullName: string } | null>(null);
     const [bookingId, setBookingId] = useState('');
     const { mutate: setBusy, isPending: settingBusy } = useSetRealtimeBusy();
+    const [selectedProfile, setSelectedProfile] = useState<IStaffProfile | null>(null);
 
     const handleOpenBusyDialog = (staffId: number, fullName: string) => {
         setBusyDialog({ staffId, fullName });
         setBookingId('');
+    };
+
+    const handleOpenProfileDetail = (staffId: number) => {
+        const profile = (profiles as IStaffProfile[]).find((p) => p.staffId === staffId);
+        if (profile) {
+            setSelectedProfile(profile);
+        }
     };
 
     const handleConfirmBusy = () => {
@@ -88,7 +124,20 @@ export const StaffRealtimePage = () => {
                 ]}
             />
             <Box sx={{ px: '40px', display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                {isLoading ? <span>Đang tải...</span> : profiles.map((p) => <StaffStatusCard key={p.staffId} staffId={p.staffId} fullName={p.fullName} onOpenBusyDialog={handleOpenBusyDialog} />)}
+                {isLoading ? (
+                    <span>Đang tải...</span>
+                ) : (
+                    (profiles as IStaffProfile[]).map((p) => (
+                        <StaffStatusCard
+                            key={p.staffId}
+                            staffId={p.staffId}
+                            fullName={p.fullName}
+                            avatarUrl={p.avatarUrl}
+                            onOpenBusyDialog={handleOpenBusyDialog}
+                            onOpenProfileDetail={handleOpenProfileDetail}
+                        />
+                    ))
+                )}
                 {!isLoading && profiles.length === 0 && <span>Chưa có nhân viên</span>}
             </Box>
 
@@ -115,6 +164,94 @@ export const StaffRealtimePage = () => {
                     <Button variant="contained" color="warning" onClick={handleConfirmBusy} disabled={settingBusy || !bookingId.trim()}>
                         Đánh dấu Bận
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={!!selectedProfile} onClose={() => setSelectedProfile(null)} maxWidth="sm" fullWidth>
+                <DialogTitle>Thông tin nhân viên</DialogTitle>
+                <DialogContent dividers>
+                    {selectedProfile && (
+                        <Box sx={{ pt: 1 }}>
+                            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                                <Avatar
+                                    src={selectedProfile.avatarUrl ?? undefined}
+                                    alt={selectedProfile.fullName}
+                                    sx={{ width: 56, height: 56, bgcolor: 'primary.light' }}
+                                >
+                                    {selectedProfile.fullName?.charAt(0) ?? '?'}
+                                </Avatar>
+                                <Box>
+                                    <Typography sx={{ fontWeight: 700, fontSize: '1rem' }}>{selectedProfile.fullName}</Typography>
+                                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                                        ID: {selectedProfile.staffId}
+                                        {selectedProfile.positionName ? ` · ${selectedProfile.positionName}` : ''}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                            <Divider sx={{ mb: 2 }} />
+                            <Stack spacing={1.2} sx={{ fontSize: '0.875rem' }}>
+                                {selectedProfile.employmentType && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Loại nhân viên:
+                                        </Typography>{' '}
+                                        {selectedProfile.employmentType === 'FULL_TIME' ? 'Full-time' : 'Part-time'}
+                                    </Box>
+                                )}
+                                {selectedProfile.email && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Email:
+                                        </Typography>{' '}
+                                        {selectedProfile.email}
+                                    </Box>
+                                )}
+                                {selectedProfile.phoneNumber && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Số điện thoại:
+                                        </Typography>{' '}
+                                        {selectedProfile.phoneNumber}
+                                    </Box>
+                                )}
+                                {selectedProfile.address && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Địa chỉ:
+                                        </Typography>{' '}
+                                        {selectedProfile.address}
+                                    </Box>
+                                )}
+                                {selectedProfile.bankAccountNo && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Số tài khoản:
+                                        </Typography>{' '}
+                                        {selectedProfile.bankAccountNo}
+                                    </Box>
+                                )}
+                                {selectedProfile.bankName && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            Ngân hàng:
+                                        </Typography>{' '}
+                                        {selectedProfile.bankName}
+                                    </Box>
+                                )}
+                                {selectedProfile.citizenId && (
+                                    <Box>
+                                        <Typography component="span" sx={{ fontWeight: 600 }}>
+                                            CCCD:
+                                        </Typography>{' '}
+                                        {selectedProfile.citizenId}
+                                    </Box>
+                                )}
+                            </Stack>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSelectedProfile(null)}>Đóng</Button>
                 </DialogActions>
             </Dialog>
         </>

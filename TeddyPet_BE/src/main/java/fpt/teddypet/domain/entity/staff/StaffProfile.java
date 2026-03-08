@@ -89,9 +89,6 @@ public class StaffProfile extends BaseEntity {
     @Column(name = "bank_name", length = 150)
     private String bankName;
 
-    @Column(name = "hire_date")
-    private LocalDate hireDate;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private StaffPosition position;

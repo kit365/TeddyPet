@@ -10,4 +10,10 @@ import java.util.List;
 public interface RoomLayoutConfigRepository extends JpaRepository<RoomLayoutConfig, Long> {
 
     List<RoomLayoutConfig> findAllByOrderByIdAsc();
+
+    /**
+     * All layouts attached to a specific service, ordered by id ascending.
+     * Used by RoomLayoutPositionInitializer to pick the first layout for seeding positions.
+     */
+    List<RoomLayoutConfig> findByService_IdOrderByIdAsc(Long serviceId);
 }

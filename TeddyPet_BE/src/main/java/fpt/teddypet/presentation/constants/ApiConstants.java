@@ -89,6 +89,9 @@ public final class ApiConstants {
     // Admin Work Shifts API base path
     public static final String API_ADMIN_WORK_SHIFTS = BASE_API + "/admin/work-shifts";
 
+    // Admin lịch cố định Full-time (auto-fill ca)
+    public static final String API_ADMIN_STAFF_FIXED_SCHEDULES = BASE_API + "/admin/staff-fixed-schedules";
+
     // Shop / Schedule API base paths
     public static final String API_TIME_SLOT_EXCEPTIONS = BASE_API + "/time-slot-exceptions";
     public static final String API_SHOP_OPERATION_HOURS = BASE_API + "/shop-operation-hours";
@@ -106,5 +109,11 @@ public final class ApiConstants {
 
     // Pet profiles (user's pets - dashboard)
     public static final String API_PET_PROFILES = BASE_API + "/pet-profiles";
+
+    // Bookings (client + admin)
+    /** Public client booking APIs (tạo booking, tra cứu theo mã...) */
+    public static final String API_BOOKINGS = BASE_API + "/bookings";
+    /** Admin booking management APIs */
+    public static final String API_ADMIN_BOOKINGS = BASE_API + "/admin/bookings";
 
 }

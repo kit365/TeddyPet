@@ -27,7 +27,6 @@ export interface IStaffProfile {
     address?: string | null;
     bankAccountNo?: string | null;
     bankName?: string | null;
-    hireDate?: string | null;
     positionId?: number | null;
     positionCode?: string | null;
     positionName?: string | null;
@@ -47,7 +46,6 @@ export interface IStaffOnboardingRequest {
     address?: string | null;
     bankAccountNo?: string | null;
     bankName?: string | null;
-    hireDate?: string | null;
     positionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
 }
@@ -64,7 +62,6 @@ export interface IStaffProfileUpdateRequest {
     address?: string | null;
     bankAccountNo?: string | null;
     bankName?: string | null;
-    hireDate?: string | null;
     positionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
 }
@@ -82,6 +79,12 @@ export const getStaffProfiles = async (): Promise<ApiResponse<IStaffProfile[]>> 
 
 export const getStaffProfileById = async (id: string | number): Promise<ApiResponse<IStaffProfile>> => {
     const res = await apiApp.get(`${BASE}/${id}`, withAuth());
+    return res.data;
+};
+
+/** Lấy hồ sơ nhân viên của user đang đăng nhập (work_type, positionId cho trang Đăng ký ca) */
+export const getMyStaffProfile = async (): Promise<ApiResponse<IStaffProfile>> => {
+    const res = await apiApp.get(`${BASE}/me`, withAuth());
     return res.data;
 };
 

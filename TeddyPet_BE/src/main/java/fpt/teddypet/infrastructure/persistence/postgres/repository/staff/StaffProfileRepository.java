@@ -1,8 +1,10 @@
 package fpt.teddypet.infrastructure.persistence.postgres.repository.staff;
 
 import fpt.teddypet.domain.entity.staff.StaffProfile;
+import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +16,9 @@ public interface StaffProfileRepository extends JpaRepository<StaffProfile, Long
 
     @Query("SELECT s FROM StaffProfile s WHERE s.isDeleted = false AND s.isActive = true")
     List<StaffProfile> findAllActive();
+
+    @Query("SELECT s FROM StaffProfile s WHERE s.isDeleted = false AND s.isActive = true AND s.position.id = :positionId AND s.employmentType = :employmentType ORDER BY s.id")
+    List<StaffProfile> findAllActiveByPositionIdAndEmploymentType(@Param("positionId") Long positionId, @Param("employmentType") EmploymentTypeEnum employmentType);
 
     boolean existsByEmail(String email);
 
