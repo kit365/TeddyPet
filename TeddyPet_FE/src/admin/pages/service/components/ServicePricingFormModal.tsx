@@ -1,4 +1,5 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Box, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText } from '@mui/material';
+import type { IRoomType } from '../../../api/room.api';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { servicePricingUpsertSchema, type ServicePricingUpsertFormValues } from '../../../schemas/service-pricing.schema';
@@ -11,12 +12,14 @@ type Props = {
     open: boolean;
     onClose: () => void;
     serviceId: number;
+    isRequiredRoom?: boolean;
+    roomTypes?: IRoomType[];
     editingRule: IServicePricing | null;
     onSubmit: (data: ServicePricingUpsertFormValues) => void;
     isPending?: boolean;
 };
 
-export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule, onSubmit, isPending }: Props) => {
+export const ServicePricingFormModal = ({ open, onClose, serviceId, isRequiredRoom, roomTypes = [], editingRule, onSubmit, isPending }: Props) => {
     const { data: petTypes = [] } = usePetTypes();
     const { control, handleSubmit, reset } = useForm<ServicePricingUpsertFormValues>({
         resolver: zodResolver(servicePricingUpsertSchema),
@@ -25,6 +28,7 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule,
             pricingName: '',
             price: 0,
             suitablePetTypes: [],
+            roomTypeId: null as number | null | undefined,
             weekendMultiplier: null,
             peakSeasonMultiplier: null,
             holidayMultiplier: null,
@@ -57,6 +61,7 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule,
                 effectiveTo: editingRule.effectiveTo ? editingRule.effectiveTo.slice(0, 16) : '',
                 priority: editingRule.priority,
                 isActive: editingRule.isActive,
+                roomTypeId: editingRule.roomTypeId ?? null,
             });
         } else {
             reset({
@@ -73,6 +78,7 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule,
                 effectiveTo: '',
                 priority: 0,
                 isActive: true,
+                roomTypeId: null,
             });
         }
     };
@@ -90,6 +96,32 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, editingRule,
                                 <TextField {...field} label="Tên quy tắc" error={!!fieldState.error} helperText={fieldState.error?.message} fullWidth />
                             )}
                         />
+                        {isRequiredRoom && roomTypes.length > 0 && (
+                            <Controller
+                                name="roomTypeId"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControl fullWidth>
+                                        <InputLabel id="pricing-room-type-label">Loại phòng</InputLabel>
+                                        <Select
+                                            labelId="pricing-room-type-label"
+                                            value={field.value ?? ''}
+                                            label="Loại phòng"
+                                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                            displayEmpty
+                                        >
+                                            <MenuItem value="">— Không chọn —</MenuItem>
+                                            {roomTypes.map((rt) => (
+                                                <MenuItem key={rt.roomTypeId} value={rt.roomTypeId}>
+                                                    {rt.displayTypeName ?? rt.typeName}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            />
+                        )}
                         <Controller
                             name="price"
                             control={control}

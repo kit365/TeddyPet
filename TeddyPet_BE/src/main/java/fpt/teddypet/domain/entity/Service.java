@@ -96,6 +96,10 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Boolean isAddon = false;
 
+    @Column(name = "is_additional_charge", nullable = false)
+    @Builder.Default
+    private Boolean isAdditionalCharge = false;
+
     @Column(name = "is_critical", nullable = false)
     @Builder.Default
     private Boolean isCritical = false;

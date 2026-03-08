@@ -24,6 +24,8 @@ public record ServicePricingUpsertRequest(
         LocalDateTime effectiveTo,
         @NotNull
         Integer priority,
-        Boolean isActive
+        Boolean isActive,
+        /** Loại phòng (chỉ dùng khi service.isRequiredRoom=true) */
+        Long roomTypeId
 ) {
 }

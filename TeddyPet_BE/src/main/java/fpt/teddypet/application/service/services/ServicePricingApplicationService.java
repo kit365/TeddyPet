@@ -8,6 +8,7 @@ import fpt.teddypet.application.mapper.services.ServicePricingMapper;
 import fpt.teddypet.application.port.input.services.ServicePricingService;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
+import fpt.teddypet.application.port.output.room.RoomTypeRepositoryPort;
 import fpt.teddypet.domain.entity.ServicePricing;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ServicePricingApplicationService implements ServicePricingService {
 
     private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final ServiceRepositoryPort serviceRepositoryPort;
+    private final RoomTypeRepositoryPort roomTypeRepositoryPort;
     private final ServicePricingMapper servicePricingMapper;
 
     @Override
@@ -48,6 +50,14 @@ public class ServicePricingApplicationService implements ServicePricingService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ServicePricingMessages.MESSAGE_SERVICE_NOT_FOUND_FOR_PRICING, request.serviceId())));
         entity.setService(service);
+
+        if (request.roomTypeId() != null) {
+            entity.setRoomType(roomTypeRepositoryPort.findById(request.roomTypeId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Không tìm thấy loại phòng với id: " + request.roomTypeId())));
+        } else {
+            entity.setRoomType(null);
+        }
 
         if (request.priority() != null) {
             entity.setPriority(request.priority());

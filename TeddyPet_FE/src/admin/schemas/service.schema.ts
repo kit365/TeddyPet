@@ -27,6 +27,7 @@ export const serviceUpsertSchema = z.object({
     displayOrder: z.coerce.number().optional(),
     isPopular: z.boolean().optional(),
     isAddon: z.boolean().optional(),
+    isAdditionalCharge: z.boolean().optional(),
     isCritical: z.boolean().optional(),
     addonType: z.string().max(50).optional(),
     metaTitle: z.string().max(255).optional(),

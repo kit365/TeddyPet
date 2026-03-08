@@ -24,6 +24,10 @@ public class ServicePricing extends BaseEntity {
     @JoinColumn(name = "service_id", nullable = false)
     private Service service;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id")
+    private RoomType roomType;
+
     @Column(name = "suitable_pet_types", columnDefinition = "TEXT")
     private String suitablePetTypes;
 
