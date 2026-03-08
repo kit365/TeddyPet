@@ -36,6 +36,14 @@ public class RoomRepositoryAdapter implements RoomRepositoryPort {
     }
 
     @Override
+    public List<Room> findByRoomLayoutConfigId(Long roomLayoutConfigId) {
+        if (roomLayoutConfigId == null) {
+            return List.of();
+        }
+        return roomRepository.findByRoomLayoutConfig_IdAndIsActiveTrueAndIsDeletedFalseOrderByGridRowAscGridColAsc(roomLayoutConfigId);
+    }
+
+    @Override
     public boolean existsByRoomNumberAndRoomTypeId(String roomNumber, Long roomTypeId) {
         return roomRepository.existsByRoomNumberAndRoomType_Id(roomNumber, roomTypeId);
     }

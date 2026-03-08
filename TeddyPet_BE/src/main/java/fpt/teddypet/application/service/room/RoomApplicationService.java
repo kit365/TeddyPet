@@ -72,9 +72,19 @@ public class RoomApplicationService implements RoomService {
 
     @Override
     public List<RoomResponse> getAll(Long roomTypeId) {
-        List<Room> list = roomTypeId != null
-                ? roomRepositoryPort.findByRoomTypeId(roomTypeId)
-                : roomRepositoryPort.findAllActive();
+        return getAll(roomTypeId, null);
+    }
+
+    @Override
+    public List<RoomResponse> getAll(Long roomTypeId, Long roomLayoutConfigId) {
+        List<Room> list;
+        if (roomLayoutConfigId != null) {
+            list = roomRepositoryPort.findByRoomLayoutConfigId(roomLayoutConfigId);
+        } else if (roomTypeId != null) {
+            list = roomRepositoryPort.findByRoomTypeId(roomTypeId);
+        } else {
+            list = roomRepositoryPort.findAllActive();
+        }
         return list.stream().map(roomMapper::toResponse).toList();
     }
 
