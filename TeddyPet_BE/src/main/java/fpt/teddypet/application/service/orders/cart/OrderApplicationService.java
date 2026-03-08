@@ -357,6 +357,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getByIdResponse(UUID orderId) {
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_ID, orderId);
         Order order = getById(orderId);
@@ -364,6 +365,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getByOrderCodeResponse(String orderCode) {
         log.info(OrderLogMessages.LOG_ORDER_GET_BY_CODE, orderCode);
         Order order = getByOrderCode(orderCode);
@@ -371,16 +373,19 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getById(UUID orderId) {
         return orderRepositoryPort.findById(orderId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getByOrderCode(String orderCode) {
         return orderRepositoryPort.findByOrderCode(orderCode);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getAllOrders(OrderSearchRequest request) {
         Pageable pageable = buildPageable(request);
         Page<Order> orders = orderRepositoryPort.findAll(pageable);
@@ -389,6 +394,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getOrdersByStatus(OrderStatusEnum status, OrderSearchRequest request) {
         Pageable pageable = buildPageable(request);
         Page<Order> orders = orderRepositoryPort.findByStatus(status, pageable);
@@ -396,6 +402,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<OrderResponse> searchOrders(OrderSearchRequest request) {
         Pageable pageable = buildPageable(request);
         String keyword = request.keyword() != null ? request.keyword() : "";
@@ -404,6 +411,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getMyOrders(OrderSearchRequest request) {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         Pageable pageable = buildPageable(request);
@@ -413,6 +421,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<OrderResponse> getMyOrdersList() {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         List<Order> orders = orderRepositoryPort.findByUserId(currentUserId);
@@ -423,6 +432,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getMyOrderById(UUID orderId) {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         Order order = getById(orderId);
@@ -431,6 +441,7 @@ public class OrderApplicationService implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getMyOrderByCode(String orderCode) {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         Order order = getByOrderCode(orderCode);

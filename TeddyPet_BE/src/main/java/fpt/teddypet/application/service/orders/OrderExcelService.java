@@ -43,7 +43,7 @@ public class OrderExcelService {
 
     @Transactional(readOnly = true)
     public void exportOrdersToExcel(HttpServletResponse response) throws IOException {
-        List<Order> orders = orderRepository.findAll();
+        List<Order> orders = orderRepository.findAllForExcelExport();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Đơn hàng");
