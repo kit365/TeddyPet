@@ -31,6 +31,7 @@ public record ServiceResponse(
         Integer displayOrder,
         Boolean isPopular,
         Boolean isAddon,
+        Boolean isAdditionalCharge,
         Boolean isCritical,
         String addonType,
         String metaTitle,

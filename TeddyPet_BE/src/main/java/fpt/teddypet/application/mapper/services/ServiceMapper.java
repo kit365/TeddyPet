@@ -42,6 +42,7 @@ public interface ServiceMapper {
     @Mapping(target = "displayOrder", defaultExpression = "java(0)")
     @Mapping(target = "isPopular", defaultExpression = "java(false)")
     @Mapping(target = "isAddon", defaultExpression = "java(false)")
+    @Mapping(target = "isAdditionalCharge", defaultExpression = "java(false)")
     @Mapping(target = "isCritical", defaultExpression = "java(false)")
     @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)

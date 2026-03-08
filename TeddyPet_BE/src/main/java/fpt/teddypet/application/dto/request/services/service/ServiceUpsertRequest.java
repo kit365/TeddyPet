@@ -37,6 +37,7 @@ public record ServiceUpsertRequest(
         Integer displayOrder,
         Boolean isPopular,
         Boolean isAddon,
+        Boolean isAdditionalCharge,
         Boolean isCritical,
         @Size(max = 50)
         String addonType,

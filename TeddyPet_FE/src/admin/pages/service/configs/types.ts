@@ -45,6 +45,7 @@ export interface IService {
     displayOrder?: number;
     isPopular?: boolean;
     isAddon?: boolean;
+    isAdditionalCharge?: boolean;
     isCritical?: boolean;
     addonType?: string;
     metaTitle?: string;
@@ -103,6 +104,8 @@ export interface IServicePricing {
     effectiveFrom?: string;
     effectiveTo?: string;
     priority: number;
+    roomTypeId?: number | null;
+    roomTypeName?: string | null;
     isActive: boolean;
     isDeleted?: boolean;
     createdAt?: string;

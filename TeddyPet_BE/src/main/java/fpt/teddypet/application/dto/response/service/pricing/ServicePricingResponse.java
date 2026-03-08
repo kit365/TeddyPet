@@ -19,6 +19,8 @@ public record ServicePricingResponse(
         LocalDateTime effectiveFrom,
         LocalDateTime effectiveTo,
         Integer priority,
+        Long roomTypeId,
+        String roomTypeName,
         @JsonProperty("isActive")
         boolean isActive,
         boolean isDeleted,

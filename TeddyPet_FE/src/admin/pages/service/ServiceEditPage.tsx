@@ -19,6 +19,7 @@ import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFi
 import { FormUploadMultiFile } from '../../components/upload/FormUploadMultiFile';
 import { toast } from 'react-toastify';
 import { useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ServicePricingFormModal } from './components/ServicePricingFormModal';
 import type { IServicePricing } from './configs/types';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -53,6 +54,8 @@ export const ServiceEditPage = () => {
     const { data: petTypes = [] } = usePetTypes();
     const { data: pricings = [] } = useServicePricings(serviceId);
     const { data: roomTypes = [] } = useRoomTypes();
+    const { data: roomTypesForService = [] } = useRoomTypes(detailRes?.data?.isRequiredRoom ? serviceId : null);
+    const queryClient = useQueryClient();
     const { mutate: update, isPending } = useUpdateService();
     const { mutate: createPricing, isPending: isPricingCreating } = useCreateServicePricing();
     const { mutate: updatePricing, isPending: isPricingUpdating } = useUpdateServicePricing();
@@ -68,6 +71,7 @@ export const ServiceEditPage = () => {
             isActive: true,
             isPopular: false,
             isAddon: false,
+            isAdditionalCharge: false,
             isCritical: false,
             requiresVaccination: false,
         },
@@ -112,6 +116,7 @@ export const ServiceEditPage = () => {
                 displayOrder: d.displayOrder ?? undefined,
                 isPopular: d.isPopular ?? undefined,
                 isAddon: d.isAddon ?? undefined,
+                isAdditionalCharge: d.isAdditionalCharge ?? undefined,
                 isCritical: d.isCritical ?? undefined,
                 addonType: d.addonType ?? '',
                 metaTitle: d.metaTitle ?? '',
@@ -145,6 +150,7 @@ export const ServiceEditPage = () => {
             displayOrder: data.displayOrder ?? null,
             isPopular: data.isPopular ?? null,
             isAddon: data.isAddon ?? null,
+            isAdditionalCharge: data.isAdditionalCharge ?? null,
             isCritical: data.isCritical ?? null,
             addonType: data.isAddon ? (data.addonType || null) : null,
             metaTitle: data.metaTitle || null,
@@ -314,43 +320,8 @@ export const ServiceEditPage = () => {
                                     <FormUploadSingleFile name="imageURL" control={control} compact />
                                     <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
                                 </Box>
-                            </Stack>
-                        </CollapsibleCard>
-                        <CollapsibleCard title="Cài đặt thêm" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
-                            <Stack p="24px" gap="24px">
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                    <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú tối đa/lịch" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller
-                                        name="addonType"
-                                        control={control}
-                                        render={({ field }) => <TextField {...field} label="Addon type" fullWidth disabled={!isAddon} />}
-                                    />
-                                </Box>
 
-                                <Controller
-                                    name="requiredCertifications"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField {...field} label="Chứng chỉ yêu cầu (mỗi dòng 1 chứng chỉ)" multiline rows={3} fullWidth />
-                                    )}
-                                />
-
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                    <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
-                                    <Controller name="metaDescription" control={control} render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />} />
-                                </Box>
-
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                    <SwitchButton control={control} name="isActive" label="Hoạt động" />
-                                    <SwitchButton control={control} name="isPopular" label="Nổi bật" />
-                                    <SwitchButton control={control} name="isAddon" label="Dịch vụ add-on" />
-                                    <SwitchButton control={control} name="isCritical" label="Quan trọng" />
-                                    <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
+                                <Box sx={{ mt: 3 }}>
                                     <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                 </Box>
                                 {isRequiredRoom && (
@@ -432,6 +403,45 @@ export const ServiceEditPage = () => {
                                 )}
                             </Stack>
                         </CollapsibleCard>
+                        <CollapsibleCard title="Cài đặt thêm" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                    <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú tối đa/lịch" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller
+                                        name="addonType"
+                                        control={control}
+                                        render={({ field }) => <TextField {...field} label="Addon type" fullWidth disabled={!isAddon} />}
+                                    />
+                                </Box>
+
+                                <Controller
+                                    name="requiredCertifications"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField {...field} label="Chứng chỉ yêu cầu (mỗi dòng 1 chứng chỉ)" multiline rows={3} fullWidth />
+                                    )}
+                                />
+
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                    <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
+                                    <Controller name="metaDescription" control={control} render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />} />
+                                </Box>
+
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                    <SwitchButton control={control} name="isActive" label="Hoạt động" />
+                                    <SwitchButton control={control} name="isPopular" label="Nổi bật" />
+                                    <SwitchButton control={control} name="isAddon" label="Dịch vụ add-on" />
+                                    <SwitchButton control={control} name="isAdditionalCharge" label="Additional charge (nhân viên thêm)" />
+                                    <SwitchButton control={control} name="isCritical" label="Quan trọng" />
+                                    <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
+                                </Box>
+                            </Stack>
+                        </CollapsibleCard>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                             <Button
                                 type="submit"
@@ -487,6 +497,7 @@ export const ServiceEditPage = () => {
                                             <TableCell>Tên quy tắc</TableCell>
                                             <TableCell align="left">Giá (VNĐ)</TableCell>
                                             <TableCell align="left">Cân nặng (kg)</TableCell>
+                                            {detailRes?.data?.isRequiredRoom && <TableCell>Loại phòng</TableCell>}
                                             <TableCell>Loại thú phù hợp</TableCell>
                                             <TableCell>Hiệu lực (từ / đến)</TableCell>
                                             <TableCell align="left">Ưu tiên</TableCell>
@@ -497,7 +508,7 @@ export const ServiceEditPage = () => {
                                     <TableBody>
                                         {pricings.length === 0 ? (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
+                                                    <TableCell colSpan={detailRes?.data?.isRequiredRoom ? 9 : 8} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
                                                     Chưa có quy tắc giá. Nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>
@@ -511,6 +522,9 @@ export const ServiceEditPage = () => {
                                                             ? `${p.minWeight ?? '—'} - ${p.maxWeight ?? '—'}`
                                                             : '—'}
                                                     </TableCell>
+                                                    {detailRes?.data?.isRequiredRoom && (
+                                                        <TableCell>{p.roomTypeName ?? '—'}</TableCell>
+                                                    )}
                                                     <TableCell>
                                                         {p.suitablePetTypes
                                                             ? p.suitablePetTypes
@@ -553,6 +567,8 @@ export const ServiceEditPage = () => {
                 open={pricingModalOpen}
                 onClose={() => { setPricingModalOpen(false); setEditingPricing(null); }}
                 serviceId={serviceId}
+                isRequiredRoom={detailRes?.data?.isRequiredRoom ?? false}
+                roomTypes={roomTypesForService}
                 editingRule={editingPricing}
                 onSubmit={onPricingSubmit}
                 isPending={isPricingCreating || isPricingUpdating}

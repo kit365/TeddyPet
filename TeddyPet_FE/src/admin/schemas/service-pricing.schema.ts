@@ -15,6 +15,7 @@ export const servicePricingUpsertSchema = z.object({
     effectiveTo: z.string().optional(),
     priority: z.coerce.number({ required_error: 'Thứ tự ưu tiên là bắt buộc' }),
     isActive: z.boolean().default(true),
+    roomTypeId: z.number().optional().nullable(),
 });
 
 export type ServicePricingUpsertFormValues = z.infer<typeof servicePricingUpsertSchema>;

@@ -88,6 +88,7 @@ export const ServiceCreatePage = () => {
             isActive: true,
             isPopular: false,
             isAddon: false,
+            isAdditionalCharge: false,
             isCritical: false,
             isRequiredRoom: false,
             requiresVaccination: false,
@@ -549,6 +550,45 @@ export const ServiceCreatePage = () => {
                                     <FormUploadSingleFile name="imageURL" control={control} compact />
                                     <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
                                 </Box>
+
+                                <Box sx={{ mt: 3 }}>
+                                    <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
+                                </Box>
+                                {isRequiredRoom && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
+                                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Tên loại phòng</TableCell>
+                                                    <TableCell>Dịch vụ hiện tại</TableCell>
+                                                    <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {roomTypes.map((rt) => (
+                                                    <TableRow key={rt.roomTypeId}>
+                                                        <TableCell>{rt.typeName}</TableCell>
+                                                        <TableCell>{rt.serviceName ?? '—'}</TableCell>
+                                                        <TableCell padding="checkbox">
+                                                            <Checkbox
+                                                                checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
+                                                                onChange={(_, checked) => {
+                                                                    setSelectedRoomTypeIds((prev) =>
+                                                                        checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                        {roomTypes.length === 0 && (
+                                            <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                        )}
+                                    </Box>
+                                )}
                                 </Stack>
                             </CollapsibleCard>
 
@@ -597,45 +637,10 @@ export const ServiceCreatePage = () => {
                                         <SwitchButton control={control} name="isActive" label="Hoạt động" />
                                         <SwitchButton control={control} name="isPopular" label="Nổi bật" />
                                         <SwitchButton control={control} name="isAddon" label="Dịch vụ add-on" />
+                                        <SwitchButton control={control} name="isAdditionalCharge" label="Additional charge (nhân viên thêm)" />
                                         <SwitchButton control={control} name="isCritical" label="Quan trọng" />
                                         <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
-                                        <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                     </Box>
-                                    {isRequiredRoom && (
-                                        <Box sx={{ mt: 2 }}>
-                                            <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
-                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell>Tên loại phòng</TableCell>
-                                                        <TableCell>Dịch vụ hiện tại</TableCell>
-                                                        <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {roomTypes.map((rt) => (
-                                                        <TableRow key={rt.roomTypeId}>
-                                                            <TableCell>{rt.typeName}</TableCell>
-                                                            <TableCell>{rt.serviceName ?? '—'}</TableCell>
-                                                            <TableCell padding="checkbox">
-                                                                <Checkbox
-                                                                    checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
-                                                                    onChange={(_, checked) => {
-                                                                        setSelectedRoomTypeIds((prev) =>
-                                                                            checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                            {roomTypes.length === 0 && (
-                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
-                                            )}
-                                        </Box>
-                                    )}
                                 </Stack>
                             </CollapsibleCard>
 

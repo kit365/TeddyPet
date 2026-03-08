@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 import type { CategoryInfoMap } from '../configs/types';
 
 type Props = {
-    mode?: 'all' | 'addon' | 'non_addon';
+    mode?: 'all' | 'addon' | 'non_addon' | 'additional_charge';
     showAddonColumn?: boolean;
     categoryId?: number | null;
     hideCategoryColumn?: boolean;
@@ -39,7 +39,8 @@ export const ServiceList = ({ mode = 'all', showAddonColumn, categoryId = null, 
     const filtered = useMemo(() => {
         let list = services;
         if (mode === 'addon') list = list.filter((s) => !!s.isAddon);
-        else if (mode === 'non_addon') list = list.filter((s) => !s.isAddon);
+        else if (mode === 'non_addon') list = list.filter((s) => !s.isAddon && !s.isAdditionalCharge);
+        else if (mode === 'additional_charge') list = list.filter((s) => !!s.isAdditionalCharge);
         if (categoryId != null) list = list.filter((s) => s.serviceCategoryId === categoryId);
         return list;
     }, [services, mode, categoryId]);
