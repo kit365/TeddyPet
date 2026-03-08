@@ -93,8 +93,9 @@ export const menuManagementData = [
         id: "feedbacks",
         label: "Đánh giá",
         Icon: ForumIcon,
+        allowedRoles: ["ADMIN", "STAFF"],
         children: [
-            { id: "list", label: "Danh sách đánh giá", path: `/${prefixAdmin}/feedback/list` },
+            { id: "list", label: "Danh sách đánh giá", path: `/${prefixAdmin}/feedback/list`, allowedRoles: ["ADMIN", "STAFF"] },
         ]
     },
     {
