@@ -56,7 +56,7 @@ springdoc:
 # App configuration
 app:
   name: TeddyPet
-  frontend-url: ${APP_FRONTEND_URL:https://teddypet.id.vn}
+  frontend-url: ${APP_FRONTEND_URL:https://teddypet-dusky.vercel.app}
   password-reset:
     token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
   slot:
