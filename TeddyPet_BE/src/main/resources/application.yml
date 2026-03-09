@@ -7,7 +7,7 @@ spring:
   application:
     name: teddypet
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
     port: ${SPRING_MAIL_PORT:587}
@@ -21,17 +21,14 @@ spring:
         debug: ${SPRING_MAIL_DEBUG:false}
         smtp:
           auth: true
-          ssl:
-            enable: ${SPRING_MAIL_SSL_ENABLE:true}
           starttls:
-            enable: ${SPRING_MAIL_STARTTLS_ENABLE:false}
-          socketFactory:
-            port: ${SPRING_MAIL_PORT:587}
-            class: javax.net.ssl.SSLSocketFactory
-            fallback: false
-        connectiontimeout: 10000
-        timeout: 10000
-        writetimeout: 10000
+            enable: ${SPRING_MAIL_STARTTLS_ENABLE:true}
+            required: true
+          ssl:
+            enable: ${SPRING_MAIL_SSL_ENABLE:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 # Custom Properties (Nằm ngoài spring)
 jwt:
@@ -45,6 +42,10 @@ payment:
     hash-secret: ${VNPAY_HASH_SECRET:}
     url: ${VNPAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
     return-url: "${SPRING_BACKEND_URL:https://teddypet-be.onrender.com}/api/v1/payment/vnpay-return"
+  payos:
+    client-id: ${PAYOS_CLIENT_ID:}
+    api-key: ${PAYOS_API_KEY:}
+    checksum-key: ${PAYOS_CHECKSUM_KEY:}
 
 springdoc:
   api-docs:

@@ -10,13 +10,13 @@ import vn.payos.PayOS;
 @Getter
 public class PayosConfig {
 
-    @Value("${PAYOS_CLIENT_ID}")
+    @Value("${payment.payos.client-id}")
     private String clientId;
 
-    @Value("${PAYOS_API_KEY}")
+    @Value("${payment.payos.api-key}")
     private String apiKey;
 
-    @Value("${PAYOS_CHECKSUM_KEY}")
+    @Value("${payment.payos.checksum-key}")
     private String checksumKey;
 
     @Bean
