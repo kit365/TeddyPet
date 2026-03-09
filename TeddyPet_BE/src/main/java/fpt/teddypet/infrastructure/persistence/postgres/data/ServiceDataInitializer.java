@@ -206,16 +206,25 @@ public class ServiceDataInitializer implements CommandLineRunner {
         ServiceCategory hotelCat = categoryRepository.findBySlug("nhom-luu-tru").orElse(null);
         ServiceCategory spaCat = categoryRepository.findBySlug("nhom-spa").orElse(null);
         if (spaCat != null) {
-            createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-VE-SINH-DAC-BIET", "Phụ phí vệ sinh đặc biệt",
+            Service veSinhDacBiet = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-VE-SINH-DAC-BIET",
+                    "Phụ phí vệ sinh đặc biệt",
                     "Phụ phí khi thú cưng cần vệ sinh đặc biệt (bẩn, lâu ngày)", 30, new BigDecimal("50000"));
-            createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-THUOC-VAT-TU", "Phụ phí thuốc / vật tư",
+            addAddonPricingIfEmpty(veSinhDacBiet, new BigDecimal("50000"));
+
+            Service thuocVatTu = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-THUOC-VAT-TU",
+                    "Phụ phí thuốc / vật tư",
                     "Phụ phí thuốc hoặc vật tư phát sinh ngoài gói dịch vụ", 0, new BigDecimal("0"));
-            createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-GIA-HAN", "Phụ phí gia hạn giữ",
+            addAddonPricingIfEmpty(thuocVatTu, new BigDecimal("0"));
+
+            Service giaHan = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-GIA-HAN", "Phụ phí gia hạn giữ",
                     "Phụ phí khi khách gia hạn thêm ngày so với dự kiến", 0, new BigDecimal("0"));
+            addAddonPricingIfEmpty(giaHan, new BigDecimal("0"));
         }
         if (hotelCat != null) {
-            createAdditionalChargeServiceIfNotExists(hotelCat, "CHARGE-PHU-PHI-PHONG", "Phụ phí phòng (phát sinh)",
+            Service phuPhiPhong = createAdditionalChargeServiceIfNotExists(hotelCat, "CHARGE-PHU-PHI-PHONG",
+                    "Phụ phí phòng (phát sinh)",
                     "Phụ phí phát sinh liên quan phòng (làm bẩn, hỏng hóc nhẹ...)", 0, new BigDecimal("0"));
+            addAddonPricingIfEmpty(phuPhiPhong, new BigDecimal("0"));
         }
     }
 
@@ -232,7 +241,11 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .slug(slug)
                 .description(description)
                 .duration(durationMinutes)
-                .bufferTime(0)
+                .bufferTime(15)
+                .advanceBookingHours(24)
+                .cancellationDeadlineHours(12)
+                .maxPetsPerSession(1)
+                .requiredStaffCount(1)
                 .basePrice(basePrice != null ? basePrice : BigDecimal.ZERO)
                 .priceUnit("lần")
                 .isAddon(false)
@@ -264,6 +277,10 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .description(description)
                 .duration(durationMinutes)
                 .bufferTime(15)
+                .advanceBookingHours(24)
+                .cancellationDeadlineHours(12)
+                .maxPetsPerSession(1)
+                .requiredStaffCount(1)
                 .basePrice(basePrice)
                 .priceUnit(priceUnit)
                 .isAddon(isAddon)

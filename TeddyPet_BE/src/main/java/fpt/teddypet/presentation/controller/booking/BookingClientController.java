@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.controller.booking;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,10 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(ApiConstants.API_BOOKINGS)
@@ -33,6 +31,13 @@ public class BookingClientController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Đặt lịch thành công", response));
+    }
+
+    @GetMapping("/code/{bookingCode}")
+    @Operation(summary = "Tra cứu đơn đặt lịch theo mã (client)")
+    public ResponseEntity<ApiResponse<ClientBookingDetailResponse>> getByCode(@PathVariable String bookingCode) {
+        ClientBookingDetailResponse data = bookingClientService.getClientBookingDetailByCode(bookingCode);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 }
 

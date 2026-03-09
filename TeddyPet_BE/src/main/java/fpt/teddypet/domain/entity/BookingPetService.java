@@ -89,9 +89,6 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "actual_end_time")
     private LocalDateTime actualEndTime;
 
-    @Column(name = "unit_price", precision = 12, scale = 2)
-    private BigDecimal unitPrice;
-
     @Column(name = "subtotal", precision = 12, scale = 2)
     private BigDecimal subtotal;
 

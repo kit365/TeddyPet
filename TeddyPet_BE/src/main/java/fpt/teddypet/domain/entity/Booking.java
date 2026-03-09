@@ -100,6 +100,13 @@ public class Booking extends BaseEntity {
     @Column(name = "remaining_amount", precision = 12, scale = 2)
     private BigDecimal remainingAmount;
 
+    @Column(name = "is_temporary", nullable = false)
+    @Builder.Default
+    private Boolean isTemporary = false;
+
+    @Column(name = "cancelled_reason", columnDefinition = "TEXT")
+    private String cancelledReason;
+
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BookingPet> pets = new ArrayList<>();

@@ -87,6 +87,18 @@ public class User extends BaseEntity implements UserDetails {
     @EqualsAndHashCode.Exclude
     private List<UserAddress> addresses = new ArrayList<>();
 
+    @Column(name = "is_guest", nullable = false)
+    @Builder.Default
+    private Boolean isGuest = false;
+
+    /**
+     * Đánh dấu user đã thiết lập mật khẩu hay chưa.
+     * Guest được tạo tự động từ booking sẽ có hasPassword = false.
+     */
+    @Column(name = "has_password", nullable = false)
+    @Builder.Default
+    private Boolean hasPassword = true;
+
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

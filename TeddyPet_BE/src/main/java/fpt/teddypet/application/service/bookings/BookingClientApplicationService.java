@@ -5,6 +5,7 @@ import fpt.teddypet.application.dto.request.bookings.CreateBookingPetServiceRequ
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.request.bookings.PetFoodBroughtItemRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
@@ -19,11 +20,15 @@ import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
-import fpt.teddypet.domain.exception.TimeSlotFullException;
+import fpt.teddypet.domain.exception.BookingValidationException;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.RoleRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,16 +50,62 @@ import java.util.UUID;
 public class BookingClientApplicationService implements BookingClientService {
 
     private final BookingRepository bookingRepository;
+    private final BookingPetServiceRepository bookingPetServiceRepository;
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final RoomRepositoryPort roomRepositoryPort;
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public CreateBookingResponse createBooking(CreateBookingRequest request) {
+        return createBookingInternal(request, true);
+    }
+
+    @Override
+    public CreateBookingResponse createBookingWithoutTimeSlotIncrement(CreateBookingRequest request) {
+        return createBookingInternal(request, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClientBookingDetailResponse getClientBookingDetailByCode(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+
+        return new ClientBookingDetailResponse(
+                booking.getId(),
+                booking.getBookingCode(),
+                booking.getCustomerName(),
+                booking.getCustomerEmail(),
+                booking.getCustomerPhone(),
+                null,
+                booking.getBookingType(),
+                booking.getTotalAmount(),
+                booking.getPaidAmount(),
+                booking.getRemainingAmount(),
+                booking.getDeposit(),
+                booking.getPaymentStatus(),
+                booking.getPaymentMethod(),
+                booking.getStatus(),
+                booking.getInternalNotes(),
+                booking.getBookingStartDate(),
+                booking.getBookingEndDate()
+        );
+    }
+
+    private CreateBookingResponse createBookingInternal(CreateBookingRequest request, boolean increaseTimeSlotBookings) {
         if (request.pets() == null || request.pets().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất một thú cưng và dịch vụ.");
         }
+
+        // Kiểm tra toàn bộ dịch vụ (chính + add-on) còn hoạt động không
+        validateServicesActive(request);
+
+        // Kiểm tra phòng (isRequiredRoom=true) chưa bị đặt trùng ngày bởi khách khác
+        validateRoomNotAlreadyBooked(request);
 
         Booking booking = buildBookingEntity(request);
 
@@ -74,8 +125,6 @@ public class BookingClientApplicationService implements BookingClientService {
                         petRequest.petType(),
                         petRequest.weightAtBooking()
                 );
-                bookingPetService.setUnitPrice(unitPrice);
-
                 BigDecimal subtotal = computeSubtotal(bookingPetService, unitPrice);
                 bookingPetService.setSubtotal(subtotal);
                 bookingTotal = bookingTotal.add(subtotal);
@@ -94,29 +143,96 @@ public class BookingClientApplicationService implements BookingClientService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn slot = +1).
-        // Một booking có nhiều thú cưng cùng chọn một khung giờ → +1 cho mỗi con (mỗi bps), không phải +1 theo booking hay booking_pet.
-        try {
-            for (BookingPet pet : saved.getPets()) {
-                for (BookingPetService bps : pet.getServices()) {
-                    Long timeSlotId = bps.getTimeSlotId();
-                    if (timeSlotId == null) continue;
-                    TimeSlot slot = timeSlotRepositoryPort.findById(timeSlotId)
-                            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
-                    int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
-                    int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
-                    if (current >= maxCap) {
-                        throw new TimeSlotFullException("Khung giờ đã đủ chỗ. Vui lòng làm mới trang và chọn khung giờ khác.");
+        if (increaseTimeSlotBookings) {
+            // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn slot = +1).
+            // Nếu khung giờ đã đủ (currentBookings >= maxCapacity) hoặc xung đột version → throw với petIndex/serviceIndex để FE scroll.
+            try {
+                int petIdx = 0;
+                for (BookingPet pet : saved.getPets()) {
+                    int svcIdx = 0;
+                    for (BookingPetService bps : pet.getServices()) {
+                        Long timeSlotId = bps.getTimeSlotId();
+                        if (timeSlotId == null) {
+                            svcIdx++;
+                            continue;
+                        }
+                        TimeSlot slot = timeSlotRepositoryPort.findById(timeSlotId)
+                                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
+                        int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
+                        int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
+                        if (current >= maxCap) {
+                            throw new BookingValidationException(
+                                    BookingValidationException.TIME_SLOT_FULL,
+                                    "Khung giờ đã đủ chỗ. Vui lòng chọn khung giờ khác cho thú cưng này.",
+                                    petIdx, svcIdx, svcIdx > 0, null);
+                        }
+                        slot.setCurrentBookings(current + 1);
+                        timeSlotRepositoryPort.save(slot);
+                        svcIdx++;
                     }
-                    slot.setCurrentBookings(current + 1);
-                    timeSlotRepositoryPort.save(slot);
+                    petIdx++;
                 }
+            } catch (OptimisticLockException e) {
+                // Không biết chính xác pet/svc nào conflict → báo chung, FE có thể refetch và scroll đến form khung giờ
+                throw new BookingValidationException(
+                        BookingValidationException.TIME_SLOT_FULL,
+                        "Khung giờ vừa được đặt bởi khách khác. Vui lòng làm mới trang và chọn khung giờ khác.",
+                        null, null, null, null);
             }
-        } catch (OptimisticLockException e) {
-            throw new TimeSlotFullException("Khung giờ vừa được đặt bởi khách khác. Vui lòng làm mới trang và chọn khung giờ khác.");
         }
 
         return new CreateBookingResponse(saved.getBookingCode());
+    }
+
+    /** Kiểm tra mọi dịch vụ (chính + add-on) còn active. Nếu không → throw để FE hiển thị và scroll. */
+    private void validateServicesActive(CreateBookingRequest request) {
+        for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
+            CreateBookingPetRequest petRequest = request.pets().get(petIdx);
+            List<CreateBookingPetServiceRequest> services = petRequest.services();
+            if (services == null) continue;
+            for (int svcIdx = 0; svcIdx < services.size(); svcIdx++) {
+                CreateBookingPetServiceRequest sr = services.get(svcIdx);
+                fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(sr.serviceId())
+                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy dịch vụ: " + sr.serviceId()));
+                if (!service.isActive()) {
+                    throw new BookingValidationException(
+                            BookingValidationException.SERVICE_INACTIVE,
+                            "Dịch vụ \"" + (service.getServiceName() != null ? service.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng chọn dịch vụ khác.",
+                            petIdx, svcIdx, svcIdx > 0, null);
+                }
+                for (Long addonId : sr.addonServiceIds()) {
+                    if (addonId == null) continue;
+                    fpt.teddypet.domain.entity.Service addon = serviceRepositoryPort.findById(addonId).orElse(null);
+                    if (addon != null && !addon.isActive()) {
+                        throw new BookingValidationException(
+                                BookingValidationException.SERVICE_INACTIVE,
+                                "Dịch vụ add-on \"" + (addon.getServiceName() != null ? addon.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng bỏ chọn hoặc chọn add-on khác.",
+                                petIdx, svcIdx, svcIdx > 0, null);
+                    }
+                }
+            }
+        }
+    }
+
+    /** Kiểm tra phòng (isRequiredRoom) chưa bị đặt trùng khoảng ngày bởi booking khác. */
+    private void validateRoomNotAlreadyBooked(CreateBookingRequest request) {
+        for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
+            CreateBookingPetRequest petRequest = request.pets().get(petIdx);
+            if (petRequest.services() == null) continue;
+            for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
+                CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
+                if (sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
+                        || sr.checkOutDate() == null || sr.checkOutDate().isBlank()) continue;
+                LocalDate checkIn = LocalDate.parse(sr.checkInDate());
+                LocalDate checkOut = LocalDate.parse(sr.checkOutDate());
+                if (bookingPetServiceRepository.existsByRoomIdAndOverlappingDates(sr.roomId(), checkIn, checkOut)) {
+                    throw new BookingValidationException(
+                            BookingValidationException.ROOM_ALREADY_BOOKED,
+                            "Phòng này đã được đặt trong khoảng ngày bạn chọn. Vui lòng chọn phòng khác hoặc đổi ngày.",
+                            petIdx, svcIdx, svcIdx > 0, sr.roomId());
+                }
+            }
+        }
     }
 
     private Booking buildBookingEntity(CreateBookingRequest request) {
@@ -135,6 +251,11 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setPaymentMethod(BookingPaymentMethodEnum.CASH.name());
         booking.setCustomerPhone(request.customerPhone());
         booking.setCustomerEmail(request.customerEmail());
+
+        // Gắn user (guest hoặc customer) dựa trên thông tin liên hệ
+        fpt.teddypet.domain.entity.User user = ensureUserForBooking(request);
+        booking.setUser(user);
+
         return booking;
     }
 
@@ -427,6 +548,63 @@ public class BookingClientApplicationService implements BookingClientService {
         String datePart = now.format(DateTimeFormatter.ofPattern("yyMMdd"));
         String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 5).toUpperCase();
         return "BK-" + datePart + "-" + randomPart;
+    }
+
+    /**
+     * Tạo (hoặc lấy) tài khoản user tương ứng với thông tin liên hệ của booking.
+     * - Nếu email đã tồn tại: dùng luôn user đó.
+     * - Nếu chưa tồn tại: tạo user mới với role GUEST (nếu có) hoặc CUSTOMER/USER fallback.
+     * - Guest sẽ có hasPassword = false, password random (đã mã hóa) chỉ để thỏa DB.
+     */
+    private fpt.teddypet.domain.entity.User ensureUserForBooking(CreateBookingRequest request) {
+        String email = request.customerEmail();
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+
+        return userRepository.findByEmail(email)
+                .map(existing -> {
+                    // Cập nhật nhẹ thông tin hiển thị nếu thiếu
+                    if ((existing.getPhoneNumber() == null || existing.getPhoneNumber().isBlank())
+                            && request.customerPhone() != null) {
+                        existing.setPhoneNumber(request.customerPhone());
+                    }
+                    if ((existing.getFirstName() == null || existing.getFirstName().isBlank())
+                            && request.customerName() != null) {
+                        existing.setFirstName(request.customerName());
+                    }
+                    return userRepository.save(existing);
+                })
+                .orElseGet(() -> {
+                    String usernameBase = email.split("@")[0];
+                    String candidate = usernameBase;
+                    int suffix = 1;
+                    while (userRepository.existsByUsername(candidate)) {
+                        candidate = usernameBase + suffix;
+                        suffix++;
+                    }
+
+                    fpt.teddypet.domain.entity.Role role = roleRepository.findByName("GUEST")
+                            .orElseGet(() -> roleRepository.findByName("CUSTOMER")
+                                    .orElseGet(() -> roleRepository.findByName("USER")
+                                            .orElseThrow(() -> new IllegalStateException("Không tìm thấy role GUEST/CUSTOMER/USER"))));
+
+                    String rawRandomPassword = java.util.UUID.randomUUID().toString();
+                    String encoded = passwordEncoder.encode(rawRandomPassword);
+
+                    fpt.teddypet.domain.entity.User user = fpt.teddypet.domain.entity.User.builder()
+                            .username(candidate)
+                            .email(email)
+                            .password(encoded)
+                            .firstName(request.customerName())
+                            .phoneNumber(request.customerPhone())
+                            .role(role)
+                            .isGuest(true)
+                            .hasPassword(false)
+                            .build();
+
+                    return userRepository.save(user);
+                });
     }
 }
 

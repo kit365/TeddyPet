@@ -25,6 +25,11 @@ public interface AuthService {
      */
     TokenResponse loginForToken(LoginRequest request);
 
+    /**
+     * Login bằng OTP cho email (đã được gửi/kiểm tra OTP trước đó).
+     */
+    TokenResponse loginWithOtpForEmail(String email, String otpCode);
+
     User getCurrentUser();
 
     /**
