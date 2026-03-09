@@ -41,16 +41,6 @@ spring:
       url: ${SPRING_DATA_REDIS_URL_PROD}
       timeout: 2000ms
   
-  kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS_PROD:localhost:9092}
-    consumer:
-      group-id: teddypet-consumer-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
   elasticsearch:
     uris: ${SPRING_ELASTICSEARCH_URIS_PROD:http://localhost:9200}

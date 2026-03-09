@@ -66,6 +66,7 @@ public class OrderApplicationService implements OrderService {
     private final PromotionService promotionService;
     private final PromotionUsageService promotionUsageService;
     private final FeedbackService feedbackService;
+    private final fpt.teddypet.application.port.output.NotificationPublisherPort notificationPublisherPort;
 
     private BigDecimal calculateDiscount(Order order, Promotion promotion) {
         if (promotion == null || !promotion.isValid()) {
@@ -335,6 +336,19 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
+        // Send real-time notification to Customer
+        if (order.getUser() != null && oldStatus != status) {
+            String statusvn = getStatusInVietnamese(status);
+            notificationPublisherPort.sendToUser(order.getUser().getUsername(),
+                    fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
+                            .title("Cập nhật đơn hàng")
+                            .message("Đơn hàng #" + order.getOrderCode() + " đã chuyển sang trạng thái: " + statusvn)
+                            .type("ORDER_STATUS_UPDATED")
+                            .targetUrl("/dashboard/order/detail/" + order.getId())
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+        }
+
         // Send email notification only if status changed
         if (oldStatus != status) {
             sendOrderStatusEmail(savedOrder);
@@ -585,6 +599,29 @@ public class OrderApplicationService implements OrderService {
 
         // Send order confirmation email
         emailServicePort.sendOrderConfirmation(savedOrder);
+
+        // Send real-time notification to Admin/Staff
+        notificationPublisherPort.sendToTopic("admin-orders",
+                fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
+                        .title("Đơn hàng mới")
+                        .message("Bạn có đơn hàng mới. Mã đơn hàng: " + savedOrder.getOrderCode())
+                        .type("ORDER_CREATED")
+                        .targetUrl("/admin/order/detail/" + savedOrder.getId())
+                        .timestamp(java.time.LocalDateTime.now())
+                        .build());
+
+        // Send real-time notification to Customer
+        if (!isGuest && userId != null) {
+            User customer = userService.getById(userId);
+            notificationPublisherPort.sendToUser(customer.getUsername(),
+                    fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
+                            .title("Đặt hàng thành công")
+                            .message("Đơn hàng #" + savedOrder.getOrderCode() + " của bạn đã được tiếp nhận.")
+                            .type("ORDER_CREATED_CUSTOMER")
+                            .targetUrl("/dashboard/order/detail/" + savedOrder.getId())
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+        }
 
         return orderMapper.toResponse(savedOrder);
     }
@@ -926,6 +963,29 @@ public class OrderApplicationService implements OrderService {
 
         // Gửi thông báo email
         sendOrderStatusEmail(order);
+    }
+
+    private String getStatusInVietnamese(OrderStatusEnum status) {
+        if (status == null)
+            return "Không xác định";
+        switch (status) {
+            case PENDING:
+                return "Chờ xác nhận";
+            case CONFIRMED:
+                return "Đã xác nhận";
+            case DELIVERING:
+                return "Đang giao hàng";
+            case DELIVERED:
+                return "Đã giao hàng";
+            case COMPLETED:
+                return "Hoàn thành";
+            case CANCELLED:
+                return "Đã hủy";
+            case RETURNED:
+                return "Đã trả hàng";
+            default:
+                return status.name();
+        }
     }
 
 }

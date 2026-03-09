@@ -8,21 +8,30 @@ import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import Popover from "@mui/material/Popover";
 import MenuItem from "@mui/material/MenuItem";
+import Badge from "@mui/material/Badge";
+import Divider from "@mui/material/Divider";
 import Dialog from "@mui/material/Dialog";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useRef } from "react";
 import { toast } from 'react-toastify';
 import { InputAdornment, TextField } from "@mui/material";
 import { Search } from "iconoir-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../api/staffProfile.api";
 import { useUpdateStaffProfile } from "../../pages/staff/hooks/useStaffProfile";
 import { uploadImage } from "../../../api/upload.api";
+import { useAdminNotification } from "../../hooks/useAdminNotification";
+import { useNotificationStore } from "../../../stores/useNotificationStore";
+import { useAuthStore } from "../../../stores/useAuthStore";
 
 interface Props {
     window?: () => Window;
@@ -73,9 +82,11 @@ const SEARCH_ROUTES = [
 
 export const Header = () => {
     const { i18n } = useTranslation();
+    const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
     const [openSearchDialog, setOpenSearchDialog] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const { user } = useAuthStore();
     const [openProfileDialog, setOpenProfileDialog] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState("");
@@ -86,9 +97,16 @@ export const Header = () => {
     const [address, setAddress] = useState("");
     const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
+    // Notifications state
+    const { unreadCount, markAllAsRead } = useNotificationStore();
+    const { notifications } = useAdminNotification(false);
+    const [notifAnchorEl, setNotifAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const openNotif = Boolean(notifAnchorEl);
+
     const { data: myProfileRes } = useQuery({
         queryKey: ["my-staff-profile"],
         queryFn: getMyStaffProfile,
+        enabled: !!user && (typeof user.role === 'string' ? (user.role.includes('ADMIN') || user.role.includes('STAFF')) : true)
     });
     const myProfile = myProfileRes?.data;
     const { mutate: updateProfile, isPending: updatingProfile } = useUpdateStaffProfile();
@@ -137,6 +155,15 @@ export const Header = () => {
         const message = lng === 'vi' ? 'Đã đổi sang Tiếng Việt!' : 'Language changed to English!';
         toast.success(message);
         handleClose();
+    };
+
+    const handleOpenNotif = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setNotifAnchorEl(event.currentTarget);
+        markAllAsRead();
+    };
+
+    const handleCloseNotif = () => {
+        setNotifAnchorEl(null);
     };
 
     const open = Boolean(anchorEl);
@@ -267,6 +294,167 @@ export const Header = () => {
                                     <Box component="img" alt="vi" src={VI_FLAG} sx={{ width: 26, height: 20, mr: 2, borderRadius: "5px", objectFit: 'cover' }} />
                                     Tiếng Việt
                                 </MenuItem>
+                            </Popover>
+
+                            <Button
+                                onClick={handleOpenNotif}
+                                className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"
+                                sx={{
+                                    minWidth: 0,
+                                    width: 44,
+                                    height: 44,
+                                    padding: 0,
+                                    borderRadius: '50%',
+                                }}
+                            >
+                                <Badge
+                                    badgeContent={unreadCount}
+                                    color="error"
+                                    max={99}
+                                    sx={{
+                                        '& .MuiBadge-badge': {
+                                            fontSize: '1rem',
+                                            fontWeight: 800,
+                                            minWidth: '20px',
+                                            height: '20px',
+                                            borderRadius: '50%',
+                                            border: '2px solid #fff',
+                                            boxShadow: '0 2px 4px rgba(255, 48, 48, 0.3)',
+                                            top: 4,
+                                            right: 4,
+                                        }
+                                    }}
+                                >
+                                    <NotificationsIcon
+                                        sx={{
+                                            color: "#637381",
+                                            fontSize: "2.2rem",
+                                            transition: 'transform 0.2s',
+                                            '&:hover': {
+                                                transform: 'rotate(15deg)'
+                                            }
+                                        }}
+                                    />
+                                </Badge>
+                            </Button>
+
+                            <Popover
+                                open={openNotif}
+                                anchorEl={notifAnchorEl}
+                                onClose={handleCloseNotif}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                slotProps={{
+                                    paper: {
+                                        sx: {
+                                            mt: 1.5,
+                                            ml: 0.75,
+                                            width: 420,
+                                            maxHeight: 520,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            borderRadius: 2.5,
+                                            boxShadow: '0 12px 24px -4px rgba(145, 158, 171, 0.12), 0 0 2px 0 rgba(145, 158, 171, 0.2)'
+                                        }
+                                    }
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', py: 2.5, px: 3, background: 'linear-gradient(to right, #f8f9fa, #ffffff)' }}>
+                                    <Box sx={{ flexGrow: 1 }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1a202c' }}>Thông báo</Typography>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '1.05rem', mt: 0.5 }}>
+                                            Bạn có <span style={{ color: '#3b82f6', fontWeight: 700 }}>{unreadCount}</span> thông báo mới
+                                        </Typography>
+                                    </Box>
+                                    {unreadCount > 0 && (
+                                        <Tooltip title="Đánh dấu tất cả đã đọc">
+                                            <IconButton
+                                                size="small"
+                                                onClick={async () => {
+                                                    const { notificationApi } = await import('../../../api/notification.api');
+                                                    await notificationApi.markAllAsRead();
+                                                    useNotificationStore.getState().markAllAsRead();
+                                                }}
+                                                sx={{ color: '#3b82f6' }}
+                                            >
+                                                <DoneAllIcon sx={{ fontSize: '2rem' }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Box>
+
+                                <Divider sx={{ borderColor: 'rgba(145, 158, 171, 0.12)', borderStyle: 'solid' }} />
+
+                                <Box sx={{
+                                    maxHeight: '450px',
+                                    overflowY: 'auto',
+                                    flexGrow: 1,
+                                    py: 1,
+                                    '&::-webkit-scrollbar': { width: '6px' },
+                                    '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '10px' }
+                                }}>
+                                    {notifications.length > 0 ? (
+                                        notifications.map((notif, index) => (
+                                            <MenuItem
+                                                key={index}
+                                                onClick={() => {
+                                                    navigate(notif.targetUrl);
+                                                    handleCloseNotif();
+                                                }}
+                                                sx={{
+                                                    py: 2.5,
+                                                    px: 3,
+                                                    borderBottom: '1px solid rgba(145, 158, 171, 0.08)',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'flex-start',
+                                                    whiteSpace: 'normal',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                                                        transform: 'translateX(4px)',
+                                                        transition: 'all 0.2s ease-in-out'
+                                                    }
+                                                }}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6', flexShrink: 0 }} />
+                                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a202c' }}>{notif.title}</Typography>
+                                                </Box>
+                                                <Typography variant="body1" sx={{ color: '#4a5568', fontSize: '1.15rem', lineHeight: 1.6, ml: 2 }}>
+                                                    {notif.message}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.disabled', mt: 1.5, ml: 2, fontSize: '0.95rem', fontWeight: 500 }}>
+                                                    {new Date(notif.timestamp).toLocaleString('vi-VN')}
+                                                </Typography>
+                                            </MenuItem>
+                                        ))
+                                    ) : (
+                                        <Box sx={{ py: 10, textAlign: 'center', px: 4 }}>
+                                            <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1.3rem', fontWeight: 500, opacity: 0.6 }}>
+                                                Hiện chưa có thông báo nào dành cho bạn
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                <Divider sx={{ borderStyle: 'dashed' }} />
+
+                                <Box sx={{ p: 1.5 }}>
+                                    <Button
+                                        fullWidth
+                                        color="inherit"
+                                        onClick={() => navigate('/admin/notifications')}
+                                        sx={{
+                                            py: 1.5,
+                                            fontWeight: 800,
+                                            fontSize: '1.1rem',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em'
+                                        }}
+                                    >
+                                        Xem tất cả
+                                    </Button>
+                                </Box>
                             </Popover>
                             <Button
                                 className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"

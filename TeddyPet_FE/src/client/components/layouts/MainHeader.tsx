@@ -1,9 +1,10 @@
-import { Handbag, Heart, Search, User } from "iconoir-react"
+import { Handbag, Heart, Search, User, Bell } from "iconoir-react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
 import { useCartStore } from "../../../stores/useCartStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
+import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useState, useEffect } from "react";
 import { getSearchSuggestions } from "../../../api/home.api";
 import { LocationSelector } from "../ui/LocationSelector";
@@ -18,6 +19,7 @@ export const MainHeader = () => {
 
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
+    const { unreadCount, markAllAsRead, notifications } = useNotificationStore();
     const navigate = useNavigate();
 
     // Search state
@@ -144,6 +146,53 @@ export const MainHeader = () => {
                         <Link to="/wishlist" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
                             <Heart stroke="2" className="w-[2.5rem] h-[2.5rem]" />
                         </Link>
+
+                        {/* Notification Bell */}
+                        <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                            <Bell stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                            {unreadCount > 0 && (
+                                <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{unreadCount}</span>
+                            )}
+
+                            {/* Dropdown list */}
+                            <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[320px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-[100] py-[10px] animate-fadeIn">
+                                <div className="px-[20px] py-[10px] border-b border-[#f0f0f0] flex justify-between items-center">
+                                    <span className="font-bold text-client-secondary">Thông báo ({unreadCount})</span>
+                                    {unreadCount > 0 && (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); markAllAsRead(); }}
+                                            className="text-[1.2rem] text-client-primary hover:underline"
+                                        >
+                                            Đánh dấu đã đọc
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    {notifications.length > 0 ? (
+                                        notifications.map((n) => (
+                                            <div
+                                                key={n.id}
+                                                onClick={() => {
+                                                    if (n.targetUrl) navigate(n.targetUrl);
+                                                }}
+                                                className={`px-[20px] py-[12px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer ${!n.isRead ? 'bg-[#fcf9f9]' : ''}`}
+                                            >
+                                                <p className={`text-[1.3rem] ${!n.isRead ? 'font-bold' : 'font-medium'} text-client-secondary mb-[2px]`}>{n.title}</p>
+                                                <p className="text-[1.2rem] text-gray-500 line-clamp-2">{n.message}</p>
+                                                <p className="text-[1rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="px-[20px] py-[30px] text-center text-gray-400 text-[1.4rem]">
+                                            Không có thông báo nào
+                                        </div>
+                                    )}
+                                </div>
+                                <Link to="/dashboard/orders" className="block text-center py-[10px] text-[1.2rem] text-client-primary font-bold hover:bg-gray-50">
+                                    Xem tất cả đơn hàng
+                                </Link>
+                            </div>
+                        </div>
                         <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
                             <Link to="/cart">
                                 <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />

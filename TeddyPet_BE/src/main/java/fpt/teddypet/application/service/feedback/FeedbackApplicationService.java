@@ -16,6 +16,8 @@ import fpt.teddypet.application.port.output.products.ProductVariantRepositoryPor
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
+import fpt.teddypet.application.port.output.NotificationPublisherPort;
+import fpt.teddypet.application.dto.response.notification.NotificationResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class FeedbackApplicationService implements FeedbackService {
     private final ProductVariantRepositoryPort productVariantRepositoryPort;
     private final FeedbackMapper feedbackMapper;
     private final EmailServicePort emailServicePort;
+    private final NotificationPublisherPort notificationPublisherPort;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -121,6 +124,18 @@ public class FeedbackApplicationService implements FeedbackService {
                 .build();
 
         Feedback saved = feedbackRepositoryPort.save(feedback);
+
+        // Notify Admin about new review
+        notificationPublisherPort.sendToTopic("admin-orders",
+                NotificationResponse.builder()
+                        .title("Đánh giá mới")
+                        .message("Sản phẩm '" + product.getName() + "' vừa nhận được đánh giá " + request.rating()
+                                + " sao.")
+                        .type("NEW_FEEDBACK")
+                        .targetUrl("/admin/feedback")
+                        .timestamp(java.time.LocalDateTime.now())
+                        .build());
+
         return feedbackMapper.toResponse(saved);
     }
 
@@ -173,6 +188,20 @@ public class FeedbackApplicationService implements FeedbackService {
         feedback.setRepliedAt(java.time.LocalDateTime.now());
 
         Feedback saved = feedbackRepositoryPort.save(feedback);
+
+        // Notify User about the reply
+        if (saved.getUser() != null) {
+            notificationPublisherPort.sendToUser(saved.getUser().getUsername(),
+                    NotificationResponse.builder()
+                            .title("Phản hồi đánh giá")
+                            .message("Quản trị viên đã phản hồi đánh giá của bạn về sản phẩm "
+                                    + saved.getProduct().getName())
+                            .type("FEEDBACK_REPLIED")
+                            .targetUrl("/product/detail/" + saved.getProduct().getSlug())
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+        }
+
         return feedbackMapper.toResponse(saved);
     }
 

@@ -94,21 +94,28 @@ public class StaffProfileApplicationService implements StaffProfileService {
     }
 
     /**
-     * Nếu email trong hồ sơ đã tồn tại trong bảng users với role USER thì tự động liên kết,
-     * cập nhật thông tin user theo profile và gán role STAFF. Chỉ xử lý khi profile chưa có user.
+     * Nếu email trong hồ sơ đã tồn tại trong bảng users với role USER thì tự động
+     * liên kết,
+     * cập nhật thông tin user theo profile và gán role STAFF. Chỉ xử lý khi profile
+     * chưa có user.
      */
     private void tryLinkExistingUserByEmail(StaffProfile profile) {
-        if (profile.getUser() != null) return;
+        if (profile.getUser() != null)
+            return;
         String email = profile.getEmail();
-        if (email == null || email.isBlank()) return;
-        if (!userRepositoryPort.existsByEmail(email)) return;
+        if (email == null || email.isBlank())
+            return;
+        if (!userRepositoryPort.existsByEmail(email))
+            return;
 
         User existingUser = userRepositoryPort.getByEmail(email);
-        if (existingUser.getRole() == null || !"USER".equals(existingUser.getRole().getName())) return;
+        if (existingUser.getRole() == null || !"USER".equals(existingUser.getRole().getName()))
+            return;
 
         staffProfileRepositoryPort.findByUserId(existingUser.getId()).ifPresent(existingProfile -> {
             if (!existingProfile.getId().equals(profile.getId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email " + email + " đã được liên kết với nhân viên khác.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Email " + email + " đã được liên kết với nhân viên khác.");
             }
         });
 
@@ -140,7 +147,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
             User existingUser = userRepositoryPort.getByEmail(email);
             staffProfileRepositoryPort.findByUserId(existingUser.getId()).ifPresent(existingProfile -> {
                 if (!existingProfile.getId().equals(staffId)) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email " + email + " đã được liên kết với nhân viên khác.");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Email " + email + " đã được liên kết với nhân viên khác.");
                 }
             });
 
@@ -149,7 +157,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
             if (request.username() != null && !request.username().isBlank()
                     && !request.username().equals(existingUser.getUsername())) {
                 if (userRepositoryPort.existsByUsername(request.username())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã được sử dụng: " + request.username());
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Username đã được sử dụng: " + request.username());
                 }
                 existingUser.setUsername(request.username());
             }
@@ -172,7 +181,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password là bắt buộc khi tạo tài khoản mới");
             }
             if (userRepositoryPort.existsByUsername(request.username())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã được sử dụng: " + request.username());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Username đã được sử dụng: " + request.username());
             }
 
             String[] nameParts = StaffProfileHelper.splitFullName(profile.getFullName());
@@ -224,7 +234,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 createAvatarImageForStaff(trimmed, staff.getFullName());
             }
             staff.setAvatarUrl(trimmed);
-            // Auto-generate alt image when avatar present (unless explicit altImage provided).
+            // Auto-generate alt image when avatar present (unless explicit altImage
+            // provided).
             if (trimmed != null && request.altImage() == null) {
                 staff.setAltImage("Ảnh đại diện " + (staff.getFullName() != null ? staff.getFullName() : "nhân viên"));
             } else if (trimmed == null && request.altImage() == null) {
@@ -239,7 +250,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
         staff.setBankName(request.bankName());
         if (request.positionId() != null) {
             StaffPosition position = staffPositionRepositoryPort.findById(request.positionId())
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy chức vụ với id: " + request.positionId()));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Không tìm thấy chức vụ với id: " + request.positionId()));
             staff.setPosition(position);
         } else {
             staff.setPosition(null);
@@ -300,7 +312,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
         return staffProfileRepositoryPort.findByUserId(userId)
                 .filter(s -> !s.isDeleted() && s.isActive())
                 .map(this::toResponse)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy hồ sơ nhân viên cho user hiện tại."));
+                .orElse(null); // Return null instead of throwing 404
     }
 
     @Override
@@ -321,7 +333,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
         if (email != null && !email.isBlank() && staffProfileRepositoryPort.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã được sử dụng: " + email);
         }
-        if (phoneNumber != null && !phoneNumber.isBlank() && staffProfileRepositoryPort.existsByPhoneNumber(phoneNumber)) {
+        if (phoneNumber != null && !phoneNumber.isBlank()
+                && staffProfileRepositoryPort.existsByPhoneNumber(phoneNumber)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng: " + phoneNumber);
         }
         if (citizenId != null && !citizenId.isBlank() && staffProfileRepositoryPort.existsByCitizenId(citizenId)) {
@@ -362,9 +375,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 position != null ? position.getCode() : null,
                 position != null ? position.getName() : null,
                 staff.getEmploymentType(),
-                staff.isActive()
-        );
+                staff.isActive());
     }
 
 }
-

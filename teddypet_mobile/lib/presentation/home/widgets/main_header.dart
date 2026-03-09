@@ -1,8 +1,4 @@
-
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
 
 class MainHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -10,31 +6,51 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-      return Container(
-         padding: const EdgeInsets.only(top: 40, left: 20, right: 20, bottom: 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow:
-            [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Logo từ assets
+              Image.asset(
+                'assets/images/logo.png',
+                height: 45,
+                fit: BoxFit.contain,
+              ),
+              
+              // Nút hành động
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.search_rounded, color: AppColors.textBlack),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.textBlack),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          
-          children: [
-            Text("TeddyPet",
-            style: TextStyle(
-              fontSize: 24,
-              color: AppColors.bgLight
-            ),)
-          ],
-        ),
-
-
-      );
+      ),
+    );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(70);
-
 }

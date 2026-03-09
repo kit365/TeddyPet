@@ -38,8 +38,7 @@ public class StaffProfileController {
     }
 
     @PostMapping("/{staffId}/account")
-    @Operation(summary = "Flow B: Cấp tài khoản cho nhân viên đã có hồ sơ",
-            description = "Smart linking: tạo User mới nếu chưa tồn tại; link User đã có (khách hàng trở thành nhân viên) nếu email khớp. Email lấy từ profile.")
+    @Operation(summary = "Flow B: Cấp tài khoản cho nhân viên đã có hồ sơ", description = "Smart linking: tạo User mới nếu chưa tồn tại; link User đã có (khách hàng trở thành nhân viên) nếu email khớp. Email lấy từ profile.")
     public ResponseEntity<ApiResponse<StaffProfileResponse>> provisionAccount(
             @PathVariable Long staffId,
             @Valid @RequestBody AccountCreationDTO request) {
@@ -89,7 +88,9 @@ public class StaffProfileController {
     @Operation(summary = "Lấy hồ sơ nhân viên của user đang đăng nhập (work_type, positionId cho Đăng ký ca)")
     public ResponseEntity<ApiResponse<StaffProfileResponse>> getMyProfile() {
         StaffProfileResponse response = staffProfileService.getByUserId(authService.getCurrentUser().getId());
+        if (response == null) {
+            return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success("Chưa có hồ sơ nhân viên", null));
+        }
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
-

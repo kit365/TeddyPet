@@ -74,6 +74,7 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/swagger-ui.html",
                                 "/dev/**",
+                                "/ws/**",
                                 "/error")
                         .permitAll()
                         // Booking: cho phép khách (chưa đăng nhập) xem danh mục & dịch vụ để đặt lịch
