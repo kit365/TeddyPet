@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, CheckCircle, Lock, Clock, Calendar } from 'lucide-react';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import {
@@ -109,6 +110,12 @@ export const WorkShiftStaffPage = () => {
     );
 
     const isCancelled = useCallback((shiftId: number) => cancelledShiftIds.has(shiftId), [cancelledShiftIds]);
+
+    /** Chỉ hiển thị "Ca của tôi" khi ca đã được admin khóa (ASSIGNED) hoặc đã hoàn thành. Ca còn OPEN sẽ không xuất hiện ở danh sách này. */
+    const visibleMyShifts = useMemo(
+        () => myShifts.filter((s) => s.status === 'ASSIGNED' || s.status === 'COMPLETED'),
+        [myShifts]
+    );
 
     /** Part-time: chỉ hiện Đăng ký khi còn slot cho đúng vai trò (ON_LEAVE = trống) */
     const canRegisterForShift = useCallback(
@@ -231,131 +238,189 @@ export const WorkShiftStaffPage = () => {
                     { label: 'Ca làm việc' },
                 ]}
             />
-            <Box sx={{ px: { xs: 2, sm: 3, md: '40px' }, pb: 3 }}>
+            <Box sx={{ px: { xs: 2, sm: 3, md: '40px' }, pb: 3, mt: 3 }}>
                 {/* Thời khóa biểu: Ca trống có thể đăng ký */}
                 <Box sx={{ mb: 4 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
                         Ca trống có thể đăng ký
                     </Typography>
-                    {isFullTime && (
-                        <Typography sx={{ mb: 2, color: 'text.secondary', fontSize: '1rem' }}>
-                            Bạn là nhân viên toàn thời gian. Ca làm được xếp theo Lịch cố định và hiển thị ngay. Ở các ca đã có tên bạn, dùng nút &quot;Xin nghỉ&quot; nếu cần nghỉ.
-                        </Typography>
-                    )}
-                    <TableContainer
-                        sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                            maxWidth: 1200,
-                        }}
-                    >
-                        <Table sx={{ tableLayout: 'fixed', minWidth: 700 }}>
-                            <TableHead>
-                                <TableRow sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                                    <TableCell sx={{ width: 160, py: 2.5, fontWeight: 700, fontSize: '1.125rem', borderColor: 'rgba(255,255,255,0.2)' }}>
-                                        Buổi / Ngày
-                                    </TableCell>
-                                    {DAY_LABELS.map((label, i) => (
-                                        <TableCell key={i} align="center" sx={{ py: 2.5, fontWeight: 700, fontSize: '1.125rem', borderColor: 'rgba(255,255,255,0.2)' }}>
+                    <div className="max-w-[1200px] rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        {/* Header */}
+                        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="grid grid-cols-[160px_1fr] items-center gap-4">
+                                <div className="uppercase text-xs font-semibold tracking-[0.08em] text-slate-500">
+                                    Buổi / Ngày
+                                </div>
+                                <div className="grid grid-cols-7 gap-4">
+                                    {DAY_LABELS.map((label) => (
+                                        <div
+                                            key={label}
+                                            className="text-center uppercase text-xs font-semibold tracking-[0.08em] text-slate-500"
+                                        >
                                             {label}
-                                        </TableCell>
+                                        </div>
                                     ))}
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {ROW_LABELS.map((rowLabel, slotIndex) => (
-                                    <TableRow key={slotIndex} sx={{ bgcolor: slotIndex === 0 ? 'background.paper' : 'grey.50' }}>
-                                        <TableCell sx={{ width: 160, py: 2.5, fontWeight: 600, fontSize: '1.125rem', color: 'text.secondary' }}>
-                                            {rowLabel}
-                                        </TableCell>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="px-4 py-4 space-y-4">
+                            {ROW_LABELS.map((rowLabel, slotIndex) => (
+                                <div
+                                    key={rowLabel}
+                                    className={[
+                                        'grid grid-cols-[160px_1fr] gap-4 items-start rounded-xl p-3',
+                                        slotIndex === 0 ? 'bg-blue-50/40' : 'bg-indigo-50/40',
+                                    ].join(' ')}
+                                >
+                                    {/* Row header with AM/PM pill */}
+                                    <div className="flex items-center text-sm font-semibold text-slate-700">
+                                        <span className="text-sm font-semibold text-slate-600">{rowLabel}</span>
+                                    </div>
+
+                                    {/* Cells */}
+                                    <div className="grid grid-cols-7 gap-4">
                                         {DAY_LABELS.map((_, dayIndex) => {
                                             const shift = timetableGrid[slotIndex]?.[dayIndex];
+
+                                            if (loadingAvailable) {
+                                                return (
+                                                    <div
+                                                        key={dayIndex}
+                                                        className="flex h-[120px] items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500"
+                                                    >
+                                                        Đang tải...
+                                                    </div>
+                                                );
+                                            }
+
+                                            if (!shift) {
+                                                return (
+                                                    <div
+                                                        key={dayIndex}
+                                                        className="flex h-[120px] items-center justify-center rounded-xl border border-gray-100 bg-gray-100/50 opacity-60 text-xs font-medium text-gray-400"
+                                                    >
+                                                        —
+                                                    </div>
+                                                );
+                                            }
+
+                                            let cardBorderClass = 'border-slate-200';
+                                            let cardBgClass = 'bg-white/80';
+
+                                            // Part-time specific visual states
+                                            if (isFullTime) {
+                                                // Full-time: nếu ca đang ở trạng thái xin nghỉ / chờ duyệt nghỉ thì cả khung chuyển sang tone vàng nhạt
+                                                if (leaveShiftIds.has(shift.shiftId)) {
+                                                    cardBorderClass = 'border-amber-200';
+                                                    cardBgClass = 'bg-amber-50/70';
+                                                }
+                                            } else {
+                                                // Part-time specific visual states
+                                                if (isRegistered(shift.shiftId) && !isCancelled(shift.shiftId)) {
+                                                    // Đã đăng ký (chờ duyệt) – đồng bộ với khung "Chờ duyệt"
+                                                    cardBorderClass = 'border-amber-200';
+                                                    cardBgClass = 'bg-amber-50/70';
+                                                } else if (canRegisterForShift(shift)) {
+                                                    cardBorderClass = 'border-2 border-dashed border-blue-200/60';
+                                                    cardBgClass = 'bg-white hover:bg-blue-50/50';
+                                                } else {
+                                                    cardBorderClass = 'border-gray-100';
+                                                    cardBgClass = 'bg-gray-100/50 opacity-60';
+                                                }
+                                            }
+
                                             return (
-                                                <TableCell key={dayIndex} align="center" sx={{ py: 2.5, minWidth: 130 }}>
-                                                    {loadingAvailable ? (
-                                                        <Typography sx={{ fontSize: '1.0625rem' }} color="text.secondary">Đang tải...</Typography>
-                                                    ) : shift ? (
-                                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25 }}>
-                                                            <Typography sx={{ fontWeight: 600, fontSize: '1.125rem' }}>
+                                                <div key={dayIndex} className="h-[120px]">
+                                                    <div
+                                                        className={`group flex h-full flex-col rounded-2xl border px-3 py-2.5 shadow-sm transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-md ${cardBorderClass} ${cardBgClass}`}
+                                                    >
+                                                        {/* Time row */}
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <span className="inline-flex items-center justify-center rounded-md bg-gray-100 p-1">
+                                                                <Clock3 className="h-4 w-4 text-slate-500" />
+                                                            </span>
+                                                            <p className="text-sm font-bold text-gray-900">
                                                                 {formatTimeRange(shift.startTime, shift.endTime)}
-                                                            </Typography>
+                                                            </p>
+                                                        </div>
+
+                                                        {/* Dynamic status + actions */}
+                                                        <div className="mt-3 mt-auto">
                                                             {isFullTime && leaveShiftIds.has(shift.shiftId) ? (
-                                                                <Button
-                                                                    size="medium"
-                                                                    variant="outlined"
-                                                                    color="success"
+                                                                leaveStatusByShiftId[shift.shiftId] === 'ON_LEAVE' ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled
+                                                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 cursor-default"
+                                                                    >
+                                                                        <CalendarOff className="h-3.5 w-3.5" />
+                                                                        Đã duyệt nghỉ
+                                                                    </button>
+                                                                ) : (
+                                                                <button
+                                                                    type="button"
                                                                     disabled={undoingLeave || leaving}
                                                                     onClick={() => handleUndoLeave(shift.shiftId)}
-                                                                    sx={{ fontSize: '0.9375rem', py: 0.5, px: 1.25 }}
+                                                                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                                                                 >
-                                                                    {leaveStatusByShiftId[shift.shiftId] === 'ON_LEAVE' ? 'Đã duyệt nghỉ' : 'Chờ duyệt'}
-                                                                </Button>
+                                                                    <Hourglass className="h-3.5 w-3.5" />
+                                                                    Chờ duyệt
+                                                                </button>
+                                                                )
                                                             ) : isFullTime && myShiftIds.has(shift.shiftId) ? (
-                                                                <Button
-                                                                    size="medium"
-                                                                    variant="outlined"
-                                                                    color="warning"
+                                                                <button
+                                                                    type="button"
                                                                     disabled={leaving || undoingLeave}
                                                                     onClick={() => handleRequestLeave(shift.shiftId)}
-                                                                    sx={{ fontSize: '0.9375rem', py: 0.5, px: 1.25 }}
+                                                                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                                                                 >
+                                                                    <UserMinus className="h-3.5 w-3.5" />
                                                                     Xin nghỉ
-                                                                </Button>
+                                                                </button>
                                                             ) : isFullTime && myPendingRegistrationShiftIds.has(shift.shiftId) ? (
-                                                                <Typography sx={{ fontSize: '0.9375rem', color: 'text.secondary' }}>
+                                                                <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
+                                                                    <Hourglass className="h-3.5 w-3.5" />
                                                                     Chờ duyệt
-                                                                </Typography>
+                                                                </div>
                                                             ) : isFullTime ? (
-                                                                <Typography sx={{ fontSize: '0.9375rem', color: 'text.secondary' }}>
-                                                                    —
-                                                                </Typography>
+                                                                <p className="text-[0.8rem] text-slate-400">—</p>
                                                             ) : isRegistered(shift.shiftId) && !isCancelled(shift.shiftId) ? (
-                                                                <Button
-                                                                    size="medium"
-                                                                    variant="outlined"
-                                                                    color="success"
-                                                                    disabled={cancelling || registering}
-                                                                    onClick={() => handleCancelRegistration(shift.shiftId)}
-                                                                    sx={{ fontSize: '0.9375rem', py: 0.5, px: 1.25 }}
-                                                                >
-                                                                    Đã đăng ký
-                                                                </Button>
+                                                                <div className="flex w-full items-center justify-center">
+                                                                    <div className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
+                                                                        <Hourglass className="h-4 w-4" />
+                                                                        <span>Chờ duyệt</span>
+                                                                    </div>
+                                                                </div>
                                                             ) : canRegisterForShift(shift) ? (
-                                                                <Button
-                                                                    size="medium"
-                                                                    variant="contained"
-                                                                    disableElevation
+                                                                <button
+                                                                    type="button"
                                                                     disabled={registering || cancelling}
                                                                     onClick={() => handleRegister(shift.shiftId)}
-                                                                    sx={{ fontSize: '1rem', py: 0.75, px: 1.5 }}
+                                                                    className="w-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                                                                 >
                                                                     Đăng ký ca
-                                                                </Button>
+                                                                </button>
                                                             ) : (
-                                                                <Typography sx={{ fontSize: '0.9375rem', color: 'text.disabled' }}>
-                                                                    Đã đủ người
-                                                                </Typography>
+                                                                <p className="text-[0.8rem] text-gray-400">Đã đủ người</p>
                                                             )}
-                                                        </Box>
-                                                    ) : (
-                                                        <Typography sx={{ fontSize: '1.0625rem' }} color="text.disabled">—</Typography>
-                                                    )}
-                                                </TableCell>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         {availableShifts.length === 0 && !loadingAvailable && (
-                            <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '1.0625rem' }}>
+                            <div className="border-t border-slate-100 px-6 py-4 text-center text-sm text-slate-500">
                                 Không có ca trống trong khoảng thời gian đã chọn.
-                            </Box>
+                            </div>
                         )}
-                    </TableContainer>
+                    </div>
                 </Box>
 
                 {/* Ca của tôi */}
@@ -363,31 +428,51 @@ export const WorkShiftStaffPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
                         Ca của tôi (đã được phân bổ)
                     </Typography>
-                    <Box
-                        sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        }}
-                    >
-                        {loadingMy ? (
-                            <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '1.0625rem' }}>Đang tải...</Box>
-                        ) : myShifts.length === 0 ? (
-                            <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '1.0625rem' }}>
-                                Bạn chưa có ca nào được phân bổ trong khoảng thời gian này.
-                                {isFullTime && (
-                                    <Typography component="p" sx={{ mt: 1, fontSize: '0.9375rem', maxWidth: 420, mx: 'auto' }}>
-                                        Ca của bạn được xếp theo Lịch cố định khi Admin tạo ca tự động và hiển thị ngay trong lưới trên. Nếu có ca, dùng &quot;Xin nghỉ&quot; khi cần.
-                                    </Typography>
-                                )}
-                            </Box>
-                        ) : (
+                    {loadingMy ? (
+                        <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '1.0625rem' }}>
+                            Đang tải...
+                        </Box>
+                    ) : visibleMyShifts.length === 0 ? (
+                        <Box
+                            className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-10"
+                            sx={{
+                                mt: 2,
+                            }}
+                        >
+                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white p-3 text-gray-400 shadow-sm">
+                                <CalendarX2 className="h-10 w-10" />
+                            </div>
+                            <Typography
+                                className="text-lg font-medium text-gray-600"
+                                sx={{ mt: 1.5 }}
+                            >
+                                Bạn chưa có ca làm việc nào
+                            </Typography>
+                            <Typography className="mt-1 text-sm text-gray-400">
+                                Khi được phân bổ ca làm việc, tất cả thông tin ca sẽ xuất hiện ở khu vực này.
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <Box
+                            sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                            }}
+                        >
                             <TableContainer>
                             <Table size="medium">
-<TableHead>
-                                <TableRow sx={{ bgcolor: 'grey.100' }}>
+                                <TableHead>
+                                <TableRow
+                                        sx={{
+                                            bgcolor: 'rgba(249,250,251,0.9)', // gray-50/80
+                                            '& th': {
+                                                borderBottom: '1px solid rgba(243,244,246,1)', // gray-100
+                                            },
+                                        }}
+                                    >
                                         <TableCell sx={{ fontWeight: 600, fontSize: '1.0625rem', py: 1.5 }}>Ngày</TableCell>
                                         <TableCell sx={{ fontWeight: 600, fontSize: '1.0625rem', py: 1.5 }}>Giờ</TableCell>
                                         <TableCell sx={{ fontWeight: 600, fontSize: '1.0625rem', py: 1.5 }}>Trạng thái</TableCell>
@@ -397,22 +482,56 @@ export const WorkShiftStaffPage = () => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {myShifts.map((s) => (
-                                        <TableRow key={s.shiftId}>
-                                            <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>{dayjs(s.startTime).locale('vi').format('dddd DD/MM/YYYY')}</TableCell>
-                                            <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>{formatTimeRange(s.startTime, s.endTime)}</TableCell>
+                                    {visibleMyShifts.map((s) => (
+                                        <TableRow
+                                            key={s.shiftId}
+                                            sx={{
+                                                '& td': {
+                                                    borderBottom: '1px solid rgba(243,244,246,1)', // gray-100
+                                                },
+                                            }}
+                                        >
                                             <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>
-                                                {leaveShiftIds.has(s.shiftId)
-                                                    ? (leaveStatusByShiftId[s.shiftId] === 'ON_LEAVE' ? 'Đã duyệt nghỉ' : 'Chờ duyệt')
-                                                    : s.status === 'OPEN'
-                                                      ? 'Chưa khóa'
-                                                      : s.status === 'ASSIGNED'
-                                                        ? 'Đã khóa'
-                                                        : s.status === 'COMPLETED'
-                                                          ? 'Hoàn thành'
-                                                          : s.status === 'CANCELLED'
-                                                            ? 'Đã hủy'
-                                                            : s.status}
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Calendar className="h-4 w-4 text-slate-400" />
+                                                    <span className="font-semibold text-gray-800">
+                                                        {dayjs(s.startTime).locale('vi').format('dddd DD/MM/YYYY')}
+                                                    </span>
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Clock className="h-4 w-4 text-slate-400" />
+                                                    <span>{formatTimeRange(s.startTime, s.endTime)}</span>
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>
+                                                {(() => {
+                                                    const baseStatus = leaveShiftIds.has(s.shiftId)
+                                                        ? leaveStatusByShiftId[s.shiftId] === 'ON_LEAVE'
+                                                            ? 'Đã duyệt nghỉ'
+                                                            : 'Chờ duyệt'
+                                                        : s.status === 'OPEN'
+                                                            ? 'Chưa khóa'
+                                                            : s.status === 'ASSIGNED'
+                                                                ? 'Đã khóa'
+                                                                : s.status === 'COMPLETED'
+                                                                    ? 'Hoàn thành'
+                                                                    : s.status === 'CANCELLED'
+                                                                        ? 'Đã hủy'
+                                                                        : s.status;
+
+                                                    if (baseStatus === 'Đã khóa' && !leaveShiftIds.has(s.shiftId)) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                                                                <Lock className="h-3.5 w-3.5" />
+                                                                <span>Đã khóa</span>
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    return baseStatus;
+                                                })()}
                                             </TableCell>
                                             {isFullTime && (
                                                 <TableCell sx={{ fontSize: '1.0625rem', py: 1.5 }}>
@@ -448,8 +567,8 @@ export const WorkShiftStaffPage = () => {
                                 </TableBody>
                             </Table>
                             </TableContainer>
-                        )}
-                    </Box>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </>

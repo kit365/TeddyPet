@@ -77,7 +77,13 @@ export const StaffPositionList = () => {
     const { data: positions = [], isLoading } = useStaffPositions();
 
     return (
-        <Card elevation={0} sx={dataGridCardStyles}>
+        <Card
+            elevation={0}
+            sx={{
+                ...dataGridCardStyles,
+                height: 'auto',
+            }}
+        >
             <div style={dataGridContainerStyles}>
                 <DataGrid
                     rows={positions}
@@ -86,6 +92,7 @@ export const StaffPositionList = () => {
                     loading={isLoading}
                     columns={positionColumns}
                     density="comfortable"
+                    autoHeight
                     slots={{
                         toolbar: () => <Toolbar sx={{ minHeight: 'auto', py: 1, px: 2 }} />,
                         columnSortedAscendingIcon: SortAscendingIcon,
@@ -102,9 +109,14 @@ export const StaffPositionList = () => {
                     pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
                     initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
                     getRowHeight={() => 'auto'}
-                    checkboxSelection
                     disableRowSelectionOnClick
-                    sx={dataGridStyles}
+                    sx={{
+                        ...dataGridStyles,
+                        '&.MuiDataGrid-root': {
+                            ...dataGridStyles['&.MuiDataGrid-root'],
+                            overflow: 'hidden',
+                        },
+                    }}
                 />
             </div>
         </Card>

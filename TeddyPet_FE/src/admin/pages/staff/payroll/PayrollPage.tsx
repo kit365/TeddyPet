@@ -59,46 +59,48 @@ export const PayrollPage = () => {
                     { label: 'Lương' },
                 ]}
             />
-            <Box sx={{ px: '40px', mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <TextField select label="Tháng" value={month} onChange={(e) => setMonth(Number(e.target.value))} sx={{ minWidth: 100 }}>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                        <MenuItem key={m} value={m}>{m}</MenuItem>
-                    ))}
-                </TextField>
-                <TextField select label="Năm" value={year} onChange={(e) => setYear(Number(e.target.value))} sx={{ minWidth: 100 }}>
-                    {[currentYear, currentYear - 1, currentYear + 1].map((y) => (
-                        <MenuItem key={y} value={y}>{y}</MenuItem>
-                    ))}
-                </TextField>
-                <TextField
-                    select
-                    label="Nhân viên"
-                    value={staffId}
-                    onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
-                    sx={{ minWidth: 200 }}
-                >
-                    <MenuItem value="">Tất cả</MenuItem>
-                    {profiles.map((p) => (
-                        <MenuItem key={p.staffId} value={p.staffId}>{p.fullName}</MenuItem>
-                    ))}
-                </TextField>
-                <Button variant="contained" onClick={handleRun} disabled={running}>{running ? 'Đang tính...' : 'Chạy tính lương'}</Button>
+            <Box sx={{ px: '40px', mt: 3 }}>
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <TextField select label="Tháng" value={month} onChange={(e) => setMonth(Number(e.target.value))} sx={{ minWidth: 100 }}>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                            <MenuItem key={m} value={m}>{m}</MenuItem>
+                        ))}
+                    </TextField>
+                    <TextField select label="Năm" value={year} onChange={(e) => setYear(Number(e.target.value))} sx={{ minWidth: 100 }}>
+                        {[currentYear, currentYear - 1, currentYear + 1].map((y) => (
+                            <MenuItem key={y} value={y}>{y}</MenuItem>
+                        ))}
+                    </TextField>
+                    <TextField
+                        select
+                        label="Nhân viên"
+                        value={staffId}
+                        onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
+                        sx={{ minWidth: 200 }}
+                    >
+                        <MenuItem value="">Tất cả</MenuItem>
+                        {profiles.map((p) => (
+                            <MenuItem key={p.staffId} value={p.staffId}>{p.fullName}</MenuItem>
+                        ))}
+                    </TextField>
+                    <Button variant="contained" onClick={handleRun} disabled={running}>{running ? 'Đang tính...' : 'Chạy tính lương'}</Button>
+                </Box>
+                <Card elevation={0} sx={dataGridCardStyles}>
+                    <div style={dataGridContainerStyles}>
+                        <DataGrid
+                            rows={logs}
+                            getRowId={(row) => row.id}
+                            loading={isLoading}
+                            columns={columns}
+                            localeText={DATA_GRID_LOCALE_VN}
+                            pagination
+                            pageSizeOptions={[10, 20]}
+                            initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                            sx={dataGridStyles}
+                        />
+                    </div>
+                </Card>
             </Box>
-            <Card elevation={0} sx={dataGridCardStyles}>
-                <div style={dataGridContainerStyles}>
-                    <DataGrid
-                        rows={logs}
-                        getRowId={(row) => row.id}
-                        loading={isLoading}
-                        columns={columns}
-                        localeText={DATA_GRID_LOCALE_VN}
-                        pagination
-                        pageSizeOptions={[10, 20]}
-                        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-                        sx={dataGridStyles}
-                    />
-                </div>
-            </Card>
         </>
     );
 };
