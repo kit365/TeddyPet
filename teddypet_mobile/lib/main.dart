@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'package:teddypet_mobile/core/providers/auth_provider.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
 import 'core/routes/app_router.dart';
 
@@ -9,7 +11,14 @@ Future<void> main() async {
   // Load file .env
   await dotenv.load(fileName: ".env");
   
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

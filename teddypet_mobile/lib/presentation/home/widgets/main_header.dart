@@ -43,7 +43,12 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
                         icon: const Icon(Icons.shopping_bag_outlined, color: AppColors.secondary, size: 22),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.person_outline_rounded, color: AppColors.secondary, size: 24),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/login');
+                        },
+                        child: const Icon(Icons.person_outline_rounded, color: AppColors.secondary, size: 24),
+                      ),
                     ],
                   ),
                 ],
