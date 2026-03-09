@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 let globalStompClient: Client | null = null;
 let connectedUsername: string | null = null;
 const processedMessageIds = new Set<string>();
+const recentFingerprints = new Map<string, number>(); // fingerprint -> timestamp
 
 // We need a way to call the LATEST state/actions from a static global callback
 const globalRefs = {
@@ -41,20 +42,44 @@ export const useAdminNotification = (autoConnect = true) => {
     }, [addNotification, navigate]);
 
     const showPremiumToast = useCallback((notification: NotificationDTO) => {
-        // 1. Duplicate check (Global)
+        // 1. Duplicate check (ID based)
         if (processedMessageIds.has(notification.id)) return;
         processedMessageIds.add(notification.id);
 
-        // 2. Add to store
+        // 2. Fingerprint check (Content based deduplication for simultaneous Admin/User alerts)
+        const fingerprint = `${notification.title}|${notification.message}|${notification.targetUrl}`;
+        const now = Date.now();
+        const lastSeen = recentFingerprints.get(fingerprint);
+
+        // If we saw the exact same message in the last 2 seconds, skip it
+        if (lastSeen && now - lastSeen < 2000) {
+            console.log("🛡️ Suppressing redundant notification alert (fingerprint match)");
+            return;
+        }
+        recentFingerprints.set(fingerprint, now);
+
+        // Cleanup old fingerprints every fixed interval
+        if (recentFingerprints.size > 50) {
+            for (const [fp, time] of recentFingerprints.entries()) {
+                if (now - time > 10000) recentFingerprints.delete(fp);
+            }
+        }
+
+        // 3. Add to store
         globalRefs.addNotification(notification);
 
-        // 3. Sound effect
+        // 3. Sound effect (Premium Notification Sound)
         try {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.volume = 0.4;
-            audio.play();
+            const audio = new Audio('https://raw.githubusercontent.com/Shashwat-Pragya/Notification-Sounds/master/notification-sound.mp3');
+            audio.volume = 0.5;
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Browser blocked notification audio. User must interact with the page first.", error);
+                });
+            }
         } catch (e) {
-            console.log('Audio play failed', e);
+            console.error('Audio play failed', e);
         }
 
         // 4. Identify type for styling

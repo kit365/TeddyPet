@@ -69,7 +69,6 @@ export const ProductListPage = () => {
         let isSoldOut = false;
 
         if (p.variants && p.variants.length > 0) {
-            // Only check variants if they exist. If empty, fallback to stockStatus (which is likely IN_STOCK or undefined -> Available)
             const activeVariants = p.variants.filter(v => v.status === "ACTIVE" || v.isActive);
 
             if (activeVariants.length > 0) {
@@ -82,19 +81,30 @@ export const ProductListPage = () => {
         }
 
         let oldPriceStr: string | undefined = undefined;
+        let displayPriceStr = (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ';
 
         if (hasSale) {
             // Find the original price corresponding to the minPrice (which is the discounted price)
-            const minPriceVariant = p.variants.find(v => (v.salePrice || v.price) === p.minPrice);
-            if (minPriceVariant && minPriceVariant.salePrice) {
+            const minPriceVariant = p.variants.find(v => v.salePrice === p.minPrice && v.salePrice > 0);
+            if (minPriceVariant) {
                 oldPriceStr = minPriceVariant.price.toLocaleString('vi-VN') + 'đ';
+            }
+        }
+
+        // Final safety check: if displayed price is 0đ but we have variants with prices, use them
+        if ((!p.minPrice || p.minPrice === 0) && p.variants && p.variants.length > 0) {
+            const firstValidVariant = p.variants.find(v => v.price > 0);
+            if (firstValidVariant) {
+                displayPriceStr = (firstValidVariant.salePrice && firstValidVariant.salePrice > 0
+                    ? firstValidVariant.salePrice
+                    : firstValidVariant.price).toLocaleString('vi-VN') + 'đ';
             }
         }
 
         return {
             id: p.productId,
             title: p.name,
-            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            price: displayPriceStr,
             oldPrice: oldPriceStr,
             primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
             secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
@@ -131,7 +141,6 @@ export const ProductListPage = () => {
                                         <ProductCard
                                             key={item.id}
                                             product={item}
-                                            onQuickView={(slug) => setQuickViewSlug(slug)}
                                         />
                                     ))}
                                 </div>

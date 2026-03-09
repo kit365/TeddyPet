@@ -42,7 +42,8 @@ export const useLogin = () => {
                 }
 
                 if (meRes?.data) {
-                    useAuthStore.getState().login(meRes.data, response.data.token, response.data.refreshToken);
+                    // Use adminLoginSync to avoid overwriting regular user cookies
+                    useAuthStore.getState().adminLoginSync(meRes.data as any, response.data.token);
                 }
 
                 toast.success(response.message);

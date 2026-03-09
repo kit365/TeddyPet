@@ -17,6 +17,10 @@ export const useAuthStore = create<AuthState>()(
                     }
                     set({ user, token });
                 },
+                // Add a specific sync method for Admin that doesn't touch regular User cookies
+                adminLoginSync: (user, tokenAdmin) => {
+                    set({ user, token: tokenAdmin });
+                },
                 logout: () => {
                     Cookies.remove("token");
                     Cookies.remove("refreshToken");

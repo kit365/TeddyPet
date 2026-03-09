@@ -24,7 +24,8 @@ export const AdminGuard = () => {
     useEffect(() => {
         if (meRes?.data && tokenAdmin) {
             // Sync with global store if user data and token are available
-            useAuthStore.getState().login(meRes.data, tokenAdmin, Cookies.get("refreshTokenAdmin") || "");
+            // Use adminLoginSync to avoid overwriting regular user cookies
+            useAuthStore.getState().adminLoginSync(meRes.data as any, tokenAdmin);
         }
     }, [meRes, tokenAdmin]);
 

@@ -38,17 +38,28 @@ export const ProductRelated = ({ productId }: ProductRelatedProps) => {
         }
 
         let oldPriceStr: string | undefined = undefined;
+        let displayPriceStr = (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ';
+
         if (hasSale) {
-            const minPriceVariant = p.variants.find(v => (v.salePrice || v.price) === p.minPrice);
-            if (minPriceVariant && minPriceVariant.salePrice) {
+            const minPriceVariant = p.variants.find(v => v.salePrice === p.minPrice && v.salePrice > 0);
+            if (minPriceVariant) {
                 oldPriceStr = minPriceVariant.price.toLocaleString('vi-VN') + 'đ';
+            }
+        }
+
+        if ((!p.minPrice || p.minPrice === 0) && p.variants && p.variants.length > 0) {
+            const firstValidVariant = p.variants.find(v => v.price > 0);
+            if (firstValidVariant) {
+                displayPriceStr = (firstValidVariant.salePrice && firstValidVariant.salePrice > 0
+                    ? firstValidVariant.salePrice
+                    : firstValidVariant.price).toLocaleString('vi-VN') + 'đ';
             }
         }
 
         return {
             id: p.id,
             title: p.name,
-            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            price: displayPriceStr,
             oldPrice: oldPriceStr,
             primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
             secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
