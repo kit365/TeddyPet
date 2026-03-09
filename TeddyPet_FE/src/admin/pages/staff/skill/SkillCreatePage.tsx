@@ -49,56 +49,70 @@ export const SkillCreatePage = () => {
                     ]}
                 />
             </Box>
-            <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 640, px: '40px' }}>
-                <Stack spacing={2}>
-                    <Controller
-                        name="code"
-                        control={control}
-                        rules={{ required: 'Nhập mã kỹ năng' }}
-                        render={({ field, fieldState }) => (
-                            <TextField
-                                {...field}
-                                label="Mã kỹ năng"
-                                required
-                                fullWidth
-                                error={!!fieldState.error}
-                                helperText={fieldState.error?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="name"
-                        control={control}
-                        rules={{ required: 'Nhập tên kỹ năng' }}
-                        render={({ field, fieldState }) => (
-                            <TextField
-                                {...field}
-                                label="Tên kỹ năng"
-                                required
-                                fullWidth
-                                error={!!fieldState.error}
-                                helperText={fieldState.error?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        name="description"
-                        control={control}
-                        render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
-                    />
-                    <Box sx={{ display: 'flex', gap: 2, pt: 2 }}>
-                        <Button type="submit" variant="contained" disabled={isPending}>
-                            {isPending ? 'Đang tạo...' : 'Tạo kỹ năng'}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            onClick={() => (window.location.href = `/${prefixAdmin}/staff/skill/list`)}
-                        >
-                            Hủy
-                        </Button>
-                    </Box>
-                </Stack>
+            <Box sx={{ px: '40px', pb: '40px', display: 'flex', justifyContent: 'center' }}>
+                <Box
+                    component="form"
+                    onSubmit={handleSubmit(onSubmit)}
+                    sx={{
+                        width: '100%',
+                        maxWidth: 960,
+                        borderRadius: 3,
+                        bgcolor: '#ffffff',
+                        boxShadow: '0 12px 30px rgba(15,23,42,0.06)',
+                        border: '1px solid rgba(229,231,235,1)',
+                        p: 4,
+                    }}
+                >
+                    <Stack spacing={2.5}>
+                        <Controller
+                            name="code"
+                            control={control}
+                            rules={{ required: 'Nhập mã kỹ năng' }}
+                            render={({ field, fieldState }) => (
+                                <TextField
+                                    {...field}
+                                    label="Mã kỹ năng"
+                                    required
+                                    fullWidth
+                                    error={!!fieldState.error}
+                                    helperText={fieldState.error?.message}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name="name"
+                            control={control}
+                            rules={{ required: 'Nhập tên kỹ năng' }}
+                            render={({ field, fieldState }) => (
+                                <TextField
+                                    {...field}
+                                    label="Tên kỹ năng"
+                                    required
+                                    fullWidth
+                                    error={!!fieldState.error}
+                                    helperText={fieldState.error?.message}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name="description"
+                            control={control}
+                            render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
+                        />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
+                            <Button
+                                type="button"
+                                variant="outlined"
+                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/skill/list`)}
+                            >
+                                Hủy
+                            </Button>
+                            <Button type="submit" variant="contained" disabled={isPending}>
+                                {isPending ? 'Đang tạo...' : 'Tạo kỹ năng'}
+                            </Button>
+                        </Box>
+                    </Stack>
+                </Box>
             </Box>
         </>
     );

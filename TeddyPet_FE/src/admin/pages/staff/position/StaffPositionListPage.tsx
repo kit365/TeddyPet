@@ -1,3 +1,4 @@
+import { Box } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { StaffPositionList } from './sections/StaffPositionList';
@@ -14,6 +15,8 @@ export const StaffPositionListPage = () => (
             addButtonLabel="Thêm chức vụ"
             addButtonPath={`/${prefixAdmin}/staff/position/create`}
         />
-        <StaffPositionList />
+        <Box sx={{ px: '40px', mt: 3 }}>
+            <StaffPositionList />
+        </Box>
     </>
 );
