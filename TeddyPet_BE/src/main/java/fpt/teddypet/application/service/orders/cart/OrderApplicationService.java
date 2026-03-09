@@ -344,7 +344,7 @@ public class OrderApplicationService implements OrderService {
                             .title("Cập nhật đơn hàng")
                             .message("Đơn hàng #" + order.getOrderCode() + " đã chuyển sang trạng thái: " + statusvn)
                             .type("ORDER_STATUS_UPDATED")
-                            .targetUrl("/dashboard/order/detail/" + order.getId())
+                            .targetUrl("/dashboard/orders/" + order.getId())
                             .timestamp(java.time.LocalDateTime.now())
                             .build());
         }
@@ -618,7 +618,7 @@ public class OrderApplicationService implements OrderService {
                             .title("Đặt hàng thành công")
                             .message("Đơn hàng #" + savedOrder.getOrderCode() + " của bạn đã được tiếp nhận.")
                             .type("ORDER_CREATED_CUSTOMER")
-                            .targetUrl("/dashboard/order/detail/" + savedOrder.getId())
+                            .targetUrl("/dashboard/orders/" + savedOrder.getId())
                             .timestamp(java.time.LocalDateTime.now())
                             .build());
         }
