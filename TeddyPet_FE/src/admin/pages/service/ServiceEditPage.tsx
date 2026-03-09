@@ -78,6 +78,7 @@ export const ServiceEditPage = () => {
     });
 
     const isAddon = useWatch({ control, name: 'isAddon' });
+    const isAdditionalCharge = useWatch({ control, name: 'isAdditionalCharge' });
     const isRequiredRoom = useWatch({ control, name: 'isRequiredRoom' });
 
     useEffect(() => {
@@ -409,7 +410,7 @@ export const ServiceEditPage = () => {
                                     <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú tối đa/lịch" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                        <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller
@@ -461,7 +462,7 @@ export const ServiceEditPage = () => {
                                 {isPending ? 'Đang lưu...' : 'Cập nhật dịch vụ'}
                             </Button>
                         </Box>
-                                <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
+                        <CollapsibleCard title="Quy tắc giá" subheader="Giá dịch vụ theo quy tắc (service_pricing)" expanded={expandedPricing} onToggle={() => setExpandedPricing((p) => !p)}>
                             <Stack p="24px" gap="24px">
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '1.4rem', color: '#637381' }}>Thêm, sửa hoặc xóa quy tắc giá cho dịch vụ này.</span>
@@ -558,7 +559,7 @@ export const ServiceEditPage = () => {
                                 </Table>
                             </Stack>
                         </CollapsibleCard>
-                        <TimeSlotsSection serviceId={serviceId} expanded={true} />
+                        {!isAddon && !isAdditionalCharge && <TimeSlotsSection serviceId={serviceId} expanded={true} />}
 
                     </Stack>
                 </form>

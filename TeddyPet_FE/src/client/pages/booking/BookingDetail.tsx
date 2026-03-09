@@ -10,10 +10,8 @@ import PetsIcon from "@mui/icons-material/Pets";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     getServiceCategories,
     getServices,
@@ -40,6 +38,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { toast } from "react-toastify";
 import "dayjs/locale/vi";
+import { buildCreateBookingPayload } from "../../../api/booking.api";
+import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
 
 const defaultStep1Data: BookingStep1FormData = {
     fullName: "",
@@ -83,6 +83,18 @@ type FoodBrandSelectProps = {
     itemIndex: number;
     value: string | null | undefined;
     onChange: (nextBrand: string | null) => void;
+};
+
+type PetFieldErrors = {
+    petType?: string;
+    weight?: string;
+    petName?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    /** Lỗi Ngày gửi/Ngày trả cho từng dịch vụ (key: "main" hoặc id của dịch vụ thêm). */
+    serviceDateErrors?: Record<string, string>;
+    /** Lỗi chọn phòng cho từng dịch vụ yêu cầu phòng (key: "main" hoặc id của dịch vụ thêm). */
+    serviceRoomErrors?: Record<string, string>;
 };
 
 const FoodBrandSelect = ({ petTypeEnum, foodType, items, itemIndex, value, onChange }: FoodBrandSelectProps) => {
@@ -189,10 +201,12 @@ const PetTypeDropdown = ({ isOpen, value, options, onToggle, onChange, renderLab
 /** Ô Ngày gửi + Khung giờ khi dịch vụ thêm có isRequiredRoom = false (dùng time_slots của dịch vụ). */
 type AdditionalServiceNonRoomFieldsProps = {
     petId: string;
+    pet: BookingPetForm;
     asvc: BookingPetServiceForm;
     updateAdditionalService: (petId: string, svcId: string, updates: Partial<BookingPetServiceForm>) => void;
     services: ServiceClient[];
     bookingDatePickerPopperSx: object;
+    getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
 };
 
 /** Ô Ngày gửi + Khung giờ cho dịch vụ chính khi isRequiredRoom = false (dùng time_slots của dịch vụ). */
@@ -201,6 +215,7 @@ type MainServiceNonRoomFieldsProps = {
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
     services: ServiceClient[];
     bookingDatePickerPopperSx: object;
+    getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
 };
 
 const MainServiceNonRoomFields = ({
@@ -208,6 +223,7 @@ const MainServiceNonRoomFields = ({
     updatePet,
     services,
     bookingDatePickerPopperSx,
+    getServicePriceForWeight,
 }: MainServiceNonRoomFieldsProps) => {
     const selectedSvc = pet.serviceId ? services.find((s) => s.serviceId === pet.serviceId) : undefined;
     const isNonRoom = selectedSvc?.isRequiredRoom === false;
@@ -233,6 +249,18 @@ const MainServiceNonRoomFields = ({
     }, [timeSlots]);
 
     if (!pet.serviceId || !isNonRoom) return null;
+
+    const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
+    const addonIds = pet.addonServiceIds ?? [];
+    const addonServices = addonIds
+        .map((id) => services.find((s) => s.serviceId === id))
+        .filter((s): s is ServiceClient => s != null);
+    const addonTotal = addonServices.reduce((sum, s) => {
+        const p = getServicePriceForWeight(s, pet.weight, pet.petType);
+        return sum + (p ?? 0);
+    }, 0);
+    const totalEstimated =
+        (mainServicePrice ?? 0) + (addonServices.length > 0 || addonTotal > 0 ? addonTotal : 0);
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
@@ -279,16 +307,55 @@ const MainServiceNonRoomFields = ({
                     ))}
                 </select>
             </div>
+            {(mainServicePrice != null || addonServices.length > 0) && (
+                <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
+                    <div className="text-[1.35rem] text-[#181818] font-[600] mb-1">Tóm tắt giá dự kiến</div>
+                    {mainServicePrice != null && (
+                        <div className="text-[1.3rem] text-[#555]">
+                            Dịch vụ chính:{" "}
+                            <strong className="text-[#c45a3a]">
+                                {selectedSvc?.serviceName} — {Number(mainServicePrice).toLocaleString("vi-VN")}đ
+                            </strong>
+                        </div>
+                    )}
+                    <div className="text-[1.3rem] text-[#555] mt-1">
+                        Dịch vụ add-on:{" "}
+                        {addonServices.length === 0 ? (
+                            <span className="text-[#888]">Không có</span>
+                        ) : (
+                            <span className="text-[#181818]">
+                                {addonServices
+                                    .map((s) => {
+                                        const p = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                        const priceText = p != null ? ` — ${Number(p).toLocaleString("vi-VN")}đ` : "";
+                                        return `${s.serviceName}${priceText}`;
+                                    })
+                                    .join("; ")}
+                            </span>
+                        )}
+                    </div>
+                    {totalEstimated > 0 && (
+                        <div className="text-[1.35rem] text-[#555] mt-2">
+                            Tổng dự kiến:{" "}
+                            <strong className="text-[1.5rem] text-[#c45a3a]">
+                                {Number(totalEstimated).toLocaleString("vi-VN")}đ
+                            </strong>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
 
 const AdditionalServiceNonRoomFields = ({
     petId,
+    pet,
     asvc,
     updateAdditionalService,
     services,
     bookingDatePickerPopperSx,
+    getServicePriceForWeight,
 }: AdditionalServiceNonRoomFieldsProps) => {
     const selectedSvc = asvc.serviceId ? services.find((s) => s.serviceId === asvc.serviceId) : undefined;
     const isNonRoom = selectedSvc?.isRequiredRoom === false;
@@ -315,6 +382,18 @@ const AdditionalServiceNonRoomFields = ({
     }, [timeSlots]);
 
     if (!asvc.serviceId || !isNonRoom) return null;
+
+    const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
+    const addonIds = asvc.addonServiceIds ?? [];
+    const addonServices = addonIds
+        .map((id) => services.find((s) => s.serviceId === id))
+        .filter((s): s is ServiceClient => s != null);
+    const addonTotal = addonServices.reduce((sum, s) => {
+        const p = getServicePriceForWeight(s, pet.weight, pet.petType);
+        return sum + (p ?? 0);
+    }, 0);
+    const totalEstimated =
+        (mainServicePrice ?? 0) + (addonServices.length > 0 || addonTotal > 0 ? addonTotal : 0);
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
@@ -355,6 +434,43 @@ const AdditionalServiceNonRoomFields = ({
                     ))}
                 </select>
             </div>
+            {(mainServicePrice != null || addonServices.length > 0) && (
+                <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
+                    <div className="text-[1.35rem] text-[#181818] font-[600] mb-1">Tóm tắt giá dịch vụ thêm</div>
+                    {mainServicePrice != null && (
+                        <div className="text-[1.3rem] text-[#555]">
+                            Dịch vụ thêm:{" "}
+                            <strong className="text-[#c45a3a]">
+                                {selectedSvc?.serviceName} — {Number(mainServicePrice).toLocaleString("vi-VN")}đ
+                            </strong>
+                        </div>
+                    )}
+                    <div className="text-[1.3rem] text-[#555] mt-1">
+                        Dịch vụ add-on:{" "}
+                        {addonServices.length === 0 ? (
+                            <span className="text-[#888]">Không có</span>
+                        ) : (
+                            <span className="text-[#181818]">
+                                {addonServices
+                                    .map((s) => {
+                                        const p = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                        const priceText = p != null ? ` — ${Number(p).toLocaleString("vi-VN")}đ` : "";
+                                        return `${s.serviceName}${priceText}`;
+                                    })
+                                    .join("; ")}
+                            </span>
+                        )}
+                    </div>
+                    {totalEstimated > 0 && (
+                        <div className="text-[1.35rem] text-[#555] mt-2">
+                            Tổng dự kiến:{" "}
+                            <strong className="text-[1.5rem] text-[#c45a3a]">
+                                {Number(totalEstimated).toLocaleString("vi-VN")}đ
+                            </strong>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -925,7 +1041,7 @@ function createEmptyPet(step1: BookingStep1FormData): BookingPetForm {
     return {
         id: crypto.randomUUID?.() ?? `pet-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         petName: "",
-        petType: "dog",
+        petType: "",
         weight: "",
         notes: "",
         emergencyContactName: step1.fullName,
@@ -973,7 +1089,7 @@ export type BookingDetailDraft = {
 export const BookingDetailPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft }) | undefined;
+    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft; bookingCodeForEdit?: string }) | undefined;
     const draft = rawState?.bookingDraft;
     const step1Data: BookingStep1FormData = draft?.step1Data ?? (rawState as BookingStep1FormData) ?? defaultStep1Data;
 
@@ -983,17 +1099,13 @@ export const BookingDetailPage = () => {
     });
     const [openServicePetId, setOpenServicePetId] = useState<string | null>(null);
     const [openPetTypePetId, setOpenPetTypePetId] = useState<string | null>(null);
-    /** Ids of pet cards that are collapsed (ẩn bớt thông tin) */
-    const [collapsedPetIds, setCollapsedPetIds] = useState<Set<string>>(new Set());
+    /** Index thú cưng đang xem (story style: chuyển qua lại bên phải) */
+    const [activePetIndex, setActivePetIndex] = useState(0);
+    const queryClient = useQueryClient();
 
-    const togglePetCollapsed = (id: string) => {
-        setCollapsedPetIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
+    useEffect(() => {
+        setActivePetIndex((i) => Math.min(i, Math.max(0, pets.length - 1)));
+    }, [pets.length]);
 
     const { data: categoriesData } = useQuery({
         queryKey: ["service-categories-client"],
@@ -1154,13 +1266,174 @@ export const BookingDetailPage = () => {
         return rule.price * asvc.numberOfNights;
     };
 
+    const scrollToPet = (index: number, anchorId?: string) => {
+        setActivePetIndex(Math.min(index, Math.max(0, pets.length - 1)));
+        setTimeout(() => {
+            if (anchorId) {
+                const el = document.getElementById(anchorId);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    return;
+                }
+            }
+            formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+    };
+
+    const validateBeforePayment = (): boolean => {
+        // 1) Kiểm tra thông tin liên hệ của khách hàng (Step 1)
+        const fullName = (step1Data.fullName ?? "").trim();
+        const email = (step1Data.email ?? "").trim();
+        const phone = (step1Data.phone ?? "").trim();
+        const address = (step1Data.address ?? "").trim();
+
+        if (!fullName || !email || !phone || !address) {
+            toast.error("Vui lòng điền đầy đủ Họ tên, Email, Số điện thoại và Địa chỉ ở phần Thông tin khách hàng.");
+            // Cuộn lên phần thông tin khách hàng ở đầu trang
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return false;
+        }
+
+        // 2) Kiểm tra chi tiết thú cưng & dịch vụ
+        const nextErrors: Record<string, PetFieldErrors> = {};
+        setPetErrors({});
+
+        for (let i = 0; i < pets.length; i++) {
+            const pet = pets[i];
+            const idxLabel = `thú cưng ${i + 1}`;
+
+            if (!pet.petType.trim()) {
+                nextErrors[pet.id] = {
+                    ...(nextErrors[pet.id] ?? {}),
+                    petType: "Vui lòng chọn loại thú cưng.",
+                };
+                setPetErrors(nextErrors);
+                toast.error(`Vui lòng chọn loại thú cưng cho ${idxLabel}.`);
+                scrollToPet(i, `pet-${pet.id}-petType`);
+                return false;
+            }
+
+            if (!pet.weight?.toString().trim()) {
+                nextErrors[pet.id] = {
+                    ...(nextErrors[pet.id] ?? {}),
+                    weight: "Vui lòng nhập cân nặng của thú cưng.",
+                };
+                setPetErrors(nextErrors);
+                toast.error(`Vui lòng nhập cân nặng cho ${idxLabel}.`);
+                scrollToPet(i, `pet-${pet.id}-weight`);
+                return false;
+            }
+
+            if (!pet.petName.trim()) {
+                nextErrors[pet.id] = { ...(nextErrors[pet.id] ?? {}), petName: "Vui lòng nhập tên thú cưng." };
+                setPetErrors(nextErrors);
+                toast.error(`Vui lòng nhập tên cho ${idxLabel}.`);
+                scrollToPet(i, `pet-${pet.id}-name`);
+                return false;
+            }
+            if (!pet.emergencyContactName?.trim()) {
+                nextErrors[pet.id] = {
+                    ...(nextErrors[pet.id] ?? {}),
+                    emergencyContactName: "Vui lòng nhập người liên hệ khẩn cấp.",
+                };
+                setPetErrors(nextErrors);
+                toast.error(`Vui lòng nhập người liên hệ khẩn cấp cho ${idxLabel}.`);
+                scrollToPet(i, `pet-${pet.id}-emergency-name`);
+                return false;
+            }
+            if (!pet.emergencyContactPhone?.trim()) {
+                nextErrors[pet.id] = {
+                    ...(nextErrors[pet.id] ?? {}),
+                    emergencyContactPhone: "Vui lòng nhập SĐT liên hệ khẩn cấp.",
+                };
+                setPetErrors(nextErrors);
+                toast.error(`Vui lòng nhập SĐT liên hệ khẩn cấp cho ${idxLabel}.`);
+                scrollToPet(i, `pet-${pet.id}-emergency-phone`);
+                return false;
+            }
+
+            const allServices: { base: BookingPetForm | BookingPetServiceForm; svc?: ServiceClient | undefined }[] = [];
+            if (pet.serviceId != null) {
+                allServices.push({ base: pet, svc: services.find((s) => s.serviceId === pet.serviceId) });
+            }
+            for (const asvc of pet.additionalServices ?? []) {
+                if (asvc.serviceId != null) {
+                    allServices.push({ base: asvc, svc: services.find((s) => s.serviceId === asvc.serviceId) });
+                }
+            }
+
+            if (allServices.length === 0) {
+                toast.error(`Vui lòng chọn ít nhất một dịch vụ cho ${idxLabel}.`);
+                    scrollToPet(i, `pet-${pet.id}-service`);
+                return false;
+            }
+
+            for (let j = 0; j < allServices.length; j++) {
+                const { base, svc } = allServices[j];
+                const serviceLabel = `Dịch vụ ${j + 1} của ${idxLabel}`;
+                const serviceKey = "id" in base ? base.id : "main";
+
+                if (!svc) {
+                    toast.error(`Vui lòng chọn ${serviceLabel}.`);
+                    scrollToPet(i);
+                    return false;
+                }
+
+                const isRoomRequired = svc.isRequiredRoom === true;
+                if (isRoomRequired) {
+                    const dateFrom = "dateFrom" in base ? base.dateFrom : (base as BookingPetServiceForm).dateFrom;
+                    const dateTo = "dateTo" in base ? base.dateTo : (base as BookingPetServiceForm).dateTo;
+                    const selectedRoomId =
+                        "selectedRoomId" in base ? base.selectedRoomId : (base as BookingPetServiceForm).selectedRoomId;
+
+                    if (!dateFrom || !dateTo || !dayjs(dateTo).isAfter(dayjs(dateFrom))) {
+                        const petErr = nextErrors[pet.id] ?? {};
+                        const svcDateErrors = { ...(petErr.serviceDateErrors ?? {}) };
+                        svcDateErrors[serviceKey] = "Vui lòng chọn Ngày gửi/Ngày trả hợp lệ.";
+                        nextErrors[pet.id] = { ...petErr, serviceDateErrors: svcDateErrors };
+                        setPetErrors(nextErrors);
+
+                        toast.error(`Vui lòng chọn Ngày gửi/Ngày trả hợp lệ cho ${serviceLabel}.`);
+                        scrollToPet(i, `pet-${pet.id}-${serviceKey}-dates`);
+                        return false;
+                    }
+                    if (!selectedRoomId) {
+                        const petErr = nextErrors[pet.id] ?? {};
+                        const svcRoomErrors = { ...(petErr.serviceRoomErrors ?? {}) };
+                        svcRoomErrors[serviceKey] = "Vui lòng chọn phòng cho dịch vụ này.";
+                        nextErrors[pet.id] = { ...petErr, serviceRoomErrors: svcRoomErrors };
+                        setPetErrors(nextErrors);
+
+                        toast.error(`Vui lòng chọn phòng cho ${serviceLabel}.`);
+                        scrollToPet(i, `pet-${pet.id}-${serviceKey}-room`);
+                        return false;
+                    }
+                } else {
+                    const sessionDate =
+                        "sessionDate" in base ? base.sessionDate : (base as BookingPetServiceForm).sessionDate;
+                    const sessionTimeSlotId =
+                        "sessionTimeSlotId" in base
+                            ? base.sessionTimeSlotId
+                            : (base as BookingPetServiceForm).sessionTimeSlotId;
+
+                    if (!sessionDate || !sessionTimeSlotId) {
+                        toast.error(`Vui lòng chọn Ngày gửi và Khung giờ cho ${serviceLabel}.`);
+                        scrollToPet(i, `pet-${pet.id}-${"id" in base ? base.id : "main"}-session`);
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    };
+
     const getServiceDisplayLabel = (pet: BookingPetForm): string => {
         if (!pet.serviceId) return "";
         const svc = services.find((s) => s.serviceId === pet.serviceId);
         if (!svc) return "";
         if (svc.isRequiredRoom === true) return svc.serviceName;
         const price = getServicePriceForWeight(svc, pet.weight, pet.petType);
-        const priceText = price != null ? ` — ${Number(price).toLocaleString("vi-VN")}đ (Dự kiến)` : "";
+        const priceText = price != null ? ` — ${Number(price).toLocaleString("vi-VN")}đ` : "";
         return `${svc.serviceName}${priceText}`;
     };
 
@@ -1191,10 +1464,20 @@ export const BookingDetailPage = () => {
         []
     );
 
-    const addPet = () => setPets((prev) => [...prev, createEmptyPet(step1Data)]);
+    const addPet = () => {
+        setPets((prev) => [...prev, createEmptyPet(step1Data)]);
+        setActivePetIndex((i) => i + 1);
+    };
     const removePet = (id: string) => {
         if (pets.length <= 1) return;
+        const idx = pets.findIndex((p) => p.id === id);
         setPets((prev) => prev.filter((p) => p.id !== id));
+        setActivePetIndex((cur) => {
+            if (idx < 0) return cur;
+            if (cur > idx) return cur - 1;
+            if (cur === idx) return Math.min(cur, Math.max(0, pets.length - 2));
+            return cur;
+        });
     };
 
     const addAdditionalService = (petId: string) => {
@@ -1319,22 +1602,59 @@ export const BookingDetailPage = () => {
         formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Validation: Ngày trả phải > Ngày gửi
-        const invalidPet = pets.find(
-            (p) =>
-                p.pricingModel === "per_day" &&
-                p.dateFrom &&
-                p.dateTo &&
-                !dayjs(p.dateTo).isAfter(dayjs(p.dateFrom))
-        );
-        if (invalidPet) {
-            toast.error("Ngày trả phải sau ngày gửi (ít nhất 1 đêm). Vui lòng kiểm tra lại.");
-            return;
+    const [isSubmitting] = useState(false);
+    const [isHolding, setIsHolding] = useState(false);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [petErrors, setPetErrors] = useState<Record<string, PetFieldErrors>>({});
+
+    const handleProceedToPayment = async () => {
+        if (!validateBeforePayment()) return;
+        setIsHolding(true);
+        try {
+            const payload = buildCreateBookingPayload(step1Data, pets);
+            const res = await createBookingDepositIntent(payload);
+            if (res?.success && res?.data?.depositId) {
+                toast.success("Đã giữ chỗ 5 phút. Vui lòng thanh toán cọc để hoàn tất.");
+                navigate("/dat-lich/thanh-toan", {
+                    state: {
+                        depositId: res.data.depositId,
+                        expiresAt: res.data.expiresAt,
+                        bookingId: res.data.bookingId,
+                        bookingCode: res.data.bookingCode,
+                        step1Data,
+                        bookingDraft: {
+                            step1Data,
+                            pets,
+                        },
+                    },
+                });
+                return;
+            }
+            toast.error(res?.message ?? "Không thể giữ chỗ. Vui lòng thử lại.");
+        } catch (err: unknown) {
+            const data = (err as { response?: { data?: { message?: string; data?: { errorCode?: string; petIndex?: number; serviceIndex?: number; roomId?: number } } } })?.response?.data;
+            const message = data?.message ?? (err instanceof Error ? err.message : "Không thể giữ chỗ. Vui lòng thử lại.");
+            const errorData = data?.data;
+            toast.error(message);
+
+            if (errorData?.errorCode) {
+                const petIndex = typeof errorData.petIndex === "number" ? errorData.petIndex : 0;
+                setActivePetIndex(Math.min(petIndex, Math.max(0, pets.length - 1)));
+                setTimeout(() => {
+                    formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 100);
+                if (errorData.errorCode === "TIME_SLOT_FULL") {
+                    queryClient.invalidateQueries({ queryKey: ["time-slots-main"] });
+                    queryClient.invalidateQueries({ queryKey: ["time-slots"] });
+                }
+                if (errorData.errorCode === "ROOM_ALREADY_BOOKED" && errorData.roomId) {
+                    queryClient.invalidateQueries({ queryKey: ["rooms-by-layout"] });
+                    queryClient.invalidateQueries({ queryKey: ["room-layout-config"] });
+                }
+            }
+        } finally {
+            setIsHolding(false);
         }
-        // TODO: gửi API tạo booking khi BE sẵn sàng
-        console.log("Booking payload:", { customer: step1Data, pets });
     };
 
     return (
@@ -1344,11 +1664,16 @@ export const BookingDetailPage = () => {
                 <div className="app-container flex py-[100px] bg-white">
                     <div className="px-[20px] w-[42%] z-[10]">
                         <p className="uppercase text-client-secondary text-[1.7rem] font-[700] mb-[15px]">
-                            Đặt lịch chi tiết
+                            {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
                         </p>
                         <h2 className="text-[5.0rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
                             Thông tin lịch hẹn cho thú cưng
                         </h2>
+                        {rawState?.bookingCodeForEdit && (
+                            <p className="mt-[8px] text-[1.5rem] text-[#c45a3a] font-[600]">
+                                Mã đặt lịch: <span className="font-[800]">{rawState.bookingCodeForEdit}</span>
+                            </p>
+                        )}
                         <p className="text-[#505050] font-[500] text-[1.8rem] inline-block mt-[15px]">
                             Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
                         </p>
@@ -1435,7 +1760,11 @@ export const BookingDetailPage = () => {
                     </section>
 
                     {/* ========== PHẦN 2: Số lượng thú cưng + thông tin từng thú + dịch vụ + ngày/slot ========== */}
-                    <form onSubmit={handleSubmit}>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                        }}
+                    >
                         <section className="mb-[40px]">
                             <div className="flex items-center justify-between gap-4 mb-[16px]">
                                 <div className="flex items-center gap-2">
@@ -1451,35 +1780,104 @@ export const BookingDetailPage = () => {
                                 </button>
                             </div>
 
-                            <div className="space-y-[28px]">
-                                {pets.map((pet, index) => (
-                                    <div
-                                        key={pet.id}
-                                        className="bg-white rounded-[16px] shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#eee]"
+                            <div className="flex flex-col lg:flex-row gap-6">
+                                {/* Hiển thị 3 tab thú cưng, tab đang xem ở giữa và nổi bật; chuyển bằng 2 nút mũi tên */}
+                                <div className="flex items-center justify-center gap-2 flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActivePetIndex((i) => Math.max(0, i - 1))}
+                                        disabled={activePetIndex === 0 || pets.length <= 1}
+                                        className="w-11 h-11 rounded-full border-2 border-[#eee] bg-white shadow-sm flex items-center justify-center text-[#181818] disabled:opacity-40 disabled:pointer-events-none hover:border-[#ffbaa0] hover:bg-[#fff7f3] transition-all duration-300 ease-out shrink-0"
+                                        aria-label="Thú cưng trước"
                                     >
+                                        <span className="text-[2.2rem] leading-none font-light">‹</span>
+                                    </button>
+                                    <div className="flex items-center gap-2 transition-all duration-300 ease-out">
+                                        {(() => {
+                                            const total = pets.length;
+                                            const showCount = Math.min(3, total);
+                                            const start = Math.max(0, Math.min(activePetIndex - 1, total - showCount));
+                                            const indices = Array.from({ length: showCount }, (_, i) => start + i);
+                                            return indices.map((idx) => {
+                                                const pet = pets[idx];
+                                                const isActive = idx === activePetIndex;
+                                                return (
+                                                    <button
+                                                        key={pet.id}
+                                                        type="button"
+                                                        onClick={() => setActivePetIndex(idx)}
+                                                        className={`flex items-center gap-2 rounded-[12px] border-2 px-3 py-2.5 text-left min-w-[100px] max-w-[140px] transition-all duration-300 ease-out ${
+                                                            isActive
+                                                                ? "border-[#ffbaa0] bg-[#fff7f3] shadow-md scale-105 ring-2 ring-[#ffbaa0]/40"
+                                                                : "border-[#eee] bg-white hover:border-[#ffbaa0]/60 hover:bg-[#fafafa] hover:scale-[1.02]"
+                                                        }`}
+                                                    >
+                                                        <span
+                                                            className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 transition-all duration-300 ease-out ${
+                                                                isActive ? "bg-[#ffbaa0]/50 text-[#c45a3a]" : "bg-[#f0f0f0] text-[#888]"
+                                                            }`}
+                                                        >
+                                                            <PetsIcon sx={{ fontSize: 18 }} />
+                                                        </span>
+                                                        <span className={`truncate transition-all duration-300 ease-out ${isActive ? "text-[1.4rem] font-[700] text-[#181818]" : "text-[1.3rem] font-[500] text-[#555]"}`}>
+                                                            {pet.petName.trim() || `Thú cưng ${idx + 1}`}
+                                                        </span>
+                                                        {total > 1 && (
+                                                            <span className={`shrink-0 text-[1.1rem] transition-all duration-300 ease-out ${isActive ? "font-[600] text-[#c45a3a]" : "font-[500] text-[#999]"}`}>
+                                                                {idx + 1}/{total}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActivePetIndex((i) => Math.min(pets.length - 1, i + 1))}
+                                        disabled={activePetIndex === pets.length - 1 || pets.length <= 1}
+                                        className="w-11 h-11 rounded-full border-2 border-[#eee] bg-white shadow-sm flex items-center justify-center text-[#181818] disabled:opacity-40 disabled:pointer-events-none hover:border-[#ffbaa0] hover:bg-[#fff7f3] transition-all duration-300 ease-out shrink-0"
+                                        aria-label="Thú cưng sau"
+                                    >
+                                        <span className="text-[2.2rem] leading-none font-light">›</span>
+                                    </button>
+                                </div>
+
+                                {/* Form thú cưng đang chọn (chỉ 1 card hiển thị, chuyển qua lại như story) */}
+                                <div className="flex-1 min-w-0 relative">
+                                {pets.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActivePetIndex((i) => Math.max(0, i - 1))}
+                                            disabled={activePetIndex === 0}
+                                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow border border-[#eee] flex items-center justify-center text-[#181818] disabled:opacity-40 disabled:pointer-events-none hover:bg-[#fff7f3] -translate-x-1/2 lg:translate-x-0"
+                                            aria-label="Thú cưng trước"
+                                        >
+                                            <span className="text-[2rem] leading-none">‹</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActivePetIndex((i) => Math.min(pets.length - 1, i + 1))}
+                                            disabled={activePetIndex === pets.length - 1}
+                                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow border border-[#eee] flex items-center justify-center text-[#181818] disabled:opacity-40 disabled:pointer-events-none hover:bg-[#fff7f3] translate-x-1/2 lg:translate-x-0"
+                                            aria-label="Thú cưng sau"
+                                        >
+                                            <span className="text-[2rem] leading-none">›</span>
+                                        </button>
+                                    </>
+                                )}
+                                {pets.map((pet, index) => index !== activePetIndex ? null : (
+                                    <div key={pet.id} className="booking-pet-card-enter">
+                                        <div
+                                            className="bg-white rounded-[16px] shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#eee]"
+                                        >
                                         <div className="bg-[#f8f9fa] px-[24px] py-[14px] border-b border-[#eee] flex items-center justify-between flex-wrap gap-2">
                                             <span className="flex items-center gap-2 text-[1.5rem] font-[600] text-[#181818]">
                                                 <PetsIcon sx={{ fontSize: 22, color: "#c45a3a" }} />
                                                 {pet.petName.trim() || `Thú cưng ${index + 1}`}
                                             </span>
                                             <div className="flex items-center gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => togglePetCollapsed(pet.id)}
-                                                    className="flex items-center gap-1 py-[6px] px-[12px] rounded-[8px] text-[1.35rem] font-[500] text-[#555] hover:bg-[#eee] transition-colors"
-                                                >
-                                                    {collapsedPetIds.has(pet.id) ? (
-                                                        <>
-                                                            <ExpandLessIcon sx={{ fontSize: 20 }} />
-                                                            Hiện thông tin
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <ExpandMoreIcon sx={{ fontSize: 20 }} />
-                                                            Ẩn bớt thông tin
-                                                        </>
-                                                    )}
-                                                </button>
                                                 {pets.length > 1 && (
                                                     <button
                                                         type="button"
@@ -1493,21 +1891,21 @@ export const BookingDetailPage = () => {
                                             </div>
                                         </div>
 
-                                        <div
-                                            className={`transition-[max-height,opacity] duration-300 ease-out ${
-                                                collapsedPetIds.has(pet.id)
-                                                    ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
-                                                    : "max-h-[8000px] opacity-100 overflow-visible"
-                                            }`}
-                                        >
-                                            <div className="p-[24px] space-y-[24px] overflow-visible">
+                                        <div className="p-[24px] space-y-[24px] overflow-visible">
                                             {/* Thông tin thú cưng */}
                                             <div className="space-y-[16px]">
                                                 {/* Row 1: Tên thú cưng + Loại (ngang hàng) */}
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
                                                     <div>
                                                         <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Tên thú cưng *</label>
+                                                        {(() => {
+                                                            const err = petErrors[pet.id]?.petName;
+                                                            return err ? (
+                                                                <p className="mb-[4px] text-[1.2rem] text-[#ef4444]">{err}</p>
+                                                            ) : null;
+                                                        })()}
                                                         <input
+                                                            id={`pet-${pet.id}-name`}
                                                             type="text"
                                                             value={pet.petName}
                                                             onChange={(e) => updatePet(pet.id, { petName: e.target.value })}
@@ -1517,8 +1915,17 @@ export const BookingDetailPage = () => {
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Loại</label>
+                                                        <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Loại *</label>
+                                                        {(() => {
+                                                            const err = petErrors[pet.id]?.petType;
+                                                            return err ? (
+                                                                <p className="mb-[4px] text-[1.2rem] text-[#ef4444]">{err}</p>
+                                                            ) : null;
+                                                        })()}
                                                         <PetTypeDropdown
+                                                            // anchor id for scroll
+                                                            // @ts-ignore
+                                                            id={`pet-${pet.id}-petType`}
                                                             isOpen={openPetTypePetId === pet.id}
                                                             value={pet.petType}
                                                             options={petTypeOptions}
@@ -1536,7 +1943,14 @@ export const BookingDetailPage = () => {
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
                                                     <div>
                                                         <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Cân nặng (kg)</label>
+                                                        {(() => {
+                                                            const err = petErrors[pet.id]?.weight;
+                                                            return err ? (
+                                                                <p className="mb-[4px] text-[1.2rem] text-[#ef4444]">{err}</p>
+                                                            ) : null;
+                                                        })()}
                                                         <input
+                                                            id={`pet-${pet.id}-weight`}
                                                             type="text"
                                                             value={pet.weight}
                                                             onChange={(e) => updatePet(pet.id, { weight: e.target.value })}
@@ -1546,7 +1960,14 @@ export const BookingDetailPage = () => {
                                                     </div>
                                                     <div>
                                                         <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Liên hệ khẩn cấp</label>
+                                                        {(() => {
+                                                            const err = petErrors[pet.id]?.emergencyContactName;
+                                                            return err ? (
+                                                                <p className="mb-[4px] text-[1.2rem] text-[#ef4444]">{err}</p>
+                                                            ) : null;
+                                                        })()}
                                                         <input
+                                                            id={`pet-${pet.id}-emergency-name`}
                                                             type="text"
                                                             value={pet.emergencyContactName ?? ""}
                                                             onChange={(e) => updatePet(pet.id, { emergencyContactName: e.target.value })}
@@ -1556,7 +1977,14 @@ export const BookingDetailPage = () => {
                                                     </div>
                                                     <div>
                                                         <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">SĐT khẩn cấp</label>
+                                                        {(() => {
+                                                            const err = petErrors[pet.id]?.emergencyContactPhone;
+                                                            return err ? (
+                                                                <p className="mb-[4px] text-[1.2rem] text-[#ef4444]">{err}</p>
+                                                            ) : null;
+                                                        })()}
                                                         <input
+                                                            id={`pet-${pet.id}-emergency-phone`}
                                                             type="tel"
                                                             value={pet.emergencyContactPhone ?? ""}
                                                             onChange={(e) => updatePet(pet.id, { emergencyContactPhone: e.target.value })}
@@ -1595,6 +2023,8 @@ export const BookingDetailPage = () => {
                                                                     const catServices = services.filter((s) => {
                                                                         if (s.serviceCategoryId !== cat.categoryId || !s.isActive)
                                                                             return false;
+                                                                        // Không cho chọn dịch vụ add-on / additional charge ở phần dịch vụ chính
+                                                                        if (s.isAddon === true || s.isAdditionalCharge === true) return false;
                                                                         const petTypeNorm = normalizePetType(pet.petType);
                                                                         const serviceSupportsPetType =
                                                                             !s.suitablePetTypes || s.suitablePetTypes.length === 0
@@ -1673,50 +2103,88 @@ export const BookingDetailPage = () => {
                                                     .map((id) => services.find((s) => s.serviceId === id))
                                                     .filter((s): s is ServiceClient => s != null);
                                                 return (
-                                                    <div className="mt-3 p-3 rounded-[10px] border border-[#eee] bg-[#fafafa]">
-                                                        <label className="block mb-2 text-[1.3rem] font-[600] text-[#555]">Dịch vụ add-on kèm theo (tùy chọn)</label>
+                                                    <div className="mt-4 p-4 rounded-[12px] border border-[#ffe0ce] bg-[#fffbf9]">
+                                                        <label className="block mb-3 text-[1.4rem] font-[600] text-[#181818]">Dịch vụ add-on kèm theo (tùy chọn)</label>
                                                         {selectedServices.length > 0 && (
-                                                            <div className="mb-2 flex flex-wrap gap-2">
-                                                                {selectedServices.map((s) => (
-                                                                    <span
-                                                                        key={s.serviceId}
-                                                                        className="inline-flex items-center gap-2 rounded-[8px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-2 text-[1.35rem] text-[#181818]"
-                                                                    >
-                                                                        {s.serviceName}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => updatePet(pet.id, { addonServiceIds: selectedIds.filter((id) => id !== s.serviceId) })}
-                                                                            className="p-0.5 rounded hover:bg-[#ffbaa0]/30 text-[#888] hover:text-[#e53935] transition-colors"
-                                                                            aria-label="Xóa"
+                                                            <div className="mb-3 flex flex-wrap gap-2">
+                                                                {selectedServices.map((s) => {
+                                                                    const price = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                                                    return (
+                                                                        <span
+                                                                            key={s.serviceId}
+                                                                            className="inline-flex items-center gap-2 rounded-[10px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-2 text-[1.35rem] font-[500] text-[#181818]"
                                                                         >
-                                                                            ×
-                                                                        </button>
-                                                                    </span>
-                                                                ))}
+                                                                            <span>
+                                                                                {s.serviceName}
+                                                                                {price != null && (
+                                                                                    <span className="ml-2 text-[1.3rem] font-[600] text-[#c45a3a]">
+                                                                                        {Number(price).toLocaleString("vi-VN")}đ
+                                                                                    </span>
+                                                                                )}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    updatePet(pet.id, {
+                                                                                        addonServiceIds: selectedIds.filter(
+                                                                                            (id) => id !== s.serviceId
+                                                                                        ),
+                                                                                    })
+                                                                                }
+                                                                                className="p-0.5 rounded hover:bg-[#ffbaa0]/40 text-[#888] hover:text-[#e53935] transition-colors duration-200"
+                                                                                aria-label="Xóa"
+                                                                            >
+                                                                                ×
+                                                                            </button>
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
-                                                        <select
-                                                            value=""
-                                                            onChange={(e) => {
-                                                                const id = Number(e.target.value);
-                                                                if (!id) return;
-                                                                if (!selectedIds.includes(id)) updatePet(pet.id, { addonServiceIds: [...selectedIds, id] });
-                                                                e.target.value = "";
-                                                            }}
-                                                            disabled={availableToAdd.length === 0}
-                                                            className="w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[1.4rem] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none disabled:bg-[#f5f5f5] disabled:text-[#999]"
-                                                        >
-                                                            <option value="">
-                                                                {availableToAdd.length === 0
-                                                                    ? (addonServices.length === 0 ? "— Không có dịch vụ add-on cho nhóm này —" : "— Đã chọn hết —")
-                                                                    : "— Chọn dịch vụ add-on —"}
-                                                            </option>
-                                                            {availableToAdd.map((s) => (
-                                                                <option key={s.serviceId} value={s.serviceId}>
-                                                                    {s.serviceName}
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                        {availableToAdd.length > 0 ? (
+                                                            <div className="space-y-[4px]">
+                                                                {availableToAdd.map((s) => {
+                                                                    const price = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                                                    const isSelected = selectedIds.includes(s.serviceId);
+                                                                    return (
+                                                                        <button
+                                                                            key={s.serviceId}
+                                                                            type="button"
+                                                                            disabled={isSelected}
+                                                                            onClick={() => {
+                                                                                if (!isSelected) {
+                                                                                    updatePet(pet.id, {
+                                                                                        addonServiceIds: [...selectedIds, s.serviceId],
+                                                                                    });
+                                                                                }
+                                                                            }}
+                                                                            className={`w-full text-left rounded-[10px] px-[10px] py-[8px] border transition-colors ${
+                                                                                isSelected
+                                                                                    ? "border-[#ffbaa0] bg-[#fff7f3] text-[#999] cursor-default"
+                                                                                    : "border-transparent hover:border-[#ffe0ce] hover:bg-[#fff7f3]"
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center justify-between gap-3">
+                                                                                <span className="text-[1.4rem] font-[600] text-[#181818]">
+                                                                                    {s.serviceName}
+                                                                                </span>
+                                                                                {price != null && (
+                                                                                    <span className="text-[1.35rem] font-[600] text-[#c45a3a] whitespace-nowrap">
+                                                                                        {Number(price).toLocaleString("vi-VN")}đ
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-[1.35rem] text-[#888] py-2">
+                                                                {addonServices.length === 0
+                                                                    ? "Không có dịch vụ add-on cho nhóm này."
+                                                                    : "Đã chọn hết dịch vụ add-on khả dụng."}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 );
                                             })()}
@@ -1878,7 +2346,10 @@ export const BookingDetailPage = () => {
 
                                             {/* Theo pricingModel: per_day hoặc per_session */}
                                             {pet.pricingModel === "per_day" && (
-                                                <div className="p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
+                                                <div
+                                                    id={`pet-${pet.id}-main-dates`}
+                                                    className="p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce] scroll-mt-[120px]"
+                                                >
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
                                                         <div>
                                                             <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày gửi *</label>
@@ -1919,7 +2390,10 @@ export const BookingDetailPage = () => {
                                                                         fullWidth: true,
                                                                         color: "warning",
                                                                         sx: bookingDatePickerTextFieldSx,
-                                                                        helperText: pet.dateFrom && !pet.dateTo ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)" : undefined,
+                                                                        helperText:
+                                                                            pet.dateFrom && !pet.dateTo
+                                                                                ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
+                                                                                : undefined,
                                                                     },
                                                                     popper: { sx: bookingDatePickerPopperSx },
                                                                 }}
@@ -1931,25 +2405,40 @@ export const BookingDetailPage = () => {
                                                             Số đêm: {pet.numberOfNights} đêm
                                                         </p>
                                                     )}
+                                                    {petErrors[pet.id]?.serviceDateErrors?.main && (
+                                                        <p className="mt-2 text-[1.2rem] text-[#ef4444]">
+                                                            {petErrors[pet.id]?.serviceDateErrors?.main}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
 
                                             {pet.pricingModel === "per_day" && (
-                                                <RoomPickerSection
-                                                                pet={pet}
-                                                                updatePet={updatePet}
-                                                                services={services}
-                                                                getRoomTotalPrice={getRoomTotalPrice}
-                                                                onViewRoomDetail={(room) =>
-                                                                    navigate(`/dat-lich/phong/${room.roomId}`, {
-                                                                        state: {
-                                                                            fromBooking: true,
-                                                                            room,
-                                                                            bookingDraft: { step1Data, pets },
-                                                                        },
-                                                                    })
-                                                                }
-                                                            />
+                                                <>
+                                                    <RoomPickerSection
+                                                        // container id for scroll to room
+                                                        // @ts-ignore
+                                                        id={`pet-${pet.id}-main-room`}
+                                                        pet={pet}
+                                                        updatePet={updatePet}
+                                                        services={services}
+                                                        getRoomTotalPrice={getRoomTotalPrice}
+                                                        onViewRoomDetail={(room) =>
+                                                            navigate(`/dat-lich/phong/${room.roomId}`, {
+                                                                state: {
+                                                                    fromBooking: true,
+                                                                    room,
+                                                                    bookingDraft: { step1Data, pets },
+                                                                },
+                                                            })
+                                                        }
+                                                    />
+                                                    {petErrors[pet.id]?.serviceRoomErrors?.main && (
+                                                        <p className="mt-2 text-[1.2rem] text-[#ef4444]">
+                                                            {petErrors[pet.id]?.serviceRoomErrors?.main}
+                                                        </p>
+                                                    )}
+                                                </>
                                             )}
 
                                             <MainServiceNonRoomFields
@@ -1957,6 +2446,10 @@ export const BookingDetailPage = () => {
                                                 updatePet={updatePet}
                                                 services={services}
                                                 bookingDatePickerPopperSx={bookingDatePickerPopperSx}
+                                                getServicePriceForWeight={getServicePriceForWeight}
+                                                // id để scroll tới phần session
+                                                // @ts-ignore
+                                                id={`pet-${pet.id}-main-session`}
                                             />
 
                                             {/* Dịch vụ thêm (nhiều booking_pet_services, không trùng dịch vụ) */}
@@ -1989,7 +2482,7 @@ export const BookingDetailPage = () => {
                                                             const allowService = (s: ServiceClient) =>
                                                                 canSelect(s.serviceId) &&
                                                                 (!s.isRequiredRoom || s.serviceId === asvc.serviceId || !roomRequiredElsewhere);
-                                                            // Dịch vụ thêm: lấy toàn bộ service theo category (giống phần Chọn dịch vụ), không lọc isAddon/isAdditionalCharge; loại dịch vụ cần phòng nếu đã có
+                                                            // Dịch vụ thêm: dùng cùng logic với phần Chọn dịch vụ chính
                                                             const catServicesForAdditional = categories
                                                                 .map((cat) => ({
                                                                     cat,
@@ -1997,17 +2490,19 @@ export const BookingDetailPage = () => {
                                                                         (s) =>
                                                                             s.serviceCategoryId === cat.categoryId &&
                                                                             s.isActive &&
+                                                                            s.isAddon !== true &&
+                                                                            s.isAdditionalCharge !== true &&
                                                                             allowService(s)
                                                                     ),
                                                                 }))
                                                                 .filter(({ catServices }) => catServices.length > 0);
-                                                            const additionalServiceDisplayLabel = asvc.serviceId
+                                                                    const additionalServiceDisplayLabel = asvc.serviceId
                                                                 ? (() => {
                                                                       const svc = services.find((s) => s.serviceId === asvc.serviceId);
                                                                       if (!svc) return `Dịch vụ #${asvc.serviceId}`;
                                                                       if (svc.isRequiredRoom === true) return svc.serviceName;
                                                                       const price = getServicePriceForWeight(svc, pet.weight, pet.petType);
-                                                                      const priceText = price != null ? ` — ${Number(price).toLocaleString("vi-VN")}đ (Dự kiến)` : "";
+                                                                      const priceText = price != null ? ` — ${Number(price).toLocaleString("vi-VN")}đ` : "";
                                                                       return `${svc.serviceName}${priceText}`;
                                                                   })()
                                                                 : "";
@@ -2094,46 +2589,118 @@ export const BookingDetailPage = () => {
                                                                             .map((id) => services.find((s) => s.serviceId === id))
                                                                             .filter((s): s is ServiceClient => s != null);
                                                                         return (
-                                                                            <div className="mt-3 p-3 rounded-[10px] border border-[#eee] bg-[#fafafa]">
-                                                                                <label className="block mb-2 text-[1.3rem] font-[600] text-[#555]">Dịch vụ add-on kèm theo (tùy chọn)</label>
+                                                                            <div className="mt-4 p-4 rounded-[12px] border border-[#ffe0ce] bg-[#fffbf9]">
+                                                                                <label className="block mb-3 text-[1.4rem] font-[600] text-[#181818]">Dịch vụ add-on kèm theo (tùy chọn)</label>
                                                                                 {selectedServicesAdd.length > 0 && (
-                                                                                    <div className="mb-2 flex flex-wrap gap-2">
-                                                                                        {selectedServicesAdd.map((s) => (
-                                                                                            <span
-                                                                                                key={s.serviceId}
-                                                                                                className="inline-flex items-center gap-2 rounded-[8px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-2 text-[1.35rem] text-[#181818]"
-                                                                                            >
-                                                                                                {s.serviceName}
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onClick={() => updateAdditionalService(pet.id, asvc.id, { addonServiceIds: selectedIdsAdd.filter((id) => id !== s.serviceId) })}
-                                                                                                    className="p-0.5 rounded hover:bg-[#ffbaa0]/30 text-[#888] hover:text-[#e53935] transition-colors"
-                                                                                                    aria-label="Xóa"
+                                                                                    <div className="mb-3 flex flex-wrap gap-2">
+                                                                                        {selectedServicesAdd.map((s) => {
+                                                                                            const price = getServicePriceForWeight(
+                                                                                                s,
+                                                                                                pet.weight,
+                                                                                                pet.petType
+                                                                                            );
+                                                                                            return (
+                                                                                                <span
+                                                                                                    key={s.serviceId}
+                                                                                                    className="inline-flex items-center gap-2 rounded-[10px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-2 text-[1.35rem] font-[500] text-[#181818]"
                                                                                                 >
-                                                                                                    ×
-                                                                                                </button>
-                                                                                            </span>
-                                                                                        ))}
+                                                                                                    <span>
+                                                                                                        {s.serviceName}
+                                                                                                        {price != null && (
+                                                                                                            <span className="ml-2 text-[1.3rem] font-[600] text-[#c45a3a]">
+                                                                                                                {Number(price).toLocaleString(
+                                                                                                                    "vi-VN"
+                                                                                                                )}
+                                                                                                                đ
+                                                                                                            </span>
+                                                                                                        )}
+                                                                                                    </span>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={() =>
+                                                                                                            updateAdditionalService(
+                                                                                                                pet.id,
+                                                                                                                asvc.id,
+                                                                                                                {
+                                                                                                                    addonServiceIds:
+                                                                                                                        selectedIdsAdd.filter(
+                                                                                                                            (id) =>
+                                                                                                                                id !==
+                                                                                                                                s.serviceId
+                                                                                                                        ),
+                                                                                                                }
+                                                                                                            )
+                                                                                                        }
+                                                                                                        className="p-0.5 rounded hover:bg-[#ffbaa0]/40 text-[#888] hover:text-[#e53935] transition-colors duration-200"
+                                                                                                        aria-label="Xóa"
+                                                                                                    >
+                                                                                                        ×
+                                                                                                    </button>
+                                                                                                </span>
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 )}
-                                                                                {availableToAddAdd.length > 0 && (
-                                                                                    <select
-                                                                                        value=""
-                                                                                        onChange={(e) => {
-                                                                                            const id = Number(e.target.value);
-                                                                                            if (!id) return;
-                                                                                            if (!selectedIdsAdd.includes(id)) updateAdditionalService(pet.id, asvc.id, { addonServiceIds: [...selectedIdsAdd, id] });
-                                                                                            e.target.value = "";
-                                                                                        }}
-                                                                                        className="w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[1.4rem] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none"
-                                                                                    >
-                                                                                        <option value="">— Chọn dịch vụ add-on —</option>
-                                                                                        {availableToAddAdd.map((s) => (
-                                                                                            <option key={s.serviceId} value={s.serviceId}>
-                                                                                                {s.serviceName}
-                                                                                            </option>
-                                                                                        ))}
-                                                                                    </select>
+                                                                                {availableToAddAdd.length > 0 ? (
+                                                                                    <div className="space-y-[4px]">
+                                                                                        {availableToAddAdd.map((s) => {
+                                                                                            const price = getServicePriceForWeight(
+                                                                                                s,
+                                                                                                pet.weight,
+                                                                                                pet.petType
+                                                                                            );
+                                                                                            const isSelected =
+                                                                                                selectedIdsAdd.includes(
+                                                                                                    s.serviceId
+                                                                                                );
+                                                                                            return (
+                                                                                                <button
+                                                                                                    key={s.serviceId}
+                                                                                                    type="button"
+                                                                                                    disabled={isSelected}
+                                                                                                    onClick={() => {
+                                                                                                        if (!isSelected) {
+                                                                                                            updateAdditionalService(
+                                                                                                                pet.id,
+                                                                                                                asvc.id,
+                                                                                                                {
+                                                                                                                    addonServiceIds: [
+                                                                                                                        ...selectedIdsAdd,
+                                                                                                                        s.serviceId,
+                                                                                                                    ],
+                                                                                                                }
+                                                                                                            );
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    className={`w-full text-left rounded-[10px] px-[10px] py-[8px] border transition-colors ${
+                                                                                                        isSelected
+                                                                                                            ? "border-[#ffbaa0] bg-[#fff7f3] text-[#999] cursor-default"
+                                                                                                            : "border-transparent hover:border-[#ffe0ce] hover:bg-[#fff7f3]"
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    <div className="flex items-center justify-between gap-3">
+                                                                                                        <span className="text-[1.4rem] font-[600] text-[#181818]">
+                                                                                                            {s.serviceName}
+                                                                                                        </span>
+                                                                                                        {price != null && (
+                                                                                                            <span className="text-[1.35rem] font-[600] text-[#c45a3a] whitespace-nowrap">
+                                                                                                                {Number(
+                                                                                                                    price
+                                                                                                                ).toLocaleString(
+                                                                                                                    "vi-VN"
+                                                                                                                )}
+                                                                                                                đ
+                                                                                                            </span>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </button>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <p className="text-[1.35rem] text-[#888] py-2">
+                                                                                        Không còn dịch vụ add-on để chọn.
+                                                                                    </p>
                                                                                 )}
                                                                             </div>
                                                                         );
@@ -2147,7 +2714,10 @@ export const BookingDetailPage = () => {
                                                                                 {/* Dịch vụ thêm cần phòng: Ngày gửi, Ngày trả (giống phần chọn dịch vụ chính) */}
                                                                                 {isAdditionalRoom && (
                                                                                     <>
-                                                                                        <div className="p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
+                                                                                        <div
+                                                                                            id={`pet-${pet.id}-${asvc.id}-dates`}
+                                                                                            className="p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce] scroll-mt-[120px]"
+                                                                                        >
                                                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
                                                                                                 <div>
                                                                                                     <label className="block mb-[6px] text-[1.4rem] font-[600] text-[#181818]">Ngày gửi *</label>
@@ -2198,13 +2768,22 @@ export const BookingDetailPage = () => {
                                                                                                     Số đêm: {asvc.numberOfNights} đêm
                                                                                                 </p>
                                                                                             )}
+                                                                                            {petErrors[pet.id]?.serviceDateErrors?.[asvc.id] && (
+                                                                                                <p className="mt-2 text-[1.2rem] text-[#ef4444]">
+                                                                                                    {petErrors[pet.id]?.serviceDateErrors?.[asvc.id]}
+                                                                                                </p>
+                                                                                            )}
                                                                                         </div>
                                                                                         <RoomPickerSectionForAdditional
+                                                                                            // @ts-ignore
+                                                                                            id={`pet-${pet.id}-${asvc.id}-room`}
                                                                                             pet={pet}
                                                                                             asvc={asvc}
                                                                                             updateAdditionalService={updateAdditionalService}
                                                                                             services={services}
-                                                                                            getAdditionalRoomTotalPrice={(a, roomTypeId) => getAdditionalRoomTotalPrice(a, roomTypeId, pet)}
+                                                                                            getAdditionalRoomTotalPrice={(a, roomTypeId) =>
+                                                                                                getAdditionalRoomTotalPrice(a, roomTypeId, pet)
+                                                                                            }
                                                                                             onViewRoomDetail={(room) =>
                                                                                                 navigate(`/dat-lich/phong/${room.roomId}`, {
                                                                                                     state: {
@@ -2215,16 +2794,25 @@ export const BookingDetailPage = () => {
                                                                                                 })
                                                                                             }
                                                                                         />
+                                                                                        {petErrors[pet.id]?.serviceRoomErrors?.[asvc.id] && (
+                                                                                            <p className="mt-2 text-[1.2rem] text-[#ef4444]">
+                                                                                                {petErrors[pet.id]?.serviceRoomErrors?.[asvc.id]}
+                                                                                            </p>
+                                                                                        )}
                                                                                     </>
                                                                                 )}
                                                                                 {/* Dịch vụ thêm không cần phòng: chỉ Ngày gửi + Khung giờ */}
                                                                                 {isAdditionalNonRoom && (
                                                                                     <AdditionalServiceNonRoomFields
                                                                                         petId={pet.id}
+                                                                                        pet={pet}
                                                                                         asvc={asvc}
                                                                                         updateAdditionalService={updateAdditionalService}
                                                                                         services={services}
                                                                                         bookingDatePickerPopperSx={bookingDatePickerPopperSx}
+                                                                                        getServicePriceForWeight={getServicePriceForWeight}
+                                                                                        // @ts-ignore
+                                                                                        id={`pet-${pet.id}-${asvc.id}-session`}
                                                                                     />
                                                                                 )}
                                                                             </>
@@ -2237,10 +2825,11 @@ export const BookingDetailPage = () => {
                                                 )}
                                             </div>
                                         </div>
+                                        </div>
                                     </div>
+                                ))}
                                 </div>
-                            ))}
-                        </div>
+                            </div>
                     </section>
 
                     {/* ========== PHẦN 3: Nút hành động ========== */}
@@ -2252,16 +2841,503 @@ export const BookingDetailPage = () => {
                         >
                             Quay lại
                         </button>
-                        <button
-                            type="submit"
-                            className="py-[14px] px-[36px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1.5rem] transition-colors shadow-sm hover:shadow-md"
-                        >
-                            Hoàn tất đặt lịch
-                        </button>
+                        <div className="flex flex-wrap gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!validateBeforePayment()) return;
+                                    setIsSummaryOpen(true);
+                                }}
+                                disabled={isHolding || isSubmitting}
+                                className="py-[14px] px-[28px] rounded-[12px] border border-[#ffbaa0] bg-[#fff7f3] hover:bg-[#ffe9dd] text-[#c45a3a] font-[700] text-[1.5rem] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
+                            </button>
+                        </div>
                     </section>
                 </form>
             </main>
         </div>
+
+        {isSummaryOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+                <div className="bg-white rounded-[18px] max-w-[960px] w-full max-h-[80vh] overflow-y-auto shadow-[0_20px_60px_rgba(15,23,42,0.45)] p-[24px] sm:p-[28px]">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                            <h3 className="text-[2.1rem] font-[800] text-[#181818]">Xác nhận thông tin đặt lịch</h3>
+                            <p className="text-[1.4rem] text-[#6b7280] mt-1">
+                                Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsSummaryOpen(false)}
+                            className="text-[2rem] leading-none px-2 text-[#888] hover:text-[#e53935]"
+                            aria-label="Đóng"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div className="space-y-16">
+                        <section>
+                            <h4 className="text-[1.6rem] font-[700] text-[#181818] mb-2">Thông tin chủ thú cưng</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-[6px] gap-x-[24px] text-[1.4rem]">
+                                <div>
+                                    <span className="text-[#888] block mb-[2px]">Họ và tên</span>
+                                    <span className="font-[600] text-[#181818]">{step1Data.fullName || "—"}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[#888] block mb-[2px]">Số điện thoại</span>
+                                    <span className="font-[600] text-[#181818]">{step1Data.phone || "—"}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[#888] block mb-[2px]">Email</span>
+                                    <span className="font-[500] text-[#181818]">{step1Data.email || "—"}</span>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <span className="text-[#888] block mb-[2px]">Địa chỉ</span>
+                                    <span className="font-[500] text-[#181818]">{step1Data.address || "—"}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h4 className="text-[1.6rem] font-[700] text-[#181818] mb-3">Thú cưng & dịch vụ</h4>
+                            <div className="space-y-6">
+                                {pets.map((pet, idx) => {
+                                    const additional = pet.additionalServices ?? [];
+
+                                    const buildAddonList = (addonIds: number[] | undefined): ServiceClient[] =>
+                                        (addonIds ?? [])
+                                            .map((id) => services.find((s) => s.serviceId === id))
+                                            .filter((s): s is ServiceClient => s != null);
+
+                                    const mainService = pet.serviceId
+                                        ? services.find((s) => s.serviceId === pet.serviceId)
+                                        : undefined;
+                                    const mainAddons = buildAddonList(pet.addonServiceIds);
+
+                                    const computeMainPrices = (): { unit: number | null; total: number | null } => {
+                                        if (!mainService) return { unit: null, total: null };
+                                        if (mainService.isRequiredRoom) {
+                                            if (!pet.serviceId || pet.numberOfNights == null || pet.numberOfNights < 1) {
+                                                return { unit: null, total: null };
+                                            }
+                                            const roomTypeId = pet.selectedRoomTypeId ?? null;
+                                            const rule = findMatchingPricingRuleWithRoom(
+                                                pet.serviceId,
+                                                roomTypeId,
+                                                pet.weight,
+                                                pet.petType
+                                            );
+                                            if (rule?.price == null) return { unit: null, total: null };
+                                            return {
+                                                unit: rule.price,
+                                                total: rule.price * pet.numberOfNights,
+                                            };
+                                        }
+                                        const price = getServicePriceForWeight(mainService, pet.weight, pet.petType);
+                                        const val = price != null ? price : null;
+                                        return { unit: val, total: val };
+                                    };
+
+                                    const computeAdditionalPrices = (
+                                        asvc: BookingPetServiceForm,
+                                        svc: ServiceClient | undefined
+                                    ): { unit: number | null; total: number | null } => {
+                                        if (!svc || !asvc.serviceId) return { unit: null, total: null };
+                                        if (svc.isRequiredRoom) {
+                                            if (asvc.numberOfNights == null || asvc.numberOfNights < 1) {
+                                                return { unit: null, total: null };
+                                            }
+                                            const roomTypeId = asvc.selectedRoomTypeId ?? null;
+                                            const rule = findMatchingPricingRuleWithRoom(
+                                                asvc.serviceId,
+                                                roomTypeId,
+                                                pet.weight,
+                                                pet.petType
+                                            );
+                                            if (rule?.price == null) return { unit: null, total: null };
+                                            return {
+                                                unit: rule.price,
+                                                total: rule.price * asvc.numberOfNights,
+                                            };
+                                        }
+                                        const price = getServicePriceForWeight(svc, pet.weight, pet.petType);
+                                        const val = price != null ? price : null;
+                                        return { unit: val, total: val };
+                                    };
+
+                                    const mainPrices = computeMainPrices();
+                                    const additionalItems = additional.map((asvc) => {
+                                        const svc = asvc.serviceId
+                                            ? services.find((s) => s.serviceId === asvc.serviceId)
+                                            : undefined;
+                                        const addons = buildAddonList(asvc.addonServiceIds);
+                                        const prices = computeAdditionalPrices(asvc, svc);
+                                        return { asvc, svc, addons, prices };
+                                    });
+
+                                    const calcAddonTotal = (addons: ServiceClient[]): number =>
+                                        addons.reduce((sum, s) => {
+                                            const price = getServicePriceForWeight(s, pet.weight, pet.petType);
+                                            return sum + (price ?? 0);
+                                        }, 0);
+
+                                    const mainAddonTotal = calcAddonTotal(mainAddons);
+                                    const additionalAddonTotals = additionalItems.map((item) =>
+                                        calcAddonTotal(item.addons)
+                                    );
+
+                                    const serviceTotals: number[] = [];
+                                    if (mainPrices.total != null) serviceTotals.push(mainPrices.total);
+                                    additionalItems.forEach((item) => {
+                                        if (item.prices.total != null) serviceTotals.push(item.prices.total);
+                                    });
+
+                                    const addonsTotals: number[] = [];
+                                    if (mainAddonTotal > 0) addonsTotals.push(mainAddonTotal);
+                                    additionalAddonTotals.forEach((t) => {
+                                        if (t > 0) addonsTotals.push(t);
+                                    });
+
+                                    const grandTotal =
+                                        serviceTotals.reduce((a, b) => a + b, 0) +
+                                        addonsTotals.reduce((a, b) => a + b, 0);
+
+                                    return (
+                                        <div
+                                            key={pet.id}
+                                            className="rounded-[14px] border border-[#ffe0ce] bg-[#fffbf9] px-4 py-3 sm:px-5 sm:py-4"
+                                        >
+                                            <div className="flex items-center justify-between gap-3 mb-3">
+                                                <div>
+                                                    <div className="text-[1.5rem] font-[700] text-[#181818]">
+                                                        Thú cưng {idx + 1}: {pet.petName || "Chưa đặt tên"}
+                                                    </div>
+                                                    <div className="text-[1.3rem] text-[#6b7280]">
+                                                        Loại: {pet.petType || "—"}{" "}
+                                                        {pet.weight ? `• Cân nặng: ${pet.weight}kg` : ""}
+                                                    </div>
+                                                </div>
+                                                {grandTotal > 0 && (
+                                                    <div className="text-[1.35rem] font-[700] text-[#c45a3a]">
+                                                        Tổng tạm tính: {grandTotal.toLocaleString("vi-VN")}đ
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-2 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)] gap-4">
+                                                <div className="space-y-2 text-[1.35rem] text-[#374151]">
+                                                    {(!mainService && additionalItems.length === 0) ? (
+                                                        <div className="text-[#9ca3af] text-[1.3rem]">
+                                                            Chưa chọn dịch vụ nào.
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {mainService && (
+                                                                <div className="border border-[#ffe0ce] rounded-[10px] px-3 py-2 bg-white">
+                                                                    <div className="flex items-center justify-between gap-2">
+                                                                        <div className="font-[600] text-[#111827]">
+                                                                            Dịch vụ 1: {mainService.serviceName}
+                                                                        </div>
+                                                                        {mainPrices.total != null && (
+                                                                            <div className="text-[1.3rem] font-[700] text-[#c45a3a] whitespace-nowrap">
+                                                                                {mainPrices.total.toLocaleString("vi-VN")}đ
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="mt-[2px] text-[1.25rem] text-[#4b5563]">
+                                                                        {mainService.isRequiredRoom ? (
+                                                                            <>
+                                                                                <div>
+                                                                                    Ngày gửi:{" "}
+                                                                                    <span className="font-[500]">
+                                                                                        {pet.dateFrom || "—"}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    Ngày trả:{" "}
+                                                                                    <span className="font:[500]">
+                                                                                        {pet.dateTo || "—"}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {pet.numberOfNights != null && (
+                                                                                    <div>
+                                                                                        Số đêm:{" "}
+                                                                                        <span className="font-[500]">
+                                                                                            {pet.numberOfNights}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {mainPrices.unit != null && mainPrices.total != null && (
+                                                                                    <div>
+                                                                                        Giá 1 đêm:{" "}
+                                                                                        <span className="font-[500]">
+                                                                                            {mainPrices.unit.toLocaleString("vi-VN")}đ
+                                                                                        </span>{" "}
+                                                                                        • Tổng:{" "}
+                                                                                        <span className="font-[500]">
+                                                                                            {mainPrices.total.toLocaleString("vi-VN")}đ
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div>
+                                                                                    Ngày sử dụng:{" "}
+                                                                                    <span className="font-[500]">
+                                                                                        {pet.sessionDate || "—"}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="mt-[4px]">
+                                                                        <span className="font-[500] text-[#111827]">
+                                                                            Add-on:
+                                                                        </span>{" "}
+                                                                        {mainAddons.length === 0 ? (
+                                                                            <span className="text-[#9ca3af]">
+                                                                                Không có
+                                                                            </span>
+                                                                        ) : (
+                                                                            <div className="mt-[2px] space-y-[2px]">
+                                                                                {mainAddons.map((s) => {
+                                                                                    const price = getServicePriceForWeight(
+                                                                                        s,
+                                                                                        pet.weight,
+                                                                                        pet.petType
+                                                                                    );
+                                                                                    return (
+                                                                                        <div
+                                                                                            key={s.serviceId}
+                                                                                            className="flex items-center justify-between text-[1.25rem]"
+                                                                                        >
+                                                                                            <span>{s.serviceName}</span>
+                                                                                            {price != null && (
+                                                                                                <span className="font-[600] text-[#c45a3a]">
+                                                                                                    {price.toLocaleString(
+                                                                                                        "vi-VN"
+                                                                                                    )}
+                                                                                                    đ
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {additionalItems.length > 0 && (
+                                                                <div className="space-y-2">
+                                                                    {additionalItems.map((item, aIdx) => (
+                                                                        <div
+                                                                            key={item.asvc.id}
+                                                                            className="border border-[#ffe0ce] rounded-[10px] px-3 py-2 bg-white"
+                                                                        >
+                                                                            <div className="flex items-center justify-between gap-2">
+                                                                                <div className="font-[600] text-[#111827]">
+                                                                                    Dịch vụ {mainService ? aIdx + 2 : aIdx + 1}
+                                                                                    :{" "}
+                                                                                    {item.svc
+                                                                                        ? item.svc.serviceName
+                                                                                        : "Chưa chọn dịch vụ"}
+                                                                                </div>
+                                                                                {item.prices.total != null && (
+                                                                                    <div className="text-[1.3rem] font-[700] text-[#c45a3a] whitespace-nowrap">
+                                                                                        {item.prices.total.toLocaleString("vi-VN")}đ
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="mt-[2px] text-[1.25rem] text-[#4b5563]">
+                                                                                {item.svc?.isRequiredRoom ? (
+                                                                                    <>
+                                                                                        <div>
+                                                                                            Ngày gửi:{" "}
+                                                                                            <span className="font-[500]">
+                                                                                                {item.asvc.dateFrom || "—"}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            Ngày trả:{" "}
+                                                                                            <span className="font-[500]">
+                                                                                                {item.asvc.dateTo || "—"}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {item.asvc.numberOfNights != null && (
+                                                                                            <div>
+                                                                                                Số đêm:{" "}
+                                                                                                <span className="font-[500]">
+                                                                                                    {item.asvc.numberOfNights}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {item.prices.unit != null && item.prices.total != null && (
+                                                                                            <div>
+                                                                                                Giá 1 đêm:{" "}
+                                                                                                <span className="font-[500]">
+                                                                                                    {item.prices.unit.toLocaleString("vi-VN")}đ
+                                                                                                </span>{" "}
+                                                                                                • Tổng:{" "}
+                                                                                                <span className="font-[500]">
+                                                                                                    {item.prices.total.toLocaleString("vi-VN")}đ
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <div>
+                                                                                            Ngày sử dụng:{" "}
+                                                                                            <span className="font-[500]">
+                                                                                                {item.asvc.sessionDate || "—"}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="mt-[4px]">
+                                                                                <span className="font-[500] text-[#111827]">
+                                                                                    Add-on:
+                                                                                </span>{" "}
+                                                                                {item.addons.length === 0 ? (
+                                                                                    <span className="text-[#9ca3af]">
+                                                                                        Không có
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <div className="mt-[2px] space-y-[2px]">
+                                                                                        {item.addons.map((s) => {
+                                                                                            const price =
+                                                                                                getServicePriceForWeight(
+                                                                                                    s,
+                                                                                                    pet.weight,
+                                                                                                    pet.petType
+                                                                                                );
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={s.serviceId}
+                                                                                                    className="flex items-center justify-between text-[1.25rem]"
+                                                                                                >
+                                                                                                    <span>
+                                                                                                        {s.serviceName}
+                                                                                                    </span>
+                                                                                                    {price != null && (
+                                                                                                        <span className="font-[600] text-[#c45a3a]">
+                                                                                                            {price.toLocaleString(
+                                                                                                                "vi-VN"
+                                                                                                            )}
+                                                                                                            đ
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                <div className="border border-[#e5e7eb] rounded-[12px] bg-white px-3 py-3 text-[1.3rem] text-[#111827]">
+                                                    <div className="font-[700] text-[1.4rem] mb-2">
+                                                        Bảng giá tạm tính
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {mainPrices.total != null && (
+                                                            <div className="flex justify-between">
+                                                                <span>Dịch vụ 1</span>
+                                                                <span className="font-[600]">
+                                                                    {mainPrices.total.toLocaleString("vi-VN")}đ
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {additionalItems.length > 0 &&
+                                                            additionalItems.map((item, aIdx) =>
+                                                                item.prices.total != null ? (
+                                                                    <div key={item.asvc.id} className="flex justify-between">
+                                                                        <span>
+                                                                            Dịch vụ {mainService ? aIdx + 2 : aIdx + 1}
+                                                                        </span>
+                                                                        <span className="font-[600]">
+                                                                            {item.prices.total.toLocaleString("vi-VN")}đ
+                                                                        </span>
+                                                                    </div>
+                                                                ) : null
+                                                            )}
+                                                        {mainAddonTotal > 0 && (
+                                                            <div className="flex justify-between">
+                                                                <span>Add-on dịch vụ 1</span>
+                                                                <span className="font-[600]">
+                                                                    {mainAddonTotal.toLocaleString("vi-VN")}đ
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {additionalItems.length > 0 &&
+                                                            additionalItems.map((item, aIdx) => {
+                                                                const addonTotal = additionalAddonTotals[aIdx] ?? 0;
+                                                                if (addonTotal <= 0) return null;
+                                                                const index = mainService ? aIdx + 2 : aIdx + 1;
+                                                                return (
+                                                                    <div key={`${item.asvc.id}-addons`} className="flex justify-between">
+                                                                        <span>Add-on dịch vụ {index}</span>
+                                                                        <span className="font-[600]">
+                                                                            {addonTotal.toLocaleString("vi-VN")}đ
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                    </div>
+                                                    {grandTotal > 0 && (
+                                                        <div className="mt-2 border-t border-dashed border-[#e5e7eb] pt-2 flex justify-between text-[1.4rem]">
+                                                            <span className="font-[700]">Tổng cộng</span>
+                                                            <span className="font-[800] text-[#c45a3a]">
+                                                                {grandTotal.toLocaleString("vi-VN")}đ
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="mt-6 flex flex-wrap justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsSummaryOpen(false)}
+                            className="py-[11px] px-[22px] rounded-[12px] border border-[#d1d5db] bg-white text-[#111827] text-[1.4rem] font-[600] hover:bg-[#f3f4f6]"
+                        >
+                            Quay lại chỉnh sửa
+                        </button>
+                        <button
+                            type="button"
+                            disabled={isHolding}
+                            onClick={async () => {
+                                await handleProceedToPayment();
+                                setIsSummaryOpen(false);
+                            }}
+                            className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[1.5rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         <div className="app-container flex gap-[30px] pb-[100px]">
             <div className="w-[413px] px-[20px]">

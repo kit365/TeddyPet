@@ -23,7 +23,6 @@ public record AdminBookingPetServiceResponse(
         LocalDateTime scheduledEndTime,
         LocalDateTime actualStartTime,
         LocalDateTime actualEndTime,
-        BigDecimal unitPrice,
         BigDecimal subtotal,
         String status,
         String staffNotes,

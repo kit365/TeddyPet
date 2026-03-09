@@ -275,6 +275,29 @@ public class AuthApplicationService implements AuthService {
 
     @Override
     @Transactional
+    public TokenResponse loginWithOtpForEmail(String email, String otpCode) {
+        if (otpCode == null || otpCode.isBlank()) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_REQUIRED);
+        }
+
+        Optional<String> storedOtp = verificationTokenPort.getGuestOtp(email);
+        if (storedOtp.isEmpty() || !storedOtp.get().equals(otpCode)) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_INVALID);
+        }
+
+        User user = userService.getByEmail(email);
+        if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION) {
+            throw new DisabledException(AuthMessages.MESSAGE_EMAIL_NOT_VERIFIED);
+        }
+
+        // OTP hợp lệ -> xóa để tránh reuse
+        verificationTokenPort.deleteGuestOtp(email);
+
+        return generateTokenResponse(user);
+    }
+
+    @Override
+    @Transactional
     public TokenResponse verifyEmailForToken(String token) {
         log.info(AuthLogMessages.LOG_AUTH_VERIFY_EMAIL_START, token);
 

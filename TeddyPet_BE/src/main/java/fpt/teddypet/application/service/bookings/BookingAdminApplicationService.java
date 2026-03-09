@@ -211,7 +211,6 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 svc.getScheduledEndTime(),
                 svc.getActualStartTime(),
                 svc.getActualEndTime(),
-                svc.getUnitPrice(),
                 svc.getSubtotal(),
                 svc.getStatus(),
                 svc.getStaffNotes(),

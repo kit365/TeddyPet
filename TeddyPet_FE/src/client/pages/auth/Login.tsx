@@ -177,13 +177,38 @@ export const LoginPage = () => {
                                 </button>
                             </form>
 
-                            <p className="text-center text-[#7d7b7b] mt-[25px]">Bạn chưa có tài khoản? <Link className="font-bold text-client-secondary hover:text-client-primary transition-all duration-300 ease-linear" to={"/auth/register"}>Đăng ký ngay</Link></p>
-                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[42%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[42%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0">HOẶC</p>
-
-                            <div className="flex justify-center">
-                                <Link to={"#"} className="flex items-center justify-center w-[40px] h-[40px] rounded-full border border-[#eee] hover:bg-[#f9f9f9] transition-all" title="Đăng nhập bằng Google">
-                                    <img src="https://i.imgur.com/Z8EmTcv.png" alt="" className="w-[18px] h-[18px] object-cover" />
+                            <p className="text-center text-[#7d7b7b] mt-[25px]">
+                                Bạn chưa có tài khoản?{" "}
+                                <Link
+                                    className="font-bold text-client-secondary hover:text-client-primary transition-all duration-300 ease-linear"
+                                    to={"/auth/register"}
+                                >
+                                    Đăng ký ngay
                                 </Link>
+                            </p>
+
+                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[42%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[42%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0">
+                                HOẶC
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/auth/login-email")}
+                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[1.4rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
+                                >
+                                    Đăng nhập với email (không cần mật khẩu)
+                                </button>
+
+                                <div className="flex justify-center">
+                                    <Link
+                                        to={"#"}
+                                        className="flex items-center justify-center w-[40px] h-[40px] rounded-full border border-[#eee] hover:bg-[#f9f9f9] transition-all"
+                                        title="Đăng nhập bằng Google"
+                                    >
+                                        <img src="https://i.imgur.com/Z8EmTcv.png" alt="" className="w-[18px] h-[18px] object-cover" />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
