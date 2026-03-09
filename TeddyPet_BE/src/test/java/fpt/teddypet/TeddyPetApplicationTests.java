@@ -23,7 +23,10 @@ import org.springframework.test.context.TestPropertySource;
         "spring.data.redis.password=",
         "spring.data.redis.ssl.enabled=false",
         "jwt.secret.key=yoursecretkeyyoursecretkeyyoursecretkeyyoursecretkey",
-        "jwt.expiration.ms=3600000"
+        "jwt.expiration.ms=3600000",
+        "PAYOS_CLIENT_ID=test_id",
+        "PAYOS_API_KEY=test_key",
+        "PAYOS_CHECKSUM_KEY=test_checksum"
 })
 class TeddyPetApplicationTests {
 
