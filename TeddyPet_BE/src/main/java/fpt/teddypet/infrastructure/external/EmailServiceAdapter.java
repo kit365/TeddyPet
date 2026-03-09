@@ -221,6 +221,14 @@ public class EmailServiceAdapter implements EmailServicePort {
         context.setVariable(EmailConstants.VAR_ADDRESS, order.getShippingAddress());
         context.setVariable(EmailConstants.VAR_NOTES, order.getNotes());
 
+        // Payment Link for Bank Transfer
+        if (order.getStatus() == OrderStatusEnum.CONFIRMED &&
+                !order.getPayments().isEmpty() &&
+                order.getPayments().get(0).getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER &&
+                order.getPayments().get(0).getStatus() != PaymentStatusEnum.COMPLETED) {
+            context.setVariable(EmailConstants.VAR_PAYMENT_URL, frontendUrl + "/dashboard/orders/" + order.getId());
+        }
+
         // Return details
         if (order.getStatus() == OrderStatusEnum.RETURN_REQUESTED || order.getReturnRequestedAt() != null) {
             context.setVariable("returnReason", order.getReturnReason());

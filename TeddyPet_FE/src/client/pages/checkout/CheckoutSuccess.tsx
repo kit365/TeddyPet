@@ -223,7 +223,7 @@ export const CheckSuccessPage = () => {
                                 <button
                                     onClick={() => {
                                         if (Cookies.get("token")) {
-                                            navigate(`/dashboard/order/detail/${order.id}`);
+                                            navigate(`/dashboard/orders/${order.id}`);
                                         } else {
                                             const emailParam = order.guestEmail || (order.user?.email ? order.user.email : "");
                                             navigate(`/tra-cuu-don-hang?code=${order.orderCode}${emailParam ? `&email=${emailParam}` : ''}`);

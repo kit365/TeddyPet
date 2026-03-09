@@ -93,7 +93,7 @@ export const OverviewPage = () => {
                                 {recentOrders.map((order) => (
                                     <tr key={order.id} className="hover:bg-slate-50/50 transition-all group">
                                         <td className="p-6 text-[1.5rem] font-bold text-indigo-600">
-                                            <Link to={`/dashboard/order/detail/${order.id}`} className="hover:underline">
+                                            <Link to={`/dashboard/orders/${order.id}`} className="hover:underline">
                                                 #{order.orderCode}
                                             </Link>
                                         </td>

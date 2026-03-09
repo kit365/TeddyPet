@@ -36,4 +36,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
+
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.payments p " +
+            "WHERE o.status = :status " +
+            "AND p.paymentMethod = :method " +
+            "AND o.createdAt < :expiryTime " +
+            "AND p.status = 'PENDING'")
+    List<Order> findExpiredBankTransferOrders(OrderStatusEnum status,
+            fpt.teddypet.domain.enums.payments.PaymentMethodEnum method,
+            LocalDateTime expiryTime);
 }

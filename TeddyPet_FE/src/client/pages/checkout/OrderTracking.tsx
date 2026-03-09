@@ -144,7 +144,7 @@ export const OrderTrackingPage = () => {
             if (response.success && response.data) {
                 // Nếu đã đăng nhập và tra cứu thành công đơn của mình -> nhảy vào trang dashboard detail luôn
                 if (isAuthenticated) {
-                    navigate(`/dashboard/order/detail/${response.data.id}`);
+                    navigate(`/dashboard/orders/${response.data.id}`);
                     return;
                 }
                 setOrder(response.data);

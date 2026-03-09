@@ -153,8 +153,8 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
             option: {
                 id: String(selectedVariant.variantId),
                 size: selectedVariant.attributes.map(a => a.value).join(" / "),
-                price: selectedVariant.salePrice || selectedVariant.price,
-                originalPrice: selectedVariant.salePrice ? selectedVariant.price : undefined,
+                price: (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? selectedVariant.salePrice : selectedVariant.price,
+                originalPrice: (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? selectedVariant.price : undefined,
             },
             quantity: quantity,
         };
@@ -257,7 +257,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                 {selectedVariant ? (
                                     selectedVariant.stockQuantity <= 0 ? (
                                         <p className="text-[#FF6262] font-bold text-[2rem]">Tạm hết hàng</p>
-                                    ) : selectedVariant.salePrice ? (
+                                    ) : (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? (
                                         <div className="flex items-center gap-3">
                                             <p className="text-[#FF6262] font-bold text-[2.2rem]">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
                                             <p className="text-[#999] line-through text-[1.6rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>

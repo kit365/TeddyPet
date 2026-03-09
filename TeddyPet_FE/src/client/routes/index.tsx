@@ -81,8 +81,10 @@ export const ClientRoutes: RouteObject[] = [
             { path: "change-password", element: <ChangePasswordPage /> },
             { path: "review", element: <ReviewPage /> },
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },
-            { path: "order/detail/:id", element: <OrderDetailPage /> },
+            { path: "orders/:id", element: <OrderDetailPage /> },
+            { path: "order/detail/:id", element: <OrderDetailPage /> }, // Alias
             { path: "orders", element: <OrderHistoryPage /> },
+            { path: "order", element: <OrderHistoryPage /> }, // Alias
             { path: "pets", element: <PetsPage /> },
         ]
     },
