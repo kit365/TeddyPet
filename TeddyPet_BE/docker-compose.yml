@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: teddypet-be-container
-    env_file:
-      - .env
     ports:
       - "8080:8080"
     environment:
@@ -19,6 +17,8 @@ services:
       ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS:-http://elasticsearch:9200}
       ELASTICSEARCH_CONNECTION_TIMEOUT: ${ELASTICSEARCH_CONNECTION_TIMEOUT:-5s}
       ELASTICSEARCH_SOCKET_TIMEOUT: ${ELASTICSEARCH_SOCKET_TIMEOUT:-60s}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
       SERVER_PORT: ${SERVER_PORT:-8080}
     networks:
       - teddypet-network
