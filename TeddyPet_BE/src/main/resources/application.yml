@@ -21,9 +21,14 @@ spring:
         debug: ${SPRING_MAIL_DEBUG:false}
         smtp:
           auth: true
+          ssl:
+            enable: ${SPRING_MAIL_SSL_ENABLE:true}
           starttls:
-            enable: true
-            required: true
+            enable: ${SPRING_MAIL_STARTTLS_ENABLE:false}
+          socketFactory:
+            port: ${SPRING_MAIL_PORT:465}
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
 
 # Custom Properties (Nằm ngoài spring)
 jwt:
