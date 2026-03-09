@@ -7,9 +7,12 @@ import { BlogListPage } from "../pages/blog/BlogList";
 import { BlogDetailPage } from "../pages/blog/BlogDetail";
 import { RegisterPage } from "../pages/auth/Register";
 import { LoginPage } from "../pages/auth/Login";
+import { LoginWithEmailPage } from "../pages/auth/LoginWithEmail";
 import { BookingPage } from "../pages/booking/Booking";
 import { BookingDetailPage } from "../pages/booking/BookingDetail";
 import { RoomDetailPage } from "../pages/booking/RoomDetailPage";
+import { BookingPaymentPlaceholderPage } from "../pages/booking/BookingPaymentPlaceholderPage";
+import { BookingClientDetailPage } from "../pages/booking/BookingClientDetailPage";
 import { ServicePage } from "../pages/service/Service";
 import { CartPage } from "../pages/cart/Cart";
 import { FeedbackPage } from "../pages/FeedbackPage";
@@ -44,6 +47,7 @@ export const ClientAuthRoutes: RouteObject[] = [
     { path: "/auth/register", element: <RegisterPage /> },
     { path: "/auth/register-success", element: <RegisterSuccessPage /> },
     { path: "/auth/login", element: <LoginPage /> },
+    { path: "/auth/login-email", element: <LoginWithEmailPage /> },
     { path: "/auth/forgot-password", element: <ForgotPasswordPage /> },
     { path: "/auth/forgot-password-success", element: <ForgotPasswordSuccessPage /> },
     { path: "/verify-email", element: <VerifyEmailPage /> },
@@ -61,6 +65,8 @@ export const ClientRoutes: RouteObject[] = [
     { path: "/dat-lich", element: <BookingPage /> },
     { path: "/dat-lich/chi-tiet", element: <BookingDetailPage /> },
     { path: "/dat-lich/phong/:roomId", element: <RoomDetailPage /> },
+    { path: "/dat-lich/thanh-toan", element: <BookingPaymentPlaceholderPage /> },
+    { path: "/dat-lich/chi-tiet-don/:bookingCode", element: <BookingClientDetailPage /> },
     { path: "/cart", element: <CartPage /> },
     { path: "/wishlist", element: <WishlistPage /> },
     { path: "/feedback", element: <FeedbackPage /> },

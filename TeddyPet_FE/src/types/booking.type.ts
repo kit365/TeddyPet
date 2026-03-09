@@ -25,6 +25,8 @@ export interface ServiceClient {
     isRequiredRoom?: boolean | null;
     /** BE: services.is_addon — chỉ hiển thị trong "dịch vụ thêm" khi true */
     isAddon?: boolean | null;
+    /** BE: services.is_additional_charge — dịch vụ phụ thu, không cho chọn trực tiếp ở form đặt lịch */
+    isAdditionalCharge?: boolean | null;
 }
 
 /** Admin/API: booking status */

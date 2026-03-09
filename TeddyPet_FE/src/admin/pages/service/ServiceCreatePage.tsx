@@ -101,6 +101,7 @@ export const ServiceCreatePage = () => {
     });
 
     const isAddon = useWatch({ control, name: 'isAddon' });
+    const isAdditionalCharge = useWatch({ control, name: 'isAdditionalCharge' });
     const addonType = useWatch({ control, name: 'addonType' });
     const isRequiredRoom = useWatch({ control, name: 'isRequiredRoom' });
 
@@ -394,7 +395,16 @@ export const ServiceCreatePage = () => {
         <>
             <div className="mb-[40px] flex items-start justify-end">
                 <div className="mr-auto">
-                    <Title title={step === 1 ? 'Thêm dịch vụ' : step === 2 ? 'Thêm quy tắc giá' : 'Thêm khung giờ'} sx={{ fontSize: '2.6rem' }} />
+                    <Title
+                        title={
+                            step === 1
+                                ? 'Thêm dịch vụ'
+                                : step === 2
+                                ? 'Thêm quy tắc giá'
+                                : 'Thêm khung giờ'
+                        }
+                        sx={{ fontSize: '2.6rem' }}
+                    />
                     <Breadcrumb
                         items={[
                             { label: 'Trang chủ', to: '/' },
@@ -598,7 +608,7 @@ export const ServiceCreatePage = () => {
                                         <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú tối đa/lịch" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                        <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller
@@ -646,25 +656,25 @@ export const ServiceCreatePage = () => {
 
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                                 <Box sx={{ flex: 1 }} />
-                                <Button
-                                    type="button"
-                                    variant="outlined"
-                                    disabled={isPending || isUpdating}
-                                    onClick={handleCreateNow}
-                                    sx={{
-                                        minHeight: '4.8rem',
-                                        fontWeight: 700,
-                                        fontSize: '1.4rem',
-                                        padding: '8px 24px',
-                                        borderRadius: '8px',
-                                        textTransform: 'none',
-                                        borderColor: '#637381',
-                                        color: '#637381',
-                                        '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
-                                    }}
-                                >
-                                    Tạo dịch vụ ngay
-                                </Button>
+                            <Button
+                                type="button"
+                                variant="outlined"
+                                disabled={isPending || isUpdating}
+                                onClick={handleCreateNow}
+                                sx={{
+                                    minHeight: '4.8rem',
+                                    fontWeight: 700,
+                                    fontSize: '1.4rem',
+                                    padding: '8px 24px',
+                                    borderRadius: '8px',
+                                    textTransform: 'none',
+                                    borderColor: '#637381',
+                                    color: '#637381',
+                                    '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
+                                }}
+                            >
+                                Tạo dịch vụ ngay
+                            </Button>
                                 <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
                                     <Button
                                         type="submit"
@@ -1025,111 +1035,156 @@ export const ServiceCreatePage = () => {
                             >
                                 Tạo dịch vụ ngay
                             </Button>
-                            <Button
-                                variant="contained"
-                                disabled={isPending || isUpdating}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: '4.8rem',
-                                    fontWeight: 700,
-                                    fontSize: '1.4rem',
-                                    padding: '8px 16px',
-                                    borderRadius: '8px',
-                                    textTransform: 'none',
-                                    '&:hover': { background: '#454F5B' },
-                                }}
-                                onClick={() => setStep(3)}
-                            >
-                                Tiếp tục
-                            </Button>
+                            {!isAddon && !isAdditionalCharge && (
+                                <Button
+                                    variant="contained"
+                                    disabled={isPending || isUpdating}
+                                    sx={{
+                                        background: '#1C252E',
+                                        minHeight: '4.8rem',
+                                        fontWeight: 700,
+                                        fontSize: '1.4rem',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        textTransform: 'none',
+                                        '&:hover': { background: '#454F5B' },
+                                    }}
+                                    onClick={() => setStep(3)}
+                                >
+                                    Tiếp tục
+                                </Button>
+                            )}
                         </Box>
                     </Stack>
                 ) : (
                     <Stack sx={{ margin: '0px 120px', gap: '40px' }}>
-                        <TimeSlotsSection serviceId={createdServiceId} expanded={true} onEnsureService={createdServiceId ? undefined : ensureServiceCreated} />
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                            <Button
-                                variant="outlined"
-                                onClick={() => setStep(2)}
-                                sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
-                            >
-                                Quay lại
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outlined"
-                                disabled={isPending || isUpdating}
-                                onClick={handleCreateNow}
-                                sx={{
-                                    minHeight: '4.8rem',
-                                    fontWeight: 700,
-                                    fontSize: '1.4rem',
-                                    padding: '8px 24px',
-                                    borderRadius: '8px',
-                                    textTransform: 'none',
-                                    borderColor: '#637381',
-                                    color: '#637381',
-                                    '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
-                                }}
-                            >
-                                Tạo dịch vụ ngay
-                            </Button>
-                            <Button
-                                variant="contained"
-                                disabled={isPending || isUpdating}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: '4.8rem',
-                                    fontWeight: 700,
-                                    fontSize: '1.4rem',
-                                    padding: '8px 16px',
-                                    borderRadius: '8px',
-                                    textTransform: 'none',
-                                    '&:hover': { background: '#454F5B' },
-                                }}
-                                onClick={async () => {
-                                    try {
-                                        const serviceId = await ensureServiceCreated();
+                        {!isAddon && !isAdditionalCharge ? (
+                            <>
+                                <TimeSlotsSection
+                                    serviceId={createdServiceId}
+                                    expanded={true}
+                                    onEnsureService={createdServiceId ? undefined : ensureServiceCreated}
+                                />
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => setStep(2)}
+                                        sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
+                                    >
+                                        Quay lại
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outlined"
+                                        disabled={isPending || isUpdating}
+                                        onClick={handleCreateNow}
+                                        sx={{
+                                            minHeight: '4.8rem',
+                                            fontWeight: 700,
+                                            fontSize: '1.4rem',
+                                            padding: '8px 24px',
+                                            borderRadius: '8px',
+                                            textTransform: 'none',
+                                            borderColor: '#637381',
+                                            color: '#637381',
+                                            '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
+                                        }}
+                                    >
+                                        Tạo dịch vụ ngay
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        disabled={isPending || isUpdating}
+                                        sx={{
+                                            background: '#1C252E',
+                                            minHeight: '4.8rem',
+                                            fontWeight: 700,
+                                            fontSize: '1.4rem',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            textTransform: 'none',
+                                            '&:hover': { background: '#454F5B' },
+                                        }}
+                                        onClick={async () => {
+                                            try {
+                                                const serviceId = await ensureServiceCreated();
 
-                                        await Promise.all(
-                                            pricingDrafts.map((p) => {
-                                                const suitablePetTypes =
-                                                    p.suitablePetTypes && p.suitablePetTypes.length > 0
-                                                        ? p.suitablePetTypes.join(',')
-                                                        : undefined;
-                                                const payload = {
-                                                    serviceId,
-                                                    pricingName: p.pricingName,
-                                                    price: p.price,
-                                                    suitablePetTypes,
-                                                    weekendMultiplier: p.weekendMultiplier ?? null,
-                                                    peakSeasonMultiplier: p.peakSeasonMultiplier ?? null,
-                                                    holidayMultiplier: p.holidayMultiplier ?? null,
-                                                    minWeight: p.minWeight ?? null,
-                                                    maxWeight: p.maxWeight ?? null,
-                                                    effectiveFrom: p.effectiveFrom || undefined,
-                                                    effectiveTo: p.effectiveTo || undefined,
-                                                    priority: p.priority,
-                                                    isActive: p.isActive,
-                                                } as Record<string, unknown>;
-                                                return createOrUpdateServicePricing(payload);
-                                            })
-                                        );
+                                                await Promise.all(
+                                                    pricingDrafts.map((p) => {
+                                                        const suitablePetTypes =
+                                                            p.suitablePetTypes && p.suitablePetTypes.length > 0
+                                                                ? p.suitablePetTypes.join(',')
+                                                                : undefined;
+                                                        const payload = {
+                                                            serviceId,
+                                                            pricingName: p.pricingName,
+                                                            price: p.price,
+                                                            suitablePetTypes,
+                                                            weekendMultiplier: p.weekendMultiplier ?? null,
+                                                            peakSeasonMultiplier: p.peakSeasonMultiplier ?? null,
+                                                            holidayMultiplier: p.holidayMultiplier ?? null,
+                                                            minWeight: p.minWeight ?? null,
+                                                            maxWeight: p.maxWeight ?? null,
+                                                            effectiveFrom: p.effectiveFrom || undefined,
+                                                            effectiveTo: p.effectiveTo || undefined,
+                                                            priority: p.priority,
+                                                            isActive: p.isActive,
+                                                        } as Record<string, unknown>;
+                                                        return createOrUpdateServicePricing(payload);
+                                                    })
+                                                );
 
-                                        if (getValues('isRequiredRoom') && selectedRoomTypeIds.length > 0) {
-                                            await Promise.all(selectedRoomTypeIds.map((rtId) => updateRoomTypeServiceId(rtId, serviceId)));
-                                        }
+                                                if (getValues('isRequiredRoom') && selectedRoomTypeIds.length > 0) {
+                                                    await Promise.all(selectedRoomTypeIds.map((rtId) => updateRoomTypeServiceId(rtId, serviceId)));
+                                                }
 
-                                        toast.success('Tạo dịch vụ và quy tắc giá thành công');
-                                        navigate(`/${prefixAdmin}/service/edit/${serviceId}`);
-                                    } catch (err) {
-                                        toast.error('Không thể tạo dịch vụ hoặc quy tắc giá. Vui lòng kiểm tra lại dữ liệu.');
-                                    }
-                                }}
-                            >
-                                Hoàn tất
-                            </Button>
-                        </Box>
+                                                toast.success('Tạo dịch vụ và quy tắc giá thành công');
+                                                navigate(`/${prefixAdmin}/service/edit/${serviceId}`);
+                                            } catch (err) {
+                                                toast.error('Không thể tạo dịch vụ hoặc quy tắc giá. Vui lòng kiểm tra lại dữ liệu.');
+                                            }
+                                        }}
+                                    >
+                                        Hoàn tất
+                                    </Button>
+                                </Box>
+                            </>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                <Box sx={{ fontSize: '1.4rem', color: '#637381' }}>
+                                    Dịch vụ add-on hoặc Additional charge không cần cấu hình khung giờ (time slots). Thời gian sẽ
+                                    được xử lý cùng với dịch vụ chính.
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => setStep(2)}
+                                        sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
+                                    >
+                                        Quay lại
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outlined"
+                                        disabled={isPending || isUpdating}
+                                        onClick={handleCreateNow}
+                                        sx={{
+                                            minHeight: '4.8rem',
+                                            fontWeight: 700,
+                                            fontSize: '1.4rem',
+                                            padding: '8px 24px',
+                                            borderRadius: '8px',
+                                            textTransform: 'none',
+                                            borderColor: '#637381',
+                                            color: '#637381',
+                                            '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
+                                        }}
+                                    >
+                                        Tạo dịch vụ ngay
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
                     </Stack>
                 )}
             <Dialog open={openCreateNowDialog} onClose={() => setOpenCreateNowDialog(false)} maxWidth="xs" fullWidth>
@@ -1138,7 +1193,9 @@ export const ServiceCreatePage = () => {
                     {(() => {
                         const missing: string[] = [];
                         if (pricingDrafts.length === 0) missing.push('quy tắc giá');
-                        if (step === 1 || step === 2 || (step === 3 && timeSlots.length === 0)) missing.push('khung giờ');
+                        if (!isAddon && !isAdditionalCharge) {
+                            if (step === 1 || step === 2 || (step === 3 && timeSlots.length === 0)) missing.push('khung giờ');
+                        }
                         if (missing.length > 0) {
                             return (
                                 <>
