@@ -5,6 +5,7 @@ import fpt.teddypet.application.constants.auth.AuthMessages;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
+import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
 import fpt.teddypet.application.dto.response.TokenResponse;
@@ -495,5 +496,50 @@ public class AuthApplicationService implements AuthService {
         }
 
         log.info("[AuthService] Xác thực mật khẩu hiện tại thành công cho người dùng: {}", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public RegisterResponse changeUnverifiedEmail(ChangeUnverifiedEmailRequest request) {
+        log.info(AuthLogMessages.LOG_AUTH_CHANGE_EMAIL_START, request.oldEmail(), request.newEmail());
+
+        // 1. Tìm user theo email cũ
+        User user = userService.getByEmail(request.oldEmail());
+
+        // 2. Kiểm tra xem user có phải đang PENDING_VERIFICATION không
+        if (user.getStatus() != UserStatusEnum.PENDING_VERIFICATION) {
+            throw new IllegalStateException(AuthMessages.MESSAGE_EMAIL_ALREADY_VERIFIED);
+        }
+
+        // 3. Kiểm tra mật khẩu
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
+        }
+
+        // 4. Kiểm tra xem email mới có bị ai dùng chưa
+        if (userService.existsByEmail(request.newEmail())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
+        }
+
+        // 5. Cập nhật email cho user
+        user.setEmail(request.newEmail());
+        userService.save(user);
+
+        // 6. Xóa token cũ của email cũ (vì key của token store có thể là email)
+        verificationTokenPort.findTokenByEmail(request.oldEmail())
+                .ifPresent(verificationTokenPort::deleteToken);
+
+        // 7. Tạo token mới cho email mới và gửi mail
+        String token = UUID.randomUUID().toString();
+        verificationTokenPort.saveToken(user.getEmail(), token);
+        verificationTokenPort.saveResendCooldown(user.getEmail());
+
+        String verificationLink = frontendUrl + "/verify-email?token=" + token;
+        emailServicePort.sendVerificationEmail(user.getEmail(), token, verificationLink);
+
+        return new RegisterResponse(
+                AuthMessages.MESSAGE_EMAIL_CHANGE_SUCCESS,
+                resendCooldownSeconds,
+                LocalDateTime.now().plusSeconds(resendCooldownSeconds));
     }
 }

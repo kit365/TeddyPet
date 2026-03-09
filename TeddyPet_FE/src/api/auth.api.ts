@@ -2,6 +2,7 @@ import { apiApp } from "./index";
 import {
     RegisterPayload,
     LoginPayload,
+    ChangeUnverifiedEmailPayload,
     ResetPasswordPayload,
     RegisterResponse,
     AuthResponse,
@@ -65,5 +66,10 @@ export const refreshToken = async (refreshTokenRequest: string): Promise<AuthRes
 
 export const resetPassword = async (data: ResetPasswordPayload): Promise<ResetPasswordResponse> => {
     const response = await apiApp.post(`${BASE_PATH}/reset-password`, data);
+    return response.data;
+};
+
+export const changeUnverifiedEmail = async (data: ChangeUnverifiedEmailPayload): Promise<RegisterResponse> => {
+    const response = await apiApp.post(`${BASE_PATH}/change-email`, data);
     return response.data;
 };

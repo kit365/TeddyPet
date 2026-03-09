@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.request.auth.ForgotPasswordRequest;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
+import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ResetPasswordRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
@@ -45,6 +46,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<RegisterResponse>> resendVerificationEmail(
             @Valid @RequestBody ResendEmailRequest request) {
         RegisterResponse response = authService.resendVerificationEmail(request);
+        return ResponseEntity.ok(ApiResponse.success(response.message(), response));
+    }
+
+    @PostMapping("/change-email")
+    @Operation(summary = "Đổi email thành viên chưa xác thực", description = "Đổi địa chỉ email cho tài khoản đang ở trạng thái chưa xác thực. Yêu cầu mật khẩu để bảo mật.")
+    public ResponseEntity<ApiResponse<RegisterResponse>> changeUnverifiedEmail(
+            @Valid @RequestBody ChangeUnverifiedEmailRequest request) {
+        RegisterResponse response = authService.changeUnverifiedEmail(request);
         return ResponseEntity.ok(ApiResponse.success(response.message(), response));
     }
 

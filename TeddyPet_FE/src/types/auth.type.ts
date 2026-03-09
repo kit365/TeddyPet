@@ -12,6 +12,12 @@ export interface LoginPayload {
     password: string;
 }
 
+export interface ChangeUnverifiedEmailPayload {
+    oldEmail: string;
+    newEmail: string;
+    password: string;
+}
+
 export interface ResetPasswordPayload {
     token: string;
     newPassword: string;

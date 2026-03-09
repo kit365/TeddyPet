@@ -4,6 +4,7 @@ import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
+import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
 import fpt.teddypet.application.dto.response.TokenResponse;
@@ -57,7 +58,12 @@ public interface AuthService {
     void changePassword(ChangePasswordRequest request);
 
     /**
-     * Verify if the provided password matches current authenticated user's password
+     * Xác thực mật khẩu hiện tại của người dùng đang đăng nhập
      */
     void verifyCurrentPassword(String password);
+
+    /**
+     * Đổi email cho tài khoản chưa xác thực (nếu nhập sai email khi đăng ký)
+     */
+    RegisterResponse changeUnverifiedEmail(ChangeUnverifiedEmailRequest request);
 }

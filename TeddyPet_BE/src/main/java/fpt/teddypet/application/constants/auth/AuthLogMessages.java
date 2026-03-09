@@ -39,4 +39,5 @@ public final class AuthLogMessages {
     // Password change logs
     public static final String LOG_AUTH_CHANGE_PASSWORD_START = "[AuthService] Bắt đầu đổi mật khẩu cho người dùng: {}";
     public static final String LOG_AUTH_CHANGE_PASSWORD_SUCCESS = "[AuthService] Đổi mật khẩu thành công cho người dùng: {}";
+    public static final String LOG_AUTH_CHANGE_EMAIL_START = "[AuthService] Bắt đầu đổi email từ {} sang {}";
 }
