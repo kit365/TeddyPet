@@ -14,6 +14,7 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -40,6 +41,15 @@ public class SecurityConfig {
     }
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+                "/api/payments/payos/webhook/**",
+                "/api/v1/payments/payos/webhook/**",
+                "/api/payment/payos/webhook/**",
+                "/api/v1/payment/payos/webhook/**");
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -51,6 +61,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/received").permitAll()
                         .requestMatchers("/api/orders/track/**").permitAll()
                         .requestMatchers("/api/orders/guest/**").permitAll()
+                        // Payment & Webhooks (PayOS & others) - Prioritize to avoid 403
+                        .requestMatchers("/api/payments/**", "/api/payment/**", "/api/v1/payments/**",
+                                "/api/v1/payment/**")
+                        .permitAll()
                         // Public Product & Content APIs
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product-categories/**").permitAll()
@@ -69,7 +83,6 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/settings/**",
                                 "/api/shipping/**",
-                                "/api/payments/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api-docs/**",
