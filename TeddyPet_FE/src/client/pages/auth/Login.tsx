@@ -10,6 +10,8 @@ import { Header } from "../../components/layouts/Header";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { ArrowRight, CheckCircle, XmarkCircle } from "iconoir-react";
 import { useEffect, useState } from "react";
+import { useWatch } from "react-hook-form";
+import { AuthSupportActions } from "../register-login/sections/AuthSupportActions";
 
 const schema = z.object({
     usernameOrEmail: z
@@ -29,14 +31,20 @@ export const LoginPage = () => {
     const location = useLocation();
     const loginStore = useAuthStore((state) => state.login);
     const [notification, setNotification] = useState<{ success: boolean; message: string } | null>(null);
+    const [showSupport, setShowSupport] = useState(false);
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
+    const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
         defaultValues: {
             usernameOrEmail: "",
             password: "",
             rememberPassword: false
         },
         resolver: zodResolver(schema)
+    });
+
+    const usernameOrEmailValue = useWatch({
+        control,
+        name: "usernameOrEmail"
     });
 
     useEffect(() => {
@@ -58,6 +66,7 @@ export const LoginPage = () => {
 
             if (response.success) {
                 toast.success(response.message || "Đăng nhập thành công!");
+                setShowSupport(false);
 
                 const { token } = response.data;
 
@@ -84,6 +93,11 @@ export const LoginPage = () => {
             console.error(error);
             const message = error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau!";
             toast.error(message);
+
+            // Chỉ hiện phần hỗ trợ nếu lỗi là do chưa xác thực email
+            if (message.includes("chưa được xác thực email")) {
+                setShowSupport(true);
+            }
         }
     };
 
@@ -176,6 +190,12 @@ export const LoginPage = () => {
                                     <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                 </button>
                             </form>
+
+                            {showSupport && (
+                                <div className="animate-fadeIn">
+                                    <AuthSupportActions defaultEmail={usernameOrEmailValue} />
+                                </div>
+                            )}
 
                             <p className="text-center text-[#7d7b7b] mt-[25px]">Bạn chưa có tài khoản? <Link className="font-bold text-client-secondary hover:text-client-primary transition-all duration-300 ease-linear" to={"/auth/register"}>Đăng ký ngay</Link></p>
                             <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[42%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[42%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0">HOẶC</p>

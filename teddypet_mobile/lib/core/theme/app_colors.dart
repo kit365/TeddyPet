@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Màu cam chủ đạo của TeddyPet
-  static const Color primary = Color(0xFFFF9431);
+  // Màu cam/đỏ chủ đạo từ Web (#FF6262)
+  static const Color primary = Color(0xFFFF6262);
+  
+  // Màu cam nhạt phối hợp (#FF9466)
+  static const Color primaryLight = Color(0xFFFF9466);
 
-  // Màu đen xám cho tiêu đề
-  static const Color textBlack = Color(0xFF1A1A1A);
+  // Màu xanh đen đặc trưng của TeddyPet trên Web (#102937)
+  static const Color secondary = Color(0xFF102937);
 
-  // Màu xám nhạt cho nền
-  static const Color bgLight = Color(0xFFF5F5F5);
+  // Các màu bổ trợ
+  static const Color textBlack = Color(0xFF102937); // Dùng màu xanh đen làm màu chữ chính cho sang
+  static const Color bgLight = Color(0xFFF8F9FA);
+  static const Color white = Colors.white;
 }
