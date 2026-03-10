@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Search } from "lucide-react";
+import { ArrowRight, MapPin, Search, Navigation } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Sidebar } from "./sections/Sidebar";
 import { useState, useEffect, useRef } from "react";
@@ -70,6 +70,28 @@ export const AddressEditPage = () => {
 
     const isManualChange = useRef(false);
 
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast.info("Trình duyệt của bạn không hỗ trợ định vị GPS");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const newLatLng = new L.LatLng(latitude, longitude);
+                setPosition(newLatLng);
+                setMapCenter([latitude, longitude]);
+                fetchAddressFromCoords(latitude, longitude);
+                toast.success("Đã tìm thấy vị trí hiện tại của bạn!");
+            },
+            (err) => {
+                console.error("Lỗi GPS:", err);
+                toast.error("Không thể lấy vị trí. Vui lòng cấp quyền GPS.");
+            }
+        );
+    };
+
     // Fetch address data
     useEffect(() => {
         const fetchData = async () => {
@@ -119,21 +141,47 @@ export const AddressEditPage = () => {
         if (!query.trim() || query.length < 3) return;
 
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
-            const data = await res.json();
+            const trySearch = async (q: string) => {
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+                return await res.json();
+            };
 
-            if (data && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lon = parseFloat(data[0].lon);
+            let data = await trySearch(query);
+
+            // Fallback cho địa chỉ có xuyệt (/) 
+            if (!(data.features && data.features.length > 0) && query.includes("/")) {
+                const parts = query.split(/[\s,]+/);
+                const houseNumIndex = parts.findIndex(p => p.includes("/"));
+                if (houseNumIndex !== -1) {
+                    const fallbackQuery = parts.slice(houseNumIndex + 1).join(" ") || query.replace(/\/\d+/g, "");
+                    data = await trySearch(fallbackQuery);
+                }
+            }
+
+            if (data.features && data.features.length > 0) {
+                const feature = data.features[0];
+                const lat = feature.geometry.coordinates[1];
+                const lon = feature.geometry.coordinates[0];
                 const newPos = new L.LatLng(lat, lon);
                 setPosition(newPos);
 
                 if (isFromSearch) {
                     setMapCenter([lat, lon]);
-                    setAddress(data[0].display_name);
+                    
+                    const p = feature.properties;
+                    const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                    const street = p.street || "";
+                    const name = (p.name && p.name !== p.street) ? p.name : "";
+                    
+                    const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                    const parts = [mainPart, p.district, p.city, p.country];
+                    const displayName = parts.filter(Boolean).join(", ");
+                    
+                    setAddress(displayName);
                     setSearchKeyword("");
                     setShowSuggestions(false);
                 }
+                setIsNotFound(false);
             } else {
                 setIsNotFound(true);
             }
@@ -157,9 +205,30 @@ export const AddressEditPage = () => {
         const timer = setTimeout(async () => {
             if (searchKeyword.length > 2) {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchKeyword)}&countrycodes=vn&limit=5`);
+                    const lat = position?.lat || 10.7410688;
+                    const lon = position?.lng || 106.7164031;
+                    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchKeyword)}&limit=10&lat=${lat}&lon=${lon}&location_bias_scale=0.5`);
                     const data = await res.json();
-                    setSuggestions(data);
+                    
+                    const photonSuggestions = data.features.map((f: any) => {
+                        const p = f.properties;
+                        const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                        const street = p.street || "";
+                        const name = (p.name && p.name !== p.street) ? p.name : "";
+                        
+                        const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                        const parts = [mainPart, p.district, p.city, p.country];
+                        const displayName = parts.filter(Boolean).join(", ");
+                        
+                        return {
+                            display_name: displayName,
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0],
+                            type: p.osm_value
+                        };
+                    });
+                    
+                    setSuggestions(photonSuggestions);
                     setShowSuggestions(true);
                 } catch (error) {
                     console.log("Lỗi gợi ý tìm kiếm");
@@ -168,9 +237,9 @@ export const AddressEditPage = () => {
                 setSuggestions([]);
                 setShowSuggestions(false);
             }
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
-    }, [searchKeyword]);
+    }, [searchKeyword, position]);
 
     const handleSelectSuggestion = (suggestion: any) => {
         const lat = parseFloat(suggestion.lat);
@@ -332,6 +401,14 @@ export const AddressEditPage = () => {
                                                 value={searchKeyword}
                                                 onChange={(e) => setSearchKeyword(e.target.value)}
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={handleCurrentLocation}
+                                                className="p-[8px] mr-[5px] text-client-primary hover:bg-gray-100 rounded-full transition-colors"
+                                                title="Vị trí hiện tại"
+                                            >
+                                                <Navigation className="w-[1.8rem] h-[1.8rem]" />
+                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={(e) => {

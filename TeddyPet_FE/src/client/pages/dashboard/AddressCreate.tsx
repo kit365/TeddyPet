@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Search } from "lucide-react";
+import { ArrowRight, MapPin, Search, Navigation } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sidebar } from "./sections/Sidebar";
 import { useState, useEffect, useRef } from "react";
@@ -95,6 +95,28 @@ export const AddressCreatePage = () => {
         }
     }, [position]);
 
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast.info("Trình duyệt của bạn không hỗ trợ định vị GPS");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const newLatLng = new L.LatLng(latitude, longitude);
+                setPosition(newLatLng);
+                setMapCenter([latitude, longitude]);
+                fetchAddressFromCoords(latitude, longitude);
+                toast.success("Đã tìm thấy vị trí của bạn!");
+            },
+            (err) => {
+                console.error("Lỗi GPS:", err);
+                toast.error("Không thể lấy vị trí. Vui lòng cấp quyền GPS.");
+            }
+        );
+    };
+
     // Hàm lấy địa chỉ từ tọa độ (sau khi click bản đồ)
     const fetchAddressFromCoords = async (lat: number, lon: number) => {
         try {
@@ -118,26 +140,54 @@ export const AddressCreatePage = () => {
         console.log(`🔍 Đang tìm tọa độ cho địa chỉ: "${query}"...`);
 
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
-            const data = await res.json();
+            const trySearch = async (q: string) => {
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+                return await res.json();
+            };
 
-            if (data && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lon = parseFloat(data[0].lon);
-                console.log(`✅ THÀNH CÔNG! Tìm thấy tọa độ mới:`, { lat, lon });
+            let data = await trySearch(query);
+
+            // Fallback cho địa chỉ có xuyệt (/) - cực kỳ phổ biến ở VN
+            // Nếu tìm full không ra, thử cắt bớt phần xuyệt để tìm ngõ/đường chính
+            if (!(data.features && data.features.length > 0) && query.includes("/")) {
+                const parts = query.split(/[\s,]+/);
+                const houseNumIndex = parts.findIndex(p => p.includes("/"));
+                if (houseNumIndex !== -1) {
+                    // Thử tìm theo số nhà chính hoặc tên đường
+                    const fallbackQuery = parts.slice(houseNumIndex + 1).join(" ") || query.replace(/\/\d+/g, "");
+                    console.log(`⚠️ Không tìm thấy địa chỉ chi tiết, thử tìm cụm chính: "${fallbackQuery}"`);
+                    data = await trySearch(fallbackQuery);
+                }
+            }
+
+            if (data.features && data.features.length > 0) {
+                const feature = data.features[0];
+                const lat = feature.geometry.coordinates[1];
+                const lon = feature.geometry.coordinates[0];
+                console.log(`✅ THÀNH CÔNG! Tìm thấy tọa độ:`, { lat, lon });
 
                 const newPos = new L.LatLng(lat, lon);
                 setPosition(newPos);
 
-                // Tiện ích: Di chuyển bản đồ nếu là tìm kiếm chính thức
                 if (isFromSearch) {
                     setMapCenter([lat, lon]);
-                    setAddress(data[0].display_name);
+                    
+                    const p = feature.properties;
+                    const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                    const street = p.street || "";
+                    const name = (p.name && p.name !== p.street) ? p.name : "";
+                    
+                    const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                    const parts = [mainPart, p.district, p.city, p.country];
+                    const displayName = parts.filter(Boolean).join(", ");
+                    
+                    setAddress(displayName);
                     setSearchKeyword("");
                     setShowSuggestions(false);
                 }
+                setIsNotFound(false);
             } else {
-                console.log("❌ Không tìm thấy tọa độ phù hợp cho địa chỉ này.");
+                console.log("❌ Không tìm thấy tọa độ phù hợp.");
                 setIsNotFound(true);
             }
         } catch (error) {
@@ -164,20 +214,41 @@ export const AddressCreatePage = () => {
         const timer = setTimeout(async () => {
             if (searchKeyword.length > 2) {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchKeyword)}&countrycodes=vn&limit=5`);
+                    const lat = position?.lat || 10.7410688;
+                    const lon = position?.lng || 106.7164031;
+                    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchKeyword)}&limit=10&lat=${lat}&lon=${lon}&location_bias_scale=0.5`);
                     const data = await res.json();
-                    setSuggestions(data);
+                    
+                    const photonSuggestions = data.features.map((f: any) => {
+                        const p = f.properties;
+                        const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                        const street = p.street || "";
+                        const name = (p.name && p.name !== p.street) ? p.name : "";
+                        
+                        const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                        const parts = [mainPart, p.district, p.city, p.country];
+                        const displayName = parts.filter(Boolean).join(", ");
+                        
+                        return {
+                            display_name: displayName,
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0],
+                            type: p.osm_value
+                        };
+                    });
+                    
+                    setSuggestions(photonSuggestions);
                     setShowSuggestions(true);
                 } catch (error) {
-                    console.log(error);
+                    console.error("Lỗi gợi ý tìm kiếm:", error);
                 }
             } else {
                 setSuggestions([]);
                 setShowSuggestions(false);
             }
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
-    }, [searchKeyword]);
+    }, [searchKeyword, position]);
 
     const handleSelectSuggestion = (suggestion: any) => {
         const lat = parseFloat(suggestion.lat);
@@ -323,6 +394,14 @@ export const AddressCreatePage = () => {
                                                 value={searchKeyword}
                                                 onChange={(e) => setSearchKeyword(e.target.value)}
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={handleCurrentLocation}
+                                                className="p-[8px] mr-[5px] text-client-primary hover:bg-gray-100 rounded-full transition-colors"
+                                                title="Vị trí hiện tại"
+                                            >
+                                                <Navigation className="w-[1.8rem] h-[1.8rem]" />
+                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={(e) => {

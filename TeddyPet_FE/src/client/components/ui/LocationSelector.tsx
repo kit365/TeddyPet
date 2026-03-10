@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { MapPin, Search } from "iconoir-react";
+import { MapPin, Search, Navigation } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAuthStore } from "../../../stores/useAuthStore";
-import { getAllAddresses } from "../../../api/address.api";
+import { getAllAddresses, createAddress } from "../../../api/address.api";
+import { toast } from "react-toastify";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -124,17 +125,65 @@ export const LocationSelector = () => {
         }
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (tempAddress) {
             setAddress(tempAddress);
             localStorage.setItem("delivery_address", tempAddress);
             if (pos) {
                 localStorage.setItem("delivery_coords", JSON.stringify({ lat: pos.lat, lon: pos.lng }));
             }
-            // If pos exists, calculate provinceId if needed
-            // For now just save the address
+
+            // Tự động lưu địa chỉ vào DB nếu user đã login và địa chỉ này chưa có trong list đã lưu
+            if (user) {
+                const isAlreadySaved = savedAddresses.some(
+                    (a) => a.address.toLowerCase() === tempAddress.toLowerCase()
+                );
+
+                if (!isAlreadySaved) {
+                    try {
+                        await createAddress({
+                            fullName: `${user.firstName} ${user.lastName}`.trim() || user.username,
+                            phone: user.phoneNumber || "0000000000", // Fallback phone if missing
+                            address: tempAddress,
+                            latitude: pos?.lat,
+                            longitude: pos?.lng,
+                            isDefault: savedAddresses.length === 0
+                        });
+                        toast.success("Đã tự động lưu địa chỉ vào tài khoản của bạn!");
+                        
+                        // Refresh saved addresses
+                        const response = await getAllAddresses();
+                        if (response.data) {
+                            setSavedAddresses(response.data);
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi tự động lưu địa chỉ:", error);
+                    }
+                }
+            }
         }
         setIsOpen(false);
+    };
+
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error("Trình duyệt của bạn không hỗ trợ định vị GPS");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const newLatLng = new L.LatLng(latitude, longitude);
+                setPos(newLatLng);
+                setMapCenter([latitude, longitude]);
+                fetchAddressFromCoords(latitude, longitude);
+            },
+            (error) => {
+                console.error("Lỗi GPS:", error);
+                toast.error("Không thể lấy vị trí hiện tại. Vui lòng cấp quyền GPS.");
+            }
+        );
     };
 
     const handleSelectSuggestion = (suggestion: any) => {
@@ -151,9 +200,30 @@ export const LocationSelector = () => {
         const timer = setTimeout(async () => {
             if (searchKeyword.length > 2) {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchKeyword)}&countrycodes=vn&limit=5`);
+                    const lat = pos?.lat || 10.7410688;
+                    const lon = pos?.lng || 106.7164031;
+                    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchKeyword)}&limit=8&lat=${lat}&lon=${lon}&location_bias_scale=0.5`);
                     const data = await res.json();
-                    setSuggestions(data);
+                    
+                    const photonSuggestions = data.features.map((f: any) => {
+                        const p = f.properties;
+                        const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                        const street = p.street || "";
+                        const name = (p.name && p.name !== p.street) ? p.name : "";
+                        
+                        const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                        const parts = [mainPart, p.district, p.city, p.country];
+                        const displayName = parts.filter(Boolean).join(", ");
+                        
+                        return {
+                            display_name: displayName,
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0],
+                            type: p.osm_value
+                        };
+                    });
+                    
+                    setSuggestions(photonSuggestions);
                     setShowSuggestions(true);
                 } catch (error) {
                     console.log(error);
@@ -162,9 +232,9 @@ export const LocationSelector = () => {
                 setSuggestions([]);
                 setShowSuggestions(false);
             }
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
-    }, [searchKeyword]);
+    }, [searchKeyword, pos]);
 
     return (
         <div className="relative">
@@ -215,6 +285,13 @@ export const LocationSelector = () => {
                                                 placeholder="Tìm kiếm địa chỉ..."
                                                 className="w-full p-[10px] outline-none text-[1.4rem]"
                                             />
+                                            <button
+                                                onClick={handleCurrentLocation}
+                                                title="Vị trí của tôi"
+                                                className="p-[8px] mr-[5px] text-client-primary hover:bg-gray-100 rounded-full transition-colors"
+                                            >
+                                                <Navigation className="w-[20px] h-[20px]" />
+                                            </button>
                                         </div>
                                         {showSuggestions && suggestions.length > 0 && (
                                             <div className="absolute top-[55px] left-0 w-full bg-white rounded-[10px] shadow-xl border z-[1001] max-h-[250px] overflow-y-auto">
