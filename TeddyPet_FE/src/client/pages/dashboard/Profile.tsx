@@ -59,14 +59,14 @@ export const ProfilePage = () => {
         return (
             <DashboardLayout pageTitle="Tài khoản" breadcrumbs={breadcrumbs}>
                 <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6">
-                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 animate-pulse">
+                    <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-client-primary animate-pulse">
                         <User size={48} />
                     </div>
                     <div className="text-center">
                         <p className="text-[2rem] font-black text-slate-800 tracking-tight">Vui lòng đăng nhập</p>
                         <p className="text-slate-400 mt-2 font-medium">Bạn cần đăng nhập để quản lý thông tin cá nhân.</p>
                     </div>
-                    <Link to="/auth/login" className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-indigo-100">
+                    <Link to="/auth/login" className="bg-client-primary text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-red-100">
                         Đăng nhập ngay
                     </Link>
                 </div>
@@ -102,7 +102,7 @@ export const ProfilePage = () => {
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
-                                className={`flex items-center gap-3 bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-indigo-100 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+                                className={`flex items-center gap-3 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-red-100 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -125,7 +125,7 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.lastName}
                                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
                                 <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
@@ -144,7 +144,7 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.firstName}
                                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
                                 <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
@@ -176,7 +176,7 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.phoneNumber}
                                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
                                 <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
@@ -197,7 +197,7 @@ export const ProfilePage = () => {
                                     type="date"
                                     value={formData.dateOfBirth}
                                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
                                 <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
@@ -219,11 +219,11 @@ export const ProfilePage = () => {
                                 <select
                                     value={formData.gender}
                                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer"
+                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all appearance-none cursor-pointer"
                                 >
                                     <option value="MALE">Nam</option>
                                     <option value="FEMALE">Nữ</option>
-                                    <option value="OTHER">Khác</option>
+                                    <option value="OTHER"> Khác</option>
                                     <option value="PREFER_NOT_TO_SAY">Không tiết lộ</option>
                                 </select>
                             ) : (
@@ -250,7 +250,7 @@ export const ProfilePage = () => {
                 {/* BANNER BẢO MẬT */}
                 {!isEditing && (
                     <div className="pt-10 animate-in fade-in zoom-in duration-500">
-                        <div className="bg-gradient-to-r from-slate-800 to-indigo-900 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-200 ring-1 ring-white/10">
+                        <div className="bg-gradient-to-r from-slate-800 to-client-secondary rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-200 ring-1 ring-white/10">
                             <div className="absolute -top-10 -right-10 opacity-10 rotate-12">
                                 <ShieldCheck size={250} />
                             </div>
@@ -259,7 +259,7 @@ export const ProfilePage = () => {
                                     <h4 className="text-[2.2rem] font-black tracking-tight italic leading-tight">Bảo vệ tài khoản</h4>
                                     <p className="text-[1.4rem] text-slate-300 font-medium mt-3 max-w-[450px]">Đảm bảo tài khoản của bạn luôn an toàn với các phương thức xác thực và đổi mật khẩu định kỳ.</p>
                                 </div>
-                                <Link to="/dashboard/change-password" title="Quản lý" className="bg-white/10 hover:bg-white text-white hover:text-indigo-900 px-10 py-4 rounded-[1.5rem] text-[1.2rem] font-black uppercase transition-all tracking-widest backdrop-blur-md border border-white/20">
+                                <Link to="/dashboard/change-password" title="Quản lý" className="bg-white/10 hover:bg-white text-white hover:text-client-secondary px-10 py-4 rounded-[1.5rem] text-[1.2rem] font-black uppercase transition-all tracking-widest backdrop-blur-md border border-white/20">
                                     Thiết lập ngay
                                 </Link>
                             </div>

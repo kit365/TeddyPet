@@ -81,14 +81,14 @@ export const AddressListPage = () => {
         return (
             <DashboardLayout pageTitle="Tài khoản" breadcrumbs={breadcrumbs}>
                 <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6">
-                    <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center text-client-primary animate-pulse">
+                    <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-client-primary animate-pulse">
                         <UserIcon width={48} height={48} />
                     </div>
                     <div className="text-center">
                         <p className="text-[2rem] font-black text-slate-800 tracking-tight">Vui lòng đăng nhập</p>
                         <p className="text-slate-400 mt-2 font-medium">Bạn cần đăng nhập để xem thông tin tài khoản.</p>
                     </div>
-                    <Link to="/auth/login" className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-indigo-100">
+                    <Link to="/auth/login" className="bg-client-primary text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-red-100">
                         Đăng nhập ngay
                     </Link>
                 </div>
@@ -112,7 +112,7 @@ export const AddressListPage = () => {
 
             {loading ? (
                 <div className="py-20 flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-red-100 border-t-client-primary rounded-full animate-spin"></div>
                     <p className="text-[1.6rem] font-bold text-slate-300">Đang tải danh sách...</p>
                 </div>
             ) : (
@@ -137,7 +137,7 @@ export const AddressListPage = () => {
                                 <div className="flex-1 space-y-4">
                                     <div>
                                         <div className="flex items-center gap-3 text-[1.8rem] text-slate-800 font-bold">
-                                            <UserIcon className="w-6 h-6 text-indigo-400" />
+                                            <UserIcon className="w-6 h-6 text-client-primary" />
                                             {item.fullName}
                                         </div>
                                     </div>
@@ -151,7 +151,7 @@ export const AddressListPage = () => {
                                     </div>
 
                                     <div className="pt-4 flex items-center gap-6 border-t border-slate-50">
-                                        <Link to={`/dashboard/address/edit/${item.id}`} className="text-[1.2rem] font-black text-indigo-600 uppercase tracking-widest hover:text-slate-800 transition-colors">Chỉnh sửa</Link>
+                                        <Link to={`/dashboard/address/edit/${item.id}`} className="text-[1.2rem] font-black text-client-primary uppercase tracking-widest hover:text-client-secondary transition-colors">Chỉnh sửa</Link>
                                         <button
                                             onClick={() => handleDelete(item.id)}
                                             className="text-[1.2rem] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors"
