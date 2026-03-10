@@ -14,11 +14,7 @@ const schema = z.object({
     password: z
         .string()
         .nonempty("Vui lòng nhập mật khẩu mới!")
-        .min(8, "Mật khẩu phải có ít nhất 8 ký tự!")
-        .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái viết hoa!")
-        .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái viết thường!")
-        .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số!")
-        .regex(/[~!@#$%^&*]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt! (~!@#$%^&*)"),
+        .min(6, "Mật khẩu phải có ít nhất 6 ký tự!"),
     confirmPassword: z.string().nonempty("Vui lòng xác nhận mật khẩu!")
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Mật khẩu xác nhận không khớp!",

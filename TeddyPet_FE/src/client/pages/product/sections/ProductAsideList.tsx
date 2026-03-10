@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import PetsIcon from "@mui/icons-material/Pets";
 import { memo } from "react";
 
@@ -16,37 +15,31 @@ interface ProductAsideListProps {
 
 export const ProductAsideList = memo(({ categories, selectedSlugs = [], onSelect }: ProductAsideListProps) => {
     return (
-        <ul className="py-[10px]">
+        <div className="flex flex-wrap gap-[10px] mt-[15px] p-[20px] bg-[#fff0f066] rounded-[20px]">
             {categories.map((cat) => {
                 const isSelected = selectedSlugs.includes(cat.slug);
                 return (
-                    <li
+                    <button
                         key={cat.slug}
-                        className="mb-[10px] flex items-center relative group cursor-pointer"
                         onClick={(e) => {
                             if (onSelect) {
                                 e.preventDefault();
                                 onSelect(cat.slug);
                             }
                         }}
+                        className={`transition-default flex items-center gap-[6px] py-[8px] px-[16px] text-[1.4rem] border rounded-[35px] ${isSelected
+                            ? "bg-client-primary text-white border-client-primary"
+                            : "bg-white text-client-secondary border-[#10293726] hover:bg-client-primary hover:text-white"
+                            }`}
                     >
-                        <div
-                            className={`w-full px-[30px] py-[15px] pr-[60px] rounded-[40px] 
-                            flex items-center transition-default 
-                            ${isSelected
-                                    ? "bg-client-primary text-white"
-                                    : "bg-[#fff0f066] text-client-secondary hover:bg-client-secondary hover:text-white"
-                                }`}
-                        >
-                            <PetsIcon sx={{ fontSize: "2rem", marginRight: "10px" }} />
-                            {cat.name}
-                        </div>
-                        <span className={`absolute right-[30px] top-[50%] translate-y-[-50%] transition-default ${isSelected ? 'text-white' : 'text-client-text group-hover:text-white'}`}>
+                        <PetsIcon sx={{ fontSize: "1.4rem" }} className="flex-shrink-0" />
+                        <span className="leading-none">{cat.name}</span>
+                        <span className={`text-[1.1rem] opacity-60`}>
                             ({cat.count})
                         </span>
-                    </li>
+                    </button>
                 );
             })}
-        </ul>
+        </div>
     );
 });

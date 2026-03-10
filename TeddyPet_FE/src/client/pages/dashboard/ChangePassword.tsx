@@ -127,7 +127,7 @@ export const ChangePasswordPage = () => {
         <DashboardLayout pageTitle="Bảo mật tài khoản" breadcrumbs={breadcrumbs}>
             <div className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 shadow-inner">
+                    <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-client-primary shadow-inner">
                         <ShieldCheck className="w-10 h-10" />
                     </div>
                     <div>
@@ -151,20 +151,20 @@ export const ChangePasswordPage = () => {
             <div className="mb-16 relative">
                 <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 -z-0 rounded-full"></div>
                 <div
-                    className="absolute top-1/2 left-0 h-1 bg-indigo-600 -translate-y-1/2 -z-0 transition-all duration-500 rounded-full"
+                    className="absolute top-1/2 left-0 h-1 bg-client-primary -translate-y-1/2 -z-0 transition-all duration-500 rounded-full"
                     style={{ width: `${(step / (steps.length - 1)) * 100}%` }}
                 ></div>
 
                 <div className="flex justify-between relative z-10">
                     {steps.map((s, idx) => (
                         <div key={idx} className="flex flex-col items-center">
-                            <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 border-4 ${idx < step ? 'bg-indigo-600 border-indigo-100 text-white' :
-                                idx === step ? 'bg-white border-indigo-600 text-indigo-600 shadow-lg scale-110' :
+                            <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 border-4 ${idx < step ? 'bg-client-primary border-red-100 text-white' :
+                                idx === step ? 'bg-white border-client-primary text-client-primary shadow-lg scale-110' :
                                     'bg-white border-slate-100 text-slate-300'
                                 }`}>
                                 {idx < step ? <CheckCircle className="w-6 h-6" /> : s.icon}
                             </div>
-                            <span className={`mt-4 text-[1.2rem] font-black uppercase tracking-widest ${idx <= step ? 'text-indigo-600' : 'text-slate-300'}`}>
+                            <span className={`mt-4 text-[1.2rem] font-black uppercase tracking-widest ${idx <= step ? 'text-client-primary' : 'text-slate-300'}`}>
                                 {s.label}
                             </span>
                         </div>
@@ -177,7 +177,7 @@ export const ChangePasswordPage = () => {
                     <div className="p-12 flex-1 flex flex-col justify-center">
                         {step === 0 && (
                             <div className="text-center animate-fadeIn space-y-8">
-                                <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mx-auto">
+                                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-client-primary mx-auto">
                                     <MailOut className="w-12 h-12" />
                                 </div>
                                 <div>
@@ -187,7 +187,7 @@ export const ChangePasswordPage = () => {
                                 <button
                                     onClick={handleSendOtp}
                                     disabled={isSendingOtp || cooldown > 0}
-                                    className="w-full h-[65px] bg-indigo-600 hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 disabled:opacity-50"
+                                    className="w-full h-[65px] bg-client-primary hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl shadow-red-100 disabled:opacity-50"
                                 >
                                     {isSendingOtp ? "ĐANG GỬI..." : cooldown > 0 ? `GỬI LẠI SAU ${cooldown}S` : "GỬI MÃ NGAY"}
                                     {!isSendingOtp && cooldown === 0 && <ArrowRight className="w-6 h-6" />}
@@ -208,13 +208,13 @@ export const ChangePasswordPage = () => {
                                         maxLength={6}
                                         value={otpCode}
                                         onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl px-8 py-6 text-[3rem] font-black text-center tracking-[1.5rem] focus:outline-none focus:border-indigo-600 focus:bg-white transition-all placeholder:text-slate-200"
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl px-8 py-6 text-[3rem] font-black text-center tracking-[1.5rem] focus:outline-none focus:border-client-primary focus:bg-white transition-all placeholder:text-slate-200"
                                         placeholder="000000"
                                     />
                                     <button
                                         onClick={handleNextStep}
                                         disabled={isLoading}
-                                        className="w-full h-[65px] bg-indigo-600 hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl disabled:bg-slate-300"
+                                        className="w-full h-[65px] bg-client-primary hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl disabled:bg-slate-300"
                                     >
                                         {isLoading ? (
                                             <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -223,7 +223,7 @@ export const ChangePasswordPage = () => {
                                         )}
                                     </button>
                                     <p className="text-center text-[1.3rem] text-slate-400 font-bold">
-                                        Không nhận được mã? <button onClick={handleSendOtp} disabled={cooldown > 0} className="text-indigo-600 hover:underline disabled:text-slate-300">Gửi lại</button>
+                                        Không nhận được mã? <button onClick={handleSendOtp} disabled={cooldown > 0} className="text-client-primary hover:underline disabled:text-slate-300">Gửi lại</button>
                                     </p>
                                 </div>
                             </div>
@@ -243,14 +243,14 @@ export const ChangePasswordPage = () => {
                                             type="password"
                                             value={oldPassword}
                                             onChange={(e) => setOldPassword(e.target.value)}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-client-primary focus:bg-white transition-all"
                                             placeholder="Nhập mật khẩu hiện tại"
                                         />
                                     </div>
                                     <button
                                         onClick={handleNextStep}
                                         disabled={isLoading}
-                                        className="w-full h-[65px] bg-indigo-600 hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl disabled:bg-slate-300"
+                                        className="w-full h-[65px] bg-client-primary hover:bg-slate-800 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-xl disabled:bg-slate-300"
                                     >
                                         {isLoading ? (
                                             <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -259,7 +259,7 @@ export const ChangePasswordPage = () => {
                                         )}
                                     </button>
                                     <div className="pt-2 text-center">
-                                        <Link to="/forgot-password" size="sm" className="text-indigo-600 font-bold text-[1.3rem] hover:underline flex items-center justify-center gap-2">
+                                        <Link to="/forgot-password" className="text-client-primary font-bold text-[1.3rem] hover:underline flex items-center justify-center gap-2">
                                             <QuestionMark className="w-4 h-4" /> Bạn không nhớ mật khẩu hiện tại?
                                         </Link>
                                     </div>
@@ -283,7 +283,7 @@ export const ChangePasswordPage = () => {
                                                 required
                                                 value={newPassword}
                                                 onChange={(e) => setNewPassword(e.target.value)}
-                                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-client-primary focus:bg-white transition-all"
                                                 placeholder="Ít nhất 6 ký tự"
                                             />
                                         </div>
@@ -297,7 +297,7 @@ export const ChangePasswordPage = () => {
                                                 required
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-16 pr-8 py-6 text-[1.6rem] font-bold focus:outline-none focus:border-client-primary focus:bg-white transition-all"
                                                 placeholder="Nhập lại mật khẩu mới"
                                             />
                                         </div>
@@ -305,7 +305,7 @@ export const ChangePasswordPage = () => {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full h-[70px] bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-2xl disabled:bg-slate-300"
+                                        className="w-full h-[70px] bg-slate-900 hover:bg-client-primary text-white rounded-2xl font-black text-[1.6rem] transition-all flex items-center justify-center gap-3 shadow-2xl disabled:bg-slate-300"
                                     >
                                         {isLoading ? (
                                             <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
