@@ -1,4 +1,4 @@
--- V15: Add suitable_pet_types (JSON) and category_type (enum-like) to product_categories
+-- V27: Add suitable_pet_types (JSON) and category_type (enum-like) to product_categories
 
 ALTER TABLE product_categories
     ADD COLUMN IF NOT EXISTS suitable_pet_types TEXT;
