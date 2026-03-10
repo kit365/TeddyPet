@@ -14,63 +14,100 @@ interface RenderCreatedAtCellProps {
     value: Date | null | any;
 }
 
-// Sản phẩm
+// Ảnh danh mục (chỉ hình)
+export const RenderCategoryImageCell = (params: GridRenderCellParams) => {
+    const { name, imageUrl, altImage } = params.row;
+    return (
+        <Avatar
+            alt={altImage || name}
+            src={imageUrl}
+            variant="rounded"
+            sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '10px',
+                backgroundColor: '#F4F6F8',
+            }}
+        />
+    );
+};
+
+// Tên danh mục (chỉ tên, link) — rút gọn, tránh tràn cột
+export const RenderCategoryNameCell = (params: GridRenderCellParams) => {
+    const { name, categoryId } = params.row;
+    const navigate = useNavigate();
+    const displayName = name || '—';
+    return (
+        <Link
+            href={`/${prefixAdmin}/product-category/edit/${categoryId}`}
+            onClick={(e) => {
+                e.preventDefault();
+                navigate(`/${prefixAdmin}/product-category/edit/${categoryId}`);
+            }}
+            underline="hover"
+            title={displayName}
+            sx={{
+                color: COLORS.primary,
+                fontWeight: 600,
+                fontSize: '1.4rem',
+                transition: 'color 0.2s',
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%',
+            }}
+        >
+            {displayName}
+        </Link>
+    );
+};
+
+/** Label cho categoryType (ProductCategoryTypeEnum) */
+const CATEGORY_TYPE_LABELS: Record<string, string> = {
+    FOOD: 'Thức ăn',
+    ACCESSORY: 'Phụ kiện',
+    TOY: 'Đồ chơi',
+    HYGIENE: 'Vệ sinh',
+    GROOMING: 'Chăm sóc lông',
+    BEDDING: 'Chỗ nằm',
+    OTHER: 'Khác',
+};
+
+export const RenderCategoryTypeCell = (params: GridRenderCellParams) => {
+    const v = params.row.categoryType;
+    const label = v ? (CATEGORY_TYPE_LABELS[v] ?? v) : '—';
+    return <span style={{ fontSize: '1.35rem', color: COLORS.primary }}>{label}</span>;
+};
+
+/** suitablePetTypes: DOG, CAT, OTHER -> hiển thị */
+const PET_TYPE_LABELS: Record<string, string> = {
+    DOG: 'Chó',
+    CAT: 'Mèo',
+    OTHER: 'Khác',
+};
+
+export const RenderSuitablePetTypesCell = (params: GridRenderCellParams) => {
+    const arr = params.row.suitablePetTypes;
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return <span style={{ fontSize: '1.35rem', color: '#637381' }}>—</span>;
+    const labels = arr.map((t: string) => PET_TYPE_LABELS[t] ?? t);
+    return <span style={{ fontSize: '1.35rem', color: COLORS.primary }}>{labels.join(', ')}</span>;
+};
+
+// Sản phẩm (giữ cho tương thích nếu dùng ở chỗ khác)
 export const RenderTitleCell = (params: GridRenderCellParams) => {
-    // Note: Assuming API returns similar structure to BlogCategory (name, imageUrl, categoryId)
-    // If original product used 'title', 'image', 'id', we are shifting to 'name', 'imageUrl', 'categoryId' 
-    // to match BlogCategory structure as requested ("y hệt").
     const { name, imageUrl, altImage, categoryId } = params.row;
     const navigate = useNavigate();
-
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                alignItems: 'center',
-                py: "16px",
-                gap: "16px",
-                width: "100%",
-            }}>
-
-            <Avatar
-                alt={altImage || name}
-                src={imageUrl}
-                variant="rounded"
-                sx={{
-                    width: "64px",
-                    height: "64px",
-                    borderRadius: '12px',
-                    backgroundColor: '#F4F6F8'
-                }}
-            />
-
+        <Box sx={{ display: 'flex', alignItems: 'center', py: '16px', gap: '16px', width: '100%' }}>
+            <Avatar alt={altImage || name} src={imageUrl} variant="rounded" sx={{ width: 64, height: 64, borderRadius: '12px', backgroundColor: '#F4F6F8' }} />
             <ListItemText
                 primary={
-                    <Link
-                        href={`/${prefixAdmin}/product-category/edit/${categoryId}`}
-                        className="product-title"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/${prefixAdmin}/product-category/edit/${categoryId}`);
-                        }}
-                        underline="hover"
-                        sx={{
-                            color: COLORS.primary,
-                            fontWeight: 600,
-                            fontSize: '1.3rem',
-                            transition: 'color 0.2s',
-                        }}
-                    >
+                    <Link href={`/${prefixAdmin}/product-category/edit/${categoryId}`} className="product-title" onClick={(e) => { e.preventDefault(); navigate(`/${prefixAdmin}/product-category/edit/${categoryId}`); }} underline="hover" sx={{ color: COLORS.primary, fontWeight: 600, fontSize: '1.3rem', transition: 'color 0.2s' }}>
                         {name}
                     </Link>
                 }
-                slotProps={{
-                    primary: {
-                        component: 'span',
-                        variant: 'body1',
-                        noWrap: true,
-                    },
-                }}
+                slotProps={{ primary: { component: 'span', variant: 'body1', noWrap: true } }}
                 sx={{ m: 0 }}
             />
         </Box>

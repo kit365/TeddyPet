@@ -108,9 +108,26 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
     {
         field: 'employmentType',
         headerName: 'Loại hình',
-        width: 100,
+        width: 105,
         flex: 0,
         valueGetter: (v: string) => (v ? EMPLOYMENT_TYPE_LABELS[v] ?? v : '—'),
+        renderCell: (params) => {
+            const raw = params.value as string | undefined;
+            if (!raw) return <span className="text-xs text-gray-400">—</span>;
+            const isFullTime = raw.includes('Toàn thời gian');
+            const baseClasses =
+                'inline-flex items-center rounded-full px-2.5 py-0.5 font-medium border whitespace-nowrap';
+            const fullClasses = `${baseClasses} bg-blue-50 text-blue-700 border-blue-200`;
+            const partClasses = `${baseClasses} bg-purple-50 text-purple-700 border-purple-200`;
+            return (
+                <span
+                    className={isFullTime ? fullClasses : partClasses}
+                    style={{ fontSize: '1.3rem', whiteSpace: 'nowrap' }}
+                >
+                    {raw}
+                </span>
+            );
+        },
     },
     {
         field: 'gender',
@@ -122,16 +139,45 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
     {
         field: 'userId',
         headerName: 'Tài khoản',
-        width: 88,
+        width: 95,
         flex: 0,
         valueGetter: (_, row) => (row.userId ? 'Đã cấp' : 'Chưa cấp'),
+        renderCell: (params) => {
+            const row = params.row as IStaffProfile;
+            if (row.userId) {
+                return (
+                    <button
+                        type="button"
+                        className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[1.3rem] font-medium text-emerald-700 whitespace-nowrap"
+                    >
+                        Đã cấp
+                    </button>
+                );
+            }
+            return <span className="text-[1.3rem] text-gray-400 whitespace-nowrap">Chưa cấp</span>;
+        },
     },
     {
         field: 'active',
-        headerName: 'Hoạt động',
-        width: 88,
+        headerName: 'Trạng thái',
+        width: 105,
         flex: 0,
-        valueGetter: (v: boolean) => (v ? 'Có' : 'Không'),
+        valueGetter: (v: boolean) => (v ? 'Hoạt động' : 'Ngừng HĐ'),
+        renderCell: (params) => {
+            const isActive = Boolean((params.row as IStaffProfile).active);
+            const label = isActive ? 'Hoạt động' : 'Ngừng HĐ';
+            const bg = isActive ? '#00B8D929' : '#EF444429';
+            const text = isActive ? '#006C9C' : '#B91C1C';
+
+            return (
+                <span
+                    className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[6px] font-[700] rounded-[6px] whitespace-nowrap"
+                    style={{ backgroundColor: bg, color: text }}
+                >
+                    {label}
+                </span>
+            );
+        },
     },
     {
         field: 'actions',
@@ -178,7 +224,6 @@ export const StaffProfileList = () => {
                     pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
                     initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
                     getRowHeight={() => 'auto'}
-                    checkboxSelection
                     disableRowSelectionOnClick
                     sx={{
                         ...dataGridStyles,

@@ -1,5 +1,8 @@
 package fpt.teddypet.domain.entity;
 
+import fpt.teddypet.domain.converter.PetTypeListJsonConverter;
+import fpt.teddypet.domain.enums.PetTypeEnum;
+import fpt.teddypet.domain.enums.ProductCategoryTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -34,6 +37,16 @@ public class ProductCategory extends BaseEntity {
 
     @Column(name = "alt_image", length = 255)
     private String altImage;
+
+    /** Loại danh mục: FOOD, ACCESSORY, TOY, HYGIENE, ... */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category_type", length = 50)
+    private ProductCategoryTypeEnum categoryType;
+
+    /** Loại thú cưng phù hợp (DOG, CAT, OTHER) - lưu JSON array */
+    @Column(name = "suitable_pet_types", columnDefinition = "TEXT")
+    @Convert(converter = PetTypeListJsonConverter.class)
+    private List<PetTypeEnum> suitablePetTypes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")

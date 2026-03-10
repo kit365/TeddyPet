@@ -1,51 +1,62 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { LogoTeddyPet } from "../../../../assets/admin/LogoTeddyPet";
 import { NavGroup } from "./NavGroup";
 import { menuManagementData, menuOverviewData } from "../../../constants/sideBar";
 import { IconButton } from "@mui/material";
 import { ArrowIcon } from "../../../assets/icons";
 import { useSidebar } from "../../../context/sidebar/useSidebar";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { getMe } from "../../../../api/auth.api";
-
-type Role = "ADMIN" | "STAFF";
-
-type MenuItem = {
-    id: string;
-    label: string;
-    allowedRoles: Role[];
-    children?: MenuItem[];
-    [key: string]: any;
-};
-
-const filterMenuByRole = (items: MenuItem[], role: Role): MenuItem[] => {
-    return items
-        .map((item) => {
-            if (!item.allowedRoles || !item.allowedRoles.includes(role)) return null;
-            const children = item.children ? filterMenuByRole(item.children, role) : undefined;
-            if (item.children && (!children || children.length === 0) && !item.path) {
-                return null;
-            }
-            return { ...item, children } as MenuItem;
-        })
-        .filter((x): x is MenuItem => x !== null);
-};
+import { useMemo } from "react";
 
 export const SideBar = () => {
     const { isOpen, toggleSidebar } = useSidebar();
     const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: getMe });
-    const userRole = (meRes?.data?.role as Role | undefined) ?? "STAFF";
+    const role = meRes?.data?.role as "ADMIN" | "STAFF" | undefined;
 
-    const filteredOverviewData = useMemo(
-        () => filterMenuByRole(menuOverviewData as MenuItem[], userRole),
-        [userRole]
-    );
+    const filteredOverviewData = useMemo(() => {
+        if (!role) return menuOverviewData;
+        return menuOverviewData.filter((item: any) => {
+            if (!item.allowedRoles) return true;
+            return item.allowedRoles.includes(role);
+        });
+    }, [role]);
 
-    const filteredManagementData = useMemo(
-        () => filterMenuByRole(menuManagementData as MenuItem[], userRole),
-        [userRole]
-    );
+    const filteredManagementData = useMemo(() => {
+        if (!role) return menuManagementData;
+
+        return menuManagementData
+            .filter((group: any) => {
+                if (!group.allowedRoles) return true;
+                return group.allowedRoles.includes(role);
+            })
+            .map((group: any) => {
+                const rawChildren = group.children ?? [];
+
+                // Với group "staff" vẫn giữ filter đặc biệt theo field `role`,
+                // đồng thời tôn trọng allowedRoles trên từng child.
+                if (group.id === "staff") {
+                    const children = rawChildren.filter((child: any) => {
+                        if (child.role && child.role !== role) return false;
+                        if (child.allowedRoles && !child.allowedRoles.includes(role)) return false;
+                        return true;
+                    });
+                    return { ...group, children };
+                }
+
+                const children = rawChildren.filter((child: any) => {
+                    if (!child.allowedRoles) return true;
+                    return child.allowedRoles.includes(role);
+                });
+
+                return { ...group, children };
+            })
+            .filter((group: any) => {
+                // Nếu group có children rỗng thì ẩn hẳn group
+                if (group.children && group.children.length === 0) return false;
+                return true;
+            });
+    }, [role]);
 
     return (
         <div className={`flex fixed top-0 left-0 flex-col z-[1200] h-full bg-white border-r border-[#919eab1f] transition-[width] duration-[120ms] ease-linear ${isOpen ? 'w-[300px]' : 'w-[88px]'}`}>
@@ -72,8 +83,8 @@ export const SideBar = () => {
                 ? "pl-[28px] pt-[24px] pb-[20px]"
                 : "py-[20px] flex justify-center"
             }>
-                <Link to="/" className="inline-block transition-transform duration-200 hover:scale-110 active:scale-95">
-                    <LogoTeddyPet width={isOpen ? "120px" : "60px"} height={isOpen ? "48px" : "24px"} />
+                <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
+                    <LogoTeddyPet width={isOpen ? "56px" : "44px"} height={isOpen ? "56px" : "44px"} />
                 </Link>
             </div>
 

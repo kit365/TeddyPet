@@ -3,6 +3,8 @@ package fpt.teddypet.infrastructure.adapter.products;
 import fpt.teddypet.application.constants.products.productbrand.ProductBrandMessages;
 import fpt.teddypet.application.port.output.products.ProductBrandRepositoryPort;
 import fpt.teddypet.domain.entity.ProductBrand;
+import fpt.teddypet.domain.enums.PetTypeEnum;
+import fpt.teddypet.domain.enums.ProductCategoryTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductBrandRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -78,5 +80,14 @@ public class ProductBrandRepositoryAdapter implements ProductBrandRepositoryPort
             return 0;
         }
         return productBrandRepository.softDeleteByIds(ids);
+    }
+
+    @Override
+    public List<ProductBrand> findFoodBrandOptionsByPetType(PetTypeEnum petType) {
+        // Only show brands belonging to products under FOOD categories that match petType
+        return productBrandRepository.findDistinctActiveBrandsForCategoryTypeAndPetType(
+                ProductCategoryTypeEnum.FOOD.name(),
+                petType.name()
+        );
     }
 }

@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "booking_pet_services")
@@ -60,11 +62,17 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "videos", columnDefinition = "TEXT")
     private String videos;
 
-    @Column(name = "check_in_date")
-    private LocalDate checkInDate;
+    @Column(name = "estimated_check_in_date")
+    private LocalDate estimatedCheckInDate;
 
-    @Column(name = "check_out_date")
-    private LocalDate checkOutDate;
+    @Column(name = "estimated_check_out_date")
+    private LocalDate estimatedCheckOutDate;
+
+    @Column(name = "actual_check_in_date")
+    private LocalDate actualCheckInDate;
+
+    @Column(name = "actual_check_out_date")
+    private LocalDate actualCheckOutDate;
 
     @Column(name = "number_of_nights")
     private Integer numberOfNights;
@@ -81,9 +89,6 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "actual_end_time")
     private LocalDateTime actualEndTime;
 
-    @Column(name = "unit_price", precision = 12, scale = 2)
-    private BigDecimal unitPrice;
-
     @Column(name = "subtotal", precision = 12, scale = 2)
     private BigDecimal subtotal;
 
@@ -98,5 +103,9 @@ public class BookingPetService extends BaseEntity {
 
     @Column(name = "customer_review", columnDefinition = "TEXT")
     private String customerReview;
+
+    @OneToMany(mappedBy = "bookingPetService", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<BookingPetServiceItem> items = new ArrayList<>();
 }
 

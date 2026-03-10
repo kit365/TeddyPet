@@ -14,8 +14,26 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 
+import fpt.teddypet.domain.exception.BookingValidationException;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BookingValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleBookingValidationException(BookingValidationException ex) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("errorCode", ex.getErrorCode());
+        data.put("petIndex", ex.getPetIndex());
+        data.put("serviceIndex", ex.getServiceIndex());
+        data.put("isAdditionalService", ex.getIsAdditionalService());
+        data.put("roomId", ex.getRoomId());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.CONFLICT.value(), data));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(

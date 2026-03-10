@@ -49,7 +49,12 @@ export const OfficialSchedulePage = () => {
     const [to, setTo] = useState<string>(defaultRange.end);
 
     const { data: shifts = [], isLoading: shiftsLoading } = useShiftsForAdmin(from, to);
-    const shiftIds = useMemo(() => (shifts as IWorkShift[]).map((s) => s.shiftId), [shifts]);
+    /** Chỉ lấy các ca đã chốt/xếp đủ để đưa vào lịch chính thức. */
+    const finalizedShifts = useMemo(
+        () => (shifts as IWorkShift[]).filter((s) => s.status === 'ASSIGNED' || s.status === 'COMPLETED'),
+        [shifts]
+    );
+    const shiftIds = useMemo(() => finalizedShifts.map((s) => s.shiftId), [finalizedShifts]);
 
     const registrationQueries = useQueries({
         queries: shiftIds.map((shiftId) => ({
@@ -85,7 +90,7 @@ export const OfficialSchedulePage = () => {
         let weekStart = fromD;
         while (weekStart.isBefore(toD) || weekStart.isSame(toD, 'day')) {
             const weekEnd = weekStart.add(6, 'day').endOf('day');
-            const weekShifts = (shifts as IWorkShift[]).filter((s) => {
+            const weekShifts = finalizedShifts.filter((s) => {
                 const t = dayjs(s.startTime);
                 return (t.isAfter(weekStart) || t.isSame(weekStart)) && (t.isBefore(weekEnd) || t.isSame(weekEnd));
             });
@@ -97,8 +102,16 @@ export const OfficialSchedulePage = () => {
             weekStart = weekStart.add(7, 'day');
         }
         return list;
-    }, [from, to, shifts, registrationsByShiftId]);
+    }, [from, to, finalizedShifts, registrationsByShiftId]);
     const loading = shiftsLoading || registrationQueries.some((q) => q.isLoading);
+
+    const shiftWeek = (direction: -1 | 1) => {
+        const start = (from ? dayjs(from) : dayjs(defaultRange.start)).startOf('day');
+        const newStart = start.add(7 * direction, 'day');
+        const newEnd = newStart.add(6, 'day').endOf('day');
+        setFrom(newStart.toISOString());
+        setTo(newEnd.toISOString());
+    };
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -110,10 +123,7 @@ export const OfficialSchedulePage = () => {
                     { label: 'Lịch chính thức' },
                 ]}
             />
-            <Box sx={{ px: '40px', mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                    Chọn khoảng thời gian để xem lịch (mặc định: tuần hiện tại; có thể tìm tuần sau hoặc các tuần trước).
-                </Typography>
+            <Box sx={{ px: '40px', mb: 2, mt: 3 }}>
                 <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                     <DateTimePicker
                         label="Từ ngày"
@@ -130,6 +140,13 @@ export const OfficialSchedulePage = () => {
                     <Button
                         variant="outlined"
                         size="small"
+                        onClick={() => shiftWeek(-1)}
+                    >
+                        {'<'}
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        size="small"
                         onClick={() => {
                             const r = getDefaultRange();
                             setFrom(r.start);
@@ -138,20 +155,24 @@ export const OfficialSchedulePage = () => {
                     >
                         Về tuần hiện tại
                     </Button>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => shiftWeek(1)}
+                    >
+                        {'>'}
+                    </Button>
                 </Stack>
             </Box>
 
             <Box sx={{ px: '40px', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                    Bảng tổng hợp ca trong tuần
-                </Typography>
                 {loading ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
                         <CircularProgress />
                     </Box>
                 ) : shifts.length === 0 ? (
                     <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                        Chưa có lịch chính thức
+                        Chưa có dữ liệu.
                     </Typography>
                 ) : (
                     <Stack spacing={3}>
@@ -161,41 +182,28 @@ export const OfficialSchedulePage = () => {
                                     Tuần {label}
                                 </Typography>
                                 <TableContainer
+                                    className="w-full"
                                     sx={{
-                                        maxHeight: 520,
                                         border: '1px solid',
                                         borderColor: 'grey.200',
                                         borderRadius: 2,
-                                        overflowX: 'auto',
-                                        overflowY: 'auto',
                                         boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
                                     }}
                                 >
                                     <Table
                                         size="small"
                                         stickyHeader
+                                        className="w-full table-fixed"
                                         sx={{
-                                            tableLayout: 'auto',
-                                            minWidth: 160 + 7 * 200,
+                                            tableLayout: 'fixed',
+                                            width: '100%',
+                                            minWidth: 0,
                                             borderCollapse: 'separate',
                                             borderSpacing: 0,
                                         }}
                                     >
                                         <TableHead>
                                             <TableRow sx={{ bgcolor: 'grey.50' }}>
-                                                <TableCell
-                                                    className="text-base font-bold text-gray-900"
-                                                    sx={{
-                                                        width: 160,
-                                                        borderColor: 'grey.200',
-                                                        py: 1.75,
-                                                        px: 2.25,
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.04em',
-                                                    }}
-                                                >
-                                                    Buổi / Ngày
-                                                </TableCell>
                                                 {columnLabels.map((colLabel, i) => (
                                                     <TableCell
                                                         key={i}
@@ -205,7 +213,6 @@ export const OfficialSchedulePage = () => {
                                                             borderColor: 'grey.200',
                                                             py: 1.75,
                                                             px: 2.25,
-                                                            minWidth: 200,
                                                         }}
                                                     >
                                                         <Box className="text-base font-bold text-gray-900">{colLabel}</Box>
@@ -219,69 +226,49 @@ export const OfficialSchedulePage = () => {
                                         <TableBody>
                                             {slotBlocks.map((block, blockIndex) => (
                                                 <Fragment key={blockIndex}>
+                                                    {/* Hàng tiêu đề cho từng ca, chỉ hiển thị tên ca */}
                                                     <TableRow
                                                         sx={{
-                                                            bgcolor: 'grey.100',
-                                                            '& td': { borderBottom: '1px solid', borderColor: 'grey.200' },
+                                                            bgcolor: 'rgb(226 232 240)', // slate-200
+                                                            '& td': {
+                                                                borderBottom: '1px solid',
+                                                                borderColor: 'grey.200',
+                                                            },
                                                         }}
                                                     >
                                                         <TableCell
-                                                            className="text-lg font-bold text-gray-900"
+                                                            colSpan={columnLabels.length}
                                                             sx={{
-                                                                width: 160,
-                                                                py: 1.1,
-                                                                px: 2.25,
-                                                                borderColor: 'grey.200',
-                                                                whiteSpace: 'nowrap',
-                                                            }}
-                                                        >
-                                                            {block.slotLabel}
-                                                        </TableCell>
-                                                        {columnLabels.map((_, dayIndex) => (
-                                                            <TableCell
-                                                                key={dayIndex}
-                                                                align="center"
-                                                                className="text-base font-semibold text-gray-800"
-                                                                sx={{
-                                                                    borderColor: 'grey.200',
-                                                                    py: 1.1,
-                                                                    px: 2.25,
-                                                                    minWidth: 200,
-                                                                    verticalAlign: 'middle',
-                                                                }}
-                                                            >
-                                                                <Typography component="div" className="text-base font-semibold text-gray-800">
-                                                                    {block.timeRangeByDay?.[dayIndex] ?? '—'}
-                                                                </Typography>
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                    {block.roleRows.map((roleRow, roleIndex) => (
-                                                        <TableRow
-                                                            key={`${blockIndex}-${roleRow.roleName}-${roleIndex}`}
-                                                            sx={{
-                                                                bgcolor: 'background.paper',
-                                                            '& td': { borderBottom: '1px solid', borderColor: 'grey.200' },
-                                                            }}
-                                                        >
-                                                            <TableCell
-                                                                sx={{
-                                                                    width: 160,
-                                                                    verticalAlign: 'top',
-                                                                    borderColor: 'grey.200',
                                                                 py: 1.5,
-                                                                px: 2.25,
-                                                                }}
-                                                            >
+                                                                px: 2,
+                                                                borderColor: 'grey.200',
+                                                            }}
+                                                        >
+                                                            <Box className="flex items-center justify-center">
                                                                 <Typography
                                                                     component="div"
-                                                                    className="text-sm font-semibold text-gray-700"
-                                                                    sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}
+                                                                    className="text-sm md:text-base font-extrabold tracking-wide text-slate-800 uppercase text-center truncate"
                                                                 >
-                                                                    {roleRow.roleName === '—' ? 'Chức vụ khác' : roleRow.roleName}
+                                                                    {block.slotLabel}
                                                                 </Typography>
-                                                            </TableCell>
-                                                            {roleRow.cellsByDay.map((names, dayIndex) => (
+                                                            </Box>
+                                                        </TableCell>
+                                                    </TableRow>
+
+                                                    {/* Hàng dữ liệu: một ô cho mỗi ngày, chứa các thẻ nhân viên */}
+                                                    <TableRow
+                                                        sx={{
+                                                            bgcolor: 'background.paper',
+                                                            '& td': { borderBottom: '1px solid', borderColor: 'grey.200' },
+                                                        }}
+                                                    >
+                                                        {columnLabels.map((_, dayIndex) => {
+                                                            const hasAny = block.roleRows.some(
+                                                                (roleRow) => (roleRow.cellsByDay[dayIndex] ?? []).length > 0,
+                                                            );
+                                                            const timeLabel = block.timeRangeByDay?.[dayIndex] ?? '';
+
+                                                            return (
                                                                 <TableCell
                                                                     key={dayIndex}
                                                                     align="left"
@@ -289,39 +276,68 @@ export const OfficialSchedulePage = () => {
                                                                         verticalAlign: 'top',
                                                                         borderColor: 'grey.200',
                                                                         py: 1.5,
-                                                                        px: 2.25,
-                                                                        minWidth: 200,
+                                                                        px: 2.0,
                                                                     }}
                                                                 >
-                                                                    {names.length === 0 ? (
-                                                                        <Typography variant="body2" color="text.disabled">
-                                                                            —
-                                                                        </Typography>
-                                                                    ) : (
-                                                                        <Box
-                                                                            className="rounded-lg border border-gray-200 p-3"
-                                                                            style={{ backgroundColor: getRoleBadgeStyle(roleRow.roleName).bg }}
-                                                                        >
-                                                                            <Typography
-                                                                                component="div"
-                                                                                className="text-[13px] font-bold uppercase tracking-wide"
-                                                                                style={{ color: getRoleBadgeStyle(roleRow.roleName).text }}
-                                                                            >
-                                                                                {roleRow.roleName === '—' ? 'Chức vụ khác' : roleRow.roleName}
-                                                                            </Typography>
-                                                                            <Box className="mt-2 flex flex-col gap-1">
-                                                                                {names.map((name, i) => (
-                                                                                    <Typography key={i} component="div" className="text-sm font-medium text-gray-800 leading-snug">
-                                                                                        • {name}
-                                                                                    </Typography>
-                                                                                ))}
+                                                                    <Box className="flex flex-col gap-2">
+                                                                        {timeLabel && (
+                                                                            <Box className="w-full text-center text-sm md:text-base font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg py-2 mb-2 shadow-sm truncate">
+                                                                                {timeLabel}
                                                                             </Box>
-                                                                        </Box>
-                                                                    )}
+                                                                        )}
+
+                                                                        {!hasAny ? (
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                color="text.disabled"
+                                                                                className="text-xs"
+                                                                            >
+                                                                                —
+                                                                            </Typography>
+                                                                        ) : (
+                                                                            <Box className="flex flex-col gap-2">
+                                                                                {block.roleRows.map((roleRow) => {
+                                                                                    const names = roleRow.cellsByDay[dayIndex] ?? [];
+                                                                                    if (!names.length) return null;
+
+                                                                                    const style = getRoleBadgeStyle(roleRow.roleName);
+
+                                                                                    return (
+                                                                                        <Box
+                                                                                            key={`${roleRow.roleName}-${dayIndex}`}
+                                                                                            className="rounded-md border border-slate-200 p-2 shadow-sm"
+                                                                                            style={{ backgroundColor: style.bg }}
+                                                                                        >
+                                                                                            <Typography
+                                                                                                component="div"
+                                                                                                className="text-[10px] font-semibold uppercase tracking-wide break-words"
+                                                                                                style={{ color: style.text }}
+                                                                                            >
+                                                                                                {roleRow.roleName === '—'
+                                                                                                    ? 'Chức vụ khác'
+                                                                                                    : roleRow.roleName}
+                                                                                            </Typography>
+                                                                                            <Box className="mt-1 space-y-0.5">
+                                                                                                {names.map((name, i) => (
+                                                                                                <Typography
+                                                                                                    key={i}
+                                                                                                    component="div"
+                                                                                                    className="text-xs text-slate-800 leading-snug truncate"
+                                                                                                >
+                                                                                                    • {name}
+                                                                                                </Typography>
+                                                                                                ))}
+                                                                                            </Box>
+                                                                                        </Box>
+                                                                                    );
+                                                                                })}
+                                                                            </Box>
+                                                                        )}
+                                                                    </Box>
                                                                 </TableCell>
-                                                            ))}
-                                                        </TableRow>
-                                                    ))}
+                                                            );
+                                                        })}
+                                                    </TableRow>
                                                 </Fragment>
                                             ))}
                                         </TableBody>

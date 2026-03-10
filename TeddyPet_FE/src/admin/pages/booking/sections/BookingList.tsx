@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { DataGrid } from "@mui/x-data-grid";
 import Card from "@mui/material/Card";
 import Stack from "@mui/material/Stack";
@@ -11,6 +12,7 @@ import Tab from "@mui/material/Tab";
 import Badge from "@mui/material/Badge";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   dataGridCardStyles,
   dataGridContainerStyles,
@@ -20,7 +22,8 @@ import { useDataGridLocale } from "../../../hooks/useDataGridLocale";
 import { getBookingColumns } from "../configs/column.config";
 import { BOOKING_STATUS_OPTIONS, type BookingStatusFilter } from "../constants";
 import { prefixAdmin } from "../../../constants/routes";
-import { MOCK_BOOKINGS } from "../mockBookingData";
+import { getAdminBookings } from "../../../api/booking.api";
+import type { BookingResponse } from "../../../types/booking.type";
 
 const CustomNoRowsOverlay = () => (
   <Stack height="100%" alignItems="center" justifyContent="center">
@@ -37,13 +40,37 @@ const CustomNoRowsOverlay = () => (
   </Stack>
 );
 
+/** Chuẩn hóa item từ API (BigDecimal → number, LocalDateTime → string) để grid/calendar dùng. */
+const normalizeBooking = (b: Record<string, unknown>): BookingResponse => ({
+  ...b,
+  id: String(b.id ?? ""),
+  totalAmount: Number(b.totalAmount ?? 0),
+  paidAmount: Number(b.paidAmount ?? 0),
+  remainingAmount: Number(b.remainingAmount ?? 0),
+  deposit: Number(b.deposit ?? 0),
+  bookingStartDate: b.bookingStartDate != null ? String(b.bookingStartDate) : "",
+  bookingEndDate: b.bookingEndDate != null ? String(b.bookingEndDate) : undefined,
+} as BookingResponse);
+
 export const BookingList = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState<BookingStatusFilter>("ALL");
   const [keyword, setKeyword] = useState("");
 
+  const { data: apiData, isLoading } = useQuery({
+    queryKey: ["admin-bookings"],
+    queryFn: getAdminBookings,
+    select: (res) => {
+      const list = res?.data;
+      if (!Array.isArray(list)) return [];
+      return list.map((b) => normalizeBooking(b as Record<string, unknown>));
+    },
+  });
+
+  const bookings = apiData ?? [];
+
   const filteredRows = useMemo(() => {
-    let list = MOCK_BOOKINGS;
+    let list = bookings;
     if (status !== "ALL") {
       list = list.filter((b) => b.status === status);
     }
@@ -57,11 +84,11 @@ export const BookingList = () => {
       );
     }
     return list;
-  }, [status, keyword]);
+  }, [bookings, status, keyword]);
 
   const pendingCount = useMemo(
-    () => MOCK_BOOKINGS.filter((b) => b.status === "PENDING").length,
-    []
+    () => bookings.filter((b) => b.status === "PENDING").length,
+    [bookings]
   );
 
   const columns = useMemo(
@@ -185,6 +212,7 @@ export const BookingList = () => {
             rows={filteredRows}
             columns={columns}
             getRowId={(row) => row.id}
+            loading={isLoading}
             localeText={localeText}
             disableRowSelectionOnClick
             pageSizeOptions={[5, 10, 25]}

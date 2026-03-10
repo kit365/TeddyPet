@@ -21,6 +21,12 @@ export interface ServiceClient {
     priceUnit?: string;
     suitablePetTypes?: string[];
     isActive: boolean;
+    /** BE: services.is_required_room */
+    isRequiredRoom?: boolean | null;
+    /** BE: services.is_addon — chỉ hiển thị trong "dịch vụ thêm" khi true */
+    isAddon?: boolean | null;
+    /** BE: services.is_additional_charge — dịch vụ phụ thu, không cho chọn trực tiếp ở form đặt lịch */
+    isAdditionalCharge?: boolean | null;
 }
 
 /** Admin/API: booking status */
@@ -47,6 +53,15 @@ export type PaymentStatus =
 /** Admin/API: payment method (booking: chỉ CASH và BANK_TRANSFER) */
 export type PaymentMethod = "CASH" | "BANK_TRANSFER";
 
+/** One item of pet food brought (pet_food_brought table) */
+export interface PetFoodBroughtItemResponse {
+  id?: number;
+  foodBroughtType?: string | null;
+  foodBrand?: string | null;
+  quantity?: number | null;
+  feedingInstructions?: string | null;
+}
+
 /** Admin/API: BookingPet (matches booking_pets table) */
 export interface BookingPetResponse {
   id: number;
@@ -67,7 +82,24 @@ export interface BookingPetResponse {
   foodBrought?: boolean | string;
   foodBroughtType?: string | string[] | null;
   feedingInstructions?: string;
+  /** Danh sách thức ăn mang theo (bảng pet_food_brought) */
+  foodItems?: PetFoodBroughtItemResponse[];
   services?: BookingPetServiceResponse[];
+}
+
+/** Admin/API: BookingPetServiceItem (add-on / additional charge) */
+export interface BookingPetServiceItemResponse {
+  id: number;
+  itemServiceId: number;
+  itemServiceName?: string;
+  itemType: string; // ADDON | CHARGE
+  chargeReason?: string | null;
+  chargeEvidence?: string | null;
+  chargedBy?: string | null;
+  chargeApprovedBy?: string | null;
+  chargeApprovedAt?: string | null;
+  notes?: string | null;
+  staffNotes?: string | null;
 }
 
 /** Admin/API: BookingPetService (matches booking_pet_services table) */
@@ -83,8 +115,10 @@ export interface BookingPetServiceResponse {
   afterPhotos?: string;
   beforePhotos?: string;
   videos?: string;
-  checkInDate?: string;
-  checkoutDate?: string;
+  estimatedCheckInDate?: string;
+  estimatedCheckOutDate?: string;
+  actualCheckInDate?: string;
+  actualCheckOutDate?: string;
   numberOfNights?: number;
   scheduledStartTime?: string;
   scheduledEndTime?: string;
@@ -97,6 +131,7 @@ export interface BookingPetServiceResponse {
   customerRating?: number;
   customerReview?: string;
   serviceName?: string;
+  items?: BookingPetServiceItemResponse[];
 }
 
 /** Admin/API: booking list & detail (matches Bookings table) */
@@ -131,6 +166,35 @@ export interface BookingResponse {
   pets?: BookingPetResponse[];
 }
 
+/** One food item in booking form (maps to pet_food_brought) */
+export interface PetFoodBroughtItemForm {
+    foodBroughtType?: string;
+    foodBrand?: string | null;
+    quantity?: number | null;
+    feedingInstructions?: string;
+}
+
+/** One dịch vụ thêm trong form (1 booking_pet có nhiều booking_pet_services) */
+export interface BookingPetServiceForm {
+    id: string;
+    serviceId: number | null;
+    pricingModel: "per_day" | "per_session" | null;
+    dateFrom: string;
+    dateTo: string;
+    numberOfNights?: number | null;
+    roomLayoutConfigId?: number | null;
+    selectedRoomTypeId?: number | null;
+    selectedRoomId?: number | null;
+    sessionDate: string;
+    sessionSlot: string;
+    /** Id khung giờ (time_slots) → gửi lên BE để tăng currentBookings */
+    sessionTimeSlotId?: number | null;
+    /** Label "HH:mm - HH:mm" gửi lên BE (sessionSlotLabel) */
+    sessionSlotLabel?: string;
+    /** Dịch vụ add-on (isAddon=true) khách chọn kèm theo → booking_pet_service_items */
+    addonServiceIds?: number[];
+}
+
 /** One pet in booking form */
 export interface BookingPetForm {
     id: string;
@@ -141,8 +205,10 @@ export interface BookingPetForm {
     emergencyContactName?: string;
     emergencyContactPhone?: string;
     foodBrought?: boolean;
-  foodBroughtType?: string[];
+    foodBroughtType?: string[];
     feedingInstructions?: string;
+    /** Danh sách thức ăn mang theo (gửi lên BE dạng foodItems) */
+    foodItems?: PetFoodBroughtItemForm[];
     /** Selected service id */
     serviceId: number | null;
     /** Category pricing model for selected service */
@@ -150,7 +216,21 @@ export interface BookingPetForm {
     /** per_day: drop-off and pick-up dates */
     dateFrom: string;
     dateTo: string;
+    /** Số đêm = (dateTo - dateFrom) khi dateTo > dateFrom */
+    numberOfNights?: number | null;
+    /** Room selection (only when service.isRequiredRoom === true) */
+    roomLayoutConfigId?: number | null;
+    selectedRoomTypeId?: number | null;
+    selectedRoomId?: number | null;
     /** per_session: selected date and time slot */
     sessionDate: string;
     sessionSlot: string; // e.g. "08:00"
+    /** Id khung giờ (time_slots) → gửi lên BE để tăng currentBookings */
+    sessionTimeSlotId?: number | null;
+    /** Label "HH:mm - HH:mm" gửi lên BE (sessionSlotLabel) */
+    sessionSlotLabel?: string;
+    /** Dịch vụ add-on (isAddon=true) kèm theo dịch vụ chính → booking_pet_service_items */
+    addonServiceIds?: number[];
+    /** Dịch vụ thêm (chỉ isAddon=true, cùng thú cưng) → nhiều booking_pet_services */
+    additionalServices?: BookingPetServiceForm[];
 }

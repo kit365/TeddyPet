@@ -9,6 +9,8 @@ public interface RoomLayoutConfigService {
 
     List<RoomLayoutConfigResponse> getAll();
 
+    List<RoomLayoutConfigResponse> getAll(Long serviceId, String status);
+
     RoomLayoutConfigResponse getById(Long id);
 
     RoomLayoutConfigResponse create(RoomLayoutConfigUpsertRequest request);

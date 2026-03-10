@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ResetPasswordRequest;
+import fpt.teddypet.application.dto.request.otp.VerifyOtpRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
 import fpt.teddypet.application.dto.response.TokenResponse;
@@ -130,4 +131,16 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.error(PasswordResetMessages.MESSAGE_TOKEN_INVALID, false));
         }
     }
+
+    // ========= Guest OTP Login cho booking =========
+
+    @PostMapping("/guest-login/verify-otp")
+    @Operation(
+            summary = "Đăng nhập OTP cho khách vãng lai (booking)",
+            description = "Đăng nhập bằng mã OTP đã gửi tới email. Thành công sẽ trả về access/refresh token.")
+    public ResponseEntity<ApiResponse<TokenResponse>> guestLoginWithOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        TokenResponse response = authService.loginWithOtpForEmail(request.email(), request.otpCode());
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập OTP thành công.", response));
+    }
+
 }

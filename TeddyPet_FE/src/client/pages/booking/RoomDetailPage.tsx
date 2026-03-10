@@ -5,6 +5,7 @@ import {
     getRoomTypeById,
     type RoomClient,
     type RoomTypeClient,
+    type RoomTypeDetailClient,
 } from "../../../api/service.api";
 import type { ApiResponse } from "../../../types/common.type";
 import type { BookingDetailDraft } from "./BookingDetail";
@@ -51,7 +52,7 @@ export const RoomDetailPage = () => {
         queryKey: ["room-type-detail", room?.roomTypeId],
         queryFn: () => getRoomTypeById(room!.roomTypeId),
         enabled: !!room?.roomTypeId,
-        select: (res: ApiResponse<RoomTypeClient>) => res.data,
+        select: (res: ApiResponse<RoomTypeDetailClient>) => res.data,
     });
 
     const roomType = roomTypeRes;

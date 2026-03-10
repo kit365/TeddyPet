@@ -71,6 +71,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
         }
         initCategories();
         initServicesAndPricing();
+        initAdditionalChargeServices();
         updateHotelServicesRequiresRoom();
         updateSuitablePetTypes();
         updatePricingSuitablePetTypes();
@@ -188,6 +189,76 @@ public class ServiceDataInitializer implements CommandLineRunner {
         addAddonPricingIfEmpty(goRoiLong, new BigDecimal("75000"));
         addFleaPricingIfEmpty(triVeRan, new BigDecimal("75000"), new BigDecimal("225000"));
         addAddonPricingIfEmpty(duongAmDemChan, new BigDecimal("40000"));
+
+        // --- Add-on nhóm Hotel (mỗi loại dịch vụ có add-on) ---
+        Service buaAnThem = createServiceIfNotExists(hotelCat, "ADDON-HOTEL-BUA-AN-THEM", "Bữa ăn thêm (trong ngày)",
+                "Bữa ăn bổ sung cho thú cưng lưu trú", 0, new BigDecimal("30000"), "bữa", true, 1, false);
+        Service chamSocDacBiet = createServiceIfNotExists(hotelCat, "ADDON-HOTEL-CHAM-SOC-DAC-BIET", "Chăm sóc đặc biệt",
+                "Chăm sóc y tế/đặc biệt theo yêu cầu (giá theo thỏa thuận)", 30, new BigDecimal("50000"), "lần", true, 2, false);
+        addAddonPricingIfEmpty(buaAnThem, new BigDecimal("30000"));
+        addAddonPricingIfEmpty(chamSocDacBiet, new BigDecimal("50000"));
+    }
+
+    /**
+     * Seed dịch vụ Additional charge (isAdditionalCharge=true) — nhân viên thêm vào booking_pet_service khi phát sinh.
+     */
+    private void initAdditionalChargeServices() {
+        ServiceCategory hotelCat = categoryRepository.findBySlug("nhom-luu-tru").orElse(null);
+        ServiceCategory spaCat = categoryRepository.findBySlug("nhom-spa").orElse(null);
+        if (spaCat != null) {
+            Service veSinhDacBiet = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-VE-SINH-DAC-BIET",
+                    "Phụ phí vệ sinh đặc biệt",
+                    "Phụ phí khi thú cưng cần vệ sinh đặc biệt (bẩn, lâu ngày)", 30, new BigDecimal("50000"));
+            addAddonPricingIfEmpty(veSinhDacBiet, new BigDecimal("50000"));
+
+            Service thuocVatTu = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-THUOC-VAT-TU",
+                    "Phụ phí thuốc / vật tư",
+                    "Phụ phí thuốc hoặc vật tư phát sinh ngoài gói dịch vụ", 0, new BigDecimal("0"));
+            addAddonPricingIfEmpty(thuocVatTu, new BigDecimal("0"));
+
+            Service giaHan = createAdditionalChargeServiceIfNotExists(spaCat, "CHARGE-GIA-HAN", "Phụ phí gia hạn giữ",
+                    "Phụ phí khi khách gia hạn thêm ngày so với dự kiến", 0, new BigDecimal("0"));
+            addAddonPricingIfEmpty(giaHan, new BigDecimal("0"));
+        }
+        if (hotelCat != null) {
+            Service phuPhiPhong = createAdditionalChargeServiceIfNotExists(hotelCat, "CHARGE-PHU-PHI-PHONG",
+                    "Phụ phí phòng (phát sinh)",
+                    "Phụ phí phát sinh liên quan phòng (làm bẩn, hỏng hóc nhẹ...)", 0, new BigDecimal("0"));
+            addAddonPricingIfEmpty(phuPhiPhong, new BigDecimal("0"));
+        }
+    }
+
+    private Service createAdditionalChargeServiceIfNotExists(ServiceCategory category, String code, String serviceName,
+            String description, int durationMinutes, BigDecimal basePrice) {
+        if (serviceRepository.existsByCode(code)) {
+            return serviceRepository.findByCode(code).orElseThrow();
+        }
+        String slug = SlugUtil.toSlug(serviceName);
+        Service svc = Service.builder()
+                .serviceCategory(category)
+                .code(code)
+                .serviceName(serviceName)
+                .slug(slug)
+                .description(description)
+                .duration(durationMinutes)
+                .bufferTime(15)
+                .advanceBookingHours(24)
+                .cancellationDeadlineHours(12)
+                .maxPetsPerSession(1)
+                .requiredStaffCount(1)
+                .basePrice(basePrice != null ? basePrice : BigDecimal.ZERO)
+                .priceUnit("lần")
+                .isAddon(false)
+                .isAdditionalCharge(true)
+                .isRequiredRoom(false)
+                .displayOrder(100)
+                .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
+                .isActive(true)
+                .isDeleted(false)
+                .build();
+        svc = serviceRepository.save(svc);
+        log.info("✅ Created Additional charge Service: {} ({})", serviceName, code);
+        return svc;
     }
 
     private Service createServiceIfNotExists(ServiceCategory category, String code, String serviceName,
@@ -206,6 +277,10 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .description(description)
                 .duration(durationMinutes)
                 .bufferTime(15)
+                .advanceBookingHours(24)
+                .cancellationDeadlineHours(12)
+                .maxPetsPerSession(1)
+                .requiredStaffCount(1)
                 .basePrice(basePrice)
                 .priceUnit(priceUnit)
                 .isAddon(isAddon)

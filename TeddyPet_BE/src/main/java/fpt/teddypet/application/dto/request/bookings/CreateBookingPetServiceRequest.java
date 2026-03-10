@@ -2,9 +2,11 @@ package fpt.teddypet.application.dto.request.bookings;
 
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 /**
  * Một dịch vụ đặt cho thú cưng (tương ứng 1 bản ghi booking_pet_services).
- * Các bản ghi này sẽ chia sẻ cùng booking_id và booking_pet_id thông qua Booking / BookingPet.
+ * addonServiceIds: dịch vụ add-on (isAddon=true) khách chọn kèm theo dịch vụ chính → lưu vào booking_pet_service_items.
  */
 public record CreateBookingPetServiceRequest(
         @NotNull(message = "Dịch vụ là bắt buộc")
@@ -22,7 +24,15 @@ public record CreateBookingPetServiceRequest(
 
         // Dịch vụ không có phòng (Spa)
         String sessionDate,
-        String sessionSlotLabel
+        String sessionSlotLabel,
+        /** Id khung giờ (time_slots) khách chọn → tăng current_bookings, kiểm soát bằng version. */
+        Long timeSlotId,
+
+        /** Id các dịch vụ add-on (isAddon=true) khách chọn kèm theo. */
+        List<Long> addonServiceIds
 ) {
+    public List<Long> addonServiceIds() {
+        return addonServiceIds != null ? addonServiceIds : List.of();
+    }
 }
 

@@ -123,22 +123,25 @@ export const StaffRealtimePage = () => {
                     { label: 'Trạng thái realtime' },
                 ]}
             />
-            <Box sx={{ px: '40px', display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ px: '40px', pb: 3, mt: 3 }}>
                 {isLoading ? (
-                    <span>Đang tải...</span>
+                    <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>Đang tải...</Box>
+                ) : profiles.length === 0 ? (
+                    <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>Chưa có dữ liệu.</Box>
                 ) : (
-                    (profiles as IStaffProfile[]).map((p) => (
-                        <StaffStatusCard
-                            key={p.staffId}
-                            staffId={p.staffId}
-                            fullName={p.fullName}
-                            avatarUrl={p.avatarUrl}
-                            onOpenBusyDialog={handleOpenBusyDialog}
-                            onOpenProfileDetail={handleOpenProfileDetail}
-                        />
-                    ))
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                        {(profiles as IStaffProfile[]).map((p) => (
+                            <StaffStatusCard
+                                key={p.staffId}
+                                staffId={p.staffId}
+                                fullName={p.fullName}
+                                avatarUrl={p.avatarUrl}
+                                onOpenBusyDialog={handleOpenBusyDialog}
+                                onOpenProfileDetail={handleOpenProfileDetail}
+                            />
+                        ))}
+                    </Box>
                 )}
-                {!isLoading && profiles.length === 0 && <span>Chưa có nhân viên</span>}
             </Box>
 
             <Dialog open={!!busyDialog} onClose={() => setBusyDialog(null)} maxWidth="xs" fullWidth>

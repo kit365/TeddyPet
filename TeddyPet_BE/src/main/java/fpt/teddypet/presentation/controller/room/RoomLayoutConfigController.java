@@ -26,8 +26,11 @@ public class RoomLayoutConfigController {
 
     @GetMapping
     @Operation(summary = "List all layout configs")
-    public ResponseEntity<ApiResponse<List<RoomLayoutConfigResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.success(layoutConfigService.getAll()));
+    public ResponseEntity<ApiResponse<List<RoomLayoutConfigResponse>>> getAll(
+            @RequestParam(required = false) Long serviceId,
+            @RequestParam(required = false) String status
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(layoutConfigService.getAll(serviceId, status)));
     }
 
     @GetMapping("/{id}")

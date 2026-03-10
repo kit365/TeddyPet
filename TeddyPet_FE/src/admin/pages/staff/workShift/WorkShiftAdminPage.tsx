@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Stack, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -22,11 +22,56 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
 
 const STATUS_LABELS: Record<string, string> = { OPEN: 'Trống', ASSIGNED: 'Đã khóa', COMPLETED: 'Hoàn thành', CANCELLED: 'Hủy' };
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const ROW_LABELS = ['Sáng', 'Chiều'];
+
+function getInitials(name: string): string {
+    const parts = (name ?? '').trim().split(/\s+/);
+    if (!parts.length) return 'NV';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function getStatusUI(status: string): { label: string; dotClass: string } {
+    switch (status) {
+        case 'OPEN':
+            return { label: STATUS_LABELS.OPEN, dotClass: 'bg-orange-400' };
+        case 'ASSIGNED':
+            return { label: STATUS_LABELS.ASSIGNED, dotClass: 'bg-blue-500' };
+        case 'COMPLETED':
+            return { label: STATUS_LABELS.COMPLETED, dotClass: 'bg-emerald-500' };
+        case 'CANCELLED':
+            return { label: STATUS_LABELS.CANCELLED, dotClass: 'bg-rose-500' };
+        default:
+            return { label: STATUS_LABELS[status] ?? status, dotClass: 'bg-slate-400' };
+    }
+}
+
+function getShiftCardTone(status: string): { border: string; bg: string; pillBg: string; pillText: string; dot: string } {
+    // Enterprise-y, muted tones
+    switch (status) {
+        case 'OPEN':
+            return { border: 'border-l-rose-400', bg: 'bg-rose-50/40', pillBg: 'bg-rose-100/60', pillText: 'text-rose-700', dot: 'bg-rose-500' };
+        case 'ASSIGNED':
+            return { border: 'border-l-blue-400', bg: 'bg-blue-50/40', pillBg: 'bg-blue-100/60', pillText: 'text-blue-700', dot: 'bg-blue-500' };
+        case 'COMPLETED':
+            return { border: 'border-l-emerald-400', bg: 'bg-emerald-50/40', pillBg: 'bg-emerald-100/60', pillText: 'text-emerald-700', dot: 'bg-emerald-500' };
+        case 'CANCELLED':
+            return { border: 'border-l-slate-300', bg: 'bg-slate-50', pillBg: 'bg-slate-100', pillText: 'text-slate-700', dot: 'bg-slate-400' };
+        default:
+            return { border: 'border-l-slate-300', bg: 'bg-white', pillBg: 'bg-slate-100', pillText: 'text-slate-700', dot: 'bg-slate-400' };
+    }
+}
+
+function makeCellKeyFromStartTime(startTime: string): string {
+    const dateKey = dayjs(startTime).format('YYYY-MM-DD');
+    const slotIndex = getSlotIndex(startTime);
+    return `${dateKey}-${slotIndex}`;
+}
 
 /** Định mức mặc định: nếu tên chức vụ chứa từ khóa thì dùng số slot tương ứng (ca chưa có config; admin có thể sửa và lưu) */
 const DEFAULT_QUOTA_MATCHES: { key: string; slots: number }[] = [
@@ -116,6 +161,7 @@ export const WorkShiftAdminPage = () => {
     const [roleConfigSlots, setRoleConfigSlots] = useState<Record<number, number>>({});
     /** Chế độ chỉnh sửa định mức: false = read-only, true = cho phép sửa và hiện "Lưu định mức" */
     const [isEditingQuota, setIsEditingQuota] = useState(false);
+    const [recentlyDeletedCells, setRecentlyDeletedCells] = useState<string[]>([]);
 
     const queryClient = useQueryClient();
     const { data: shifts = [], isLoading } = useShiftsForAdmin(from, to);
@@ -372,12 +418,18 @@ export const WorkShiftAdminPage = () => {
     };
 
     const handleCancelShift = (shiftId: number) => {
+        const targetShift = (shifts as IWorkShift[]).find((s: IWorkShift) => s.shiftId === shiftId);
+        const cellKey = targetShift ? makeCellKeyFromStartTime(targetShift.startTime) : null;
+
         cancelShift(shiftId, {
             onSuccess: (res: any) => {
                 if (res?.success !== false) {
                     toast.success(res?.message ?? 'Đã hủy ca trống');
                     setDeleteConfirmShiftId(null);
                     queryClient.invalidateQueries({ queryKey: ['admin-shifts', from, to] });
+                    if (cellKey) {
+                        setRecentlyDeletedCells((prev) => (prev.includes(cellKey) ? prev : [...prev, cellKey]));
+                    }
                 } else toast.error(res?.message ?? 'Có lỗi');
             },
             onError: (err: any) => {
@@ -422,109 +474,309 @@ export const WorkShiftAdminPage = () => {
                     { label: 'Ca làm việc' },
                 ]}
             />
-            <Box sx={{ px: '40px', mb: 2 }}>
-                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                    <DateTimePicker label="Từ" value={from ? dayjs(from) : null} onChange={(d) => setFrom(d?.toISOString() ?? '')} slotProps={{ textField: { size: 'small' } }} />
-                    <DateTimePicker label="Đến" value={to ? dayjs(to) : null} onChange={(d) => setTo(d?.toISOString() ?? '')} slotProps={{ textField: { size: 'small' } }} />
+            <div className="px-[40px] mt-3 mb-6">
+                {/* Top Bar */}
+                <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="min-w-[240px]">
+                            <DateTimePicker
+                                label="Từ"
+                                value={from ? dayjs(from) : null}
+                                onChange={(d) => setFrom(d?.toISOString() ?? '')}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        className: 'w-full',
+                                    } as any,
+                                }}
+                            />
+                        </div>
+                        <div className="min-w-[240px]">
+                            <DateTimePicker
+                                label="Đến"
+                                value={to ? dayjs(to) : null}
+                                onChange={(d) => setTo(d?.toISOString() ?? '')}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        className: 'w-full',
+                                    } as any,
+                                }}
+                            />
+                        </div>
+                    </div>
+
                     {isAdminRole && (
-                        <>
-                            <Button variant="contained" color="primary" onClick={handleAutoGenerate} disabled={creatingBatch}>
-                                Tạo ca tự động (tuần chuẩn)
-                            </Button>
-                            <Button variant="outlined" onClick={() => setShowCreate(true)}>Tạo ca trống (thủ công)</Button>
-                            <Button variant="outlined" color="error" onClick={() => setDeleteAllConfirmOpen(true)}>Xóa tất cả ca</Button>
-                        </>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={handleAutoGenerate}
+                                disabled={creatingBatch}
+                                className="h-10 inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-blue-600 hover:bg-slate-100 disabled:opacity-60 disabled:pointer-events-none"
+                            >
+                                Tạo ca tự động
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreate(true)}
+                                className="h-10 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                            >
+                                Tạo ca trống
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteAllConfirmOpen(true)}
+                                className="h-10 inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50"
+                            >
+                                Xóa tất cả ca
+                            </button>
+                        </div>
                     )}
-                </Stack>
-                {isAdminRole && (
-                    <Box sx={{ mt: 1, color: 'text.secondary', fontSize: '0.8rem' }}>
-                        Tuần chuẩn: cả tuần (T2–CN), sáng 8h–12h, chiều 13h–17h. Sau khi tạo có thể <strong>Sửa</strong> hoặc <strong>Xóa</strong> từng ca cho ngày đặc biệt (vd: Tết đóng cửa sớm/trễ).
-                    </Box>
-                )}
+                </div>
 
                 {isAdminRole && showCreate && (
-                    <Box sx={{ mt: 2, p: 2, border: '1px solid #919eab33', borderRadius: 2, maxWidth: 400 }}>
-                        <Box sx={{ mb: 1, color: 'text.secondary', fontSize: '0.875rem' }}>Chỉ tạo ca trống cho tuần tiếp theo</Box>
-                        <DateTimePicker label="Giờ bắt đầu" value={createStart ? dayjs(createStart) : null} onChange={(d) => setCreateStart(d?.toISOString() ?? '')} minDateTime={dayjs(nextWeek.start)} maxDateTime={dayjs(nextWeek.end)} slotProps={{ textField: { fullWidth: true } }} />
-                        <Box sx={{ mt: 2 }}>
-                            <DateTimePicker label="Giờ kết thúc" value={createEnd ? dayjs(createEnd) : null} onChange={(d) => setCreateEnd(d?.toISOString() ?? '')} minDateTime={dayjs(nextWeek.start)} maxDateTime={dayjs(nextWeek.end)} slotProps={{ textField: { fullWidth: true } }} />
-                        </Box>
-                        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                            <Button variant="contained" onClick={handleCreate} disabled={creating}>Tạo</Button>
-                            <Button variant="outlined" onClick={() => setShowCreate(false)}>Hủy</Button>
-                        </Stack>
-                    </Box>
+                    <div className="mt-4 max-w-[560px] rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="mb-3">
+                            <div className="text-base font-semibold text-slate-900">Tạo ca trống (thủ công)</div>
+                            <div className="text-sm text-slate-500">Chỉ tạo ca trống cho tuần tiếp theo</div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            <DateTimePicker
+                                label="Giờ bắt đầu"
+                                value={createStart ? dayjs(createStart) : null}
+                                onChange={(d) => setCreateStart(d?.toISOString() ?? '')}
+                                minDateTime={dayjs(nextWeek.start)}
+                                maxDateTime={dayjs(nextWeek.end)}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        className: 'w-full',
+                                    } as any,
+                                }}
+                            />
+                            <DateTimePicker
+                                label="Giờ kết thúc"
+                                value={createEnd ? dayjs(createEnd) : null}
+                                onChange={(d) => setCreateEnd(d?.toISOString() ?? '')}
+                                minDateTime={dayjs(nextWeek.start)}
+                                maxDateTime={dayjs(nextWeek.end)}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        className: 'w-full',
+                                    } as any,
+                                }}
+                            />
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleCreate}
+                                disabled={creating}
+                                className="h-10 inline-flex items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 disabled:pointer-events-none"
+                            >
+                                Tạo ca
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreate(false)}
+                                className="h-10 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
                 )}
-            </Box>
+            </div>
 
             {/* Thời khóa biểu ca làm */}
-            <Box sx={{ px: '40px', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Ca làm trong tuần</Typography>
-                <TableContainer
-                    sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        maxWidth: 1200,
-                    }}
-                >
-                    <Table sx={{ tableLayout: 'fixed', minWidth: 700 }}>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                                <TableCell sx={{ width: 160, py: 2, fontWeight: 700, fontSize: '1.0625rem', borderColor: 'rgba(255,255,255,0.2)' }}>
-                                    Buổi / Ngày
-                                </TableCell>
-                                {DAY_LABELS.map((label, i) => (
-                                    <TableCell key={i} align="center" sx={{ py: 2, fontWeight: 700, fontSize: '1.0625rem', borderColor: 'rgba(255,255,255,0.2)' }}>
-                                        {label}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {ROW_LABELS.map((rowLabel, slotIndex) => (
-                                <TableRow key={slotIndex} sx={{ bgcolor: slotIndex === 0 ? 'background.paper' : 'grey.50' }}>
-                                    <TableCell sx={{ width: 160, py: 2, fontWeight: 600, fontSize: '1rem', color: 'text.secondary' }}>
-                                        {rowLabel}
-                                    </TableCell>
-                                    {DAY_LABELS.map((_, dayIndex) => {
-                                        const shift = timetableGrid[slotIndex]?.[dayIndex];
-                                        return (
-                                            <TableCell key={dayIndex} align="center" sx={{ py: 2, minWidth: 130 }}>
-                                                {isLoading ? (
-                                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Đang tải...</Typography>
-                                                ) : shift ? (
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                                        <Typography sx={{ fontWeight: 500, fontSize: '1rem' }}>
-                                                            {formatTimeRange(shift.startTime, shift.endTime)}
-                                                        </Typography>
-                                                        <Typography sx={{ fontSize: '0.9375rem' }} color="text.secondary">
-                                                            {STATUS_LABELS[shift.status] ?? shift.status}
-                                                        </Typography>
-                                                        <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap>
-                                                            {shift.status === 'OPEN' && (
-                                                                <>
-                                                                    <Button size="small" variant="outlined" sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => openEditDialog(shift)}>Sửa</Button>
-                                                                    <Button size="small" color="error" variant="outlined" sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => setDeleteConfirmShiftId(shift.shiftId)}>Xóa</Button>
-                                                                </>
-                                                            )}
-                                                            <Button size="small" variant="contained" disableElevation sx={{ px: 1.5, fontSize: '0.9375rem' }} onClick={() => setSelectedShiftId(shift.shiftId)}>Xem đăng ký</Button>
-                                                        </Stack>
-                                                    </Box>
-                                                ) : (
-                                                    <Typography sx={{ fontSize: '1rem' }} color="text.disabled">—</Typography>
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
+            <div className="px-[40px] mb-6">
+                <div className="mb-2">
+                    <div className="text-lg font-bold text-slate-900">Ca làm trong tuần</div>
+                </div>
+
+                <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-gray-50/60 border-b border-gray-100">
+                        <div className="grid grid-cols-[96px_repeat(7,minmax(0,1fr))]">
+                            <div className="flex items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-4 py-4 border-r border-gray-100">
+                                Buổi
+                            </div>
+                            {DAY_LABELS.map((label) => (
+                                <div
+                                    key={label}
+                                    className="flex items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 py-4 border-r last:border-r-0 border-gray-100 text-center"
+                                >
+                                    {label}
+                                </div>
                             ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
+                        </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="divide-y divide-gray-100">
+                        {ROW_LABELS.map((rowLabel, slotIndex) => (
+                            <div
+                                key={rowLabel}
+                                className="grid grid-cols-[96px_repeat(7,minmax(0,1fr))]"
+                            >
+                                {/* Row header: Sáng / Chiều */}
+                                <div className="flex items-center justify-center w-24 px-4 py-6 text-sm font-semibold text-gray-700 bg-gray-50/40 border-r border-gray-100">
+                                    {rowLabel}
+                                </div>
+
+                                {/* Cells for each day */}
+                                {DAY_LABELS.map((_, dayIndex) => {
+                                    const weekStart = dayjs(from).startOf('day');
+                                    const cellDate = weekStart.add(dayIndex, 'day').format('YYYY-MM-DD');
+                                    const cellKey = `${cellDate}-${slotIndex}`;
+                                    const shift = timetableGrid[slotIndex]?.[dayIndex];
+
+                                    if (isLoading) {
+                                        return (
+                                            <div
+                                                key={dayIndex}
+                                                className="h-[130px] border-r border-gray-100 flex items-center justify-center text-xs text-gray-400"
+                                            >
+                                                Đang tải...
+                                            </div>
+                                        );
+                                    }
+
+                                    // Không có ca trong ô này → placeholder rất nhẹ
+                                    if (!shift) {
+                                        const tz = '+07:00';
+                                        const startTimeDefault =
+                                            slotIndex === 0
+                                                ? `${cellDate}T08:00:00${tz}`
+                                                : `${cellDate}T13:00:00${tz}`;
+                                        const endTimeDefault =
+                                            slotIndex === 0
+                                                ? `${cellDate}T12:00:00${tz}`
+                                                : `${cellDate}T17:00:00${tz}`;
+
+                                        const isRecentlyDeleted = recentlyDeletedCells.includes(cellKey);
+
+                                        return (
+                                            <button
+                                                key={dayIndex}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!isRecentlyDeleted) return;
+                                                    createShift(
+                                                        { startTime: startTimeDefault, endTime: endTimeDefault },
+                                                        {
+                                                            onSuccess: (res: any) => {
+                                                                if (res?.success) {
+                                                                    toast.success(res?.message ?? 'Đã tạo lại ca mặc định');
+                                                                    setRecentlyDeletedCells((prev) =>
+                                                                        prev.filter((k) => k !== cellKey)
+                                                                    );
+                                                                    queryClient.invalidateQueries({
+                                                                        queryKey: ['admin-shifts', from, to],
+                                                                    });
+                                                                } else toast.error(res?.message ?? 'Có lỗi');
+                                                            },
+                                                            onError: (err: any) => {
+                                                                toast.error(
+                                                                    getErrorMessage(err, 'Tạo lại ca mặc định thất bại')
+                                                                );
+                                                            },
+                                                        }
+                                                    );
+                                                }}
+                                                className={[
+                                                    'h-[130px] w-full border-r border-b border-gray-100 flex items-center justify-center px-2',
+                                                    'transition-colors',
+                                                    'rounded-none',
+                                                ].join(' ')}
+                                            >
+                                                <div className="h-[130px] w-full rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/60 flex items-center justify-center text-gray-400 hover:bg-gray-50">
+                                                    <span className="text-2xl font-semibold">
+                                                        +
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    }
+
+                                    const isOpen = shift.status === 'OPEN';
+                                    const statusLabel = isOpen ? 'Trống' : 'Đã khóa';
+                                    const borderClasses = isOpen
+                                        ? 'border border-red-100 border-l-4 border-l-red-500 hover:border-red-300'
+                                        : 'border border-blue-100 border-l-4 border-l-blue-500 hover:border-blue-300';
+                                    const dotClass = isOpen ? 'bg-red-500' : 'bg-blue-500';
+                                    const textClass = isOpen ? 'text-red-600' : 'text-blue-600';
+
+                                    return (
+                                        <div
+                                            key={dayIndex}
+                                            className="h-[130px] border-r border-b border-gray-100 px-2 py-3"
+                                        >
+                                            <div
+                                                className={[
+                                                    'group relative flex h-full w-full flex-col justify-between rounded-xl bg-white p-3.5 shadow-sm transition-all hover:shadow-md',
+                                                    borderClasses,
+                                                ].join(' ')}
+                                            >
+                                                {isOpen && (
+                                                    <div className="absolute top-2 right-2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEditDialog(shift)}
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm hover:bg-blue-50 hover:text-blue-600 border border-slate-200"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDeleteConfirmShiftId(shift.shiftId)}
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-400 shadow-sm hover:bg-red-50 hover:text-red-600 border border-slate-200"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {/* Top: time */}
+                                                <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                                                    <Clock3 className="h-4 w-4 text-gray-400" />
+                                                    <span className="truncate">
+                                                        {formatTimeRange(shift.startTime, shift.endTime)}
+                                                    </span>
+                                                </div>
+
+                                                {/* Middle: status */}
+                                                <div className="mt-2 flex items-center gap-1.5 text-xs font-medium">
+                                                    <span
+                                                        className={`w-1.5 h-1.5 rounded-full ${dotClass}`}
+                                                    />
+                                                    <span className={textClass}>{statusLabel}</span>
+                                                </div>
+
+                                                {/* Bottom: action link */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedShiftId(shift.shiftId)}
+                                                    className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors group cursor-pointer"
+                                                >
+                                                    <span>Xem đăng ký</span>
+                                                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
 
             <Box sx={{ px: '40px' }}>
                 {/* Dialog xem đăng ký ca – popup giữa trang */}
@@ -533,58 +785,111 @@ export const WorkShiftAdminPage = () => {
                     onClose={() => setSelectedShiftId(null)}
                     maxWidth="md"
                     fullWidth
-                    PaperProps={{ sx: { borderRadius: 2, overflow: 'hidden' } }}
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            boxShadow: '0 18px 48px rgba(15, 23, 42, 0.18)',
+                        },
+                    }}
                 >
-                    <DialogTitle sx={{ pb: 0, fontWeight: 600, fontSize: '1.25rem', position: 'relative', pr: 5 }}>
-                        <span>Đăng ký ca {selectedShiftId != null ? `#${selectedShiftId}` : ''}</span>
+                    <DialogTitle
+                        sx={{
+                            pb: 0.75,
+                            pt: 2,
+                            fontWeight: 800,
+                            fontSize: '1.1rem',
+                            position: 'relative',
+                            pr: 6,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            bgcolor: 'rgba(248,250,252,0.8)',
+                        }}
+                    >
+                        <Box>
+                            <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', letterSpacing: -0.2 }}>
+                                Chi tiết đăng ký ca {selectedShiftId != null ? `#${selectedShiftId}` : ''}
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.25 }}>
+                                Quản lý định mức theo vai trò và duyệt đăng ký nhân viên.
+                            </Typography>
+                        </Box>
                         <IconButton aria-label="Đóng" onClick={() => setSelectedShiftId(null)} sx={{ position: 'absolute', right: 8, top: 8 }} size="small">
                             <CloseIcon />
                         </IconButton>
                     </DialogTitle>
                     <DialogContent dividers sx={{ px: 2.5, py: 2 }}>
-                        {selectedShiftId && (
-                            <>
+                        {selectedShiftId && (() => {
+                            const registrationList = registrations as IWorkShiftRegistration[];
+                            const isInitialRegLoading = regLoading && registrationList.length === 0;
+                            return (
+                                <>
                                 {/* Section: Định mức theo vai trò */}
-                                <Typography sx={{ fontWeight: 600, mb: 1.5, fontSize: '1.0625rem' }}>
+                                <Typography sx={{ fontWeight: 700, mb: 1.5, fontSize: '1.2rem' }}>
                                     Định mức theo vai trò
                                 </Typography>
                                 <Box sx={{ mb: 2.5 }}>
                                     {positions.length === 0 ? (
-                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Chưa có chức vụ.</Typography>
+                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                            Chưa có chức vụ.
+                                        </Typography>
                                     ) : (
-                                        <Stack spacing={1.25}>
+                                        <Stack spacing={1}>
                                             {positions.map((p: { id: number; name: string }) => {
                                                 const maxSlots = roleConfigSlots[p.id] ?? 0;
-                                                // Hiển thị: chỉ tính Đã xếp ca + đã chọn Từ chối nghỉ. Chờ duyệt (part-time chưa duyệt) chưa cộng.
                                                 const participatingCount = displayParticipatingCountByRoleName[p.name] ?? 0;
                                                 const isFull = maxSlots > 0 && participatingCount >= maxSlots;
+                                                const badgeLabel = isFull ? 'Đủ' : `${participatingCount}/${maxSlots || 0}`;
+                                                const badgeClass = isFull
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-amber-100 text-amber-700';
                                                 return (
-                                                    <Stack key={p.id} direction="row" alignItems="center" spacing={2} sx={{ py: 0.75 }}>
-                                                        <Typography sx={{ minWidth: 220, fontSize: '1rem' }}>{p.name}</Typography>
-                                                        {isEditingQuota ? (
-                                                            <TextField
-                                                                type="number"
-                                                                size="small"
-                                                                inputProps={{ min: 0, max: 99, style: { fontSize: '1rem' } }}
-                                                                value={roleConfigSlots[p.id] ?? 0}
-                                                                onChange={(e) => {
-                                                                    const v = parseInt(e.target.value, 10);
-                                                                    setRoleConfigSlots((prev) => ({ ...prev, [p.id]: isNaN(v) ? 0 : Math.max(0, v) }));
-                                                                }}
-                                                                sx={{ width: 72, '& .MuiInputBase-input': { fontSize: '1rem' } }}
-                                                            />
-                                                        ) : (
-                                                            <Box sx={{ minWidth: 52, py: 0.75, px: 1.25, borderRadius: 1, bgcolor: isFull ? 'action.selected' : 'grey.100', fontSize: '1rem', fontWeight: 600 }}>
-                                                                {maxSlots}
-                                                            </Box>
-                                                        )}
-                                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">người</Typography>
-                                                        {maxSlots > 0 && (
-                                                            <Typography sx={{ fontSize: '1rem', color: isFull ? 'success.main' : 'text.secondary', fontWeight: isFull ? 600 : 500 }}>
-                                                                {isFull ? 'Đủ' : `${participatingCount}/${maxSlots}`}
-                                                            </Typography>
-                                                        )}
-                                                    </Stack>
+                                                    <div
+                                                        key={p.id}
+                                                        className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm"
+                                                    >
+                                                        <div className="flex flex-col">
+                                                            <span className="text-lg font-semibold text-slate-900">{p.name}</span>
+                                                            <span className="text-base text-slate-500">
+                                                                Định mức tối đa:&nbsp;
+                                                                <span className="font-semibold text-slate-800">
+                                                                    {maxSlots} người
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            {isEditingQuota ? (
+                                                                <TextField
+                                                                    type="number"
+                                                                    size="small"
+                                                                    inputProps={{ min: 0, max: 99, style: { fontSize: '0.9rem' } }}
+                                                                    value={roleConfigSlots[p.id] ?? 0}
+                                                                    onChange={(e) => {
+                                                                        const v = parseInt(e.target.value, 10);
+                                                                        setRoleConfigSlots((prev) => ({
+                                                                            ...prev,
+                                                                            [p.id]: isNaN(v) ? 0 : Math.max(0, v),
+                                                                        }));
+                                                                    }}
+                                                                    sx={{ width: 72, '& .MuiInputBase-input': { fontSize: '0.9rem' } }}
+                                                                />
+                                                            ) : (
+                                                                <div className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+                                                                    {maxSlots} người
+                                                                </div>
+                                                            )}
+
+                                                            {maxSlots > 0 && (
+                                                                <span
+                                                                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${badgeClass}`}
+                                                                >
+                                                                    {badgeLabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 );
                                             })}
                                         </Stack>
@@ -592,21 +897,76 @@ export const WorkShiftAdminPage = () => {
                                     <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" sx={{ mt: 2 }} useFlexGap>
                                         {isEditingQuota ? (
                                             <>
-                                                <Button size="medium" variant="contained" onClick={handleSaveRoleConfigs} disabled={savingRoleConfigs || positions.length === 0} sx={{ fontSize: '0.9375rem' }}>Lưu định mức</Button>
-                                                <Button size="medium" variant="outlined" onClick={() => setIsEditingQuota(false)} sx={{ fontSize: '0.9375rem' }}>Hủy</Button>
+                                                <Button
+                                                    size="medium"
+                                                    variant="contained"
+                                                    onClick={handleSaveRoleConfigs}
+                                                    disabled={savingRoleConfigs || positions.length === 0}
+                                                    sx={{ fontSize: '0.9rem', borderRadius: 1.5, textTransform: 'none' }}
+                                                >
+                                                    Lưu định mức
+                                                </Button>
+                                                <Button
+                                                    size="medium"
+                                                    variant="outlined"
+                                                    onClick={() => setIsEditingQuota(false)}
+                                                    sx={{
+                                                        fontSize: '0.9rem',
+                                                        borderRadius: 1.5,
+                                                        textTransform: 'none',
+                                                        borderColor: 'rgba(148,163,184,0.6)',
+                                                        color: 'text.primary',
+                                                    }}
+                                                >
+                                                    Hủy
+                                                </Button>
                                             </>
                                         ) : (
-                                            <Button size="medium" variant="outlined" onClick={() => setIsEditingQuota(true)} disabled={positions.length === 0 || selectedShiftStatus === 'ASSIGNED'} sx={{ fontSize: '0.9375rem' }}>Sửa định mức</Button>
+                                            <Button
+                                                size="medium"
+                                                variant="outlined"
+                                                onClick={() => setIsEditingQuota(true)}
+                                                disabled={positions.length === 0 || selectedShiftStatus === 'ASSIGNED'}
+                                                sx={{
+                                                    fontSize: '0.9rem',
+                                                    borderRadius: 1.5,
+                                                    textTransform: 'none',
+                                                    borderColor: 'rgba(148,163,184,0.6)',
+                                                    color: 'text.primary',
+                                                    bgcolor: 'white',
+                                                    '&:hover': { bgcolor: 'rgba(248,250,252,1)' },
+                                                }}
+                                            >
+                                                Sửa định mức
+                                            </Button>
                                         )}
                                         {selectedShiftStatus === 'OPEN' && (
                                             <Tooltip title={!canFinalizeShift ? 'Số lượng người trong ca chưa đủ.' : ''}>
                                                 <span>
                                                     <Button
                                                         size="medium"
-                                                        variant="contained"
-                                                        color="primary"
+                                                    variant="contained"
+                                                    color="inherit"
                                                         disabled={finalizing || !canFinalizeShift}
-                                                        sx={{ fontSize: '0.9375rem' }}
+                                                        sx={{
+                                                        fontSize: '0.9rem',
+                                                        borderRadius: 999,
+                                                        textTransform: 'none',
+                                                        px: 2.75,
+                                                        py: 0.9,
+                                                        bgcolor: 'rgba(79,70,229,1)', // indigo-600
+                                                        color: '#ffffff',
+                                                        boxShadow: '0 10px 25px rgba(15,23,42,0.20)',
+                                                        '&:hover': {
+                                                            bgcolor: 'rgba(67,56,202,1)', // indigo-700
+                                                            boxShadow: '0 14px 30px rgba(15,23,42,0.25)',
+                                                        },
+                                                        '&.Mui-disabled': {
+                                                            bgcolor: 'rgba(229,231,235,1)', // gray-200
+                                                            color: 'rgba(148,163,184,1)', // slate-400
+                                                            boxShadow: 'none',
+                                                        },
+                                                        }}
                                                         onClick={() => {
                                                             if (!selectedShiftId) return;
                                                             if (!canFinalizeShift) {
@@ -629,119 +989,197 @@ export const WorkShiftAdminPage = () => {
                                         )}
                                     </Stack>
                                     {selectedShiftStatus === 'OPEN' && !canFinalizeShift && (
-                                        <Typography sx={{ display: 'block', mt: 1, color: 'error.main', fontSize: '0.9375rem', fontWeight: 500 }}>
-                                            Số lượng người trong ca chưa đủ. Thêm người hoặc sửa định mức.
-                                        </Typography>
+                                        <Box className="mt-2 flex items-center gap-2 rounded-md border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                            <span className="leading-snug">
+                                                Số lượng người trong ca chưa đủ. Thêm người hoặc điều chỉnh lại định mức trước khi khóa ca.
+                                            </span>
+                                        </Box>
                                     )}
                                 </Box>
 
                                 <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2, mt: 1 }} />
 
                                 {/* Section: Danh sách nhân viên */}
-                                <Typography sx={{ fontWeight: 600, mb: 1.5, fontSize: '1.0625rem' }}>
+                                <Typography sx={{ fontWeight: 800, mb: 1.5, fontSize: '1.2rem' }}>
                                     Nhân viên trong ca
                                 </Typography>
-                                {regLoading ? (
-                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Đang tải...</Typography>
-                                ) : (registrations as IWorkShiftRegistration[]).length === 0 ? (
-                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">Chưa có đăng ký.</Typography>
+                                {isInitialRegLoading ? (
+                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                        Đang tải...
+                                    </Typography>
+                                ) : registrationList.length === 0 ? (
+                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                        Chưa có đăng ký.
+                                    </Typography>
                                 ) : (
-                                    <Stack spacing={1.25}>
-                                        {(registrations as IWorkShiftRegistration[]).map((r) => {
-                                            const statusLabel = r.status === 'PENDING' ? 'Chờ duyệt' : r.status === 'APPROVED' ? 'Đã xếp ca' : r.status === 'PENDING_LEAVE'
-                                                ? (r.leaveDecision === 'APPROVED_LEAVE' ? 'Sẽ nghỉ' : r.leaveDecision === 'REJECTED_LEAVE' ? 'Sẽ làm' : 'Xin nghỉ chờ duyệt')
-                                                : r.status === 'ON_LEAVE' ? 'Đã nghỉ' : 'Từ chối';
-                                            const statusColor = r.status === 'APPROVED' ? 'success.main' : r.status === 'ON_LEAVE' ? 'warning.main' : r.status === 'PENDING_LEAVE' ? 'info.main' : r.status === 'REJECTED' ? 'error.main' : 'text.secondary';
+                                    <Stack spacing={1.5}>
+                                        {registrationList.map((r) => {
+                                            const statusLabel =
+                                                r.status === 'PENDING'
+                                                    ? 'Chờ duyệt'
+                                                    : r.status === 'APPROVED'
+                                                        ? 'Đã xếp ca'
+                                                        : r.status === 'PENDING_LEAVE'
+                                                            ? r.leaveDecision === 'APPROVED_LEAVE'
+                                                                ? 'Sẽ nghỉ'
+                                                                : r.leaveDecision === 'REJECTED_LEAVE'
+                                                                    ? 'Sẽ làm'
+                                                                    : 'Xin nghỉ chờ duyệt'
+                                                            : r.status === 'ON_LEAVE'
+                                                                ? 'Đã nghỉ'
+                                                                : 'Từ chối';
+
+                                            const statusBadgeClass =
+                                                r.status === 'APPROVED'
+                                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                    : r.status === 'PENDING'
+                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                        : r.status === 'PENDING_LEAVE'
+                                                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                            : r.status === 'ON_LEAVE'
+                                                                ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                                                                : 'bg-rose-100 text-rose-700 border border-rose-200';
+
+                                            const initials = getInitials(r.staffFullName);
+
                                             return (
-                                                <Box
+                                                <div
                                                     key={r.registrationId}
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        gap: 2,
-                                                        p: 1.5,
-                                                        borderRadius: 1.5,
-                                                        bgcolor: 'grey.50',
-                                                        border: '1px solid',
-                                                        borderColor: 'divider',
-                                                    }}
+                                                    className="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
                                                 >
-                                                    <Box sx={{ minWidth: 0 }}>
-                                                        <Typography sx={{ fontWeight: 600, fontSize: '1.0625rem' }}>{r.staffFullName}</Typography>
-                                                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" sx={{ mt: 0.25 }}>
-                                                            <Typography sx={{ fontSize: '0.9375rem' }} color="primary.main">
-                                                                {r.workType === 'FULL_TIME' ? 'Full-time' : 'Part-time'}
-                                                            </Typography>
-                                                            {r.roleAtRegistrationName && (
-                                                                <Typography sx={{ fontSize: '0.9375rem' }} color="text.secondary">· {r.roleAtRegistrationName}</Typography>
-                                                            )}
-                                                            <Typography sx={{ fontSize: '0.9375rem', color: statusColor, fontWeight: 500 }}>{statusLabel}</Typography>
-                                                        </Stack>
-                                                    </Box>
-                                                    <Stack direction="row" spacing={1} flexShrink={0}>
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-base font-bold text-blue-600">
+                                                            {initials}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="text-lg font-semibold text-slate-900 truncate">
+                                                                {r.staffFullName}
+                                                            </div>
+                                                            <div className="mt-1 flex flex-wrap items-center gap-2 text-base">
+                                                                <span
+                                                                    className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium border ${
+                                                                        r.workType === 'FULL_TIME'
+                                                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                                            : 'bg-purple-50 text-purple-700 border-purple-200'
+                                                                    }`}
+                                                                >
+                                                                    {r.workType === 'FULL_TIME' ? 'Full-time' : 'Part-time'}
+                                                                </span>
+                                                                {r.roleAtRegistrationName && (
+                                                                    <span className="text-base text-slate-500">
+                                                                        {r.roleAtRegistrationName}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium ${statusBadgeClass}`}
+                                                        >
+                                                            {statusLabel}
+                                                        </span>
+
                                                         {r.status === 'PENDING' && selectedShiftStatus === 'OPEN' && (
                                                             <Tooltip title={!canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
                                                                 <span>
-                                                                    <Button size="medium" variant="contained" onClick={() => handleApprove(r.registrationId)} disabled={!canApproveRegistration(r)} sx={{ fontSize: '0.9375rem' }}>Duyệt</Button>
+                                                                    <Button
+                                                                        size="small"
+                                                                        variant="contained"
+                                                                        onClick={() => handleApprove(r.registrationId)}
+                                                                        disabled={!canApproveRegistration(r)}
+                                                                        sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 2 }}
+                                                                    >
+                                                                        Duyệt
+                                                                    </Button>
                                                                 </span>
                                                             </Tooltip>
                                                         )}
                                                         {r.status === 'PENDING_LEAVE' && selectedShiftStatus === 'OPEN' && (
                                                             <>
                                                                 <Button
-                                                                    size="medium"
+                                                                    size="small"
                                                                     variant={r.leaveDecision === 'APPROVED_LEAVE' ? 'contained' : 'outlined'}
-                                                                    color="primary"
+                                                                    color="success"
                                                                     disabled={settingOnLeave || rejectingLeave}
-                                                                    sx={{ fontSize: '0.9375rem' }}
+                                                                    sx={{
+                                                                        fontSize: '0.9rem',
+                                                                        textTransform: 'none',
+                                                                        borderRadius: 2,
+                                                                        px: 2,
+                                                                    }}
                                                                     onClick={() => {
                                                                         if (!selectedShiftId) return;
                                                                         const regId = r.registrationId;
-                                                                        setOnLeave({ shiftId: selectedShiftId, registrationId: regId }, {
-                                                                            onSuccess: (res: any) => {
-                                                                                if (res?.success !== false) {
-                                                                                    toast.success('Đã ghi nhận.');
-                                                                                    // Cập nhật cache ngay để nút Duyệt part-time bật (leaveDecision = APPROVED_LEAVE → suất trống).
-                                                                                    queryClient.setQueryData(
-                                                                                        ['work-shift-registrations', selectedShiftId],
-                                                                                        (prev: IWorkShiftRegistration[] | undefined) => {
-                                                                                            const list = Array.isArray(prev) ? prev : [];
-                                                                                            return list.map((reg) =>
-                                                                                                reg.registrationId === regId
-                                                                                                    ? { ...reg, leaveDecision: 'APPROVED_LEAVE' as const }
-                                                                                                    : reg
-                                                                                            );
-                                                                                        }
-                                                                                    );
-                                                                                    queryClient.invalidateQueries({ queryKey: ['work-shift-registrations', selectedShiftId] });
-                                                                                } else toast.error(res?.message ?? 'Có lỗi');
-                                                                            },
-                                                                            onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Lỗi'),
-                                                                        });
+                                                                        setOnLeave(
+                                                                            { shiftId: selectedShiftId, registrationId: regId },
+                                                                            {
+                                                                                onSuccess: (res: any) => {
+                                                                                    if (res?.success !== false) {
+                                                                                        toast.success('Đã ghi nhận.');
+                                                                                        queryClient.setQueryData(
+                                                                                            ['work-shift-registrations', selectedShiftId],
+                                                                                            (prev: IWorkShiftRegistration[] | undefined) => {
+                                                                                                const list = Array.isArray(prev) ? prev : [];
+                                                                                                return list.map((reg) =>
+                                                                                                    reg.registrationId === regId
+                                                                                                        ? { ...reg, leaveDecision: 'APPROVED_LEAVE' as const }
+                                                                                                        : reg
+                                                                                                );
+                                                                                            }
+                                                                                        );
+                                                                                    } else toast.error(res?.message ?? 'Có lỗi');
+                                                                                },
+                                                                                onError: (err: any) =>
+                                                                                    toast.error(
+                                                                                        err?.response?.data?.message ?? err?.message ?? 'Lỗi'
+                                                                                    ),
+                                                                            }
+                                                                        );
                                                                     }}
-                                                                >Duyệt nghỉ</Button>
+                                                                >
+                                                                    Duyệt nghỉ
+                                                                </Button>
                                                                 <Button
-                                                                    size="medium"
+                                                                    size="small"
                                                                     variant={r.leaveDecision === 'REJECTED_LEAVE' ? 'contained' : 'outlined'}
-                                                                    color={r.leaveDecision === 'REJECTED_LEAVE' ? 'secondary' : 'inherit'}
+                                                                    color="error"
                                                                     disabled={settingOnLeave || rejectingLeave}
-                                                                    sx={{ fontSize: '0.9375rem' }}
+                                                                    sx={{
+                                                                        fontSize: '0.9rem',
+                                                                        textTransform: 'none',
+                                                                        borderRadius: 2,
+                                                                        px: 1.75,
+                                                                    }}
                                                                     onClick={() => {
                                                                         if (!selectedShiftId) return;
-                                                                        rejectLeave({ shiftId: selectedShiftId, registrationId: r.registrationId }, {
-                                                                            onSuccess: (res: any) => {
-                                                                                if (res?.success) { toast.success('Đã ghi nhận.'); queryClient.invalidateQueries({ queryKey: ['work-shift-registrations', selectedShiftId] }); }
-                                                                                else toast.error(res?.message ?? 'Có lỗi');
-                                                                            },
-                                                                            onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Lỗi'),
-                                                                        });
+                                                                        rejectLeave(
+                                                                            { shiftId: selectedShiftId, registrationId: r.registrationId },
+                                                                            {
+                                                                                onSuccess: (res: any) => {
+                                                                                    if (res?.success) {
+                                                                                        toast.success('Đã ghi nhận.');
+                                                                                        queryClient.invalidateQueries({
+                                                                                            queryKey: ['work-shift-registrations', selectedShiftId],
+                                                                                        });
+                                                                                    } else toast.error(res?.message ?? 'Có lỗi');
+                                                                                },
+                                                                                onError: (err: any) =>
+                                                                                    toast.error(
+                                                                                        err?.response?.data?.message ?? err?.message ?? 'Lỗi'
+                                                                                    ),
+                                                                            }
+                                                                        );
                                                                     }}
-                                                                >Từ chối</Button>
+                                                                >
+                                                                    Từ chối
+                                                                </Button>
                                                             </>
                                                         )}
-                                                    </Stack>
-                                                </Box>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
                                         {positions.map((p: { id: number; name: string }) => {
@@ -750,47 +1188,222 @@ export const WorkShiftAdminPage = () => {
                                             const remaining = Math.max(0, maxSlots - occupied);
                                             if (remaining === 0) return null;
                                             return (
-                                                <Box key={`empty-${p.id}`} sx={{ py: 1.25, px: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px dashed', borderColor: 'divider' }}>
-                                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                                <div
+                                                    key={`empty-${p.id}`}
+                                                    className="flex items-center gap-3 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-base font-medium text-slate-500 justify-center"
+                                                >
+                                                    <UserPlus className="h-4 w-4 text-slate-400" />
+                                                    <span>
                                                         [Trống] {remaining} suất {p.name} — Part-time có thể đăng ký bù.
-                                                    </Typography>
-                                                </Box>
+                                                    </span>
+                                                </div>
                                             );
                                         })}
                                     </Stack>
                                 )}
                             </>
-                        )}
+                            );
+                        })()}
                     </DialogContent>
                 </Dialog>
 
                 {/* Dialog chỉnh sửa ca trống */}
-                <Dialog open={!!editShift} onClose={() => setEditShift(null)} maxWidth="sm" fullWidth>
-                    <DialogTitle>Cập nhật ca trống #{editShift?.shiftId}</DialogTitle>
-                    <DialogContent>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                            <Box sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>Chỉnh sửa giờ trong tuần tiếp theo</Box>
-                            <DateTimePicker
-                                label="Giờ bắt đầu"
-                                value={editStart ? dayjs(editStart) : null}
-                                onChange={(d) => setEditStart(d?.toISOString() ?? '')}
-                                minDateTime={dayjs(nextWeek.start)}
-                                maxDateTime={dayjs(nextWeek.end)}
-                                slotProps={{ textField: { fullWidth: true } }}
-                            />
-                            <DateTimePicker
-                                label="Giờ kết thúc"
-                                value={editEnd ? dayjs(editEnd) : null}
-                                onChange={(d) => setEditEnd(d?.toISOString() ?? '')}
-                                minDateTime={dayjs(nextWeek.start)}
-                                maxDateTime={dayjs(nextWeek.end)}
-                                slotProps={{ textField: { fullWidth: true } }}
-                            />
+                <Dialog
+                    open={!!editShift}
+                    onClose={() => setEditShift(null)}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 4,
+                            border: '1px solid',
+                            borderColor: 'grey.100',
+                            boxShadow: '0 25px 60px rgba(15,23,42,0.45)',
+                            backgroundColor: 'white',
+                            overflow: 'hidden',
+                        },
+                    }}
+                    slotProps={{
+                        backdrop: {
+                            sx: {
+                                backdropFilter: 'blur(6px)',
+                                backgroundColor: 'rgba(15,23,42,0.4)',
+                            },
+                        },
+                    }}
+                >
+                    <DialogTitle sx={{ p: 0, borderBottom: 'none' }}>
+                        <Box className="flex items-start gap-4 px-6 pt-6 pb-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                <CalendarClock className="h-6 w-6" />
+                            </div>
+                            <div className="flex flex-col">
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Cập nhật ca trống #{editShift?.shiftId}
+                                </h2>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Chỉnh sửa giờ trong tuần tiếp theo
+                                </p>
+                            </div>
+                        </Box>
+                    </DialogTitle>
+                    <DialogContent sx={{ px: 6, pb: 2, pt: 0 }}>
+                        <Box className="flex flex-col space-y-5 pt-2">
+                            <div className="space-y-1.5">
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Giờ bắt đầu
+                                </label>
+                                <DateTimePicker
+                                    value={editStart ? dayjs(editStart) : null}
+                                    onChange={(d) => setEditStart(d?.toISOString() ?? '')}
+                                    minDateTime={dayjs(nextWeek.start)}
+                                    maxDateTime={dayjs(nextWeek.end)}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                            placeholder: 'Chọn giờ bắt đầu',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: '#f9fafb',
+                                                    borderRadius: '0.75rem',
+                                                    transition: 'all 0.2s ease',
+                                                    '& fieldset': {
+                                                        borderColor: '#e5e7eb',
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: '#bfdbfe',
+                                                    },
+                                                    '&.Mui-focused': {
+                                                        backgroundColor: '#ffffff',
+                                                        boxShadow: '0 0 0 2px rgba(37,99,235,0.15)',
+                                                        '& fieldset': {
+                                                            borderColor: '#2563eb',
+                                                        },
+                                                    },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    fontSize: '0.875rem',
+                                                    paddingTop: '10px',
+                                                    paddingBottom: '10px',
+                                                },
+                                            },
+                                        },
+                                        openPickerButton: {
+                                            sx: {
+                                                color: 'rgb(148 163 184)',
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Giờ kết thúc
+                                </label>
+                                <DateTimePicker
+                                    value={editEnd ? dayjs(editEnd) : null}
+                                    onChange={(d) => setEditEnd(d?.toISOString() ?? '')}
+                                    minDateTime={dayjs(nextWeek.start)}
+                                    maxDateTime={dayjs(nextWeek.end)}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                            placeholder: 'Chọn giờ kết thúc',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: '#f9fafb',
+                                                    borderRadius: '0.75rem',
+                                                    transition: 'all 0.2s ease',
+                                                    '& fieldset': {
+                                                        borderColor: '#e5e7eb',
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: '#bfdbfe',
+                                                    },
+                                                    '&.Mui-focused': {
+                                                        backgroundColor: '#ffffff',
+                                                        boxShadow: '0 0 0 2px rgba(37,99,235,0.15)',
+                                                        '& fieldset': {
+                                                            borderColor: '#2563eb',
+                                                        },
+                                                    },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    fontSize: '0.875rem',
+                                                    paddingTop: '10px',
+                                                    paddingBottom: '10px',
+                                                },
+                                            },
+                                        },
+                                        openPickerButton: {
+                                            sx: {
+                                                color: 'rgb(148 163 184)',
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
                         </Box>
                     </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setEditShift(null)}>Hủy</Button>
-                        <Button variant="contained" onClick={handleUpdateShift} disabled={updating}>Cập nhật</Button>
+                    <DialogActions
+                        sx={{
+                            px: 6,
+                            py: 4,
+                            mt: 1,
+                            borderTop: '1px solid',
+                            borderColor: 'rgba(243,244,246,1)',
+                        }}
+                        className="flex justify-end gap-3"
+                    >
+                        <Button
+                            onClick={() => setEditShift(null)}
+                            variant="outlined"
+                            sx={{
+                                px: 2.5,
+                                py: 0.75,
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                borderRadius: 2,
+                                borderColor: 'rgba(209,213,219,1)',
+                                color: 'rgba(75,85,99,1)',
+                                backgroundColor: 'white',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(249,250,251,1)',
+                                    borderColor: 'rgba(156,163,175,1)',
+                                    color: 'rgba(17,24,39,1)',
+                                },
+                            }}
+                        >
+                            HỦY
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={handleUpdateShift}
+                            disabled={updating}
+                            sx={{
+                                px: 2.75,
+                                py: 0.75,
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                borderRadius: 2,
+                                boxShadow: 'none',
+                                backgroundColor: 'rgba(248,250,252,1)', // slate-50
+                                color: 'rgba(37,99,235,1)', // blue-600
+                                border: '1px solid rgba(226,232,240,1)', // slate-200
+                                '&:hover': {
+                                    backgroundColor: 'rgba(241,245,249,1)', // slate-100
+                                    borderColor: 'rgba(203,213,225,1)', // slate-300
+                                },
+                                '&.Mui-disabled': {
+                                    backgroundColor: 'rgba(248,250,252,1)',
+                                    color: 'rgba(148,163,184,1)', // slate-400
+                                    borderColor: 'rgba(226,232,240,1)',
+                                    boxShadow: 'none',
+                                },
+                            }}
+                        >
+                            CẬP NHẬT
+                        </Button>
                     </DialogActions>
                 </Dialog>
 

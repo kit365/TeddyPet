@@ -11,7 +11,11 @@ export const ServiceManagementPage = () => {
     const [categoryTab, setCategoryTab] = useState<number | null>(null);
     const { data: categories = [] } = useServiceCategories();
 
-    const showCategoryTabs = tab === 0 || tab === 1;
+    const showCategoryTabs = tab === 0 || tab === 1 || tab === 2;
+
+    const addButtonLabel =
+        tab === 3 ? 'Thêm gói dịch vụ' : tab === 2 ? 'Thêm Additional Charge' : tab === 1 ? 'Thêm add-on' : 'Thêm dịch vụ';
+    const addButtonPath = tab === 3 ? `/${prefixAdmin}/service-combo/create` : `/${prefixAdmin}/service/create`;
 
     return (
         <>
@@ -22,8 +26,8 @@ export const ServiceManagementPage = () => {
                     { label: 'Quản lý dịch vụ', to: `/${prefixAdmin}/service/list` },
                     { label: 'Danh sách' },
                 ]}
-                addButtonLabel={tab === 2 ? 'Thêm gói dịch vụ' : tab === 1 ? 'Thêm add-on' : 'Thêm dịch vụ'}
-                addButtonPath={tab === 2 ? `/${prefixAdmin}/service-combo/create` : `/${prefixAdmin}/service/create`}
+                addButtonLabel={addButtonLabel}
+                addButtonPath={addButtonPath}
             />
 
             <Tabs
@@ -41,6 +45,7 @@ export const ServiceManagementPage = () => {
             >
                 <Tab label="Dịch vụ" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
                 <Tab label="Add-ons" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
+                <Tab label="Additional Charge" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
                 <Tab label="Gói dịch vụ" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
             </Tabs>
 
@@ -70,7 +75,8 @@ export const ServiceManagementPage = () => {
             <Box sx={{ px: '40px', mx: '-40px' }}>
                 {tab === 0 && <ServiceList mode="non_addon" categoryId={categoryTab} hideCategoryColumn />}
                 {tab === 1 && <ServiceList mode="addon" showAddonColumn categoryId={categoryTab} hideCategoryColumn />}
-                {tab === 2 && <ServiceComboList />}
+                {tab === 2 && <ServiceList mode="additional_charge" categoryId={categoryTab} hideCategoryColumn />}
+                {tab === 3 && <ServiceComboList />}
             </Box>
         </>
     );

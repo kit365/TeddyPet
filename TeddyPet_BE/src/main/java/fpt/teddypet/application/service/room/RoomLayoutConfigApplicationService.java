@@ -27,6 +27,25 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
     }
 
     @Override
+    public List<RoomLayoutConfigResponse> getAll(Long serviceId, String status) {
+        if (serviceId == null) {
+            return getAll();
+        }
+        RoomLayoutStatusEnum statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                statusEnum = RoomLayoutStatusEnum.valueOf(status.trim());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Trạng thái không hợp lệ: " + status);
+            }
+        }
+        List<RoomLayoutConfig> list = statusEnum != null
+                ? repositoryPort.findByServiceIdAndStatus(serviceId, statusEnum)
+                : repositoryPort.findByServiceId(serviceId);
+        return list.stream().map(this::toResponse).toList();
+    }
+
+    @Override
     public RoomLayoutConfigResponse getById(Long id) {
         return toResponse(getEntityById(id));
     }

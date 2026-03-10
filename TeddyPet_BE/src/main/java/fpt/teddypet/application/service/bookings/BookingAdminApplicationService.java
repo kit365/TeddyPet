@@ -1,16 +1,25 @@
 package fpt.teddypet.application.service.bookings;
 
+import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
+import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminPetFoodBroughtResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
 import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.BookingPetService;
+import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -20,6 +29,8 @@ import java.util.List;
 public class BookingAdminApplicationService implements BookingAdminService {
 
     private final BookingRepository bookingRepository;
+    private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
+    private final ServiceRepositoryPort serviceRepositoryPort;
 
     @Override
     public List<AdminBookingListItemResponse> getAll() {
@@ -82,12 +93,76 @@ public class BookingAdminApplicationService implements BookingAdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AdminBookingPetServiceResponse getServiceDetail(Long bookingId, Long petId, Long serviceId) {
         AdminBookingPetResponse pet = getPetDetail(bookingId, petId);
         return pet.services().stream()
                 .filter(s -> s.id().equals(serviceId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy dịch vụ trong booking."));
+    }
+
+    @Override
+    @Transactional
+    public AdminBookingPetServiceItemResponse addChargeItem(Long bookingId, Long petId, Long bookingPetServiceId, AddChargeItemRequest request) {
+        BookingPetService bps = getBookingPetServiceOrThrow(bookingId, petId, bookingPetServiceId);
+        fpt.teddypet.domain.entity.Service itemService = serviceRepositoryPort.findById(request.itemServiceId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy dịch vụ với id: " + request.itemServiceId()));
+        if (!Boolean.TRUE.equals(itemService.getIsAdditionalCharge())) {
+            throw new IllegalArgumentException("Dịch vụ này không phải additional charge. Chỉ được thêm dịch vụ có isAdditionalCharge=true.");
+        }
+        BookingPetServiceItem item = new BookingPetServiceItem();
+        item.setBookingPetService(bps);
+        item.setParentServiceId(bps.getService() != null ? bps.getService().getId() : null);
+        item.setItemService(itemService);
+        item.setItemType("CHARGE");
+        item.setChargeReason(request.chargeReason());
+        item.setChargeEvidence(request.chargeEvidence());
+        item.setChargedBy(request.chargedBy());
+        bps.getItems().add(item);
+        item = bookingPetServiceItemRepository.save(item);
+        return toItemResponse(item);
+    }
+
+    @Override
+    @Transactional
+    public AdminBookingPetServiceItemResponse approveChargeItem(Long bookingId, Long petId, Long bookingPetServiceId, Long itemId, ApproveChargeItemRequest request) {
+        BookingPetService bps = getBookingPetServiceOrThrow(bookingId, petId, bookingPetServiceId);
+        BookingPetServiceItem item = bps.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy item với id: " + itemId));
+        item.setChargeApprovedBy(request.chargeApprovedBy());
+        item.setChargeApprovedAt(LocalDateTime.now());
+        item = bookingPetServiceItemRepository.save(item);
+        return toItemResponse(item);
+    }
+
+    private BookingPetService getBookingPetServiceOrThrow(Long bookingId, Long petId, Long bookingPetServiceId) {
+        Booking booking = getBookingOrThrow(bookingId);
+        BookingPetService bps = booking.getPets().stream()
+                .filter(p -> p.getId().equals(petId))
+                .flatMap(p -> p.getServices().stream())
+                .filter(s -> s.getId().equals(bookingPetServiceId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy booking_pet_service tương ứng."));
+        return bps;
+    }
+
+    private AdminBookingPetServiceItemResponse toItemResponse(BookingPetServiceItem i) {
+        return new AdminBookingPetServiceItemResponse(
+                i.getId(),
+                i.getItemService() != null ? i.getItemService().getId() : null,
+                i.getItemService() != null ? i.getItemService().getServiceName() : null,
+                i.getItemType(),
+                i.getChargeReason(),
+                i.getChargeEvidence(),
+                i.getChargedBy(),
+                i.getChargeApprovedBy(),
+                i.getChargeApprovedAt(),
+                i.getNotes(),
+                i.getStaffNotes()
+        );
     }
 
     private AdminBookingListItemResponse toListItem(Booking booking) {
@@ -115,6 +190,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
     }
 
     private AdminBookingPetServiceResponse toServiceResponse(fpt.teddypet.domain.entity.BookingPetService svc) {
+        List<AdminBookingPetServiceItemResponse> items = (svc.getItems() != null ? svc.getItems() : Collections.<BookingPetServiceItem>emptyList()).stream()
+                .map(this::toItemResponse)
+                .toList();
         return new AdminBookingPetServiceResponse(
                 svc.getId(),
                 svc.getBookingPet() != null ? svc.getBookingPet().getId() : null,
@@ -124,14 +202,15 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 svc.getService() != null ? svc.getService().getServiceName() : null,
                 svc.getTimeSlotId(),
                 svc.getRoomId(),
-                svc.getCheckInDate(),
-                svc.getCheckOutDate(),
+                svc.getEstimatedCheckInDate(),
+                svc.getEstimatedCheckOutDate(),
+                svc.getActualCheckInDate(),
+                svc.getActualCheckOutDate(),
                 svc.getNumberOfNights(),
                 svc.getScheduledStartTime(),
                 svc.getScheduledEndTime(),
                 svc.getActualStartTime(),
                 svc.getActualEndTime(),
-                svc.getUnitPrice(),
                 svc.getSubtotal(),
                 svc.getStatus(),
                 svc.getStaffNotes(),
@@ -140,7 +219,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 svc.getDuringPhotos(),
                 svc.getAfterPhotos(),
                 svc.getBeforePhotos(),
-                svc.getVideos()
+                svc.getVideos(),
+                items
         );
     }
 

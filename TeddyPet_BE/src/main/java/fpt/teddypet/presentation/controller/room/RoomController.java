@@ -36,10 +36,11 @@ public class RoomController {
     }
 
     @GetMapping
-    @Operation(summary = "Get Rooms", description = "Optional filter by roomTypeId")
+    @Operation(summary = "Get Rooms", description = "Optional filter by roomTypeId or roomLayoutConfigId")
     public ResponseEntity<ApiResponse<List<RoomResponse>>> getAll(
-            @RequestParam(required = false) Long roomTypeId) {
-        return ResponseEntity.ok(ApiResponse.success(roomService.getAll(roomTypeId)));
+            @RequestParam(required = false) Long roomTypeId,
+            @RequestParam(required = false) Long roomLayoutConfigId) {
+        return ResponseEntity.ok(ApiResponse.success(roomService.getAll(roomTypeId, roomLayoutConfigId)));
     }
 
     @GetMapping("/{id}")

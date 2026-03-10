@@ -38,7 +38,7 @@ spring:
       uri: ${SPRING_DATA_MONGODB_URI_PROD}
     
     redis:
-      url: ${SPRING_DATA_REDIS_URL_PROD}
+      url: ${SPRING_DATA_REDIS_URL_PROD:redis://localhost:6379}
       timeout: 2000ms
   
 

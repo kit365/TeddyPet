@@ -14,6 +14,8 @@ public interface RoomService {
 
     List<RoomResponse> getAll(Long roomTypeId);
 
+    List<RoomResponse> getAll(Long roomTypeId, Long roomLayoutConfigId);
+
     void delete(Long id);
 
     RoomResponse setRoomPosition(Long roomId, RoomSetPositionRequest request);

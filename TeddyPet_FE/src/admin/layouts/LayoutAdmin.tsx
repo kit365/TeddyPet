@@ -25,10 +25,10 @@ const LayoutAdminContent = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-[#F9FAFB]">
+        <div className="flex">
             <SideBar />
 
-            <div className={`transition-[margin-left] duration-[120ms] ease-linear overflow-x-hidden ${isOpen ? 'ml-[300px]' : 'ml-[88px]'}`}>
+            <div className={`w-full transition-[padding-left] duration-[120ms] ease-linear ${isOpen ? 'pl-[300px]' : 'pl-[88px]'}`}>
                 <ThemeProvider theme={adminTheme}><Header /></ThemeProvider>
 
                 <ThemeProvider theme={adminTheme}>
@@ -36,7 +36,7 @@ const LayoutAdminContent = () => {
                         className={
                             isBlogDetail
                                 ? undefined
-                                : "px-[40px] pt-[8px] pb-[64px]"
+                                : "w-full mx-auto px-[40px] pt-[8px] pb-[64px]"
                         }
                     >
                         <Outlet />

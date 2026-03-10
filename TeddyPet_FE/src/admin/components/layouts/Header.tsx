@@ -18,7 +18,7 @@ import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { toast } from 'react-toastify';
 import { InputAdornment, TextField } from "@mui/material";
 import { Search } from "iconoir-react";
@@ -29,6 +29,7 @@ import { useUpdateStaffProfile } from "../../pages/staff/hooks/useStaffProfile";
 import { uploadImage } from "../../../api/upload.api";
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
+import { LogoTeddyPet } from "../../../assets/admin/LogoTeddyPet";
 
 interface Props {
     window?: () => Window;
@@ -92,7 +93,7 @@ export const Header = () => {
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [address, setAddress] = useState("");
-    const avatarInputRef = useRef<HTMLInputElement | null>(null);
+    const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
 
     // Notifications state
     const { unreadCount, markAllAsRead, markAsRead, notifications } = useNotificationStore();
@@ -110,7 +111,7 @@ export const Header = () => {
     const { mutate: updateProfile, isPending: updatingProfile } = useUpdateStaffProfile();
     const queryClient = useQueryClient();
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (myProfile && openProfileDialog) {
             setAvatarUrl(myProfile.avatarUrl ?? "");
             setAvatarPreview(null);
@@ -555,15 +556,9 @@ export const Header = () => {
                                     minWidth: 0,
                                     padding: 0,
                                 }}
-                                onClick={() => setOpenProfileDialog(true)}
                             >
                                 <div className="relative rounded-full p-[3px] w-[4rem] h-[4rem] header__avatar">
-                                    <Avatar
-                                        className="w-full h-full"
-                                        src={myProfile?.avatarUrl ?? "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-25.webp"}
-                                    >
-                                        {myProfile?.fullName?.charAt(0) ?? "U"}
-                                    </Avatar>
+                                    <Avatar className="w-full h-full" src="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-25.webp" />
                                 </div>
                             </Button>
                         </Box>

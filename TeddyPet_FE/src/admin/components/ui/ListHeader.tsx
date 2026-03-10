@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import Button from "@mui/material/Button";
-import AddIcon from '@mui/icons-material/Add';
+import { UserPlus } from 'lucide-react';
 import { Breadcrumb } from "./Breadcrumb";
 import { Title } from "./Title";
 import { useNavigate } from "react-router-dom";
@@ -52,23 +52,27 @@ export const ListHeader = ({
                         <Button
                             onClick={() => navigate(addButtonPath)}
                             sx={{
-                                background: '#1C252E',
-                                minHeight: "3.6rem",
-                                minWidth: "6.4rem",
-                                fontWeight: 700,
-                                fontSize: "1.4rem",
-                                padding: "6px 12px",
-                                borderRadius: "8px",
-                                textTransform: "none",
-                                boxShadow: "none",
-                                "&:hover": {
-                                    background: "#454F5B",
-                                    boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                }
+                                backgroundColor: 'rgb(5 150 105)', // emerald-600
+                                minHeight: '3rem',
+                                minWidth: '6.4rem',
+                                fontWeight: 600,
+                                fontSize: '1.4rem',
+                                padding: '6px 16px',
+                                borderRadius: '0.75rem',
+                                textTransform: 'none',
+                                boxShadow: '0 4px 10px rgba(16,185,129,0.25)',
+                                color: '#ffffff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                '&:hover': {
+                                    backgroundColor: 'rgb(4 120 87)', // emerald-700
+                                    boxShadow: '0 8px 18px rgba(16,185,129,0.35)',
+                                },
                             }}
                             variant="contained"
-                            startIcon={<AddIcon />}
                         >
+                            <UserPlus className="h-4 w-4" />
                             {addButtonLabel}
                         </Button>
                     )}

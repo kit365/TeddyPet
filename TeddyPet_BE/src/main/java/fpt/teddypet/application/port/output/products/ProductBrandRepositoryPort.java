@@ -1,6 +1,7 @@
 package fpt.teddypet.application.port.output.products;
 
 import fpt.teddypet.domain.entity.ProductBrand;
+import fpt.teddypet.domain.enums.PetTypeEnum;
 import java.util.List;
 
 public interface ProductBrandRepositoryPort {
@@ -23,4 +24,6 @@ public interface ProductBrandRepositoryPort {
     ProductBrand getReferenceById(Long brandId);
 
     int softDeleteByIds(List<Long> ids);
+
+    List<ProductBrand> findFoodBrandOptionsByPetType(PetTypeEnum petType);
 }

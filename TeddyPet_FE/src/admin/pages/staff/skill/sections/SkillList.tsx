@@ -104,7 +104,6 @@ export const SkillList = () => {
                     pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
                     initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
                     getRowHeight={() => 'auto'}
-                    checkboxSelection
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                 />

@@ -3,6 +3,7 @@ package fpt.teddypet.application.dto.response.bookings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record AdminBookingPetServiceResponse(
         Long id,
@@ -13,14 +14,15 @@ public record AdminBookingPetServiceResponse(
         String serviceName,
         Long timeSlotId,
         Long roomId,
-        LocalDate checkInDate,
-        LocalDate checkOutDate,
+        LocalDate estimatedCheckInDate,
+        LocalDate estimatedCheckOutDate,
+        LocalDate actualCheckInDate,
+        LocalDate actualCheckOutDate,
         Integer numberOfNights,
         LocalDateTime scheduledStartTime,
         LocalDateTime scheduledEndTime,
         LocalDateTime actualStartTime,
         LocalDateTime actualEndTime,
-        BigDecimal unitPrice,
         BigDecimal subtotal,
         String status,
         String staffNotes,
@@ -29,7 +31,8 @@ public record AdminBookingPetServiceResponse(
         String duringPhotos,
         String afterPhotos,
         String beforePhotos,
-        String videos
+        String videos,
+        List<AdminBookingPetServiceItemResponse> items
 ) {
 }
 
