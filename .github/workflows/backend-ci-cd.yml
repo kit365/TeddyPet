@@ -2,12 +2,12 @@ name: Backend CI/CD (Guardian Edition)
 
 on:
   push:
-    branches: [ "main", "test/cicd" ]
+    branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_BE/**"
       - ".github/workflows/**"
   pull_request:
-    branches: [ "main", "test/cicd" ]
+    branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_BE/**"
       - ".github/workflows/**"
@@ -73,7 +73,7 @@ jobs:
     name: 🐳 Docker Build & Push
     needs: [compile-and-test, security-scan]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/cicd')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
     
     steps:
       - name: Checkout code
