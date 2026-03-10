@@ -13,10 +13,10 @@ public final class GeneralConstants {
     public static final String DEFAULT_SHOP_LAT = "10.7410";
     public static final String DEFAULT_SHOP_LNG = "106.7145";
     public static final String DEFAULT_SHOP_PHONE = "0987 654 321";
-    public static final String DEFAULT_SHOP_EMAIL = "contact@teddypet.id.vn";
+    public static final String DEFAULT_SHOP_EMAIL = "teddypetfpt@gmail.com";
 
     // API & URLs
-    public static final String TRACKING_URL_PREFIX = "https://teddypet.id.vn/tracking?code=";
+    public static final String TRACKING_URL_PREFIX = "https://teddypet.fpt.edu.vn/tracking?code=";
     public static final String QR_CODE_API_URL = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=";
 
     // Formats & Common
