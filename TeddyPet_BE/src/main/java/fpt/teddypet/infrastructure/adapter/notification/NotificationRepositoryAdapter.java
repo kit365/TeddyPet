@@ -46,6 +46,14 @@ public class NotificationRepositoryAdapter implements NotificationRepositoryPort
     }
 
     @Override
+    public void markAsRead(String id) {
+        repository.findById(id).ifPresent(doc -> {
+            doc.setRead(true);
+            repository.save(doc);
+        });
+    }
+
+    @Override
     public Optional<Notification> findById(String id) {
         return repository.findById(id).map(this::toEntity);
     }

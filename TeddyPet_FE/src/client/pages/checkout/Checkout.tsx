@@ -782,7 +782,7 @@ export const CheckoutPage = () => {
                                     </h3>
                                     <div className="space-y-[12px]">
                                         {[
-                                            { id: 'BANK_TRANSFER' as const, label: 'Chuyển khoản ngân hàng (Chưa hỗ trợ)' },
+                                            { id: 'BANK_TRANSFER' as const, label: 'Chuyển khoản ngân hàng' },
                                             { id: 'CASH' as const, label: 'Thanh toán khi nhận hàng (COD)' }
                                         ].map((method) => (
                                             <label key={method.id} className="flex items-center gap-[12px] cursor-pointer group">

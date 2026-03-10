@@ -7,6 +7,8 @@ public interface PasswordResetService {
 
     void forgotPassword(ForgotPasswordRequest request);
 
+    void forgotPasswordMobile(ForgotPasswordRequest request);
+
     void resetPassword(ResetPasswordRequest request);
 
     boolean validateToken(String token);

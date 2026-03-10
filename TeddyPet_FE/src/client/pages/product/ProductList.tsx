@@ -7,6 +7,7 @@ import { ProductListSearch } from "./sections/ProductListSearch"
 import { useQuery } from "@tanstack/react-query"
 import { getHomeProducts } from "../../../api/home.api"
 import { useState } from "react"
+import { useSearchParams } from "react-router-dom"
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
@@ -16,9 +17,15 @@ const breadcrumbs = [
 import { ProductQuickViewModal } from "../../components/ui/ProductQuickViewModal"
 
 export const ProductListPage = () => {
+    const [searchParams] = useSearchParams();
+    const initialTag = searchParams.get('tag');
+    const initialKeyword = searchParams.get('keyword');
+
     const [filters, setFilters] = useState<FilterState>({
         categorySlugs: [],
         brandSlugs: [],
+        tagSlugs: initialTag ? [initialTag] : [],
+        keyword: initialKeyword || undefined,
         page: 0,
         sortKey: 'id',
         sortDirection: 'desc'
@@ -32,6 +39,7 @@ export const ProductListPage = () => {
             keyword: filters.keyword,
             categorySlugs: filters.categorySlugs.length ? filters.categorySlugs : undefined,
             brandSlugs: filters.brandSlugs.length ? filters.brandSlugs : undefined,
+            tagSlugs: filters.tagSlugs.length ? filters.tagSlugs : undefined,
             minPrice: filters.minPrice,
             maxPrice: filters.maxPrice,
             page: filters.page,

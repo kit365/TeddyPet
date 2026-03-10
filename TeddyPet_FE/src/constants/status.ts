@@ -12,7 +12,7 @@ export const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg
         dotColor: "#00B8D9"
     },
     PROCESSING: {
-        label: "Đang gói",
+        label: "Đang đóng gói",
         color: "#118D57",
         bgColor: "rgba(34, 197, 94, 0.12)",
         dotColor: "#22C55E"

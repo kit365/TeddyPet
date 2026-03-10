@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { Handbag, Heart, Search, User, Bell } from "iconoir-react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
@@ -5,7 +7,6 @@ import { useCartStore } from "../../../stores/useCartStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
 import { useNotificationStore } from "../../../stores/useNotificationStore";
-import { useState, useEffect } from "react";
 import { getSearchSuggestions } from "../../../api/home.api";
 import { LocationSelector } from "../ui/LocationSelector";
 
@@ -19,7 +20,55 @@ export const MainHeader = () => {
 
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
-    const { unreadCount, markAllAsRead, notifications } = useNotificationStore();
+    const { markAllAsRead, markAsRead, notifications } = useNotificationStore();
+
+    const handleMarkAllAsRead = (e: React.MouseEvent) => {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận!',
+            text: "Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ff6262',
+            cancelButtonColor: '#102937',
+            confirmButtonText: 'Xác nhận đọc hết',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            customClass: {
+                title: 'font-secondary',
+                popup: 'rounded-[20px]',
+                confirmButton: 'rounded-[8px] font-secondary',
+                cancelButton: 'rounded-[8px] font-secondary'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                markAllAsRead();
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đã đánh dấu tất cả là đã đọc',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+            }
+        });
+    };
+
+    // Filter notifications for client side - Memoized to ensure consistency
+    const clientNotifications = React.useMemo(() => {
+        return notifications.filter(n =>
+            !n.isRead &&
+            n.type && (
+                n.type.includes('CUSTOMER') ||
+                n.type.includes('REPLIED') ||
+                n.type.includes('STATUS')
+            )
+        );
+    }, [notifications]);
+
+    const clientUnreadCount = clientNotifications.length;
     const navigate = useNavigate();
 
     // Search state
@@ -148,51 +197,61 @@ export const MainHeader = () => {
                         </Link>
 
                         {/* Notification Bell */}
-                        <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                            <Bell stroke="2" className="w-[2.5rem] h-[2.5rem]" />
-                            {unreadCount > 0 && (
-                                <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{unreadCount}</span>
-                            )}
+                        {user && (
+                            <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                                <Bell stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                                {clientUnreadCount > 0 && (
+                                    <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{clientUnreadCount}</span>
+                                )}
 
-                            {/* Dropdown list */}
-                            <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[320px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-[100] py-[10px] animate-fadeIn">
-                                <div className="px-[20px] py-[10px] border-b border-[#f0f0f0] flex justify-between items-center">
-                                    <span className="font-bold text-client-secondary">Thông báo ({unreadCount})</span>
-                                    {unreadCount > 0 && (
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); markAllAsRead(); }}
-                                            className="text-[1.2rem] text-client-primary hover:underline"
-                                        >
-                                            Đánh dấu đã đọc
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    {notifications.length > 0 ? (
-                                        notifications.map((n) => (
-                                            <div
-                                                key={n.id}
-                                                onClick={() => {
-                                                    if (n.targetUrl) navigate(n.targetUrl);
-                                                }}
-                                                className={`px-[20px] py-[12px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer ${!n.isRead ? 'bg-[#fcf9f9]' : ''}`}
-                                            >
-                                                <p className={`text-[1.3rem] ${!n.isRead ? 'font-bold' : 'font-medium'} text-client-secondary mb-[2px]`}>{n.title}</p>
-                                                <p className="text-[1.2rem] text-gray-500 line-clamp-2">{n.message}</p>
-                                                <p className="text-[1rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="px-[20px] py-[30px] text-center text-gray-400 text-[1.4rem]">
-                                            Không có thông báo nào
+                                {/* Dropdown list with Super Bridge */}
+                                <div className="hidden group-hover:block absolute top-[100%] right-0 pt-[15px] z-[100] animate-fadeIn">
+                                    {/* Invisible Bridge - Larger to catch diagonal movements */}
+                                    <div className="absolute top-[-30px] left-[-100px] w-[500px] h-[45px] bg-transparent"></div>
+
+                                    <div className="min-w-[320px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] py-[10px] relative">
+                                        <div className="px-[20px] py-[10px] border-b border-[#f0f0f0] flex justify-between items-center">
+                                            <span className="font-bold text-client-secondary">Thông báo ({clientUnreadCount})</span>
+                                            {clientUnreadCount > 0 && (
+                                                <button
+                                                    onClick={handleMarkAllAsRead}
+                                                    className="text-[1.2rem] text-client-primary font-bold hover:underline py-1"
+                                                >
+                                                    Đánh dấu đã đọc
+                                                </button>
+                                            )}
                                         </div>
-                                    )}
+                                        <div className="max-h-[400px] overflow-y-auto">
+                                            {clientNotifications.length > 0 ? (
+                                                clientNotifications.map((n) => (
+                                                    <div
+                                                        key={n.id}
+                                                        onClick={() => {
+                                                            markAsRead(n.id);
+                                                            if (n.targetUrl) navigate(n.targetUrl);
+                                                        }}
+                                                        className="px-[20px] py-[12px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
+                                                    >
+                                                        <p className="text-[1.3rem] font-bold text-client-secondary mb-[2px]">{n.title}</p>
+                                                        <p className="text-[1.2rem] text-gray-500 line-clamp-2">{n.message}</p>
+                                                        <p className="text-[1rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-[20px] py-[30px] text-center text-gray-400 text-[1.4rem]">
+                                                    Không có thông báo mới
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Link to="/dashboard/orders" className="block text-center py-[10px] text-[1.2rem] text-client-primary font-bold hover:bg-gray-50">
+                                            Xem tất cả đơn hàng
+                                        </Link>
+                                    </div>
                                 </div>
-                                <Link to="/dashboard/orders" className="block text-center py-[10px] text-[1.2rem] text-client-primary font-bold hover:bg-gray-50">
-                                    Xem tất cả đơn hàng
-                                </Link>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Cart Dropdown with Bridge */}
                         <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
                             <Link to="/cart">
                                 <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />
@@ -200,49 +259,51 @@ export const MainHeader = () => {
                             {cartCount > 0 && (
                                 <span className="absolute right-[-1px] top-[-5px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center">{cartCount}</span>
                             )}
-                            <div
-                                className="hidden group-hover:block bg-white border border-[#d7d7d7] min-w-[350px] p-[20px] absolute top-[45px] right-[-20px] rounded-[20px] shadow-[0_-1px_8px_3px_#10293714] z-50 after:content-[''] after:block after:absolute after:w-0 after:h-0 after:border-solid after:border-[8px] after:border-transparent after:border-b-[#d7d7d7] after:right-[28px] after:top-[-16px]"
-                            >
-                                {items.length > 0 ? (
-                                    <ul>
-                                        {items.map((item) => (
-                                            <li key={item.id} className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
-                                                <div
-                                                    onClick={() => handleRemove(item.id as string)}
-                                                    className="absolute left-[-7px] top-[-7px] text-[1.2rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
-                                                    x
-                                                </div>
-                                                <Link to="#" className="inline-block w-[80px] h-[80px] mr-[20px]">
-                                                    <img src={item.image} width={80} height={80} alt="" className="w-full h-full object-cover rounded-[10px]" />
-                                                </Link>
-                                                <div>
-                                                    <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
-                                                    <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
-                                                    <div className="text-client-text text-[1.4rem] flex items-center gap-2">
-                                                        <span>{item.quantity} x </span>
-                                                        <span className="text-client-secondary font-bold">{item.option?.price?.toLocaleString()}đ</span>
-                                                        {item.option?.originalPrice && (
-                                                            <span className="text-[#999] line-through text-[1.1rem] opacity-70">
-                                                                {item.option.originalPrice.toLocaleString()}đ
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))}
-                                        <div className="border-t border-[#d7d7d7] text-client-secondary font-[700] text-[1.8rem] mt-[20px] pt-[10px] flex justify-between">
-                                            <strong>Tạm tính:</strong>
-                                            <span>{totalAmount.toLocaleString()}đ</span>
-                                        </div>
-                                        <div className="mt-[20px] mb-[5px]">
-                                            <Link to="/cart" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
-                                            <Link to="/checkout" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
-                                        </div>
-                                    </ul>
-                                ) : (
-                                    <span>Không có sản phẩm trong giỏ hàng.</span>
-                                )}
+                            <div className="hidden group-hover:block absolute top-[100%] right-[-20px] pt-[15px] z-50 animate-fadeIn">
+                                {/* Invisible Bridge */}
+                                <div className="absolute top-[-30px] left-[-100px] w-[500px] h-[45px] bg-transparent"></div>
 
+                                <div className="bg-white border border-[#d7d7d7] min-w-[350px] p-[20px] rounded-[20px] shadow-[0_-1px_8px_3px_#10293714] relative after:content-[''] after:block after:absolute after:w-0 after:h-0 after:border-solid after:border-[8px] after:border-transparent after:border-b-[#d7d7d7] after:right-[28px] after:top-[-16px]">
+                                    {items.length > 0 ? (
+                                        <ul>
+                                            {items.map((item) => (
+                                                <li key={item.id} className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
+                                                    <div
+                                                        onClick={() => handleRemove(item.id as string)}
+                                                        className="absolute left-[-7px] top-[-7px] text-[1.2rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
+                                                        x
+                                                    </div>
+                                                    <Link to="#" className="inline-block w-[80px] h-[80px] mr-[20px]">
+                                                        <img src={item.image} width={80} height={80} alt="" className="w-full h-full object-cover rounded-[10px]" />
+                                                    </Link>
+                                                    <div>
+                                                        <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
+                                                        <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
+                                                        <div className="text-client-text text-[1.4rem] flex items-center gap-2">
+                                                            <span>{item.quantity} x </span>
+                                                            <span className="text-client-secondary font-bold">{item.option?.price?.toLocaleString()}đ</span>
+                                                            {item.option?.originalPrice && (
+                                                                <span className="text-[#999] line-through text-[1.1rem] opacity-70">
+                                                                    {item.option.originalPrice.toLocaleString()}đ
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                            <div className="border-t border-[#d7d7d7] text-client-secondary font-[700] text-[1.8rem] mt-[20px] pt-[10px] flex justify-between">
+                                                <strong>Tạm tính:</strong>
+                                                <span>{totalAmount.toLocaleString()}đ</span>
+                                            </div>
+                                            <div className="mt-[20px] mb-[5px]">
+                                                <Link to="/cart" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
+                                                <Link to="/checkout" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
+                                            </div>
+                                        </ul>
+                                    ) : (
+                                        <span>Không có sản phẩm trong giỏ hàng.</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         {user ? (

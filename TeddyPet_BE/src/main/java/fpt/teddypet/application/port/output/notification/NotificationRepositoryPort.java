@@ -14,4 +14,6 @@ public interface NotificationRepositoryPort {
     void markAllAsRead(String recipient);
 
     Optional<Notification> findById(String id);
+
+    void markAsRead(String id);
 }

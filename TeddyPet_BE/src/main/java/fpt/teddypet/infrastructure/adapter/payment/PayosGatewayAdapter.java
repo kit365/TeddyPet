@@ -70,9 +70,9 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
             if (webhook == null) {
                 throw new PaymentException("Webhook object is null");
             }
-            
+
             WebhookData data = webhook.getData();
-            
+
             // PayOS test webhook confirmation (orderCode = 123 hoặc test data)
             // Khi add webhook URL trên dashboard, PayOS gửi test request
             if (data != null && webhook.getSignature() == null) {
@@ -85,21 +85,35 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
                         .orderCode(data.getOrderCode() != null ? String.valueOf(data.getOrderCode()) : "0")
                         .build();
             }
-            
+
             WebhookData verifiedData = payOS.webhooks().verify(webhook);
+            String orderCode = String.valueOf(verifiedData.getOrderCode());
+
+            // PayOS test case '123' - dashboard webhook verification
+            if ("123".equals(orderCode)) {
+                log.info("ℹ️ PayOS test webhook (123) received and verified. Skipping database updates.");
+                return GatewayCallbackResult.builder()
+                        .success(false) // Trả về false để PaymentApplicationService không tìm trong DB, nhưng message
+                                        // là info
+                        .transactionId(orderCode)
+                        .message("PayOS Dashboard verification ping - skipped")
+                        .orderCode(orderCode)
+                        .build();
+            }
 
             boolean success = "00".equals(verifiedData.getCode());
-            
-            log.info("✅ PayOS callback verified - OrderCode: {}, Success: {}, Code: {}", 
+
+            log.info("✅ PayOS callback verified - OrderCode: {}, Success: {}, Code: {}",
                     verifiedData.getOrderCode(), success, verifiedData.getCode());
 
             return GatewayCallbackResult.builder()
                     .success(success)
-                    .transactionId(String.valueOf(verifiedData.getOrderCode()))
+                    .transactionId(orderCode)
                     .message(success ? "Thanh toán thành công qua PayOS"
                             : "Thanh toán thất bại qua PayOS. Code: " + verifiedData.getCode())
-                    .amount(verifiedData.getAmount() != null ? java.math.BigDecimal.valueOf(verifiedData.getAmount()) : null)
-                    .orderCode(String.valueOf(verifiedData.getOrderCode()))
+                    .amount(verifiedData.getAmount() != null ? java.math.BigDecimal.valueOf(verifiedData.getAmount())
+                            : null)
+                    .orderCode(orderCode)
                     .gatewayResponseCode(verifiedData.getCode())
                     .build();
 

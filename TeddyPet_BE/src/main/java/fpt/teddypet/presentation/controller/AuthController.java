@@ -104,6 +104,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(PasswordResetMessages.MESSAGE_FORGOT_PASSWORD_SUCCESS));
     }
 
+    @PostMapping("/mobile/forgot-password")
+    @Operation(summary = "Yêu cầu OTP đặt lại mật khẩu cho Mobile", description = "Gửi email chứa mã OTP 6 số tới địa chỉ email cung cấp. Mã có hiệu lực trong 15 phút.")
+    public ResponseEntity<ApiResponse<Void>> forgotPasswordMobile(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.forgotPasswordMobile(request);
+        return ResponseEntity.ok(ApiResponse.success("Mã xác nhận đã được gửi tới Email của bạn."));
+    }
+
     // after verify token, reset password
     @PostMapping("/reset-password")
     @Operation(summary = "Đặt lại mật khẩu", description = "Đặt lại mật khẩu bằng token nhận được qua email.")

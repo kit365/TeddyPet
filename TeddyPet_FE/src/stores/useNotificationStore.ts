@@ -16,6 +16,7 @@ interface NotificationState {
     addNotification: (notification: NotificationDTO) => void;
     setNotifications: (notifications: NotificationDTO[]) => void;
     markAllAsRead: () => void;
+    markAsRead: (id: string) => void;
     clearNotifications: () => void;
     setUnreadCount: (count: number) => void;
 }
@@ -42,12 +43,32 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         try {
             const { notificationApi } = await import('../api/notification.api');
             await notificationApi.markAllAsRead();
-            set({ unreadCount: 0 });
             set((state) => ({
+                unreadCount: 0,
                 notifications: state.notifications.map(n => ({ ...n, isRead: true }))
             }));
         } catch (err) {
             console.error("Failed to mark all as read", err);
+        }
+    },
+    markAsRead: async (id) => {
+        try {
+            const { notificationApi } = await import('../api/notification.api');
+            await notificationApi.markAsRead(id);
+            set((state) => {
+                const notif = state.notifications.find(n => n.id === id);
+                if (notif && !notif.isRead) {
+                    return {
+                        unreadCount: Math.max(0, state.unreadCount - 1),
+                        notifications: state.notifications.map(n =>
+                            n.id === id ? { ...n, isRead: true } : n
+                        )
+                    };
+                }
+                return state;
+            });
+        } catch (err) {
+            console.error("Failed to mark notification as read", err);
         }
     },
     clearNotifications: () => set({ notifications: [], unreadCount: 0 }),

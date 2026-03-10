@@ -70,23 +70,22 @@ export const useAdminNotification = (autoConnect = true) => {
 
         // 3. Sound effect (Premium Notification Sound)
         try {
-            const audio = new Audio('https://raw.githubusercontent.com/Shashwat-Pragya/Notification-Sounds/master/notification-sound.mp3');
-            audio.volume = 0.5;
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2361/2361-preview.mp3');
+            audio.volume = 0.4;
             const playPromise = audio.play();
             if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.warn("Browser blocked notification audio. User must interact with the page first.", error);
-                });
+                playPromise.catch(() => { });
             }
-        } catch (e) {
-            console.error('Audio play failed', e);
-        }
+        } catch (e) { }
 
         // 4. Identify type for styling
-        const isClientType = notification.type.includes('CUSTOMER') ||
-            notification.type.includes('REPLIED') ||
-            notification.type.includes('STATUS');
+        const isClientType = notification.type?.includes('CUSTOMER') ||
+            notification.type?.includes('REPLIED') ||
+            notification.type?.includes('STATUS');
 
+        console.log("🚀 Showing Toast - Title:", notification.title);
+
+        // Use basic toast() with icon: false to avoid "i" Info icon or other defaults
         toast(
             <div className="flex flex-col gap-4 p-2 pointer-events-auto min-w-[320px] relative font-sans">
                 <div className="flex items-start gap-4">
@@ -155,12 +154,19 @@ export const useAdminNotification = (autoConnect = true) => {
 
                 <style dangerouslySetInnerHTML={{
                     __html: `
-                    .Toastify__toast {
-                        border-radius: 24px !important;
-                        padding: 16px 20px !important;
+                    .Toastify__toast-container {
+                        z-index: 10000 !important;
+                        width: 420px !important;
+                        padding: 0 !important;
+                    }
+                    .Toastify__toast-premium {
+                        border-radius: 16px !important;
+                        padding: 0 !important;
                         background: #ffffff !important;
-                        border: 1px solid #f3f4f6 !important;
-                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12) !important;
+                        border: 1px solid rgba(145, 158, 171, 0.12) !important;
+                        box-shadow: 0 12px 24px -4px rgba(145, 158, 171, 0.12), 0 0 2px 0 rgba(145, 158, 171, 0.2) !important;
+                        overflow: visible !important;
+                        margin-bottom: 12px !important;
                     }
                     .Toastify__toast-body {
                         padding: 0 !important;
@@ -170,19 +176,22 @@ export const useAdminNotification = (autoConnect = true) => {
                         display: none !important;
                     }
                     .Toastify__toast-container--top-right {
-                        top: 100px !important;
-                        right: 40px !important;
+                        top: 80px !important;
+                        right: 24px !important;
                     }
                 `}} />
             </div>,
             {
+                icon: false,
                 position: "top-right",
                 autoClose: isClientType ? 6000 : 12000,
                 hideProgressBar: !isClientType,
                 closeOnClick: false,
                 pauseOnHover: true,
                 draggable: true,
+                progress: undefined,
                 theme: "light",
+                className: 'Toastify__toast-premium'
             }
         );
     }, []);
@@ -225,15 +234,17 @@ export const useAdminNotification = (autoConnect = true) => {
                 client.subscribe(privateQueue, (message) => {
                     try {
                         const notification: NotificationDTO = JSON.parse(message.body);
+                        console.log("📨 [Private] Notification received:", notification);
 
                         // STRICT DEDUPLICATION: Only process if we haven't seen this specific ID
+                        // Note: If id is null, we always show it
                         if (notification.id && processedMessageIds.has(notification.id)) {
-                            console.log("� Skipping duplicate notification ID:", notification.id);
+                            console.log("🚫 [Private] Skipping duplicate ID:", notification.id);
                             return;
                         }
-                        if (notification.id) processedMessageIds.add(notification.id);
+                        // We DON'T add to processedMessageIds here, let showPremiumToast do it
+                        // so it doesn't return early.
 
-                        globalRefs.addNotification(notification);
                         showPremiumToast(notification);
                     } catch (e) {
                         console.error("Error parsing private message", e);
@@ -246,16 +257,24 @@ export const useAdminNotification = (autoConnect = true) => {
                     client.subscribe('/topic/admin-orders', (message) => {
                         try {
                             const notification: NotificationDTO = JSON.parse(message.body);
+                            console.log("📨 [Admin-Topic] Notification received:", notification);
 
                             // Check deduplication again for topic messages
                             if (notification.id && processedMessageIds.has(notification.id)) {
-                                console.log("🚫 Skipping duplicate admin notification ID:", notification.id);
+                                console.log("🚫 [Admin-Topic] Skipping duplicate ID:", notification.id);
                                 return;
                             }
-                            if (notification.id) processedMessageIds.add(notification.id);
+                            // Don't add to processedMessageIds yet
 
-                            globalRefs.addNotification(notification);
                             showPremiumToast(notification);
+
+                            // Emit global event to refresh order lists if relevant
+                            if (notification.type === 'NEW_ORDER' ||
+                                notification.type === 'PAYMENT_SUCCESS' ||
+                                notification.type === 'ORDER_CREATED') {
+                                console.log("🔄 Triggering REFRESH_ADMIN_ORDERS event");
+                                window.dispatchEvent(new CustomEvent('REFRESH_ADMIN_ORDERS'));
+                            }
                         } catch (e) {
                             console.error("Error parsing admin message", e);
                         }

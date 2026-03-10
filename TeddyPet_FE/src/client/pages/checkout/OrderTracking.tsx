@@ -24,7 +24,7 @@ const OrderStepper = ({ status }: { status: string }) => {
     const steps = [
         { key: 'PENDING', label: 'Chờ nhận đơn', icon: <ClipboardCheck className="w-[2.4rem] h-[2.4rem]" /> },
         { key: 'CONFIRMED', label: 'Đã xác nhận', icon: <CheckCircle className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'PROCESSING', label: 'Đóng gói', icon: <BoxIcon className="w-[2.4rem] h-[2.4rem]" /> },
+        { key: 'PROCESSING', label: 'Đang đóng gói', icon: <BoxIcon className="w-[2.4rem] h-[2.4rem]" /> },
         { key: 'DELIVERING', label: 'Đang giao', icon: <Truck className="w-[2.4rem] h-[2.4rem]" /> },
         { key: 'DELIVERED', label: 'Đã giao', icon: <HomeSimple className="w-[2.4rem] h-[2.4rem]" /> },
         { key: 'COMPLETED', label: 'Hoàn thành', icon: <Package className="w-[2.4rem] h-[2.4rem]" /> },

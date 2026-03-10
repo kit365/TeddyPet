@@ -16,8 +16,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
-import Tooltip from "@mui/material/Tooltip";
-import IconButton from "@mui/material/IconButton";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useRef } from "react";
@@ -29,7 +27,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../api/staffProfile.api";
 import { useUpdateStaffProfile } from "../../pages/staff/hooks/useStaffProfile";
 import { uploadImage } from "../../../api/upload.api";
-import { useAdminNotification } from "../../hooks/useAdminNotification";
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
 
@@ -98,9 +95,10 @@ export const Header = () => {
     const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
     // Notifications state
-    const { unreadCount, markAllAsRead } = useNotificationStore();
-    const { notifications } = useAdminNotification(false);
+    const { unreadCount, markAllAsRead, markAsRead, notifications } = useNotificationStore();
+    const adminUnreadNotifications = notifications.filter(n => !n.isRead);
     const [notifAnchorEl, setNotifAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const [openConfirmAll, setOpenConfirmAll] = useState(false);
     const openNotif = Boolean(notifAnchorEl);
 
     const { data: myProfileRes } = useQuery({
@@ -159,7 +157,6 @@ export const Header = () => {
 
     const handleOpenNotif = (event: React.MouseEvent<HTMLButtonElement>) => {
         setNotifAnchorEl(event.currentTarget);
-        markAllAsRead();
     };
 
     const handleCloseNotif = () => {
@@ -296,47 +293,49 @@ export const Header = () => {
                                 </MenuItem>
                             </Popover>
 
-                            <Button
-                                onClick={handleOpenNotif}
-                                className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"
-                                sx={{
-                                    minWidth: 0,
-                                    width: 44,
-                                    height: 44,
-                                    padding: 0,
-                                    borderRadius: '50%',
-                                }}
-                            >
-                                <Badge
-                                    badgeContent={unreadCount}
-                                    color="error"
-                                    max={99}
+                            {user && (
+                                <Button
+                                    onClick={handleOpenNotif}
+                                    className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"
                                     sx={{
-                                        '& .MuiBadge-badge': {
-                                            fontSize: '1rem',
-                                            fontWeight: 800,
-                                            minWidth: '20px',
-                                            height: '20px',
-                                            borderRadius: '50%',
-                                            border: '2px solid #fff',
-                                            boxShadow: '0 2px 4px rgba(255, 48, 48, 0.3)',
-                                            top: 4,
-                                            right: 4,
-                                        }
+                                        minWidth: 0,
+                                        width: 44,
+                                        height: 44,
+                                        padding: 0,
+                                        borderRadius: '50%',
                                     }}
                                 >
-                                    <NotificationsIcon
+                                    <Badge
+                                        badgeContent={unreadCount}
+                                        color="error"
+                                        max={99}
                                         sx={{
-                                            color: "#637381",
-                                            fontSize: "2.2rem",
-                                            transition: 'transform 0.2s',
-                                            '&:hover': {
-                                                transform: 'rotate(15deg)'
+                                            '& .MuiBadge-badge': {
+                                                fontSize: '1rem',
+                                                fontWeight: 800,
+                                                minWidth: '20px',
+                                                height: '20px',
+                                                borderRadius: '50%',
+                                                border: '2px solid #fff',
+                                                boxShadow: '0 2px 4px rgba(255, 48, 48, 0.3)',
+                                                top: 4,
+                                                right: 4,
                                             }
                                         }}
-                                    />
-                                </Badge>
-                            </Button>
+                                    >
+                                        <NotificationsIcon
+                                            sx={{
+                                                color: "#637381",
+                                                fontSize: "2.2rem",
+                                                transition: 'transform 0.2s',
+                                                '&:hover': {
+                                                    transform: 'rotate(15deg)'
+                                                }
+                                            }}
+                                        />
+                                    </Badge>
+                                </Button>
+                            )}
 
                             <Popover
                                 open={openNotif}
@@ -359,27 +358,29 @@ export const Header = () => {
                                     }
                                 }}
                             >
-                                <Box sx={{ display: 'flex', alignItems: 'center', py: 2.5, px: 3, background: 'linear-gradient(to right, #f8f9fa, #ffffff)' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', py: 2, px: 3, background: 'linear-gradient(to right, #f8f9fa, #ffffff)' }}>
                                     <Box sx={{ flexGrow: 1 }}>
-                                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1a202c' }}>Thông báo</Typography>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '1.05rem', mt: 0.5 }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#1a202c' }}>Thông báo</Typography>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '1rem', mt: 0.2 }}>
                                             Bạn có <span style={{ color: '#3b82f6', fontWeight: 700 }}>{unreadCount}</span> thông báo mới
                                         </Typography>
                                     </Box>
                                     {unreadCount > 0 && (
-                                        <Tooltip title="Đánh dấu tất cả đã đọc">
-                                            <IconButton
-                                                size="small"
-                                                onClick={async () => {
-                                                    const { notificationApi } = await import('../../../api/notification.api');
-                                                    await notificationApi.markAllAsRead();
-                                                    useNotificationStore.getState().markAllAsRead();
-                                                }}
-                                                sx={{ color: '#3b82f6' }}
-                                            >
-                                                <DoneAllIcon sx={{ fontSize: '2rem' }} />
-                                            </IconButton>
-                                        </Tooltip>
+                                        <Button
+                                            size="small"
+                                            onClick={() => setOpenConfirmAll(true)}
+                                            startIcon={<DoneAllIcon sx={{ fontSize: '1.8rem !important' }} />}
+                                            sx={{
+                                                color: '#3b82f6',
+                                                fontSize: '0.9rem',
+                                                fontWeight: 700,
+                                                textTransform: 'none',
+                                                borderRadius: '8px',
+                                                '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.08)' }
+                                            }}
+                                        >
+                                            Đọc tất cả
+                                        </Button>
                                     )}
                                 </Box>
 
@@ -393,39 +394,63 @@ export const Header = () => {
                                     '&::-webkit-scrollbar': { width: '6px' },
                                     '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '10px' }
                                 }}>
-                                    {notifications.length > 0 ? (
-                                        notifications.map((notif, index) => (
+                                    {adminUnreadNotifications.length > 0 ? (
+                                        adminUnreadNotifications.map((notif) => (
                                             <MenuItem
-                                                key={index}
+                                                key={notif.id}
                                                 onClick={() => {
-                                                    navigate(notif.targetUrl);
+                                                    markAsRead(notif.id);
+                                                    if (notif.targetUrl) {
+                                                        navigate(notif.targetUrl);
+                                                    }
                                                     handleCloseNotif();
                                                 }}
                                                 sx={{
-                                                    py: 2.5,
+                                                    py: 2,
                                                     px: 3,
-                                                    borderBottom: '1px solid rgba(145, 158, 171, 0.08)',
+                                                    borderBottom: '1px solid rgba(145, 158, 171, 0.05)',
                                                     display: 'flex',
                                                     flexDirection: 'column',
                                                     alignItems: 'flex-start',
                                                     whiteSpace: 'normal',
+                                                    backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                                                    transition: 'all 0.2s ease-in-out',
                                                     '&:hover': {
-                                                        backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
                                                         transform: 'translateX(4px)',
-                                                        transition: 'all 0.2s ease-in-out'
                                                     }
                                                 }}
                                             >
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6', flexShrink: 0 }} />
-                                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a202c' }}>{notif.title}</Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, width: '100%' }}>
+                                                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#3b82f6', flexShrink: 0, boxShadow: '0 0 8px rgba(59, 130, 246, 0.4)' }} />
+                                                    <Typography variant="subtitle1" sx={{
+                                                        fontWeight: 800,
+                                                        fontSize: '1.15rem',
+                                                        color: '#1a202c',
+                                                        flexGrow: 1,
+                                                        lineHeight: 1.3
+                                                    }}>
+                                                        {notif.title}
+                                                    </Typography>
                                                 </Box>
-                                                <Typography variant="body1" sx={{ color: '#4a5568', fontSize: '1.15rem', lineHeight: 1.6, ml: 2 }}>
+                                                <Typography variant="body1" sx={{
+                                                    color: '#454f5b',
+                                                    fontSize: '1rem',
+                                                    lineHeight: 1.5,
+                                                    pl: 3.5
+                                                }}>
                                                     {notif.message}
                                                 </Typography>
-                                                <Typography variant="caption" sx={{ color: 'text.disabled', mt: 1.5, ml: 2, fontSize: '0.95rem', fontWeight: 500 }}>
-                                                    {new Date(notif.timestamp).toLocaleString('vi-VN')}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, pl: 3.5, gap: 1 }}>
+                                                    <Typography variant="caption" sx={{
+                                                        color: 'text.disabled',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 500
+                                                    }}>
+                                                        {new Date(notif.timestamp).toLocaleString('vi-VN')}
+                                                    </Typography>
+                                                    <Box sx={{ px: 1, py: 0.2, borderRadius: '4px', bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700 }}>Mới</Box>
+                                                </Box>
                                             </MenuItem>
                                         ))
                                     ) : (
@@ -436,6 +461,57 @@ export const Header = () => {
                                         </Box>
                                     )}
                                 </Box>
+
+                                {/* Confirmation Dialog for Mark All As Read */}
+                                <Dialog
+                                    open={openConfirmAll}
+                                    onClose={() => setOpenConfirmAll(false)}
+                                    PaperProps={{
+                                        sx: { borderRadius: '20px', p: 1, width: '400px' }
+                                    }}
+                                >
+                                    <DialogTitle sx={{ fontWeight: 800, fontSize: '1.5rem', textAlign: 'center' }}>
+                                        Xác nhận
+                                    </DialogTitle>
+                                    <DialogContent>
+                                        <Typography sx={{ textAlign: 'center', fontSize: '1.1rem', color: 'text.secondary' }}>
+                                            Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc?
+                                        </Typography>
+                                    </DialogContent>
+                                    <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
+                                        <Button
+                                            onClick={() => setOpenConfirmAll(false)}
+                                            sx={{
+                                                borderRadius: '12px',
+                                                textTransform: 'none',
+                                                fontWeight: 700,
+                                                fontSize: '1rem',
+                                                px: 3
+                                            }}
+                                        >
+                                            Hủy
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={async () => {
+                                                await markAllAsRead();
+                                                setOpenConfirmAll(false);
+                                                handleCloseNotif();
+                                            }}
+                                            sx={{
+                                                borderRadius: '12px',
+                                                textTransform: 'none',
+                                                fontWeight: 700,
+                                                fontSize: '1rem',
+                                                px: 3,
+                                                boxShadow: '0 8px 16px rgba(59, 130, 246, 0.24)'
+                                            }}
+                                        >
+                                            Xác nhận
+                                        </Button>
+                                    </DialogActions>
+                                </Dialog>
 
                                 <Divider sx={{ borderStyle: 'dashed' }} />
 

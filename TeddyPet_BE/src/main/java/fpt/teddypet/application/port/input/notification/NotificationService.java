@@ -7,4 +7,6 @@ public interface NotificationService {
     List<NotificationResponse> getMyNotifications(int limit);
 
     void markAllAsRead();
+
+    void markAsRead(String id);
 }

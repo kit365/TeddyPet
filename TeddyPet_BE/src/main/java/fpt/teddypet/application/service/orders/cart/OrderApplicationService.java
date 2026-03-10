@@ -175,7 +175,8 @@ public class OrderApplicationService implements OrderService {
 
         switch (request.paymentMethod()) {
             case CASH -> createCashOrder(order);
-            case BANK_TRANSFER, CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
+            case BANK_TRANSFER -> createOnlinePendingOrder(order);
+            case CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
                     OrderMessages.MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED);
         }
 
@@ -197,6 +198,21 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
 
         log.info(OrderLogMessages.LOG_ORDER_CREATE_SUCCESS, savedOrder.getId(), savedOrder.getOrderCode());
+    }
+
+    private void createOnlinePendingOrder(Order order) {
+        Payment payment = Payment.builder()
+                .amount(order.getFinalAmount())
+                .paymentMethod(PaymentMethodEnum.BANK_TRANSFER)
+                .status(PaymentStatusEnum.PENDING)
+                .notes(OrderMessages.MESSAGE_NOTE_ONLINE_PENDING)
+                .build();
+
+        order.addPayment(payment);
+
+        Order savedOrder = orderRepositoryPort.save(order);
+
+        log.info("Created online pending order: id={}, code={}", savedOrder.getId(), savedOrder.getOrderCode());
     }
 
     private Order buildOrder(OrderRequest request, UUID userId) {
@@ -973,6 +989,8 @@ public class OrderApplicationService implements OrderService {
                 return "Chờ xác nhận";
             case CONFIRMED:
                 return "Đã xác nhận";
+            case PROCESSING:
+                return "Đang đóng gói";
             case DELIVERING:
                 return "Đang giao hàng";
             case DELIVERED:

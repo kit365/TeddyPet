@@ -9,5 +9,8 @@ export const notificationApi = {
     },
     markAllAsRead: () => {
         return axiosClient.put("/api/notifications/mark-as-read");
+    },
+    markAsRead: (id: string) => {
+        return axiosClient.put(`/api/notifications/mark-as-read/${id}`);
     }
 };

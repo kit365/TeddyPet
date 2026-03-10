@@ -5,12 +5,15 @@ import { OrderResponse } from "../../types/order.type";
 export const useOrderDetail = (id: string) => {
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<any>(null);
 
-    const fetchOrderDetail = useCallback(async () => {
+    const fetchOrderDetail = useCallback(async (isRefresh = false) => {
         if (!id) return;
 
-        setLoading(true);
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+
         try {
             const response = await getMyOrderById(id);
             if (response.success) {
@@ -23,6 +26,7 @@ export const useOrderDetail = (id: string) => {
             setError(err);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, [id]);
 
@@ -33,7 +37,8 @@ export const useOrderDetail = (id: string) => {
     return {
         order,
         loading,
+        refreshing,
         error,
-        refresh: fetchOrderDetail
+        refresh: () => fetchOrderDetail(true)
     };
 };

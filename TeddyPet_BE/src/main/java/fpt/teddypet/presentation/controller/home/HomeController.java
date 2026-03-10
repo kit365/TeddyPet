@@ -29,6 +29,7 @@ public class HomeController {
     private final ProductService productService;
     private final ProductCategoryService productCategoryService;
     private final ProductBrandService productBrandService;
+    private final fpt.teddypet.application.port.input.products.ProductTagService productTagService;
 
     @GetMapping("/products/category/{slug}")
     @Operation(summary = "Lấy sản phẩm theo slug danh mục", description = "Lấy danh sách sản phẩm theo slug danh mục có phân trang và sắp xếp (Public)")
@@ -129,6 +130,14 @@ public class HomeController {
     @Operation(summary = "Lấy danh sách thương hiệu", description = "Lấy tất cả thương hiệu kèm số lượng sản phẩm (Public)")
     public ResponseEntity<ApiResponse<List<ProductBrandHomeResponse>>> getHomeBrands() {
         List<ProductBrandHomeResponse> responses = productBrandService.getAllHomeBrands();
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/product-tags")
+    @Operation(summary = "Lấy danh sách tag", description = "Lấy tất cả tag kèm số lượng sản phẩm (Public)")
+    public ResponseEntity<ApiResponse<List<fpt.teddypet.application.dto.response.product.tag.ProductTagHomeResponse>>> getHomeTags() {
+        List<fpt.teddypet.application.dto.response.product.tag.ProductTagHomeResponse> responses = productTagService
+                .getAllHomeTags();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 }

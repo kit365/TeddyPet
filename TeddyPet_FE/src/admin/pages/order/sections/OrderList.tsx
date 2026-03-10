@@ -276,6 +276,16 @@ export const OrderList = () => {
         setPage(0);
     };
 
+    // Auto-refresh on global event (triggered by WebSocket notifications)
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log("🔔 Global refresh event received: Updating Order List...");
+            refresh();
+        };
+        window.addEventListener('REFRESH_ADMIN_ORDERS', handleRefresh);
+        return () => window.removeEventListener('REFRESH_ADMIN_ORDERS', handleRefresh);
+    }, [refresh]);
+
     return (
         <Card
             elevation={0}

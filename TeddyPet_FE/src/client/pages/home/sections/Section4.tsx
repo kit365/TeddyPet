@@ -1,5 +1,6 @@
 import { Button } from "../../../components/ui/Button"
 import { SaleOff } from "../../../components/ui/SaleOff"
+import { SHOP_CONTENT } from "../../../constants/shop-content";
 
 export const Section4 = () => {
     return (
@@ -12,18 +13,18 @@ export const Section4 = () => {
                     <div className="w-[50%]"></div>
                     <div className="w-[50%] py-[40px]">
                         <div className="inline-block uppercase text-white bg-[#C32643] px-[18px] py-[5px] rounded-[30px] mb-[10px]">
-                            Ưu đãi có hạn!
+                            {SHOP_CONTENT.BANNERS.LIMITED_OFFER}
                         </div>
-                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">Giảm giá đặc biệt</h3>
+                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.SPECIAL_DISCOUNT}</h3>
                         <Button
-                            content="Mua ngay"
+                            content={SHOP_CONTENT.BANNERS.BUY_NOW}
                             svgColor="text-white"
                             textColor="text-client-secondary"
                             iconColor="before:bg-client-secondary after:bg-client-secondary"
                             url="/shop"
                         />
                     </div>
-                    <SaleOff content="20% OFF" backgroundColor="bg-[#C32643]" textColor="text-white" position="absolute bottom-[10px] right-[15px]" />
+                    <SaleOff content={SHOP_CONTENT.BANNERS.OFF_20} backgroundColor="bg-[#C32643]" textColor="text-white" position="absolute bottom-[10px] right-[15px]" />
                 </div>
                 <div
                     className="bg-[#E67E20] relative flex rounded-[20px] w-[50%] h-[324px] bg-center bg-no-repeat bg-cover p-[15px]"
@@ -32,18 +33,18 @@ export const Section4 = () => {
                     <div className="w-[50%] py-[40px] pl-[40px] relative">
                         <img className="absolute left-0 top-0" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Circle-lines-Design.png" alt="" width={303} height={303} />
                         <div className="inline-block uppercase text-white bg-[#AF6900] px-[18px] py-[5px] rounded-[30px] mb-[10px]">
-                            Tiết kiệm tuyệt vời
+                            {SHOP_CONTENT.BANNERS.GREAT_SAVINGS}
                         </div>
-                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">Nhận ngay ưu đãi này</h3>
+                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.GET_OFFER_NOW}</h3>
                         <Button
-                            content="Đặt ngay"
+                            content={SHOP_CONTENT.BANNERS.ORDER_NOW}
                             svgColor="text-white"
                             textColor="text-client-secondary"
                             iconColor="before:bg-client-secondary after:bg-client-secondary"
                             url="/shop"
                         />
                     </div>
-                    <SaleOff content="40% OFF" backgroundColor="bg-white" textColor="text-client-secondary" position="absolute top-[10px] right-[15px]" />
+                    <SaleOff content={SHOP_CONTENT.BANNERS.OFF_40} backgroundColor="bg-white" textColor="text-client-secondary" position="absolute top-[10px] right-[15px]" />
                 </div>
             </div>
         </section>

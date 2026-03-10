@@ -56,6 +56,15 @@ public class NotificationApplicationService implements NotificationService {
         repositoryPort.markAllAsRead(username);
     }
 
+    @Override
+    @Transactional
+    public void markAsRead(String id) {
+        repositoryPort.findById(id).ifPresent(n -> {
+            n.setRead(true);
+            repositoryPort.save(n);
+        });
+    }
+
     private NotificationResponse mapToResponse(Notification n) {
         return NotificationResponse.builder()
                 .id(n.getId())
