@@ -12,7 +12,7 @@ export const TopBar = () => {
         "Giá nóng, ưu đãi mát – Nhận giao hàng miễn phí cho đơn trên 300k!"
     ];
     const [index, setIndex] = useState(0);
-    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
+    const [shopEmail, setShopEmail] = useState<string>('teddypetfpt@gmail.com');
     const [facebookUrl, setFacebookUrl] = useState<string>('#');
     const [instagramUrl, setInstagramUrl] = useState<string>('#');
 
