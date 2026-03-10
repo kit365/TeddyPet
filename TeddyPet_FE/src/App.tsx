@@ -1,6 +1,6 @@
 import './App.css'
 import 'react-toastify/dist/ReactToastify.css';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { Layout } from './client/layouts/Layout';
 import { LayoutAdmin } from './admin/layouts/LayoutAdmin';
@@ -54,6 +54,7 @@ function App() {
 
           {/* Admin: auth (login) không guard; còn lại qua AdminGuard + LayoutAdmin */}
           <Route path='/admin'>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
             {AdminAuthRoutes.map(({ path, element }) => (
               <Route key={path} path={path} element={element} />
             ))}
