@@ -192,6 +192,7 @@ export const Header = () => {
                         }}
                     >
                         <div className="flex items-center gap-[12px] py-[4px]">
+                            <LogoTeddyPet width="32px" height="32px" />
                             <span className="text-[2.2rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">

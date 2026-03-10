@@ -74,8 +74,8 @@ export const LoginPage = () => {
                 try {
                     // Temporarily store token for the getMe call (if needed by interceptors, though usually handled by authStore later)
                     // Better approach: Since we have the token, we can manually set it or ensure our API client uses it.
-                    // Assuming apiApp interceptor might need help if it reads from store:
-                    loginStore(response.data, token); // Optimistically set initial partial data + token
+                    // Cast to any to bypass initial missing field errors while we wait for getMe()
+                    loginStore(response.data as any, token); // Optimistically set initial partial data + token
 
                     const userResponse = await import("../../../api/auth.api").then(m => m.getMe());
                     if (userResponse.success) {
