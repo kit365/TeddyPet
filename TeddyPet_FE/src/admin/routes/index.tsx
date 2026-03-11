@@ -1,8 +1,6 @@
 import type { RouteObject } from "react-router-dom";
 import { ProductListPage } from "../pages/product/ProductListPage";
-import { ProductCreatePage } from "../pages/product/ProductCreatePage";
-import { ProductEditPage } from "../pages/product/ProductEditPage";
-import { ProductDetailPage } from "../pages/product/ProductDetailPage";
+import { ProductFormPage } from "../pages/product/ProductFormPage";
 import { ProductCategoryListPage } from "../pages/product-category/ProductCategoryListPage";
 import { ProductCategoryCreatePage } from "../pages/product-category/ProductCategoryCreatePage";
 import { ProductCategoryEditPage } from "../pages/product-category/ProductCategoryEditPage";
@@ -89,9 +87,9 @@ export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "product/list", element: <ProductListPage /> },
-    { path: "product/create", element: <ProductCreatePage /> },
-    { path: "product/edit/:id", element: <ProductEditPage /> },
-    { path: "product/detail/:id", element: <ProductDetailPage /> },
+    { path: "product/create", element: <ProductFormPage /> },
+    { path: "product/edit/:id", element: <ProductFormPage /> },
+    { path: "product/detail/:id", element: <ProductFormPage /> },
     { path: "product/attribute/list", element: <ProductAttributeListPage /> },
     { path: "product-attribute/create", element: <ProductAttributeCreatePage /> },
     { path: "product-attribute/edit/:id", element: <ProductAttributeEditPage /> },

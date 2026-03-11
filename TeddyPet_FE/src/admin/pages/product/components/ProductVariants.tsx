@@ -13,13 +13,15 @@ export const ProductVariants = ({
     onToggle,
     variants,
     onVariantsChange,
-    availableImages = []
+    availableImages = [],
+    readOnly = false
 }: {
     expanded: boolean,
     onToggle: () => void,
     variants: Variant[],
     onVariantsChange: (variants: Variant[]) => void,
-    availableImages?: any[]
+    availableImages?: any[],
+    readOnly?: boolean
 }) => {
     const { data: attributes = [] as any[] } = useProductAttributes();
 
@@ -35,6 +37,7 @@ export const ProductVariants = ({
     const [previewVariants, setPreviewVariants] = useState<Variant[]>([]);
 
     const handleOpenAttribute = (attribute: any) => {
+        if (readOnly) return;
         setCurrentAttribute(attribute);
         const attrId = String(attribute.attributeId || attribute.id);
         setTempSelectedValues(new Set(selectedAttributes[attrId] || []));
@@ -77,6 +80,7 @@ export const ProductVariants = ({
     };
 
     const handleRemoveAttribute = (attrId: string) => {
+        if (readOnly) return;
         setSelectedAttributes(prev => {
             const next = { ...prev };
             delete next[attrId];
@@ -317,26 +321,28 @@ export const ProductVariants = ({
                 </Box>
 
                 {/* 2. Action */}
-                <Box sx={{ ml: "auto !important" }}>
-                    <Button
-                        variant="contained"
-                        color="inherit"
-                        onClick={handlePreviewVariants}
-                        disabled={Object.keys(selectedAttributes).length === 0}
-                        sx={{
-                            fontSize: '1.4rem',
-                            textTransform: 'none',
-                            bgcolor: '#1C252E',
-                            color: '#fff',
-                            py: 1.2,
-                            px: 3,
-                            borderRadius: '8px',
-                            '&:hover': { bgcolor: '#454F5B' },
-                        }}
-                    >
-                        Cập nhật danh sách biến thể
-                    </Button>
-                </Box>
+                {!readOnly && (
+                    <Box sx={{ ml: "auto !important" }}>
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            onClick={handlePreviewVariants}
+                            disabled={Object.keys(selectedAttributes).length === 0}
+                            sx={{
+                                fontSize: '1.4rem',
+                                textTransform: 'none',
+                                bgcolor: '#1C252E',
+                                color: '#fff',
+                                py: 1.2,
+                                px: 3,
+                                borderRadius: '8px',
+                                '&:hover': { bgcolor: '#454F5B' },
+                            }}
+                        >
+                            Cập nhật danh sách biến thể
+                        </Button>
+                    </Box>
+                )}
 
                 {/* 3. Variants Table */}
                 {variants.length > 0 && (
@@ -345,13 +351,15 @@ export const ProductVariants = ({
                             <Typography variant="h6" sx={{ fontSize: '1.6rem', fontWeight: 600 }}>
                                 Danh sách biến thể ({variants.length})
                             </Typography>
-                            <Button
-                                color="error"
-                                onClick={() => onVariantsChange([])}
-                                sx={{ fontSize: '1.4rem', textTransform: 'none' }}
-                            >
-                                Xóa tất cả
-                            </Button>
+                            {!readOnly && (
+                                <Button
+                                    color="error"
+                                    onClick={() => onVariantsChange([])}
+                                    sx={{ fontSize: '1.4rem', textTransform: 'none' }}
+                                >
+                                    Xóa tất cả
+                                </Button>
+                            )}
                         </Stack>
 
                         <TableContainer sx={{ border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '500px' }}>
@@ -375,7 +383,7 @@ export const ProductVariants = ({
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Trọng lượng</TableCell>
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Đơn vị</TableCell>
-                                        <TableCell width={50} align="center"></TableCell>
+                                        {!readOnly && <TableCell width={50} align="center"></TableCell>}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -399,6 +407,7 @@ export const ProductVariants = ({
                                             <TableCell>
                                                 <Select
                                                     size="small"
+                                                    disabled={readOnly}
                                                     value={variant.featuredImage || ''}
                                                     onChange={(e) => {
                                                         const newVariants = [...variants];
@@ -432,6 +441,7 @@ export const ProductVariants = ({
                                             <TableCell>
                                                 <Select
                                                     size="small"
+                                                    disabled={readOnly}
                                                     value={variant.status || "ACTIVE"}
                                                     onChange={(e) => {
                                                         const newVariants = [...variants];
@@ -520,6 +530,7 @@ export const ProductVariants = ({
                                             <TableCell>
                                                 <Select
                                                     size="small"
+                                                    disabled={readOnly}
                                                     value={variant.unit || "PIECE"}
                                                     onChange={(e) => {
                                                         const newVariants = [...variants];
@@ -535,14 +546,16 @@ export const ProductVariants = ({
                                                     ))}
                                                 </Select>
                                             </TableCell>
-                                            <TableCell align="center">
-                                                <IconButton
-                                                    onClick={() => handleRemoveVariant(index)}
-                                                    sx={{ color: '#FF5630' }}
-                                                >
-                                                    <DeleteIcon sx={{ fontSize: '2rem' }} />
-                                                </IconButton>
-                                            </TableCell>
+                                            {!readOnly && (
+                                                <TableCell align="center">
+                                                    <IconButton
+                                                        onClick={() => handleRemoveVariant(index)}
+                                                        sx={{ color: '#FF5630' }}
+                                                    >
+                                                        <DeleteIcon sx={{ fontSize: '2rem' }} />
+                                                    </IconButton>
+                                                </TableCell>
+                                            )}
                                         </TableRow>
                                     ))}
                                 </TableBody>

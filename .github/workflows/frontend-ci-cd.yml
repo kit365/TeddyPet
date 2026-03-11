@@ -2,12 +2,12 @@ name: Frontend CI (Vite)
 
 on:
   push:
-    branches: [ "main", "staging", "develop" ]
+    branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_FE/**"
       - ".github/workflows/frontend-ci-cd.yml"
   pull_request:
-    branches: [ "main", "staging", "develop" ]
+    branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_FE/**"
       - ".github/workflows/frontend-ci-cd.yml"

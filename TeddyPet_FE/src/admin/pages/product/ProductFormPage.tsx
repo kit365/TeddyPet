@@ -1,5 +1,5 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress, Divider } from "@mui/material"
-import { ChevronDown as ExpandMoreIcon, RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Trash2 as TrashIcon, Check } from "lucide-react";
+import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress } from "@mui/material"
+import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Check } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
 import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useSalesUnits } from "./hooks/useProduct";
@@ -143,7 +143,6 @@ export const ProductFormPage = () => {
     const createCategoryMutation = useCreateProductCategory();
     const createTagMutation = useCreateProductTag();
     const updateTagMutation = useUpdateProductTag();
-    const deleteTagMutation = useDeleteProductTag();
 
     const [editingTag, setEditingTag] = useState<any>(null);
 
@@ -179,6 +178,7 @@ export const ProductFormPage = () => {
     };
 
     const populateForm = (p: any) => {
+        if (!p) return;
         setProductType(p.productType || "SIMPLE");
         setStatus(p.status || "DRAFT");
         setBarcode(p.barcode || "");
@@ -212,33 +212,33 @@ export const ProductFormPage = () => {
         })) || [];
         setFiles(productImages);
 
-        if (p.productType === "SIMPLE" && p.variants?.length > 0) {
+        if (p.productType === "SIMPLE" && p?.variants && p.variants.length > 0) {
             const defaultVariant = p.variants[0];
-            setSimplePrice(defaultVariant.price || 0);
-            setSimpleSalePrice(defaultVariant.salePrice || 0);
-            setSimpleStock(defaultVariant.stockQuantity || 0);
-            setSimpleSku(defaultVariant.sku || "");
-            setSimpleWeight(defaultVariant.weight || 0);
-            setSimpleUnit(defaultVariant.unit || "PIECE");
-        } else if (p.productType === "VARIABLE") {
+            setSimplePrice(defaultVariant?.price || 0);
+            setSimpleSalePrice(defaultVariant?.salePrice || 0);
+            setSimpleStock(defaultVariant?.stockQuantity || 0);
+            setSimpleSku(defaultVariant?.sku || "");
+            setSimpleWeight(defaultVariant?.weight || 0);
+            setSimpleUnit(defaultVariant?.unit || "PIECE");
+        } else if (p.productType === "VARIABLE" && p?.variants) {
             const mappedVariants: Variant[] = p.variants.map((v: any) => ({
-                id: String(v.variantId || v.id),
-                variantId: v.variantId || v.id,
-                attributes: v.attributes?.map((a: any) => ({
-                    name: a.attributeName,
-                    value: a.value,
-                    id: a.valueId || a.id
+                id: String(v?.variantId || v?.id || `v-${Math.random()}`),
+                variantId: v?.variantId || v?.id,
+                attributes: v?.attributes?.map((a: any) => ({
+                    name: a?.attributeName,
+                    value: a?.value,
+                    id: a?.valueId || a?.id
                 })) || [],
-                sku: v.sku || "",
-                originalPrice: v.price || 0,
-                price: v.salePrice || v.price || 0,
-                stock: v.stockQuantity || 0,
-                status: v.status || "ACTIVE",
-                featuredImage: v.featuredImageUrl,
-                featuredImageId: v.featuredImageId,
-                active: v.isActive !== false,
-                weight: v.weight || 0,
-                unit: v.unit || "PIECE"
+                sku: v?.sku || "",
+                originalPrice: v?.price || 0,
+                price: v?.salePrice || v?.price || 0,
+                stock: v?.stockQuantity || 0,
+                status: v?.status || "ACTIVE",
+                featuredImage: v?.featuredImageUrl,
+                featuredImageId: v?.featuredImageId,
+                active: v?.isActive !== false,
+                weight: v?.weight || 0,
+                unit: v?.unit || "PIECE"
             }));
             setVariants(mappedVariants);
         }
@@ -373,7 +373,7 @@ export const ProductFormPage = () => {
         if (productType === "SIMPLE") {
             const finalSku = simpleSku || generateSKU(name);
             variantsPayload = [{
-                variantId: mode === 'edit' && product?.productType === "SIMPLE" ? product.variants[0]?.variantId : null,
+                variantId: mode === 'edit' && product?.productType === "SIMPLE" && product?.variants?.[0] ? product.variants[0]?.variantId : null,
                 name: "Default",
                 price: Number(simplePrice),
                 salePrice: (Number(simpleSalePrice) > 0 && Number(simpleSalePrice) < Number(simplePrice)) ? Number(simpleSalePrice) : null,
@@ -473,7 +473,7 @@ export const ProductFormPage = () => {
             });
         } else {
             createProductMutation.mutate(finalPayload, {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
                     if (response?.success === false) {
                         toast.error(response?.message || "Tạo sản phẩm thất bại");
                     } else {
@@ -906,9 +906,37 @@ export const ProductFormPage = () => {
                     </Stack>
                 </form>
 
-                <QuickCreateDialog open={openQuickBrand} onClose={() => setOpenQuickBrand(false)} type="brand" onSave={handleSaveBrand} />
-                <QuickCreateDialog open={openQuickCategory} onClose={() => setOpenQuickCategory(false)} type="category" onSave={handleSaveCategory} />
-                <QuickCreateDialog open={editingTag !== null || openQuickTag} onClose={() => { setOpenQuickTag(false); setEditingTag(null); }} type="tag" onSave={handleSaveTag} editingData={editingTag} />
+                <QuickCreateDialog 
+                    open={openQuickBrand} 
+                    onClose={() => setOpenQuickBrand(false)} 
+                    title="Thương hiệu mới" 
+                    fields={[
+                        { key: 'name', label: 'Tên thương hiệu', required: true },
+                        { key: 'description', label: 'Mô tả', type: 'multiline' }
+                    ]}
+                    onSave={handleSaveBrand} 
+                />
+                <QuickCreateDialog 
+                    open={openQuickCategory} 
+                    onClose={() => setOpenQuickCategory(false)} 
+                    title="Danh mục mới" 
+                    fields={[
+                        { key: 'name', label: 'Tên danh mục', required: true },
+                        { key: 'description', label: 'Mô tả', type: 'multiline' }
+                    ]}
+                    onSave={handleSaveCategory} 
+                />
+                <QuickCreateDialog 
+                    open={editingTag !== null || openQuickTag} 
+                    onClose={() => { setOpenQuickTag(false); setEditingTag(null); }} 
+                    title={editingTag ? "Chỉnh sửa Tag" : "Tag mới"} 
+                    fields={[
+                        { key: 'name', label: 'Tên tag', required: true },
+                        { key: 'color', label: 'Màu sắc', type: 'color' }
+                    ]}
+                    onSave={handleSaveTag} 
+                    initialData={editingTag} 
+                />
             </ThemeProvider>
         </>
     );
