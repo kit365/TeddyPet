@@ -14,21 +14,21 @@ export const SideBar = () => {
     const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: getMe });
     const role = meRes?.data?.role as "ADMIN" | "STAFF" | undefined;
 
+    /** Khi chưa có role (đang load) coi như STAFF để không lộ menu chỉ dành cho ADMIN. */
+    const effectiveRole = role ?? "STAFF";
+
     const filteredOverviewData = useMemo(() => {
-        if (!role) return menuOverviewData;
         return menuOverviewData.filter((item: any) => {
             if (!item.allowedRoles) return true;
-            return item.allowedRoles.includes(role);
+            return item.allowedRoles.includes(effectiveRole);
         });
-    }, [role]);
+    }, [effectiveRole]);
 
     const filteredManagementData = useMemo(() => {
-        if (!role) return menuManagementData;
-
         return menuManagementData
             .filter((group: any) => {
                 if (!group.allowedRoles) return true;
-                return group.allowedRoles.includes(role);
+                return group.allowedRoles.includes(effectiveRole);
             })
             .map((group: any) => {
                 const rawChildren = group.children ?? [];
@@ -37,8 +37,8 @@ export const SideBar = () => {
                 // đồng thời tôn trọng allowedRoles trên từng child.
                 if (group.id === "staff") {
                     const children = rawChildren.filter((child: any) => {
-                        if (child.role && child.role !== role) return false;
-                        if (child.allowedRoles && !child.allowedRoles.includes(role)) return false;
+                        if (child.role && child.role !== effectiveRole) return false;
+                        if (child.allowedRoles && !child.allowedRoles.includes(effectiveRole)) return false;
                         return true;
                     });
                     return { ...group, children };
@@ -46,7 +46,7 @@ export const SideBar = () => {
 
                 const children = rawChildren.filter((child: any) => {
                     if (!child.allowedRoles) return true;
-                    return child.allowedRoles.includes(role);
+                    return child.allowedRoles.includes(effectiveRole);
                 });
 
                 return { ...group, children };
@@ -56,7 +56,7 @@ export const SideBar = () => {
                 if (group.children && group.children.length === 0) return false;
                 return true;
             });
-    }, [role]);
+    }, [effectiveRole]);
 
     return (
         <div className={`flex flex-col sticky top-0 h-screen bg-white border-r border-[#919eab1f] transition-[width] duration-[120ms] ease-linear overflow-y-auto overflow-x-hidden no-scrollbar flex-shrink-0 ${isOpen ? 'w-[300px]' : 'w-[88px]'}`}>
