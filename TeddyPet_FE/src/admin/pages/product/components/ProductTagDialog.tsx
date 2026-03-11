@@ -201,7 +201,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                             variant="outlined"
                             size="small"
                             value={tagName}
-                            onChange={(e) => setTagName(e.target.value)}
+                            onChange={(e) => setTagName(e.target.value.replace(/\s+/g, '_'))}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSave();
                             }}

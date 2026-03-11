@@ -1,4 +1,4 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Accordion, AccordionSummary, AccordionDetails, Typography, InputAdornment, IconButton, Tooltip, Chip } from "@mui/material"
+import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Accordion, AccordionSummary, AccordionDetails, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress } from "@mui/material"
 import { ChevronDown as ExpandMoreIcon, RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Trash2 as TrashIcon } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
@@ -37,14 +37,14 @@ const AGE_RANGE_LABELS: Record<string, string> = {
 };
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
-    "SIMPLE": "Sản phẩm đơn (Simple)",
-    "VARIABLE": "Sản phẩm biến thể (Variable)"
+    "SIMPLE": "Sản phẩm đơn",
+    "VARIABLE": "Sản phẩm có biến thể"
 };
 
 const PRODUCT_STATUS_LABELS: Record<string, string> = {
-    "DRAFT": "Nháp (Draft)",
-    "ACTIVE": "Hoạt động (Active)",
-    "HIDDEN": "Ẩn (Hidden)"
+    "DRAFT": "Nháp",
+    "ACTIVE": "Hoạt động",
+    "HIDDEN": "Ẩn"
 };
 
 export const ProductCreatePage = () => {
@@ -137,6 +137,9 @@ export const ProductCreatePage = () => {
         setPetTypes(["DOG"]);
         setMetaTitle("");
         setMetaDescription("");
+        setSimplePrice(0);
+        setSimpleSalePrice(0);
+        setSimpleStock(0);
         setSimpleWeight(0);
         setSimpleUnit("PIECE");
         setBarcode("");
@@ -209,38 +212,57 @@ export const ProductCreatePage = () => {
     };
 
     const handleSaveBrand = async (data: any) => {
-        const res = await createBrandMutation.mutateAsync(data);
-        if (res.success) {
+        try {
+            const res = await createBrandMutation.mutateAsync(data);
+            if (res?.success === false) {
+                toast.error(res?.message || "Tạo thương hiệu thất bại");
+                return;
+            }
             toast.success("Đã thêm thương hiệu mới");
-            setBrandId(res.data.id || res.data.brandId);
+            setBrandId(res?.data?.id || res?.data?.brandId || res?.id || res?.brandId);
+            setOpenQuickBrand(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thêm thương hiệu");
         }
     };
 
     const handleSaveCategory = async (data: any) => {
-        const res = await createCategoryMutation.mutateAsync(data);
-        if (res.success) {
+        try {
+            const res = await createCategoryMutation.mutateAsync(data);
+            if (res?.success === false) {
+                toast.error(res?.message || "Tạo danh mục thất bại");
+                return;
+            }
             toast.success("Đã thêm danh mục mới");
-            setSelectedCategoryIds(prev => [...prev, res.data.id || res.data.categoryId]);
+            setSelectedCategoryIds(prev => [...prev, res?.data?.id || res?.data?.categoryId || res?.id || res?.categoryId]);
+            setOpenQuickCategory(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thêm danh mục");
         }
     };
 
     const handleSaveTag = async (data: any) => {
-        if (editingTag) {
-            const res = await updateTagMutation.mutateAsync({ 
-                id: editingTag.id || editingTag.tagId, 
-                data
-            });
-            if (res.success) {
+        try {
+            if (editingTag) {
+                const res = await updateTagMutation.mutateAsync({
+                    id: editingTag.id || editingTag.tagId,
+                    data
+                });
+                if (res?.success === false) return toast.error(res?.message || "Lỗi cập nhật tag");
+                
                 toast.success("Đã cập nhật tag");
                 setEditingTag(null);
-                setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res.data.id || res.data.tagId) ? res.data : t));
-            }
-        } else {
-            const res = await createTagMutation.mutateAsync(data);
-            if (res.success) {
+                setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res?.data?.id || res?.data?.tagId || res?.id || res?.tagId) ? (res?.data || res) : t));
+            } else {
+                const res = await createTagMutation.mutateAsync(data);
+                if (res?.success === false) return toast.error(res?.message || "Lỗi thêm tag");
+                
                 toast.success("Đã thêm tag mới");
-                setSelectedTags(prev => [...prev, res.data]);
+                setSelectedTags(prev => [...prev, res?.data || res]);
             }
+            setOpenQuickTag(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thao tác với tag");
         }
     };
 
@@ -399,15 +421,15 @@ export const ProductCreatePage = () => {
 
         createProductMutation.mutate(finalPayload, {
             onSuccess: (response) => {
-                if (response.success) {
-                    toast.success(response.message || "Tạo sản phẩm thành công!");
-                    resetForm();
+                if (response?.success === false) {
+                    toast.error(response?.message || "Tạo sản phẩm thất bại");
                 } else {
-                    toast.error(response.message);
+                    toast.success(response?.message || "Tạo sản phẩm thành công!");
+                    resetForm();
                 }
             },
             onError: (error: any) => {
-                toast.error(error.message || "Có lỗi xảy ra khi tạo sản phẩm");
+                toast.error(error?.response?.data?.message || "Có lỗi xảy ra khi tạo sản phẩm");
             }
         });
     };
@@ -519,7 +541,7 @@ export const ProductCreatePage = () => {
                                             </Select>
                                         </FormControl>
                                         <Tooltip title="Thêm thương hiệu mới">
-                                            <IconButton 
+                                            <IconButton
                                                 onClick={() => setOpenQuickBrand(true)}
                                                 sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 48, height: 48 }}
                                             >
@@ -590,38 +612,46 @@ export const ProductCreatePage = () => {
                                 <Stack p="24px" gap="24px" direction="row" flexWrap="wrap">
                                     <TextField
                                         label="Giá bán gốc (VNĐ)"
-                                        type="number"
                                         fullWidth
                                         required
-                                        value={simplePrice}
-                                        onChange={(e) => setSimplePrice(Number(e.target.value))}
+                                        value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimplePrice(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
                                     <TextField
                                         label="Giá khuyến mãi (VNĐ)"
-                                        type="number"
                                         fullWidth
-                                        value={simpleSalePrice}
-                                        onChange={(e) => setSimpleSalePrice(Number(e.target.value))}
+                                        value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimpleSalePrice(val ? Number(val) : 0);
+                                        }}
                                         helperText={simpleSalePrice === 0 ? "Nhập 0 nếu không có khuyến mãi" : ""}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
                                     <TextField
                                         label="Số lượng tồn kho"
-                                        type="number"
                                         fullWidth
                                         required
-                                        value={simpleStock}
-                                        onChange={(e) => setSimpleStock(Number(e.target.value))}
+                                        value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimpleStock(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
 
                                     <TextField
                                         label="Trọng lượng (gram)"
-                                        type="number"
                                         fullWidth
-                                        value={simpleWeight}
-                                        onChange={(e) => setSimpleWeight(Number(e.target.value))}
+                                        value={simpleWeight === 0 ? "" : simpleWeight.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimpleWeight(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
                                     <FormControl sx={{ flex: 1, minWidth: '200px' }}>
@@ -702,7 +732,7 @@ export const ProductCreatePage = () => {
                                         />
                                     </Box>
                                     <Tooltip title="Thêm danh mục mới">
-                                        <IconButton 
+                                        <IconButton
                                             onClick={() => setOpenQuickCategory(true)}
                                             sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 40, height: 40, mt: 0.5 }}
                                         >
@@ -744,8 +774,8 @@ export const ProductCreatePage = () => {
                                                                     borderRadius: "8px",
                                                                     fontWeight: "700",
                                                                     border: `1px solid ${option.color || '#00B8D9'}44`,
-                                                                    '& .MuiChip-deleteIcon': { 
-                                                                        fontSize: 16, 
+                                                                    '& .MuiChip-deleteIcon': {
+                                                                        fontSize: 16,
                                                                         color: 'inherit',
                                                                         '&:hover': { color: option.color }
                                                                     }
@@ -759,8 +789,8 @@ export const ProductCreatePage = () => {
                                                 <li {...props} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px' }}>
                                                     <Typography sx={{ fontSize: '1.4rem' }}>{option.name}</Typography>
                                                     <Stack direction="row" spacing={1}>
-                                                        <IconButton 
-                                                            size="small" 
+                                                        <IconButton
+                                                            size="small"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setEditingTag(option);
@@ -768,8 +798,8 @@ export const ProductCreatePage = () => {
                                                         >
                                                             <EditIcon size={14} />
                                                         </IconButton>
-                                                        <IconButton 
-                                                            size="small" 
+                                                        <IconButton
+                                                            size="small"
                                                             color="error"
                                                             onClick={async (e) => {
                                                                 e.stopPropagation();
@@ -843,13 +873,13 @@ export const ProductCreatePage = () => {
                                         />
                                     </Box>
                                     <Tooltip title="Thêm tag mới">
-                                        <IconButton 
+                                        <IconButton
                                             onClick={() => {
                                                 setEditingTag(null);
                                                 setOpenQuickCategory(false); // Close others
                                                 setOpenQuickBrand(false);
                                                 // Using the same dialog logic but for tags
-                                                setOpenQuickCategory(false); 
+                                                setOpenQuickCategory(false);
                                                 // I should add a state for openQuickTag
                                                 setOpenQuickTag(true);
                                             }}
@@ -864,7 +894,7 @@ export const ProductCreatePage = () => {
                         </CollapsibleCard>
 
                         {/* SEO Section */}
-                        <Accordion sx={{ 
+                        <Accordion sx={{
                             boxShadow: "0 0 2px 0 #919eab33, 0 12px 24px -4px #919eab1f",
                             borderRadius: "16px !important",
                             overflow: "hidden",
@@ -904,6 +934,7 @@ export const ProductCreatePage = () => {
                             <Button
                                 type="submit"
                                 variant="contained"
+                                disabled={createProductMutation.isPending}
                                 sx={{
                                     background: '#1C252E',
                                     fontWeight: 700,
@@ -916,7 +947,7 @@ export const ProductCreatePage = () => {
                                     }
                                 }}
                             >
-                                {t('admin.product.title.create')}
+                                {createProductMutation.isPending ? <CircularProgress size={24} color="inherit" /> : t('admin.product.title.create')}
                             </Button>
                         </Box>
                     </Stack>

@@ -1,4 +1,4 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, Chip, Typography } from "@mui/material"
+import { Box, createTheme, Stack, ThemeProvider, useTheme, Button, CircularProgress, Chip, Typography, Divider } from "@mui/material"
 import { useTranslation } from "react-i18next";
 import { useProductDetail } from "./hooks/useProduct";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
@@ -7,6 +7,7 @@ import { prefixAdmin } from "../../constants/routes";
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Edit2 as EditIcon } from "lucide-react";
 
 export const ProductDetailPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -56,16 +57,23 @@ export const ProductDetailPage = () => {
 
     return (
         <ThemeProvider theme={localTheme}>
-            <Box sx={{ pb: 5 }}>
-                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 4 }}>
-                    <Box>
-                        <Stack direction="row" alignItems="center" gap={2} sx={{ mb: 1 }}>
+            <Box sx={{ margin: "0px 120px", pb: 5 }}>
+                <div className="mb-[40px] gap-[16px] flex items-start justify-end">
+                    <div className="mr-auto">
+                        <Stack direction="row" alignItems="center" gap={2}>
                             <Title title={product.name} />
                             <Chip
-                                label={product.status}
-                                variant="soft"
-                                color={product.status === "ACTIVE" ? "success" : "default"}
-                                sx={{ fontWeight: "700", fontSize: "1.2rem", borderRadius: "8px" }}
+                                label={product.status === "ACTIVE" ? "Hoạt động" : product.status === "DRAFT" ? "Bản nháp" : "Đã ẩn"}
+                                size="small"
+                                sx={{ 
+                                    fontWeight: "700", 
+                                    fontSize: "1.2rem", 
+                                    borderRadius: "6px",
+                                    bgcolor: product.status === "ACTIVE" ? "rgba(34, 197, 94, 0.16)" : "rgba(145, 158, 171, 0.16)",
+                                    color: product.status === "ACTIVE" ? "rgb(17, 141, 87)" : "rgb(99, 115, 129)",
+                                    height: "24px",
+                                    mt: "-10px"
+                                }}
                             />
                         </Stack>
                         <Breadcrumb
@@ -75,17 +83,17 @@ export const ProductDetailPage = () => {
                                 { label: t('admin.common.details') || "Chi tiết" }
                             ]}
                         />
-                    </Box>
+                    </div>
                     <Button
                         variant="contained"
                         onClick={() => navigate(`/${prefixAdmin}/product/edit/${id}`)}
-                        startIcon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>}
+                        startIcon={<EditIcon size={16} />}
                         sx={{
                             background: '#1C252E',
                             fontWeight: 700,
                             fontSize: "1.4rem",
-                            padding: "10px 20px",
-                            borderRadius: "10px",
+                            padding: "8px 16px",
+                            borderRadius: "8px",
                             textTransform: "none",
                             boxShadow: "0 8px 16px 0 rgba(28, 37, 46, 0.24)",
                             "&:hover": {
@@ -94,42 +102,40 @@ export const ProductDetailPage = () => {
                             }
                         }}
                     >
-                        {t('admin.common.edit') || "Chỉnh sửa sản phẩm"}
+                        {t('admin.common.edit') || "Chỉnh sửa"}
                     </Button>
-                </Stack>
+                </div>
 
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: "32px" }}>
                     {/* LEFT COLUMN */}
                     <Stack gap="32px">
                         <CollapsibleCard
-                            title={t('admin.common.details')}
+                            title="Thông tin chung"
                             expanded={expandedDetail}
                             onToggle={() => setExpandedDetail(!expandedDetail)}
                         >
-                            <Stack p="32px" gap="24px">
+                            <Stack p="24px" gap="24px">
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Tên sản phẩm</Typography>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, color: "#1C252E" }}>{product.name}</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.3rem", fontWeight: 600, mb: 1, textTransform: "uppercase" }}>Mô tả sản phẩm</Typography>
+                                    {product.description ? (
+                                        <Box
+                                            sx={{
+                                                fontSize: "1.5rem",
+                                                lineHeight: 1.6,
+                                                color: "#1C252E",
+                                                "& p": { mb: 1, mt: 0 }
+                                            }}
+                                            dangerouslySetInnerHTML={{ __html: product.description }}
+                                        />
+                                    ) : (
+                                        <Typography variant="body2" sx={{ color: "text.disabled", fontStyle: "italic" }}>Chưa có mô tả</Typography>
+                                    )}
                                 </Box>
 
-                                <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Mô tả chi tiết</Typography>
-                                    <Box
-                                        sx={{
-                                            p: 2.5,
-                                            bgcolor: "#F4F6F8",
-                                            borderRadius: "12px",
-                                            fontSize: "1.5rem",
-                                            lineHeight: 1.6,
-                                            color: "#454F5B",
-                                            "& p": { mb: 1 }
-                                        }}
-                                        dangerouslySetInnerHTML={{ __html: product.description || "<i>Không có mô tả</i>" }}
-                                    />
-                                </Box>
+                                <Divider sx={{ borderStyle: "dashed" }} />
 
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 2, display: "block" }}>Hình ảnh sản phẩm</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.3rem", fontWeight: 600, mb: 2, textTransform: "uppercase" }}>Hình ảnh ({product.images?.length || 0})</Typography>
                                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
                                         {product.images?.map((img: any, idx: number) => (
                                             <Box
@@ -137,18 +143,24 @@ export const ProductDetailPage = () => {
                                                 component="img"
                                                 src={img.imageUrl}
                                                 sx={{
-                                                    width: 140,
-                                                    height: 140,
-                                                    borderRadius: "16px",
+                                                    width: 120,
+                                                    height: 120,
+                                                    borderRadius: "12px",
                                                     objectFit: "cover",
-                                                    border: "2px solid #F4F6F8",
+                                                    border: "1px solid rgba(145, 158, 171, 0.24)",
                                                     transition: "transform 0.2s",
-                                                    "&:hover": { transform: "scale(1.05)" }
+                                                    "&:hover": { transform: "scale(1.05)", cursor: "pointer" }
                                                 }}
                                             />
                                         ))}
                                         {(!product.images || product.images.length === 0) && (
-                                            <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>Chưa có hình ảnh</Typography>
+                                            <Box sx={{ 
+                                                width: 120, height: 120, borderRadius: "12px", 
+                                                bgcolor: "#F4F6F8", display: "flex", alignItems: "center", 
+                                                justifyContent: "center", border: "1px dashed rgba(145, 158, 171, 0.24)"
+                                            }}>
+                                                <Typography variant="body2" sx={{ color: "text.disabled" }}>Trống</Typography>
+                                            </Box>
                                         )}
                                     </Box>
                                 </Box>
@@ -156,8 +168,8 @@ export const ProductDetailPage = () => {
                         </CollapsibleCard>
 
                         <CollapsibleCard
-                            title="Biến thể sản phẩm"
-                            subheader={product.productType === "SIMPLE" ? "Loại: Sản phẩm đơn" : "Loại: Sản phẩm nhiều biến thể"}
+                            title="Biến thể & Giá"
+                            subheader={product.productType === "SIMPLE" ? "Loại: Sản phẩm đơn" : `Loại: ${product.variants?.length || 0} biến thể`}
                             expanded={expandedVariants}
                             onToggle={() => setExpandedVariants(!expandedVariants)}
                         >
@@ -166,51 +178,56 @@ export const ProductDetailPage = () => {
                                     <Box
                                         key={idx}
                                         sx={{
-                                            p: 2.5,
-                                            mb: 2,
-                                            border: "1px solid #919eab29",
+                                            p: 2,
+                                            mb: idx === product.variants.length - 1 ? 0 : 2,
+                                            border: "1px solid rgba(145, 158, 171, 0.24)",
                                             borderRadius: "12px",
                                             display: "flex",
-                                            gap: 3,
+                                            gap: 2,
                                             alignItems: "center",
-                                            transition: "background-color 0.2s",
-                                            "&:hover": { bgcolor: "#F9FAFB" }
+                                            transition: "border-color 0.2s",
+                                            "&:hover": { borderColor: "#1C252E" }
                                         }}
                                     >
                                         <Box
                                             component="img"
                                             src={v.featuredImageUrl || product.images?.[0]?.imageUrl || "https://placehold.co/64x64"}
-                                            sx={{ width: 80, height: 80, borderRadius: "10px", objectFit: "cover" }}
+                                            sx={{ width: 64, height: 64, borderRadius: "8px", objectFit: "cover" }}
                                         />
                                         <Box flex={1}>
-                                            <Typography sx={{ fontWeight: 700, fontSize: "1.6rem", color: "#1C252E" }}>{v.name || "Biến thể mặc định"}</Typography>
-                                            <Typography variant="body2" color="text.disabled" sx={{ mb: 1 }}>SKU: {v.sku || "N/A"}</Typography>
-                                            <Stack direction="row" gap={1} flexWrap="wrap">
+                                            <Typography sx={{ fontWeight: 600, fontSize: "1.4rem", color: "#1C252E", mb: 0.5 }}>{v.name || "Default"}</Typography>
+                                            <Stack direction="row" gap={1} alignItems="center">
+                                                <Typography variant="body2" color="text.secondary">SKU: {v.sku || "N/A"}</Typography>
                                                 {v.attributes?.map((attr: any, i: number) => (
                                                     <Chip
                                                         key={i}
-                                                        label={`${attr.attributeName}: ${attr.value}`}
+                                                        label={`${attr.value}`}
                                                         size="small"
-                                                        sx={{ bgcolor: "#F4F6F8", fontWeight: 600, fontSize: "1.1rem" }}
+                                                        sx={{ bgcolor: "#F4F6F8", height: "20px", fontSize: "1.1rem" }}
                                                     />
                                                 ))}
                                             </Stack>
                                         </Box>
                                         <Box textAlign="right">
-                                            <Typography sx={{ fontWeight: 800, fontSize: "1.8rem", color: "#FF5630" }}>
-                                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v.salePrice || v.price)}
+                                            <Stack direction="row" alignItems="center" gap={1} justifyContent="flex-end">
+                                                {v.salePrice && v.salePrice > 0 ? (
+                                                    <>
+                                                        <Typography sx={{ textDecoration: "line-through", color: "text.disabled", fontSize: "1.3rem" }}>
+                                                            {v.price.toLocaleString('vi-VN')} đ
+                                                        </Typography>
+                                                        <Typography sx={{ fontWeight: 700, fontSize: "1.5rem", color: "#FF5630" }}>
+                                                            {v.salePrice.toLocaleString('vi-VN')} đ
+                                                        </Typography>
+                                                    </>
+                                                ) : (
+                                                    <Typography sx={{ fontWeight: 700, fontSize: "1.5rem", color: "#1C252E" }}>
+                                                        {v.price?.toLocaleString('vi-VN')} đ
+                                                    </Typography>
+                                                )}
+                                            </Stack>
+                                            <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                                                Tồn kho: <span style={{ fontWeight: 600, color: v.stockQuantity > 0 ? "#118D57" : "#B71D18" }}>{v.stockQuantity}</span>
                                             </Typography>
-                                            {v.salePrice && (
-                                                <Typography sx={{ textDecoration: "line-through", color: "text.disabled", fontSize: "1.3rem" }}>
-                                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v.price)}
-                                                </Typography>
-                                            )}
-                                            <Chip
-                                                label={`Kho: ${v.stockQuantity}`}
-                                                size="small"
-                                                color={v.stockQuantity > 10 ? "success" : v.stockQuantity > 0 ? "warning" : "error"}
-                                                sx={{ mt: 1, height: "24px", fontWeight: 700 }}
-                                            />
                                         </Box>
                                     </Box>
                                 ))}
@@ -221,64 +238,71 @@ export const ProductDetailPage = () => {
                     {/* RIGHT COLUMN */}
                     <Stack gap="32px">
                         <CollapsibleCard
-                            title="Thông tin phân loại"
+                            title="Tổ chức"
                             expanded={expandedExtra}
                             onToggle={() => setExpandedExtra(!expandedExtra)}
                         >
-                            <Stack p="24px" gap="24px">
+                            <Stack p="24px" gap="20px">
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Thương hiệu & Xuất xứ</Typography>
-                                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                                        <Typography sx={{ color: "text.secondary" }}>Thương hiệu:</Typography>
-                                        <Typography sx={{ fontWeight: 600 }}>{product.brand?.name || "N/A"}</Typography>
-                                    </Stack>
-                                    <Stack direction="row" justifyContent="space-between">
-                                        <Typography sx={{ color: "text.secondary" }}>Xuất xứ:</Typography>
-                                        <Typography sx={{ fontWeight: 600 }}>{product.origin || "N/A"}</Typography>
-                                    </Stack>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 0.5 }}>Thương hiệu</Typography>
+                                    <Typography sx={{ fontWeight: 600, fontSize: "1.4rem", color: "#1C252E" }}>{product.brand?.name || "—"}</Typography>
                                 </Box>
 
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Danh mục</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 0.5 }}>Xuất xứ</Typography>
+                                    <Typography sx={{ fontWeight: 600, fontSize: "1.4rem", color: "#1C252E" }}>{product.origin || "—"}</Typography>
+                                </Box>
+
+                                <Divider sx={{ borderStyle: "dashed" }} />
+
+                                <Box>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 1 }}>Danh mục</Typography>
                                     <Stack direction="row" gap={1} flexWrap="wrap">
                                         {product.categories?.map((c: any, i: number) => (
-                                            <Chip key={i} label={c.name} sx={{ bgcolor: "#E9FCD4", color: "#229A16", fontWeight: 700 }} />
+                                            <Chip key={i} label={c.name} sx={{ bgcolor: "#F4F6F8", fontSize: "1.3rem" }} />
                                         ))}
-                                        {(!product.categories || product.categories.length === 0) && <Typography variant="body2" color="text.secondary">Chưa thuộc danh mục nào</Typography>}
+                                        {(!product.categories || product.categories.length === 0) && <Typography variant="body2" color="text.disabled">—</Typography>}
                                     </Stack>
                                 </Box>
 
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Thẻ (Tags)</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 1 }}>Thẻ (Tags)</Typography>
                                     <Stack direction="row" gap={1} flexWrap="wrap">
                                         {product.tags?.map((t: any, i: number) => (
-                                            <Chip key={i} label={t.name} variant="soft" sx={{ bgcolor: "rgba(0, 184, 217, 0.16)", color: "#006C9C", fontWeight: 700 }} />
+                                            <Chip key={i} label={t.name} size="small" sx={{ bgcolor: "rgba(0, 184, 217, 0.16)", color: "#006C9C", fontWeight: 600 }} />
                                         ))}
-                                        {(!product.tags || product.tags.length === 0) && <Typography variant="body2" color="text.secondary">Chưa có thẻ</Typography>}
+                                        {(!product.tags || product.tags.length === 0) && <Typography variant="body2" color="text.disabled">—</Typography>}
                                     </Stack>
                                 </Box>
+                                
+                                <Divider sx={{ borderStyle: "dashed" }} />
 
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Mã vạch (Barcode)</Typography>
-                                    <Typography sx={{ fontFamily: "monospace", fontSize: "1.4rem", p: 1, bgcolor: "#F4F6F8", borderRadius: "4px", textAlign: "center" }}>
-                                        {product.barcode || "N/A"}
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 1 }}>Mã vạch (Barcode)</Typography>
+                                    <Typography sx={{ fontFamily: "monospace", fontSize: "1.4rem", p: 1.5, bgcolor: "#F4F6F8", borderRadius: "8px", textAlign: "center", fontWeight: 600, letterSpacing: 1 }}>
+                                        {product.barcode || "—"}
                                     </Typography>
                                 </Box>
                             </Stack>
                         </CollapsibleCard>
 
-                        <CollapsibleCard title="Cấu hình kỹ thuật">
+                        <CollapsibleCard 
+                            title="Chi tiết kỹ thuật"
+                            expanded={true}
+                            onToggle={() => {}}
+                        >
                             <Stack p="24px" gap="20px">
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Vật liệu</Typography>
-                                    <Typography variant="body2">{product.material || "Thông tin đang được cập nhật..."}</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 0.5 }}>Vật liệu / Thành phần</Typography>
+                                    <Typography sx={{ fontSize: "1.4rem", color: "#1C252E" }}>{product.material || "—"}</Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: "text.disabled", mb: 1, display: "block" }}>Phù hợp cho</Typography>
+                                    <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600, mb: 1 }}>Phù hợp cho</Typography>
                                     <Stack direction="row" gap={1} flexWrap="wrap">
                                         {product.petTypes?.map((pt: string, i: number) => (
-                                            <Chip key={i} label={pt} size="small" variant="outlined" />
+                                            <Chip key={i} label={pt === 'DOG' ? 'Chó' : pt === 'CAT' ? 'Mèo' : pt} size="small" variant="outlined" sx={{ fontWeight: 500 }} />
                                         ))}
+                                        {(!product.petTypes || product.petTypes.length === 0) && <Typography variant="body2" color="text.disabled">—</Typography>}
                                     </Stack>
                                 </Box>
                             </Stack>

@@ -30,10 +30,13 @@ export const Section7 = () => {
             }
         }
 
+        const validPrices = p.variants?.map((v: any) => v.salePrice > 0 ? v.salePrice : v.price).filter((p: number) => p > 0) || [];
+        const calculatedPrice = validPrices.length > 0 ? Math.min(...validPrices) : (p.price || p.minPrice || p.maxPrice || 0);
+
         return {
             id: p.productId,
             title: p.name,
-            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            price: calculatedPrice.toLocaleString('vi-VN') + 'đ',
             oldPrice: hasSale ? (p.maxPrice ?? 0).toLocaleString('vi-VN') + 'đ' : undefined,
             primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
             secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl,

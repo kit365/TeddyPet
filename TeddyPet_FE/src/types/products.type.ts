@@ -34,6 +34,10 @@ export interface IProduct {
     id: number;
     product: string;
     category: string;
+    categoryId?: number;
+    brand?: string;
+    brandId?: number;
+    petTypes?: string[];
     image: string;
     createdAt: Date | null;
     stock: number;

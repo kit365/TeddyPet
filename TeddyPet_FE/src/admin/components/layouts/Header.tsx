@@ -189,10 +189,10 @@ export const Header = () => {
                         style={{
                             paddingLeft: "40px",
                             paddingRight: "40px",
-                            height: "72px"
+                            height: "64px"
                         }}
                     >
-                        <div className="flex items-center gap-[12px] py-[4px]">
+                        <div className="flex items-center gap-[10px]">
                             <span className="text-[2.2rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">

@@ -1,15 +1,20 @@
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
-import { memo, useCallback, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import { memo, useState } from 'react';
 
 // Types
-interface Option {
+export interface Option {
     value: string;
     label: string;
+    level?: number;
+    parentId?: string;
 }
 
 interface SelectMultiProps {
@@ -17,135 +22,198 @@ interface SelectMultiProps {
     options: Option[];
     value?: string[];
     onChange?: (value: string[]) => void;
+    searchable?: boolean;
 }
 
-// CSS
-const FORM_CONTROL_STYLE = { width: "200px" };
-
+// Global premium styles
 const LABEL_STYLE = {
-    fontSize: "1.5rem",
-    color: "rgb(28, 37, 46)",
-
+    fontSize: "1.4rem",
+    color: "rgb(99, 115, 129)",
+    // Adjusted to ensure the label sits perfectly in the middle of a 40px container
+    transform: 'translate(14px, 10px) scale(1)', 
     "&.MuiInputLabel-shrink": {
-        color: "#919eab", // Màu của chữ khi đã nằm trên viền
-        fontWeight: 600,
+        color: "#1C252E",
+        fontWeight: 700,
+        transform: 'translate(14px, -8px) scale(0.75)', // Correct notch positioning
     },
 };
 
 const SELECT_SX = {
-    fontSize: "1.5rem",
-    borderRadius: "8px"
+    fontSize: "1.4rem",
+    borderRadius: "10px",
+    bgcolor: 'white',
+    height: '40px',
+    "& .MuiSelect-select": {
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        py: 0,
+        pl: 1.5,
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "rgba(145, 158, 171, 0.2)",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: "rgba(145, 158, 171, 0.4)",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#1C252E",
+        borderWidth: "1px",
+    },
 };
 
 const MENU_PROPS = {
+    disableScrollLock: true,
     PaperProps: {
         sx: {
-            borderRadius: '10px',
-            boxShadow:
-                '0px 5px 5px -3px rgba(145 158 171 / 20%), ' +
-                '0px 8px 10px 1px rgba(145 158 171 / 14%), ' +
-                '0px 3px 14px 2px rgba(145 158 171 / 12%)',
-            color: "#1C252E",
-            backgroundImage: "url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiBmaWxsPSJ1cmwoI3BhaW50MF9yYWRpYWxfNDQ2NF81NTMzOCkiIGZpbGwtb3BhY2l0eT0iMC4xIi8+CjxkZWZzPgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MF9yYWRpYWxfNDQ2NF81NTMzOCIgY3g9IjAiIGN5PSIwIiByPSIxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgZ3JhZGllbnRUcmFuc2Zvcm09InRyYW5zbGF0ZSgxMjAgMS44MTgxMmUtMDUpIHJvdGF0ZSgtNDUpIHNjYWxlKDEyMy4yNSkiPgo8c3RvcCBzdG9wLWNvbG9yPSIjMDBCOEQ5Ii8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzAwQjhEOSIgc3RvcC1vcGFjaXR5PSIwIi8+CjwvcmFkaWFsR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==), url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiBmaWxsPSJ1cmwoI3BhaW50MF9yYWRpYWxfNDQ2NF81NTMzNykiIGZpbGwtb3BhY2l0eT0iMC4xIi8+CjxkZWZzPgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MF9yYWRpYWxfNDQ2NF81NTMzNyIgY3g9IjAiIGN5PSIwIiByPSIxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgZ3JhZGllbnRUcmFuc2Zvcm09InRyYW5zbGF0ZSgwIDEyMCkgcm90YXRlKDEzNSkgc2NhbGUoMTIzLjI1KSI+CjxzdG9wIHN0b3AtY29sb3I9IiNGRjU2MzAiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkY1NjMwIiBzdG9wLW9wYWNpdHk9IjAiLz4KPC9yYWRpYWxHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K)",
-            backgroundSize: '50%, 50%',
-            backgroundRepeat: 'no-repeat',
+            borderRadius: '12px',
+            mt: 0.8,
+            boxShadow: '0 12px 24px -4px rgba(145, 158, 171, 0.16), 0 0 2px 0 rgba(145, 158, 171, 0.2)',
             backdropFilter: 'blur(20px)',
-            backgroundColor: '#ffffffe6',
-            backgroundPosition: 'right top, left bottom',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            border: '1px solid rgba(145, 158, 171, 0.12)',
+            maxHeight: 450,
         },
     },
 };
 
-const APPLY_BUTTON = {
-    marginBottom: "0px",
-    backgroundColor: "#919eab14",
-    fontWeight: "600",
-    justifyContent: "center",
-    border: "1px solid #919eab29"
-}
+export const SelectMulti = memo(({ label, options, value: valueProp, onChange, searchable }: SelectMultiProps) => {
+    const [internalValues, setInternalValues] = useState<string[]>([]);
+    const values = valueProp !== undefined ? valueProp : internalValues;
 
-const CHECKBOX_STYLE = {
-    marginLeft: "-4px",
-    marginRight: "4px",
-}
-
-export const SelectMulti = memo(({ label, options, value: valueProp, onChange }: SelectMultiProps) => {
-    const { t } = useTranslation();
-    const [internalSelectedValues, setInternalSelectedValues] = useState<string[]>([]);
-
-    // Determine which values to use: from props or internal state
-    const selectedValues = valueProp !== undefined ? valueProp : internalSelectedValues;
-
-    const handleChange = useCallback((event: SelectChangeEvent<string[]>) => {
-        const { target: { value } } = event;
-        const newValue = typeof value === 'string' ? value.split(',') : value;
+    const handleChange = (newValues: string[]) => {
+        let finalValues = [...newValues];
+        const selectedSet = new Set(newValues);
+        const added = newValues.filter(val => !values.includes(val));
+        
+        added.forEach(val => {
+            const option = options.find(o => o.value === val);
+            if (option?.parentId) {
+                let currentParentId: string | undefined = option.parentId;
+                while (currentParentId) {
+                    if (!selectedSet.has(currentParentId)) {
+                        selectedSet.add(currentParentId);
+                        finalValues.push(currentParentId);
+                    }
+                    const parentOpt = options.find(o => o.value === currentParentId);
+                    currentParentId = parentOpt?.parentId;
+                }
+            }
+        });
 
         if (onChange) {
-            onChange(newValue);
+            onChange(finalValues);
         } else {
-            setInternalSelectedValues(newValue);
+            setInternalValues(finalValues);
         }
-    }, [onChange]);
+    };
 
-    const handleClose = useCallback(() => {
-        setTimeout(() => {
-            if (document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur();
-            }
-        }, 0);
-    }, []);
-
-    const displayValue = useMemo(() => (selected: string[]) =>
-        options
-            .filter(opt => selected.includes(opt.value))
-            .map(opt => opt.label)
-            .join(', ')
-        , [options]);
+    if (searchable) {
+        return (
+            <Autocomplete
+                multiple
+                size="small"
+                options={options}
+                value={options.filter(opt => values.includes(opt.value))}
+                onChange={(_, newValue) => handleChange(newValue.map(v => v.value))}
+                getOptionLabel={(option) => option.label}
+                disableCloseOnSelect
+                renderInput={(params) => (
+                    <TextField 
+                        {...params} 
+                        label={label} 
+                        placeholder={values.length === 0 ? `Chọn ${label.toLowerCase()}...` : ''}
+                        sx={{
+                            minWidth: 220,
+                            '& .MuiInputLabel-root': LABEL_STYLE,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '10px',
+                                fontSize: '1.4rem',
+                                bgcolor: 'white',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                py: 0,
+                                '& input': {
+                                    height: '100%',
+                                    py: 0,
+                                },
+                                '& fieldset': { borderColor: 'rgba(145, 158, 171, 0.2)' },
+                                '&:hover fieldset': { borderColor: 'rgba(145, 158, 171, 0.4)' },
+                                '&.Mui-focused fieldset': { borderColor: '#1C252E' }
+                            }
+                        }}
+                    />
+                )}
+                renderOption={(props, option, { selected }) => (
+                    <li {...props} style={{ fontSize: '1.4rem' }}>
+                        <Checkbox
+                            size="small"
+                            checked={selected}
+                            sx={{ mr: 1 }}
+                        />
+                        {option.label}
+                    </li>
+                )}
+                renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                        <Chip
+                            {...getTagProps({ index })}
+                            key={option.value}
+                            label={option.label}
+                            size="small"
+                            sx={{ borderRadius: '6px', fontWeight: 600, height: 24, fontSize: '1.2rem' }}
+                        />
+                    ))
+                }
+                sx={{ width: 'auto', minWidth: 220 }}
+            />
+        );
+    }
 
     return (
-        <FormControl
-            sx={FORM_CONTROL_STYLE}
-        >
-            <InputLabel
-                id="demo-simple-select-label"
-                sx={LABEL_STYLE}
-            >
-                {label}
-            </InputLabel>
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel sx={LABEL_STYLE}>{label}</InputLabel>
             <Select
                 multiple
-                value={selectedValues}
+                value={values}
                 label={label}
-                onChange={handleChange}
-                onClose={handleClose}
-                renderValue={displayValue}
+                onChange={(e) => {
+                    const val = typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value;
+                    handleChange(val as string[]);
+                }}
+                renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, fontSize: '1.4rem' }}>
+                        {options
+                            .filter(opt => selected.includes(opt.value))
+                            .slice(0, 1) // Only show 1 to keep it clean
+                            .map(opt => opt.label)
+                            .join(', ')}
+                        {selected.length > 1 && ` +${selected.length - 1}`}
+                    </Box>
+                )}
                 sx={SELECT_SX}
                 MenuProps={MENU_PROPS}
             >
                 {options.map((option) => (
-                    <MenuItem key={option.value} value={option.value} sx={{
-                        fontWeight: selectedValues.includes(option.value) ? 550 : 400,
-                    }}>
+                    <MenuItem 
+                        key={option.value} 
+                        value={option.value} 
+                        sx={{
+                            pl: (option.level || 0) * 2 + 1.5,
+                            fontSize: '1.4rem',
+                            py: 1,
+                        }}
+                    >
                         <Checkbox
                             size="small"
-                            checked={selectedValues.includes(option.value)}
-                            sx={CHECKBOX_STYLE}
+                            checked={values.includes(option.value)}
+                            sx={{ mr: 1 }}
                         />
                         {option.label}
                     </MenuItem>
                 ))}
-                <MenuItem
-                    sx={APPLY_BUTTON}
-                    onClick={(e) => {
-                        e.stopPropagation(); // QUAN TRỌNG
-                        if (document.activeElement instanceof HTMLElement) {
-                            document.activeElement.blur();
-                        }
-                    }}
-                >
-                    {t("admin.common.apply")}
-                </MenuItem>
             </Select>
         </FormControl>
-    )
-})
+    );
+});
