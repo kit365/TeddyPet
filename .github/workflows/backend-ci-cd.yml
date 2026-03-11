@@ -2,12 +2,12 @@ name: Backend CI/CD (Guardian Edition)
 
 on:
   push:
-    branches: [ "main", "staging" ]
+    branches: [ "main", "staging", "develop" ]
     paths:
       - "TeddyPet_BE/**"
       - ".github/workflows/**"
   pull_request:
-    branches: [ "main", "staging" ]
+    branches: [ "main", "staging", "develop" ]
     paths:
       - "TeddyPet_BE/**"
       - ".github/workflows/**"
