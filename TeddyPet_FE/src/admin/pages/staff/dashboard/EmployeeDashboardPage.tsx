@@ -7,6 +7,8 @@ import { SpaTaskList } from "../../../components/staff/dashboard/SpaTaskList";
 import type { EmployeeTask, EmployeeUser } from "../../../types/employeeDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../../api/staffProfile.api";
+import { CheckSquare, Plus } from "lucide-react";
+import { toast } from "react-toastify";
 
 const mockTasks: EmployeeTask[] = [
     {
@@ -96,6 +98,10 @@ export const EmployeeDashboardPage = () => {
     const careTasks = activeTasks.filter((t) => t.type === "CARE");
     const spaTasks = activeTasks.filter((t) => t.type === "SPA");
 
+    const handleAddTask = () => {
+        toast.success("Đã mở tạo nhiệm vụ (sẽ tích hợp sau).");
+    };
+
     if (loadingProfile || !myProfile) {
         return (
             <>
@@ -107,8 +113,8 @@ export const EmployeeDashboardPage = () => {
                         { label: "Nhiệm vụ" },
                     ]}
                 />
-                <div className="px-4 pb-6 pt-3 md:px-10 md:pb-8">
-                    <div className="rounded-2xl border border-gray-100 bg-white px-4 py-6 text-sm text-slate-500 shadow-sm">
+                <div className="w-full min-h-screen bg-gray-50/50 p-6 sm:p-10">
+                    <div className="w-full rounded-2xl border border-gray-100 bg-white px-6 py-6 text-base text-slate-500 shadow-sm">
                         Đang tải thông tin nhân viên...
                     </div>
                 </div>
@@ -126,7 +132,23 @@ export const EmployeeDashboardPage = () => {
                     { label: "Nhiệm vụ" },
                 ]}
             />
-            <div className="px-4 pb-6 pt-3 md:px-10 md:pb-8">
+            <div className="w-full min-h-screen bg-gray-50/50 p-6 sm:p-10">
+                {/* Page header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <CheckSquare className="w-8 h-8 text-blue-600" />
+                        Nhiệm vụ của nhân viên
+                    </h1>
+                    <button
+                        type="button"
+                        onClick={handleAddTask}
+                        className="px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Thêm nhiệm vụ
+                    </button>
+                </div>
+
                 {/* Hero banner + status */}
                 <StatusHeader
                     user={user}
@@ -136,61 +158,61 @@ export const EmployeeDashboardPage = () => {
                 />
 
                 {/* Summary cards */}
-                <section className="mb-6 grid gap-3 md:grid-cols-4">
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm">
-                        <div>
-                            <p className="text-xs font-medium text-slate-500">Tổng nhiệm vụ</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">
-                                {pendingTasks.length + inProgressTasks.length}
-                            </p>
+                <section className="grid gap-4 md:grid-cols-4 mt-6">
+                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Tổng nhiệm vụ</p>
+                                <p className="mt-1 text-2xl font-bold text-slate-900">
+                                    {pendingTasks.length + inProgressTasks.length}
+                                </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-lg font-bold text-sky-600">
+                                T
+                            </div>
                         </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 text-sky-600 text-base font-semibold">
-                            T
+                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Đang làm</p>
+                                <p className="mt-1 text-2xl font-bold text-emerald-700">
+                                    {inProgressTasks.length}
+                                </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 text-xl font-bold">
+                                ✓
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm">
-                        <div>
-                            <p className="text-xs font-medium text-slate-500">Đang làm</p>
-                            <p className="mt-1 text-lg font-semibold text-emerald-700">
-                                {inProgressTasks.length}
-                            </p>
+                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Chờ xử lý</p>
+                                <p className="mt-1 text-2xl font-bold text-sky-700">
+                                    {pendingTasks.length}
+                                </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 text-xl font-bold">
+                                ⏱
+                            </div>
                         </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                            ✓
+                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Trạng thái</p>
+                                <p className="mt-1 text-base font-bold text-slate-900">
+                                    {user.globalStatus === "READY"
+                                        ? "Sẵn sàng"
+                                        : user.globalStatus === "BUSY"
+                                        ? "Đang làm việc"
+                                        : "Nghỉ"}
+                                </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-500 text-xl font-bold">
+                                ●
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm">
-                        <div>
-                            <p className="text-xs font-medium text-slate-500">Chờ xử lý</p>
-                            <p className="mt-1 text-lg font-semibold text-sky-700">
-                                {pendingTasks.length}
-                            </p>
-                        </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-                            ⏱
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm">
-                        <div>
-                            <p className="text-xs font-medium text-slate-500">Trạng thái</p>
-                            <p className="mt-1 text-sm font-semibold text-slate-900">
-                                {user.globalStatus === "READY"
-                                    ? "Sẵn sàng"
-                                    : user.globalStatus === "BUSY"
-                                    ? "Đang làm việc"
-                                    : "Nghỉ"}
-                            </p>
-                        </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500">
-                            ●
-                        </div>
-                    </div>
                 </section>
 
                 {/* Main content: task list */}
-                <section className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <section className="grid gap-6 mt-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                     <div>
-                        <h2 className="mb-3 text-sm font-semibold text-slate-900">
+                        <h2 className="mb-4 text-xl font-bold text-slate-900">
                             Nhiệm vụ hôm nay
                         </h2>
                         {user.role === "CARE" ? (
@@ -208,29 +230,28 @@ export const EmployeeDashboardPage = () => {
                         )}
                     </div>
 
-                    {/* Right side card – quick summary, matches dashboard aesthetic */}
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                        <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-bold text-slate-900">
                             Tóm tắt nhanh
                         </h3>
-                        <div className="space-y-3 text-xs text-slate-600">
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                        <div className="space-y-4 text-sm text-slate-600">
+                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                                 <span>Role</span>
-                                <span className="font-semibold text-slate-900">
+                                <span className="font-bold text-slate-900">
                                     {user.role === "CARE" ? "Nhân viên chăm sóc" : "Nhân viên Spa"}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                                 <span>Loại nhân viên</span>
-                                <span className="font-semibold text-slate-900">
+                                <span className="font-bold text-slate-900">
                                     {user.employmentType === "FULL_TIME"
                                         ? "Toàn thời gian"
                                         : "Bán thời gian"}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                                 <span>Đã check-in hôm nay</span>
-                                <span className="font-semibold text-slate-900">
+                                <span className="font-bold text-slate-900">
                                     {user.todayCheckedIn ? "Có" : "Chưa"}
                                 </span>
                             </div>

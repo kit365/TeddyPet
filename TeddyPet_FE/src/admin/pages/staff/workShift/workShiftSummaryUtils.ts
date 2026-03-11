@@ -16,6 +16,21 @@ export function formatTimeRange(start: string, end: string): string {
     return `${dayjs(start).format('HH:mm')} - ${dayjs(end).format('HH:mm')}`;
 }
 
+/** Màu badge theo chức vụ (pastel nền + chữ đậm). Match theo từ khóa trong tên role. */
+const ROLE_BADGE_STYLES: { keyword: string; bg: string; text: string }[] = [
+    { keyword: 'chăm sóc', bg: '#eff6ff', text: '#1d4ed8' },
+    { keyword: 'bán hàng', bg: '#fff7ed', text: '#c2410c' },
+    { keyword: 'thu ngân', bg: '#fff7ed', text: '#c2410c' },
+    { keyword: 'spa', bg: '#f5f3ff', text: '#6d28d9' },
+    { keyword: 'groomer', bg: '#f5f3ff', text: '#6d28d9' },
+];
+const DEFAULT_BADGE = { bg: '#f1f5f9', text: '#475569' };
+export function getRoleBadgeStyle(roleName: string): { bg: string; text: string } {
+    const lower = roleName.toLowerCase();
+    const found = ROLE_BADGE_STYLES.find((r) => lower.includes(r.keyword));
+    return found ?? DEFAULT_BADGE;
+}
+
 export interface SummaryStaffItem {
     name: string;
     roleName: string;

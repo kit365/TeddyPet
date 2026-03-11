@@ -231,6 +231,7 @@ export const useRegisterForShift = () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-registrations'] });
+            qc.invalidateQueries({ queryKey: ['admin-shifts'] });
         },
     });
 };
@@ -244,6 +245,7 @@ export const useCancelMyRegistration = () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-registrations'] });
+            qc.invalidateQueries({ queryKey: ['admin-shifts'] });
         },
     });
 };
