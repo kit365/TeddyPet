@@ -34,6 +34,16 @@ export const serviceUpsertSchema = z.object({
     metaDescription: z.string().max(500).optional(),
     isActive: z.boolean().default(true),
     isRequiredRoom: z.boolean().optional().default(false),
+    // Refund Policy
+    beforeDeadlineRefundPct: z.coerce.number().min(0).max(100).optional(),
+    afterDeadlineRefundPct: z.coerce.number().min(0).max(100).optional(),
+    noShowRefundPct: z.coerce.number().min(0).max(100).optional(),
+    noShowPenalty: z.coerce.number().min(0).optional(),
+    allowReschedule: z.boolean().optional().default(true),
+    rescheduleDeadlineHours: z.coerce.number().min(0).optional(),
+    rescheduleLimit: z.coerce.number().min(0).optional(),
+    allowForceMajeure: z.boolean().optional().default(true),
+    forceMajeureRefundPct: z.coerce.number().min(0).max(100).optional(),
 });
 
 export type ServiceUpsertFormValues = z.infer<typeof serviceUpsertSchema>;

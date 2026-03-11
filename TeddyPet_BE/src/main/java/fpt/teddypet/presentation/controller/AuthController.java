@@ -135,9 +135,7 @@ public class AuthController {
     // ========= Guest OTP Login cho booking =========
 
     @PostMapping("/guest-login/verify-otp")
-    @Operation(
-            summary = "Đăng nhập OTP cho khách vãng lai (booking)",
-            description = "Đăng nhập bằng mã OTP đã gửi tới email. Thành công sẽ trả về access/refresh token.")
+    @Operation(summary = "Đăng nhập OTP cho khách vãng lai (booking)", description = "Đăng nhập bằng mã OTP đã gửi tới email. Thành công sẽ trả về access/refresh token.")
     public ResponseEntity<ApiResponse<TokenResponse>> guestLoginWithOtp(@Valid @RequestBody VerifyOtpRequest request) {
         TokenResponse response = authService.loginWithOtpForEmail(request.email(), request.otpCode());
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập OTP thành công.", response));

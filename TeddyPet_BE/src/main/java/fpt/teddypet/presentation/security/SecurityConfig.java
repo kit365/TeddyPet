@@ -45,8 +45,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // Booking: cho phép mọi user (kể cả khách) xem khung giờ theo dịch vụ — ưu tiên trước
-                        .requestMatchers(HttpMethod.GET, "/api/time-slots/service/*", "/api/time-slots/service/**").permitAll()
+                        // Booking: cho phép mọi user (kể cả khách) xem khung giờ theo dịch vụ — ưu tiên
+                        // trước
+                        .requestMatchers(HttpMethod.GET, "/api/time-slots/service/*", "/api/time-slots/service/**")
+                        .permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         // Public Order APIs
                         .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
@@ -87,7 +89,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/service-categories", "/api/service-categories/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/services", "/api/services/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/service-pricings", "/api/service-pricings/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/service-pricings", "/api/service-pricings/**")
+                        .permitAll()
                         // Booking: cho phép khách xem bố trí phòng & danh sách phòng để chọn phòng
                         .requestMatchers(HttpMethod.GET, "/api/room-layout-configs", "/api/room-layout-configs/**")
                         .permitAll()
@@ -96,6 +99,7 @@ public class SecurityConfig {
                         // Booking: cho phép khách đặt lịch và tra cứu booking
                         .requestMatchers(HttpMethod.POST, "/api/bookings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/bookings/code/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/bookings/code/*/contact").permitAll()
                         // Booking deposits (giữ chỗ + xác nhận cọc): cho phép khách vãng lai
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/confirm").permitAll()

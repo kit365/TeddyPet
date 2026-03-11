@@ -10,6 +10,7 @@ import fpt.teddypet.application.dto.response.bookings.CreateBookingDepositIntent
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
+import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
@@ -48,6 +49,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final RoomRepositoryPort roomRepositoryPort;
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
     private final ObjectMapper objectMapper;
+    private final EmailServicePort emailServicePort;
 
     @Override
     public CreateBookingDepositIntentResponse createDepositIntent(CreateBookingRequest request) {
@@ -64,14 +66,14 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         // tạo booking tạm thời (không tăng currentBookings lần nữa)
         CreateBookingResponse bookingResponse = bookingClientService.createBookingWithoutTimeSlotIncrement(request);
         Booking booking = bookingRepository.findByBookingCode(bookingResponse.bookingCode())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với mã: " + bookingResponse.bookingCode()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy booking với mã: " + bookingResponse.bookingCode()));
         booking.setIsTemporary(true);
         bookingRepository.save(booking);
 
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(HOLD_MINUTES);
 
         try {
-            String draftJson = objectMapper.writeValueAsString(request);
             String holdPayloadJson = objectMapper.writeValueAsString(holdPayload);
 
             BookingDeposit deposit = BookingDeposit.builder()
@@ -79,24 +81,27 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                     .bookingCode(booking.getBookingCode())
                     .status("PENDING")
                     .expiresAt(expiresAt)
-                    .bookingDraftJson(draftJson)
                     .holdPayloadJson(holdPayloadJson)
                     .build();
 
             BookingDeposit saved = bookingDepositRepository.save(deposit);
+
+            if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                emailServicePort.sendBookingPendingDepositEmail(booking.getCustomerEmail(), booking.getBookingCode());
+            }
+
             return new CreateBookingDepositIntentResponse(
                     saved.getId(),
                     saved.getExpiresAt(),
                     booking.getId(),
-                    booking.getBookingCode()
-            );
+                    booking.getBookingCode());
         } catch (Exception e) {
             throw new IllegalStateException("Không thể tạo giữ chỗ: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public CreateBookingResponse confirmDepositAndCreateBooking(Long depositId) {
+    public CreateBookingResponse confirmDepositAndCreateBooking(Long depositId, String paymentMethod) {
         BookingDeposit deposit = bookingDepositRepository.findById(depositId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy giữ chỗ với id: " + depositId));
 
@@ -112,26 +117,37 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
 
         try {
             Booking booking = bookingRepository.findById(deposit.getBookingId())
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Không tìm thấy booking với id: " + deposit.getBookingId()));
 
             BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
-            BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage() : BigDecimal.valueOf(25);
+            BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
+                    : BigDecimal.valueOf(25);
             BigDecimal depositAmount = total
                     .multiply(percentage)
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-            booking.setDeposit(depositAmount);
             booking.setPaidAmount(depositAmount);
             booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
             booking.setIsTemporary(false);
+            if (paymentMethod != null && !paymentMethod.isBlank()) {
+                booking.setPaymentMethod(paymentMethod);
+            }
             bookingRepository.save(booking);
 
             deposit.setStatus("PAID");
             deposit.setDepositPaid(true);
             deposit.setDepositPaidAt(LocalDateTime.now());
+            if (paymentMethod != null && !paymentMethod.isBlank()) {
+                deposit.setPaymentMethod(paymentMethod);
+            }
             deposit.setDepositAmount(depositAmount);
             deposit.setBookingCode(booking.getBookingCode());
             bookingDepositRepository.save(deposit);
+
+            if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
+            }
 
             return new CreateBookingResponse(booking.getBookingCode());
         } catch (Exception e) {
@@ -142,7 +158,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private void validateServicesActive(CreateBookingRequest request) {
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
-            if (petRequest.services() == null) continue;
+            if (petRequest.services() == null)
+                continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
                 fpt.teddypet.domain.entity.Service svc = serviceRepositoryPort.findById(sr.serviceId())
@@ -150,16 +167,19 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                 if (!svc.isActive()) {
                     throw new BookingValidationException(
                             BookingValidationException.SERVICE_INACTIVE,
-                            "Dịch vụ \"" + (svc.getServiceName() != null ? svc.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng chọn dịch vụ khác.",
+                            "Dịch vụ \"" + (svc.getServiceName() != null ? svc.getServiceName() : "N/A")
+                                    + "\" không còn hoạt động. Vui lòng chọn dịch vụ khác.",
                             petIdx, svcIdx, svcIdx > 0, null);
                 }
                 for (Long addonId : sr.addonServiceIds()) {
-                    if (addonId == null) continue;
+                    if (addonId == null)
+                        continue;
                     fpt.teddypet.domain.entity.Service addon = serviceRepositoryPort.findById(addonId).orElse(null);
                     if (addon != null && !addon.isActive()) {
                         throw new BookingValidationException(
                                 BookingValidationException.SERVICE_INACTIVE,
-                                "Dịch vụ add-on \"" + (addon.getServiceName() != null ? addon.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng bỏ chọn hoặc chọn add-on khác.",
+                                "Dịch vụ add-on \"" + (addon.getServiceName() != null ? addon.getServiceName() : "N/A")
+                                        + "\" không còn hoạt động. Vui lòng bỏ chọn hoặc chọn add-on khác.",
                                 petIdx, svcIdx, svcIdx > 0, null);
                     }
                 }
@@ -169,8 +189,10 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
 
     /**
      * Reserve rooms/time slots for HOLD_MINUTES.
-     * - isRequiredRoom=true: mark room status OCCUPIED (and validate not overlapping dates).
-     * - isRequiredRoom=false: increment currentBookings of time_slots (validate capacity & optimistic lock).
+     * - isRequiredRoom=true: mark room status OCCUPIED (and validate not
+     * overlapping dates).
+     * - isRequiredRoom=false: increment currentBookings of time_slots (validate
+     * capacity & optimistic lock).
      */
     private ObjectNode reserveResources(CreateBookingRequest request) {
         ObjectNode payload = objectMapper.createObjectNode();
@@ -181,7 +203,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
 
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
-            if (petRequest.services() == null) continue;
+            if (petRequest.services() == null)
+                continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
                 // Hold room
@@ -196,7 +219,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                                 petIdx, svcIdx, svcIdx > 0, sr.roomId());
                     }
                     Room room = roomRepositoryPort.findById(sr.roomId())
-                            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy phòng với id: " + sr.roomId()));
+                            .orElseThrow(
+                                    () -> new EntityNotFoundException("Không tìm thấy phòng với id: " + sr.roomId()));
                     if (room.getStatus() != RoomStatusEnum.AVAILABLE) {
                         throw new BookingValidationException(
                                 BookingValidationException.ROOM_ALREADY_BOOKED,
@@ -213,7 +237,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                 if (sr.timeSlotId() != null) {
                     try {
                         TimeSlot slot = timeSlotRepositoryPort.findById(sr.timeSlotId())
-                                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + sr.timeSlotId()));
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                        "Không tìm thấy khung giờ: " + sr.timeSlotId()));
                         int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
                         int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
                         if (current >= maxCap) {
@@ -237,4 +262,3 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         return payload;
     }
 }
-

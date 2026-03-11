@@ -120,6 +120,43 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Boolean isRequiredRoom = false;
 
+    // ===== Refund Policy =====
+    @Column(name = "before_deadline_refund_pct", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal beforeDeadlineRefundPct = new BigDecimal("100.00");
+
+    @Column(name = "after_deadline_refund_pct", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal afterDeadlineRefundPct = new BigDecimal("50.00");
+
+    @Column(name = "no_show_refund_pct", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal noShowRefundPct = new BigDecimal("0.00");
+
+    @Column(name = "no_show_penalty", precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal noShowPenalty = new BigDecimal("0.00");
+
+    @Column(name = "allow_reschedule")
+    @Builder.Default
+    private Boolean allowReschedule = true;
+
+    @Column(name = "reschedule_deadline_hours")
+    @Builder.Default
+    private Integer rescheduleDeadlineHours = 24;
+
+    @Column(name = "reschedule_limit")
+    @Builder.Default
+    private Integer rescheduleLimit = 2;
+
+    @Column(name = "allow_force_majeure")
+    @Builder.Default
+    private Boolean allowForceMajeure = true;
+
+    @Column(name = "force_majeure_refund_pct", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal forceMajeureRefundPct = new BigDecimal("100.00");
+
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ServiceComboService> comboItems = new ArrayList<>();

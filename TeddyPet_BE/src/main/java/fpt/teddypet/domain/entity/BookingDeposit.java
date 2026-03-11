@@ -62,13 +62,16 @@ public class BookingDeposit extends BaseEntity {
     @Column(name = "refund_method", length = 50)
     private String refundMethod;
 
+    @Column(name = "webhook_payload", columnDefinition = "TEXT")
+    private String webhookPayload;
+
     @Column(name = "refund_reason", columnDefinition = "TEXT")
     private String refundReason;
 
     @Column(name = "due_date")
     private LocalDateTime dueDate;
 
-    @Column(name = "reminder_sent")
+    @Column(name = "reminder_sent", nullable = false)
     @Builder.Default
     private Boolean reminderSent = false;
 
@@ -91,10 +94,6 @@ public class BookingDeposit extends BaseEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @Column(name = "booking_draft")
-    private String bookingDraftJson;
-
     @Column(name = "hold_payload", nullable = false)
     private String holdPayloadJson;
 }
-

@@ -1,6 +1,7 @@
 package fpt.teddypet.application.port.input.bookings;
 
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 
@@ -21,5 +22,9 @@ public interface BookingClientService {
      * Tra cứu thông tin booking cho khách (theo bookingCode).
      */
     ClientBookingDetailResponse getClientBookingDetailByCode(String bookingCode);
-}
 
+    /**
+     * Cập nhật thông tin liên hệ của booking (tên, email, sdt, địa chỉ).
+     */
+    ClientBookingDetailResponse updateBookingContact(String bookingCode, UpdateBookingContactRequest request);
+}

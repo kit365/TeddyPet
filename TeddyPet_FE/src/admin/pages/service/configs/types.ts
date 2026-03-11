@@ -52,6 +52,16 @@ export interface IService {
     metaDescription?: string;
     isActive: boolean;
     isRequiredRoom?: boolean;
+    // Refund Policy
+    beforeDeadlineRefundPct?: number;
+    afterDeadlineRefundPct?: number;
+    noShowRefundPct?: number;
+    noShowPenalty?: number;
+    allowReschedule?: boolean;
+    rescheduleDeadlineHours?: number;
+    rescheduleLimit?: number;
+    allowForceMajeure?: boolean;
+    forceMajeureRefundPct?: number;
     isDeleted?: boolean;
     createdAt?: string;
     updatedAt?: string;

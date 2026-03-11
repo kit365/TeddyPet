@@ -124,6 +124,16 @@ export const ServiceEditPage = () => {
                 metaDescription: d.metaDescription ?? '',
                 isActive: d.isActive ?? true,
                 isRequiredRoom: d.isRequiredRoom ?? false,
+                // Refund Policy
+                beforeDeadlineRefundPct: d.beforeDeadlineRefundPct ?? undefined,
+                afterDeadlineRefundPct: d.afterDeadlineRefundPct ?? undefined,
+                noShowRefundPct: d.noShowRefundPct ?? undefined,
+                noShowPenalty: d.noShowPenalty ?? undefined,
+                allowReschedule: d.allowReschedule ?? true,
+                rescheduleDeadlineHours: d.rescheduleDeadlineHours ?? undefined,
+                rescheduleLimit: d.rescheduleLimit ?? undefined,
+                allowForceMajeure: d.allowForceMajeure ?? true,
+                forceMajeureRefundPct: d.forceMajeureRefundPct ?? undefined,
             });
         }
     }, [detailRes, reset]);
@@ -409,8 +419,7 @@ export const ServiceEditPage = () => {
                                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
                                     <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller
@@ -443,7 +452,25 @@ export const ServiceEditPage = () => {
                                 </Box>
                             </Stack>
                         </CollapsibleCard>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <CollapsibleCard title="Quy định hoàn tiền" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                    <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                    <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                </Box>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                    <SwitchButton control={control} name="allowReschedule" label="Cho phép đổi lịch" />
+                                    <SwitchButton control={control} name="allowForceMajeure" label="Cho phép bất khả kháng" />
+                                </Box>
+                            </Stack>
+                        </CollapsibleCard>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                             <Button
                                 type="submit"
                                 disabled={isPending}
@@ -508,8 +535,8 @@ export const ServiceEditPage = () => {
                                     </TableHead>
                                     <TableBody>
                                         {pricings.length === 0 ? (
-                                                <TableRow>
-                                                    <TableCell colSpan={detailRes?.data?.isRequiredRoom ? 9 : 8} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
+                                            <TableRow>
+                                                <TableCell colSpan={detailRes?.data?.isRequiredRoom ? 9 : 8} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
                                                     Chưa có quy tắc giá. Nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>

@@ -26,16 +26,18 @@ const defaultFormData: BookingStep1FormData = {
 export const BookingPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    // Preserve existing draft data if user navigates back from step 2
+    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: any; bookingCodeForEdit?: string }) | undefined;
+
     const [formData, setFormData] = useState<BookingStep1FormData>(() => {
-        const state = location.state as BookingStep1FormData | undefined;
-        return state && typeof state === "object"
+        return rawState && typeof rawState === "object"
             ? {
-                  fullName: state.fullName ?? "",
-                  email: state.email ?? "",
-                  phone: state.phone ?? "",
-                  address: state.address ?? "",
-                  message: state.message ?? "",
-              }
+                fullName: rawState.fullName ?? "",
+                email: rawState.email ?? "",
+                phone: rawState.phone ?? "",
+                address: rawState.address ?? "",
+                message: rawState.message ?? "",
+            }
             : defaultFormData;
     });
 
@@ -52,7 +54,13 @@ export const BookingPage = () => {
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
-        navigate("/dat-lich/chi-tiet", { state: formData });
+        navigate("/dat-lich/chi-tiet", {
+            state: {
+                ...formData,
+                bookingDraft: rawState?.bookingDraft,
+                bookingCodeForEdit: rawState?.bookingCodeForEdit
+            }
+        });
     };
 
     return (

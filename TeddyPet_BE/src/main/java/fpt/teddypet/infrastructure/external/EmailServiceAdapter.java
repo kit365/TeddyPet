@@ -131,6 +131,51 @@ public class EmailServiceAdapter implements EmailServicePort {
         self.sendEmail(to, subject, body);
     }
 
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingPendingDepositEmail(String to, String bookingCode) {
+        log.info("Sending booking pending deposit email to {}", to);
+        String subject = String.format("[%s] Yêu cầu thanh toán cọc đơn đặt lịch #%s", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("paymentUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/pending-deposit", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingDepositReminderEmail(String to, String bookingCode) {
+        log.info("Sending booking deposit reminder email to {}", to);
+        String subject = String.format("[%s] NHẮC NHỞ: Vui lòng thanh toán cọc đơn đặt lịch #%s", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("paymentUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/deposit-reminder", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingDepositSuccessEmail(String to, String bookingCode) {
+        log.info("Sending booking deposit success email to {}", to);
+        String subject = String.format("[%s] Thanh toán cọc thành công đơn đặt lịch #%s", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/deposit-success", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
     @Override
     public void sendPasswordResetEmail(String to, String resetToken, String resetLink) {
         log.info(EmailConstants.LOG_SEND_PASSWORD_RESET, to);

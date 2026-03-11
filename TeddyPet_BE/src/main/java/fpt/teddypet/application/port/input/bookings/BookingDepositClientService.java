@@ -12,6 +12,5 @@ public interface BookingDepositClientService {
      * Sau khi thanh toán cọc thành công: tạo booking thật từ booking_draft
      * và đánh dấu deposit đã thanh toán.
      */
-    CreateBookingResponse confirmDepositAndCreateBooking(Long depositId);
+    CreateBookingResponse confirmDepositAndCreateBooking(Long depositId, String paymentMethod);
 }
-

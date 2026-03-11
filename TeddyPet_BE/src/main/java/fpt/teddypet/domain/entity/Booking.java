@@ -1,5 +1,6 @@
 package fpt.teddypet.domain.entity;
 
+import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -40,20 +41,15 @@ public class Booking extends BaseEntity {
     @Column(name = "customer_name", length = 255)
     private String customerName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "booking_type", length = 50)
-    private String bookingType;
-
-    @Column(name = "source", length = 100)
-    private String source;
+    private BookingTypeEnum bookingType;
 
     @Column(name = "total_amount", precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
     @Column(name = "paid_amount", precision = 12, scale = 2)
     private BigDecimal paidAmount;
-
-    @Column(name = "deposit", precision = 12, scale = 2)
-    private BigDecimal deposit;
 
     @Column(name = "payment_status", length = 50)
     private String paymentStatus;
@@ -111,4 +107,3 @@ public class Booking extends BaseEntity {
     @Builder.Default
     private List<BookingPet> pets = new ArrayList<>();
 }
-
