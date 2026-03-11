@@ -3,7 +3,7 @@ import { SelectMulti } from "../../../components/ui/SelectMulti";
 import { Search } from "../../../components/ui/Search";
 import { STATUS_OPTIONS } from "../configs/constants";
 import { toolbarStyles } from "../configs/styles.config";
-import { ExportImport } from "../../../components/ui/ExportImport";
+
 import { useProductCategoryFilter } from "../context/ProductCategoryFilterContext";
 
 export const ProductCategoryToolbar = () => {
@@ -41,7 +41,7 @@ export const ProductCategoryToolbar = () => {
                     <div className="flex-1 min-w-0">
                         <Search maxWidth="100%" />
                     </div>
-                    <ExportImport />
+
                 </div>
             </div>
         </Toolbar>

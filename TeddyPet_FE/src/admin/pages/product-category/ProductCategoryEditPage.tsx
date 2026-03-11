@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material";
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, FormHelperText } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
 import { Tiptap } from "../../components/layouts/titap/Tiptap";
@@ -43,6 +43,8 @@ export const ProductCategoryEditPage = () => {
             parentId: "",
             isActive: true,
             imageUrl: "",
+            categoryType: "OTHER",
+            suitablePetTypes: ["DOG", "CAT"],
         },
     });
 
@@ -57,6 +59,10 @@ export const ProductCategoryEditPage = () => {
                 parentId: detail.parentId ? String(detail.parentId) : "",
                 isActive: detail.isActive,
                 imageUrl: detail.imageUrl || "",
+                categoryType: detail.categoryType || "OTHER",
+                suitablePetTypes: Array.isArray(detail.suitablePetTypes) && detail.suitablePetTypes.length > 0 
+                  ? detail.suitablePetTypes 
+                  : ["DOG", "CAT"],
             });
         }
     }, [detailRes, reset]);
@@ -134,6 +140,64 @@ export const ProductCategoryEditPage = () => {
                                     <CategoryParentSelect
                                         control={control}
                                         categories={nestedCategories}
+                                    />
+
+                                    <Controller
+                                        name="categoryType"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="category-type-label">Loại danh mục</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="category-type-label"
+                                                    label="Loại danh mục"
+                                                >
+                                                    <MenuItem value="FOOD">Thức ăn</MenuItem>
+                                                    <MenuItem value="ACCESSORY">Phụ kiện</MenuItem>
+                                                    <MenuItem value="TOY">Đồ chơi</MenuItem>
+                                                    <MenuItem value="HYGIENE">Vệ sinh</MenuItem>
+                                                    <MenuItem value="GROOMING">Chăm sóc lông (Grooming)</MenuItem>
+                                                    <MenuItem value="BEDDING">Chỗ nằm / Chuồng</MenuItem>
+                                                    <MenuItem value="OTHER">Khác</MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
+                                    />
+                                    
+                                    <Controller
+                                        name="suitablePetTypes"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="suitable-pet-types-label">Thú cưng phù hợp</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="suitable-pet-types-label"
+                                                    multiple
+                                                    input={<OutlinedInput label="Thú cưng phù hợp" />}
+                                                    renderValue={(selected) => {
+                                                        const map: Record<string, string> = { DOG: "Chó", CAT: "Mèo", OTHER: "Khác" };
+                                                        return (selected as string[]).map(v => map[v] || v).join(', ');
+                                                    }}
+                                                >
+                                                    <MenuItem value="DOG">
+                                                        <Checkbox checked={field.value.indexOf("DOG") > -1} />
+                                                        <ListItemText primary="Chó" />
+                                                    </MenuItem>
+                                                    <MenuItem value="CAT">
+                                                        <Checkbox checked={field.value.indexOf("CAT") > -1} />
+                                                        <ListItemText primary="Mèo" />
+                                                    </MenuItem>
+                                                    <MenuItem value="OTHER">
+                                                        <Checkbox checked={field.value.indexOf("OTHER") > -1} />
+                                                        <ListItemText primary="Khác" />
+                                                    </MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
                                     />
                                 </Box>
 

@@ -13,6 +13,10 @@ export const createCategorySchema = z.object({
     isActive: z.boolean(),
 
     imageUrl: z.string().optional(),
+
+    categoryType: z.string().min(1, "Vui lòng chọn loại danh mục"),
+
+    suitablePetTypes: z.array(z.string()).min(1, "Vui lòng chọn ít nhất 1 thú cưng phù hợp"),
 });
 
 export type CreateCategoryFormValues = z.infer<typeof createCategorySchema>;

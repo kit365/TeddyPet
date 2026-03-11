@@ -27,7 +27,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 const STATUS_OPTIONS = [
     { label: 'Tất cả', value: 'all' },
     { label: 'Đang bán', value: 'active' },
-    { label: 'Tạm ẩn', value: 'inactive' },
+    { label: 'Tạm ẩn', value: 'hidden' },
     { label: 'Bản nháp', value: 'draft' },
 ];
 
@@ -122,6 +122,7 @@ export const ProductList = () => {
                     background: 'white',
                     border: '1px solid rgba(145, 158, 171, 0.2)',
                     flex: 'none',
+                    minHeight: 600, // Prevent layout jitter
                 }}
             >
                 <Tabs
@@ -132,7 +133,7 @@ export const ProductList = () => {
                         pt: 1,
                         borderBottom: '1px solid rgba(145, 158, 171, 0.1)',
                         '& .MuiTab-root': {
-                            fontSize: '1.4rem',
+                            fontSize: '1.5rem',
                             fontWeight: 700,
                             textTransform: 'none',
                             minWidth: 100,
@@ -178,7 +179,7 @@ export const ProductList = () => {
                                 '& fieldset': { border: 'none' },
                                 '&:hover fieldset': { border: 'none' },
                                 '&.Mui-focused fieldset': { border: '1px solid #1C252E' },
-                                fontSize: '1.4rem'
+                                fontSize: '1.5rem'
                             }
                         }}
                         InputProps={{
@@ -267,8 +268,8 @@ export const ProductList = () => {
                         alignItems: 'center',
                         gap: 1
                     }}>
-                        <FilterListIcon sx={{ color: '#00A76F', fontSize: '1.6rem' }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#00A76F', fontSize: '1.3rem' }}>
+                        <FilterListIcon sx={{ color: '#00A76F', fontSize: '1.8rem' }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#00A76F', fontSize: '1.4rem' }}>
                             Kết quả tìm kiếm: 
                             <Box component="span" sx={{ ml: 0.5, color: '#1C252E' }}>
                                 {products.length} sản phẩm
@@ -319,10 +320,12 @@ export const ProductList = () => {
                             '& .MuiDataGrid-columnHeader': {
                                 bgcolor: '#F4F6F8',
                                 color: '#637381',
-                                fontWeight: 700
+                                fontWeight: 700,
+                                fontSize: '1.4rem'
                             },
                             '& .MuiDataGrid-cell': {
-                                borderBottom: '1px dashed rgba(145, 158, 171, 0.2)'
+                                borderBottom: '1px dashed rgba(145, 158, 171, 0.2)',
+                                fontSize: '1.4rem'
                             }
                         }}
                     />

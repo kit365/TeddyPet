@@ -223,38 +223,57 @@ export const ProductEditPage = () => {
     };
 
     const handleSaveBrand = async (data: any) => {
-        const res = await createBrandMutation.mutateAsync(data);
-        if (res.success) {
+        try {
+            const res = await createBrandMutation.mutateAsync(data);
+            if (res?.success === false) {
+                toast.error(res?.message || "Tạo thương hiệu thất bại");
+                return;
+            }
             toast.success("Đã thêm thương hiệu mới");
-            setBrandId(res.data.id || res.data.brandId);
+            setBrandId(res?.data?.id || res?.data?.brandId || res?.id || res?.brandId);
+            setOpenQuickBrand(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thêm thương hiệu");
         }
     };
 
     const handleSaveCategory = async (data: any) => {
-        const res = await createCategoryMutation.mutateAsync(data);
-        if (res.success) {
+        try {
+            const res = await createCategoryMutation.mutateAsync(data);
+            if (res?.success === false) {
+                toast.error(res?.message || "Tạo danh mục thất bại");
+                return;
+            }
             toast.success("Đã thêm danh mục mới");
-            setSelectedCategoryIds(prev => [...prev, res.data.id || res.data.categoryId]);
+            setSelectedCategoryIds(prev => [...prev, res?.data?.id || res?.data?.categoryId || res?.id || res?.categoryId]);
+            setOpenQuickCategory(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thêm danh mục");
         }
     };
 
     const handleSaveTag = async (data: any) => {
-        if (editingTag) {
-            const res = await updateTagMutation.mutateAsync({ 
-                id: editingTag.id || editingTag.tagId, 
-                data
-            });
-            if (res.success) {
+        try {
+            if (editingTag) {
+                const res = await updateTagMutation.mutateAsync({
+                    id: editingTag.id || editingTag.tagId,
+                    data
+                });
+                if (res?.success === false) return toast.error(res?.message || "Lỗi cập nhật tag");
+                
                 toast.success("Đã cập nhật tag");
                 setEditingTag(null);
-                setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res.data.id || res.data.tagId) ? res.data : t));
-            }
-        } else {
-            const res = await createTagMutation.mutateAsync(data);
-            if (res.success) {
+                setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res?.data?.id || res?.data?.tagId || res?.id || res?.tagId) ? (res?.data || res) : t));
+            } else {
+                const res = await createTagMutation.mutateAsync(data);
+                if (res?.success === false) return toast.error(res?.message || "Lỗi thêm tag");
+                
                 toast.success("Đã thêm tag mới");
-                setSelectedTags(prev => [...prev, res.data]);
+                setSelectedTags(prev => [...prev, res?.data || res]);
             }
+            setOpenQuickTag(false);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi thao tác với tag");
         }
     };
 
@@ -394,15 +413,15 @@ export const ProductEditPage = () => {
 
         updateProductMutation.mutate({ id, data: finalPayload }, {
             onSuccess: (response) => {
-                if (response.success) {
-                    toast.success(response.message || "Cập nhật sản phẩm thành công!");
-                    navigate(`/${prefixAdmin}/product/list`);
+                if (response?.success === false) {
+                    toast.error(response?.message || "Cập nhật sản phẩm thất bại");
                 } else {
-                    toast.error(response.message);
+                    toast.success(response?.message || "Cập nhật sản phẩm thành công!");
+                    navigate(`/${prefixAdmin}/product/list`);
                 }
             },
             onError: (error: any) => {
-                toast.error(error.message || "Có lỗi xảy ra khi cập nhật sản phẩm");
+                toast.error(error?.response?.data?.message || "Có lỗi xảy ra khi cập nhật sản phẩm");
             }
         });
     };
@@ -628,28 +647,34 @@ export const ProductEditPage = () => {
                                 <Stack p="24px" gap="24px" direction="row" flexWrap="wrap">
                                     <TextField
                                         label="Giá bán gốc (VNĐ)"
-                                        type="number"
                                         fullWidth
                                         required
-                                        value={simplePrice}
-                                        onChange={(e) => setSimplePrice(Number(e.target.value))}
+                                        value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimplePrice(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
                                     <TextField
                                         label="Giá khuyến mãi (VNĐ)"
-                                        type="number"
                                         fullWidth
-                                        value={simpleSalePrice}
-                                        onChange={(e) => setSimpleSalePrice(Number(e.target.value))}
+                                        value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimpleSalePrice(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
                                     <TextField
                                         label="Số lượng tồn kho"
-                                        type="number"
                                         fullWidth
                                         required
-                                        value={simpleStock}
-                                        onChange={(e) => setSimpleStock(Number(e.target.value))}
+                                        value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            setSimpleStock(val ? Number(val) : 0);
+                                        }}
                                         sx={{ flex: 1, minWidth: '200px' }}
                                     />
 
@@ -922,6 +947,7 @@ export const ProductEditPage = () => {
                             <Button
                                 type="submit"
                                 variant="contained"
+                                disabled={updateProductMutation.isPending}
                                 sx={{
                                     background: '#1C252E',
                                     fontWeight: 700,
@@ -932,7 +958,7 @@ export const ProductEditPage = () => {
                                     "&:hover": { background: "#454F5B" }
                                 }}
                             >
-                                {t('admin.common.save') || "Lưu thay đổi"}
+                                {updateProductMutation.isPending ? <CircularProgress size={24} color="inherit" /> : (t('admin.common.save') || "Lưu thay đổi")}
                             </Button>
                         </Box>
                     </Stack>

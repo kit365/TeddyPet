@@ -1,6 +1,7 @@
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
 import { ProductAttributeList } from "./sections/ProductAttributeList";
+import { ExportImport } from "../../components/ui/ExportImport";
 
 export const ProductAttributeListPage = () => {
     return (
@@ -14,6 +15,7 @@ export const ProductAttributeListPage = () => {
                 ]}
                 addButtonLabel="Thêm thuộc tính"
                 addButtonPath={`/${prefixAdmin}/product-attribute/create`}
+                action={<ExportImport />}
             />
 
             <ProductAttributeList />

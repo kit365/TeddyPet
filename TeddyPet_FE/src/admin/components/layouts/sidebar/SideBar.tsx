@@ -83,7 +83,7 @@ export const SideBar = () => {
                 : "py-[20px] flex justify-center"
             }>
                 <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
-                    <LogoTeddyPet width={isOpen ? "56px" : "44px"} height={isOpen ? "56px" : "44px"} />
+                    <LogoTeddyPet width={isOpen ? "72px" : "52px"} height={isOpen ? "72px" : "52px"} />
                 </Link>
             </div>
 

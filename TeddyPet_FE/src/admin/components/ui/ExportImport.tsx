@@ -1,17 +1,26 @@
-import { Menu, MenuItem, Button, SvgIcon } from "@mui/material";
-import { ExportCsv, ExportPrint } from "@mui/x-data-grid";
+import { Menu, MenuItem, Button, CircularProgress } from "@mui/material";
 import { useRef, useState } from "react";
-import { ExportIcon, ImportIcon, PrintIcon } from "../../assets/icons";
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import DescriptionIcon from '@mui/icons-material/Description';
 
-const CustomExportImportIcon = (props: any) => (
-    <SvgIcon {...props} viewBox="0 0 24 24" sx={{ width: "20px", height: "20px" }}>
-        <circle cx="12" cy="12" r="2" fill="#637381"></circle>
-        <circle cx="12" cy="5" r="2" fill="#637381"></circle>
-        <circle cx="12" cy="19" r="2" fill="#637381"></circle>
-    </SvgIcon>
-);
+interface ExportImportProps {
+    onExport?: () => void;
+    onImport?: () => void;
+    onDownloadTemplate?: () => void;
+    isExporting?: boolean;
+    isDownloadingTemplate?: boolean;
+}
 
-export const ExportImport = () => {
+export const ExportImport = ({
+    onExport,
+    onImport,
+    onDownloadTemplate,
+    isExporting = false,
+    isDownloadingTemplate = false,
+}: ExportImportProps) => {
     const [open, setOpen] = useState(false);
     const anchorRef = useRef<HTMLButtonElement>(null);
 
@@ -19,17 +28,29 @@ export const ExportImport = () => {
         <>
             <Button
                 ref={anchorRef}
-                size="small"
-                disableElevation
                 onClick={() => setOpen(true)}
+                startIcon={<ImportExportIcon sx={{ fontSize: '1.8rem !important' }} />}
+                endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '1.6rem !important' }} />}
                 sx={{
-                    fontSize: "2.4rem",
-                    borderRadius: "50%",
-                    padding: "8px",
-                    minWidth: "auto"
+                    backgroundColor: '#fff',
+                    color: '#1C252E',
+                    border: '1px solid #919eab33',
+                    fontWeight: 700,
+                    fontSize: '1.3rem',
+                    px: 2,
+                    minHeight: '40px',
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    whiteSpace: 'nowrap',
+                    '&:hover': {
+                        backgroundColor: '#F4F6F8',
+                        borderColor: '#919eab52',
+                        boxShadow: 'none',
+                    },
                 }}
             >
-                <CustomExportImportIcon />
+                Nhập / Xuất
             </Button>
 
             <Menu
@@ -38,19 +59,46 @@ export const ExportImport = () => {
                 onClose={() => setOpen(false)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            minWidth: 200,
+                            borderRadius: '12px',
+                            mt: 1,
+                            boxShadow: '0 12px 24px -4px rgba(145, 158, 171, 0.12), 0 0 2px 0 rgba(145, 158, 171, 0.2)',
+                        }
+                    }
+                }}
             >
-                <ExportPrint render={<MenuItem sx={{ gap: "16px", alignItems: "center" }} />} onClick={() => setOpen(false)}>
-                    <PrintIcon />
-                    In
-                </ExportPrint>
-                <ExportCsv render={<MenuItem sx={{ gap: "16px", alignItems: "center" }} />} onClick={() => setOpen(false)}>
-                    <ImportIcon />
-                    Nhập dữ liệu
-                </ExportCsv>
-                <ExportCsv render={<MenuItem sx={{ gap: "16px", alignItems: "center" }} />} onClick={() => setOpen(false)}>
-                    <ExportIcon />
-                    Tải xuống
-                </ExportCsv>
+                {onExport && (
+                    <MenuItem
+                        onClick={() => { onExport(); setOpen(false); }}
+                        disabled={isExporting}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                    >
+                        {isExporting ? <CircularProgress size={20} /> : <FileDownloadIcon sx={{ fontSize: '2rem', color: '#637381' }} />}
+                        Xuất Excel
+                    </MenuItem>
+                )}
+                {onImport && (
+                    <MenuItem
+                        onClick={() => { onImport(); setOpen(false); }}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                    >
+                        <FileUploadIcon sx={{ fontSize: '2rem', color: '#637381' }} />
+                        Nhập Excel
+                    </MenuItem>
+                )}
+                {onDownloadTemplate && (
+                    <MenuItem
+                        onClick={() => { onDownloadTemplate(); setOpen(false); }}
+                        disabled={isDownloadingTemplate}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                    >
+                        {isDownloadingTemplate ? <CircularProgress size={20} /> : <DescriptionIcon sx={{ fontSize: '2rem', color: '#637381' }} />}
+                        Tải Template
+                    </MenuItem>
+                )}
             </Menu>
         </>
     );
