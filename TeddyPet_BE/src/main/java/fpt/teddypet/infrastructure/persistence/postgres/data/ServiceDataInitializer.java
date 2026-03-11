@@ -193,14 +193,17 @@ public class ServiceDataInitializer implements CommandLineRunner {
         // --- Add-on nhóm Hotel (mỗi loại dịch vụ có add-on) ---
         Service buaAnThem = createServiceIfNotExists(hotelCat, "ADDON-HOTEL-BUA-AN-THEM", "Bữa ăn thêm (trong ngày)",
                 "Bữa ăn bổ sung cho thú cưng lưu trú", 0, new BigDecimal("30000"), "bữa", true, 1, false);
-        Service chamSocDacBiet = createServiceIfNotExists(hotelCat, "ADDON-HOTEL-CHAM-SOC-DAC-BIET", "Chăm sóc đặc biệt",
-                "Chăm sóc y tế/đặc biệt theo yêu cầu (giá theo thỏa thuận)", 30, new BigDecimal("50000"), "lần", true, 2, false);
+        Service chamSocDacBiet = createServiceIfNotExists(hotelCat, "ADDON-HOTEL-CHAM-SOC-DAC-BIET",
+                "Chăm sóc đặc biệt",
+                "Chăm sóc y tế/đặc biệt theo yêu cầu (giá theo thỏa thuận)", 30, new BigDecimal("50000"), "lần", true,
+                2, false);
         addAddonPricingIfEmpty(buaAnThem, new BigDecimal("30000"));
         addAddonPricingIfEmpty(chamSocDacBiet, new BigDecimal("50000"));
     }
 
     /**
-     * Seed dịch vụ Additional charge (isAdditionalCharge=true) — nhân viên thêm vào booking_pet_service khi phát sinh.
+     * Seed dịch vụ Additional charge (isAdditionalCharge=true) — nhân viên thêm vào
+     * booking_pet_service khi phát sinh.
      */
     private void initAdditionalChargeServices() {
         ServiceCategory hotelCat = categoryRepository.findBySlug("nhom-luu-tru").orElse(null);
@@ -253,6 +256,16 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .isRequiredRoom(false)
                 .displayOrder(100)
                 .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
+                // Refund Policy defaults
+                .beforeDeadlineRefundPct(new BigDecimal("100.00"))
+                .afterDeadlineRefundPct(new BigDecimal("50.00"))
+                .noShowRefundPct(BigDecimal.ZERO)
+                .noShowPenalty(BigDecimal.ZERO)
+                .allowReschedule(true)
+                .rescheduleDeadlineHours(24)
+                .rescheduleLimit(2)
+                .allowForceMajeure(true)
+                .forceMajeureRefundPct(new BigDecimal("100.00"))
                 .isActive(true)
                 .isDeleted(false)
                 .build();
@@ -285,6 +298,16 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .priceUnit(priceUnit)
                 .isAddon(isAddon)
                 .isRequiredRoom(isRequiredRoom)
+                // Refund Policy defaults
+                .beforeDeadlineRefundPct(new BigDecimal("100.00"))
+                .afterDeadlineRefundPct(new BigDecimal("50.00"))
+                .noShowRefundPct(BigDecimal.ZERO)
+                .noShowPenalty(BigDecimal.ZERO)
+                .allowReschedule(true)
+                .rescheduleDeadlineHours(24)
+                .rescheduleLimit(2)
+                .allowForceMajeure(true)
+                .forceMajeureRefundPct(new BigDecimal("100.00"))
                 .displayOrder(displayOrder)
                 .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
                 .isActive(true)

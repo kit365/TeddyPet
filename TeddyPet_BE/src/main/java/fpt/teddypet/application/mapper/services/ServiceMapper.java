@@ -33,7 +33,8 @@ public interface ServiceMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "comboItems", ignore = true)
     @Mapping(target = "pricingRules", ignore = true)
-    // basePrice is derived from ServicePricing (min active price) and should not be manually set via upsert
+    // basePrice is derived from ServicePricing (min active price) and should not be
+    // manually set via upsert
     @Mapping(target = "basePrice", ignore = true)
     @Mapping(target = "shortDescription", source = "shortDescription")
     @Mapping(target = "bufferTime", defaultExpression = "java(15)")
@@ -50,5 +51,14 @@ public interface ServiceMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "priceUnit", ignore = true)
     @Mapping(target = "isRequiredRoom", defaultExpression = "java(false)")
+    @Mapping(target = "beforeDeadlineRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"100.00\"))")
+    @Mapping(target = "afterDeadlineRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"50.00\"))")
+    @Mapping(target = "noShowRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"0.00\"))")
+    @Mapping(target = "noShowPenalty", defaultExpression = "java(new java.math.BigDecimal(\"0.00\"))")
+    @Mapping(target = "allowReschedule", defaultExpression = "java(true)")
+    @Mapping(target = "rescheduleDeadlineHours", defaultExpression = "java(24)")
+    @Mapping(target = "rescheduleLimit", defaultExpression = "java(2)")
+    @Mapping(target = "allowForceMajeure", defaultExpression = "java(true)")
+    @Mapping(target = "forceMajeureRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"100.00\"))")
     void updateServiceFromRequest(ServiceUpsertRequest request, @MappingTarget Service entity);
 }
