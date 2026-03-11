@@ -11,9 +11,9 @@ export const Copyright = () => {
             <div className="app-container flex justify-between py-[10px]">
                 <p className="text-white">
                     © 2025
-                    <Link to="/" className="hover:text-client-secondary transition-[color] duration-300 ease-linear">teddypet</Link>&nbsp;
-                    | Design by &nbsp;
-                    <Link to="/" className="hover:text-client-secondary transition-[color] duration-300 ease-linear">Designthemes.</Link>
+                    <Link to="/" className="hover:text-client-secondary transition-[color] duration-300 ease-linear"> teddypet </Link>
+                    | Design by
+                    <Link to="/" className="hover:text-client-secondary transition-[color] duration-300 ease-linear"> TeddyPet Team </Link>
                 </p>
                 <span className="text-white">
                     <Link to="/" className="hover:text-client-secondary transition-[color] duration-300 ease-linear">Privacy & Cookies</Link>

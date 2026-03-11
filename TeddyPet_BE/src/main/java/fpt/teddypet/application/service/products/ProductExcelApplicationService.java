@@ -8,7 +8,7 @@ import fpt.teddypet.application.port.input.products.ProductService;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
-import fpt.teddypet.domain.enums.ProductTypeEnum;
+import fpt.teddypet.application.mapper.products.ProductMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +17,7 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,12 +39,14 @@ public class ProductExcelApplicationService implements ProductExcelService {
     private final ProductCategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductTagRepository tagRepository;
+    private final ProductMapper productMapper;
 
     // ═══════════════════════════════════════════════════════════════════════
     // PUBLIC API
     // ═══════════════════════════════════════════════════════════════════════
 
     @Override
+    @Transactional(readOnly = true)
     public void exportProductsToExcel(HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=products_export.xlsx");
@@ -53,24 +56,29 @@ public class ProductExcelApplicationService implements ProductExcelService {
             createHeaderRow(workbook, sheet);
 
             int rowIdx = 1;
-            for (ProductResponse p : productService.getAll()) {
-                // Fetch full detail for backup-complete export (description, barcode, petTypes)
-                var detail = productService.getDetail(p.productId());
+            List<Product> products = productRepository.findAll();
+
+            for (Product entity : products) {
+                if (entity == null || entity.isDeleted())
+                    continue;
+
+                ProductResponse p = productMapper.toResponse(entity);
+
+                // Initialize lazy collections inside transaction
+                String petTypesStr = "";
+                if (entity.getPetTypes() != null && !entity.getPetTypes().isEmpty()) {
+                    petTypesStr = entity.getPetTypes().stream()
+                            .map(Enum::name)
+                            .collect(java.util.stream.Collectors.joining(", "));
+                }
 
                 if (p.variants() == null || p.variants().isEmpty()) {
-                    fillDataRow(sheet, rowIdx, p, null);
-                    // Fill backup fields from detail on the first row
-                    fillBackupFields(sheet.getRow(rowIdx), detail);
-                    rowIdx++;
+                    Row row = fillDataRow(sheet, rowIdx++, p, null);
+                    fillBackupFieldsForEntity(row, entity, petTypesStr);
                 } else {
-                    boolean first = true;
                     for (ProductVariantResponse v : p.variants()) {
-                        fillDataRow(sheet, rowIdx, p, v);
-                        if (first) {
-                            fillBackupFields(sheet.getRow(rowIdx), detail);
-                            first = false;
-                        }
-                        rowIdx++;
+                        Row row = fillDataRow(sheet, rowIdx++, p, v);
+                        fillBackupFieldsForEntity(row, entity, petTypesStr);
                     }
                 }
             }
@@ -86,31 +94,21 @@ public class ProductExcelApplicationService implements ProductExcelService {
         }
     }
 
-    /**
-     * Fill backup fields that ProductResponse doesn't include: barcode,
-     * description, petTypes
-     */
-    private void fillBackupFields(Row row,
-            fpt.teddypet.application.dto.response.product.product.ProductDetailResponse detail) {
-        if (detail == null || row == null)
+    private void fillBackupFieldsForEntity(Row row, Product entity, String petTypesStr) {
+        if (entity == null || row == null)
             return;
-        // Barcode (column index 2)
+        // Barcode
         row.getCell(ProductExcelColumn.BARCODE.getIndex()).setCellValue(
-                detail.barcode() != null ? detail.barcode() : "");
-        // Description (column index 4)
+                entity.getBarcode() != null ? entity.getBarcode() : "");
+        // Description
         row.getCell(ProductExcelColumn.DESCRIPTION.getIndex()).setCellValue(
-                detail.description() != null ? detail.description() : "");
-        // PetTypes - fetch from entity since detail doesn't have it
-        Product entity = productService.getById(detail.id());
-        if (entity != null && entity.getPetTypes() != null && !entity.getPetTypes().isEmpty()) {
-            String petTypesStr = entity.getPetTypes().stream()
-                    .map(Enum::name)
-                    .collect(java.util.stream.Collectors.joining(", "));
-            row.getCell(ProductExcelColumn.PET_TYPES.getIndex()).setCellValue(petTypesStr);
-        }
+                entity.getDescription() != null ? entity.getDescription() : "");
+        // PetTypes
+        row.getCell(ProductExcelColumn.PET_TYPES.getIndex()).setCellValue(petTypesStr);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public void downloadTemplate(HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=products_template.xlsx");
@@ -130,7 +128,8 @@ public class ProductExcelApplicationService implements ProductExcelService {
     }
 
     @Override
-    public ProductExcelService.ImportResult importProductsFromExcel(MultipartFile file) {
+    @Transactional
+    public ImportResult importProductsFromExcel(MultipartFile file) {
         if (file.isEmpty())
             throw new IllegalArgumentException("File trống, vui lòng chọn file hợp lệ.");
 
@@ -228,11 +227,12 @@ public class ProductExcelApplicationService implements ProductExcelService {
     }
 
     /** Điền dữ liệu: mỗi cột tự biết cách lấy data qua dataExtractor */
-    private void fillDataRow(Sheet sheet, int rowIndex, ProductResponse p, ProductVariantResponse v) {
+    private Row fillDataRow(Sheet sheet, int rowIndex, ProductResponse p, ProductVariantResponse v) {
         Row row = sheet.createRow(rowIndex);
         for (ProductExcelColumn col : ProductExcelColumn.values()) {
             row.createCell(col.getIndex()).setCellValue(col.getDataExtractor().apply(p, v));
         }
+        return row;
     }
 
     /** Dòng mẫu cho template - dùng Map để chỉ khai báo cột có data */
@@ -481,7 +481,7 @@ public class ProductExcelApplicationService implements ProductExcelService {
 
         return new ProductRequest(
                 dt.name(), dt.barcode(), null, dt.desc(), null, null,
-                null, null, null, null, dt.petTypes(), dt.brandId(), status, ProductTypeEnum.SIMPLE,
+                null, null, null, null, dt.petTypes(), dt.brandId(), status, null, // type = null so we don't overwrite
                 dt.categoryIds(), null, null, null, null, dt.variants());
     }
 

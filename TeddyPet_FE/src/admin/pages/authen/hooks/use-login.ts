@@ -5,6 +5,7 @@ import { AuthResponse } from "../../../../types/auth.type";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import Cookies from "js-cookie";
+import { useAuthStore } from "../../../../stores/useAuthStore";
 
 const ALLOWED_ADMIN_ROLES = ['ADMIN', 'STAFF'];
 
@@ -39,6 +40,12 @@ export const useLogin = () => {
                     toast.error("Bạn không có quyền truy cập trang quản trị. Chỉ tài khoản Admin hoặc Nhân viên mới được vào.");
                     return;
                 }
+
+                if (meRes?.data) {
+                    // Use adminLoginSync to avoid overwriting regular user cookies
+                    useAuthStore.getState().adminLoginSync(meRes.data as any, response.data.token);
+                }
+
                 toast.success(response.message);
                 setTimeout(() => navigate("/admin/dashboard"), 500);
             } catch {

@@ -5,6 +5,7 @@ export interface HomeProductParams {
     keyword?: string;
     categorySlugs?: string[];
     brandSlugs?: string[];
+    tagSlugs?: string[];
     minPrice?: number;
     maxPrice?: number;
     page?: number;
@@ -46,5 +47,10 @@ export const getProductCategoryLeaves = async () => {
 
 export const getSearchSuggestions = async (keyword: string) => {
     const response = await apiApp.get(`${BASE_PATH}/products/search/suggestions`, { params: { keyword } });
+    return response.data;
+};
+
+export const getHomeTags = async () => {
+    const response = await apiApp.get(`${BASE_PATH}/product-tags`);
     return response.data;
 };

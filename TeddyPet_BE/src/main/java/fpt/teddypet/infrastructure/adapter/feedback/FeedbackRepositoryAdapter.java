@@ -22,6 +22,11 @@ public class FeedbackRepositoryAdapter implements FeedbackRepositoryPort {
     }
 
     @Override
+    public List<Feedback> findAll() {
+        return feedbackRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    @Override
     public Optional<Feedback> findById(Long id) {
         return feedbackRepository.findById(id);
     }
@@ -43,7 +48,7 @@ public class FeedbackRepositoryAdapter implements FeedbackRepositoryPort {
 
     @Override
     public Optional<Feedback> findByOrderIdAndProductIdAndVariantId(UUID orderId, Long productId, Long variantId) {
-        return feedbackRepository.findByOrderIdAndProductIdAndVariantVariantId(orderId, productId, variantId);
+        return feedbackRepository.findByOrderIdAndProductIdAndVariantId(orderId, productId, variantId);
     }
 
     @Override
@@ -53,6 +58,6 @@ public class FeedbackRepositoryAdapter implements FeedbackRepositoryPort {
 
     @Override
     public boolean existsByOrderIdAndProductIdAndVariantId(UUID orderId, Long productId, Long variantId) {
-        return feedbackRepository.existsByOrderIdAndProductIdAndVariantVariantId(orderId, productId, variantId);
+        return feedbackRepository.existsByOrderIdAndProductIdAndVariantId(orderId, productId, variantId);
     }
 }

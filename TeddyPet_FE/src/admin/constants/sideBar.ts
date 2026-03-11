@@ -9,6 +9,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import BadgeIcon from '@mui/icons-material/Badge';
+import ForumIcon from '@mui/icons-material/Forum';
 
 export const menuOverviewData = [
     {
@@ -86,6 +87,15 @@ export const menuManagementData = [
                 path: `/${prefixAdmin}/user/list`,
                 allowedRoles: ["ADMIN"],
             },
+        ]
+    },
+    {
+        id: "feedbacks",
+        label: "Đánh giá",
+        Icon: ForumIcon,
+        allowedRoles: ["ADMIN", "STAFF"],
+        children: [
+            { id: "list", label: "Danh sách đánh giá", path: `/${prefixAdmin}/feedback/list`, allowedRoles: ["ADMIN", "STAFF"] },
         ]
     },
     {

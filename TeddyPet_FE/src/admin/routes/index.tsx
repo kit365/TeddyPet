@@ -81,6 +81,7 @@ import { prefixAdmin } from "../constants/routes";
 import { StaffRealtimePage } from "../pages/staff/realtime/StaffRealtimePage";
 import { PayrollPage } from "../pages/staff/payroll/PayrollPage";
 import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage";
+import { FeedbackListPage } from "../pages/feedback/FeedbackListPage";
 import { EmployeeDashboardPage } from "../pages/staff/dashboard/EmployeeDashboardPage";
 
 export const AdminRoutes: RouteObject[] = [
@@ -114,6 +115,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "user/detail/:id", element: <UserDetailPage /> },
     { path: "order/list", element: <OrderListPage /> },
     { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "feedback/list", element: <FeedbackListPage /> },
     { path: "booking/list", element: <BookingListPage /> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },
     { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },

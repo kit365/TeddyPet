@@ -76,3 +76,11 @@ export const returnOrder = async (id: string, reason: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/return`, { reason });
     return response.data;
 };
+
+// Payment integration
+export const createPaymentUrl = async (orderId: string, gateway: string, returnUrl?: string) => {
+    const response = await apiApp.post<ApiResponse<String>>(`/api/payments/create`, null, {
+        params: { orderId, gateway, returnUrl }
+    });
+    return response.data;
+};

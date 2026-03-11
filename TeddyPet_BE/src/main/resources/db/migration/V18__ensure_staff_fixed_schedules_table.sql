@@ -22,7 +22,7 @@ BEGIN
         ADD CONSTRAINT uk_staff_fixed_schedule_staff_position_day_slot
             UNIQUE (staff_id, position_id, day_of_week, is_afternoon);
 EXCEPTION
-    WHEN duplicate_object THEN NULL;
+    WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 
 -- Foreign keys (ignore if already exist)
@@ -32,7 +32,7 @@ BEGIN
         ADD CONSTRAINT fk_staff_fixed_schedule_staff
             FOREIGN KEY (staff_id) REFERENCES staff_profiles(staff_id);
 EXCEPTION
-    WHEN duplicate_object THEN NULL;
+    WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 
 DO $$
@@ -41,6 +41,6 @@ BEGIN
         ADD CONSTRAINT fk_staff_fixed_schedule_position
             FOREIGN KEY (position_id) REFERENCES staff_positions(position_id);
 EXCEPTION
-    WHEN duplicate_object THEN NULL;
+    WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 

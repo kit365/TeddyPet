@@ -12,6 +12,12 @@ export interface LoginPayload {
     password: string;
 }
 
+export interface ChangeUnverifiedEmailPayload {
+    oldEmail: string;
+    newEmail: string;
+    password: string;
+}
+
 export interface ResetPasswordPayload {
     token: string;
     newPassword: string;
@@ -78,6 +84,7 @@ export interface AuthState {
     token: string | null;
     isHydrated: boolean;
     login: (user: AuthUser, token: string, refreshToken?: string) => void;
+    adminLoginSync: (user: AuthUser, tokenAdmin: string) => void;
     logout: () => void;
     set: (newState: Partial<AuthState>) => void;
 }export interface ChangePasswordPayload {

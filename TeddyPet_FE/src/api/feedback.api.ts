@@ -22,6 +22,8 @@ export interface FeedbackResponse {
     variantName: string;
     rating: number;
     comment: string;
+    replyComment?: string;
+    repliedAt?: string;
     isEdited: boolean;
     isPurchased: boolean;
     createdAt: string;
@@ -53,8 +55,23 @@ export const submitFeedback = async (data: FeedbackRequest): Promise<ApiResponse
     return response.data;
 };
 
+export const getAllFeedbacks = async (): Promise<ApiResponse<FeedbackResponse[]>> => {
+    const response = await apiApp.get(BASE_PATH);
+    return response.data;
+};
+
 export const updateFeedback = async (id: number, data: FeedbackRequest): Promise<ApiResponse<FeedbackResponse>> => {
     const response = await apiApp.put(`${BASE_PATH}/${id}`, data);
+    return response.data;
+};
+
+export const replyFeedback = async (id: number, replyComment: string): Promise<ApiResponse<FeedbackResponse>> => {
+    const response = await apiApp.put(`${BASE_PATH}/${id}/reply`, { replyComment });
+    return response.data;
+};
+
+export const editFeedbackAsAdmin = async (id: number, comment: string): Promise<ApiResponse<FeedbackResponse>> => {
+    const response = await apiApp.put(`${BASE_PATH}/${id}/admin-edit`, { comment });
     return response.data;
 };
 

@@ -172,7 +172,7 @@ export const OrderHistoryPage = () => {
                                             )}
 
                                             <Link
-                                                to={`/dashboard/order/detail/${order.id}`}
+                                                to={`/dashboard/orders/${order.id}`}
                                                 className="flex items-center justify-center gap-2 h-12 px-5 bg-white border-2 border-slate-100 text-slate-500 hover:border-indigo-600 hover:text-indigo-600 rounded-xl font-bold text-[1.2rem] transition-all"
                                                 title="Chi tiết"
                                             >

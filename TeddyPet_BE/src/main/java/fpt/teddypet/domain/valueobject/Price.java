@@ -56,6 +56,9 @@ public class Price {
     }
 
     public BigDecimal getEffectivePrice() {
-        return saleAmount != null ? saleAmount : amount;
+        if (saleAmount != null && saleAmount.compareTo(BigDecimal.ZERO) > 0) {
+            return saleAmount;
+        }
+        return amount;
     }
 }

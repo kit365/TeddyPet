@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -71,6 +72,39 @@ public class PasswordResetApplicationService implements PasswordResetService {
 
     @Override
     @Transactional
+    public void forgotPasswordMobile(ForgotPasswordRequest request) {
+        log.info("[PasswordResetService] Bắt đầu yêu cầu OTP Mobile cho email: {}", request.email());
+
+        // Kiểm tra User có tồn tại không
+        User user = userRepositoryPort.findByEmail(request.email())
+                .orElseThrow(() -> new IllegalArgumentException(PasswordResetMessages.MESSAGE_EMAIL_NOT_FOUND));
+
+        // Kiểm tra User có active không
+        if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION) {
+            throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_EMAIL_NOT_VERIFIED);
+        }
+
+        if (user.getStatus() != UserStatusEnum.ACTIVE) {
+            throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_USER_NOT_ACTIVE);
+        }
+
+        String otp = generateMobileResetToken();
+
+        // Lưu OTP vào Redis
+        passwordResetTokenPort.saveToken(request.email(), otp);
+        log.info("[PasswordResetService] Đã tạo OTP Mobile cho email: {}", request.email());
+
+        try {
+            // Gửi OTP qua email
+            emailServicePort.sendSecurityOtp(user.getEmail(), otp);
+            log.info("[PasswordResetService] Đã gửi OTP Mobile thành công tới: {}", request.email());
+        } catch (Exception e) {
+            log.error("[PasswordResetService] Gửi OTP Mobile thất bại: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         log.info(PasswordResetLogMessages.LOG_RESET_PASSWORD_START);
 
@@ -118,6 +152,12 @@ public class PasswordResetApplicationService implements PasswordResetService {
     private String generateResetToken() {
         return UUID.randomUUID().toString().replace("-", "") +
                 UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+    }
+
+    private String generateMobileResetToken() {
+        SecureRandom random = new SecureRandom();
+        int otp = 100000 + random.nextInt(900000); // Tạo số từ 100000 đến 999999
+        return String.valueOf(otp);
     }
 
     private void sendPasswordResetEmail(User user, String token) {

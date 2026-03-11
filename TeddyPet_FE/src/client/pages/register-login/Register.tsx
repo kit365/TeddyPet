@@ -17,11 +17,7 @@ const registerSchema = z.object({
         .nonempty("Vui lòng nhập số điện thoại"),
     email: z.string().email("Email không đúng định dạng").nonempty("Vui lòng nhập email"),
     password: z.string()
-        .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
-        .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái viết hoa")
-        .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái viết thường")
-        .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số")
-        .regex(/[~!@#$%^&*]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt")
+        .min(5, "Mật khẩu phải có ít nhất 5 ký tự")
         .nonempty("Vui lòng nhập mật khẩu"),
     confirmPassword: z.string().nonempty("Vui lòng xác nhận mật khẩu")
 }).refine((data) => data.password === data.confirmPassword, {
@@ -47,7 +43,7 @@ export const RegisterPage = () => {
             const { confirmPassword, ...payload } = data;
             const res = await register(payload);
 
-            if (res.code === "error") {
+            if (!res.success) {
                 toast.error(res.message);
                 return;
             }

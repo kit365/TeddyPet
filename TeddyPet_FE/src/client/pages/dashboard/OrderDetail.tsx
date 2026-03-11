@@ -26,9 +26,10 @@ import {
     Download
 } from "iconoir-react";
 import { toast } from "react-toastify";
-import { useState } from "react";
-import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice } from "../../../api/order.api";
+import { useState, useEffect, useRef } from "react";
+import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice, createPaymentUrl } from "../../../api/order.api";
 import { ORDER_STATUS_MAP } from "../../../constants/status";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // Component Stepper Siêu Cấp
 const OrderStepper = ({ status }: { status: string }) => {
@@ -118,7 +119,7 @@ const OrderStepper = ({ status }: { status: string }) => {
 
 export const OrderDetailPage = () => {
     const { id } = useParams<{ id: string }>();
-    const { order, loading: fetching, refresh } = useOrderDetail(id as string);
+    const { order, loading: fetching, refreshing, refresh } = useOrderDetail(id as string);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -150,6 +151,67 @@ export const OrderDetailPage = () => {
     ];
     const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const hasToastedRef = useRef(false);
+
+    // Bộ đếm ngược cho thanh toán
+    const [timeLeft, setTimeLeft] = useState<string>("");
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const cancel = queryParams.get('cancel');
+        const code = queryParams.get('code');
+
+        if (hasToastedRef.current) return;
+
+        if (cancel === 'true') {
+            hasToastedRef.current = true;
+            toast.info("Bạn đã hủy thanh toán. Đơn hàng vẫn đang chờ bạn!");
+            navigate(location.pathname, { replace: true });
+        } else if (code === '00') {
+            hasToastedRef.current = true;
+            toast.success("Thanh toán thành công! TeddyPet đang chuẩn bị hàng cho bạn.");
+            navigate(location.pathname, { replace: true });
+
+            let count = 0;
+            const poll = setInterval(() => {
+                refresh();
+                count++;
+                if (count >= 10) clearInterval(poll);
+            }, 2000);
+        }
+    }, [location.search, refresh]);
+
+    const lastRefreshRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (order?.status === 'CONFIRMED' && order?.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' && order?.payments?.[0]?.status !== 'COMPLETED') {
+            const timer = setInterval(() => {
+                const createdAt = new Date(order.createdAt).getTime();
+                const expireAt = createdAt + 60 * 60 * 1000; // 1 tiếng
+                const now = new Date().getTime();
+                const distance = expireAt - now;
+
+                if (distance <= 0) {
+                    setTimeLeft("Hết hạn");
+                    clearInterval(timer);
+                    // Chỉ refresh 1 lần duy nhất cho mỗi đơn hàng khi vừa hết hạn
+                    if (lastRefreshRef.current !== order.id) {
+                        lastRefreshRef.current = order.id;
+                        refresh();
+                    }
+                } else {
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+                }
+            }, 1000);
+            return () => clearInterval(timer);
+        } else if (order?.status === 'CANCELLED') {
+            setTimeLeft("Đã hủy");
+        }
+    }, [order, refresh]);
 
     if (fetching || !order) {
         return (
@@ -265,6 +327,24 @@ export const OrderDetailPage = () => {
         }
     };
 
+    const handlePayment = async () => {
+        setIsSubmitting(true);
+        try {
+            const returnUrl = `${window.location.origin}/dashboard/orders/${order.id}`;
+            const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
+            if (response.success && response.data) {
+                window.open(response.data as string, "_blank");
+                toast.success("Đang mở trang thanh toán PayOS...");
+                // Reload after some time or wait for webhook
+                setTimeout(() => refresh(), 5000);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể tạo link thanh toán!");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const isWithinReturnPeriod = () => {
         if (!order.completedAt) return false;
         const completeDate = new Date(order.completedAt);
@@ -273,12 +353,19 @@ export const OrderDetailPage = () => {
         return diffInDays <= 7;
     };
 
-    const paymentInfo = order.payments?.[0];
-    const isPaid = paymentInfo?.status === 'COMPLETED';
-    const paymentMethodLabel = paymentInfo?.paymentMethod === 'CASH' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán Online (VNPay)';
+    const isPaid = order.payments?.some(p => p.status === 'COMPLETED') ?? false;
+    const paymentInfo = order.payments?.[0]; // Dùng để lấy method chính
 
     return (
-        <div className="bg-[#fcfcfc] min-h-screen pb-[120px]">
+        <div className="bg-[#fcfcfc] min-h-screen pb-[120px] relative">
+            {/* Background Refresh Loading Overlay */}
+            {refreshing && (
+                <div className="fixed top-[100px] right-[40px] z-[100] bg-white/80 backdrop-blur-sm border border-gray-100 p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-slideInRight">
+                    <div className="w-5 h-5 border-2 border-client-primary/10 border-t-client-primary rounded-full animate-spin"></div>
+                    <span className="text-[1.2rem] font-bold text-gray-500 uppercase tracking-widest">Đang cập nhật...</span>
+                </div>
+            )}
+
             <ProductBanner
                 pageTitle={`Chi tiết đơn hàng`}
                 breadcrumbs={breadcrumbs}
@@ -508,7 +595,7 @@ export const OrderDetailPage = () => {
                                         {order.status === 'COMPLETED' && (
                                             <div className="flex items-center">
                                                 <Link
-                                                    to={`/feedback?orderId=${order.id}`}
+                                                    to={`/feedback?orderId=${order.id}&productId=${item.productId}${item.variantId ? `&variantId=${item.variantId}` : ''}`}
                                                     className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[1.2rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
                                                 >
                                                     <Star className="w-4 h-4" /> Đánh giá sản phẩm
@@ -534,7 +621,11 @@ export const OrderDetailPage = () => {
                                             </div>
                                             <div>
                                                 <div className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-wider">Phương thức</div>
-                                                <div className="text-[1.4rem] font-black text-client-secondary">{paymentMethodLabel}</div>
+                                                <div className="text-[1.4rem] font-black text-client-secondary">
+                                                    {paymentInfo?.paymentMethod === 'BANK_TRANSFER'
+                                                        ? (isPaid ? 'Chuyển khoản VietQR (PayOS) - Đã thanh toán' : 'Chuyển khoản VietQR (PayOS) - Chờ thanh toán')
+                                                        : 'Thanh toán khi nhận hàng (COD)'}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -579,6 +670,14 @@ export const OrderDetailPage = () => {
                                                 <span className="font-black">-{order.discountAmount.toLocaleString()}đ</span>
                                             </div>
                                         )}
+                                        {timeLeft && timeLeft !== "Hết hạn" && (
+                                            <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl border border-amber-100 animate-pulse">
+                                                <span className="text-[1.2rem] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4" /> Thanh toán trong
+                                                </span>
+                                                <span className="text-[1.6rem] font-black text-amber-700">{timeLeft}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="pt-6 border-t-2 border-dashed border-gray-200">
                                         <div className="flex justify-between items-center">
@@ -606,6 +705,26 @@ export const OrderDetailPage = () => {
                                     {isSubmitting ? <RefreshDouble className="w-[2.4rem] h-[2.4rem] animate-spin" /> : <CheckCircle className="w-[2.4rem] h-[2.4rem]" />}
                                     {isSubmitting ? "Đang xác nhận..." : "TÔI ĐÃ NHẬN ĐƯỢC HÀNG"}
                                 </button>
+                            )}
+
+                            {/* Nút thanh toán online cho đơn đã xác nhận */}
+                            {order.status === 'CONFIRMED' && paymentInfo?.paymentMethod === 'BANK_TRANSFER' && !isPaid && (
+                                <div className="space-y-4 mt-10">
+                                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-[20px] flex items-start gap-4 animate-fadeIn">
+                                        <WarningCircle className="w-6 h-6 text-blue-500 shrink-0" />
+                                        <p className="text-[1.3rem] font-medium text-blue-700 leading-relaxed">
+                                            <strong>Lưu ý:</strong> Vui lòng thanh toán <strong>chính xác số tiền</strong> ({order.finalAmount.toLocaleString()}đ) để hệ thống tự động xác nhận đơn hàng ngay lập tức. Nếu chuyển sai số tiền, việc xác nhận sẽ mất nhiều thời gian hơn.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={isSubmitting || timeLeft === "Hết hạn"}
+                                        className="w-full h-[65px] bg-client-primary hover:bg-client-secondary text-white font-black text-[1.7rem] rounded-[24px] transition-all shadow-xl shadow-client-primary/20 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 animate-pulse-slow disabled:opacity-50 disabled:animate-none"
+                                    >
+                                        {isSubmitting ? <RefreshDouble className="w-[2.4rem] h-[2.4rem] animate-spin" /> : <Wallet className="w-[2.4rem] h-[2.4rem]" />}
+                                        {timeLeft === "Hết hạn" ? "THANH TOÁN ĐÃ HẾT HẠN" : "THANH TOÁN LÀ XONG - NHẬN HÀNG NGAY!"}
+                                    </button>
+                                </div>
                             )}
 
                             {/* Nút hủy đơn khi đơn đang chờ xác nhận */}

@@ -33,6 +33,9 @@ public class Order extends BaseEntity {
     @Column(name = "order_code", nullable = false, unique = true, length = 50)
     private String orderCode;
 
+    @Column(name = "numeric_code", insertable = false, updatable = false)
+    private Long numericCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id") // Nullable cho guest checkout
     private User user;

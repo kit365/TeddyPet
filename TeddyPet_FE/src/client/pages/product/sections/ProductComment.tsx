@@ -47,6 +47,28 @@ export const ProductComment = ({ feedbacks }: ProductCommentProps) => {
                                             )}
                                         </div>
                                         <p className="text-client-text leading-[1.8] text-[1.6rem] whitespace-pre-wrap">{fb.comment}</p>
+
+                                        {/* Admin Reply */}
+                                        {fb.replyComment && (
+                                            <div className="mt-[20px] bg-[#f8f9fa] p-[20px] rounded-[15px] border-l-[4px] border-client-primary relative">
+                                                <div className="flex items-center gap-[10px] mb-[10px]">
+                                                    <div className="w-[3.5rem] h-[3.5rem] rounded-full bg-client-primary flex items-center justify-center text-white">
+                                                        <span className="text-[1.2rem] font-bold">TP</span>
+                                                    </div>
+                                                    <div>
+                                                        <strong className="text-client-secondary text-[1.5rem] font-secondary">TeddyPet Phản hồi</strong>
+                                                        {fb.repliedAt && (
+                                                            <span className="text-[1.2rem] text-client-text opacity-60 ml-[10px]">
+                                                                {new Date(fb.repliedAt).toLocaleDateString("vi-VN")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <p className="text-client-text text-[1.5rem] leading-[1.6] italic">
+                                                    {fb.replyComment}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-start">

@@ -40,7 +40,7 @@ export const ListHeader = ({
             mx: '-40px',
             mt: '-8px'
         }}>
-            <div className="flex items-start justify-end flex-wrap gap-[16px]">
+            <div className="flex items-center justify-end flex-wrap gap-[16px]">
                 <div className="mr-auto">
                     <Title title={title} sx={titleSx} />
                     <Breadcrumb items={breadcrumbItems} />

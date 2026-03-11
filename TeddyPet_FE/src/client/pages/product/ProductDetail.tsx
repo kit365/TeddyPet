@@ -203,8 +203,8 @@ export const ProductDetailPage = () => {
             option: {
                 id: String(selectedVariant.variantId),
                 size: selectedVariant.attributes.map(a => a.value).join(" / "), // Summary of options
-                price: selectedVariant.salePrice || selectedVariant.price,
-                originalPrice: selectedVariant.salePrice ? selectedVariant.price : undefined,
+                price: (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? selectedVariant.salePrice : selectedVariant.price,
+                originalPrice: (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? selectedVariant.price : undefined,
             },
             quantity: quantity,
         };
@@ -306,7 +306,7 @@ export const ProductDetailPage = () => {
     if (selectedVariant) {
         if (selectedVariant.stockQuantity <= 0) {
             priceElement = <p className="text-[#FF6262] font-bold">Tạm hết hàng</p>;
-        } else if (selectedVariant.salePrice) {
+        } else if (selectedVariant.salePrice && selectedVariant.salePrice > 0) {
             priceElement = (
                 <div className="flex items-center gap-3">
                     <p className="text-[#FF6262] font-bold">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
@@ -502,7 +502,7 @@ export const ProductDetailPage = () => {
                     </div>
                 </div>
             </section>
-            <ProductDesc />
+            <ProductDesc description={product.description} />
             <ProductComment feedbacks={feedbacks} />
             <ProductRelated productId={product?.id} />
             <FooterSub />

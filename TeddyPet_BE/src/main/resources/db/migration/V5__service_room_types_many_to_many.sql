@@ -9,10 +9,18 @@ CREATE TABLE IF NOT EXISTS service_room_types (
 CREATE INDEX IF NOT EXISTS idx_service_room_types_service_id ON service_room_types(service_id);
 CREATE INDEX IF NOT EXISTS idx_service_room_types_room_type_id ON service_room_types(room_type_id);
 
--- Migrate existing room_types.service_id into join table
-INSERT INTO service_room_types (service_id, room_type_id)
-SELECT service_id, id FROM room_types WHERE service_id IS NOT NULL
-ON CONFLICT (service_id, room_type_id) DO NOTHING;
+-- Migrate existing room_types.service_id into join table safely
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name='room_types' AND column_name='service_id') THEN
+        
+        INSERT INTO service_room_types (service_id, room_type_id)
+        SELECT service_id, id FROM room_types 
+        WHERE service_id IS NOT NULL
+        ON CONFLICT (service_id, room_type_id) DO NOTHING;
 
--- Drop FK and column from room_types (dropping column removes its FK)
-ALTER TABLE room_types DROP COLUMN IF EXISTS service_id;
+        -- Drop FK and column from room_types
+        ALTER TABLE room_types DROP COLUMN service_id;
+    END IF;
+END $$;

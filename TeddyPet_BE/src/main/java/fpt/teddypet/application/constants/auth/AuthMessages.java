@@ -9,6 +9,7 @@ public final class AuthMessages {
     // Success messages
     public static final String MESSAGE_REGISTER_SUCCESS = "Đăng ký thành công.";
     public static final String MESSAGE_LOGIN_SUCCESS = "Đăng nhập thành công.";
+    public static final String MESSAGE_EMAIL_CHANGE_SUCCESS = "Đổi email và gửi lại mã xác thực thành công.";
 
     // Error messages
     public static final String MESSAGE_PASSWORD_NOT_MATCH = "Mật khẩu không chính xác.";

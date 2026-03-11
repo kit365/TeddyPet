@@ -2,17 +2,18 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import StarIcon from "@mui/icons-material/Star";
-import { APIProduct } from "../../../../types/products.type";
 import { ProductAsideTitle } from "./ProductAsideTitle";
 import { ProductAsideList } from "./ProductAsideList";
 import { useQuery } from "@tanstack/react-query";
-import { getProductBrands, getProductCategoryLeaves, getHomeProducts } from "../../../../api/home.api";
+import { getProductBrands, getProductCategoryLeaves, getHomeProducts, getHomeTags } from "../../../../api/home.api";
+import { SHOP_CONTENT } from "../../../constants/shop-content";
 
 // Helper interface for filter state
 export interface FilterState {
     keyword?: string;
     categorySlugs: string[];
     brandSlugs: string[];
+    tagSlugs: string[];
     minPrice?: number;
     maxPrice?: number;
     page: number;
@@ -27,17 +28,7 @@ interface ProductAsideProps {
 
 
 
-const filterTags = [
-    {
-        title: "Xương gà",
-        url: "/san-pham-the/xuong-ga",
-    },
-    // ... (keeping static tags for now as requested only brands and categories)
-    {
-        title: "Thức ăn vặt",
-        url: "/san-pham-the/thuc-an-vat",
-    },
-];
+// No static filterTags here
 
 const MAX_PRICE_LIMIT = 5000000;
 
@@ -61,6 +52,12 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
     const { data: categoriesRes } = useQuery({
         queryKey: ['product-categories-leaves'],
         queryFn: getProductCategoryLeaves
+    });
+
+    // Fetch Tags
+    const { data: tagsRes } = useQuery({
+        queryKey: ['product-tags'],
+        queryFn: getHomeTags
     });
 
     // Fetch Featured Products (Sidebar)
@@ -88,6 +85,11 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
         slug: brand.slug
     })) || [];
 
+    const displayTags = tagsRes?.data?.map((tag) => ({
+        title: tag.name,
+        slug: tag.slug
+    })) || [];
+
     // Filter Handlers
     const handleCategorySelect = (slug: string) => {
         const newSlugs = filters.categorySlugs.includes(slug)
@@ -103,6 +105,14 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
             : [...filters.brandSlugs, slug];
 
         onFiltersChange({ ...filters, brandSlugs: newSlugs, page: 0 });
+    };
+
+    const handleTagSelect = (slug: string) => {
+        const newSlugs = filters.tagSlugs.includes(slug)
+            ? filters.tagSlugs.filter(s => s !== slug)
+            : [...filters.tagSlugs, slug];
+
+        onFiltersChange({ ...filters, tagSlugs: newSlugs, page: 0 });
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -162,7 +172,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                     type="text"
                     value={localKeyword}
                     onChange={(e) => setLocalKeyword(e.target.value)}
-                    placeholder="Tìm kiếm sản phẩm..."
+                    placeholder={SHOP_CONTENT.ASIDE.SEARCH_PLACEHOLDER}
                     className="w-full outline-none text-client-text border border-[#d7d7d7] px-[32px] py-[16px] bg-white rounded-[40px]"
                 />
                 <button
@@ -173,9 +183,8 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                 </button>
             </form>
 
-            {/* Danh mục */}
             <div className="mb-[40px]">
-                <ProductAsideTitle title="Mua sắm theo danh mục" />
+                <ProductAsideTitle title={SHOP_CONTENT.ASIDE.CATEGORY_TITLE} />
                 <ProductAsideList
                     categories={displayCategories}
                     selectedSlugs={filters.categorySlugs}
@@ -185,7 +194,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
 
             {/* Khoảng giá */}
             <div className="mb-[40px]">
-                <ProductAsideTitle title="Khoảng giá" />
+                <ProductAsideTitle title={SHOP_CONTENT.ASIDE.PRICE_TITLE} />
                 <div className="mt-[40px]">
                     <div
                         ref={trackRef}
@@ -221,7 +230,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                     {/* Giá hiển thị */}
                     <div className="flex justify-between mt-[20px] text-client-text text-[1.4rem]">
                         <span>
-                            Giá: {(minPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ - {(maxPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ
+                            {SHOP_CONTENT.ASIDE.PRICE_LABEL}: {(minPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ - {(maxPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ
                         </span>
                     </div>
                 </div>
@@ -230,14 +239,14 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                         onClick={handlePriceFilter}
                         className={`button-text cursor-pointer before:bg-white after:bg-white bg-client-primary hover:bg-client-secondary text-white hover:[box-shadow:0_0_30px_#ffffff33] inline-block relative mask-[url('/mask-bg-button.svg')] mask-no-repeat mask-center mask-[size:100%] rounded-[10px] px-[40px] py-[10px] text-[1.6rem] font-secondary transition-default`}
                     >
-                        Lọc
+                        {SHOP_CONTENT.ASIDE.FILTER_BUTTON}
                     </button>
                 </div>
             </div>
 
             {/* Danh sách sản phẩm (Dynamic) */}
             <div className="mb-[40px]">
-                <ProductAsideTitle title="Sản phẩm" />
+                <ProductAsideTitle title={SHOP_CONTENT.ASIDE.PRODUCT_TITLE} />
                 <ul className="mt-[25px]">
                     {sidebarProducts.map((item) => (
                         <li key={item.productId} className="p-[15px] mb-[15px] rounded-[10px] bg-[#fff0f066] flex">
@@ -272,7 +281,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
 
             {/* Thương hiệu sản phẩm */}
             <div className="mb-[40px]">
-                <ProductAsideTitle title="Thương hiệu" />
+                <ProductAsideTitle title={SHOP_CONTENT.ASIDE.BRAND_TITLE} />
                 <ProductAsideList
                     categories={displayBrands}
                     selectedSlugs={filters.brandSlugs}
@@ -280,15 +289,25 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                 />
             </div>
 
-            {/* Lọc theo thẻ - Keeping simple links for now or update similar to categories if requested */}
+            {/* Lọc theo thẻ */}
             <div>
-                <ProductAsideTitle title="Lọc theo thẻ" />
+                <ProductAsideTitle title={SHOP_CONTENT.ASIDE.TAG_TITLE} />
                 <div className="gap-[15px] mt-[10px] p-[20px] bg-[#fff0f066] rounded-[20px] flex flex-wrap">
-                    {filterTags.slice(0, 5).map((item, idx) => (
-                        <Link key={idx} to={item.url} className="text-client-secondary bg-white hover:text-white hover:bg-client-secondary transition-default py-[8px] px-[16px] text-[1.4rem] border border-[#10293726] rounded-[35px]">
-                            {item.title}
-                        </Link>
-                    ))}
+                    {displayTags.map((item, idx) => {
+                        const isActive = filters.tagSlugs.includes(item.slug);
+                        return (
+                            <button
+                                key={idx}
+                                onClick={() => handleTagSelect(item.slug)}
+                                className={`transition-default py-[8px] px-[16px] text-[1.4rem] border rounded-[35px] ${isActive
+                                    ? "bg-client-secondary text-white border-client-secondary"
+                                    : "bg-white text-client-secondary border-[#10293726] hover:bg-client-secondary hover:text-white"
+                                    }`}
+                            >
+                                {item.title}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
         </aside>

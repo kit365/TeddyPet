@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.request.auth.ForgotPasswordRequest;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
+import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ResetPasswordRequest;
 import fpt.teddypet.application.dto.request.otp.VerifyOtpRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
@@ -46,6 +47,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<RegisterResponse>> resendVerificationEmail(
             @Valid @RequestBody ResendEmailRequest request) {
         RegisterResponse response = authService.resendVerificationEmail(request);
+        return ResponseEntity.ok(ApiResponse.success(response.message(), response));
+    }
+
+    @PostMapping("/change-email")
+    @Operation(summary = "Đổi email thành viên chưa xác thực", description = "Đổi địa chỉ email cho tài khoản đang ở trạng thái chưa xác thực. Yêu cầu mật khẩu để bảo mật.")
+    public ResponseEntity<ApiResponse<RegisterResponse>> changeUnverifiedEmail(
+            @Valid @RequestBody ChangeUnverifiedEmailRequest request) {
+        RegisterResponse response = authService.changeUnverifiedEmail(request);
         return ResponseEntity.ok(ApiResponse.success(response.message(), response));
     }
 
@@ -94,6 +103,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         passwordResetService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success(PasswordResetMessages.MESSAGE_FORGOT_PASSWORD_SUCCESS));
+    }
+
+    @PostMapping("/mobile/forgot-password")
+    @Operation(summary = "Yêu cầu OTP đặt lại mật khẩu cho Mobile", description = "Gửi email chứa mã OTP 6 số tới địa chỉ email cung cấp. Mã có hiệu lực trong 15 phút.")
+    public ResponseEntity<ApiResponse<Void>> forgotPasswordMobile(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.forgotPasswordMobile(request);
+        return ResponseEntity.ok(ApiResponse.success("Mã xác nhận đã được gửi tới Email của bạn."));
     }
 
     // after verify token, reset password

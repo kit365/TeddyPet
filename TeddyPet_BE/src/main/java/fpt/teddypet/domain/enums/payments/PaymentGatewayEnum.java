@@ -10,20 +10,21 @@ public enum PaymentGatewayEnum {
     MOMO("Momo", "Momo E-Wallet", GatewayCategory.E_WALLET, PaymentMethodEnum.E_WALLET),
     ZALOPAY("ZaloPay", "ZaloPay E-Wallet", GatewayCategory.E_WALLET, PaymentMethodEnum.E_WALLET),
     PAYPAL("PayPal", "PayPal International", GatewayCategory.INTERNATIONAL, PaymentMethodEnum.CREDIT_CARD),
-    STRIPE("Stripe", "Stripe Payment", GatewayCategory.INTERNATIONAL, PaymentMethodEnum.CREDIT_CARD);
+    STRIPE("Stripe", "Stripe Payment", GatewayCategory.INTERNATIONAL, PaymentMethodEnum.CREDIT_CARD),
+    PAYOS("PayOS", "VietQR Banking payment via PayOS", GatewayCategory.BANK_TRANSFER, PaymentMethodEnum.BANK_TRANSFER);
 
     private final String displayName;
     private final String description;
     private final GatewayCategory category;
     private final PaymentMethodEnum paymentMethod;
-    
+
     @Getter
     @RequiredArgsConstructor
     public enum GatewayCategory {
         E_WALLET("E-Wallet"),
         INTERNATIONAL("International Payment"),
         BANK_TRANSFER("Bank Transfer");
-        
+
         private final String displayName;
     }
 }

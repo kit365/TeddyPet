@@ -4,6 +4,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useLogin } from "./hooks/use-login";
+import { AuthSupportActions } from "./sections/AuthSupportActions";
+import { useWatch } from "react-hook-form";
 
 const loginSchema = z.object({
     usernameOrEmail: z
@@ -20,6 +22,7 @@ export const LoginPage = () => {
     const {
         register,
         handleSubmit,
+        control,
         formState: { errors }
     } = useForm<LoginFormSchema>({
         defaultValues: {
@@ -27,6 +30,11 @@ export const LoginPage = () => {
             password: ""
         },
         resolver: zodResolver(loginSchema)
+    });
+
+    const usernameOrEmailValue = useWatch({
+        control,
+        name: "usernameOrEmail"
     });
 
     const { mutate: loginMutate } = useLogin();
@@ -68,7 +76,10 @@ export const LoginPage = () => {
                     </div>
                     <button className="mt-[10px] text-white bg-client-primary rounded-[40px] py-[16px] px-[30px] cursor-pointer transition-default hover:bg-client-secondary">Đăng nhập</button>
                 </form>
-                <Link to="/tai-khoan/quen-mat-khau" className="block text-center text-client-secondary underline decoration-transparent hover:decoration-client-primary hover:text-client-primary transition-all duration-300 ease-linear">Quên mật khẩu?</Link>
+
+                <AuthSupportActions defaultEmail={usernameOrEmailValue} />
+
+                <Link to="/tai-khoan/quen-mat-khau" className="block text-center text-client-secondary underline decoration-transparent hover:decoration-client-primary hover:text-client-primary transition-all duration-300 ease-linear mt-[20px]">Quên mật khẩu?</Link>
                 <p className="text-center text-client-text mt-[10px]">Bạn chưa có tài khoản? <Link className="underline decoration-transparent hover:decoration-client-text transition-all duration-300 ease-linear" to={"/auth/register"}>Đăng ký</Link></p>
             </div>
         </div>

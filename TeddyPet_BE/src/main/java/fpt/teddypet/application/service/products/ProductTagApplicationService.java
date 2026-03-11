@@ -184,4 +184,12 @@ public class ProductTagApplicationService implements ProductTagService {
                 .map(productTagMapper::toInfo)
                 .toList();
     }
+
+    @Override
+    public List<fpt.teddypet.application.dto.response.product.tag.ProductTagHomeResponse> getAllHomeTags() {
+        return productTagRepositoryPort.findAll().stream()
+                .filter(tag -> !tag.isDeleted() && tag.isActive())
+                .map(productTagMapper::toHomeResponse)
+                .toList();
+    }
 }

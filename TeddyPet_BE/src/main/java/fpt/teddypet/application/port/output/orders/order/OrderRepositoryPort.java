@@ -37,4 +37,8 @@ public interface OrderRepositoryPort {
     List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
+
+    List<Order> findExpiredBankTransferOrders(fpt.teddypet.domain.enums.orders.OrderStatusEnum status,
+            fpt.teddypet.domain.enums.payments.PaymentMethodEnum method,
+            LocalDateTime expiryTime);
 }

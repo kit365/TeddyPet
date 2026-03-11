@@ -3,6 +3,7 @@ package fpt.teddypet.application.mapper.products;
 import fpt.teddypet.application.dto.request.products.tag.ProductTagRequest;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
+import fpt.teddypet.application.dto.response.product.tag.ProductTagHomeResponse;
 import fpt.teddypet.domain.entity.ProductTag;
 import org.mapstruct.*;
 
@@ -30,6 +31,9 @@ public interface ProductTagMapper {
     @Mapping(source = "deleted", target = "isDeleted")
     @Mapping(source = "active", target = "isActive")
     ProductTagInfo toInfo(ProductTag tag);
+
+    @Mapping(target = "productCount", expression = "java(tag.getProducts() != null ? (long) tag.getProducts().size() : 0L)")
+    ProductTagHomeResponse toHomeResponse(ProductTag tag);
 
     List<ProductTagInfo> toInfoList(List<ProductTag> tags);
 }

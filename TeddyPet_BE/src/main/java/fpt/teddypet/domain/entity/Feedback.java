@@ -46,6 +46,12 @@ public class Feedback extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    @Column(name = "reply_comment", columnDefinition = "TEXT")
+    private String replyComment;
+
+    @Column(name = "replied_at")
+    private java.time.LocalDateTime repliedAt;
+
     @Column(name = "is_edited", nullable = false)
     @Builder.Default
     private boolean isEdited = false;

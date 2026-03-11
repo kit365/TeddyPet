@@ -93,4 +93,11 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     public List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime) {
         return orderRepository.findByStatusAndDeliveredAtBefore(status, dateTime);
     }
+
+    @Override
+    public List<Order> findExpiredBankTransferOrders(OrderStatusEnum status,
+            fpt.teddypet.domain.enums.payments.PaymentMethodEnum method,
+            LocalDateTime expiryTime) {
+        return orderRepository.findExpiredBankTransferOrders(status, method, expiryTime);
+    }
 }

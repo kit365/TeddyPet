@@ -12,6 +12,8 @@ export const FeedbackPage = () => {
     const token = searchParams.get("token");
     const orderId = searchParams.get("orderId");
     const email = searchParams.get("email");
+    const targetProductId = searchParams.get("productId");
+    const targetVariantId = searchParams.get("variantId");
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
@@ -60,6 +62,23 @@ export const FeedbackPage = () => {
 
         fetchDetails();
     }, [token, orderId, navigate]);
+
+    useEffect(() => {
+        if (!loading && orderInfo && targetProductId) {
+            const key = `${targetProductId}-${targetVariantId || 'none'}`;
+            const timer = setTimeout(() => {
+                const element = document.getElementById(`feedback-item-${key}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-offset-2', 'ring-4', 'ring-client-primary/20', 'border-client-primary');
+                    setTimeout(() => {
+                        element.classList.remove('ring-offset-2', 'ring-4', 'ring-client-primary/20', 'border-client-primary');
+                    }, 3000);
+                }
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, orderInfo, targetProductId, targetVariantId]);
 
     const handleRatingChange = (key: string, rating: number) => {
         setFeedbacks(prev => ({
@@ -153,7 +172,7 @@ export const FeedbackPage = () => {
                                 const state = feedbacks[key];
 
                                 return (
-                                    <div key={idx} className="bg-white border border-[#d7d7d7] rounded-[25px] p-[30px] shadow-sm flex gap-[30px]">
+                                    <div key={idx} id={`feedback-item-${key}`} className="bg-white border border-[#d7d7d7] rounded-[25px] p-[30px] shadow-sm flex gap-[30px] transition-all duration-500">
                                         <div className="w-[150px] h-[150px] rounded-[15px] overflow-hidden border border-[#eee] flex-shrink-0">
                                             <img src={item.imageUrl || "https://placeholder.com/150"} alt={item.productName} className="w-full h-full object-cover" />
                                         </div>

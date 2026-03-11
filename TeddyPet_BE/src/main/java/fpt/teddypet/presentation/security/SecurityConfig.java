@@ -53,6 +53,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/received").permitAll()
                         .requestMatchers("/api/orders/track/**").permitAll()
                         .requestMatchers("/api/orders/guest/**").permitAll()
+                        // Payment & Webhooks (PayOS & others) - Prioritize to avoid 403
+                        .requestMatchers("/api/payments/**", "/api/payment/**", "/api/v1/payments/**",
+                                "/api/v1/payment/**")
+                        .permitAll()
                         // Public Product & Content APIs
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product-categories/**").permitAll()
@@ -76,6 +80,7 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/swagger-ui.html",
                                 "/dev/**",
+                                "/ws/**",
                                 "/error")
                         .permitAll()
                         // Booking: cho phép khách (chưa đăng nhập) xem danh mục & dịch vụ để đặt lịch

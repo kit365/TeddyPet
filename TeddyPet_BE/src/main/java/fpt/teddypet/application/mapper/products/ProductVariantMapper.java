@@ -35,7 +35,7 @@ public interface ProductVariantMapper {
     @Mapping(target = "width", source = "dimensions.width")
     @Mapping(target = "height", source = "dimensions.height")
     @Mapping(target = "price", source = "price.amount")
-    @Mapping(target = "salePrice", source = "price.saleAmount")
+    @Mapping(target = "salePrice", expression = "java(mapSalePrice(variant.getPrice()))")
     @Mapping(target = "stockQuantity", source = "stockQuantity.value")
     @Mapping(target = "featuredImageId", source = "featuredImage.id")
     @Mapping(target = "featuredImageUrl", source = "featuredImage.imageUrl")
@@ -50,4 +50,12 @@ public interface ProductVariantMapper {
     }
 
     List<ProductVariantResponse> toResponseList(List<ProductVariant> variants);
+
+    default java.math.BigDecimal mapSalePrice(fpt.teddypet.domain.valueobject.Price price) {
+        if (price == null || price.getSaleAmount() == null
+                || price.getSaleAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        return price.getSaleAmount();
+    }
 }

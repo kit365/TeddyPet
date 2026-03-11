@@ -8,6 +8,12 @@ import { AdminGuard } from './admin/components/guards/AdminGuard';
 import { ClientAuthRoutes, ClientRoutes } from './client/routes/index';
 import { AdminRoutes, AdminAuthRoutes } from './admin/routes/index';
 import { useScrollToTop } from './client/hooks/useScrollToTop';
+import { useAdminNotification } from './admin/hooks/useAdminNotification';
+
+const NotificationManager = () => {
+  useAdminNotification();
+  return null;
+};
 
 const ScrollToTopWrapper = ({ children }: { children: React.ReactNode }) => {
   useScrollToTop();
@@ -18,6 +24,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTopWrapper>
+        <NotificationManager />
         <ToastContainer
           position="top-right"
           autoClose={3000}

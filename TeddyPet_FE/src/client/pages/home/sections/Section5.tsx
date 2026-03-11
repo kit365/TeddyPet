@@ -2,51 +2,46 @@ import { SectionHeader } from "../../../components/ui/SectionHeader"
 import { ProductCard } from "../../../components/ui/ProductCard";
 import type { Product } from "../../../../types/products.type";
 import { Button } from "../../../components/ui/Button";
-
-const products: Product[] = [
-    {
-        id: 1,
-        title: "Thẻ tên",
-        price: "360.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10c-1000x1048.jpg",
-        rating: 5,
-        isSale: true,
-        url: "/san-pham/the-ten",
-    },
-    {
-        id: 2,
-        title: "Vòng cổ",
-        price: "220.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-11-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-11c-1000x1048.jpg",
-        rating: 4,
-        isSale: false,
-        url: "/san-pham/vong-co",
-    },
-    {
-        id: 3,
-        title: "Áo mưa cho chó",
-        price: "150.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-12c-1000x1048.jpg",
-        rating: 3,
-        isSale: true,
-        url: "/san-pham/do-choi-meo",
-    },
-    {
-        id: 4,
-        title: "Nệm nylon",
-        price: "540.000đ",
-        primaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-9-1000x1048.jpg",
-        secondaryImage: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-9a-1000x1048.jpg",
-        rating: 4,
-        isSale: true,
-        url: "/san-pham/nem-nylon",
-    },
-];
+import { SHOP_CONTENT } from "../../../constants/shop-content";
+import { useQuery } from "@tanstack/react-query";
+import { getHomeProducts } from "../../../../api/home.api";
 
 export const Section5 = () => {
+    const { data: productRes, isLoading } = useQuery({
+        queryKey: ['home-products-section5'],
+        queryFn: () => getHomeProducts({
+            page: 0,
+            size: 4,
+            sortKey: 'viewCount',
+            sortDirection: 'desc'
+        })
+    });
+
+    const products = productRes?.data?.content || [];
+
+    const mappedProducts: Product[] = products.map(p => {
+        const hasSale = p.variants?.some(v => v.salePrice && v.salePrice > 0) || false;
+        let isSoldOut = false;
+        if (p.variants && p.variants.length > 0) {
+            const activeVariants = p.variants.filter(v => v.status === "ACTIVE" || v.isActive);
+            if (activeVariants.length > 0 && activeVariants.every(v => v.stockQuantity === 0)) {
+                isSoldOut = true;
+            }
+        }
+
+        return {
+            id: p.productId,
+            title: p.name,
+            price: (p.minPrice ?? 0).toLocaleString('vi-VN') + 'đ',
+            oldPrice: hasSale ? (p.maxPrice ?? 0).toLocaleString('vi-VN') + 'đ' : undefined,
+            primaryImage: p.images[0]?.imageUrl || "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/product-img-10-1000x1048.jpg",
+            secondaryImage: p.images[1]?.imageUrl || p.images[0]?.imageUrl,
+            rating: 5,
+            isSale: hasSale,
+            isSoldOut: isSoldOut,
+            url: `/product/detail/${p.slug}`
+        };
+    });
     return (
         <section className="relative">
             <div className="animation-wiggle absolute right-[2%] bottom-0">
@@ -54,20 +49,26 @@ export const Section5 = () => {
             </div>
             <div className="app-container pb-[150px]">
                 <SectionHeader
-                    subtitle="Không gian bán lẻ"
-                    title="Mua sắm đồ dùng thú cưng cao cấp"
-                    desc="Chúng tôi cung cấp đầy đủ các sản phẩm chăm sóc thú cưng chất lượng cao. Từ thức ăn dinh dưỡng đến đồ chơi vui nhộn, tất cả đều được tuyển chọn kỹ lưỡng để mang lại sự an toàn và hạnh phúc cho thú cưng yêu quý của bạn."
+                    subtitle={SHOP_CONTENT.BANNERS.RETAIL_SPACE}
+                    title={SHOP_CONTENT.BANNERS.PREMIUM_PET_SHOPPING}
+                    desc={SHOP_CONTENT.BANNERS.PREMIUM_SHOPPING_DESC}
                     widthDesc="w-[745px]"
                 />
 
                 <div className="grid grid-cols-4 gap-[30px] mb-[30px]">
-                    {products.map((item: Product) => (
-                        <ProductCard key={item.id} product={item} />
-                    ))}
+                    {isLoading ? (
+                        Array.from({ length: 4 }).map((_, idx) => (
+                            <div key={idx} className="animate-pulse bg-gray-100 h-[400px] rounded-[20px]"></div>
+                        ))
+                    ) : (
+                        mappedProducts.map((item) => (
+                            <ProductCard key={item.id} product={item} />
+                        ))
+                    )}
                 </div>
                 <div className="text-center pt-[20px]">
                     <Button
-                        content="Xem tất cả sản phẩm"
+                        content={SHOP_CONTENT.BANNERS.VIEW_ALL_PRODUCTS}
                         background="bg-client-primary"
                         hoverBackground="group-hover:bg-client-secondary"
                         svgColor="text-client-primary"

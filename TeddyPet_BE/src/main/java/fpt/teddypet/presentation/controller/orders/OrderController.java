@@ -25,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -284,5 +285,23 @@ public class OrderController {
         orderService.handleReturnRequestByAdmin(id, request, adminUsername);
         String message = request.approved() ? "Đã chấp nhận yêu cầu trả hàng." : "Đã từ chối yêu cầu trả hàng.";
         return ResponseEntity.ok(ApiResponse.success(message));
+    }
+
+    @PostMapping(value = "/excel/import", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Nhập đơn hàng từ Excel", description = "Import danh sách đơn hàng (chủ yếu cho đơn offline hoặc legacy data)")
+    public ResponseEntity<ApiResponse<OrderExcelService.ImportResult>> importFromExcel(
+            @RequestParam("file") MultipartFile file) {
+        OrderExcelService.ImportResult result = orderExcelService.importOrdersFromExcel(file);
+        String message = String.format("Nhập Excel hoàn tất: tạo mới %d, bỏ qua %d.",
+                result.created(), result.skipped());
+        return ResponseEntity.ok(ApiResponse.success(message, result));
+    }
+
+    @GetMapping("/excel/template")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Tải template nhập đơn hàng", description = "Tải file mẫu Excel để nhập danh sách đơn hàng")
+    public void downloadTemplate(HttpServletResponse response) throws java.io.IOException {
+        orderExcelService.downloadTemplate(response);
     }
 }
