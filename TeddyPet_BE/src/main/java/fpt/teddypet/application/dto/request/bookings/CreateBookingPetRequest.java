@@ -8,24 +8,21 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record CreateBookingPetRequest(
-        @NotBlank(message = "Tên thú cưng là bắt buộc")
-        String petName,
+                @NotBlank(message = "Tên thú cưng là bắt buộc") String petName,
 
-        @NotBlank(message = "Loại thú cưng là bắt buộc")
-        String petType,
+                @NotBlank(message = "Loại thú cưng là bắt buộc") String petType,
 
-        BigDecimal weightAtBooking,
+                BigDecimal weightAtBooking,
 
-        String emergencyContactName,
-        String emergencyContactPhone,
+                String emergencyContactName,
+                String emergencyContactPhone,
 
-        String petConditionNotes,
+                String petConditionNotes,
 
-        @NotEmpty(message = "Vui lòng chọn ít nhất một dịch vụ cho thú cưng")
-        List<@Valid CreateBookingPetServiceRequest> services,
+                @Valid @NotEmpty(message = "Vui lòng chọn ít nhất một dịch vụ cho thú cưng") List<CreateBookingPetServiceRequest> services,
 
-        /** Danh sách thức ăn mang theo (bảng pet_food_brought). Có thể null hoặc rỗng. */
-        List<@Valid PetFoodBroughtItemRequest> foodItems
-) {
+                /**
+                 * Danh sách thức ăn mang theo (bảng pet_food_brought). Có thể null hoặc rỗng.
+                 */
+                @Valid List<PetFoodBroughtItemRequest> foodItems) {
 }
-

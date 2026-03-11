@@ -13,7 +13,6 @@ export const SESSION_SLOTS = (() => {
 export const PET_TYPES = [
     { value: "dog", label: "Chó" },
     { value: "cat", label: "Mèo" },
-    { value: "other", label: "Khác" },
 ] as const;
 
 /** Loại thức ăn mang theo (map sang PetFoodBrought.foodBroughtType) */

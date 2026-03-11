@@ -33,6 +33,9 @@ public class BookingPet extends BaseEntity {
     @Column(name = "pet_name", length = 255)
     private String petName;
 
+    @Column(name = "pet_type", length = 100)
+    private String petType;
+
     @Column(name = "emergency_contact_name", length = 255)
     private String emergencyContactName;
 
@@ -63,6 +66,9 @@ public class BookingPet extends BaseEntity {
     @Column(name = "belonging_photos", columnDefinition = "TEXT")
     private String belongingPhotos;
 
+    @Column(name = "status", length = 50)
+    private String status;
+
     @OneToMany(mappedBy = "bookingPet", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BookingPetService> services = new ArrayList<>();
@@ -74,4 +80,3 @@ public class BookingPet extends BaseEntity {
     @Builder.Default
     private List<PetFoodBrought> foodItems = new ArrayList<>();
 }
-

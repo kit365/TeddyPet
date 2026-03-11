@@ -20,7 +20,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
 import { UploadSingleFile } from "../../components/upload/UploadSingleFile";
-import { getBookingById } from "./mockBookingData";
+import { getAdminBookingDetail } from "../../api/booking.api";
 import type { BookingPetResponse } from "../../../types/booking.type";
 
 const formatCurrency = (v: number) =>
@@ -53,7 +53,7 @@ const InfoRow = ({
 export const BookingPetDetailPage = () => {
   const { id, petId } = useParams<{ id: string; petId: string }>();
   const navigate = useNavigate();
-  const [booking, setBooking] = useState<ReturnType<typeof getBookingById>>(undefined);
+  const [booking, setBooking] = useState<any>(undefined);
   const [pet, setPet] = useState<BookingPetResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [staffFields, setStaffFields] = useState({
@@ -64,22 +64,36 @@ export const BookingPetDetailPage = () => {
     belongingPhotos: "",
   });
   useEffect(() => {
-    if (id && petId) {
-      const b = getBookingById(id);
-      setBooking(b);
-      const p = b?.pets?.find((x) => String(x.id) === petId);
-      setPet(p ?? null);
-      if (p) {
-        setStaffFields({
-          arrivalCondition: p.arrivalCondition ?? "",
-          departureCondition: p.departureCondition ?? "",
-          arrivalPhotos: p.arrivalPhotos ?? "",
-          departurePhotos: p.departurePhotos ?? "",
-          belongingPhotos: p.belongingPhotos ?? "",
-        });
+    const fetchPetDetail = async () => {
+      if (id && petId) {
+        setLoading(true);
+        try {
+          const res = await getAdminBookingDetail(id);
+          const b = res.data ?? null;
+          setBooking(b as any);
+          const p = b?.pets?.find((x) => String(x.id) === petId);
+          setPet(p ?? null);
+          if (p) {
+            setStaffFields({
+              arrivalCondition: p.arrivalCondition ?? "",
+              departureCondition: p.departureCondition ?? "",
+              arrivalPhotos: p.arrivalPhotos ?? "",
+              departurePhotos: p.departurePhotos ?? "",
+              belongingPhotos: p.belongingPhotos ?? "",
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setBooking(undefined);
+          setPet(null);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+    fetchPetDetail();
   }, [id, petId]);
 
   if (loading) {

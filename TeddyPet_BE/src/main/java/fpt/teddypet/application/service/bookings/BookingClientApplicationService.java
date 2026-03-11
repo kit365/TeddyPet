@@ -6,6 +6,10 @@ import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.request.bookings.PetFoodBroughtItemRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientBookingPetDetailResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientBookingPetServiceDetailResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientBookingPetServiceItemDetailResponse;
+import fpt.teddypet.application.dto.response.bookings.ClientPetFoodBroughtDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
@@ -21,14 +25,12 @@ import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.RoleRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,9 +57,8 @@ public class BookingClientApplicationService implements BookingClientService {
     private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final RoomRepositoryPort roomRepositoryPort;
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
+    private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Override
     public CreateBookingResponse createBooking(CreateBookingRequest request) {
@@ -69,11 +70,109 @@ public class BookingClientApplicationService implements BookingClientService {
         return createBookingInternal(request, false);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public ClientBookingDetailResponse getClientBookingDetailByCode(String bookingCode) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+
+        Long depositId = null;
+        LocalDateTime depositExpiresAt = null;
+        boolean depositPaid = bookingDepositRepository.findByBookingId(booking.getId()).stream()
+                .map(fpt.teddypet.domain.entity.BookingDeposit::getDepositPaid).filter(Boolean.TRUE::equals)
+                .findFirst().orElse(false);
+
+        if (!depositPaid && "PENDING".equals(booking.getPaymentStatus())) {
+            var pendingDeposit = bookingDepositRepository.findByBookingId(booking.getId())
+                    .stream()
+                    .filter(d -> "PENDING".equals(d.getStatus())
+                            && (d.getExpiresAt() == null || d.getExpiresAt().isAfter(LocalDateTime.now())))
+                    .findFirst()
+                    .orElse(null);
+            if (pendingDeposit != null) {
+                depositId = pendingDeposit.getId();
+                depositExpiresAt = pendingDeposit.getExpiresAt();
+            }
+        }
+
+        List<ClientBookingPetDetailResponse> petResponses = booking.getPets().stream().map(pet -> {
+            List<ClientBookingPetServiceDetailResponse> svcResponses = pet.getServices().stream().map(svc -> {
+                String roomName = null;
+                String displayTypeName = null;
+                String roomNumber = null;
+                if (svc.getRoomId() != null) {
+                    var room = roomRepositoryPort.findById(svc.getRoomId()).orElse(null);
+                    if (room != null) {
+                        roomName = room.getRoomName();
+                        roomNumber = room.getRoomNumber();
+                        if (room.getRoomType() != null) {
+                            displayTypeName = room.getRoomType().getDisplayTypeName();
+                        }
+                    }
+                }
+
+                List<ClientBookingPetServiceItemDetailResponse> itemResponses = svc.getItems().stream().map(item -> {
+                    String itemName = item.getItemService() != null ? item.getItemService().getServiceName()
+                            : "Unknown";
+                    return new ClientBookingPetServiceItemDetailResponse(
+                            item.getId(),
+                            itemName,
+                            1, // item.getQuantity() is unavailable
+                            item.getItemService() != null ? item.getItemService().getBasePrice() : null,
+                            item.getItemService() != null ? item.getItemService().getBasePrice() : null);
+                }).toList();
+
+                return new ClientBookingPetServiceDetailResponse(
+                        svc.getId(),
+                        svc.getAssignedStaffId(),
+                        svc.getService() != null ? svc.getService().getServiceName() : null,
+                        svc.getTimeSlotId() != null ? "Slot " + svc.getTimeSlotId() : null,
+                        svc.getEstimatedCheckInDate(),
+                        svc.getEstimatedCheckOutDate(),
+                        svc.getActualCheckInDate(),
+                        svc.getActualCheckOutDate(),
+                        svc.getNumberOfNights(),
+                        svc.getScheduledStartTime(),
+                        svc.getScheduledEndTime(),
+                        svc.getActualStartTime(),
+                        svc.getActualEndTime(),
+                        svc.getBasePrice(),
+                        svc.getSubtotal(),
+                        svc.getStatus(),
+                        svc.getCustomerRating(),
+                        svc.getCustomerReview(),
+                        svc.getRoomId(),
+                        roomName,
+                        displayTypeName,
+                        roomNumber,
+                        itemResponses);
+            }).toList();
+
+            List<ClientPetFoodBroughtDetailResponse> foodResponses = pet.getFoodItems().stream().map(food -> {
+                return new ClientPetFoodBroughtDetailResponse(
+                        food.getId(),
+                        food.getFoodBroughtType(),
+                        food.getFoodBrand(),
+                        food.getQuantity(),
+                        food.getFeedingInstructions());
+            }).toList();
+
+            return new ClientBookingPetDetailResponse(
+                    pet.getId(),
+                    pet.getPetName(),
+                    pet.getPetType(),
+                    pet.getEmergencyContactName(),
+                    pet.getEmergencyContactPhone(),
+                    pet.getWeightAtBooking(),
+                    pet.getPetConditionNotes(),
+                    pet.getArrivalCondition(),
+                    pet.getDepartureCondition(),
+                    pet.getArrivalPhotos(),
+                    pet.getDeparturePhotos(),
+                    pet.getBelongingPhotos(),
+                    pet.getFoodBrought(),
+                    svcResponses,
+                    foodResponses);
+        }).toList();
 
         return new ClientBookingDetailResponse(
                 booking.getId(),
@@ -81,22 +180,62 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getCustomerName(),
                 booking.getCustomerEmail(),
                 booking.getCustomerPhone(),
-                null,
-                booking.getBookingType(),
+                null, // address was removed earlier
+                booking.getBookingType() != null ? booking.getBookingType().name() : null,
                 booking.getTotalAmount(),
                 booking.getPaidAmount(),
                 booking.getRemainingAmount(),
-                booking.getDeposit(),
+                depositPaid,
                 booking.getPaymentStatus(),
                 booking.getPaymentMethod(),
                 booking.getStatus(),
                 booking.getInternalNotes(),
                 booking.getBookingStartDate(),
-                booking.getBookingEndDate()
-        );
+                booking.getBookingEndDate(),
+                depositId,
+                depositExpiresAt,
+                booking.getCreatedAt(),
+                petResponses);
     }
 
-    private CreateBookingResponse createBookingInternal(CreateBookingRequest request, boolean increaseTimeSlotBookings) {
+    @Override
+    public ClientBookingDetailResponse updateBookingContact(String bookingCode,
+            fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+
+        booking.setCustomerName(request.customerName());
+        booking.setCustomerEmail(request.customerEmail());
+        booking.setCustomerPhone(request.customerPhone());
+
+        if (request.pets() != null) {
+            for (var petReq : request.pets()) {
+                if (petReq.id() != null) {
+                    booking.getPets().stream()
+                            .filter(p -> p.getId().equals(petReq.id()))
+                            .findFirst()
+                            .ifPresent(p -> {
+                                if (petReq.petName() != null && !petReq.petName().trim().isEmpty()) {
+                                    p.setPetName(petReq.petName().trim());
+                                }
+                                if (petReq.emergencyContactName() != null) {
+                                    p.setEmergencyContactName(petReq.emergencyContactName().trim());
+                                }
+                                if (petReq.emergencyContactPhone() != null) {
+                                    p.setEmergencyContactPhone(petReq.emergencyContactPhone().trim());
+                                }
+                            });
+                }
+            }
+        }
+
+        bookingRepository.save(booking);
+
+        return getClientBookingDetailByCode(bookingCode);
+    }
+
+    private CreateBookingResponse createBookingInternal(CreateBookingRequest request,
+            boolean increaseTimeSlotBookings) {
         if (request.pets() == null || request.pets().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất một thú cưng và dịch vụ.");
         }
@@ -123,9 +262,9 @@ public class BookingClientApplicationService implements BookingClientService {
                 BigDecimal unitPrice = resolveUnitPrice(
                         bookingPetService.getService(),
                         petRequest.petType(),
-                        petRequest.weightAtBooking()
-                );
+                        petRequest.weightAtBooking());
                 BigDecimal subtotal = computeSubtotal(bookingPetService, unitPrice);
+                bookingPetService.setBasePrice(unitPrice);
                 bookingPetService.setSubtotal(subtotal);
                 bookingTotal = bookingTotal.add(subtotal);
             }
@@ -133,7 +272,6 @@ public class BookingClientApplicationService implements BookingClientService {
 
         booking.setTotalAmount(bookingTotal);
         booking.setPaidAmount(BigDecimal.ZERO);
-        booking.setDeposit(BigDecimal.ZERO);
         booking.setRemainingAmount(bookingTotal);
 
         // Ngày bắt đầu/kết thúc booking dựa trên các dịch vụ
@@ -144,8 +282,10 @@ public class BookingClientApplicationService implements BookingClientService {
         Booking saved = bookingRepository.save(booking);
 
         if (increaseTimeSlotBookings) {
-            // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn slot = +1).
-            // Nếu khung giờ đã đủ (currentBookings >= maxCapacity) hoặc xung đột version → throw với petIndex/serviceIndex để FE scroll.
+            // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn
+            // slot = +1).
+            // Nếu khung giờ đã đủ (currentBookings >= maxCapacity) hoặc xung đột version →
+            // throw với petIndex/serviceIndex để FE scroll.
             try {
                 int petIdx = 0;
                 for (BookingPet pet : saved.getPets()) {
@@ -157,7 +297,8 @@ public class BookingClientApplicationService implements BookingClientService {
                             continue;
                         }
                         TimeSlot slot = timeSlotRepositoryPort.findById(timeSlotId)
-                                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
+                                .orElseThrow(
+                                        () -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
                         int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
                         int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
                         if (current >= maxCap) {
@@ -173,7 +314,8 @@ public class BookingClientApplicationService implements BookingClientService {
                     petIdx++;
                 }
             } catch (OptimisticLockException e) {
-                // Không biết chính xác pet/svc nào conflict → báo chung, FE có thể refetch và scroll đến form khung giờ
+                // Không biết chính xác pet/svc nào conflict → báo chung, FE có thể refetch và
+                // scroll đến form khung giờ
                 throw new BookingValidationException(
                         BookingValidationException.TIME_SLOT_FULL,
                         "Khung giờ vừa được đặt bởi khách khác. Vui lòng làm mới trang và chọn khung giờ khác.",
@@ -184,12 +326,16 @@ public class BookingClientApplicationService implements BookingClientService {
         return new CreateBookingResponse(saved.getBookingCode());
     }
 
-    /** Kiểm tra mọi dịch vụ (chính + add-on) còn active. Nếu không → throw để FE hiển thị và scroll. */
+    /**
+     * Kiểm tra mọi dịch vụ (chính + add-on) còn active. Nếu không → throw để FE
+     * hiển thị và scroll.
+     */
     private void validateServicesActive(CreateBookingRequest request) {
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
             List<CreateBookingPetServiceRequest> services = petRequest.services();
-            if (services == null) continue;
+            if (services == null)
+                continue;
             for (int svcIdx = 0; svcIdx < services.size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = services.get(svcIdx);
                 fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(sr.serviceId())
@@ -197,16 +343,19 @@ public class BookingClientApplicationService implements BookingClientService {
                 if (!service.isActive()) {
                     throw new BookingValidationException(
                             BookingValidationException.SERVICE_INACTIVE,
-                            "Dịch vụ \"" + (service.getServiceName() != null ? service.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng chọn dịch vụ khác.",
+                            "Dịch vụ \"" + (service.getServiceName() != null ? service.getServiceName() : "N/A")
+                                    + "\" không còn hoạt động. Vui lòng chọn dịch vụ khác.",
                             petIdx, svcIdx, svcIdx > 0, null);
                 }
                 for (Long addonId : sr.addonServiceIds()) {
-                    if (addonId == null) continue;
+                    if (addonId == null)
+                        continue;
                     fpt.teddypet.domain.entity.Service addon = serviceRepositoryPort.findById(addonId).orElse(null);
                     if (addon != null && !addon.isActive()) {
                         throw new BookingValidationException(
                                 BookingValidationException.SERVICE_INACTIVE,
-                                "Dịch vụ add-on \"" + (addon.getServiceName() != null ? addon.getServiceName() : "N/A") + "\" không còn hoạt động. Vui lòng bỏ chọn hoặc chọn add-on khác.",
+                                "Dịch vụ add-on \"" + (addon.getServiceName() != null ? addon.getServiceName() : "N/A")
+                                        + "\" không còn hoạt động. Vui lòng bỏ chọn hoặc chọn add-on khác.",
                                 petIdx, svcIdx, svcIdx > 0, null);
                     }
                 }
@@ -214,15 +363,20 @@ public class BookingClientApplicationService implements BookingClientService {
         }
     }
 
-    /** Kiểm tra phòng (isRequiredRoom) chưa bị đặt trùng khoảng ngày bởi booking khác. */
+    /**
+     * Kiểm tra phòng (isRequiredRoom) chưa bị đặt trùng khoảng ngày bởi booking
+     * khác.
+     */
     private void validateRoomNotAlreadyBooked(CreateBookingRequest request) {
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
-            if (petRequest.services() == null) continue;
+            if (petRequest.services() == null)
+                continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
                 if (sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
-                        || sr.checkOutDate() == null || sr.checkOutDate().isBlank()) continue;
+                        || sr.checkOutDate() == null || sr.checkOutDate().isBlank())
+                    continue;
                 LocalDate checkIn = LocalDate.parse(sr.checkInDate());
                 LocalDate checkOut = LocalDate.parse(sr.checkOutDate());
                 if (bookingPetServiceRepository.existsByRoomIdAndOverlappingDates(sr.roomId(), checkIn, checkOut)) {
@@ -242,8 +396,16 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setCustomerName(request.customerName());
         booking.setCustomerEmail(request.customerEmail());
         booking.setCustomerPhone(request.customerPhone());
-        booking.setBookingType(request.bookingType());
-        booking.setSource("CLIENT_PORTAL");
+        try {
+            if (request.bookingType() != null && !request.bookingType().isBlank()) {
+                booking.setBookingType(fpt.teddypet.domain.enums.bookings.BookingTypeEnum
+                        .valueOf(request.bookingType().toUpperCase()));
+            } else {
+                booking.setBookingType(fpt.teddypet.domain.enums.bookings.BookingTypeEnum.ONLINE);
+            }
+        } catch (IllegalArgumentException e) {
+            booking.setBookingType(fpt.teddypet.domain.enums.bookings.BookingTypeEnum.ONLINE);
+        }
         booking.setNote(request.note());
         booking.setSpecialRequests(request.note());
         booking.setStatus("PENDING");
@@ -264,16 +426,19 @@ public class BookingClientApplicationService implements BookingClientService {
         pet.setId(null);
         pet.setBooking(booking);
         pet.setPetName(petRequest.petName());
+        pet.setPetType(petRequest.petType());
         pet.setEmergencyContactName(petRequest.emergencyContactName());
         pet.setEmergencyContactPhone(petRequest.emergencyContactPhone());
         pet.setWeightAtBooking(petRequest.weightAtBooking());
         pet.setPetConditionNotes(petRequest.petConditionNotes());
+        pet.setStatus("PENDING");
 
         List<PetFoodBroughtItemRequest> foodItems = petRequest.foodItems() != null
                 ? petRequest.foodItems()
                 : Collections.emptyList();
         for (PetFoodBroughtItemRequest item : foodItems) {
-            if (item == null) continue;
+            if (item == null)
+                continue;
             PetFoodBrought entity = new PetFoodBrought();
             entity.setId(null);
             entity.setBookingPet(pet);
@@ -288,7 +453,8 @@ public class BookingClientApplicationService implements BookingClientService {
 
     private BookingPetService buildBookingPetServiceEntity(BookingPet pet, CreateBookingPetServiceRequest svcRequest) {
         fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(svcRequest.serviceId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy dịch vụ với id: " + svcRequest.serviceId()));
+                .orElseThrow(
+                        () -> new EntityNotFoundException("Không tìm thấy dịch vụ với id: " + svcRequest.serviceId()));
 
         BookingPetService entity = new BookingPetService();
         entity.setId(null);
@@ -305,11 +471,13 @@ public class BookingClientApplicationService implements BookingClientService {
             }
             if (svcRequest.roomId() != null) {
                 Room room = roomRepositoryPort.findById(svcRequest.roomId())
-                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy phòng với id: " + svcRequest.roomId()));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Không tìm thấy phòng với id: " + svcRequest.roomId()));
                 entity.setRoomId(room.getId());
             }
         } else {
-            // Dịch vụ không yêu cầu phòng: ngày hẹn -> estimatedCheckInDate; estimatedCheckOutDate xử lý logic sau
+            // Dịch vụ không yêu cầu phòng: ngày hẹn -> estimatedCheckInDate;
+            // estimatedCheckOutDate xử lý logic sau
             String dateStr = (svcRequest.sessionDate() != null && !svcRequest.sessionDate().isBlank())
                     ? svcRequest.sessionDate()
                     : svcRequest.checkInDate();
@@ -322,8 +490,10 @@ public class BookingClientApplicationService implements BookingClientService {
                     String end = parts[1].trim();
                     DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
                     try {
-                        entity.setScheduledStartTime(LocalDateTime.of(date, java.time.LocalTime.parse(start, timeFormatter)));
-                        entity.setScheduledEndTime(LocalDateTime.of(date, java.time.LocalTime.parse(end, timeFormatter)));
+                        entity.setScheduledStartTime(
+                                LocalDateTime.of(date, java.time.LocalTime.parse(start, timeFormatter)));
+                        entity.setScheduledEndTime(
+                                LocalDateTime.of(date, java.time.LocalTime.parse(end, timeFormatter)));
                     } catch (Exception ignored) {
                         // Nếu parse lỗi, bỏ qua, vẫn lưu booking bình thường
                     }
@@ -338,9 +508,11 @@ public class BookingClientApplicationService implements BookingClientService {
 
         // Add-on items (chỉ chấp nhận dịch vụ isAddon=true)
         for (Long addonId : svcRequest.addonServiceIds()) {
-            if (addonId == null) continue;
+            if (addonId == null)
+                continue;
             fpt.teddypet.domain.entity.Service addonService = serviceRepositoryPort.findById(addonId).orElse(null);
-            if (addonService == null || !Boolean.TRUE.equals(addonService.getIsAddon())) continue;
+            if (addonService == null || !Boolean.TRUE.equals(addonService.getIsAddon()))
+                continue;
             BookingPetServiceItem item = new BookingPetServiceItem();
             item.setBookingPetService(entity);
             item.setParentServiceId(service.getId());
@@ -375,7 +547,8 @@ public class BookingClientApplicationService implements BookingClientService {
         }
 
         long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
-        if (nights < 1) nights = 1;
+        if (nights < 1)
+            nights = 1;
         bookingPetService.setNumberOfNights((int) nights);
 
         return unitPrice.multiply(BigDecimal.valueOf(nights));
@@ -387,11 +560,15 @@ public class BookingClientApplicationService implements BookingClientService {
      * Rule matching:
      * - Only active pricing rules are considered.
      * - If suitablePetTypes is empty -> matches all pet types.
-     * - If weight is provided -> must be within [minWeight, maxWeight] (null min/max means open-ended).
-     * - If weight is missing -> prefers rules without weight constraints; falls back to any pet-type-matching rule.
-     * - Chooses the best candidate by priority DESC, then more specific weight constraints, then narrower range.
+     * - If weight is provided -> must be within [minWeight, maxWeight] (null
+     * min/max means open-ended).
+     * - If weight is missing -> prefers rules without weight constraints; falls
+     * back to any pet-type-matching rule.
+     * - Chooses the best candidate by priority DESC, then more specific weight
+     * constraints, then narrower range.
      */
-    private BigDecimal resolveUnitPrice(fpt.teddypet.domain.entity.Service service, String petTypeRaw, BigDecimal petWeight) {
+    private BigDecimal resolveUnitPrice(fpt.teddypet.domain.entity.Service service, String petTypeRaw,
+            BigDecimal petWeight) {
         if (service == null || service.getId() == null) {
             return BigDecimal.ZERO;
         }
@@ -406,16 +583,21 @@ public class BookingClientApplicationService implements BookingClientService {
 
         List<ServicePricing> eligible = new ArrayList<>();
         for (ServicePricing r : rules) {
-            if (r == null || r.getPrice() == null) continue;
+            if (r == null || r.getPrice() == null)
+                continue;
 
-            if (r.getEffectiveFrom() != null && r.getEffectiveFrom().isAfter(now)) continue;
-            if (r.getEffectiveTo() != null && r.getEffectiveTo().isBefore(now)) continue;
+            if (r.getEffectiveFrom() != null && r.getEffectiveFrom().isAfter(now))
+                continue;
+            if (r.getEffectiveTo() != null && r.getEffectiveTo().isBefore(now))
+                continue;
 
-            if (!matchesPetType(r.getSuitablePetTypes(), petTypeKey)) continue;
+            if (!matchesPetType(r.getSuitablePetTypes(), petTypeKey))
+                continue;
 
             if (petWeight == null) {
                 // If pet weight is unknown, only accept "no weight constraint" rules.
-                if (r.getMinWeight() != null || r.getMaxWeight() != null) continue;
+                if (r.getMinWeight() != null || r.getMaxWeight() != null)
+                    continue;
             } else if (!matchesWeight(r.getMinWeight(), r.getMaxWeight(), petWeight)) {
                 continue;
             }
@@ -439,42 +621,53 @@ public class BookingClientApplicationService implements BookingClientService {
                 // lower priority number first (consistent with FE ordering)
                 .comparing((ServicePricing r) -> r.getPriority() != null ? r.getPriority() : 0)
                 // more weight constraints -> more specific
-                .thenComparing(r -> weightSpecificityScore(r.getMinWeight(), r.getMaxWeight()), Comparator.reverseOrder())
+                .thenComparing(r -> weightSpecificityScore(r.getMinWeight(), r.getMaxWeight()),
+                        Comparator.reverseOrder())
                 // prefer higher minWeight (more specific for heavier pets)
-                .thenComparing(r -> r.getMinWeight() != null ? r.getMinWeight() : BigDecimal.valueOf(-1), Comparator.reverseOrder())
+                .thenComparing(r -> r.getMinWeight() != null ? r.getMinWeight() : BigDecimal.valueOf(-1),
+                        Comparator.reverseOrder())
                 // prefer lower maxWeight (narrower upper bound)
                 .thenComparing(r -> r.getMaxWeight() != null ? r.getMaxWeight() : BigDecimal.valueOf(Double.MAX_VALUE));
     }
 
     private int weightSpecificityScore(BigDecimal min, BigDecimal max) {
         int s = 0;
-        if (min != null) s++;
-        if (max != null) s++;
+        if (min != null)
+            s++;
+        if (max != null)
+            s++;
         return s;
     }
 
     private boolean matchesWeight(BigDecimal minWeight, BigDecimal maxWeight, BigDecimal petWeight) {
-        if (petWeight == null) return true;
-        if (minWeight != null && petWeight.compareTo(minWeight) < 0) return false;
-        if (maxWeight != null && petWeight.compareTo(maxWeight) > 0) return false;
+        if (petWeight == null)
+            return true;
+        if (minWeight != null && petWeight.compareTo(minWeight) < 0)
+            return false;
+        if (maxWeight != null && petWeight.compareTo(maxWeight) > 0)
+            return false;
         return true;
     }
 
     private boolean matchesPetType(String suitablePetTypes, String petTypeKey) {
-        if (petTypeKey == null || petTypeKey.isBlank()) return true;
-        if (suitablePetTypes == null || suitablePetTypes.isBlank()) return true;
+        if (petTypeKey == null || petTypeKey.isBlank())
+            return true;
+        if (suitablePetTypes == null || suitablePetTypes.isBlank())
+            return true;
 
         String trimmed = suitablePetTypes.trim();
         // Accept JSON array format (["DOG","CAT"]) or CSV ("DOG,CAT")
         if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
             // very small parser (avoid ObjectMapper dependency here)
             String inner = trimmed.substring(1, trimmed.length() - 1).trim();
-            if (inner.isBlank()) return true;
+            if (inner.isBlank())
+                return true;
             String[] parts = inner.split(",");
             for (String p : parts) {
                 String v = p == null ? "" : p.trim();
                 v = v.replace("\"", "").replace("'", "").trim();
-                if (v.equalsIgnoreCase(petTypeKey)) return true;
+                if (v.equalsIgnoreCase(petTypeKey))
+                    return true;
             }
             return false;
         }
@@ -482,16 +675,20 @@ public class BookingClientApplicationService implements BookingClientService {
         String[] parts = trimmed.split(",");
         for (String p : parts) {
             String v = p == null ? "" : p.trim();
-            if (v.isEmpty()) continue;
-            if (v.equalsIgnoreCase(petTypeKey)) return true;
+            if (v.isEmpty())
+                continue;
+            if (v.equalsIgnoreCase(petTypeKey))
+                return true;
         }
         return false;
     }
 
     private String normalizePetType(String petTypeRaw) {
-        if (petTypeRaw == null) return "OTHER";
+        if (petTypeRaw == null)
+            return "OTHER";
         String v = petTypeRaw.trim();
-        if (v.isEmpty()) return "OTHER";
+        if (v.isEmpty())
+            return "OTHER";
         // Client sends "dog"/"cat"/"other" or enum-like values
         String upper = v.toUpperCase(Locale.ENGLISH);
         return switch (upper) {
@@ -540,7 +737,7 @@ public class BookingClientApplicationService implements BookingClientService {
         if (max == null) {
             max = min;
         }
-        return new LocalDateTime[]{min, max};
+        return new LocalDateTime[] { min, max };
     }
 
     private String generateBookingCode() {
@@ -553,8 +750,10 @@ public class BookingClientApplicationService implements BookingClientService {
     /**
      * Tạo (hoặc lấy) tài khoản user tương ứng với thông tin liên hệ của booking.
      * - Nếu email đã tồn tại: dùng luôn user đó.
-     * - Nếu chưa tồn tại: tạo user mới với role GUEST (nếu có) hoặc CUSTOMER/USER fallback.
-     * - Guest sẽ có hasPassword = false, password random (đã mã hóa) chỉ để thỏa DB.
+     * - Nếu chưa tồn tại: tạo user mới với role GUEST (nếu có) hoặc CUSTOMER/USER
+     * fallback.
+     * - Guest sẽ có hasPassword = false, password random (đã mã hóa) chỉ để thỏa
+     * DB.
      */
     private fpt.teddypet.domain.entity.User ensureUserForBooking(CreateBookingRequest request) {
         String email = request.customerEmail();
@@ -575,36 +774,6 @@ public class BookingClientApplicationService implements BookingClientService {
                     }
                     return userRepository.save(existing);
                 })
-                .orElseGet(() -> {
-                    String usernameBase = email.split("@")[0];
-                    String candidate = usernameBase;
-                    int suffix = 1;
-                    while (userRepository.existsByUsername(candidate)) {
-                        candidate = usernameBase + suffix;
-                        suffix++;
-                    }
-
-                    fpt.teddypet.domain.entity.Role role = roleRepository.findByName("GUEST")
-                            .orElseGet(() -> roleRepository.findByName("CUSTOMER")
-                                    .orElseGet(() -> roleRepository.findByName("USER")
-                                            .orElseThrow(() -> new IllegalStateException("Không tìm thấy role GUEST/CUSTOMER/USER"))));
-
-                    String rawRandomPassword = java.util.UUID.randomUUID().toString();
-                    String encoded = passwordEncoder.encode(rawRandomPassword);
-
-                    fpt.teddypet.domain.entity.User user = fpt.teddypet.domain.entity.User.builder()
-                            .username(candidate)
-                            .email(email)
-                            .password(encoded)
-                            .firstName(request.customerName())
-                            .phoneNumber(request.customerPhone())
-                            .role(role)
-                            .isGuest(true)
-                            .hasPassword(false)
-                            .build();
-
-                    return userRepository.save(user);
-                });
+                .orElse(null);
     }
 }
-

@@ -24,12 +24,13 @@ export const createBookingDepositIntent = async (
 };
 
 export const confirmBookingDeposit = async (
-    depositId: number
+    depositId: number,
+    paymentMethod?: string
 ): Promise<ConfirmBookingDepositResponse> => {
-    const response = await apiApp.post<ConfirmBookingDepositResponse>(
-        `/api/bookings/deposit-intent/${depositId}/confirm`,
-        {}
-    );
+    const url = paymentMethod
+        ? `/api/bookings/deposit-intent/${depositId}/confirm?paymentMethod=${paymentMethod}`
+        : `/api/bookings/deposit-intent/${depositId}/confirm`;
+    const response = await apiApp.post<ConfirmBookingDepositResponse>(url, {});
     return response.data;
 };
 

@@ -1,8 +1,6 @@
 import type {
   BookingStatus,
-  BookingServiceType,
   PaymentStatus,
-  PaymentMethod,
 } from "../../../types/booking.type";
 
 export type BookingStatusFilter = BookingStatus | "ALL";
@@ -40,6 +38,18 @@ export const PAYMENT_METHOD_COLORS: Record<string, string> = {
   CASH: "#2e7d32",
 };
 
+export const BOOKING_SOURCE_LABELS: Record<string, string> = {
+  WEB: "Web",
+  MOBILE: "Mobile",
+  STORE: "Trực tiếp",
+};
+
+export const BOOKING_SOURCE_COLORS: Record<string, string> = {
+  WEB: "#1890ff",
+  MOBILE: "#52c41a",
+  STORE: "#722ed1",
+};
+
 export const getBookingStatusLabel = (status: BookingStatus): string => {
   const found = BOOKING_STATUS_OPTIONS.find((o) => o.value === status);
   return found ? found.label : status;
@@ -68,3 +78,9 @@ export const getPaymentMethodLabel = (method?: string): string =>
 
 export const getPaymentMethodColor = (method?: string): string =>
   method ? (PAYMENT_METHOD_COLORS[method] ?? "#637381") : "#637381";
+
+export const getBookingSourceLabel = (source?: string): string =>
+  source ? (BOOKING_SOURCE_LABELS[source.toUpperCase()] ?? source) : "—";
+
+export const getBookingSourceColor = (source?: string): string =>
+  source ? (BOOKING_SOURCE_COLORS[source.toUpperCase()] ?? "#637381") : "#637381";

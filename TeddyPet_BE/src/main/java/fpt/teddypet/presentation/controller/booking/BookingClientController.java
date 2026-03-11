@@ -2,6 +2,7 @@ package fpt.teddypet.presentation.controller.booking;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
@@ -25,8 +26,7 @@ public class BookingClientController {
     @PostMapping
     @Operation(summary = "Tạo booking từ form đặt lịch của khách hàng (client)")
     public ResponseEntity<ApiResponse<CreateBookingResponse>> createBooking(
-            @Valid @RequestBody CreateBookingRequest request
-    ) {
+            @Valid @RequestBody CreateBookingRequest request) {
         CreateBookingResponse response = bookingClientService.createBooking(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -39,5 +39,13 @@ public class BookingClientController {
         ClientBookingDetailResponse data = bookingClientService.getClientBookingDetailByCode(bookingCode);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
-}
 
+    @PutMapping("/code/{bookingCode}/contact")
+    @Operation(summary = "Cập nhật thông tin liên hệ của đơn đặt lịch (client)")
+    public ResponseEntity<ApiResponse<ClientBookingDetailResponse>> updateContact(
+            @PathVariable String bookingCode,
+            @Valid @RequestBody UpdateBookingContactRequest request) {
+        ClientBookingDetailResponse data = bookingClientService.updateBookingContact(bookingCode, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin liên hệ thành công", data));
+    }
+}

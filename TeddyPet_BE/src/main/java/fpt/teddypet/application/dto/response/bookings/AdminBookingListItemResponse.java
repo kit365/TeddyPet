@@ -14,7 +14,7 @@ public record AdminBookingListItemResponse(
         BigDecimal totalAmount,
         BigDecimal paidAmount,
         BigDecimal remainingAmount,
-        BigDecimal deposit,
+        Boolean depositPaid,
         String paymentStatus,
         String paymentMethod,
         String status,
@@ -22,7 +22,5 @@ public record AdminBookingListItemResponse(
         LocalDateTime bookingStartDate,
         LocalDateTime bookingEndDate,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }
-

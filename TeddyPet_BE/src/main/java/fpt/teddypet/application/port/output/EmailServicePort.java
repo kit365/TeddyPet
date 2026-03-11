@@ -12,6 +12,12 @@ public interface EmailServicePort {
 
     void sendOrderConfirmation(String to, Object orderDetails);
 
+    void sendBookingPendingDepositEmail(String to, String bookingCode);
+
+    void sendBookingDepositReminderEmail(String to, String bookingCode);
+
+    void sendBookingDepositSuccessEmail(String to, String bookingCode);
+
     /**
      * Send password reset email with reset link
      * 
