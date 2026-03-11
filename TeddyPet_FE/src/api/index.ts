@@ -85,6 +85,8 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/room-types') ||
                     originalRequest.url?.includes('/api/bookings') ||
                     originalRequest.url?.includes('/api/time-slots') ||
+                    originalRequest.url?.includes('/api/bank-information') ||
+                    originalRequest.url?.includes('/api/booking-deposit-refund-policies') ||
                     originalRequest.url?.includes('/api/settings'));
 
             if (!refreshToken) {

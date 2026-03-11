@@ -70,8 +70,7 @@ export const BookingCalendarView = () => {
         bookingCode: String(b.bookingCode ?? ""),
         customerName: String(b.customerName ?? ""),
         status: String(b.status ?? ""),
-        bookingStartDate: b.bookingStartDate != null ? String(b.bookingStartDate) : "",
-        bookingEndDate: b.bookingEndDate != null ? String(b.bookingEndDate) : undefined,
+        createdAt: b.createdAt != null ? String(b.createdAt) : "",
       }));
     },
   });
@@ -79,8 +78,8 @@ export const BookingCalendarView = () => {
   const allEvents = useMemo(() => {
     return bookings.map((b) => {
       const statusColor = STATUS_COLORS[b.status] ?? "#637381";
-      const start = b.bookingStartDate || null;
-      const end = b.bookingEndDate || start;
+      const start = b.createdAt || null;
+      const end = start;
       return {
         id: b.id,
         title: `${b.bookingCode} - ${b.customerName}`,

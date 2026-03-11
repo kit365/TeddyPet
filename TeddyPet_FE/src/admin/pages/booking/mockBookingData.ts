@@ -12,8 +12,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerPhone: "0901234567",
     customerAddress: "64 Ung Văn Khiêm, Pleiku, Gia Lai",
     bookingType: "HOTEL_DOG",
-    bookingStartDate: "2025-02-10T08:00:00",
-    bookingEndDate: "2025-02-12T18:00:00",
+
     totalAmount: 450000,
     paidAmount: 150000,
     remainingAmount: 300000,
@@ -62,8 +61,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerPhone: "0912345678",
     customerAddress: "123 Lê Lợi, Quận 1, TP.HCM",
     bookingType: "SPA_CARE",
-    bookingStartDate: "2025-02-11T14:00:00",
-    bookingEndDate: "2025-02-11T15:00:00",
+
     totalAmount: 280000,
     paidAmount: 280000,
     remainingAmount: 0,
@@ -83,8 +81,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerPhone: "0987654321",
     customerAddress: "45 Nguyễn Huệ, Đà Nẵng",
     bookingType: "HOTEL_CAT",
-    bookingStartDate: "2025-02-12T10:00:00",
-    bookingEndDate: "2025-02-14T10:00:00",
+
     totalAmount: 380000,
     paidAmount: 380000,
     remainingAmount: 0,
@@ -136,8 +133,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerPhone: "0777123456",
     customerAddress: "78 Hai Bà Trưng, Hà Nội",
     bookingType: "SPA_CARE",
-    bookingStartDate: "2025-02-05T09:00:00",
-    bookingEndDate: "2025-02-05T10:00:00",
+
     totalAmount: 320000,
     paidAmount: 320000,
     remainingAmount: 0,
@@ -157,8 +153,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerPhone: "0369876543",
     customerAddress: "22 Trần Phú, Nha Trang",
     bookingType: "HOTEL_DOG",
-    bookingStartDate: "2025-02-08T15:00:00",
-    bookingEndDate: "2025-02-10T15:00:00",
+
     totalAmount: 500000,
     paidAmount: 0,
     remainingAmount: 500000,
