@@ -9,8 +9,6 @@ import {
   useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -132,12 +130,7 @@ export const BookingDetailDrawer = ({ open, onClose, booking }: BookingDetailDra
 
         <Divider sx={{ my: 2 }} />
 
-        <InfoRow icon={CalendarTodayIcon} label="Bắt đầu" value={formatDateTime(booking.bookingStartDate)} />
-        <InfoRow
-          icon={AccessTimeIcon}
-          label="Kết thúc"
-          value={booking.bookingEndDate ? formatDateTime(booking.bookingEndDate) : "—"}
-        />
+
         <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 2 }}>
           <PetsIcon sx={{ color: "text.secondary", fontSize: "2rem", mt: 0.3 }} />
           <Box>

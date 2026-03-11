@@ -1,0 +1,35 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------------< fpt:teddypet >----------------------------
+[INFO] Building teddypet 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ teddypet ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 66 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ teddypet ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 820 source files with javac [debug release 21] to target\classes
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/domain/entity/staff/WorkShift.java:[38,18] @SuperBuilder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/domain/entity/staff/ShiftRoleConfig.java:[46,21] @SuperBuilder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[INFO] Hibernate/JPA static Metamodel Generator 6.4.9.Final
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/user/UserAddressMapper.java:[21,17] Unmapped target properties: "isDeleted, isActive".
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/user/UserAddressMapper.java:[30,10] Unmapped target properties: "deleted, active".
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/orders/order/OrderItemMapper.java:[25,15] Unmapped target properties: "isDeleted, isActive, unitPrice, totalPrice, productName, variantName, imageUrl, altImage".
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/RatingMapper.java:[27,20] Unmapped target properties: "isActive, isDeleted".
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/promotions/PromotionMapper.java:[24,23] Unmapped target properties: "isActive, isDeleted".
+[WARNING] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/application/mapper/promotions/PromotionUsageMapper.java:[15,28] Unmapped target properties: "isActive, isDeleted".
+[WARNING] Implicitly compiled files were not subject to annotation processing.
+  Use -implicit to specify a policy for implicit compilation.
+[INFO] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/security/SecurityConfig.java: C:\TeddyPet - EXE201 Project\TeddyPet_BE\src\main\java\fpt\teddypet\presentation\security\SecurityConfig.java uses or overrides a deprecated API.
+[INFO] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/security/SecurityConfig.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/controller/media/MediaController.java: C:\TeddyPet - EXE201 Project\TeddyPet_BE\src\main\java\fpt\teddypet\presentation\controller\media\MediaController.java uses unchecked or unsafe operations.
+[INFO] /C:/TeddyPet - EXE201 Project/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/controller/media/MediaController.java: Recompile with -Xlint:unchecked for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21.919 s
+[INFO] Finished at: 2026-03-11T07:26:53+07:00
+[INFO] ------------------------------------------------------------------------
