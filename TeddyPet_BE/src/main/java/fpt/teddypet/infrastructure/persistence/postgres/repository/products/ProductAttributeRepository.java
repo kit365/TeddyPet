@@ -18,6 +18,8 @@ public interface ProductAttributeRepository extends JpaRepository<ProductAttribu
     Optional<ProductAttribute> findByNameIgnoreCaseAndIsDeletedFalse(String name);
 
     Optional<ProductAttribute> findByName(String name);
+    
+    boolean existsByName(String name);
 
     List<ProductAttribute> findAllByAttributeIdInAndIsActiveAndIsDeleted(List<Long> attributeIds, boolean isActive, boolean isDeleted);
 

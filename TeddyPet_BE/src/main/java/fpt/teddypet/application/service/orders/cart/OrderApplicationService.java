@@ -176,8 +176,6 @@ public class OrderApplicationService implements OrderService {
         switch (request.paymentMethod()) {
             case CASH -> createCashOrder(order);
             case BANK_TRANSFER -> createOnlinePendingOrder(order);
-            case CREDIT_CARD, E_WALLET -> throw new UnsupportedOperationException(
-                    OrderMessages.MESSAGE_ONLINE_PAYMENT_NOT_IMPLEMENTED);
         }
 
         // Clear cart after successful order creation
