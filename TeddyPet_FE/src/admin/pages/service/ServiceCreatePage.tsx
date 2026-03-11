@@ -400,8 +400,8 @@ export const ServiceCreatePage = () => {
                             step === 1
                                 ? 'Thêm dịch vụ'
                                 : step === 2
-                                ? 'Thêm quy tắc giá'
-                                : 'Thêm khung giờ'
+                                    ? 'Thêm quy tắc giá'
+                                    : 'Thêm khung giờ'
                         }
                         sx={{ fontSize: '2.6rem' }}
                     />
@@ -433,42 +433,42 @@ export const ServiceCreatePage = () => {
                             <CollapsibleCard title="Thông tin cơ bản" expanded={expanded1} onToggle={() => setExpanded1((p) => !p)}>
                                 <Stack p="24px" gap="24px">
                                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                    <Controller
-                                        name="serviceCategoryId"
-                                        control={control}
-                                        render={({ field, fieldState }) => (
-                                            <TextField
-                                                {...field}
-                                                id="field-serviceCategoryId"
-                                                select
-                                                label="Danh mục dịch vụ"
-                                                error={!!fieldState.error}
-                                                helperText={fieldState.error?.message}
-                                                fullWidth
-                                                value={field.value ?? ''}
-                                                onChange={(e) => {
-                                                    const v = e.target.value;
-                                                    if (v === '') {
-                                                        field.onChange(undefined);
-                                                    } else {
-                                                        const n = Number(v);
-                                                        field.onChange(Number.isNaN(n) ? undefined : n);
-                                                    }
-                                                }}
-                                            >
-                                                <MenuItem value="">-- Chọn danh mục --</MenuItem>
-                                                {categories.map((c) => (
-                                                    <MenuItem key={c.categoryId} value={c.categoryId}>
-                                                        {c.categoryName}
-                                                    </MenuItem>
-                                                ))}
-                                            </TextField>
-                                        )}
-                                    />
-                                    <Controller
-                                        name="serviceName"
-                                        control={control}
-                                        render={({ field, fieldState }) => (
+                                        <Controller
+                                            name="serviceCategoryId"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <TextField
+                                                    {...field}
+                                                    id="field-serviceCategoryId"
+                                                    select
+                                                    label="Danh mục dịch vụ"
+                                                    error={!!fieldState.error}
+                                                    helperText={fieldState.error?.message}
+                                                    fullWidth
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value;
+                                                        if (v === '') {
+                                                            field.onChange(undefined);
+                                                        } else {
+                                                            const n = Number(v);
+                                                            field.onChange(Number.isNaN(n) ? undefined : n);
+                                                        }
+                                                    }}
+                                                >
+                                                    <MenuItem value="">-- Chọn danh mục --</MenuItem>
+                                                    {categories.map((c) => (
+                                                        <MenuItem key={c.categoryId} value={c.categoryId}>
+                                                            {c.categoryName}
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="serviceName"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
                                                 <TextField
                                                     {...field}
                                                     id="field-serviceName"
@@ -488,8 +488,8 @@ export const ServiceCreatePage = () => {
                                                         }
                                                     }}
                                                 />
-                                        )}
-                                    />
+                                            )}
+                                        />
                                         <Controller
                                             name="slug"
                                             control={control}
@@ -506,99 +506,99 @@ export const ServiceCreatePage = () => {
                                                 />
                                             )}
                                         />
-                                    <Controller
-                                        name="duration"
-                                        control={control}
-                                        render={({ field, fieldState }) => (
-                                            <TextField
-                                                {...field}
-                                                type="number"
-                                                label="Thời lượng (phút)"
-                                                error={!!fieldState.error}
-                                                helperText={fieldState.error?.message}
-                                                fullWidth
-                                                onChange={(e) => field.onChange(e.target.valueAsNumber ?? 0)}
-                                            />
-                                        )}
-                                    />
-                                    <Controller
-                                        name="suitablePetTypes"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <FormControl fullWidth>
-                                                <InputLabel id="suitable-pet-types-label">Loại thú cưng phù hợp</InputLabel>
-                                                <Select
-                                                    labelId="suitable-pet-types-label"
-                                                    multiple
-                                                    value={Array.isArray(field.value) ? field.value : []}
-                                                    label="Loại thú cưng phù hợp"
-                                                    renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
-                                                    onChange={(e) => field.onChange(e.target.value as string[])}
-                                                    sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
-                                                    MenuProps={{
-                                                        PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
-                                                    }}
-                                                >
-                                                    {petTypes.map((pt) => (
-                                                        <MenuItem key={pt} value={pt}>
-                                                            <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
-                                                            <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                        )}
-                                    />
+                                        <Controller
+                                            name="duration"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <TextField
+                                                    {...field}
+                                                    type="number"
+                                                    label="Thời lượng (phút)"
+                                                    error={!!fieldState.error}
+                                                    helperText={fieldState.error?.message}
+                                                    fullWidth
+                                                    onChange={(e) => field.onChange(e.target.valueAsNumber ?? 0)}
+                                                />
+                                            )}
+                                        />
+                                        <Controller
+                                            name="suitablePetTypes"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <FormControl fullWidth>
+                                                    <InputLabel id="suitable-pet-types-label">Loại thú cưng phù hợp</InputLabel>
+                                                    <Select
+                                                        labelId="suitable-pet-types-label"
+                                                        multiple
+                                                        value={Array.isArray(field.value) ? field.value : []}
+                                                        label="Loại thú cưng phù hợp"
+                                                        renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
+                                                        onChange={(e) => field.onChange(e.target.value as string[])}
+                                                        sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                                        MenuProps={{
+                                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                                        }}
+                                                    >
+                                                        {petTypes.map((pt) => (
+                                                            <MenuItem key={pt} value={pt}>
+                                                                <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
+                                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
+                                                            </MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+                                            )}
+                                        />
                                     </Box>
-                                <Controller
-                                    name="shortDescription"
-                                    control={control}
-                                    render={({ field }) => <TextField {...field} label="Mô tả ngắn" multiline rows={2} fullWidth />}
-                                />
-                                <Controller name="description" control={control} render={({ field }) => <TextField {...field} label="Mô tả chi tiết" multiline rows={4} fullWidth />} />
-                                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                    <FormUploadSingleFile name="imageURL" control={control} compact />
-                                    <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
-                                </Box>
+                                    <Controller
+                                        name="shortDescription"
+                                        control={control}
+                                        render={({ field }) => <TextField {...field} label="Mô tả ngắn" multiline rows={2} fullWidth />}
+                                    />
+                                    <Controller name="description" control={control} render={({ field }) => <TextField {...field} label="Mô tả chi tiết" multiline rows={4} fullWidth />} />
+                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                        <FormUploadSingleFile name="imageURL" control={control} compact />
+                                        <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
+                                    </Box>
 
-                                <Box sx={{ mt: 3 }}>
-                                    <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
-                                </Box>
-                                {isRequiredRoom && (
-                                    <Box sx={{ mt: 2 }}>
-                                        <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
-                                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell>Tên loại phòng</TableCell>
-                                                    <TableCell>Dịch vụ hiện tại</TableCell>
-                                                    <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {roomTypes.map((rt) => (
-                                                    <TableRow key={rt.roomTypeId}>
-                                                        <TableCell>{rt.typeName}</TableCell>
-                                                        <TableCell>{rt.serviceName ?? '—'}</TableCell>
-                                                        <TableCell padding="checkbox">
-                                                            <Checkbox
-                                                                checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
-                                                                onChange={(_, checked) => {
-                                                                    setSelectedRoomTypeIds((prev) =>
-                                                                        checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
-                                                                    );
-                                                                }}
-                                                            />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                        {roomTypes.length === 0 && (
-                                            <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
-                                        )}
+                                    <Box sx={{ mt: 3 }}>
+                                        <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                     </Box>
-                                )}
+                                    {isRequiredRoom && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
+                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>Tên loại phòng</TableCell>
+                                                        <TableCell>Dịch vụ hiện tại</TableCell>
+                                                        <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {roomTypes.map((rt) => (
+                                                        <TableRow key={rt.roomTypeId}>
+                                                            <TableCell>{rt.typeName}</TableCell>
+                                                            <TableCell>{rt.serviceName ?? '—'}</TableCell>
+                                                            <TableCell padding="checkbox">
+                                                                <Checkbox
+                                                                    checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
+                                                                    onChange={(_, checked) => {
+                                                                        setSelectedRoomTypeIds((prev) =>
+                                                                            checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                            {roomTypes.length === 0 && (
+                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                            )}
+                                        </Box>
+                                    )}
                                 </Stack>
                             </CollapsibleCard>
 
@@ -607,7 +607,6 @@ export const ServiceCreatePage = () => {
                                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
                                         <Controller name="bufferTime" control={control} render={({ field }) => <TextField {...field} type="number" label="Thời gian đệm (phút)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="advanceBookingHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đặt trước tối thiểu (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy (giờ)" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
@@ -654,27 +653,46 @@ export const ServiceCreatePage = () => {
                                 </Stack>
                             </CollapsibleCard>
 
+                            <CollapsibleCard title="Quy định hoàn tiền" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
+                                <Stack p="24px" gap="24px">
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                        <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                        <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                        <SwitchButton control={control} name="allowReschedule" label="Cho phép đổi lịch" />
+                                        <SwitchButton control={control} name="allowForceMajeure" label="Cho phép bất khả kháng" />
+                                    </Box>
+                                </Stack>
+                            </CollapsibleCard>
+
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                                 <Box sx={{ flex: 1 }} />
-                            <Button
-                                type="button"
-                                variant="outlined"
-                                disabled={isPending || isUpdating}
-                                onClick={handleCreateNow}
-                                sx={{
-                                    minHeight: '4.8rem',
-                                    fontWeight: 700,
-                                    fontSize: '1.4rem',
-                                    padding: '8px 24px',
-                                    borderRadius: '8px',
-                                    textTransform: 'none',
-                                    borderColor: '#637381',
-                                    color: '#637381',
-                                    '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
-                                }}
-                            >
-                                Tạo dịch vụ ngay
-                            </Button>
+                                <Button
+                                    type="button"
+                                    variant="outlined"
+                                    disabled={isPending || isUpdating}
+                                    onClick={handleCreateNow}
+                                    sx={{
+                                        minHeight: '4.8rem',
+                                        fontWeight: 700,
+                                        fontSize: '1.4rem',
+                                        padding: '8px 24px',
+                                        borderRadius: '8px',
+                                        textTransform: 'none',
+                                        borderColor: '#637381',
+                                        color: '#637381',
+                                        '&:hover': { borderColor: '#454F5B', color: '#454F5B', bgcolor: 'rgba(99,115,129,0.08)' },
+                                    }}
+                                >
+                                    Tạo dịch vụ ngay
+                                </Button>
                                 <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
                                     <Button
                                         type="submit"
@@ -1187,42 +1205,42 @@ export const ServiceCreatePage = () => {
                         )}
                     </Stack>
                 )}
-            <Dialog open={openCreateNowDialog} onClose={() => setOpenCreateNowDialog(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Xác nhận</DialogTitle>
-                <DialogContent>
-                    {(() => {
-                        const missing: string[] = [];
-                        if (pricingDrafts.length === 0) missing.push('quy tắc giá');
-                        if (!isAddon && !isAdditionalCharge) {
-                            if (step === 1 || step === 2 || (step === 3 && timeSlots.length === 0)) missing.push('khung giờ');
-                        }
-                        if (missing.length > 0) {
-                            return (
-                                <>
-                                    Dịch vụ đang thiếu: <strong>{missing.join(', ')}</strong>.
-                                    <br />
-                                    <br />
-                                    Bạn có muốn thêm dịch vụ ngay? Bạn có thể bổ sung các thông tin còn thiếu tại trang sửa dịch vụ sau.
-                                </>
-                            );
-                        }
-                        return 'Bạn có muốn thêm dịch vụ ngay?';
-                    })()}
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setOpenCreateNowDialog(false)} color="inherit">
-                        Không
-                    </Button>
-                    <Button
-                        onClick={handleConfirmCreateNow}
-                        variant="contained"
-                        disabled={isPending}
-                        sx={{ background: '#1C252E', '&:hover': { background: '#454F5B' } }}
-                    >
-                        {isPending ? 'Đang tạo...' : 'Có'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                <Dialog open={openCreateNowDialog} onClose={() => setOpenCreateNowDialog(false)} maxWidth="xs" fullWidth>
+                    <DialogTitle>Xác nhận</DialogTitle>
+                    <DialogContent>
+                        {(() => {
+                            const missing: string[] = [];
+                            if (pricingDrafts.length === 0) missing.push('quy tắc giá');
+                            if (!isAddon && !isAdditionalCharge) {
+                                if (step === 1 || step === 2 || (step === 3 && timeSlots.length === 0)) missing.push('khung giờ');
+                            }
+                            if (missing.length > 0) {
+                                return (
+                                    <>
+                                        Dịch vụ đang thiếu: <strong>{missing.join(', ')}</strong>.
+                                        <br />
+                                        <br />
+                                        Bạn có muốn thêm dịch vụ ngay? Bạn có thể bổ sung các thông tin còn thiếu tại trang sửa dịch vụ sau.
+                                    </>
+                                );
+                            }
+                            return 'Bạn có muốn thêm dịch vụ ngay?';
+                        })()}
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                        <Button onClick={() => setOpenCreateNowDialog(false)} color="inherit">
+                            Không
+                        </Button>
+                        <Button
+                            onClick={handleConfirmCreateNow}
+                            variant="contained"
+                            disabled={isPending}
+                            sx={{ background: '#1C252E', '&:hover': { background: '#454F5B' } }}
+                        >
+                            {isPending ? 'Đang tạo...' : 'Có'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </ThemeProvider>
         </>
     );
