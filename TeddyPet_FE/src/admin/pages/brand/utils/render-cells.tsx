@@ -52,8 +52,8 @@ export const RenderTitleCell = (params: GridRenderCellParams) => {
                         underline="hover"
                         sx={{
                             color: COLORS.primary,
-                            fontWeight: 600,
-                            fontSize: '1.3rem',
+                            fontWeight: 700,
+                            fontSize: '1.6rem',
                             transition: 'color 0.2s',
                         }}
                     >
@@ -91,10 +91,11 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
 
             <span
                 style={{
-                    fontSize: "1.4rem",
+                    fontSize: "1.5rem",
                     color: COLORS.primary,
                     transition: 'color 0.2s',
-                    textTransform: 'capitalize'
+                    textTransform: 'capitalize',
+                    fontWeight: 600
                 }}>
                 {formattedDate}
             </span>
@@ -103,9 +104,10 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
                 className="date-text"
                 component='span'
                 sx={{
-                    fontSize: "1.2rem",
+                    fontSize: "1.3rem",
                     color: COLORS.secondary,
-                    textTransform: 'lowercase'
+                    textTransform: 'lowercase',
+                    fontWeight: 500
                 }}
             >
                 {formattedTime}
@@ -133,7 +135,7 @@ export const RenderStatusCell = (params: GridRenderCellParams) => {
 
     return (
         <span
-            className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[6px] font-[700] rounded-[6px]"
+            className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.8rem] text-[1.4rem] px-[10px] font-[700] rounded-[8px]"
             style={{
                 backgroundColor: bg,
                 color: text,
@@ -170,13 +172,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
     return (
         <GridActionsCell {...params}>
             <GridActionsCellItem
-                icon={<EyeIcon />}
+                icon={<EyeIcon sx={{ fontSize: '2rem' }} />}
                 label="Chi tiết"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '1.5rem',
                             fontWeight: "600"
                         },
                     },
@@ -184,13 +186,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={() => navigate(`/${prefixAdmin}/brand/detail/${brandId}`)}
             />
             <GridActionsCellItem
-                icon={<EditIcon />}
+                icon={<EditIcon sx={{ fontSize: '2rem' }} />}
                 label="Chỉnh sửa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '1.5rem',
                             fontWeight: "600"
                         },
                     },
@@ -198,13 +200,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={handleEdit}
             />
             <GridActionsCellItem
-                icon={<DeleteIcon />}
+                icon={<DeleteIcon sx={{ fontSize: '2rem' }} />}
                 label="Xóa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '1.5rem',
                             fontWeight: "600",
                             color: "#FF5630"
                         },

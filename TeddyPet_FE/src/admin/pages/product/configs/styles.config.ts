@@ -8,7 +8,7 @@ export const dataGridStyles: SxProps<Theme> = {
     // HEADER
     '& .MuiDataGrid-columnHeaders': {
         borderRadius: "0", position: 'sticky',
-        top: 70,
+        top: 0,
         zIndex: 3,
         background: COLORS.backgroundLight,
         '& .MuiDataGrid-columnHeader': {
@@ -94,9 +94,7 @@ export const dataGridStyles: SxProps<Theme> = {
     // TOOLBAR
     '& .MuiDataGrid-toolbarContainer': {
         color: 'inherit',
-        position: 'sticky',
-        top: 0,
-        zIndex: 4,
+        position: 'static',
         background: COLORS.background,
         borderBottom: `none`,
     },
@@ -162,7 +160,10 @@ export const dataGridStyles: SxProps<Theme> = {
     '&.MuiDataGrid-root': {
         '--DataGrid-t-color-interactive-focus': COLORS.success,
         '--DataGrid-t-color-border-base': COLORS.border,
-        overflow: 'auto',
+        overflow: 'visible',
+    },
+    '& .MuiDataGrid-main': {
+        overflow: 'visible',
     },
 };
 // Toolbar
@@ -181,11 +182,14 @@ export const dataGridCardStyles = {
     background: COLORS.background,
     color: COLORS.primary,
     borderRadius: '16px',
-    height: 'calc(100vh - 350px)',
-    minHeight: '400px',
+    flex: 1, // Fill remaining space
     display: 'flex',
     flexDirection: 'column' as const,
     boxShadow: COLORS.shadow,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'visible' as const,
 };
 
 /**
@@ -193,10 +197,13 @@ export const dataGridCardStyles = {
  */
 export const dataGridContainerStyles = {
     width: '100%',
+    minWidth: 0,
+    minHeight: 0,
     flex: 1,
     display: 'flex',
     flexDirection: 'column' as const,
-    overflow: 'hidden' as const,
+    overflow: 'visible' as const,
+    maxWidth: '100%',
 };
 
 /**

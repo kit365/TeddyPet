@@ -7,31 +7,17 @@ import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
 import { useCreateProductCategory, useNestedProductCategories } from "./hooks/useProductCategory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
-import { CreateCategoryFormValues } from "../../schemas/product-category.schema";
-import { SwitchButton } from "../../components/ui/SwitchButton";
-import { getProductCategoryTheme } from "./configs/theme";
+import { createCategorySchema, CreateCategoryFormValues } from "../../schemas/product-category.schema";
 import { prefixAdmin } from "../../constants/routes";
 import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
-import { z } from "zod";
+import { SwitchButton } from "../../components/ui/SwitchButton";
+import { getProductCategoryTheme } from "./configs/theme";
 
 export const ProductCategoryCreatePage = () => {
     const { t } = useTranslation();
-
-    const createCategorySchema = useMemo(() => z.object({
-        name: z
-            .string()
-            .min(1, t("admin.validation.category_name_required"))
-            .max(100),
-        description: z.string().optional(),
-        parentId: z.string().optional(),
-        isActive: z.boolean(),
-        imageUrl: z.string().min(1, t("admin.validation.select_image")),
-    }), [t]);
-
     const [expandedDetail, setExpandedDetail] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);

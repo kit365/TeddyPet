@@ -66,9 +66,10 @@ export const ProductCategoryList = () => {
     return (
         <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
             <ProductCategoryFilterProvider value={filterContextValue}>
-                <Card elevation={0} sx={dataGridCardStyles}>
-                    <Box sx={dataGridContainerStyles}>
+                <Card elevation={0} sx={{ ...dataGridCardStyles, flex: 'none' }}>
+                    <Box sx={{ width: '100%', minWidth: 0 }}>
                         <DataGrid
+                            autoHeight
                             rows={rows}
                             getRowId={(row) => row.categoryId}
                             showToolbar
