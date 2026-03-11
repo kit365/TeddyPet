@@ -181,7 +181,7 @@ export const ProductFormPage = () => {
         if (originValue && countries.length > 0) {
             const isCode = countries.some((c: any) => c.code === originValue);
             if (!isCode) {
-                const foundCountry = countries.find((c: any) => c.name.toLowerCase() === originValue.toLowerCase());
+                const foundCountry = countries.find((c: any) => c?.name?.toLowerCase() === originValue.toLowerCase());
                 if (foundCountry) originValue = foundCountry.code;
             }
         }
@@ -361,7 +361,7 @@ export const ProductFormPage = () => {
         }
 
         const getAttributeDetail = (name: string, value: string) => {
-            const attr = allAttributes.find((a: any) => a.name === name);
+            const attr = allAttributes.find((a: any) => a?.name === name);
             const val = attr?.values?.find((v: any) => v.value === value);
             return {
                 attributeId: attr?.attributeId || attr?.id,
@@ -391,7 +391,7 @@ export const ProductFormPage = () => {
             const usedAttributeIds = new Set<number>();
             variants.forEach(v => {
                 v.attributes.forEach((a: any) => {
-                    const detail = getAttributeDetail(a.name, a.value);
+                    const detail = getAttributeDetail(a?.name || "", a?.value || "");
                     if (detail?.attributeId) {
                         usedAttributeIds.add(Number(detail.attributeId));
                     }
@@ -402,7 +402,7 @@ export const ProductFormPage = () => {
             variantsPayload = variants.map((v) => {
                 const attributeValueIds = v.attributes.map((a: any) => {
                     if (!a.id) {
-                        const detail = getAttributeDetail(a.name, a.value);
+                        const detail = getAttributeDetail(a?.name || "", a?.value || "");
                         return detail?.valueId;
                     }
                     return a.id;
@@ -453,7 +453,7 @@ export const ProductFormPage = () => {
                 imageId: f.id || f.imageId,
                 imageUrl: typeof f === 'string' ? f : (f.preview || ""),
                 displayOrder: index,
-                altText: f.name || ""
+                altText: f?.name || ""
             })),
             variants: variantsPayload,
             position: 0
@@ -677,8 +677,8 @@ export const ProductFormPage = () => {
                                                 disabled={isReadOnly}
                                             >
                                                 {brands.map((brand: any) => (
-                                                    <MenuItem key={brand.id || brand.brandId} value={brand.id || brand.brandId}>
-                                                        {brand.name}
+                                                    <MenuItem key={brand?.id || brand?.brandId} value={brand?.id || brand?.brandId}>
+                                                        {brand?.name || ""}
                                                     </MenuItem>
                                                 ))}
                                             </Select>
@@ -700,8 +700,8 @@ export const ProductFormPage = () => {
                                             MenuProps={{ PaperProps: { style: { maxHeight: 300 } } }}
                                         >
                                             {countries.map((country: any) => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
+                                                <MenuItem key={country?.code} value={country?.code}>
+                                                    {country?.name || country?.code}
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -847,8 +847,8 @@ export const ProductFormPage = () => {
                                         }}
                                     >
                                         {ageRanges.map((age: any) => (
-                                            <MenuItem key={age.id || age.ageRangeId} value={age.id || age.ageRangeId}>
-                                                {AGE_RANGE_LABELS[age.name] || age.name}
+                                            <MenuItem key={age?.id || age?.ageRangeId} value={age?.id || age?.ageRangeId}>
+                                                {age?.name ? (AGE_RANGE_LABELS[age.name] || age.name) : ""}
                                             </MenuItem>
                                         ))}
                                     </Select>
@@ -875,7 +875,7 @@ export const ProductFormPage = () => {
                                         fullWidth
                                         multiple
                                         options={tagOptions}
-                                        getOptionLabel={(option) => option.name || ""}
+                                        getOptionLabel={(option) => typeof option === 'string' ? option : (option?.name || "")}
                                         value={selectedTags}
                                         onChange={(_, val) => !isReadOnly && setSelectedTags(val)}
                                         readOnly={isReadOnly}
@@ -887,9 +887,9 @@ export const ProductFormPage = () => {
                                                     <Chip
                                                         key={key}
                                                         {...chipProps}
-                                                        label={option.name}
+                                                        label={option?.name || ""}
                                                         size="small"
-                                                        sx={{ bgcolor: `${option.color || '#00B8D9'}22`, color: option.color || '#00B8D9', fontWeight: 700 }}
+                                                        sx={{ bgcolor: `${option?.color || '#00B8D9'}22`, color: option?.color || '#00B8D9', fontWeight: 700 }}
                                                     />
                                                 );
                                             })
