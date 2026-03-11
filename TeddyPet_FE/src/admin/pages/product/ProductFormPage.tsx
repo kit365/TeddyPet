@@ -2,12 +2,12 @@ import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, Outl
 import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Check } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
-import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useSalesUnits } from "./hooks/useProduct";
+import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useSalesUnits } from "./hooks/useProduct";
 import { useCreateBrand } from "../brand/hooks/useBrand";
 import { useCreateProductCategory } from "../product-category/hooks/useProductCategory";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
@@ -71,6 +71,8 @@ export const ProductFormPage = () => {
     const [expandedExtra, setExpandedExtra] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
+    
+    const outerTheme = useTheme();
 
     const [selectedTags, setSelectedTags] = useState<any[]>([]);
     const { data: tagOptions = [] as any[] } = useProductTags();
@@ -146,15 +148,6 @@ export const ProductFormPage = () => {
 
     const [editingTag, setEditingTag] = useState<any>(null);
 
-    // Initialize/Reset form based on mode and product data
-    useEffect(() => {
-        if (mode === 'create') {
-            resetFormStates();
-        } else if (product) {
-            populateForm(product);
-        }
-    }, [product, mode, countries]);
-
     const resetFormStates = () => {
         setSelectedTags([]);
         setSelectedCategoryIds([]);
@@ -177,7 +170,7 @@ export const ProductFormPage = () => {
         setDescription("");
     };
 
-    const populateForm = (p: any) => {
+    const populateForm = useCallback((p: any) => {
         if (!p) return;
         setProductType(p.productType || "SIMPLE");
         setStatus(p.status || "DRAFT");
@@ -242,7 +235,16 @@ export const ProductFormPage = () => {
             }));
             setVariants(mappedVariants);
         }
-    };
+    }, [countries]);
+
+    // Initialize/Reset form based on mode and product data
+    useEffect(() => {
+        if (mode === 'create') {
+            resetFormStates();
+        } else if (product) {
+            populateForm(product);
+        }
+    }, [product, mode, countries, populateForm]);
 
     const handleChangeStatus = (event: SelectChangeEvent) => {
         if (isReadOnly) return;
@@ -496,7 +498,6 @@ export const ProductFormPage = () => {
         );
     }
 
-    const outerTheme = useTheme();
     const localTheme = createTheme(outerTheme, {
         components: {
             MuiCard: {
