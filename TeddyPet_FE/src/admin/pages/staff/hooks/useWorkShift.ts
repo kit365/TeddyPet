@@ -14,6 +14,7 @@ import {
     rejectLeaveRequest,
     runAutoFillForShift,
     finalizeShiftApprovals,
+    cancelAdminRegistration,
     getAvailableShifts,
     getShiftsForAdminByDateRange,
     registerForShift,
@@ -157,6 +158,19 @@ export const useRejectLeaveRequest = () => {
             rejectLeaveRequest(shiftId, registrationId),
         onSuccess: (_, { shiftId }) => {
             qc.invalidateQueries({ queryKey: ['work-shift-registrations', shiftId] });
+        },
+    });
+};
+
+/** Admin: Hủy xếp ca – xóa đăng ký (PENDING hoặc APPROVED) khỏi ca để nhả slot. */
+export const useCancelAdminRegistration = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ shiftId, registrationId }: { shiftId: number; registrationId: number }) =>
+            cancelAdminRegistration(shiftId, registrationId),
+        onSuccess: (_, { shiftId }) => {
+            qc.invalidateQueries({ queryKey: ['work-shift-registrations', shiftId] });
+            qc.invalidateQueries({ queryKey: ['available-shifts'] });
         },
     });
 };

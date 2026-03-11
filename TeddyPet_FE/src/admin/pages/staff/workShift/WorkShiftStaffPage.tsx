@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, CheckCircle, Lock, Clock, Calendar } from 'lucide-react';
+import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, Lock, Clock, Calendar } from 'lucide-react';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import {
@@ -297,11 +297,23 @@ export const WorkShiftStaffPage = () => {
 
                                             if (!shift) {
                                                 return (
-                                                    <div
-                                                        key={dayIndex}
-                                                        className="flex h-[120px] items-center justify-center rounded-xl border border-gray-100 bg-gray-100/50 opacity-60 text-xs font-medium text-gray-400"
-                                                    >
-                                                        —
+                                                    <div key={dayIndex} className="h-[120px] flex items-center justify-center">
+                                                        <div className="flex h-full w-full items-center justify-center rounded-xl border border-gray-100 bg-gray-100/50 opacity-60 text-xs font-medium text-gray-400">
+                                                            —
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            // Check if it's full-time and not working this shift
+                                            const isFullTimeAndNotWorking = isFullTime && !leaveShiftIds.has(shift.shiftId) && !myShiftIds.has(shift.shiftId) && !myPendingRegistrationShiftIds.has(shift.shiftId);
+
+                                            if (isFullTimeAndNotWorking) {
+                                                return (
+                                                    <div key={dayIndex} className="h-[120px] flex items-center justify-center">
+                                                        <div className="flex h-full w-full items-center justify-center rounded-xl border border-gray-100 bg-gray-100/50 opacity-60 text-xs font-medium text-gray-400">
+                                                            —
+                                                        </div>
                                                     </div>
                                                 );
                                             }
@@ -319,13 +331,14 @@ export const WorkShiftStaffPage = () => {
                                             } else {
                                                 // Part-time specific visual states
                                                 if (isRegistered(shift.shiftId) && !isCancelled(shift.shiftId)) {
-                                                    // Đã đăng ký (chờ duyệt) – đồng bộ với khung "Chờ duyệt"
-                                                    cardBorderClass = 'border-amber-200';
-                                                    cardBgClass = 'bg-amber-50/70';
+                                                    // Đã đăng ký (chờ duyệt)
+                                                    cardBorderClass = 'border-amber-200 bg-amber-50/70 block';
+                                                    cardBgClass = ''; // using block classes directly on border for full card highlight
                                                 } else if (canRegisterForShift(shift)) {
                                                     cardBorderClass = 'border-2 border-dashed border-blue-200/60';
                                                     cardBgClass = 'bg-white hover:bg-blue-50/50';
                                                 } else {
+                                                    // Hết slot / Không thể đăng ký
                                                     cardBorderClass = 'border-gray-100';
                                                     cardBgClass = 'bg-gray-100/50 opacity-60';
                                                 }
@@ -384,16 +397,20 @@ export const WorkShiftStaffPage = () => {
                                                                     <Hourglass className="h-3.5 w-3.5" />
                                                                     Chờ duyệt
                                                                 </div>
-                                                            ) : isFullTime ? (
-                                                                <p className="text-[0.8rem] text-slate-400">—</p>
                                                             ) : isRegistered(shift.shiftId) && !isCancelled(shift.shiftId) ? (
-                                                                <div className="flex w-full items-center justify-center">
-                                                                    <div className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
-                                                                        <Hourglass className="h-4 w-4" />
-                                                                        <span>Chờ duyệt</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : canRegisterForShift(shift) ? (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={cancelling || registering}
+                                                                    onClick={() => handleCancelRegistration(shift.shiftId)}
+                                                                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                    title="Nhấn để hoàn tác đăng ký"
+                                                                >
+                                                                    <Hourglass className="h-3.5 w-3.5" />
+                                                                    Chờ duyệt
+                                                                </button>
+                                                            ) : !canRegisterForShift(shift) ? (
+                                                                <p className="text-[0.8rem] text-gray-400">Đã đủ người</p>
+                                                            ) : (
                                                                 <button
                                                                     type="button"
                                                                     disabled={registering || cancelling}
@@ -402,8 +419,6 @@ export const WorkShiftStaffPage = () => {
                                                                 >
                                                                     Đăng ký ca
                                                                 </button>
-                                                            ) : (
-                                                                <p className="text-[0.8rem] text-gray-400">Đã đủ người</p>
                                                             )}
                                                         </div>
                                                     </div>
