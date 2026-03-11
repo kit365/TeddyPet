@@ -101,7 +101,7 @@ export const ProductVariants = ({
             variants.forEach(v => {
                 v.attributes.forEach(a => {
                     // Variant attribute has: name, value, id (valueId).
-                    const matchedAttr = attributes.find((attr: any) => attr.name === a.name);
+                    const matchedAttr = attributes.find((attr: any) => attr?.name === a?.name);
                     if (matchedAttr) {
                         const matchedAttrId = String(matchedAttr.id || matchedAttr.attributeId);
                         if (!newSelected[matchedAttrId]) {
@@ -124,13 +124,13 @@ export const ProductVariants = ({
         }
 
         const attributeGroups = activeAttributeIds.map(attrId => {
-            const attr = attributes.find((a: any) => String(a.attributeId || a.id) === attrId);
+            const attr = attributes.find((a: any) => String(a?.attributeId || a?.id) === attrId);
             const selectedValues = Array.from(selectedAttributes[attrId]);
             return selectedValues.map(val => {
                 const valueObj = attr.values.find((v: any) => v.value === val);
                 return {
                     attributeId: attr.id || attr.attributeId,
-                    name: attr.name,
+                    name: attr?.name,
                     value: val,
                     id: valueObj?.id || valueObj?.attributeValueId
                 };
@@ -150,7 +150,7 @@ export const ProductVariants = ({
         const existingAttributeValues = new Set<string>();
         variants.forEach(v => {
             v.attributes.forEach(a => {
-                existingAttributeValues.add(`${a.name}:${a.value}`);
+                existingAttributeValues.add(`${a?.name}:${a?.value}`);
             });
         });
 
@@ -160,7 +160,7 @@ export const ProductVariants = ({
             // Check if this combination already exists in current variants to preserve data
             const existing = variants.find(v =>
                 v.attributes.length === combo.length &&
-                v.attributes.every(va => combo.some(c => c.name === va.name && c.value === va.value))
+                v.attributes.every(va => combo.some(c => c?.name === va?.name && c?.value === va?.value))
             );
 
             if (existing) {
@@ -172,7 +172,7 @@ export const ProductVariants = ({
             if (hasExistingVariants) {
                 // If we have existing variants, and this combo is NEW (not existing),
                 // we check if it looks like a "deleted" item (i.e., its parts are known).
-                const allPartsKnown = combo.every(c => existingAttributeValues.has(`${c.name}:${c.value}`));
+                const allPartsKnown = combo.every(c => existingAttributeValues.has(`${c?.name}:${c?.value}`));
                 if (allPartsKnown) {
                     // It's a combination of known values that is NOT in the list -> Likely deleted by user
                     isActive = false;
@@ -259,7 +259,7 @@ export const ProductVariants = ({
                                     <CardContent sx={{ p: '16px !important' }}>
                                         <Box display="flex" justifyContent="space-between" alignItems="center">
                                             <Typography sx={{ fontWeight: 600, fontSize: '1.5rem', color: isSelected ? '#00a764' : '#1C2524' }}>
-                                                {attr.name}
+                                                {attr?.name}
                                             </Typography>
                                             {isSelected && (
                                                 <IconButton
@@ -393,7 +393,7 @@ export const ProductVariants = ({
                                             {/* Dynamic Attribute Values */}
                                             {Object.keys(selectedAttributes).map(attrId => {
                                                 const attr = attributes.find((a: any) => String(a.attributeId || a.id) === attrId);
-                                                const variantAttr = variant.attributes.find(a => a.name === attr?.name);
+                                                const variantAttr = variant.attributes.find(a => a?.name === attr?.name);
 
                                                 return (
                                                     <TableCell key={attrId}>
@@ -686,7 +686,7 @@ export const ProductVariants = ({
                                         <TableCell>
                                             <Box sx={{ display: 'flex', gap: 1 }}>
                                                 {variant.attributes.map((attr, i) => (
-                                                    <Chip key={i} label={`${attr.name}: ${attr.value}`} size="small" sx={{ fontSize: '1.3rem' }} />
+                                                    <Chip key={i} label={`${attr?.name}: ${attr?.value}`} size="small" sx={{ fontSize: '1.3rem' }} />
                                                 ))}
                                             </Box>
                                         </TableCell>
