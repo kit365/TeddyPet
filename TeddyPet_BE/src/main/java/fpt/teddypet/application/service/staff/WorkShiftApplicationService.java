@@ -57,12 +57,35 @@ public class WorkShiftApplicationService implements WorkShiftService {
     private final StaffPositionRepositoryPort staffPositionRepositoryPort;
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
 
-    /** Định mức mặc định theo từ khóa tên chức vụ (Thu ngân 1, Spa 2, Chăm sóc 1) – dùng khi khởi tạo ca */
-    private static final List<Map.Entry<String, Integer>> DEFAULT_QUOTA_BY_KEYWORD = List.of(
-            Map.entry("Thu ngân", 1),
-            Map.entry("Spa", 2),
-            Map.entry("Chăm sóc", 1)
-    );
+    /**
+     * Template định mức cơ bản cho một ca theo 3 nhóm vai trò:
+     * - NV_BH: Nhân viên Bán hàng & Thu ngân
+     * - NV_SP: Chuyên viên Spa Thú cưng (Groomer)
+     * - NV_CS: Nhân viên Chăm sóc Thú cưng
+     */
+    private static final class BaseQuotaTemplate {
+        private final int nvBh;
+        private final int nvSp;
+        private final int nvCs;
+
+        private BaseQuotaTemplate(int nvBh, int nvSp, int nvCs) {
+            this.nvBh = nvBh;
+            this.nvSp = nvSp;
+            this.nvCs = nvCs;
+        }
+
+        public int getNvBh() {
+            return nvBh;
+        }
+
+        public int getNvSp() {
+            return nvSp;
+        }
+
+        public int getNvCs() {
+            return nvCs;
+        }
+    }
 
     /** Tuần tiếp theo: từ Thứ 2 00:00 đến Chủ nhật 23:59:59 */
     private static LocalDateTime[] getNextWeekRange() {
@@ -74,6 +97,41 @@ public class WorkShiftApplicationService implements WorkShiftService {
         LocalDateTime start = nextMonday.atStartOfDay();
         LocalDateTime end = nextSunday.atTime(23, 59, 59);
         return new LocalDateTime[]{start, end};
+    }
+
+    /**
+     * Lấy định mức cơ bản cho ca dựa trên thứ trong tuần và buổi (sáng/chiều).
+     * Quy tắc:
+     * - T2–T5 (Sáng & Chiều) + T6 (Sáng)  → { NV_BH: 1, NV_SP: 1, NV_CS: 1 }
+     * - T6 (Chiều)                         → { NV_BH: 1, NV_SP: 1, NV_CS: 2 }
+     * - T7, CN (Sáng)                      → { NV_BH: 1, NV_SP: 2, NV_CS: 1 }
+     * - T7, CN (Chiều)                     → { NV_BH: 1, NV_SP: 2, NV_CS: 2 }
+     */
+    private static BaseQuotaTemplate getShiftQuota(LocalDateTime startTime) {
+        int dayOfWeek = startTime.getDayOfWeek().getValue(); // 1 = Thứ 2, ..., 7 = Chủ nhật
+        boolean isAfternoon = startTime.getHour() >= 12;     // 0–11 = sáng, 12h+ = chiều
+
+        boolean isMonToThu = dayOfWeek >= 1 && dayOfWeek <= 4;     // T2–T5
+        boolean isFriday = dayOfWeek == 5;                          // T6
+        boolean isWeekend = dayOfWeek == 6 || dayOfWeek == 7;       // T7, CN
+
+        if (isMonToThu || (isFriday && !isAfternoon)) {
+            // T2–T5 (sáng & chiều) + T6 (sáng)
+            return new BaseQuotaTemplate(1, 1, 1);
+        }
+
+        if (isFriday && isAfternoon) {
+            // T6 (chiều)
+            return new BaseQuotaTemplate(1, 1, 2);
+        }
+
+        if (isWeekend && !isAfternoon) {
+            // T7, CN (sáng)
+            return new BaseQuotaTemplate(1, 2, 1);
+        }
+
+        // T7, CN (chiều)
+        return new BaseQuotaTemplate(1, 2, 2);
     }
 
     @Override
@@ -461,6 +519,18 @@ public class WorkShiftApplicationService implements WorkShiftService {
         if (reg.getStatus() != RegistrationStatus.ON_LEAVE && reg.getStatus() != RegistrationStatus.PENDING_LEAVE) {
             throw new IllegalStateException("Chỉ có thể hoàn tác khi bạn đã xin nghỉ (chờ duyệt hoặc đã duyệt).");
         }
+
+        // Capacity Check: Ensure revoking leave doesn't exceed quota
+        StaffPosition position = reg.getRoleAtRegistration();
+        if (position != null) {
+            int maxSlots = shiftRoleConfigRepositoryPort.findByWorkShiftIdAndPositionId(shiftId, position.getId())
+                    .map(ShiftRoleConfig::getMaxSlots)
+                    .orElse(1);
+            long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndPositionIdExcludingRegistrationId(shiftId, position.getId(), reg.getId());
+            if (occupyingCount >= maxSlots) {
+                throw new IllegalStateException("Không thể thu hồi đơn xin nghỉ vì ca làm việc này đã có nhân viên khác được xếp thay thế.");
+            }
+        }
         reg.setStatus(RegistrationStatus.APPROVED);
         reg.setLeaveDecision(null);
         registrationRepositoryPort.save(reg);
@@ -637,21 +707,31 @@ public class WorkShiftApplicationService implements WorkShiftService {
         );
     }
 
-    /** Tạo định mức mặc định (Thu ngân 1, Spa 2, Chăm sóc 1) cho ca nếu chưa có config. */
+    /** Tạo định mức mặc định cho ca nếu chưa có config, dựa trên thứ trong tuần + buổi (sáng/chiều). */
     private void createDefaultRoleConfigsForShift(WorkShift shift) {
         if (!shiftRoleConfigRepositoryPort.findByWorkShiftId(shift.getId()).isEmpty()) {
             return;
         }
+        BaseQuotaTemplate quotaTemplate = getShiftQuota(shift.getStartTime());
         List<StaffPosition> positions = staffPositionRepositoryPort.findAllActive();
         for (StaffPosition position : positions) {
             String name = position.getName() != null ? position.getName() : "";
+            String lowerName = name.toLowerCase();
+
             int slots = 0;
-            for (Map.Entry<String, Integer> e : DEFAULT_QUOTA_BY_KEYWORD) {
-                if (name.contains(e.getKey())) {
-                    slots = e.getValue();
-                    break;
-                }
+            // NV_BH: Nhân viên Bán hàng & Thu ngân
+            if (lowerName.contains("bán hàng") || lowerName.contains("thu ngân")) {
+                slots = quotaTemplate.getNvBh();
             }
+            // NV_SP: Chuyên viên Spa Thú cưng (Groomer)
+            else if (lowerName.contains("spa") || lowerName.contains("groomer")) {
+                slots = quotaTemplate.getNvSp();
+            }
+            // NV_CS: Nhân viên Chăm sóc Thú cưng
+            else if (lowerName.contains("chăm sóc")) {
+                slots = quotaTemplate.getNvCs();
+            }
+
             if (slots > 0) {
                 ShiftRoleConfig config = ShiftRoleConfig.builder()
                         .workShift(shift)
@@ -715,5 +795,21 @@ public class WorkShiftApplicationService implements WorkShiftService {
                         && s.getEmploymentType() == EmploymentTypeEnum.FULL_TIME)
                 .distinct()
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void cancelAdminRegistration(Long shiftId, Long registrationId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "hủy xếp ca (ca đã khóa)");
+        }
+        WorkShiftRegistration reg = registrationRepositoryPort.findById(registrationId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đăng ký ca #" + registrationId));
+        if (!reg.getWorkShift().getId().equals(shiftId)) {
+            throw new IllegalArgumentException("Đăng ký này không thuộc ca làm việc #" + shiftId);
+        }
+        reg.setStatus(RegistrationStatus.REJECTED);
+        registrationRepositoryPort.save(reg);
     }
 }

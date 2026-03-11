@@ -1,4 +1,4 @@
--- V28: Backfill product_categories.category_type and suitable_pet_types for existing rows
+-- V34: Backfill product_categories.category_type and suitable_pet_types for existing rows
 -- Ensure admin list can display categoryType & suitablePetTypes.
 
 ALTER TABLE product_categories
