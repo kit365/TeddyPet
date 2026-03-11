@@ -7,7 +7,7 @@ import DialogActions from '@mui/material/DialogActions';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals } from '../hooks/useWorkShift';
+import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals, useCancelAdminRegistration } from '../hooks/useWorkShift';
 import { toast } from 'react-toastify';
 import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff } from '../../../api/workShift.api';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -22,7 +22,7 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Pencil, Trash2, UserPlus } from 'lucide-react';
 import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
 
 const STATUS_LABELS: Record<string, string> = { OPEN: 'Trống', ASSIGNED: 'Đã khóa', COMPLETED: 'Hoàn thành', CANCELLED: 'Hủy' };
@@ -36,36 +36,9 @@ function getInitials(name: string): string {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-function getStatusUI(status: string): { label: string; dotClass: string } {
-    switch (status) {
-        case 'OPEN':
-            return { label: STATUS_LABELS.OPEN, dotClass: 'bg-orange-400' };
-        case 'ASSIGNED':
-            return { label: STATUS_LABELS.ASSIGNED, dotClass: 'bg-blue-500' };
-        case 'COMPLETED':
-            return { label: STATUS_LABELS.COMPLETED, dotClass: 'bg-emerald-500' };
-        case 'CANCELLED':
-            return { label: STATUS_LABELS.CANCELLED, dotClass: 'bg-rose-500' };
-        default:
-            return { label: STATUS_LABELS[status] ?? status, dotClass: 'bg-slate-400' };
-    }
-}
 
-function getShiftCardTone(status: string): { border: string; bg: string; pillBg: string; pillText: string; dot: string } {
-    // Enterprise-y, muted tones
-    switch (status) {
-        case 'OPEN':
-            return { border: 'border-l-rose-400', bg: 'bg-rose-50/40', pillBg: 'bg-rose-100/60', pillText: 'text-rose-700', dot: 'bg-rose-500' };
-        case 'ASSIGNED':
-            return { border: 'border-l-blue-400', bg: 'bg-blue-50/40', pillBg: 'bg-blue-100/60', pillText: 'text-blue-700', dot: 'bg-blue-500' };
-        case 'COMPLETED':
-            return { border: 'border-l-emerald-400', bg: 'bg-emerald-50/40', pillBg: 'bg-emerald-100/60', pillText: 'text-emerald-700', dot: 'bg-emerald-500' };
-        case 'CANCELLED':
-            return { border: 'border-l-slate-300', bg: 'bg-slate-50', pillBg: 'bg-slate-100', pillText: 'text-slate-700', dot: 'bg-slate-400' };
-        default:
-            return { border: 'border-l-slate-300', bg: 'bg-white', pillBg: 'bg-slate-100', pillText: 'text-slate-700', dot: 'bg-slate-400' };
-    }
-}
+
+
 
 function makeCellKeyFromStartTime(startTime: string): string {
     const dateKey = dayjs(startTime).format('YYYY-MM-DD');
@@ -73,18 +46,67 @@ function makeCellKeyFromStartTime(startTime: string): string {
     return `${dateKey}-${slotIndex}`;
 }
 
-/** Định mức mặc định: nếu tên chức vụ chứa từ khóa thì dùng số slot tương ứng (ca chưa có config; admin có thể sửa và lưu) */
-const DEFAULT_QUOTA_MATCHES: { key: string; slots: number }[] = [
-    { key: 'Thu ngân', slots: 1 },
-    { key: 'Spa', slots: 2 },
-    { key: 'Chăm sóc', slots: 1 },
-];
+/** Rule định mức mặc định theo thứ & buổi cho 3 nhóm vai trò:
+ * - NV_BH: Nhân viên bán hàng / thu ngân
+ * - NV_SP: Nhân viên spa
+ * - NV_CS: Nhân viên chăm sóc
+ *
+ * Thứ tự cột: 0=T2, 1=T3, 2=T4, 3=T5, 4=T6, 5=T7, 6=CN
+ * slotIndex: 0 = sáng, 1 = chiều
+ */
+interface BaseQuotaTemplate {
+    NV_BH: number;
+    NV_SP: number;
+    NV_CS: number;
+}
 
-function getDefaultQuotaForPositionName(positionName: string): number {
-    const name = (positionName ?? '').trim();
-    for (const { key, slots } of DEFAULT_QUOTA_MATCHES) {
-        if (name.includes(key)) return slots;
+function getBaseQuotaTemplate(dayIndex: number, slotIndex: number): BaseQuotaTemplate {
+    const isWeekday = dayIndex >= 0 && dayIndex <= 3; // T2–T5
+    const isFriday = dayIndex === 4; // T6
+    const isWeekend = dayIndex === 5 || dayIndex === 6; // T7, CN
+
+    if (isWeekday || (isFriday && slotIndex === 0)) {
+        // T2–T5 (sáng & chiều) + T6 (sáng)
+        return { NV_BH: 1, NV_SP: 1, NV_CS: 1 };
     }
+
+    if (isFriday && slotIndex === 1) {
+        // T6 (chiều)
+        return { NV_BH: 1, NV_SP: 1, NV_CS: 2 };
+    }
+
+    if (isWeekend && slotIndex === 0) {
+        // T7, CN (sáng)
+        return { NV_BH: 1, NV_SP: 2, NV_CS: 1 };
+    }
+
+    // T7, CN (chiều)
+    return { NV_BH: 1, NV_SP: 2, NV_CS: 2 };
+}
+
+/** Định mức mặc định cho 1 chức vụ cụ thể, dựa trên tên chức vụ + thứ & buổi của ca. */
+function getDefaultQuotaForPositionName(positionName: string, dayIndex?: number | null, slotIndex?: number | null): number {
+    const name = (positionName ?? '').trim().toLowerCase();
+    if (dayIndex == null || slotIndex == null) {
+        // Không xác định được thứ/buổi → không tự gán định mức.
+        return 0;
+    }
+
+    const base = getBaseQuotaTemplate(dayIndex, slotIndex);
+
+    if (name.includes('bán hàng') || name.includes('thu ngân')) {
+        // NV_BH
+        return base.NV_BH;
+    }
+    if (name.includes('spa')) {
+        // NV_SP
+        return base.NV_SP;
+    }
+    if (name.includes('chăm sóc')) {
+        // NV_CS
+        return base.NV_CS;
+    }
+
     return 0;
 }
 
@@ -111,6 +133,19 @@ function getErrorMessage(err: any, fallback: string): string {
     if (typeof err?.message === 'string' && err.message.trim()) return err.message.trim();
     return fallback;
 }
+
+const getRegistrationStatusUI = (r: IWorkShiftRegistration) => {
+    if (r.status === 'PENDING') return { label: 'Chờ duyệt', badgeClass: 'bg-blue-100 text-blue-700 border border-blue-200' };
+    if (r.status === 'APPROVED') return { label: 'Đã duyệt', badgeClass: 'bg-emerald-100 text-emerald-700 border border-emerald-200' };
+    if (r.status === 'PENDING_LEAVE') {
+        if (r.leaveDecision === 'APPROVED_LEAVE') return { label: 'Sẽ nghỉ', badgeClass: 'bg-amber-100 text-amber-700 border border-amber-200' };
+        if (r.leaveDecision === 'REJECTED_LEAVE') return { label: 'Sẽ làm', badgeClass: 'bg-amber-100 text-amber-700 border border-amber-200' };
+        return { label: 'Xin nghỉ chờ duyệt', badgeClass: 'bg-amber-100 text-amber-700 border border-amber-200' };
+    }
+    if (r.status === 'ON_LEAVE') return { label: 'Đã nghỉ', badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200' };
+    if (r.status === 'REJECTED') return { label: 'Từ chối', badgeClass: 'bg-rose-50 text-rose-700 border border-rose-200' };
+    return { label: 'Từ chối', badgeClass: 'bg-rose-100 text-rose-700 border border-rose-200' };
+};
 
 /** Tuần tiếp theo: từ Thứ 2 00:00 đến Chủ nhật 23:59 */
 function getNextWeekRange() {
@@ -186,6 +221,7 @@ export const WorkShiftAdminPage = () => {
     const { mutate: setOnLeave, isPending: settingOnLeave } = useSetRegistrationOnLeave();
     const { mutate: rejectLeave, isPending: rejectingLeave } = useRejectLeaveRequest();
     const { mutate: finalizeApprovals, isPending: finalizing } = useFinalizeShiftApprovals();
+    const { mutate: cancelAssignment } = useCancelAdminRegistration();
 
     // Hiển thị lỗi từ mutation (đảm bảo toast hiện khi backend trả 400, kể cả khi onError không chạy)
     useEffect(() => {
@@ -202,6 +238,14 @@ export const WorkShiftAdminPage = () => {
         }
     }, [batchError, batchErrorObj, resetBatchMutation]);
 
+    const selectedShift = useMemo(
+        () => (shifts as IWorkShift[]).find((s: IWorkShift) => s.shiftId === selectedShiftId) ?? null,
+        [shifts, selectedShiftId]
+    );
+
+    const selectedShiftDayIndex = selectedShift ? getDayIndex(selectedShift.startTime) : null;
+    const selectedShiftSlotIndex = selectedShift ? getSlotIndex(selectedShift.startTime) : null;
+
     /** Đồng bộ ô nhập định mức khi mở panel ca hoặc khi roleConfigs/positions thay đổi. Chỉ setState khi giá trị thực sự đổi để tránh loop (roleConfigs/positions có thể là ref mới mỗi render). */
     useEffect(() => {
         if (!selectedShiftId || positions.length === 0) {
@@ -211,7 +255,11 @@ export const WorkShiftAdminPage = () => {
         const initial: Record<number, number> = {};
         for (const p of positions) {
             const cfg = roleConfigs.find((c: { positionId: number }) => c.positionId === p.id);
-            const defaultByRole = getDefaultQuotaForPositionName(p.name as string);
+            const defaultByRole = getDefaultQuotaForPositionName(
+                p.name as string,
+                selectedShiftDayIndex,
+                selectedShiftSlotIndex
+            );
             initial[p.id] = cfg?.maxSlots ?? defaultByRole ?? 0;
         }
         setRoleConfigSlots((prev) => {
@@ -221,7 +269,7 @@ export const WorkShiftAdminPage = () => {
             if (prevKeys.every((k) => prev[Number(k)] === initial[Number(k)])) return prev;
             return initial;
         });
-    }, [selectedShiftId, roleConfigs, positions]);
+    }, [selectedShiftId, roleConfigs, positions, selectedShiftDayIndex, selectedShiftSlotIndex]);
 
     /** Khi mở/đổi ca khác: luôn về chế độ read-only */
     useEffect(() => {
@@ -292,7 +340,7 @@ export const WorkShiftAdminPage = () => {
      * Slot bị chiếm bởi: APPROVED + PENDING_LEAVE chưa duyệt nghỉ (đã duyệt nghỉ thì suất trống, part-time được duyệt).
      */
     const canApproveRegistration = (r: IWorkShiftRegistration): boolean => {
-        if (r.status !== 'PENDING') return false;
+        if (r.status !== 'PENDING' && r.status !== 'REJECTED') return false;
         const roleName = (r.roleAtRegistrationName ?? '').trim();
         if (!roleName) return true;
         const position = positions.find((p: { name: string }) => (p.name as string) === roleName);
@@ -368,6 +416,25 @@ export const WorkShiftAdminPage = () => {
             },
             onError: () => { /* Lỗi hiển thị qua useEffect khi batch mutation.isError */ },
         });
+    };
+
+    const handleCancelAssignment = (registrationId: number) => {
+        if (!selectedShiftId) return;
+        cancelAssignment(
+            { shiftId: selectedShiftId, registrationId },
+            {
+                onSuccess: (res: any) => {
+                    if (res?.success !== false) {
+                        toast.success('Đã hủy xếp ca.');
+                        queryClient.invalidateQueries({
+                            queryKey: ['work-shift-registrations', selectedShiftId],
+                        });
+                    } else toast.error(res?.message ?? 'Có lỗi');
+                },
+                onError: (err: any) =>
+                    toast.error(err?.response?.data?.message ?? err?.message ?? 'Lỗi khi hủy xếp ca'),
+            }
+        );
     };
 
     const handleApprove = (registrationId: number) => {
@@ -840,11 +907,18 @@ export const WorkShiftAdminPage = () => {
                                             {positions.map((p: { id: number; name: string }) => {
                                                 const maxSlots = roleConfigSlots[p.id] ?? 0;
                                                 const participatingCount = displayParticipatingCountByRoleName[p.name] ?? 0;
+                                                const isOverCapacity = maxSlots > 0 && participatingCount > maxSlots;
                                                 const isFull = maxSlots > 0 && participatingCount >= maxSlots;
-                                                const badgeLabel = isFull ? 'Đủ' : `${participatingCount}/${maxSlots || 0}`;
-                                                const badgeClass = isFull
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-amber-100 text-amber-700';
+                                                
+                                                const badgeLabel = isOverCapacity 
+                                                    ? `${participatingCount}/${maxSlots} - Vượt định mức`
+                                                    : isFull ? 'Đủ' : `${participatingCount}/${maxSlots || 0}`;
+                                                
+                                                const badgeClass = isOverCapacity
+                                                    ? 'bg-red-100 text-red-700 border border-red-200'
+                                                    : isFull
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-amber-100 text-amber-700';
                                                 return (
                                                     <div
                                                         key={p.id}
@@ -1015,32 +1089,7 @@ export const WorkShiftAdminPage = () => {
                                 ) : (
                                     <Stack spacing={1.5}>
                                         {registrationList.map((r) => {
-                                            const statusLabel =
-                                                r.status === 'PENDING'
-                                                    ? 'Chờ duyệt'
-                                                    : r.status === 'APPROVED'
-                                                        ? 'Đã xếp ca'
-                                                        : r.status === 'PENDING_LEAVE'
-                                                            ? r.leaveDecision === 'APPROVED_LEAVE'
-                                                                ? 'Sẽ nghỉ'
-                                                                : r.leaveDecision === 'REJECTED_LEAVE'
-                                                                    ? 'Sẽ làm'
-                                                                    : 'Xin nghỉ chờ duyệt'
-                                                            : r.status === 'ON_LEAVE'
-                                                                ? 'Đã nghỉ'
-                                                                : 'Từ chối';
-
-                                            const statusBadgeClass =
-                                                r.status === 'APPROVED'
-                                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                                    : r.status === 'PENDING'
-                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                                        : r.status === 'PENDING_LEAVE'
-                                                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                                            : r.status === 'ON_LEAVE'
-                                                                ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                                                                : 'bg-rose-100 text-rose-700 border border-rose-200';
-
+                                            const { label: sLabel, badgeClass: sClass } = getRegistrationStatusUI(r);
                                             const initials = getInitials(r.staffFullName);
 
                                             return (
@@ -1077,26 +1126,39 @@ export const WorkShiftAdminPage = () => {
 
                                                     <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
                                                         <span
-                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium ${statusBadgeClass}`}
+                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium ${sClass}`}
                                                         >
-                                                            {statusLabel}
+                                                            {sLabel}
                                                         </span>
 
-                                                        {r.status === 'PENDING' && selectedShiftStatus === 'OPEN' && (
-                                                            <Tooltip title={!canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
-                                                                <span>
-                                                                    <Button
-                                                                        size="small"
-                                                                        variant="contained"
-                                                                        onClick={() => handleApprove(r.registrationId)}
-                                                                        disabled={!canApproveRegistration(r)}
-                                                                        sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 2 }}
-                                                                    >
-                                                                        Duyệt
-                                                                    </Button>
-                                                                </span>
-                                                            </Tooltip>
+                                                        {(r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED') && selectedShiftStatus === 'OPEN' && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Tooltip title={r.status !== 'APPROVED' && !canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
+                                                                    <span>
+                                                                        <Button
+                                                                            size="small"
+                                                                            variant={r.status === 'APPROVED' ? 'contained' : 'outlined'}
+                                                                            color="success"
+                                                                            onClick={() => handleApprove(r.registrationId)}
+                                                                            disabled={r.status !== 'APPROVED' && !canApproveRegistration(r)}
+                                                                            sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 2 }}
+                                                                        >
+                                                                            Duyệt
+                                                                        </Button>
+                                                                    </span>
+                                                                </Tooltip>
+                                                                <Button
+                                                                    size="small"
+                                                                    variant={r.status === 'REJECTED' ? 'contained' : 'outlined'}
+                                                                    color="error"
+                                                                    onClick={() => handleCancelAssignment(r.registrationId)}
+                                                                    sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 1.5 }}
+                                                                >
+                                                                    Từ chối
+                                                                </Button>
+                                                            </div>
                                                         )}
+
                                                         {r.status === 'PENDING_LEAVE' && selectedShiftStatus === 'OPEN' && (
                                                             <>
                                                                 <Button

@@ -73,6 +73,7 @@ import { StaffProfileEditPage } from "../pages/staff/profile/StaffProfileEditPag
 import { ContractListPage } from "../pages/staff/contract/ContractListPage";
 import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
 import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
+import { ContractDetailPage } from "../pages/staff/contract/ContractDetailPage";
 import { WorkShiftAdminPage } from "../pages/staff/workShift/WorkShiftAdminPage";
 import { WorkShiftStaffPage } from "../pages/staff/workShift/WorkShiftStaffPage";
 import { OfficialSchedulePage } from "../pages/staff/workShift/OfficialSchedulePage";
@@ -163,6 +164,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "staff/contract/list", element: <ContractListPage /> },
     { path: "staff/contract/create", element: <ContractCreatePage /> },
     { path: "staff/contract/edit/:id", element: <ContractEditPage /> },
+    { path: "staff/contract/detail/:id", element: <ContractDetailPage /> },
     { path: "staff/fixed-schedules", element: <StaffFixedSchedulePage /> },
     { path: "staff/official-schedule", element: <OfficialSchedulePage /> },
     {
