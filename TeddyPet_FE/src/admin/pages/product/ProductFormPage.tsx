@@ -1,13 +1,13 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress, Divider } from "@mui/material"
-import { ChevronDown as ExpandMoreIcon, RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Trash2 as TrashIcon, Check } from "lucide-react";
+import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress } from "@mui/material"
+import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Check } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
-import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useSalesUnits } from "./hooks/useProduct";
+import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useSalesUnits } from "./hooks/useProduct";
 import { useCreateBrand } from "../brand/hooks/useBrand";
 import { useCreateProductCategory } from "../product-category/hooks/useProductCategory";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
@@ -71,6 +71,8 @@ export const ProductFormPage = () => {
     const [expandedExtra, setExpandedExtra] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
+    
+    const outerTheme = useTheme();
 
     const [selectedTags, setSelectedTags] = useState<any[]>([]);
     const { data: tagOptions = [] as any[] } = useProductTags();
@@ -143,18 +145,8 @@ export const ProductFormPage = () => {
     const createCategoryMutation = useCreateProductCategory();
     const createTagMutation = useCreateProductTag();
     const updateTagMutation = useUpdateProductTag();
-    const deleteTagMutation = useDeleteProductTag();
 
     const [editingTag, setEditingTag] = useState<any>(null);
-
-    // Initialize/Reset form based on mode and product data
-    useEffect(() => {
-        if (mode === 'create') {
-            resetFormStates();
-        } else if (product) {
-            populateForm(product);
-        }
-    }, [product, mode, countries]);
 
     const resetFormStates = () => {
         setSelectedTags([]);
@@ -178,7 +170,8 @@ export const ProductFormPage = () => {
         setDescription("");
     };
 
-    const populateForm = (p: any) => {
+    const populateForm = useCallback((p: any) => {
+        if (!p) return;
         setProductType(p.productType || "SIMPLE");
         setStatus(p.status || "DRAFT");
         setBarcode(p.barcode || "");
@@ -188,7 +181,7 @@ export const ProductFormPage = () => {
         if (originValue && countries.length > 0) {
             const isCode = countries.some((c: any) => c.code === originValue);
             if (!isCode) {
-                const foundCountry = countries.find((c: any) => c.name.toLowerCase() === originValue.toLowerCase());
+                const foundCountry = countries.find((c: any) => c?.name?.toLowerCase() === originValue.toLowerCase());
                 if (foundCountry) originValue = foundCountry.code;
             }
         }
@@ -212,37 +205,46 @@ export const ProductFormPage = () => {
         })) || [];
         setFiles(productImages);
 
-        if (p.productType === "SIMPLE" && p.variants?.length > 0) {
+        if (p.productType === "SIMPLE" && p?.variants && p.variants.length > 0) {
             const defaultVariant = p.variants[0];
-            setSimplePrice(defaultVariant.price || 0);
-            setSimpleSalePrice(defaultVariant.salePrice || 0);
-            setSimpleStock(defaultVariant.stockQuantity || 0);
-            setSimpleSku(defaultVariant.sku || "");
-            setSimpleWeight(defaultVariant.weight || 0);
-            setSimpleUnit(defaultVariant.unit || "PIECE");
-        } else if (p.productType === "VARIABLE") {
+            setSimplePrice(defaultVariant?.price || 0);
+            setSimpleSalePrice(defaultVariant?.salePrice || 0);
+            setSimpleStock(defaultVariant?.stockQuantity || 0);
+            setSimpleSku(defaultVariant?.sku || "");
+            setSimpleWeight(defaultVariant?.weight || 0);
+            setSimpleUnit(defaultVariant?.unit || "PIECE");
+        } else if (p.productType === "VARIABLE" && p?.variants) {
             const mappedVariants: Variant[] = p.variants.map((v: any) => ({
-                id: String(v.variantId || v.id),
-                variantId: v.variantId || v.id,
-                attributes: v.attributes?.map((a: any) => ({
-                    name: a.attributeName,
-                    value: a.value,
-                    id: a.valueId || a.id
+                id: String(v?.variantId || v?.id || `v-${Math.random()}`),
+                variantId: v?.variantId || v?.id,
+                attributes: v?.attributes?.map((a: any) => ({
+                    name: a?.attributeName,
+                    value: a?.value,
+                    id: a?.valueId || a?.id
                 })) || [],
-                sku: v.sku || "",
-                originalPrice: v.price || 0,
-                price: v.salePrice || v.price || 0,
-                stock: v.stockQuantity || 0,
-                status: v.status || "ACTIVE",
-                featuredImage: v.featuredImageUrl,
-                featuredImageId: v.featuredImageId,
-                active: v.isActive !== false,
-                weight: v.weight || 0,
-                unit: v.unit || "PIECE"
+                sku: v?.sku || "",
+                originalPrice: v?.price || 0,
+                price: v?.salePrice || v?.price || 0,
+                stock: v?.stockQuantity || 0,
+                status: v?.status || "ACTIVE",
+                featuredImage: v?.featuredImageUrl,
+                featuredImageId: v?.featuredImageId,
+                active: v?.isActive !== false,
+                weight: v?.weight || 0,
+                unit: v?.unit || "PIECE"
             }));
             setVariants(mappedVariants);
         }
-    };
+    }, [countries]);
+
+    // Initialize/Reset form based on mode and product data
+    useEffect(() => {
+        if (mode === 'create') {
+            resetFormStates();
+        } else if (product) {
+            populateForm(product);
+        }
+    }, [product, mode, countries, populateForm]);
 
     const handleChangeStatus = (event: SelectChangeEvent) => {
         if (isReadOnly) return;
@@ -359,7 +361,7 @@ export const ProductFormPage = () => {
         }
 
         const getAttributeDetail = (name: string, value: string) => {
-            const attr = allAttributes.find((a: any) => a.name === name);
+            const attr = allAttributes.find((a: any) => a?.name === name);
             const val = attr?.values?.find((v: any) => v.value === value);
             return {
                 attributeId: attr?.attributeId || attr?.id,
@@ -373,7 +375,7 @@ export const ProductFormPage = () => {
         if (productType === "SIMPLE") {
             const finalSku = simpleSku || generateSKU(name);
             variantsPayload = [{
-                variantId: mode === 'edit' && product?.productType === "SIMPLE" ? product.variants[0]?.variantId : null,
+                variantId: mode === 'edit' && product?.productType === "SIMPLE" && product?.variants?.[0] ? product.variants[0]?.variantId : null,
                 name: "Default",
                 price: Number(simplePrice),
                 salePrice: (Number(simpleSalePrice) > 0 && Number(simpleSalePrice) < Number(simplePrice)) ? Number(simpleSalePrice) : null,
@@ -389,7 +391,7 @@ export const ProductFormPage = () => {
             const usedAttributeIds = new Set<number>();
             variants.forEach(v => {
                 v.attributes.forEach((a: any) => {
-                    const detail = getAttributeDetail(a.name, a.value);
+                    const detail = getAttributeDetail(a?.name || "", a?.value || "");
                     if (detail?.attributeId) {
                         usedAttributeIds.add(Number(detail.attributeId));
                     }
@@ -400,7 +402,7 @@ export const ProductFormPage = () => {
             variantsPayload = variants.map((v) => {
                 const attributeValueIds = v.attributes.map((a: any) => {
                     if (!a.id) {
-                        const detail = getAttributeDetail(a.name, a.value);
+                        const detail = getAttributeDetail(a?.name || "", a?.value || "");
                         return detail?.valueId;
                     }
                     return a.id;
@@ -451,7 +453,7 @@ export const ProductFormPage = () => {
                 imageId: f.id || f.imageId,
                 imageUrl: typeof f === 'string' ? f : (f.preview || ""),
                 displayOrder: index,
-                altText: f.name || ""
+                altText: f?.name || ""
             })),
             variants: variantsPayload,
             position: 0
@@ -473,7 +475,7 @@ export const ProductFormPage = () => {
             });
         } else {
             createProductMutation.mutate(finalPayload, {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
                     if (response?.success === false) {
                         toast.error(response?.message || "Tạo sản phẩm thất bại");
                     } else {
@@ -496,7 +498,6 @@ export const ProductFormPage = () => {
         );
     }
 
-    const outerTheme = useTheme();
     const localTheme = createTheme(outerTheme, {
         components: {
             MuiCard: {
@@ -676,8 +677,8 @@ export const ProductFormPage = () => {
                                                 disabled={isReadOnly}
                                             >
                                                 {brands.map((brand: any) => (
-                                                    <MenuItem key={brand.id || brand.brandId} value={brand.id || brand.brandId}>
-                                                        {brand.name}
+                                                    <MenuItem key={brand?.id || brand?.brandId} value={brand?.id || brand?.brandId}>
+                                                        {brand?.name || ""}
                                                     </MenuItem>
                                                 ))}
                                             </Select>
@@ -699,8 +700,8 @@ export const ProductFormPage = () => {
                                             MenuProps={{ PaperProps: { style: { maxHeight: 300 } } }}
                                         >
                                             {countries.map((country: any) => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
+                                                <MenuItem key={country?.code} value={country?.code}>
+                                                    {country?.name || country?.code}
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -846,8 +847,8 @@ export const ProductFormPage = () => {
                                         }}
                                     >
                                         {ageRanges.map((age: any) => (
-                                            <MenuItem key={age.id || age.ageRangeId} value={age.id || age.ageRangeId}>
-                                                {AGE_RANGE_LABELS[age.name] || age.name}
+                                            <MenuItem key={age?.id || age?.ageRangeId} value={age?.id || age?.ageRangeId}>
+                                                {age?.name ? (AGE_RANGE_LABELS[age.name] || age.name) : ""}
                                             </MenuItem>
                                         ))}
                                     </Select>
@@ -874,7 +875,7 @@ export const ProductFormPage = () => {
                                         fullWidth
                                         multiple
                                         options={tagOptions}
-                                        getOptionLabel={(option) => option.name || ""}
+                                        getOptionLabel={(option) => typeof option === 'string' ? option : (option?.name || "")}
                                         value={selectedTags}
                                         onChange={(_, val) => !isReadOnly && setSelectedTags(val)}
                                         readOnly={isReadOnly}
@@ -886,9 +887,9 @@ export const ProductFormPage = () => {
                                                     <Chip
                                                         key={key}
                                                         {...chipProps}
-                                                        label={option.name}
+                                                        label={option?.name || ""}
                                                         size="small"
-                                                        sx={{ bgcolor: `${option.color || '#00B8D9'}22`, color: option.color || '#00B8D9', fontWeight: 700 }}
+                                                        sx={{ bgcolor: `${option?.color || '#00B8D9'}22`, color: option?.color || '#00B8D9', fontWeight: 700 }}
                                                     />
                                                 );
                                             })
@@ -906,9 +907,37 @@ export const ProductFormPage = () => {
                     </Stack>
                 </form>
 
-                <QuickCreateDialog open={openQuickBrand} onClose={() => setOpenQuickBrand(false)} type="brand" onSave={handleSaveBrand} />
-                <QuickCreateDialog open={openQuickCategory} onClose={() => setOpenQuickCategory(false)} type="category" onSave={handleSaveCategory} />
-                <QuickCreateDialog open={editingTag !== null || openQuickTag} onClose={() => { setOpenQuickTag(false); setEditingTag(null); }} type="tag" onSave={handleSaveTag} editingData={editingTag} />
+                <QuickCreateDialog 
+                    open={openQuickBrand} 
+                    onClose={() => setOpenQuickBrand(false)} 
+                    title="Thương hiệu mới" 
+                    fields={[
+                        { key: 'name', label: 'Tên thương hiệu', required: true },
+                        { key: 'description', label: 'Mô tả', type: 'multiline' }
+                    ]}
+                    onSave={handleSaveBrand} 
+                />
+                <QuickCreateDialog 
+                    open={openQuickCategory} 
+                    onClose={() => setOpenQuickCategory(false)} 
+                    title="Danh mục mới" 
+                    fields={[
+                        { key: 'name', label: 'Tên danh mục', required: true },
+                        { key: 'description', label: 'Mô tả', type: 'multiline' }
+                    ]}
+                    onSave={handleSaveCategory} 
+                />
+                <QuickCreateDialog 
+                    open={editingTag !== null || openQuickTag} 
+                    onClose={() => { setOpenQuickTag(false); setEditingTag(null); }} 
+                    title={editingTag ? "Chỉnh sửa Tag" : "Tag mới"} 
+                    fields={[
+                        { key: 'name', label: 'Tên tag', required: true },
+                        { key: 'color', label: 'Màu sắc', type: 'color' }
+                    ]}
+                    onSave={handleSaveTag} 
+                    initialData={editingTag} 
+                />
             </ThemeProvider>
         </>
     );

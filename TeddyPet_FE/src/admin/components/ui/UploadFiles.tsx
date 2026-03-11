@@ -14,9 +14,10 @@ interface UploadFilesProps {
     files: CustomFile[];
     onFilesChange: (files: CustomFile[]) => void;
     folder?: string;
+    disabled?: boolean;
 }
 
-export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: UploadFilesProps) => {
+export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', disabled = false }: UploadFilesProps) => {
     const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
     const [isTouched, setIsTouched] = useState(false);
@@ -41,6 +42,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         accept: { 'image/*': [] },
         onDrop,
+        disabled,
         onFileDialogOpen: useCallback(() => setIsTouched(true), [])
     });
 
@@ -121,18 +123,20 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: 
                     </Box>
 
                     {/* Nút xóa ảnh */}
-                    <ButtonBase
-                        onClick={(e) => { e.stopPropagation(); handleRemoveFile(file); }}
-                        sx={{
-                            position: 'absolute', top: 4, right: 4, color: "#fff",
-                            bgcolor: "#141a217a", borderRadius: "50%", padding: "4px",
-                            '&:hover': { bgcolor: "#FF5630" } // Đổi sang màu đỏ khi hover nút xóa
-                        }}
-                    >
-                        <svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
-                        </svg>
-                    </ButtonBase>
+                    {!disabled && (
+                        <ButtonBase
+                            onClick={(e) => { e.stopPropagation(); handleRemoveFile(file); }}
+                            sx={{
+                                position: 'absolute', top: 4, right: 4, color: "#fff",
+                                bgcolor: "#141a217a", borderRadius: "50%", padding: "4px",
+                                '&:hover': { bgcolor: "#FF5630" } // Đổi sang màu đỏ khi hover nút xóa
+                            }}
+                        >
+                            <svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
+                            </svg>
+                        </ButtonBase>
+                    )}
 
                     {/* Badge tích xanh nếu đã upload thành công */}
                     {isServerImage && (
@@ -192,53 +196,55 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet' }: 
                     <Box sx={{ my: 3 }}>
                         <ul className="flex gap-[12px] flex-wrap">{renderThumbs}</ul>
                     </Box>
-                    <Box sx={{ gap: "12px", display: "flex", justifyContent: "flex-end" }}>
-                        <Button
-                            size="small"
-                            onClick={handleRemoveAll}
-                            sx={{
-                                p: "0px 8px",
-                                minHeight: "30px",
-                                minWidth: "64px",
-                                fontSize: "1.2rem",
-                                fontWeight: "700",
-                                textTransform: "none",
-                                border: "1px solid #919eab52",
-                                borderRadius: "8px",
-                                color: "#1C252E",
+                    {!disabled && (
+                        <Box sx={{ gap: "12px", display: "flex", justifyContent: "flex-end" }}>
+                            <Button
+                                size="small"
+                                onClick={handleRemoveAll}
+                                sx={{
+                                    p: "0px 8px",
+                                    minHeight: "30px",
+                                    minWidth: "64px",
+                                    fontSize: "1.2rem",
+                                    fontWeight: "700",
+                                    textTransform: "none",
+                                    border: "1px solid #919eab52",
+                                    borderRadius: "8px",
+                                    color: "#1C252E",
 
-                                '&:hover': {
-                                    bgcolor: "#919eab14",
-                                    borderColor: "currentColor",
-                                    boxShadow: "currentColor 0px 0px 0px 0.75px"
-                                }
-                            }}>
-                            {t("admin.upload.remove_all")}
-                        </Button>
-                        <Button
-                            size="small"
-                            onClick={handleUpload}
-                            startIcon={<UploadIcon />}
-                            sx={{
-                                p: "4px 8px",
-                                minHeight: "30px",
-                                minWidth: "64px",
-                                fontSize: "1.2rem",
-                                fontWeight: "700",
-                                textTransform: "none",
-                                border: "1px solid #919eab52",
-                                borderRadius: "8px",
-                                color: "#fff",
-                                bgcolor: "#1C252E",
+                                    '&:hover': {
+                                        bgcolor: "#919eab14",
+                                        borderColor: "currentColor",
+                                        boxShadow: "currentColor 0px 0px 0px 0.75px"
+                                    }
+                                }}>
+                                {t("admin.upload.remove_all")}
+                            </Button>
+                            <Button
+                                size="small"
+                                onClick={handleUpload}
+                                startIcon={<UploadIcon />}
+                                sx={{
+                                    p: "4px 8px",
+                                    minHeight: "30px",
+                                    minWidth: "64px",
+                                    fontSize: "1.2rem",
+                                    fontWeight: "700",
+                                    textTransform: "none",
+                                    border: "1px solid #919eab52",
+                                    borderRadius: "8px",
+                                    color: "#fff",
+                                    bgcolor: "#1C252E",
 
-                                '&:hover': {
-                                    bgcolor: "#454F5B",
-                                    boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                }
-                            }}>
-                            {isUploading ? t("admin.upload.uploading") : t("admin.upload.upload")}
-                        </Button>
-                    </Box>
+                                    '&:hover': {
+                                        bgcolor: "#454F5B",
+                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
+                                    }
+                                }}>
+                                {isUploading ? t("admin.upload.uploading") : t("admin.upload.upload")}
+                            </Button>
+                        </Box>
+                    )}
                 </>
             )}
         </Stack>

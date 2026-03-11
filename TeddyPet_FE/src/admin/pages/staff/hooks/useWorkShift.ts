@@ -14,6 +14,7 @@ import {
     rejectLeaveRequest,
     runAutoFillForShift,
     finalizeShiftApprovals,
+    cancelAdminRegistration,
     getAvailableShifts,
     getShiftsForAdminByDateRange,
     registerForShift,
@@ -161,6 +162,19 @@ export const useRejectLeaveRequest = () => {
     });
 };
 
+/** Admin: Hủy xếp ca – xóa đăng ký (PENDING hoặc APPROVED) khỏi ca để nhả slot. */
+export const useCancelAdminRegistration = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ shiftId, registrationId }: { shiftId: number; registrationId: number }) =>
+            cancelAdminRegistration(shiftId, registrationId),
+        onSuccess: (_, { shiftId }) => {
+            qc.invalidateQueries({ queryKey: ['work-shift-registrations', shiftId] });
+            qc.invalidateQueries({ queryKey: ['available-shifts'] });
+        },
+    });
+};
+
 /** Admin: Điền ca theo lịch cố định – cập nhật định mức và gán Full-time (trạng thái Chờ duyệt). */
 export const useRunAutoFillForShift = () => {
     const qc = useQueryClient();
@@ -217,6 +231,7 @@ export const useRegisterForShift = () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-registrations'] });
+            qc.invalidateQueries({ queryKey: ['admin-shifts'] });
         },
     });
 };
@@ -230,6 +245,7 @@ export const useCancelMyRegistration = () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-registrations'] });
+            qc.invalidateQueries({ queryKey: ['admin-shifts'] });
         },
     });
 };

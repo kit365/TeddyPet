@@ -445,6 +445,7 @@ public class ProductApplicationService implements ProductService {
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
                 ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildKeywordSearchSpecification(request.keyword()),
                 ProductSpecification.buildCategorySlugsFilterSpecification(request.categorySlugs()),
                 ProductSpecification.buildBrandSlugsFilterSpecification(request.brandSlugs()),

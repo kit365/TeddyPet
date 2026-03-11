@@ -39,13 +39,13 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
     initialData = {},
     saveLabel = 'Tạo mới'
 }) => {
-    const [formData, setFormData] = useState<any>(initialData);
+    const [formData, setFormData] = useState<any>(initialData || {});
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (open) {
-            setFormData(initialData);
+            setFormData(initialData || {});
             setErrors({});
         }
     }, [open, initialData]);
@@ -124,7 +124,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                                         width: 36,
                                         height: 36,
                                         borderRadius: '8px',
-                                        backgroundColor: formData[field.key] || '#000000',
+                                        backgroundColor: formData?.color || formData?.['color'] || '#000000',
                                         border: '2px solid #fff',
                                         boxShadow: '0 0 0 1px #919EAB33',
                                         cursor: 'pointer',
@@ -133,7 +133,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                                     }}>
                                         <input
                                             type="color"
-                                            value={formData[field.key] || '#000000'}
+                                            value={formData?.[field.key] || '#000000'}
                                             onChange={(e) => handleFieldChange(field.key, e.target.value)}
                                             style={{
                                                 position: 'absolute',
@@ -150,7 +150,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                                     <TextField
                                         fullWidth
                                         label={field.label}
-                                        value={formData[field.key] || ''}
+                                        value={formData?.[field.key] || ''}
                                         onChange={(e) => handleFieldChange(field.key, e.target.value)}
                                         error={!!errors[field.key]}
                                         helperText={errors[field.key]}

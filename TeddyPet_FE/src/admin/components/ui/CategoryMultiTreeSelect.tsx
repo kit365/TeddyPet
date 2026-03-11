@@ -50,6 +50,7 @@ export const CategoryMultiTreeSelect = ({
         // First pass: assign IDs to all nodes
         const assignIds = (nodes: CategoryNode[]) => {
             nodes.forEach((node) => {
+                if (!node) return;
                 const id = node.categoryId ?? autoId++;
                 idMap.set(node, id);
                 if (node.children?.length) {
@@ -62,8 +63,9 @@ export const CategoryMultiTreeSelect = ({
         // Helper to get all descendant IDs recursively
         const getAllDescendantIds = (node: CategoryNode): number[] => {
             const ids: number[] = [];
-            if (node.children?.length) {
+            if (node && node.children?.length) {
                 node.children.forEach((child) => {
+                    if (!child) return;
                     const childId = idMap.get(child)!;
                     ids.push(childId);
                     ids.push(...getAllDescendantIds(child));
@@ -75,6 +77,7 @@ export const CategoryMultiTreeSelect = ({
         // Second pass: build flat list with all info
         const flatten = (nodes: CategoryNode[], level: number, parentId: number | null) => {
             nodes.forEach((node) => {
+                if (!node) return;
                 const id = idMap.get(node)!;
                 const allDescendantIds = getAllDescendantIds(node);
 

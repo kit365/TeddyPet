@@ -2,5 +2,5 @@ ALTER TABLE users
 DROP COLUMN IF EXISTS is_guest, 
 DROP COLUMN IF EXISTS has_password;
 
-ALTER TABLE booking_deposits 
+ALTER TABLE IF EXISTS booking_deposits 
 ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN NOT NULL DEFAULT FALSE;

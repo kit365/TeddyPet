@@ -83,4 +83,7 @@ public interface WorkShiftService {
 
     /** Admin: Duyệt lần cuối – chuyển tất cả đăng ký PENDING của ca sang APPROVED; sau đó "Ca của tôi" mới hiển thị. */
     void finalizeShiftApprovals(Long shiftId);
+
+    /** Admin: Hủy xếp ca – xóa bản ghi đăng ký (PENDING hoặc APPROVED) để nhả slot. */
+    void cancelAdminRegistration(Long shiftId, Long registrationId);
 }

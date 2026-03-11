@@ -7,27 +7,11 @@ import { useShiftsForAdmin } from '../hooks/useWorkShift';
 import { getRegistrationsForShift } from '../../../api/workShift.api';
 import type { IWorkShift, IWorkShiftRegistration } from '../../../api/workShift.api';
 import type { SummaryMatrix, SlotBlockData } from './workShiftSummaryUtils';
-import { buildMatrixByRole } from './workShiftSummaryUtils';
+import { buildMatrixByRole, getRoleBadgeStyle, groupShiftsForSummary, buildSummaryMatrix } from './workShiftSummaryUtils';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { groupShiftsForSummary, buildSummaryMatrix } from './workShiftSummaryUtils';
-
-/** Màu badge theo chức vụ (pastel nền + chữ đậm). Match theo từ khóa trong tên role. */
-const ROLE_BADGE_STYLES: { keyword: string; bg: string; text: string }[] = [
-    { keyword: 'chăm sóc', bg: '#eff6ff', text: '#1d4ed8' },
-    { keyword: 'bán hàng', bg: '#fff7ed', text: '#c2410c' },
-    { keyword: 'thu ngân', bg: '#fff7ed', text: '#c2410c' },
-    { keyword: 'spa', bg: '#f5f3ff', text: '#6d28d9' },
-    { keyword: 'groomer', bg: '#f5f3ff', text: '#6d28d9' },
-];
-const DEFAULT_BADGE = { bg: '#f1f5f9', text: '#475569' };
-function getRoleBadgeStyle(roleName: string): { bg: string; text: string } {
-    const lower = roleName.toLowerCase();
-    const found = ROLE_BADGE_STYLES.find((r) => lower.includes(r.keyword));
-    return found ?? DEFAULT_BADGE;
-}
 
 /** Thứ 2 đầu tuần (0=CN, 1=T2,...) */
 function getCurrentWeekMonday() {

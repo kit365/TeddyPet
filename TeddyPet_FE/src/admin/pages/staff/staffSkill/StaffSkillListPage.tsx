@@ -13,10 +13,9 @@ import type { IStaffSkill, IStaffSkillRequest, ProficiencyLevel } from '../../..
 import { toast } from 'react-toastify';
 import { EditIcon, DeleteIcon } from '../../../assets/icons';
 
-const LEVEL_LABELS: Record<string, string> = { BEGINNER: 'Mới', INTERMEDIATE: 'Trung bình', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
+const LEVEL_LABELS: Record<string, string> = { BEGINNER: 'Cơ bản', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
 const PROFICIENCY_OPTIONS: { value: ProficiencyLevel; label: string }[] = [
-    { value: 'BEGINNER', label: 'Mới' },
-    { value: 'INTERMEDIATE', label: 'Trung bình' },
+    { value: 'BEGINNER', label: 'Cơ bản' },
     { value: 'ADVANCED', label: 'Nâng cao' },
     { value: 'EXPERT', label: 'Chuyên gia' },
 ];
@@ -25,11 +24,11 @@ export const StaffSkillListPage = () => {
     const [staffId, setStaffId] = useState<number | ''>('');
     const [openAssign, setOpenAssign] = useState(false);
     const [assignSkillId, setAssignSkillId] = useState<number | ''>('');
-    const [assignLevel, setAssignLevel] = useState<ProficiencyLevel>('INTERMEDIATE');
+    const [assignLevel, setAssignLevel] = useState<ProficiencyLevel>('BEGINNER');
     const [assignCommission, setAssignCommission] = useState<string>('10');
 
     const [editingRow, setEditingRow] = useState<IStaffSkill | null>(null);
-    const [editLevel, setEditLevel] = useState<ProficiencyLevel>('INTERMEDIATE');
+    const [editLevel, setEditLevel] = useState<ProficiencyLevel>('BEGINNER');
     const [editCommission, setEditCommission] = useState<string>('10');
 
     const { data: profiles = [] } = useStaffProfiles();

@@ -153,7 +153,7 @@ public class AdminWorkShiftController {
     @Operation(summary = "Điền ca theo lịch cố định – tạo định mức mặc định (nếu chưa có) và gán Full-time trùng lịch (trạng thái Chờ duyệt).")
     public ResponseEntity<ApiResponse<Void>> runAutoFillForShift(@PathVariable Long shiftId) {
         workShiftService.runAutoFillForShift(shiftId);
-        return ResponseEntity.ok(ApiResponse.success("Đã điền ca theo lịch cố định. Nhân viên Full-time ở trạng thái Chờ duyệt."));
+        return ResponseEntity.ok(ApiResponse.success("Đã điền ca theo lịch cố định. Nhân viên Full-time ở trạng thái Đã duyệt."));
     }
 
     @PostMapping("/{shiftId}/finalize-approvals")
@@ -162,6 +162,16 @@ public class AdminWorkShiftController {
     public ResponseEntity<ApiResponse<Void>> finalizeShiftApprovals(@PathVariable Long shiftId) {
         workShiftService.finalizeShiftApprovals(shiftId);
         return ResponseEntity.ok(ApiResponse.success("Đã duyệt ca lần cuối."));
+    }
+
+    @DeleteMapping("/{shiftId}/registrations/{registrationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Hủy xếp ca – Admin xóa đăng ký (PENDING/APPROVED) để nhả slot cho ca này.")
+    public ResponseEntity<ApiResponse<Void>> cancelRegistration(
+            @PathVariable Long shiftId,
+            @PathVariable Long registrationId) {
+        workShiftService.cancelAdminRegistration(shiftId, registrationId);
+        return ResponseEntity.ok(ApiResponse.success("Đã hủy xếp ca."));
     }
 
     @GetMapping("/{shiftId}")

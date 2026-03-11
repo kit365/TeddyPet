@@ -172,6 +172,12 @@ export const finalizeShiftApprovals = async (shiftId: number): Promise<ApiRespon
     return res.data;
 };
 
+/** Admin: Hủy xếp ca – xóa đăng ký khỏi ca để nhả slot. */
+export const cancelAdminRegistration = async (shiftId: number, registrationId: number): Promise<ApiResponse<void>> => {
+    const res = await apiApp.delete(`${ADMIN_BASE}/${shiftId}/registrations/${registrationId}`, withAuth());
+    return res.data;
+};
+
 /** Staff: get available shifts with slot info per role (Part-time: show Đăng ký only when available > 0) */
 export const getAvailableShifts = async (from?: string | null, to?: string | null): Promise<ApiResponse<IAvailableShiftForStaff[]>> => {
     const params: Record<string, string> = {};

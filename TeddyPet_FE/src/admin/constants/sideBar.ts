@@ -216,6 +216,7 @@ export const menuManagementData = [
         allowedRoles: ["ADMIN", "STAFF"],
         children: [
             { id: "staff-dashboard", label: "Nhiệm vụ", path: `/${prefixAdmin}/staff/dashboard`, allowedRoles: ["STAFF"] },
+            { id: "staff-personal-schedule", label: "Lịch cá nhân", path: `/${prefixAdmin}/staff/personal-schedule`, allowedRoles: ["STAFF"] },
             { id: "staff-profiles", label: "Hồ sơ nhân viên", path: `/${prefixAdmin}/staff/profile/list`, allowedRoles: ["ADMIN"] },
             { id: "staff-positions", label: "Danh mục chức vụ", path: `/${prefixAdmin}/staff/position/list`, allowedRoles: ["ADMIN"] },
             { id: "staff-skills", label: "Danh mục kỹ năng", path: `/${prefixAdmin}/staff/skill/list`, allowedRoles: ["ADMIN"] },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Button, MenuItem, TextField } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
@@ -11,7 +11,7 @@ import { DATA_GRID_LOCALE_VN } from '../../service/configs/localeText.config';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import type { IContract } from '../../../api/contract.api';
-import { EditIcon, DeleteIcon } from '../../../assets/icons';
+import { EditIcon, DeleteIcon, EyeIcon } from '../../../assets/icons';
 
 export const ContractListPage = () => {
     const [staffId, setStaffId] = useState<number | ''>('');
@@ -19,6 +19,18 @@ export const ContractListPage = () => {
     const { data: contracts = [], isLoading } = useContractsByStaffId(staffId || null);
     const { mutate: deleteContract } = useDeleteContract();
     const navigate = useNavigate();
+
+    const contractsWithStaffName = useMemo(
+        () =>
+            contracts.map((c) => {
+                const staff = profiles.find((p) => p.staffId === c.staffId);
+                return {
+                    ...c,
+                    employeeName: staff?.fullName ?? `Nhân viên #${c.staffId}`,
+                };
+            }),
+        [contracts, profiles]
+    );
 
     const handleDelete = (row: IContract) => {
         if (!window.confirm(`Bạn có chắc muốn xóa hợp đồng #${row.contractId}?`)) return;
@@ -56,6 +68,14 @@ export const ContractListPage = () => {
 
         return (
             <GridActionsCell>
+                <GridActionsCellItem
+                    icon={<EyeIcon />}
+                    label="Xem chi tiết"
+                    showInMenu
+                    onClick={() => {
+                        navigate(`/${prefixAdmin}/staff/contract/detail/${row.contractId}`);
+                    }}
+                />
                 <GridActionsCellItem
                     icon={<EditIcon />}
                     label="Sửa"
@@ -151,7 +171,7 @@ export const ContractListPage = () => {
             <Card elevation={0} sx={dataGridCardStyles}>
                 <div style={dataGridContainerStyles}>
                     <DataGrid
-                        rows={contracts}
+                        rows={contractsWithStaffName}
                         getRowId={(row) => row.contractId}
                         loading={isLoading}
                         columns={columns}

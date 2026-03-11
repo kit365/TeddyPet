@@ -1,4 +1,4 @@
--- V27: Add suitable_pet_types (JSON) and category_type (enum-like) to product_categories
+-- V33: Add suitable_pet_types (JSON) and category_type (enum-like) to product_categories
 
 ALTER TABLE product_categories
     ADD COLUMN IF NOT EXISTS suitable_pet_types TEXT;
@@ -43,3 +43,4 @@ WHERE name = 'Sản phẩm' AND (suitable_pet_types IS NULL OR suitable_pet_type
 -- Thẻ tên, Vòng cổ: common for all
 UPDATE product_categories SET suitable_pet_types = '["DOG","CAT","OTHER"]'
 WHERE name IN ('Thẻ tên', 'Vòng cổ') AND (suitable_pet_types IS NULL OR suitable_pet_types = '');
+
