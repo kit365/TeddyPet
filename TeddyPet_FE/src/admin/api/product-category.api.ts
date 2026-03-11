@@ -31,7 +31,7 @@ export const getNestedCategories = async (): Promise<ApiResponse<BlogCategoryNod
 /** Tạo danh mục */
 export const createCategory = async (data: any): Promise<any> => {
     // Backend uses @PutMapping for both create and update
-    const response = await apiApp.put(BASE_URL, data);
+    const response = await apiApp.put(BASE_URL, data, withAuth());
     return response.data;
 };
 

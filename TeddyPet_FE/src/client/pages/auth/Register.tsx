@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ProductBanner } from "../product/sections/ProductBanner";
 import { Input } from "./sections/Input";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { z } from "zod";
@@ -7,14 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { register as registerApi } from "../../../api/auth.api";
 import { toast } from "react-toastify";
-import { useAuthStore } from "../../../stores/useAuthStore";
 import { Header } from "../../components/layouts/Header";
 import { ArrowRight } from "iconoir-react";
 
-const breadcrumbs = [
-    { label: "Trang chủ", to: "/" },
-    { label: "Đăng ký", to: "/auth/register" }
-];
 
 const schema = z.object({
     username: z.string().nonempty("Vui lòng nhập tên người dùng!").min(3, "Tên người dùng phải có ít nhất 3 ký tự!").max(50),
@@ -31,11 +25,7 @@ const schema = z.object({
     password: z
         .string()
         .nonempty("Vui lòng nhập mật khẩu!")
-        .min(8, "Mật khẩu phải có ít nhất 8 ký tự!")
-        .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái viết hoa!")
-        .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái viết thường!")
-        .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số!")
-        .regex(/[~!@#$%^&*]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt! (~!@#$%^&*)"),
+        .min(6, "Mật khẩu phải có ít nhất 6 ký tự!"),
     confirmPassword: z.string().nonempty("Vui lòng xác nhận mật khẩu!")
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Mật khẩu xác nhận không khớp!",
@@ -46,7 +36,6 @@ type RegisterFormData = z.infer<typeof schema>;
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
-    const loginStore = useAuthStore((state) => state.login);
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
         resolver: zodResolver(schema)
@@ -70,8 +59,8 @@ export const RegisterPage = () => {
                 navigate("/auth/register-success", {
                     state: {
                         email: data.email,
-                        resendCooldownSeconds: response.data?.resendCooldownSeconds,
-                        canResendAt: response.data?.canResendAt
+                        resendCooldownSeconds: response.data?.cooldownSeconds,
+                        canResendAt: response.data?.cooldownEndsAt
                     }
                 });
             } else {

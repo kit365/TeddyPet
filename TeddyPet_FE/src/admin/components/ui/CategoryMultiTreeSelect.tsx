@@ -31,12 +31,14 @@ interface Props {
     categories: CategoryNode[];
     selectedIds: number[];
     onChange: (ids: number[]) => void;
+    disabled?: boolean;
 }
 
 export const CategoryMultiTreeSelect = ({
     categories,
     selectedIds,
     onChange,
+    disabled = false,
 }: Props) => {
 
     // Flatten all categories and build parent-child relationships
@@ -174,6 +176,7 @@ export const CategoryMultiTreeSelect = ({
                 value={selectedIds}
                 onChange={() => { }} // Handled by MenuItem onClick
                 input={<OutlinedInput label="Danh mục sản phẩm" notched />}
+                disabled={disabled}
                 renderValue={() => {
                     if (selectedCount === 0) {
                         return <Box sx={{ color: "#919EAB" }}>Chọn danh mục...</Box>;

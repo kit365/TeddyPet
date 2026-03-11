@@ -92,7 +92,7 @@ export const OverviewPage = () => {
                             <tbody className="divide-y divide-slate-50">
                                 {recentOrders.map((order) => (
                                     <tr key={order.id} className="hover:bg-slate-50/50 transition-all group">
-                                        <td className="p-6 text-[1.5rem] font-bold text-indigo-600">
+                                        <td className="p-6 text-[1.5rem] font-bold text-client-primary">
                                             <Link to={`/dashboard/orders/${order.id}`} className="hover:underline">
                                                 #{order.orderCode}
                                             </Link>
@@ -142,7 +142,7 @@ export const OverviewPage = () => {
                                 </li>
                             ))}
                         </ul>
-                        <Link to="/dashboard/review" className="mt-6 block text-center text-[1.2rem] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700">
+                        <Link to="/dashboard/review" className="mt-6 block text-center text-[1.2rem] font-black uppercase tracking-widest text-client-primary hover:text-client-secondary">
                             Xem tất cả đánh giá
                         </Link>
                     </div>

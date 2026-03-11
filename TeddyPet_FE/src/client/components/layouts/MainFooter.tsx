@@ -12,8 +12,8 @@ import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
 export const MainFooter = () => {
     const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
     const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
-    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
-    const [shopWebsite, setShopWebsite] = useState<string>('www.teddypet.id.vn');
+    const [shopEmail, setShopEmail] = useState<string>('teddypetfpt@gmail.com');
+    const [shopWebsite, setShopWebsite] = useState<string>('teddypet.fpt.edu.vn');
     const [facebookUrl, setFacebookUrl] = useState<string>('#');
     const [instagramUrl, setInstagramUrl] = useState<string>('#');
 

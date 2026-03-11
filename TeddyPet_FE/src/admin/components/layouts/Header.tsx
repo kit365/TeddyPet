@@ -29,7 +29,6 @@ import { useUpdateStaffProfile } from "../../pages/staff/hooks/useStaffProfile";
 import { uploadImage } from "../../../api/upload.api";
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
-import { LogoTeddyPet } from "../../../assets/admin/LogoTeddyPet";
 
 interface Props {
     window?: () => Window;
@@ -176,10 +175,12 @@ export const Header = () => {
         <>
             <ElevationScroll>
                 <AppBar
-                    position="sticky"
+                    position="static"
                     color="inherit"
+                    elevation={0}
                     sx={{
-                        width: "100%",
+                        backgroundColor: 'transparent !important',
+                        border: 'none',
                     }}
                 >
                     <Container
@@ -188,11 +189,10 @@ export const Header = () => {
                         style={{
                             paddingLeft: "40px",
                             paddingRight: "40px",
-                            height: "72px"
+                            height: "64px"
                         }}
                     >
-                        <div className="flex items-center gap-[12px] py-[4px]">
-                            <LogoTeddyPet width="32px" height="32px" />
+                        <div className="flex items-center gap-[10px]">
                             <span className="text-[2.2rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">
@@ -535,6 +535,7 @@ export const Header = () => {
                                 </Box>
                             </Popover>
                             <Button
+                                onClick={() => navigate('/admin/settings')}
                                 className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"
                                 sx={{
                                     minWidth: 0,

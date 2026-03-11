@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import Swal from "sweetalert2";
 import { Handbag, Heart, Search, User, Bell } from "iconoir-react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
 import { useCartStore } from "../../../stores/useCartStore";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { logout as logoutApi } from "../../../api/auth.api";
+import { toast } from "react-toastify";
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { getSearchSuggestions } from "../../../api/home.api";
 import { LocationSelector } from "../ui/LocationSelector";
+import { ConfirmModal } from "../ui/ConfirmModal";
 
 export const MainHeader = () => {
     const items = useCartStore((state) => state.items);
@@ -21,37 +22,28 @@ export const MainHeader = () => {
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
     const { markAllAsRead, markAsRead, notifications } = useNotificationStore();
+    const [isConfirmReadOpen, setIsConfirmReadOpen] = useState(false);
 
     const handleMarkAllAsRead = (e: React.MouseEvent) => {
         e.preventDefault();
-        Swal.fire({
-            title: 'Xác nhận!',
-            text: "Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#ff6262',
-            cancelButtonColor: '#102937',
-            confirmButtonText: 'Xác nhận đọc hết',
-            cancelButtonText: 'Hủy',
-            reverseButtons: true,
-            customClass: {
-                title: 'font-secondary',
-                popup: 'rounded-[20px]',
-                confirmButton: 'rounded-[8px] font-secondary',
-                cancelButton: 'rounded-[8px] font-secondary'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                markAllAsRead();
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Đã đánh dấu tất cả là đã đọc',
-                    showConfirmButton: false,
-                    timer: 2000,
-                    timerProgressBar: true
-                });
+        setIsConfirmReadOpen(true);
+    };
+
+    const confirmMarkAllAsRead = () => {
+        markAllAsRead();
+        setIsConfirmReadOpen(false);
+        toast.success("Đã đánh dấu tất cả thông báo là đã đọc!", {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            style: {
+                borderRadius: '15px',
+                fontSize: '1.4rem',
+                fontWeight: 'bold',
+                fontFamily: 'Quicksand, sans-serif'
             }
         });
     };
@@ -351,6 +343,16 @@ export const MainHeader = () => {
                     </div>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={isConfirmReadOpen}
+                onClose={() => setIsConfirmReadOpen(false)}
+                onConfirm={confirmMarkAllAsRead}
+                title="Xác nhận đọc hết"
+                message="Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc không?"
+                confirmText="Đồng ý đọc hết"
+                cancelText="Hủy bỏ"
+                type="warning"
+            />
         </>
     )
 }

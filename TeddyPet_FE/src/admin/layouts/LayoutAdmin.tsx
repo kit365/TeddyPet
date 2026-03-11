@@ -25,18 +25,22 @@ const LayoutAdminContent = () => {
     };
 
     return (
-        <div className="flex">
+        <div className="flex min-h-screen bg-[#F9FAFB]">
+            {/* Sidebar occupies its own space in the flex flow */}
             <SideBar />
 
-            <div className={`w-full transition-[padding-left] duration-[120ms] ease-linear ${isOpen ? 'pl-[300px]' : 'pl-[88px]'}`}>
-                <ThemeProvider theme={adminTheme}><Header /></ThemeProvider>
+            {/* Main content takes the remaining space */}
+            <div className="flex-1 flex flex-col min-w-0 relative">
+                <div className="w-full bg-[#F9FAFB]/80 backdrop-blur-md border-b border-[#919eab1f]">
+                    <ThemeProvider theme={adminTheme}><Header /></ThemeProvider>
+                </div>
 
                 <ThemeProvider theme={adminTheme}>
                     <main
                         className={
                             isBlogDetail
-                                ? undefined
-                                : "w-full mx-auto px-[40px] pt-[8px] pb-[64px]"
+                                ? "flex-1"
+                                : "flex-1 w-full mx-auto px-[40px] pt-[8px] pb-[64px]"
                         }
                     >
                         <Outlet />

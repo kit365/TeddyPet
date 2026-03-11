@@ -14,6 +14,7 @@ import StoreIcon from '@mui/icons-material/Store';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SearchIcon from '@mui/icons-material/Search';
 import PushPinIcon from '@mui/icons-material/PushPin';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -133,6 +134,61 @@ export const SettingsPage = () => {
         }
     };
 
+    const normalizeAddress = (query: string) => {
+        return query
+            .replace(/\b[Pp]\.?\s?(\d+|[\w\s]+)\b/g, "Phường $1")
+            .replace(/\b[Qq]\.?\s?(\d+|[\w\s]+)\b/g, "Quận $1")
+            .replace(/\b[Tt][Pp]\.?\s/g, "Thành phố ")
+            .replace(/\b[Hh]\.?\s/g, "Huyện ")
+            .replace(/\b[Tt][Xx]\.?\s/g, "Thị xã ")
+            .trim();
+    };
+
+    // Auto-fetch suggestions when typing
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            if (searchKeyword.length < 3) {
+                setSuggestions([]);
+                setShowSuggestions(false);
+                return;
+            }
+
+            try {
+                const normalized = normalizeAddress(searchKeyword);
+                // Biasing towards current position if exists
+                const bias = pos ? `&location_bias_scale=0.5&lat=${pos.lat}&lon=${pos.lng}` : "";
+                // Adding bbox for Vietnam to restrict results
+                const bbox = "&bbox=102.1,8.5,109.5,23.4";
+                
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(normalized)}&limit=10${bias}${bbox}`);
+                const data = await res.json();
+                
+                if (data.features) {
+                    const mapped = data.features.map((f: any) => {
+                        const p = f.properties;
+                        const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                        const street = p.street || "";
+                        const name = (p.name && p.name !== p.street) ? p.name : "";
+                        const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                        const parts = [mainPart, p.district, p.city, p.country];
+                        return {
+                            display_name: parts.filter(Boolean).join(", "),
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0]
+                        };
+                    });
+                    setSuggestions(mapped);
+                    setShowSuggestions(true);
+                }
+            } catch (error) {
+                console.error("Lỗi gợi ý:", error);
+            }
+        };
+
+        const timer = setTimeout(fetchSuggestions, 400);
+        return () => clearTimeout(timer);
+    }, [searchKeyword, pos]);
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -207,15 +263,84 @@ export const SettingsPage = () => {
         }
     };
 
-    const handleSearch = async () => {
-        if (!searchKeyword.trim()) return;
+    const geocodeFromAddress = async (query: string, isFromSearch: boolean = false) => {
+        if (!query.trim() || query.length < 3) return;
+        
+        const normalizedQuery = normalizeAddress(query);
+        
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchKeyword)}&countrycodes=vn&limit=5`);
-            const data = await res.json();
-            setSuggestions(data);
-            setShowSuggestions(true);
+            const trySearch = async (q: string) => {
+                // Bias and bbox mapping
+                const bias = pos ? `&lat=${pos.lat}&lon=${pos.lng}&location_bias_scale=0.5` : "";
+                const bbox = "&bbox=102.1,8.5,109.5,23.4";
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1${bias}${bbox}`);
+                return await res.json();
+            };
+
+            let data = await trySearch(normalizedQuery);
+
+            // Fallback 1: Strip house number if no result
+            if (!(data.features && data.features.length > 0)) {
+                const parts = normalizedQuery.split(/[\s,]+/);
+                const slashIndex = parts.findIndex(p => p.includes("/"));
+                if (slashIndex !== -1) {
+                    const streetOnly = parts.slice(slashIndex + 1).join(" ");
+                    if (streetOnly.length > 3) {
+                        data = await trySearch(streetOnly);
+                    }
+                }
+            }
+
+            // Fallback 2: Nominatim override (more detailed for specific addresses)
+            if (!(data.features && data.features.length > 0)) {
+                const nomRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalizedQuery)}&limit=1&countrycodes=vn`);
+                const nomData = await nomRes.json();
+                if (nomData && nomData.length > 0) {
+                    const res = nomData[0];
+                    const lat = parseFloat(res.lat);
+                    const lon = parseFloat(res.lon);
+                    const newLatLng = new L.LatLng(lat, lon);
+                    setPos(newLatLng);
+                    setMapCenter([lat, lon]);
+                    setShopLat(lat.toString());
+                    setShopLng(lon.toString());
+                    if (isFromSearch) {
+                        setShopAddress(res.display_name);
+                        setSearchKeyword("");
+                        setShowSuggestions(false);
+                    }
+                    return;
+                }
+            }
+
+            if (data.features && data.features.length > 0) {
+                const feature = data.features[0];
+                const lat = feature.geometry.coordinates[1];
+                const lon = feature.geometry.coordinates[0];
+                const newLatLng = new L.LatLng(lat, lon);
+                setPos(newLatLng);
+                setMapCenter([lat, lon]);
+                setShopLat(lat.toString());
+                setShopLng(lon.toString());
+
+                if (isFromSearch) {
+                    const p = feature.properties;
+                    const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                    const street = p.street || "";
+                    const name = (p.name && p.name !== p.street) ? p.name : "";
+                    const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                    const parts = [mainPart, p.district, p.city, p.country];
+                    const displayName = parts.filter(Boolean).join(", ");
+                    
+                    setShopAddress(displayName);
+                    setSearchKeyword("");
+                    setShowSuggestions(false);
+                }
+            } else {
+                toast.warn("Không tìm thấy vị trí chính xác. Hãy chọn trên bản đồ hoặc gõ tên đường.");
+            }
         } catch (error) {
-            console.error("Error searching location:", error);
+            console.error("Geocoding error:", error);
         }
     };
 
@@ -230,6 +355,41 @@ export const SettingsPage = () => {
         setShopAddress(suggestion.display_name);
         setSearchKeyword("");
         setShowSuggestions(false);
+    };
+
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error("Trình duyệt không hỗ trợ định vị GPS");
+            return;
+        }
+
+        toast.info("Đang lấy vị trí của bạn...", { autoClose: 2000 });
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                const newLatLng = new L.LatLng(latitude, longitude);
+                setPos(newLatLng);
+                setMapCenter([latitude, longitude]);
+                setShopLat(latitude.toString());
+                setShopLng(longitude.toString());
+                
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                    const data = await res.json();
+                    if (data && data.display_name) {
+                        setShopAddress(data.display_name);
+                    }
+                } catch (error) {
+                    console.error("Reverse geocoding error:", error);
+                }
+            },
+            (error) => {
+                console.error("GPS error:", error);
+                toast.error("Không thể lấy vị trí. Vui lòng cho phép quyền truy cập GPS.");
+            },
+            { enableHighAccuracy: true }
+        );
     };
 
     if (loading) {
@@ -285,10 +445,27 @@ export const SettingsPage = () => {
                                     placeholder="Tìm kiếm địa chỉ trên bản đồ..."
                                     value={searchKeyword}
                                     onChange={(e) => setSearchKeyword(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                    onKeyPress={(e) => e.key === 'Enter' && geocodeFromAddress(searchKeyword, true)}
                                     disabled={!isEditing}
                                     InputProps={{
                                         startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#637381' }} /></InputAdornment>,
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <Button
+                                                    onClick={handleCurrentLocation}
+                                                    disabled={!isEditing}
+                                                    sx={{ 
+                                                        minWidth: 0, 
+                                                        p: 1, 
+                                                        borderRadius: '10px',
+                                                        color: '#00AB55',
+                                                        '&:hover': { bgcolor: alpha('#00AB55', 0.1) }
+                                                    }}
+                                                >
+                                                    <MyLocationIcon />
+                                                </Button>
+                                            </InputAdornment>
+                                        ),
                                         sx: { bgcolor: 'white', borderRadius: '12px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', border: '1px solid #E5E8EB' }
                                     }}
                                 />

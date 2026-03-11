@@ -10,7 +10,7 @@ export const createBrandSchema = z.object({
 
     websiteUrl: z.string().url("URL không hợp lệ").optional().or(z.literal("")),
 
-    logoUrl: z.string().min(1, "Vui lòng chọn logo thương hiệu"),
+    logoUrl: z.string().optional(),
 
     isActive: z.boolean().optional(),
 });

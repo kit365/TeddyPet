@@ -17,36 +17,39 @@ export const BrandList = () => {
     const { data: brands = [], isLoading } = useBrands();
 
     return (
-        <Card elevation={0} sx={dataGridCardStyles}>
-            <div style={dataGridContainerStyles}>
-                <DataGrid
-                    rows={brands}
-                    getRowId={(row) => row.brandId}
-                    showToolbar
-                    loading={isLoading}
-                    columns={columnsConfig}
-                    density="comfortable"
-                    slots={{
-                        toolbar: BrandToolbar,
-                        columnSortedAscendingIcon: SortAscendingIcon,
-                        columnSortedDescendingIcon: SortDescendingIcon,
-                        columnUnsortedIcon: UnsortedIcon,
-                        noRowsOverlay: () => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                {isLoading ? <CircularProgress size={32} /> : <span className='text-[1.8rem]'>Không có dữ liệu để hiển thị</span>}
-                            </Box>
-                        )
-                    }}
-                    localeText={DATA_GRID_LOCALE_VN}
-                    pagination
-                    pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
-                    initialState={columnsInitialState}
-                    getRowHeight={() => 'auto'}
-                    checkboxSelection
-                    disableRowSelectionOnClick
-                    sx={dataGridStyles}
-                />
-            </div>
-        </Card>
+        <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+            <Card elevation={0} sx={{ ...dataGridCardStyles, flex: 'none' }}>
+                <Box sx={{ width: '100%', minWidth: 0 }}>
+                    <DataGrid
+                        autoHeight
+                        rows={brands}
+                        getRowId={(row) => row.brandId}
+                        showToolbar
+                        loading={isLoading}
+                        columns={columnsConfig}
+                        density="comfortable"
+                        slots={{
+                            toolbar: BrandToolbar,
+                            columnSortedAscendingIcon: SortAscendingIcon,
+                            columnSortedDescendingIcon: SortDescendingIcon,
+                            columnUnsortedIcon: UnsortedIcon,
+                            noRowsOverlay: () => (
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                    {isLoading ? <CircularProgress size={32} /> : <span className='text-[1.8rem]'>Không có dữ liệu để hiển thị</span>}
+                                </Box>
+                            )
+                        }}
+                        localeText={DATA_GRID_LOCALE_VN}
+                        pagination
+                        pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
+                        initialState={columnsInitialState}
+                        getRowHeight={() => 'auto'}
+                        checkboxSelection
+                        disableRowSelectionOnClick
+                        sx={dataGridStyles}
+                    />
+                </Box>
+            </Card>
+        </Box>
     )
 }

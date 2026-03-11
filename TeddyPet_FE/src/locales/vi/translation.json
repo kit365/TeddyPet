@@ -308,6 +308,11 @@
                 "title": "Quản lý tags bài viết",
                 "no_tags": "Chưa có thẻ tag nào"
             }
+        },
+        "order": {
+            "title": "Đơn hàng",
+            "manual_order": "Tạo đơn tại quầy",
+            "detail": "Chi tiết đơn hàng"
         }
     }
 }

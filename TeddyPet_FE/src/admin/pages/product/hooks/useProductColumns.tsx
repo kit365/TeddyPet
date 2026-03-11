@@ -39,7 +39,7 @@ export const useProductColumns = () => {
             filterable: true,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                    <span style={{ fontWeight: 600, fontSize: '1.4rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '1.5rem' }}>
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(params.value || 0)}
                     </span>
                 </Box>

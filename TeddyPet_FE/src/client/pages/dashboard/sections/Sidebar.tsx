@@ -17,8 +17,8 @@ const SidebarItem = ({ to, icon: Icon, label, active }: SidebarItemProps) => (
     <Link
         to={to}
         className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] transition-all ${active
-            ? `bg-indigo-600 text-white shadow-lg shadow-indigo-200 translate-x-2`
-            : `text-slate-500 hover:bg-slate-50 hover:text-indigo-600`
+            ? `bg-client-primary text-white shadow-lg shadow-red-100 translate-x-2`
+            : `text-slate-500 hover:bg-slate-50 hover:text-client-primary`
             }`}
     >
         <Icon size={20} />
@@ -119,7 +119,7 @@ export const Sidebar = () => {
                     />
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
+                        className="w-[94%] mx-auto flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
                     >
                         <LogOut size={20} />
                         <span className="flex-1 text-left">Đăng xuất</span>

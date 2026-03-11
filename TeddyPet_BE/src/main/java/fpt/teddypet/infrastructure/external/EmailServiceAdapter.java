@@ -7,14 +7,16 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppS
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import java.util.Map;
+import java.util.List;
 
-import jakarta.mail.internet.MimeMessage;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,9 +41,9 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class EmailServiceAdapter implements EmailServicePort {
 
-    private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final AppSettingRepository appSettingRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
     private EmailServiceAdapter self;
 
     @Autowired
@@ -49,11 +51,17 @@ public class EmailServiceAdapter implements EmailServicePort {
         this.self = self;
     }
 
-    @Value("${spring.mail.from:noreply@teddypet.id.vn}")
+    @Value("${brevo.from:kietops365@gmail.com}")
     private String fromEmail;
 
-    @Value("${spring.mail.display-name:TeddyPet Support}")
+    @Value("${brevo.display-name:TeddyPet Support}")
     private String displayName;
+
+    @Value("${brevo.api-key:}")
+    private String apiKey;
+
+    @Value("${brevo.api-url:https://api.brevo.com/v3/smtp/email}")
+    private String apiUrl;
 
     @Value("${app.name:TeddyPet}")
     private String appName;
@@ -68,34 +76,44 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendEmail(String to, String subject, String body) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(displayName + " <" + fromEmail + ">");
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-            log.info(EmailConstants.LOG_EMAIL_SENT_SUCCESS, to);
-        } catch (Exception e) {
-            log.error(EmailConstants.LOG_EMAIL_SENT_FAILED, to, e);
-        }
+        sendBrevoRequest(to, subject, body, false);
     }
 
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        sendBrevoRequest(to, subject, htmlBody, true);
+    }
+
+    private void sendBrevoRequest(String to, String subject, String content, boolean isHtml) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.error("Brevo API Key is missing. Cannot send email to: {}", to);
+            return;
+        }
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail, displayName);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
-            log.info(EmailConstants.LOG_HTML_EMAIL_SENT_SUCCESS, to);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", apiKey);
+
+            Map<String, Object> payload = Map.of(
+                "sender", Map.of("name", displayName, "email", fromEmail),
+                "to", List.of(Map.of("email", to)),
+                "subject", subject,
+                isHtml ? "htmlContent" : "textContent", content
+            );
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            restTemplate.postForEntity(apiUrl, request, String.class);
+
+            if (isHtml) {
+                log.info("Successfully sent HTML email to {} via Brevo API", to);
+            } else {
+                log.info("Successfully sent TEXT email to {} via Brevo API", to);
+            }
         } catch (Exception e) {
-            log.error(EmailConstants.LOG_HTML_EMAIL_SENT_FAILED, to, e);
+            log.error("Failed to send email to {} via Brevo API: {}", to, e.getMessage());
         }
     }
 
@@ -283,8 +301,7 @@ public class EmailServiceAdapter implements EmailServicePort {
         String method = EmailConstants.LABEL_METHOD_COD;
         if (!order.getPayments().isEmpty()) {
             Payment p = order.getPayments().getFirst();
-            method = p.getPaymentMethod().name();
-            if ("VNPAY".equals(method) || "E_WALLET".equals(method)) {
+            if (p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER) {
                 method = EmailConstants.LABEL_METHOD_ONLINE;
             }
         }

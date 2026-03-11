@@ -4,21 +4,20 @@ import {
     DialogContent,
     TextField,
     Button,
-    List,
-    ListItem,
-    ListItemText,
     IconButton,
     Box,
     CircularProgress,
     Typography,
-    Tooltip
+    Tooltip,
+    List,
+    ListItem
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Delete as DeleteIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, FileDownload as FileDownloadIcon, FileUpload as FileUploadIcon, SimCardDownload as SimCardDownloadIcon, Description as DescriptionIcon } from "@mui/icons-material";
-import { useProductTags, useCreateProductTag, useDeleteProductTag, useDownloadTagsTemplate, useExportTagsExcel, useImportTagsExcel } from "../hooks/useProduct";
+import { Menu, MenuItem, Stack, Chip } from "@mui/material";
+import { Edit as EditIcon, Delete as DeleteIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, FileDownload as FileDownloadIcon, FileUpload as FileUploadIcon, SimCardDownload as SimCardDownloadIcon, Description as DescriptionIcon } from "@mui/icons-material";
+import { useProductTags, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useDownloadTagsTemplate, useExportTagsExcel, useImportTagsExcel } from "../hooks/useProduct";
 import { toast } from "react-toastify";
-import { Menu, MenuItem } from "@mui/material";
 import { ImportExcelModal } from "./ImportExcelModal";
 
 interface ProductTagDialogProps {
@@ -29,10 +28,14 @@ interface ProductTagDialogProps {
 export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
     const { t } = useTranslation();
     const [tagName, setTagName] = useState("");
+    const [tagDesc, setTagDesc] = useState("");
+    const [tagColor, setTagColor] = useState("#00B8D9");
+    const [editingTagId, setEditingTagId] = useState<number | string | null>(null);
 
     // Hooks
     const { data: tags = [], isLoading } = useProductTags();
     const { mutate: createTag, isPending: isCreating } = useCreateProductTag();
+    const { mutate: updateTag, isPending: isUpdating } = useUpdateProductTag();
     const { mutate: deleteTag } = useDeleteProductTag();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -51,22 +54,52 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
         setAnchorEl(null);
     };
 
-    const handleCreate = () => {
+    const handleSave = () => {
         if (!tagName.trim()) return;
 
-        createTag({ name: tagName }, {
-            onSuccess: (res) => {
-                if (res.success) {
-                    toast.success(t("admin.product.tags.create_success"));
-                    setTagName("");
-                } else {
-                    toast.error(res.message || t("admin.product.tags.create_error"));
+        const data = {
+            name: tagName,
+            description: tagDesc,
+            color: tagColor
+        };
+
+        if (editingTagId) {
+            updateTag({ id: editingTagId, data }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        toast.success("Cập nhật tag thành công");
+                        resetForm();
+                    } else {
+                        toast.error(res.message || "Lỗi khi cập nhật");
+                    }
                 }
-            },
-            onError: () => {
-                toast.error(t("admin.common.error"));
-            }
-        });
+            });
+        } else {
+            createTag(data, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        toast.success("Tạo tag thành công");
+                        resetForm();
+                    } else {
+                        toast.error(res.message || "Lỗi khi tạo");
+                    }
+                }
+            });
+        }
+    };
+
+    const resetForm = () => {
+        setTagName("");
+        setTagDesc("");
+        setTagColor("#00B8D9");
+        setEditingTagId(null);
+    };
+
+    const handleEdit = (tag: any) => {
+        setEditingTagId(tag.tagId || tag.id);
+        setTagName(tag.name || "");
+        setTagDesc(tag.description || "");
+        setTagColor(tag.color || "#00B8D9");
     };
 
     const handleDelete = (id: number | string) => {
@@ -87,12 +120,14 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="xs"
+            maxWidth="sm"
             fullWidth
             PaperProps={{
                 sx: {
-                    borderRadius: "16px",
-                    padding: "16px",
+                    borderRadius: "20px",
+                    padding: "24px",
+                    boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.12)",
+                    background: "#FFFFFF",
                 }
             }}
         >
@@ -100,12 +135,13 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                fontSize: '1.8rem',
+                fontSize: '2rem',
                 fontWeight: 700,
-                padding: "8px 8px 16px 8px"
+                color: '#1C252E',
+                padding: "0 0 20px 0",
             }}>
-                {t("admin.product.tags.title")}
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                {t("admin.product.tags.title") || "Quản lý tags sản phẩm"}
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                     <Button
                         size="small"
                         variant="outlined"
@@ -116,12 +152,17 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                 <CircularProgress size={16} /> : <DescriptionIcon />
                         }
                         sx={{
-                            fontSize: '1.2rem',
+                            fontSize: '1.3rem',
                             textTransform: 'none',
-                            color: '#1C252E',
-                            borderColor: 'rgba(145, 158, 171, 0.32)',
+                            color: '#637381',
+                            borderColor: '#919EAB33',
+                            borderRadius: '10px',
                             fontWeight: 600,
-                            height: '32px',
+                            height: '36px',
+                            '&:hover': {
+                                borderColor: '#1C252E',
+                                backgroundColor: 'transparent'
+                            }
                         }}
                     >
                         Excel
@@ -142,8 +183,8 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                         </MenuItem>
                     </Menu>
                     <Tooltip title={t("admin.common.close")}>
-                        <IconButton onClick={onClose} size="small" sx={{ '&:hover': { backgroundColor: '#f4f6f8' } }}>
-                            <CloseIcon />
+                        <IconButton onClick={onClose} size="small" sx={{ color: '#637381' }}>
+                            <CloseIcon sx={{ fontSize: '2rem' }} />
                         </IconButton>
                     </Tooltip>
                 </Box>
@@ -152,43 +193,119 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
             <DialogContent sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '500px', p: 0 }}>
 
                 {/* Input Area */}
-                <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
-                    <TextField
-                        fullWidth
-                        placeholder={t("admin.product.tags.add_placeholder")}
-                        value={tagName}
-                        onChange={(e) => setTagName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleCreate();
-                        }}
-                        size="small"
-                        InputProps={{
-                            sx: {
-                                borderRadius: '8px',
-                                fontSize: '1.4rem'
-                            }
-                        }}
-                    />
-                    <Button
-                        variant="contained"
-                        onClick={handleCreate}
-                        disabled={!tagName.trim() || isCreating}
-                        sx={{
-                            borderRadius: '8px',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            fontSize: '1.4rem',
-                            minWidth: '80px',
-                            background: '#1C252E',
-                            boxShadow: "none",
-                            '&:hover': {
-                                background: '#454F5B',
-                                boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                            }
-                        }}
-                    >
-                        {isCreating ? <CircularProgress size={24} color="inherit" /> : (t("admin.common.add") || "Thêm")}
-                    </Button>
+                <Box sx={{ p: 2, borderBottom: '1px dashed #919EAB48', mb: 1 }}>
+                    <Stack gap={2.5}>
+                        <TextField
+                            fullWidth
+                            label="Tên tag"
+                            variant="outlined"
+                            size="small"
+                            value={tagName}
+                            onChange={(e) => setTagName(e.target.value.replace(/\s+/g, '_'))}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSave();
+                            }}
+                            InputProps={{
+                                sx: { borderRadius: '10px', fontSize: '1.4rem', height: '48px' }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: '1.4rem' }
+                            }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Mô tả / Dịch tiếng Việt"
+                            multiline
+                            rows={2}
+                            size="small"
+                            value={tagDesc}
+                            onChange={(e) => setTagDesc(e.target.value)}
+                            InputProps={{
+                                sx: { borderRadius: '10px', fontSize: '1.4rem', p: 1.5 }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: '1.4rem' }
+                            }}
+                        />
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                                <Typography sx={{ fontSize: '1.4rem', color: '#637381', fontWeight: 500 }}>
+                                    Màu sắc:
+                                </Typography>
+                                <Box sx={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '8px',
+                                    backgroundColor: tagColor,
+                                    border: '2px solid #fff',
+                                    boxShadow: '0 0 0 1px #919EAB33',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}>
+                                    <input
+                                        type="color"
+                                        value={tagColor}
+                                        onChange={(e) => setTagColor(e.target.value)}
+                                        style={{
+                                            position: 'absolute',
+                                            top: -5,
+                                            left: -5,
+                                            width: '200%',
+                                            height: '200%',
+                                            cursor: 'pointer',
+                                            border: 'none',
+                                            opacity: 0
+                                        }}
+                                    />
+                                </Box>
+                                <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: '#212B36', fontFamily: 'monospace' }}>
+                                    {tagColor.toUpperCase()}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1.5 }}>
+                                {editingTagId && (
+                                    <Button
+                                        onClick={resetForm}
+                                        sx={{
+                                            borderRadius: '10px',
+                                            textTransform: 'none',
+                                            fontSize: '1.4rem',
+                                            fontWeight: 600,
+                                            color: '#637381',
+                                            height: '40px'
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSave}
+                                    disabled={!tagName.trim() || isCreating || isUpdating}
+                                    sx={{
+                                        borderRadius: '10px',
+                                        textTransform: 'none',
+                                        fontWeight: 700,
+                                        fontSize: '1.4rem',
+                                        px: 3,
+                                        height: '40px',
+                                        background: '#1C252E',
+                                        boxShadow: 'none',
+                                        '&:hover': {
+                                            background: '#454F5B',
+                                        }
+                                    }}
+                                >
+                                    {isCreating || isUpdating ? (
+                                        <CircularProgress size={24} color="inherit" />
+                                    ) : (
+                                        editingTagId ? "Cập nhật" : "Thêm mới"
+                                    )}
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Stack>
                 </Box>
 
                 {/* List Tags */}
@@ -207,29 +324,50 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                 <ListItem
                                     key={tag.id || tag.tagId}
                                     secondaryAction={
-                                        <Tooltip title={t("admin.common.delete")}>
+                                        <Stack direction="row" spacing={0.5}>
                                             <IconButton
-                                                edge="end"
-                                                aria-label="delete"
-                                                onClick={() => handleDelete(tag.id || tag.tagId)}
-                                                sx={{ '&:hover': { backgroundColor: 'rgba(255, 86, 48, 0.08)' } }}
+                                                size="small"
+                                                onClick={() => handleEdit(tag)}
+                                                sx={{ color: '#637381' }}
                                             >
-                                                <DeleteIcon sx={{ fontSize: '1.8rem', color: '#FF5630' }} />
+                                                <EditIcon sx={{ fontSize: '1.8rem' }} />
                                             </IconButton>
-                                        </Tooltip>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDelete(tag.id || tag.tagId)}
+                                                sx={{ color: '#FF5630' }}
+                                            >
+                                                <DeleteIcon sx={{ fontSize: '1.8rem' }} />
+                                            </IconButton>
+                                        </Stack>
                                     }
                                     sx={{
-                                        borderRadius: '8px',
+                                        borderRadius: '12px',
                                         mb: 1,
+                                        px: 1.5,
+                                        py: 1,
                                         '&:hover': {
-                                            backgroundColor: '#919EAB14'
+                                            backgroundColor: '#F9FAFB'
                                         }
                                     }}
                                 >
-                                    <ListItemText
-                                        primary={tag.name}
-                                        primaryTypographyProps={{ fontSize: '1.5rem', fontWeight: 600 }}
-                                    />
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, mr: 2 }}>
+                                        <Chip
+                                            label={tag.name}
+                                            sx={{
+                                                backgroundColor: `${tag.color}15`,
+                                                color: tag.color,
+                                                borderColor: `${tag.color}40`,
+                                                fontWeight: 700,
+                                                fontSize: '1.3rem',
+                                                height: '28px'
+                                            }}
+                                            variant="outlined"
+                                        />
+                                        <Typography sx={{ fontSize: '1.3rem', color: '#637381', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {tag.description && tag.description}
+                                        </Typography>
+                                    </Box>
                                 </ListItem>
                             ))}
                         </List>

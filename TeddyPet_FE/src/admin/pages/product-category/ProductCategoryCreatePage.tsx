@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button } from "@mui/material"
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, FormHelperText } from "@mui/material"
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
@@ -7,31 +7,17 @@ import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
 import { useCreateProductCategory, useNestedProductCategories } from "./hooks/useProductCategory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
-import { CreateCategoryFormValues } from "../../schemas/product-category.schema";
-import { SwitchButton } from "../../components/ui/SwitchButton";
-import { getProductCategoryTheme } from "./configs/theme";
+import { createCategorySchema, CreateCategoryFormValues } from "../../schemas/product-category.schema";
 import { prefixAdmin } from "../../constants/routes";
 import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
-import { z } from "zod";
+import { SwitchButton } from "../../components/ui/SwitchButton";
+import { getProductCategoryTheme } from "./configs/theme";
 
 export const ProductCategoryCreatePage = () => {
     const { t } = useTranslation();
-
-    const createCategorySchema = useMemo(() => z.object({
-        name: z
-            .string()
-            .min(1, t("admin.validation.category_name_required"))
-            .max(100),
-        description: z.string().optional(),
-        parentId: z.string().optional(),
-        isActive: z.boolean(),
-        imageUrl: z.string().min(1, t("admin.validation.select_image")),
-    }), [t]);
-
     const [expandedDetail, setExpandedDetail] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
@@ -51,6 +37,8 @@ export const ProductCategoryCreatePage = () => {
             parentId: "",
             isActive: true,
             imageUrl: "",
+            categoryType: "OTHER",
+            suitablePetTypes: ["DOG", "CAT"],
         },
     });
 
@@ -78,6 +66,8 @@ export const ProductCategoryCreatePage = () => {
                         parentId: "",
                         isActive: true,
                         imageUrl: "",
+                        categoryType: "OTHER",
+                        suitablePetTypes: ["DOG", "CAT"],
                     });
                 } else {
                     toast.error(response.message);
@@ -139,6 +129,64 @@ export const ProductCategoryCreatePage = () => {
                                     <CategoryParentSelect
                                         control={control}
                                         categories={nestedCategories}
+                                    />
+
+                                    <Controller
+                                        name="categoryType"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="category-type-label">Loại danh mục</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="category-type-label"
+                                                    label="Loại danh mục"
+                                                >
+                                                    <MenuItem value="FOOD">Thức ăn</MenuItem>
+                                                    <MenuItem value="ACCESSORY">Phụ kiện</MenuItem>
+                                                    <MenuItem value="TOY">Đồ chơi</MenuItem>
+                                                    <MenuItem value="HYGIENE">Vệ sinh</MenuItem>
+                                                    <MenuItem value="GROOMING">Chăm sóc lông (Grooming)</MenuItem>
+                                                    <MenuItem value="BEDDING">Chỗ nằm / Chuồng</MenuItem>
+                                                    <MenuItem value="OTHER">Khác</MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
+                                    />
+                                    
+                                    <Controller
+                                        name="suitablePetTypes"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="suitable-pet-types-label">Thú cưng phù hợp</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="suitable-pet-types-label"
+                                                    multiple
+                                                    input={<OutlinedInput label="Thú cưng phù hợp" />}
+                                                    renderValue={(selected) => {
+                                                        const map: Record<string, string> = { DOG: "Chó", CAT: "Mèo", OTHER: "Khác" };
+                                                        return (selected as string[]).map(v => map[v] || v).join(', ');
+                                                    }}
+                                                >
+                                                    <MenuItem value="DOG">
+                                                        <Checkbox checked={field.value.indexOf("DOG") > -1} />
+                                                        <ListItemText primary="Chó" />
+                                                    </MenuItem>
+                                                    <MenuItem value="CAT">
+                                                        <Checkbox checked={field.value.indexOf("CAT") > -1} />
+                                                        <ListItemText primary="Mèo" />
+                                                    </MenuItem>
+                                                    <MenuItem value="OTHER">
+                                                        <Checkbox checked={field.value.indexOf("OTHER") > -1} />
+                                                        <ListItemText primary="Khác" />
+                                                    </MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
                                     />
 
                                 </Box>
