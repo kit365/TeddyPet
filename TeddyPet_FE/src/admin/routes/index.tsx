@@ -29,6 +29,7 @@ import { UserListPage } from "../pages/user/UserListPage";
 import { UserDetailPage } from "../pages/user/UserDetailPage";
 import { OrderListPage } from "../pages/order/OrderListPage";
 import { OrderDetailPage } from "../pages/order/OrderDetailPage";
+import { ManualOrderPage } from "../pages/order/manual/ManualOrderPage";
 import { ShippingRuleListPage } from "../pages/shipping/ShippingRuleListPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
 import { ServiceManagementPage } from "../pages/service/ServiceManagementPage";
@@ -115,6 +116,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "user/detail/:id", element: <UserDetailPage /> },
     { path: "order/list", element: <OrderListPage /> },
     { path: "order/detail/:id", element: <OrderDetailPage /> },
+    { path: "order/manual", element: <ManualOrderPage /> },
     { path: "feedback/list", element: <FeedbackListPage /> },
     { path: "booking/list", element: <BookingListPage /> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },

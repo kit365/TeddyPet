@@ -175,10 +175,12 @@ export const Header = () => {
         <>
             <ElevationScroll>
                 <AppBar
-                    position="sticky"
+                    position="static"
                     color="inherit"
+                    elevation={0}
                     sx={{
-                        width: "100%",
+                        backgroundColor: 'transparent !important',
+                        border: 'none',
                     }}
                 >
                     <Container

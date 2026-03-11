@@ -59,21 +59,20 @@ export const SideBar = () => {
     }, [role]);
 
     return (
-        <div className={`flex fixed top-0 left-0 flex-col z-[1200] h-full bg-white border-r border-[#919eab1f] transition-[width] duration-[120ms] ease-linear ${isOpen ? 'w-[300px]' : 'w-[88px]'}`}>
+        <div className={`flex flex-col sticky top-0 h-screen bg-white border-r border-[#919eab1f] transition-[width] duration-[120ms] ease-linear overflow-y-auto overflow-x-hidden no-scrollbar flex-shrink-0 ${isOpen ? 'w-[300px]' : 'w-[88px]'}`}>
             {/* Icon In Out */}
             <IconButton
                 onClick={toggleSidebar}
                 sx={{
-                    position: "fixed",
+                    position: "absolute",
                     top: "36px",
-                    left: isOpen ? "300px" : "88px",
-                    transform: 'translate(-50%, -50%)',
+                    right: "-12px",
+                    transform: 'translate(0, -50%)',
                     p: "4px",
                     color: "#637381",
                     bgcolor: "#fff",
-                    zIndex: "9999",
+                    zIndex: "10",
                     border: "1px solid #919eab1f",
-                    transition: "left 120ms ease-linear",
                     pointerEvents: "auto",
                 }}>
                 <ArrowIcon sx={{ fontSize: "1.6rem", rotate: isOpen ? "90deg" : "270deg" }} />
@@ -88,17 +87,13 @@ export const SideBar = () => {
                 </Link>
             </div>
 
-            {/* Scrollable */}
-            <div className={`flex-1 flex flex-col relative min-h-0 ${isOpen ? '' : "px-[4px] pb-[16px] overflow-hidden"}`}>
-                <div className="absolute inset-0 h-full overflow-y-auto sidebar-scroll">
-                    <nav className={`text-[#637381] ${isOpen ? 'px-[16px]' : 'px-[4px]'}`}>
-                        <ul>
-                            <NavGroup title={"admin.overview"} data={filteredOverviewData} />
-                            <NavGroup title={"admin.management"} data={filteredManagementData} />
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+            {/* Navigation - No visible scrollbar but still scrollable if needed */}
+            <nav className={`text-[#637381] flex-1 pb-10 ${isOpen ? 'px-[16px]' : 'px-[4px]'}`}>
+                <ul>
+                    <NavGroup title={"admin.overview"} data={filteredOverviewData} />
+                    <NavGroup title={"admin.management"} data={filteredManagementData} />
+                </ul>
+            </nav>
         </div>
     );
 };

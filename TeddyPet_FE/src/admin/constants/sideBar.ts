@@ -59,6 +59,13 @@ export const menuManagementData = [
                 path: `/${prefixAdmin}/order/list`,
                 allowedRoles: ["ADMIN", "STAFF"],
             },
+            {
+                id: "manual",
+                label: "Tạo đơn tại quầy",
+                tKey: "admin.order.manual_order",
+                path: `/${prefixAdmin}/order/manual`,
+                allowedRoles: ["ADMIN", "STAFF"],
+            },
         ]
     },
     {

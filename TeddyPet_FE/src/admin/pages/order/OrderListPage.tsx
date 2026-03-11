@@ -9,6 +9,8 @@ import { exportOrdersToExcel, importOrdersFromExcel } from "../../api/order.api"
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { ImportExcelModal } from "./components/ImportExcelModal";
+import AddIcon from "@mui/icons-material/Add";
+import { Link } from "react-router-dom";
 
 export const OrderListPage = () => {
     const { t } = useTranslation();
@@ -60,6 +62,26 @@ export const OrderListPage = () => {
                 ]}
                 action={
                     <Stack direction="row" spacing={2}>
+                        <Button
+                            variant="contained"
+                            component={Link}
+                            to={`/${prefixAdmin}/order/manual`}
+                            startIcon={<AddIcon />}
+                            sx={{
+                                bgcolor: "#00A76F",
+                                borderRadius: "10px",
+                                textTransform: "none",
+                                fontWeight: 700,
+                                fontSize: "1.3rem",
+                                px: 3,
+                                py: 1.2,
+                                color: "#fff",
+                                boxShadow: "0 8px 16px rgba(0, 167, 111, 0.24)",
+                                "&:hover": { bgcolor: "#007867" }
+                            }}
+                        >
+                            Tạo đơn mới
+                        </Button>
                         <Button
                             variant="outlined"
                             startIcon={<FileUploadIcon />}

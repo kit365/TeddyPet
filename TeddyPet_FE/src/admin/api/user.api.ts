@@ -23,13 +23,10 @@ export interface IUserProfile {
     dateOfBirth?: string | null;
     status: UserStatusEnum;
     role: string;
+    fullName?: string; // Virtual property for UI
 }
 
 export const getUsers = async (): Promise<ApiResponse<IUserProfile[]>> => {
-    const token = Cookies.get('tokenAdmin');
-    if (!token) {
-        throw new Error('Chưa đăng nhập admin. Vui lòng đăng nhập tại /admin/auth/login.');
-    }
     const res = await apiApp.get(BASE, withAuth());
     return res.data;
 };

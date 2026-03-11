@@ -12,7 +12,7 @@ export const createCategorySchema = z.object({
 
     isActive: z.boolean(),
 
-    imageUrl: z.string().min(1, "Vui lòng chọn hình ảnh"),
+    imageUrl: z.string().optional(),
 });
 
 export type CreateCategoryFormValues = z.infer<typeof createCategorySchema>;

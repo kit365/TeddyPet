@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { PRODUCTS_QUERY_KEY } from './useProducts';
 import {
-    getProductTags, createProductTag, deleteProductTag,
+    getProductTags, createProductTag, updateProductTag, deleteProductTag,
     getProductAgeRanges, createProductAgeRange, updateProductAgeRange, deleteProductAgeRange, getProductAgeRangeById,
     getCountries, createProduct, getProductById, updateProduct, deleteProduct,
     getPetTypes, getSalesUnits, getProductStatuses, getProductTypes,
@@ -39,6 +39,17 @@ export const useCreateProductTag = () => {
 
     return useMutation({
         mutationFn: createProductTag,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['product-tags'] });
+        },
+    });
+};
+
+export const useUpdateProductTag = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string | number; data: any }) => updateProductTag(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['product-tags'] });
         },

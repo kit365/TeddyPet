@@ -4,6 +4,7 @@ import { useSalesUnits } from "../hooks/useProduct";
 import { useState, useMemo, useEffect } from "react";
 import { CollapsibleCard } from "../../../components/ui/CollapsibleCard";
 import { DeleteIcon } from "../../../assets/icons";
+import { generateSKU } from "../utils/product-helper";
 
 import { ProductVariant as Variant } from "../../../../types/products.type";
 
@@ -178,7 +179,7 @@ export const ProductVariants = ({
             return {
                 id: `preview-${Date.now()}-${index}`,
                 attributes: combo,
-                sku: "",
+                sku: generateSKU("" , combo), // Name will be combined in parent on submit or we can pass it
                 originalPrice: 0,
                 price: 0,
                 stock: 0,

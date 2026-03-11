@@ -20,8 +20,13 @@ const withAuth = () => {
 
 // --- PRODUCT API ---
 
-export const getProducts = async (): Promise<ApiResponse<any[]>> => {
-    const response = await apiApp.get(BASE_URL, withAuth());
+export const getProducts = async (params?: any): Promise<ApiResponse<any>> => {
+    const response = await apiApp.get(BASE_URL, { ...withAuth(), params });
+    return response.data;
+};
+
+export const getAllProducts = async (): Promise<ApiResponse<any[]>> => {
+    const response = await apiApp.get(`${BASE_URL}/all`, withAuth());
     return response.data;
 };
 
@@ -153,8 +158,13 @@ export const getProductTags = async (): Promise<ApiResponse<any[]>> => {
     return response.data;
 };
 
-export const createProductTag = async (data: { name: string }): Promise<any> => {
+export const createProductTag = async (data: { name: string; description?: string; color?: string }): Promise<any> => {
     const response = await apiApp.post(TAGS_URL, data, withAuth());
+    return response.data;
+};
+
+export const updateProductTag = async (id: string | number, data: { name: string; description?: string; color?: string }): Promise<any> => {
+    const response = await apiApp.put(`${TAGS_URL}/${id}`, data, withAuth());
     return response.data;
 };
 

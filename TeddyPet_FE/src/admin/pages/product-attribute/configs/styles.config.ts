@@ -26,10 +26,13 @@ export const dataGridCardStyles = {
 
 export const dataGridContainerStyles = {
     width: '100%',
+    minWidth: 0,
+    minHeight: 0,
     flex: 1,
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden' as const,
+    maxWidth: '100%',
 };
 
 export const dataGridStyles: SxProps<Theme> = {
