@@ -301,8 +301,7 @@ public class EmailServiceAdapter implements EmailServicePort {
         String method = EmailConstants.LABEL_METHOD_COD;
         if (!order.getPayments().isEmpty()) {
             Payment p = order.getPayments().getFirst();
-            method = p.getPaymentMethod().name();
-            if ("VNPAY".equals(method) || "E_WALLET".equals(method)) {
+            if (p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER) {
                 method = EmailConstants.LABEL_METHOD_ONLINE;
             }
         }

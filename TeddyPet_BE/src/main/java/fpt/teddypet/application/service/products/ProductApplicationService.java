@@ -24,6 +24,7 @@ import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.output.products.ProductRepositoryPort;
 import fpt.teddypet.application.port.output.products.ProductVariantRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
+import fpt.teddypet.application.util.HtmlUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductAgeRange;
@@ -98,6 +99,9 @@ public class ProductApplicationService implements ProductService {
         // Auto-generate SKU for internal warehouse management
         generateAndSetProductSku(product, request, null);
 
+        // Auto-generate SEO metadata if not provided
+        generateAndSetSeoMetadata(product, request);
+
         // Set barcode if provided by user
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
             validateBarcodeUniqueness(request.barcode().trim(), null);
@@ -158,6 +162,9 @@ public class ProductApplicationService implements ProductService {
 
         // Regenerate SKU if product attributes change
         generateAndSetProductSku(product, request, productId);
+
+        // Update SEO metadata
+        generateAndSetSeoMetadata(product, request);
 
         // Update barcode if provided
         if (request.barcode() != null && !request.barcode().trim().isEmpty()) {
@@ -625,6 +632,26 @@ public class ProductApplicationService implements ProductService {
                 request.attributeIds(),
                 true,
                 false));
+    }
+
+    /**
+     * Auto-generate SEO meta title and description if not provided by user
+     */
+    private void generateAndSetSeoMetadata(Product product, ProductRequest request) {
+        // Handle Meta Title
+        if (request.metaTitle() == null || request.metaTitle().trim().isEmpty()) {
+            product.setMetaTitle(request.name());
+        } else {
+            product.setMetaTitle(request.metaTitle().trim());
+        }
+
+        // Handle Meta Description
+        if (request.metaDescription() == null || request.metaDescription().trim().isEmpty()) {
+            String plainDescription = HtmlUtil.stripHtml(request.description());
+            product.setMetaDescription(HtmlUtil.truncate(plainDescription, 155));
+        } else {
+            product.setMetaDescription(request.metaDescription().trim());
+        }
     }
 
 }
