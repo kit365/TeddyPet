@@ -81,7 +81,7 @@ export const BookingPaymentPlaceholderPage = () => {
         }
         setIsConfirming(true);
         try {
-            const res = await confirmBookingDeposit(state.depositId);
+            const res = await confirmBookingDeposit(state.depositId, paymentMethod);
             if (res?.success && res?.data?.bookingCode) {
                 toast.success("Thanh toán (giả lập) thành công. Mã booking: " + res.data.bookingCode);
                 navigate("/dat-lich", { state: { bookingCode: res.data.bookingCode } });
@@ -269,8 +269,8 @@ export const BookingPaymentPlaceholderPage = () => {
                                         {isExpired
                                             ? "Giữ chỗ đã hết hạn"
                                             : isConfirming
-                                            ? "Đang xử lý..."
-                                            : "Giả lập thanh toán thành công"}
+                                                ? "Đang xử lý..."
+                                                : "Giả lập thanh toán thành công"}
                                     </button>
                                 </div>
                             </div>

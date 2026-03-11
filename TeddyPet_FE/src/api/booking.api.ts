@@ -1,6 +1,6 @@
 import { apiApp } from "./index";
 import type { ApiResponse } from "../types/common.type";
-import type { BookingPetForm, BookingPetServiceForm } from "../types/booking.type";
+import type { BookingPetForm, PetFoodBroughtItemForm } from "../types/booking.type";
 import type { BookingStep1FormData } from "../client/pages/booking/Booking";
 
 export interface CreateBookingPetServicePayload {
@@ -176,7 +176,7 @@ export const buildCreateBookingPayload = (
                 petConditionNotes: pet.notes ?? null,
                 foodItems: foodItems.length > 0 ? foodItems : undefined,
                 services,
-            } satisfies CreateBookingPetPayload;
+            } as CreateBookingPetPayload | null;
         })
         .filter((p): p is CreateBookingPetPayload => p !== null);
 
@@ -186,8 +186,7 @@ export const buildCreateBookingPayload = (
         customerPhone: customer.phone,
         customerAddress: customer.address || null,
         note: customer.message || null,
-        bookingType: "SPA_CARE",
+        bookingType: "ONLINE",
         pets: bookingPets,
     };
 };
-

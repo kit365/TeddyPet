@@ -12,10 +12,6 @@ import type { BookingResponse } from "../../../../types/booking.type";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
-const formatDate = (value: string) =>
-  value ? new Date(value).toLocaleDateString("vi-VN") : "—";
-const formatDateTime = (value: string) =>
-  value ? new Date(value).toLocaleString("vi-VN") : "—";
 /** Định dạng ngắn cho cột thời gian: dd/MM HH:mm */
 const formatDateTimeShort = (value?: string) =>
   value ? new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -61,6 +57,7 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
       <Typography sx={{ fontWeight: 600, fontSize: "1.45rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
     ),
   },
+
   {
     field: "bookingStartDate",
     headerName: "Thời gian",
@@ -93,8 +90,8 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     ),
   },
   {
-    field: "paidAmount",
-    headerName: "Đã TT",
+    field: "deposit",
+    headerName: "Đã cọc",
     minWidth: 80,
     flex: 0.45,
     type: "number",
@@ -105,6 +102,32 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
+  },
+  {
+    field: "depositPaid",
+    headerName: "TT Cọc",
+    minWidth: 100,
+    flex: 0.5,
+    align: "center",
+    headerAlign: "center",
+    renderCell: (params) => {
+      const isPaid = params.row.depositPaid === true;
+      return (
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <Chip
+            label={isPaid ? "Đã TT cọc" : "Chưa TT cọc"}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              fontSize: "1.2rem",
+              bgcolor: isPaid ? "#dcfce7" : "#ffe4e6",
+              color: isPaid ? "#166534" : "#9f1239",
+              border: `1px solid ${isPaid ? "#bbf7d0" : "#fecdd3"}`,
+            }}
+          />
+        </Box>
+      );
+    },
   },
   {
     field: "remainingAmount",
@@ -129,11 +152,15 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
     headerAlign: "center",
     renderCell: (params) => {
       const status = params.value as string;
-      const color = getPaymentStatusColor(status as any);
+      const row = params.row as BookingResponse;
+      const isPartial = status === "PENDING" && (row.deposit ?? 0) > 0;
+
+      const label = isPartial ? "Thanh toán một phần" : getPaymentStatusLabel(status as any);
+      const color = isPartial ? "#006C9C" : getPaymentStatusColor(status as any); // #006C9C is defined in constants for PARTIAL
       return (
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
           <Chip
-            label={getPaymentStatusLabel(status as any)}
+            label={label}
             size="small"
             sx={{
               fontWeight: 600,

@@ -18,7 +18,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
-import { getBookingById } from "./mockBookingData";
+import { getAdminBookingDetail } from "../../api/booking.api";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -64,11 +64,23 @@ export const BookingDetailPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const b = getBookingById(id);
-      setBooking(b ?? null);
-    }
-    setLoading(false);
+    const fetchBooking = async () => {
+      if (id) {
+        setLoading(true);
+        try {
+          const res = await getAdminBookingDetail(id);
+          setBooking(res.data ?? null);
+        } catch (error) {
+          console.error(error);
+          setBooking(null);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    fetchBooking();
   }, [id]);
 
   if (loading) {
@@ -228,11 +240,11 @@ export const BookingDetailPage = () => {
                     {booking.pets.some(
                       (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
                     ) && (
-                      <>
-                        <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thức ăn mang theo</TableCell>
-                        <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Hướng dẫn cho ăn</TableCell>
-                      </>
-                    )}
+                        <>
+                          <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thức ăn mang theo</TableCell>
+                          <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Hướng dẫn cho ăn</TableCell>
+                        </>
+                      )}
                     <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }} align="right">
                       Thao tác
                     </TableCell>
@@ -247,27 +259,27 @@ export const BookingDetailPage = () => {
                       {booking.pets!.some(
                         (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
                       ) && (
-                        <>
-                          <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
-                            {pet.foodItems && pet.foodItems.length > 0
-                              ? pet.foodItems.map((i) => i.foodBroughtType ?? "—").join("; ") || "—"
-                              : isFoodBrought(pet.foodBrought)
-                                ? pet.foodBroughtType
-                                  ? Array.isArray(pet.foodBroughtType)
-                                    ? pet.foodBroughtType.join(", ")
-                                    : String(pet.foodBroughtType)
-                                  : "—"
-                                : "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
-                            {pet.foodItems && pet.foodItems.length > 0
-                              ? pet.foodItems.map((i) => i.feedingInstructions ?? "—").join("; ") || "—"
-                              : isFoodBrought(pet.foodBrought)
-                                ? pet.feedingInstructions ?? "—"
-                                : "—"}
-                          </TableCell>
-                        </>
-                      )}
+                          <>
+                            <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
+                              {pet.foodItems && pet.foodItems.length > 0
+                                ? pet.foodItems.map((i) => i.foodBroughtType ?? "—").join("; ") || "—"
+                                : isFoodBrought(pet.foodBrought)
+                                  ? pet.foodBroughtType
+                                    ? Array.isArray(pet.foodBroughtType)
+                                      ? pet.foodBroughtType.join(", ")
+                                      : String(pet.foodBroughtType)
+                                    : "—"
+                                  : "—"}
+                            </TableCell>
+                            <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
+                              {pet.foodItems && pet.foodItems.length > 0
+                                ? pet.foodItems.map((i) => i.feedingInstructions ?? "—").join("; ") || "—"
+                                : isFoodBrought(pet.foodBrought)
+                                  ? pet.feedingInstructions ?? "—"
+                                  : "—"}
+                            </TableCell>
+                          </>
+                        )}
                       <TableCell sx={{ py: 2 }} align="right">
                         <IconButton
                           size="medium"

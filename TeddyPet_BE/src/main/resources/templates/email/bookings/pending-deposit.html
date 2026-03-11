@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Yêu cầu thanh toán cọc đơn đặt lịch #' + ${bookingCode}"></title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: #333; border-bottom: 2px solid #ffbaa0; padding-bottom: 10px;">Xác nhận đặt lịch hẹn - Yêu cầu thanh toán cọc</h2>
+    <p style="color: #555; line-height: 1.6;">Xin chào,</p>
+    <p style="color: #555; line-height: 1.6;">Cảm ơn bạn đã đặt lịch tại <strong><span th:text="${appName}">TeddyPet</span></strong>. Đơn đặt lịch của bạn với mã <strong><span th:text="${bookingCode}"></span></strong> đang chờ thanh toán cọc để được xác nhận chính thức.</p>
+    <p style="color: #555; line-height: 1.6;">Vui lòng nhấn vào nút bên dưới để xem chi tiết đơn và tiến hành thanh toán cọc:</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a th:href="${paymentUrl}" style="background-color: #ffbaa0; color: #181818; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Xem chi tiết & Thanh toán cọc</a>
+    </div>
+
+    <p style="color: #555; line-height: 1.6; font-size: 0.9em;">Lưu ý: Nếu không nhận được thanh toán cọc trong thời gian quy định, hệ thống sẽ tự động hủy đơn đặt lịch của bạn.</p>
+
+    <div style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+      <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
+      <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
+    </div>
+  </div>
+</body>
+</html>

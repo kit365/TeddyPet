@@ -12,7 +12,6 @@ import Tab from "@mui/material/Tab";
 import Badge from "@mui/material/Badge";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
-import CircularProgress from "@mui/material/CircularProgress";
 import {
   dataGridCardStyles,
   dataGridContainerStyles,
@@ -48,6 +47,7 @@ const normalizeBooking = (b: Record<string, unknown>): BookingResponse => ({
   paidAmount: Number(b.paidAmount ?? 0),
   remainingAmount: Number(b.remainingAmount ?? 0),
   deposit: Number(b.deposit ?? 0),
+  source: b.source != null ? String(b.source) : undefined,
   bookingStartDate: b.bookingStartDate != null ? String(b.bookingStartDate) : "",
   bookingEndDate: b.bookingEndDate != null ? String(b.bookingEndDate) : undefined,
 } as BookingResponse);
@@ -63,7 +63,7 @@ export const BookingList = () => {
     select: (res) => {
       const list = res?.data;
       if (!Array.isArray(list)) return [];
-      return list.map((b) => normalizeBooking(b as Record<string, unknown>));
+      return list.map((b) => normalizeBooking(b as unknown as Record<string, unknown>));
     },
   });
 
