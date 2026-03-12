@@ -1,4 +1,4 @@
-import { FooterSub } from "../../components/layouts/FooterSub"
+﻿import { FooterSub } from "../../components/layouts/FooterSub"
 import { ProductAside, FilterState } from "./sections/ProductAside"
 import { ProductBanner } from "./sections/ProductBanner"
 import type { Product } from "../../../types/products.type"
@@ -153,7 +153,7 @@ export const ProductListPage = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 text-[1.6rem] text-gray-500">
+                                <div className="text-center py-20 text-[1rem] text-gray-500">
                                     Không tìm thấy sản phẩm nào phù hợp.
                                 </div>
                             )}
@@ -165,7 +165,7 @@ export const ProductListPage = () => {
                                         <li
                                             key={p}
                                             onClick={() => handlePageChange(p)}
-                                            className={`flex items-center cursor-pointer justify-center rounded-full w-[4.5rem] h-[4.5rem] text-[1.6rem] transition-default ${filters.page === p
+                                            className={`flex items-center cursor-pointer justify-center rounded-full w-[2.8125rem] h-[2.8125rem] text-[1rem] transition-default ${filters.page === p
                                                 ? "bg-client-secondary text-white"
                                                 : "bg-client-primary text-white hover:bg-client-secondary"
                                                 }`}

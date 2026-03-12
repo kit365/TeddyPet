@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+﻿import { useMemo, useState, useCallback } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Box, Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, Lock, Clock, Calendar, Check } from 'lucide-react';
@@ -578,7 +578,7 @@ export const WorkShiftStaffPage = () => {
                                                                     Chờ duyệt
                                                                 </button>
                                                             ) : !canRegisterForShift(shift) ? (
-                                                                <p className="text-[0.8rem] text-gray-400">Đã đủ người</p>
+                                                                <p className="text-[0.5rem] text-gray-400">Đã đủ người</p>
                                                             ) : (
                                                                 <button
                                                                     type="button"

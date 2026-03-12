@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { X, Upload, ImageIcon } from "lucide-react";
 import type { PetProfileResponse, PetProfileRequest } from "../../../../types/petProfile.type";
 import { uploadImage } from "../../../../api/upload.api";
@@ -134,11 +134,11 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
             <div
-                className="bg-white rounded-[2rem] shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-[1.25rem] shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center border-b border-slate-100 px-8 py-6">
-                    <h3 className="text-[1.8rem] font-black text-slate-800">
+                    <h3 className="text-[1.125rem] font-black text-slate-800">
                         {initial ? "Chỉnh sửa thú cưng" : "Đăng ký bé mới"}
                     </h3>
                     <button
@@ -152,7 +152,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div>
-                        <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Tên thú cưng *
                         </label>
                         <input
@@ -168,7 +168,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                                 Loại *
                             </label>
                             <select
@@ -184,7 +184,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                                 Giống
                             </label>
                             <input
@@ -200,7 +200,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                                 Giới tính
                             </label>
                             <select
@@ -217,7 +217,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                                 Ngày sinh
                             </label>
                             <input
@@ -231,7 +231,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                                 Cân nặng (kg)
                             </label>
                             <input
@@ -252,13 +252,13 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                                     onChange={(e) => setIsNeutered(e.target.checked)}
                                     className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                 />
-                                <span className="text-[0.95rem] font-bold text-slate-600">Đã triệt sản</span>
+                                <span className="text-[0.5938rem] font-bold text-slate-600">Đã triệt sản</span>
                             </label>
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Ảnh đại diện
                         </label>
                         <input
@@ -305,7 +305,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                     </div>
 
                     <div>
-                        <label className="block text-[0.95rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Ghi chú sức khỏe
                         </label>
                         <textarea

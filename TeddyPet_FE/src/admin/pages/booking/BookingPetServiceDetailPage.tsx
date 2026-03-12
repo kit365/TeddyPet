@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -47,10 +47,10 @@ const InfoRow = ({
   value?: string | number | null;
 }) => (
   <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
-    <Typography sx={{ color: "text.secondary", minWidth: 200, fontWeight: 600, fontSize: "1.4rem" }}>
+    <Typography sx={{ color: "text.secondary", minWidth: 200, fontWeight: 600, fontSize: "0.875rem" }}>
       {label}
     </Typography>
-    <Typography sx={{ fontSize: "1.5rem", color: "text.primary", fontWeight: 500 }}>
+    <Typography sx={{ fontSize: "0.9375rem", color: "text.primary", fontWeight: 500 }}>
       {value !== undefined && value !== null && value !== "" ? String(value) : "—"}
     </Typography>
   </Stack>
@@ -158,7 +158,7 @@ export const BookingPetServiceDetailPage = () => {
               fontWeight: 700,
               mb: 1,
               textTransform: "none",
-              fontSize: "1.3rem",
+              fontSize: "0.8125rem",
               "&:hover": { bgcolor: "transparent", color: "#1C252E" },
             }}
           >
@@ -173,7 +173,7 @@ export const BookingPetServiceDetailPage = () => {
             label={service.status}
             sx={{
               fontWeight: 700,
-              fontSize: "1.3rem",
+              fontSize: "0.8125rem",
               bgcolor: "#00a76f18",
               color: "#00A76F",
               border: "1px solid #00A76F",
@@ -194,7 +194,7 @@ export const BookingPetServiceDetailPage = () => {
               border: "1px solid rgba(145, 158, 171, 0.12)",
             }}
           >
-            <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Nhân sự & Phòng
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
@@ -216,7 +216,7 @@ export const BookingPetServiceDetailPage = () => {
               border: "1px solid rgba(145, 158, 171, 0.12)",
             }}
           >
-            <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Thời gian
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
@@ -245,7 +245,7 @@ export const BookingPetServiceDetailPage = () => {
               border: "1px solid rgba(145, 158, 171, 0.12)",
             }}
           >
-            <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Thanh toán
             </Typography>
             <InfoRow
@@ -267,7 +267,7 @@ export const BookingPetServiceDetailPage = () => {
               border: "1px solid rgba(145, 158, 171, 0.12)",
             }}
           >
-            <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Hình ảnh & Video
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -287,7 +287,7 @@ export const BookingPetServiceDetailPage = () => {
               border: "1px solid rgba(145, 158, 171, 0.12)",
             }}
           >
-            <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Ghi chú & Đánh giá
             </Typography>
             <InfoRow label="Ghi chú nhân viên" value={service.staffNotes} />
@@ -305,7 +305,7 @@ export const BookingPetServiceDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "#1C252E" }}>
+              <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#1C252E" }}>
                 Dịch vụ add-on / Additional charge
               </Typography>
               {chargeServices.length > 0 && (
@@ -328,7 +328,7 @@ export const BookingPetServiceDetailPage = () => {
               )}
             </Box>
             {(!service.items || service.items.length === 0) && (
-              <Typography sx={{ color: "text.secondary", fontSize: "1.4rem" }}>
+              <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
                 Chưa có dịch vụ add-on hoặc additional charge.
               </Typography>
             )}

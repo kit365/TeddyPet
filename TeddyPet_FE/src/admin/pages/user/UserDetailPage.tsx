@@ -1,4 +1,4 @@
-import { Tab, Tabs, Box, Typography, Paper } from "@mui/material";
+﻿import { Tab, Tabs, Box, Typography, Paper } from "@mui/material";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
 import { BillingIcon, GeneralIcon } from "../../assets/icons";
@@ -53,15 +53,15 @@ const BillingTab = () => {
                         }}
                     >
                         <Box>
-                            <Typography sx={{ fontSize: "1.4rem", fontWeight: 600 }}>
+                            <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
                                 Hóa đơn #{item}
                             </Typography>
-                            <Typography sx={{ fontSize: "1.3rem", color: "#637381" }}>
+                            <Typography sx={{ fontSize: "0.8125rem", color: "#637381" }}>
                                 12/01/2026
                             </Typography>
                         </Box>
 
-                        <Typography sx={{ fontSize: "1.4rem", fontWeight: 600 }}>
+                        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
                             1.250.000 đ
                         </Typography>
                     </Box>
@@ -124,7 +124,7 @@ export const UserDetailPage = () => {
                         iconPosition="start"
                         sx={{
                             padding: "9px 0px",
-                            fontSize: "1.3rem",
+                            fontSize: "0.8125rem",
                             minWidth: "48px",
                             minHeight: "auto",
                             textTransform: "none",

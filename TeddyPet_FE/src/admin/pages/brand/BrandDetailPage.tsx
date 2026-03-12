@@ -1,4 +1,4 @@
-import {
+﻿import {
     Box,
     Button,
     Container,
@@ -71,7 +71,7 @@ export const BrandDetailPage = () => {
                     sx={{
                         fontWeight: 700,
                         textTransform: "none",
-                        fontSize: "1.8rem",
+                        fontSize: "1.125rem",
                         borderRadius: "8px",
                         p: 0,
                         mb: 1,
@@ -116,17 +116,17 @@ export const BrandDetailPage = () => {
 
                 {/* Status Dropdown */}
                 <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', mb: 0.5 }}>Trạng thái</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 0.5 }}>Trạng thái</Typography>
                     <Select
                         value={brand.isActive ? 'true' : 'false'}
                         onChange={handleStatusChange}
                         sx={{
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             '& .MuiSelect-select': { py: 1 }
                         }}
                     >
-                        <MenuItem value="true" sx={{ fontSize: '1.4rem' }}>Hoạt động</MenuItem>
-                        <MenuItem value="false" sx={{ fontSize: '1.4rem' }}>Ngừng hoạt động</MenuItem>
+                        <MenuItem value="true" sx={{ fontSize: '0.875rem' }}>Hoạt động</MenuItem>
+                        <MenuItem value="false" sx={{ fontSize: '0.875rem' }}>Ngừng hoạt động</MenuItem>
                     </Select>
                 </FormControl>
             </Box>
@@ -160,7 +160,7 @@ export const BrandDetailPage = () => {
                                     sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                 />
                             ) : (
-                                <Typography sx={{ fontSize: '2.5rem', fontWeight: 700, color: '#667eea' }}>
+                                <Typography sx={{ fontSize: '1.5625rem', fontWeight: 700, color: '#667eea' }}>
                                     {brand.name?.charAt(0)}
                                 </Typography>
                             )}
@@ -175,7 +175,7 @@ export const BrandDetailPage = () => {
                                     px: 1.5,
                                     py: 0.5,
                                     borderRadius: '6px',
-                                    fontSize: '1.2rem',
+                                    fontSize: '0.75rem',
                                     fontWeight: 700,
                                     backgroundColor: brand.isActive ? '#22c55e' : '#ef4444',
                                     color: '#fff',
@@ -184,7 +184,7 @@ export const BrandDetailPage = () => {
                             >
                                 {brand.isActive ? 'Hoạt động' : 'Ngừng'}
                             </Box>
-                            <Typography sx={{ fontSize: '2rem', fontWeight: 700, color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#1C252E' }}>
                                 {brand.name}
                             </Typography>
                         </Box>
@@ -193,7 +193,7 @@ export const BrandDetailPage = () => {
                     {/* Info Grid */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, mb: 4 }}>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Website
                             </Typography>
                             {brand.websiteUrl ? (
@@ -201,19 +201,19 @@ export const BrandDetailPage = () => {
                                     component="a"
                                     href={brand.websiteUrl}
                                     target="_blank"
-                                    sx={{ fontSize: '1.4rem', color: '#006C9C', textDecoration: 'none' }}
+                                    sx={{ fontSize: '0.875rem', color: '#006C9C', textDecoration: 'none' }}
                                 >
                                     {brand.websiteUrl}
                                 </Typography>
                             ) : (
-                                <Typography sx={{ fontSize: '1.4rem', color: '#637381' }}>--</Typography>
+                                <Typography sx={{ fontSize: '0.875rem', color: '#637381' }}>--</Typography>
                             )}
                         </Box>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Mã thương hiệu
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 BRAND-{brand.brandId}
                             </Typography>
                         </Box>
@@ -221,18 +221,18 @@ export const BrandDetailPage = () => {
 
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, mb: 4 }}>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Ngày tạo
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 {dayjs(brand.createdAt).locale('vi').format('DD MMM YYYY')}
                             </Typography>
                         </Box>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Cập nhật lần cuối
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 {dayjs(brand.updatedAt).locale('vi').format('DD MMM YYYY')}
                             </Typography>
                         </Box>
@@ -241,7 +241,7 @@ export const BrandDetailPage = () => {
                     <Divider sx={{ my: 4 }} />
 
                     {/* Description */}
-                    <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 2 }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 2 }}>
                         Mô tả thương hiệu
                     </Typography>
                     {brand.description ? (
@@ -249,7 +249,7 @@ export const BrandDetailPage = () => {
                             <div dangerouslySetInnerHTML={{ __html: brand.description }} />
                         </Box>
                     ) : (
-                        <Typography sx={{ fontSize: '1.4rem', color: '#919EAB', fontStyle: 'italic' }}>
+                        <Typography sx={{ fontSize: '0.875rem', color: '#919EAB', fontStyle: 'italic' }}>
                             Chưa có mô tả
                         </Typography>
                     )}

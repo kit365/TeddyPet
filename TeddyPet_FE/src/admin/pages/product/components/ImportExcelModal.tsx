@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, LinearProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -90,10 +90,10 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
         >
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
                 <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 600, color: '#212B36', fontSize: '1.8rem' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: '#212B36', fontSize: '1.125rem' }}>
                         Nhập File Excel
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#637381', mt: 0.5, fontSize: '1.4rem' }}>
+                    <Typography variant="body2" sx={{ color: '#637381', mt: 0.5, fontSize: '0.875rem' }}>
                         Kéo thả file từ máy tính của bạn
                     </Typography>
                 </Box>
@@ -134,10 +134,10 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
                     <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
                         <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main' }} />
                     </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: '#212B36', fontSize: '1.5rem' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: '#212B36', fontSize: '0.9375rem' }}>
                         Bấm để tải lên hoặc kéo thả vào đây
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#637381', display: 'flex', justifyContent: 'space-between', mt: 4, fontSize: '1.3rem' }}>
+                    <Typography variant="body2" sx={{ color: '#637381', display: 'flex', justifyContent: 'space-between', mt: 4, fontSize: '0.8125rem' }}>
                         <span>Chỉ hỗ trợ file .xlsx, .xls</span>
                         <span>Tối đa 20MB</span>
                     </Typography>
@@ -148,10 +148,10 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                             <InsertDriveFileIcon sx={{ color: 'primary.main', mr: 2, fontSize: 32 }} />
                             <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-                                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600, color: '#212B36', fontSize: '1.4rem' }}>
+                                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600, color: '#212B36', fontSize: '0.875rem' }}>
                                     {file.name}
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#637381', fontSize: '1.2rem' }}>
+                                <Typography variant="body2" sx={{ color: '#637381', fontSize: '0.75rem' }}>
                                     {formatFileSize(file.size)}
                                 </Typography>
                             </Box>
@@ -171,7 +171,7 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
                     onClick={handleClose}
                     variant="outlined"
                     disabled={isPending}
-                    sx={{ color: '#1C252E', borderColor: '#919eab52', textTransform: 'none', px: 3, fontSize: '1.4rem' }}
+                    sx={{ color: '#1C252E', borderColor: '#919eab52', textTransform: 'none', px: 3, fontSize: '0.875rem' }}
                 >
                     Hủy
                 </Button>
@@ -180,7 +180,7 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
                     variant="contained"
                     color="primary"
                     disabled={!file || isPending}
-                    sx={{ textTransform: 'none', px: 4, fontSize: '1.4rem' }}
+                    sx={{ textTransform: 'none', px: 4, fontSize: '0.875rem' }}
                 >
                     {isPending ? 'Đang nhập...' : 'Nhập Dữ Liệu'}
                 </Button>

@@ -1,4 +1,4 @@
-import {
+﻿import {
     DataGrid,
 } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
@@ -48,7 +48,7 @@ const CustomNoRowsOverlay = () => {
                     className="w-full h-full object-contain filter grayscale opacity-60"
                 />
             </div>
-            <Typography variant="body1" sx={{ fontSize: '1.5rem', fontWeight: 500, color: 'text.secondary' }}>
+            <Typography variant="body1" sx={{ fontSize: '0.9375rem', fontWeight: 500, color: 'text.secondary' }}>
                 Không tìm thấy đơn hàng nào
             </Typography>
         </Stack>
@@ -305,7 +305,7 @@ export const OrderList = () => {
                     pt: 1,
                     borderBottom: '1px solid rgba(145, 158, 171, 0.1)',
                     '& .MuiTab-root': {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 700,
                         textTransform: 'none',
                         minWidth: 120,
@@ -333,7 +333,7 @@ export const OrderList = () => {
                                         sx={{
                                             ml: 1.5,
                                             '& .MuiBadge-badge': {
-                                                fontSize: '1rem',
+                                                fontSize: '0.625rem',
                                                 height: 18,
                                                 minWidth: 18,
                                                 position: 'static',
@@ -361,7 +361,7 @@ export const OrderList = () => {
                     <Box sx={{ bgcolor: 'rgba(0, 167, 111, 0.1)', p: 1, borderRadius: '8px', display: 'flex' }}>
                         <SearchIcon sx={{ color: '#00A76F' }} />
                     </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#1C252E', fontSize: '1.8rem' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#1C252E', fontSize: '1.125rem' }}>
                         {status === 'ALL' ? 'Tất cả đơn hàng' : STATUS_OPTIONS.find(o => o.value === status)?.label}
                         <Box component="span" sx={{ ml: 1, color: 'text.secondary', fontWeight: 500 }}>
                             ({totalElements})
@@ -387,7 +387,7 @@ export const OrderList = () => {
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.8rem' }} />
+                                <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.125rem' }} />
                             </InputAdornment>
                         ),
                     }}
@@ -459,9 +459,9 @@ export const OrderList = () => {
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
                         <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#00AB55', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            <Box component="span" sx={{ fontSize: '1.4rem', fontWeight: 900 }}>i</Box>
+                            <Box component="span" sx={{ fontSize: '0.875rem', fontWeight: 900 }}>i</Box>
                         </Box>
-                        <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>Xác nhận Chi tiết Vận chuyển</Typography>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.125rem', color: '#1C252E' }}>Xác nhận Chi tiết Vận chuyển</Typography>
                     </Stack>
                     <IconButton onClick={() => setConfirmingOrder(null)} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
@@ -473,14 +473,14 @@ export const OrderList = () => {
                     {confirmingOrder && (
                         <Stack spacing={1.5} sx={{ mb: 3, mt: 1 }}>
                             <Stack direction="row" spacing={1.5} alignItems="center">
-                                <PersonOutlineIcon sx={{ color: '#00AB55', fontSize: '2rem' }} />
-                                <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase' }}>
+                                <PersonOutlineIcon sx={{ color: '#00AB55', fontSize: '1.25rem' }} />
+                                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase' }}>
                                     KHÁCH HÀNG: <Box component="span" sx={{ color: '#1C252E', fontWeight: 900 }}>{(confirmingOrder.user?.fullName || confirmingOrder.shippingName).toUpperCase()}</Box>
                                 </Typography>
                             </Stack>
                             <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                                <LocationOnOutlinedIcon sx={{ color: '#FF5630', fontSize: '2rem', mt: 0.2 }} />
-                                <Typography sx={{ fontSize: '1.35rem', fontWeight: 700, color: '#1C252E', lineHeight: 1.4 }}>
+                                <LocationOnOutlinedIcon sx={{ color: '#FF5630', fontSize: '1.25rem', mt: 0.2 }} />
+                                <Typography sx={{ fontSize: '0.8438rem', fontWeight: 700, color: '#1C252E', lineHeight: 1.4 }}>
                                     Giao đến: {confirmingOrder.shippingAddress}
                                 </Typography>
                             </Stack>
@@ -497,10 +497,10 @@ export const OrderList = () => {
                                 value={distance}
                                 onChange={(e) => setDistance(Number(e.target.value))}
                                 InputProps={{
-                                    endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 800, color: '#919EAB', fontSize: '1.2rem' }}>km</Typography></InputAdornment>,
-                                    sx: { fontSize: '1.6rem', fontWeight: 900 }
+                                    endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 800, color: '#919EAB', fontSize: '0.75rem' }}>km</Typography></InputAdornment>,
+                                    sx: { fontSize: '1rem', fontWeight: 900 }
                                 }}
-                                sx={{ '& label': { fontSize: '1.1rem', fontWeight: 800, color: '#919EAB' } }}
+                                sx={{ '& label': { fontSize: '0.6875rem', fontWeight: 800, color: '#919EAB' } }}
                             />
                             <TextField
                                 fullWidth
@@ -510,10 +510,10 @@ export const OrderList = () => {
                                 value={weight}
                                 onChange={(e) => setWeight(Number(e.target.value))}
                                 InputProps={{
-                                    endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 800, color: '#919EAB', fontSize: '1.2rem' }}>kg</Typography></InputAdornment>,
-                                    sx: { fontSize: '1.6rem', fontWeight: 900 }
+                                    endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 800, color: '#919EAB', fontSize: '0.75rem' }}>kg</Typography></InputAdornment>,
+                                    sx: { fontSize: '1rem', fontWeight: 900 }
                                 }}
-                                sx={{ '& label': { fontSize: '1.1rem', fontWeight: 800, color: '#919EAB' } }}
+                                sx={{ '& label': { fontSize: '0.6875rem', fontWeight: 800, color: '#919EAB' } }}
                             />
                         </Stack>
 
@@ -526,15 +526,15 @@ export const OrderList = () => {
                             flexDirection: 'column',
                             alignItems: 'center'
                         }}>
-                            <Typography sx={{ color: '#16A34A', fontWeight: 900, fontSize: '1.1rem', mb: 1, textTransform: 'uppercase', letterSpacing: '0.8px' }}>CHI TIẾT ĐỀ XUẤT HỆ THỐNG</Typography>
+                            <Typography sx={{ color: '#16A34A', fontWeight: 900, fontSize: '0.6875rem', mb: 1, textTransform: 'uppercase', letterSpacing: '0.8px' }}>CHI TIẾT ĐỀ XUẤT HỆ THỐNG</Typography>
                             {fetchingSuggestion ? (
                                 <CircularProgress size={20} sx={{ my: 1, color: '#16A34A' }} />
                             ) : suggestionStatus === 'FREE_SHIP' ? (
-                                <Typography sx={{ fontWeight: 800, fontSize: '1.6rem', color: '#16A34A', mb: 1 }}>MIỄN PHÍ VẬN CHUYỂN</Typography>
+                                <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#16A34A', mb: 1 }}>MIỄN PHÍ VẬN CHUYỂN</Typography>
                             ) : suggestionStatus === 'OUT_OF_RANGE' ? (
-                                <Typography sx={{ fontWeight: 800, fontSize: '1.6rem', color: '#FF5630', mb: 1 }}>QUÁ XA</Typography>
+                                <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#FF5630', mb: 1 }}>QUÁ XA</Typography>
                             ) : (
-                                <Typography sx={{ fontWeight: 900, fontSize: '2.4rem', color: '#15803D', mb: 1 }}>
+                                <Typography sx={{ fontWeight: 900, fontSize: '1.5rem', color: '#15803D', mb: 1 }}>
                                     {suggestedFee.toLocaleString('vi-VN')}₫
                                 </Typography>
                             )}
@@ -550,7 +550,7 @@ export const OrderList = () => {
                                         fontWeight: 800,
                                         bgcolor: '#16A34A',
                                         color: 'white',
-                                        fontSize: '1.1rem',
+                                        fontSize: '0.6875rem',
                                         '&:hover': { bgcolor: '#15803D' }
                                     }}
                                 >
@@ -564,7 +564,7 @@ export const OrderList = () => {
                                         px: 2,
                                         fontWeight: 800,
                                         color: '#FF5630',
-                                        fontSize: '1.1rem',
+                                        fontSize: '0.6875rem',
                                         border: '1px solid #FF5630',
                                         '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.05)' }
                                     }}
@@ -583,32 +583,32 @@ export const OrderList = () => {
                             value={newShippingFee}
                             onChange={(e) => setNewShippingFee(e.target.value)}
                             InputProps={{
-                                endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#16A34A' }}>₫</Typography></InputAdornment>,
+                                endAdornment: <InputAdornment position="end"><Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#16A34A' }}>₫</Typography></InputAdornment>,
                                 sx: {
                                     borderRadius: '16px',
-                                    '& input': { fontWeight: 900, fontSize: '2.2rem', textAlign: 'center', color: '#16A34A' }
+                                    '& input': { fontWeight: 900, fontSize: '1.375rem', textAlign: 'center', color: '#16A34A' }
                                 }
                             }}
-                            sx={{ '& label': { fontWeight: 800, color: '#919EAB', fontSize: '1.1rem' } }}
+                            sx={{ '& label': { fontWeight: 800, color: '#919EAB', fontSize: '0.6875rem' } }}
                         />
                     </Box>
 
                     <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#F8FAFC', border: '1px solid #F1F5F9', textAlign: 'center', mb: 1 }}>
                         <Stack direction="row" alignItems="center" justifyContent="center" spacing={4}>
                             <Box>
-                                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase' }}>TỔNG CŨ</Typography>
-                                <Typography sx={{ fontSize: '1.6rem', fontWeight: 700, color: '#919EAB', textDecoration: 'line-through' }}>
+                                <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase' }}>TỔNG CŨ</Typography>
+                                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#919EAB', textDecoration: 'line-through' }}>
                                     {confirmingOrder && confirmingOrder.finalAmount.toLocaleString('vi-VN')}đ
                                 </Typography>
                             </Box>
 
                             <Box sx={{ p: 0.8, borderRadius: '50%', bgcolor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex' }}>
-                                <ArrowForwardIcon sx={{ color: '#00AB55', fontSize: '1.8rem' }} />
+                                <ArrowForwardIcon sx={{ color: '#00AB55', fontSize: '1.125rem' }} />
                             </Box>
 
                             <Box>
-                                <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#00AB55', textTransform: 'uppercase' }}>HÓA ĐƠN MỚI</Typography>
-                                <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: '#1C252E' }}>
+                                <Typography sx={{ fontSize: '0.625rem', fontWeight: 800, color: '#00AB55', textTransform: 'uppercase' }}>HÓA ĐƠN MỚI</Typography>
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 900, color: '#1C252E' }}>
                                     {confirmingOrder && (confirmingOrder.subtotal + Number(newShippingFee) - confirmingOrder.discountAmount).toLocaleString('vi-VN')}₫
                                 </Typography>
                             </Box>
@@ -618,42 +618,42 @@ export const OrderList = () => {
                     {/* NEW: Detailed Payment Summary Section */}
                     {confirmingOrder && (
                         <Box sx={{ p: 3, borderRadius: '24px', border: '1px solid #F1F5F9', bgcolor: 'white', mb: 1 }}>
-                            <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#1C252E', mb: 3 }}>Tổng kết thanh toán</Typography>
+                            <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1C252E', mb: 3 }}>Tổng kết thanh toán</Typography>
 
                             <Stack spacing={2}>
                                 <Stack direction="row" justifyContent="space-between">
-                                    <Typography sx={{ fontWeight: 700, color: '#919EAB', fontSize: '1.2rem', textTransform: 'uppercase' }}>TẠM TÍNH</Typography>
-                                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1.4rem' }}>{confirmingOrder.subtotal.toLocaleString('vi-VN')}₫</Typography>
+                                    <Typography sx={{ fontWeight: 700, color: '#919EAB', fontSize: '0.75rem', textTransform: 'uppercase' }}>TẠM TÍNH</Typography>
+                                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '0.875rem' }}>{confirmingOrder.subtotal.toLocaleString('vi-VN')}₫</Typography>
                                 </Stack>
 
                                 <Stack direction="row" justifyContent="space-between">
-                                    <Typography sx={{ fontWeight: 700, color: '#919EAB', fontSize: '1.2rem', textTransform: 'uppercase' }}>PHÍ VẬN CHUYỂN</Typography>
-                                    <Typography sx={{ fontWeight: 900, color: '#00A76F', fontSize: '1.4rem' }}>+{Number(newShippingFee).toLocaleString('vi-VN')}₫</Typography>
+                                    <Typography sx={{ fontWeight: 700, color: '#919EAB', fontSize: '0.75rem', textTransform: 'uppercase' }}>PHÍ VẬN CHUYỂN</Typography>
+                                    <Typography sx={{ fontWeight: 900, color: '#00A76F', fontSize: '0.875rem' }}>+{Number(newShippingFee).toLocaleString('vi-VN')}₫</Typography>
                                 </Stack>
 
                                 {confirmingOrder.discountAmount > 0 && (
                                     <Stack direction="row" justifyContent="space-between">
-                                        <Typography sx={{ fontWeight: 700, color: '#FF5630', fontSize: '1.2rem', textTransform: 'uppercase' }}>KHUYẾN MÃI</Typography>
-                                        <Typography sx={{ fontWeight: 900, color: '#FF5630', fontSize: '1.4rem' }}>-{confirmingOrder.discountAmount.toLocaleString('vi-VN')}₫</Typography>
+                                        <Typography sx={{ fontWeight: 700, color: '#FF5630', fontSize: '0.75rem', textTransform: 'uppercase' }}>KHUYẾN MÃI</Typography>
+                                        <Typography sx={{ fontWeight: 900, color: '#FF5630', fontSize: '0.875rem' }}>-{confirmingOrder.discountAmount.toLocaleString('vi-VN')}₫</Typography>
                                     </Stack>
                                 )}
 
                                 <Divider sx={{ borderStyle: 'dashed', my: 1 }} />
 
                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1.6rem', textTransform: 'uppercase' }}>TỔNG CỘNG</Typography>
-                                    <Typography sx={{ fontWeight: 900, color: '#006C9C', fontSize: '2.8rem', letterSpacing: '-1px' }}>
+                                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1rem', textTransform: 'uppercase' }}>TỔNG CỘNG</Typography>
+                                    <Typography sx={{ fontWeight: 900, color: '#006C9C', fontSize: '1.75rem', letterSpacing: '-1px' }}>
                                         {(confirmingOrder.subtotal + Number(newShippingFee) - confirmingOrder.discountAmount).toLocaleString('vi-VN')}₫
                                     </Typography>
                                 </Stack>
 
                                 <Box sx={{ mt: 2, p: 2, borderRadius: '16px', bgcolor: '#F8FAFC', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Box sx={{ p: 1, borderRadius: '10px', bgcolor: 'white', display: 'flex' }}>
-                                        <CreditCardIcon sx={{ color: '#FFA48D', fontSize: '2rem' }} />
+                                        <CreditCardIcon sx={{ color: '#FFA48D', fontSize: '1.25rem' }} />
                                     </Box>
                                     <Box>
-                                        <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#919EAB', textTransform: 'uppercase', letterSpacing: '0.5px' }}>HÌNH THỨC</Typography>
-                                        <Typography sx={{ fontSize: '1.3rem', fontWeight: 900, color: '#1C252E' }}>
+                                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 800, color: '#919EAB', textTransform: 'uppercase', letterSpacing: '0.5px' }}>HÌNH THỨC</Typography>
+                                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 900, color: '#1C252E' }}>
                                             {confirmingOrder.payments?.[0]?.paymentMethod === 'CASH' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản / Ví điện tử'}
                                         </Typography>
                                     </Box>
@@ -692,7 +692,7 @@ export const OrderList = () => {
                             boxShadow: '0 8px 16px rgba(0, 171, 85, 0.24)',
                             '&:hover': { bgcolor: '#007B55', boxShadow: '0 12px 20px rgba(0, 171, 85, 0.32)' },
                             textTransform: 'none',
-                            fontSize: '1.1rem'
+                            fontSize: '0.6875rem'
                         }}
                     >
                         {updating ? "ĐANG XỬ LÝ..." : "XÁC NHẬN & GỬI MAIL"}
@@ -730,7 +730,7 @@ export const OrderList = () => {
                         }}>
                             <CloseIcon sx={{ color: '#FF5630', fontSize: 24 }} />
                         </Box>
-                        <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1C252E' }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.9375rem', color: '#1C252E' }}>
                             Hủy đơn hàng
                         </Typography>
                     </Stack>
@@ -739,7 +739,7 @@ export const OrderList = () => {
                     </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ p: 3 }}>
-                    <Typography sx={{ fontSize: '1.1rem', color: '#637381', mb: 3 }}>
+                    <Typography sx={{ fontSize: '0.6875rem', color: '#637381', mb: 3 }}>
                         Chọn lý do hủy đơn hàng:
                     </Typography>
                     <Stack spacing={1.5}>
@@ -776,7 +776,7 @@ export const OrderList = () => {
                                     </Box>
                                     <Typography sx={{
                                         fontWeight: 600,
-                                        fontSize: '1.1rem',
+                                        fontSize: '0.6875rem',
                                         color: cancelReason === reason ? '#FF5630' : '#1C252E'
                                     }}>
                                         {reason}
@@ -797,7 +797,7 @@ export const OrderList = () => {
                             color: '#637381',
                             borderColor: '#E5E8EB',
                             fontWeight: 700,
-                            fontSize: '1.05rem'
+                            fontSize: '0.6562rem'
                         }}
                     >
                         Đóng
@@ -811,7 +811,7 @@ export const OrderList = () => {
                             py: 1.5,
                             borderRadius: '12px',
                             fontWeight: 700,
-                            fontSize: '1.05rem',
+                            fontSize: '0.6562rem',
                             bgcolor: '#FF5630',
                             '&:hover': { bgcolor: '#B71D18' },
                             '&:disabled': { bgcolor: '#FFD8D0', color: '#FF5630' }
@@ -852,7 +852,7 @@ export const OrderList = () => {
                         }}>
                             <ArrowForwardIcon sx={{ color: '#B76E00', fontSize: 24, transform: 'rotate(180deg)' }} />
                         </Box>
-                        <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#1C252E' }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.9375rem', color: '#1C252E' }}>
                             Hoàn đơn hàng
                         </Typography>
                     </Stack>
@@ -861,7 +861,7 @@ export const OrderList = () => {
                     </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ p: 3 }}>
-                    <Typography sx={{ fontSize: '1.1rem', color: '#637381', mb: 3 }}>
+                    <Typography sx={{ fontSize: '0.6875rem', color: '#637381', mb: 3 }}>
                         Chọn lý do hoàn đơn hàng:
                     </Typography>
                     <Stack spacing={1.5}>
@@ -898,7 +898,7 @@ export const OrderList = () => {
                                     </Box>
                                     <Typography sx={{
                                         fontWeight: 600,
-                                        fontSize: '1.1rem',
+                                        fontSize: '0.6875rem',
                                         color: returnReason === reason ? '#B76E00' : '#1C252E'
                                     }}>
                                         {reason}
@@ -919,7 +919,7 @@ export const OrderList = () => {
                             color: '#637381',
                             borderColor: '#E5E8EB',
                             fontWeight: 700,
-                            fontSize: '1.05rem'
+                            fontSize: '0.6562rem'
                         }}
                     >
                         Đóng
@@ -933,7 +933,7 @@ export const OrderList = () => {
                             py: 1.5,
                             borderRadius: '12px',
                             fontWeight: 700,
-                            fontSize: '1.05rem',
+                            fontSize: '0.6562rem',
                             bgcolor: '#B76E00',
                             '&:hover': { bgcolor: '#8A5200' },
                             '&:disabled': { bgcolor: '#FFE8CC', color: '#B76E00' }

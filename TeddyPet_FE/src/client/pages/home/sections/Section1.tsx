@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+﻿import { Link } from "react-router-dom"
 import { Button } from "../../../components/ui/Button"
 
 export const Section1 = () => {
@@ -8,7 +8,7 @@ export const Section1 = () => {
                 <div className="app-container flex gap-[30px]">
                     <section className="text-white pl-[80px] w-[50%] relative section-1-left">
                         <p className="uppercase mb-[10px]">Kết Nối Yêu Thương Cùng Thú Cưng</p>
-                        <h1 className="font-secondary text-[6.3rem] 2xl:text-[5.7rem] leading-[1.2] mb-[17px]">
+                        <h1 className="font-secondary text-[3.9375rem] 2xl:text-[3.5625rem] leading-[1.2] mb-[17px]">
                             Khởi đầu hành trình của mỗi thú cưng với tình yêu thương.
                         </h1>
                         <p className="pr-[20%] mb-[40px]">
@@ -42,8 +42,8 @@ export const Section1 = () => {
                             alt=""
                             className="object-cover ml-[50px] relative z-20"
                         />
-                        <div className="text-[6rem] absolute top-[-5%] right-[4%] 2xl:top-[-13%] 2xl:right-[-2%] z-10 rotate-[180deg]">
-                            <svg className="w-[70rem] h-[70rem] 2xl:w-[60rem] 2xl:h-[60rem]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
+                        <div className="text-[3.75rem] absolute top-[-5%] right-[4%] 2xl:top-[-13%] 2xl:right-[-2%] z-10 rotate-[180deg]">
+                            <svg className="w-[43.75rem] h-[43.75rem] 2xl:w-[37.5rem] 2xl:h-[37.5rem]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
                                 <defs>
                                     <linearGradient
                                         id="wdt-blob-gradient-clr"

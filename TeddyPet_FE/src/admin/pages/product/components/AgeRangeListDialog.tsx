@@ -1,4 +1,4 @@
-import {
+﻿import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -92,7 +92,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    fontSize: '1.8rem',
+                    fontSize: '1.125rem',
                     fontWeight: 700,
                     padding: "8px 8px 16px 8px"
                 }}>
@@ -108,7 +108,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                                     <CircularProgress size={16} /> : <DescriptionIcon />
                             }
                             sx={{
-                                fontSize: '1.2rem',
+                                fontSize: '0.75rem',
                                 textTransform: 'none',
                                 color: '#1C252E',
                                 borderColor: 'rgba(145, 158, 171, 0.32)',
@@ -123,13 +123,13 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                             open={openMenu}
                             onClose={handleMenuClose}
                         >
-                            <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                                 <FileUploadIcon fontSize="small" /> Nhập Excel
                             </MenuItem>
-                            <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                                 <FileDownloadIcon fontSize="small" /> Xuất Excel
                             </MenuItem>
-                            <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                            <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                                 <SimCardDownloadIcon fontSize="small" /> Tải Template
                             </MenuItem>
                         </Menu>
@@ -148,9 +148,9 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                             onClick={handleCreate}
                             sx={{
                                 background: '#1C252E',
-                                minHeight: "3.6rem",
+                                minHeight: "2.25rem",
                                 fontWeight: 700,
-                                fontSize: "1.4rem",
+                                fontSize: "0.875rem",
                                 padding: "6px 16px",
                                 borderRadius: "8px",
                                 textTransform: "none",
@@ -171,7 +171,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                                 <CircularProgress />
                             </Box>
                         ) : ageRanges.length === 0 ? (
-                            <Typography sx={{ textAlign: 'center', color: '#919EAB', py: 4, fontSize: '1.4rem' }}>
+                            <Typography sx={{ textAlign: 'center', color: '#919EAB', py: 4, fontSize: '0.875rem' }}>
                                 {t("admin.product.age_range.no_data")}
                             </Typography>
                         ) : (
@@ -194,7 +194,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                                                             '&:hover': { backgroundColor: 'rgba(99, 115, 129, 0.08)' }
                                                         }}
                                                     >
-                                                        <EditIcon sx={{ fontSize: '1.8rem', color: '#637381' }} />
+                                                        <EditIcon sx={{ fontSize: '1.125rem', color: '#637381' }} />
                                                     </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title={t("admin.common.delete")}>
@@ -205,7 +205,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                                                             '&:hover': { backgroundColor: 'rgba(255, 86, 48, 0.08)' }
                                                         }}
                                                     >
-                                                        <DeleteIcon sx={{ fontSize: '1.8rem', color: '#FF5630' }} />
+                                                        <DeleteIcon sx={{ fontSize: '1.125rem', color: '#FF5630' }} />
                                                     </IconButton>
                                                 </Tooltip>
                                             </Stack>
@@ -214,8 +214,8 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                                         <ListItemText
                                             primary={item.name}
                                             secondary={item.description}
-                                            primaryTypographyProps={{ fontSize: '1.5rem', fontWeight: 600, color: '#212B36' }}
-                                            secondaryTypographyProps={{ fontSize: '1.3rem' }}
+                                            primaryTypographyProps={{ fontSize: '0.9375rem', fontWeight: 600, color: '#212B36' }}
+                                            secondaryTypographyProps={{ fontSize: '0.8125rem' }}
                                         />
                                     </ListItem>
                                 ))}

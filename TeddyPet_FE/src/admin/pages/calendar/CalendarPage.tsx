@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -161,10 +161,10 @@ export const CalendarPage = () => {
                     onClick={handleOpenEventDialog}
                     sx={{
                         background: '#1C252E',
-                        minHeight: "3.6rem",
-                        minWidth: "6.4rem",
+                        minHeight: "2.25rem",
+                        minWidth: "4rem",
                         fontWeight: 700,
-                        fontSize: "1.4rem",
+                        fontSize: "0.875rem",
                         padding: "6px 12px",
                         borderRadius: "8px",
                         textTransform: "none",
@@ -181,7 +181,7 @@ export const CalendarPage = () => {
                 </Button>
             </div>
 
-            <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '1.4rem', display: "block", mb: "10px" }}>
+            <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '0.875rem', display: "block", mb: "10px" }}>
                 <Box component="span" sx={{ color: '#1C252E', fontWeight: 600 }}>6</Box>{' '}
                 <Box component="span" sx={{ color: '#637381', fontWeight: 400 }}>kết quả tìm thấy</Box>
             </Typography>
@@ -196,7 +196,7 @@ export const CalendarPage = () => {
                         border: '1px solid #919eab33',
                     }}
                 >
-                    <Typography variant="subtitle2" sx={{ fontSize: '1.4rem', color: '#1C252E', fontWeight: 600 }}>
+                    <Typography variant="subtitle2" sx={{ fontSize: '0.875rem', color: '#1C252E', fontWeight: 600 }}>
                         Ngày:
                     </Typography>
                     <Box
@@ -209,7 +209,7 @@ export const CalendarPage = () => {
                             bgcolor: 'rgba(145, 158, 171, 0.16)',
                         }}
                     >
-                        <Typography sx={{ fontSize: '1.3rem', fontWeight: 500 }}>03 - 26 Tháng 2 2026</Typography>
+                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>03 - 26 Tháng 2 2026</Typography>
                         <IconButton
                             size="small"
                             sx={{
@@ -235,7 +235,7 @@ export const CalendarPage = () => {
                     sx={{
                         color: '#FF5630',
                         fontWeight: 600,
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         textTransform: 'none',
                         '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' }
                     }}
@@ -258,7 +258,7 @@ export const CalendarPage = () => {
                         marginLeft: '-1px',
                         marginBottom: '-1px',
                         width: 'calc(100% + 2px)',
-                        fontSize: '1.6rem',
+                        fontSize: '1rem',
                         '--fc-border-color': 'rgba(145, 158, 171, 0.2)',
                         '--fc-page-bg-color': '#fff',
                         '--fc-neutral-bg-color': '#F4F6F8',
@@ -318,7 +318,7 @@ export const CalendarPage = () => {
                         verticalAlign: 'middle',
                         '& .fc-col-header-cell-cushion': {
                             fontWeight: 700,
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             color: '#1C252E',
                             textTransform: 'capitalize',
                             textDecoration: 'none !important',
@@ -334,7 +334,7 @@ export const CalendarPage = () => {
                     },
                     '& .fc .fc-timegrid-axis-cushion': {
                         color: '#637381',
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 400,
                         textDecoration: 'none !important',
                         textAlign: 'center',
@@ -344,7 +344,7 @@ export const CalendarPage = () => {
                     },
                     '& .fc .fc-timegrid-slot-label-cushion': {
                         color: '#637381',
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 400,
                         textAlign: 'right',
                         paddingRight: '8px',
@@ -365,7 +365,7 @@ export const CalendarPage = () => {
                         }
                     },
                     '& .fc .fc-daygrid-day-number': {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 400,
                         padding: '4px 8px',
                         color: '#637381', // Default color for days without events
@@ -390,7 +390,7 @@ export const CalendarPage = () => {
                     },
                     '& .fc .fc-event-main': {
                         padding: '2px 6px',
-                        fontSize: '1.3rem',
+                        fontSize: '0.8125rem',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
@@ -398,13 +398,13 @@ export const CalendarPage = () => {
                         maxWidth: '100%',
                     },
                     '& .fc .fc-event-time': {
-                        fontSize: '1.3rem',
+                        fontSize: '0.8125rem',
                         fontWeight: 700,
                         flexShrink: 0,
                         whiteSpace: 'nowrap',
                     },
                     '& .fc .fc-event-title': {
-                        fontSize: '1.3rem',
+                        fontSize: '0.8125rem',
                         fontWeight: 400,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -426,16 +426,16 @@ export const CalendarPage = () => {
                         }
                     },
                     '& .fc .fc-list-event-time': {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         color: '#637381',
                         fontWeight: 400,
                     },
                     '& .fc .fc-list-event-title': {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 400,
                     },
                     '& .fc .fc-list-day-cushion': {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 600,
                     },
                 }}
@@ -492,7 +492,7 @@ export const CalendarPage = () => {
                             <ChevronLeft sx={{ fontSize: 20, color: '#637381' }} />
                         </IconButton>
 
-                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.7rem', minWidth: '160px', textAlign: 'center', color: "#1C252E" }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.0625rem', minWidth: '160px', textAlign: 'center', color: "#1C252E" }}>
                             {capitalizeFirstLetter(dayjs(date).format('MMMM YYYY'))}
                         </Typography>
 
@@ -511,7 +511,7 @@ export const CalendarPage = () => {
                                 borderRadius: '8px',
                                 minHeight: "30px",
                                 minWidth: "64px",
-                                fontSize: "1.2rem",
+                                fontSize: "0.75rem",
                                 textTransform: 'none',
                                 fontWeight: 700,
                                 padding: "4px 8px",

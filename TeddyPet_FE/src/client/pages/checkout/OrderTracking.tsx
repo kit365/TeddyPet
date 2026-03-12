@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
@@ -22,12 +22,12 @@ const breadcrumbs = [
 // Component Stepper Đồng bộ Premium
 const OrderStepper = ({ status }: { status: string }) => {
     const steps = [
-        { key: 'PENDING', label: 'Chờ nhận đơn', icon: <ClipboardCheck className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'CONFIRMED', label: 'Đã xác nhận', icon: <CheckCircle className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'PROCESSING', label: 'Đang đóng gói', icon: <BoxIcon className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'DELIVERING', label: 'Đang giao', icon: <Truck className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'DELIVERED', label: 'Đã giao', icon: <HomeSimple className="w-[2.4rem] h-[2.4rem]" /> },
-        { key: 'COMPLETED', label: 'Hoàn thành', icon: <Package className="w-[2.4rem] h-[2.4rem]" /> },
+        { key: 'PENDING', label: 'Chờ nhận đơn', icon: <ClipboardCheck className="w-[1.5rem] h-[1.5rem]" /> },
+        { key: 'CONFIRMED', label: 'Đã xác nhận', icon: <CheckCircle className="w-[1.5rem] h-[1.5rem]" /> },
+        { key: 'PROCESSING', label: 'Đang đóng gói', icon: <BoxIcon className="w-[1.5rem] h-[1.5rem]" /> },
+        { key: 'DELIVERING', label: 'Đang giao', icon: <Truck className="w-[1.5rem] h-[1.5rem]" /> },
+        { key: 'DELIVERED', label: 'Đã giao', icon: <HomeSimple className="w-[1.5rem] h-[1.5rem]" /> },
+        { key: 'COMPLETED', label: 'Hoàn thành', icon: <Package className="w-[1.5rem] h-[1.5rem]" /> },
     ];
 
     const currentIdx = steps.findIndex(s => s.key === status);
@@ -37,11 +37,11 @@ const OrderStepper = ({ status }: { status: string }) => {
         return (
             <div className="bg-red-50/50 border-2 border-dashed border-red-200 rounded-[32px] p-[30px] flex items-center gap-[20px] animate-fadeIn mb-[30px]">
                 <div className="w-[60px] h-[60px] bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg">
-                    <WarningCircle className="w-[3rem] h-[3rem]" />
+                    <WarningCircle className="w-[1.875rem] h-[1.875rem]" />
                 </div>
                 <div>
-                    <h3 className="text-[2rem] font-black text-red-600 uppercase">Đơn hàng đã hủy</h3>
-                    <p className="text-[1.5rem] text-red-400 font-medium">Lưu ý: Đơn hàng này không còn hiệu lực trên hệ thông TeddyPet.</p>
+                    <h3 className="text-[1.25rem] font-black text-red-600 uppercase">Đơn hàng đã hủy</h3>
+                    <p className="text-[0.9375rem] text-red-400 font-medium">Lưu ý: Đơn hàng này không còn hiệu lực trên hệ thông TeddyPet.</p>
                 </div>
             </div>
         );
@@ -51,7 +51,7 @@ const OrderStepper = ({ status }: { status: string }) => {
 
     return (
         <div className="bg-white p-[35px] rounded-[32px] border border-gray-100 shadow-sm mb-[30px] animate-fadeIn">
-            <div className="relative flex items-center justify-between px-[1rem]">
+            <div className="relative flex items-center justify-between px-[0.625rem]">
                 <div className="absolute top-[30px] left-[8%] right-[8%] h-[4px] bg-gray-100 -z-0 rounded-full"></div>
                 <div
                     className={`absolute top-[30px] left-[8%] h-[4px] transition-all duration-[1200ms] ease-in-out -z-0 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-client-primary'}`}
@@ -72,7 +72,7 @@ const OrderStepper = ({ status }: { status: string }) => {
                             >
                                 {step.icon}
                             </div>
-                            <span className={`text-[1.2rem] font-bold text-center transition-colors duration-500 ${isActive
+                            <span className={`text-[0.75rem] font-bold text-center transition-colors duration-500 ${isActive
                                 ? (isCompleted ? 'text-emerald-600' : 'text-client-secondary')
                                 : 'text-gray-300'
                                 }`}>
@@ -205,14 +205,14 @@ export const OrderTrackingPage = () => {
                     {/* 1. FORM TRA CỨU */}
                     {(!order || error) && !loading && (
                         <div className="bg-white p-[50px] rounded-[40px] shadow-sm border border-[#eee] animate-fadeIn text-center">
-                            <h2 className="text-[2.6rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
-                            <p className="text-[1.5rem] text-gray-400 font-medium mb-10 italic">
+                            <h2 className="text-[1.625rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
+                            <p className="text-[0.9375rem] text-gray-400 font-medium mb-10 italic">
                                 {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
                             </p>
 
                             {isAuthenticated && (
                                 <div className="mb-8 p-4 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
-                                    <p className="text-[1.3rem] text-client-secondary font-bold">
+                                    <p className="text-[0.8125rem] text-client-secondary font-bold">
                                         💡 Bạn có thể vào <Link to="/dashboard/orders" className="text-client-primary underline">Lịch sử đơn hàng</Link> để xem danh sách trọn vẹn nhất.
                                     </p>
                                 </div>
@@ -226,7 +226,7 @@ export const OrderTrackingPage = () => {
                                         placeholder="Mã đơn hàng (ORD-XXXXXX)"
                                         value={orderCode}
                                         onChange={(e) => setOrderCode(e.target.value)}
-                                        className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
+                                        className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1rem] bg-gray-50/50 font-black transition-all"
                                     />
                                 </div>
                                 {!isAuthenticated && (
@@ -237,11 +237,11 @@ export const OrderTrackingPage = () => {
                                             placeholder="Địa chỉ Email hoặc Số điện thoại"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
+                                            className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1rem] bg-gray-50/50 font-black transition-all"
                                         />
                                     </div>
                                 )}
-                                <button type="submit" className="w-full h-[65px] bg-client-secondary hover:bg-client-primary text-white font-black text-[1.6rem] rounded-[22px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                                <button type="submit" className="w-full h-[65px] bg-client-secondary hover:bg-client-primary text-white font-black text-[1rem] rounded-[22px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
                                     <Search className="w-6 h-6" /> TRA CỨU NGAY
                                 </button>
                             </form>
@@ -251,7 +251,7 @@ export const OrderTrackingPage = () => {
                     {loading && (
                         <div className="bg-white p-[80px] rounded-[40px] text-center shadow-sm">
                             <div className="w-[60px] h-[60px] border-[6px] border-client-primary/10 border-t-client-primary rounded-full animate-spin mx-auto mb-6"></div>
-                            <h2 className="text-[1.8rem] font-bold text-gray-400">Đang tìm đơn hàng của bạn...</h2>
+                            <h2 className="text-[1.125rem] font-bold text-gray-400">Đang tìm đơn hàng của bạn...</h2>
                         </div>
                     )}
 
@@ -262,14 +262,14 @@ export const OrderTrackingPage = () => {
                             {/* Header chi tiết */}
                             <div className="flex justify-between items-center bg-white p-[30px] px-[40px] rounded-[30px] border border-gray-100 shadow-sm">
                                 <div className="flex items-center gap-4">
-                                    <h2 className="text-[2.2rem] font-black text-client-secondary uppercase">Mã đơn: {order.orderCode}</h2>
+                                    <h2 className="text-[1.375rem] font-black text-client-secondary uppercase">Mã đơn: {order.orderCode}</h2>
                                     <button onClick={() => copyToClipboard(order.orderCode)} className="w-[45px] h-[45px] bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:text-client-primary hover:bg-client-primary/10 transition-all">
                                         <Copy className="w-6 h-6" />
                                     </button>
                                 </div>
                                 <div className="text-right">
-                                    <label className="text-[1.1rem] text-gray-400 font-bold uppercase block">Ngày đặt hàng</label>
-                                    <span className="text-[1.5rem] font-black text-client-secondary">{format(new Date(order.createdAt), "dd/MM/yyyy HH:mm")}</span>
+                                    <label className="text-[0.6875rem] text-gray-400 font-bold uppercase block">Ngày đặt hàng</label>
+                                    <span className="text-[0.9375rem] font-black text-client-secondary">{format(new Date(order.createdAt), "dd/MM/yyyy HH:mm")}</span>
                                 </div>
                             </div>
 
@@ -279,32 +279,32 @@ export const OrderTrackingPage = () => {
                             {/* GRID 1:1 - ĐỊA CHỈ & HỖ TRỢ */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-[30px]">
                                 <div className="bg-white p-[35px] rounded-[35px] border border-gray-100 shadow-sm">
-                                    <h3 className="text-[1.8rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
+                                    <h3 className="text-[1.125rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
                                         <MapPin className="text-client-primary w-7 h-7" /> Địa chỉ giao tới
                                     </h3>
                                     <div className="space-y-4">
                                         <div className="flex flex-col">
-                                            <span className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-widest">Người nhận</span>
-                                            <span className="text-[1.6rem] font-black text-client-secondary mt-1 uppercase">{order.shippingName}</span>
-                                            <span className="text-[1.4rem] font-bold text-client-primary mt-1 border-l-4 border-client-primary pl-3 italic">{order.shippingPhone}</span>
+                                            <span className="text-[0.6875rem] text-gray-400 font-bold uppercase tracking-widest">Người nhận</span>
+                                            <span className="text-[1rem] font-black text-client-secondary mt-1 uppercase">{order.shippingName}</span>
+                                            <span className="text-[0.875rem] font-bold text-client-primary mt-1 border-l-4 border-client-primary pl-3 italic">{order.shippingPhone}</span>
                                         </div>
                                         <div className="pt-4 border-t border-gray-50">
-                                            <span className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-widest">Nơi nhận</span>
-                                            <p className="text-[1.4rem] font-bold text-gray-600 mt-2 leading-relaxed">{order.shippingAddress}</p>
+                                            <span className="text-[0.6875rem] text-gray-400 font-bold uppercase tracking-widest">Nơi nhận</span>
+                                            <p className="text-[0.875rem] font-bold text-gray-600 mt-2 leading-relaxed">{order.shippingAddress}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="bg-white p-[35px] rounded-[35px] border border-gray-100 shadow-sm bg-gradient-to-tr from-white to-blue-50/20">
-                                    <h3 className="text-[1.8rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
+                                    <h3 className="text-[1.125rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
                                         <HelpCircle className="text-blue-500 w-7 h-7" /> Cần giúp đỡ?
                                     </h3>
-                                    <p className="text-[1.4rem] text-gray-500 font-medium mb-8 leading-relaxed">Đơn hàng của bạn đang được xử lý. Nếu có bất kỳ thắc mắc nào, đừng ngần ngại liên hệ với chúng tôi.</p>
+                                    <p className="text-[0.875rem] text-gray-500 font-medium mb-8 leading-relaxed">Đơn hàng của bạn đang được xử lý. Nếu có bất kỳ thắc mắc nào, đừng ngần ngại liên hệ với chúng tôi.</p>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <a href="#" className="h-[55px] bg-client-secondary text-white rounded-[20px] font-black text-[1.4rem] flex items-center justify-center gap-2 shadow-lg">
+                                        <a href="#" className="h-[55px] bg-client-secondary text-white rounded-[20px] font-black text-[0.875rem] flex items-center justify-center gap-2 shadow-lg">
                                             <ChatBubble className="w-5 h-5" /> Chat ngay
                                         </a>
-                                        <button onClick={() => { setOrder(null); setOrderCode(""); setEmail(""); }} className="h-[55px] border-2 border-gray-100 rounded-[20px] text-gray-400 font-black text-[1.4rem] hover:border-client-primary hover:text-client-primary transition-all">
+                                        <button onClick={() => { setOrder(null); setOrderCode(""); setEmail(""); }} className="h-[55px] border-2 border-gray-100 rounded-[20px] text-gray-400 font-black text-[0.875rem] hover:border-client-primary hover:text-client-primary transition-all">
                                             Tra đơn khác
                                         </button>
                                     </div>
@@ -315,25 +315,25 @@ export const OrderTrackingPage = () => {
                             <div className="bg-white rounded-[35px] border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="p-[30px] border-b border-gray-50 bg-gray-50/30 flex items-center gap-4">
                                     <Package className="text-client-primary w-7 h-7" />
-                                    <h3 className="text-[1.8rem] font-black text-client-secondary uppercase">Sản phẩm trong kiện ({order.orderItems?.length})</h3>
+                                    <h3 className="text-[1.125rem] font-black text-client-secondary uppercase">Sản phẩm trong kiện ({order.orderItems?.length})</h3>
                                 </div>
                                 <div className="p-[30px] space-y-4">
                                     {order.orderItems?.map((item, idx) => (
                                         <div key={idx} className="flex gap-6 p-4 rounded-[24px] hover:bg-gray-50/50 transition-all group">
                                             <div className="w-[85px] h-[85px] rounded-[18px] overflow-hidden border border-gray-100 shrink-0 relative shadow-sm">
                                                 <img src={item.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />
-                                                <div className="absolute top-0 right-0 bg-client-primary text-white text-[1rem] font-black px-2 py-1 rounded-bl-xl">x{item.quantity}</div>
+                                                <div className="absolute top-0 right-0 bg-client-primary text-white text-[0.625rem] font-black px-2 py-1 rounded-bl-xl">x{item.quantity}</div>
                                             </div>
                                             <div className="flex-1 flex flex-col justify-center">
-                                                <h4 className="text-[1.6rem] font-black text-client-secondary line-clamp-1">{item.productName}</h4>
-                                                <span className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{item.variantName}</span>
-                                                <div className="text-[1.6rem] font-black text-client-secondary mt-2">{(item.unitPrice * item.quantity).toLocaleString()}đ</div>
+                                                <h4 className="text-[1rem] font-black text-client-secondary line-clamp-1">{item.productName}</h4>
+                                                <span className="text-[0.6875rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{item.variantName}</span>
+                                                <div className="text-[1rem] font-black text-client-secondary mt-2">{(item.unitPrice * item.quantity).toLocaleString()}đ</div>
                                             </div>
                                             {order.status === 'COMPLETED' && (
                                                 <div className="flex items-center">
                                                     <Link
                                                         to={`/feedback?orderId=${order.id}${!order.user ? `&email=${order.guestEmail || email}` : ''}`}
-                                                        className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[1.2rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
+                                                        className="flex items-center gap-2 px-6 py-2 bg-client-primary/10 text-client-primary rounded-full font-bold text-[0.75rem] hover:bg-client-primary hover:text-white transition-all shadow-sm"
                                                     >
                                                         <Star className="w-4 h-4" /> Đánh giá
                                                     </Link>
@@ -348,28 +348,28 @@ export const OrderTrackingPage = () => {
                             <div className="bg-white p-[40px] rounded-[35px] border border-gray-100 shadow-xl shadow-gray-100/20">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                     <div className="space-y-6">
-                                        <h3 className="text-[1.8rem] font-black text-client-secondary uppercase border-b border-gray-100 pb-4">Chi tiết giao dịch</h3>
+                                        <h3 className="text-[1.125rem] font-black text-client-secondary uppercase border-b border-gray-100 pb-4">Chi tiết giao dịch</h3>
                                         <div className="space-y-5">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500"><Wallet /></div>
                                                 <div>
-                                                    <label className="text-[1rem] text-gray-400 font-bold uppercase tracking-widest block">Phương thức</label>
-                                                    <span className="text-[1.4rem] font-black text-client-secondary">{paymentMethodLabel}</span>
+                                                    <label className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest block">Phương thức</label>
+                                                    <span className="text-[0.875rem] font-black text-client-secondary">{paymentMethodLabel}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500"><Calendar /></div>
                                                 <div>
-                                                    <label className="text-[1rem] text-gray-400 font-bold uppercase tracking-widest block">Khởi tạo đơn</label>
-                                                    <span className="text-[1.4rem] font-black text-client-secondary">{format(new Date(order.createdAt), "HH:mm - dd/MM/yyyy")}</span>
+                                                    <label className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest block">Khởi tạo đơn</label>
+                                                    <span className="text-[0.875rem] font-black text-client-secondary">{format(new Date(order.createdAt), "HH:mm - dd/MM/yyyy")}</span>
                                                 </div>
                                             </div>
                                             {isPaid && (
                                                 <div className="flex items-center gap-4 animate-fadeIn">
                                                     <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500"><ShieldCheck /></div>
                                                     <div>
-                                                        <label className="text-[1rem] text-gray-400 font-bold uppercase tracking-widest block">Trạng thái thanh toán</label>
-                                                        <span className="text-[1.4rem] font-black text-client-secondary font-secondary italic text-emerald-600">Thành công lúc {format(new Date(order.updatedAt), "HH:mm")}</span>
+                                                        <label className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest block">Trạng thái thanh toán</label>
+                                                        <span className="text-[0.875rem] font-black text-client-secondary font-secondary italic text-emerald-600">Thành công lúc {format(new Date(order.updatedAt), "HH:mm")}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -377,21 +377,21 @@ export const OrderTrackingPage = () => {
                                     </div>
 
                                     <div className="bg-gray-50/50 p-8 rounded-[30px] border border-gray-100 flex flex-col justify-center">
-                                        <div className="flex justify-between items-center text-[1.4rem] mb-4">
+                                        <div className="flex justify-between items-center text-[0.875rem] mb-4">
                                             <span className="text-gray-400 font-bold uppercase">Tạm tính:</span>
                                             <span className="font-black text-client-secondary">{order.subtotal.toLocaleString()}đ</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-[1.4rem] mb-6">
+                                        <div className="flex justify-between items-center text-[0.875rem] mb-6">
                                             <span className="text-gray-400 font-bold uppercase">Phí vận chuyển:</span>
                                             <span className="font-black text-client-secondary">+{order.shippingFee.toLocaleString()}đ</span>
                                         </div>
                                         <div className="pt-6 border-t-2 border-dashed border-gray-200 flex justify-between items-center">
-                                            <span className="text-[1.8rem] font-black text-client-secondary uppercase">Tổng cộng:</span>
-                                            <span className="text-[3.2rem] font-black text-client-primary tracking-tighter">{order.finalAmount.toLocaleString()}đ</span>
+                                            <span className="text-[1.125rem] font-black text-client-secondary uppercase">Tổng cộng:</span>
+                                            <span className="text-[2rem] font-black text-client-primary tracking-tighter">{order.finalAmount.toLocaleString()}đ</span>
                                         </div>
                                         <div className="mt-6 flex items-center gap-2 justify-end">
                                             <InfoCircle className="w-4 h-4 text-client-primary" />
-                                            <span className="text-[1.1rem] text-client-primary font-black uppercase italic">Dịch vụ từ tâm - TeddyPet</span>
+                                            <span className="text-[0.6875rem] text-client-primary font-black uppercase italic">Dịch vụ từ tâm - TeddyPet</span>
                                         </div>
                                     </div>
                                 </div>
@@ -402,9 +402,9 @@ export const OrderTrackingPage = () => {
                                 <button
                                     onClick={handleConfirmReceived}
                                     disabled={isSubmitting}
-                                    className="w-full h-[65px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[1.7rem] rounded-[24px] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
+                                    className="w-full h-[65px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[1.0625rem] rounded-[24px] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
                                 >
-                                    {isSubmitting ? <RefreshDouble className="w-[2.4rem] h-[2.4rem] animate-spin" /> : <CheckCircle className="w-[2.4rem] h-[2.4rem]" />}
+                                    {isSubmitting ? <RefreshDouble className="w-[1.5rem] h-[1.5rem] animate-spin" /> : <CheckCircle className="w-[1.5rem] h-[1.5rem]" />}
                                     {isSubmitting ? "Đang xác nhận..." : "TÔI ĐÃ NHẬN ĐƯỢC HÀNG"}
                                 </button>
                             )}
@@ -422,24 +422,24 @@ export const OrderTrackingPage = () => {
                     ></div>
                     <div className="bg-white rounded-[40px] p-10 max-w-[500px] w-full relative z-10 shadow-2xl border border-gray-100 text-center animate-scaleUp">
                         <div className="w-[100px] h-[100px] bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-6 shadow-sm border border-emerald-100">
-                            <Star className="w-[5rem] h-[5rem] fill-current" />
+                            <Star className="w-[3.125rem] h-[3.125rem] fill-current" />
                         </div>
-                        <h3 className="text-[2.6rem] font-black text-client-secondary mb-4 leading-tight uppercase">
+                        <h3 className="text-[1.625rem] font-black text-client-secondary mb-4 leading-tight uppercase">
                             Tuyệt vời quá!
                         </h3>
-                        <p className="text-[1.6rem] text-gray-500 font-medium mb-8 leading-relaxed">
+                        <p className="text-[1rem] text-gray-500 font-medium mb-8 leading-relaxed">
                             Đơn hàng đã hoàn thành. Bạn hãy dành chút thời gian đánh giá sản phẩm để TeddyPet ngày càng hoàn thiện hơn nhé! 🐾
                         </p>
                         <div className="flex flex-col gap-3">
                             <Link
                                 to={`/feedback?orderId=${order?.id}${!order?.user ? `&email=${order?.guestEmail || email}` : ''}`}
-                                className="h-[65px] bg-client-primary text-white rounded-[24px] font-black text-[1.8rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
+                                className="h-[65px] bg-client-primary text-white rounded-[24px] font-black text-[1.125rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
                             >
                                 <Star className="w-6 h-6" /> ĐÁNH GIÁ NGAY
                             </Link>
                             <button
                                 onClick={() => setShowFeedbackModal(false)}
-                                className="h-[55px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
+                                className="h-[55px] text-gray-400 font-bold text-[0.9375rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
                             >
                                 Để sau nhé
                             </button>

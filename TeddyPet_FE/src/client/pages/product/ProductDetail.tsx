@@ -1,4 +1,4 @@
-import { Link, useParams, useNavigate } from "react-router-dom"
+﻿import { Link, useParams, useNavigate } from "react-router-dom"
 import React, { useEffect, useState, useMemo } from "react";
 import StarIcon from "@mui/icons-material/Star";
 import { Heart, UserCart, EyeSolid } from "iconoir-react";
@@ -310,7 +310,7 @@ export const ProductDetailPage = () => {
             priceElement = (
                 <div className="flex items-center gap-3">
                     <p className="text-[#FF6262] font-bold">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
-                    <p className="text-[#999] line-through text-[1.6rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
+                    <p className="text-[#999] line-through text-[1rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
                 </div>
             );
         } else {
@@ -345,31 +345,31 @@ export const ProductDetailPage = () => {
 
                     <div>
                         <div>
-                            <h2 className="text-[3rem] mt-[20px] font-secondary text-client-secondary">{product.name}</h2>
+                            <h2 className="text-[1.875rem] mt-[20px] font-secondary text-client-secondary">{product.name}</h2>
                             <div className="flex items-center my-[10px]">
                                 <div className="flex items-center">
                                     {[...Array(5)].map((_, i) => (
                                         <StarIcon
                                             key={i}
                                             sx={{
-                                                fontSize: "2rem !important",
+                                                fontSize: "1.25rem !important",
                                                 color: i < (product.averageRating || 5) ? "#ffbb00 !important" : "#ccc !important",
                                             }}
                                         />
                                     ))}
                                 </div>
                                 <div className="flex items-center text-[#505050]">
-                                    <span className="text-[2rem] mx-[20px]">|</span>
+                                    <span className="text-[1.25rem] mx-[20px]">|</span>
                                     <p>({product.ratingCount || 0} customer review)</p>
                                 </div>
                             </div>
 
-                            <div className="mt-[10px] text-client-secondary text-[2.2rem] font-secondary">
+                            <div className="mt-[10px] text-client-secondary text-[1.375rem] font-secondary">
                                 {priceElement}
                             </div>
 
-                            <div className="w-full flex items-center mt-[15px] mb-[20px] px-[40px] py-[20px] rounded-[4.8rem] bg-[#FFF0F0]">
-                                <span className="inline-block mr-[20px] text-[#FF6262] w-[3.5rem] aspect-square">
+                            <div className="w-full flex items-center mt-[15px] mb-[20px] px-[40px] py-[20px] rounded-[3rem] bg-[#FFF0F0]">
+                                <span className="inline-block mr-[20px] text-[#FF6262] w-[2.1875rem] aspect-square">
                                     <svg className="w-full h-full" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 66"><path d="M33,0l6.1,9.5l10.4-5.1L50,15.7l11.6,0.8l-5.2,10L66,33l-9.5,6.1l5.1,10.4L50.3,50l-0.8,11.6l-10-5.2L33,66l-6.1-9.5 l-10.4,5.1L16,50.3L4.4,49.5l5.2-10L0,33l9.5-6.1L4.4,16.5L15.7,16l0.8-11.6l10,5.2L33,0z M41.7,18c-0.5-0.3-1.2-0.1-1.5,0.4 L24,46.5c-0.3,0.5-0.1,1.2,0.4,1.5c0.5,0.3,1.2,0.1,1.5-0.4L42,19.5C42.4,19,42.2,18.3,41.7,18z M43.6,38c-1.1-1.1-2.6-1.8-4.2-1.8 c-1.6,0-3.1,0.7-4.2,1.8s-1.8,2.6-1.8,4.2c0,1.7,0.7,3.1,1.8,4.2c1.1,1.1,2.6,1.7,4.2,1.7c1.7,0,3.1-0.7,4.2-1.7 c1.1-1.1,1.8-2.6,1.8-4.2C45.3,40.5,44.7,39,43.6,38z M42,44.9c-0.7,0.7-1.6,1.1-2.7,1.1c-1,0-2-0.4-2.7-1.1s-1.1-1.7-1.1-2.7 c0-1,0.4-2,1.1-2.7c0.7-0.7,1.6-1.1,2.7-1.1c1.1,0,2,0.4,2.7,1.1c0.7,0.7,1.1,1.6,1.1,2.7S42.7,44.2,42,44.9z M30.9,19.6 c-1.1-1.1-2.6-1.8-4.2-1.8c-1.6,0-3.1,0.7-4.2,1.8c-1.1,1.1-1.7,2.6-1.7,4.2c0,1.6,0.7,3.1,1.7,4.2c1.1,1.1,2.6,1.7,4.2,1.7 c1.7,0,3.1-0.7,4.2-1.7c1.1-1.1,1.8-2.6,1.8-4.2C32.6,22.2,31.9,20.7,30.9,19.6z M29.3,26.5c-0.7,0.7-1.7,1.1-2.7,1.1 c-1,0-2-0.4-2.7-1.1c-0.7-0.7-1.1-1.6-1.1-2.7c0-1.1,0.4-2,1.1-2.7s1.6-1.1,2.7-1.1c1.1,0,2,0.4,2.7,1.1s1.1,1.7,1.1,2.7 C30.5,24.9,30,25.8,29.3,26.5z"></path></svg>
                                 </span>
                                 <p className="text-[#505050]">Giảm 200.000₫ cho đơn hàng từ 999.000₫, miễn phí giao hàng</p>
@@ -380,7 +380,7 @@ export const ProductDetailPage = () => {
                                 {product.attributes.map((attr) => (
                                     <div key={attr.attributeId} className="mb-[15px]">
                                         <div className="mb-[10px] text-client-secondary flex items-center">
-                                            <span className="font-secondary text-[1.8rem] ">{attr.name} :</span>
+                                            <span className="font-secondary text-[1.125rem] ">{attr.name} :</span>
                                             {selectedOptions[attr.attributeId] && (
                                                 <span className="text-client-secondary ml-[5px]">
                                                     {attributeValueMap[selectedOptions[attr.attributeId]]?.value}
@@ -396,7 +396,7 @@ export const ProductDetailPage = () => {
                                                     <div
                                                         key={valId}
                                                         onClick={() => handleSelectOption(attr.attributeId, valId)}
-                                                        className={`flex flex-col items-center justify-center m-[5px] py-[8px] px-[20px] cursor-pointer capitalize rounded-[4rem] transition-default border
+                                                        className={`flex flex-col items-center justify-center m-[5px] py-[8px] px-[20px] cursor-pointer capitalize rounded-[2.5rem] transition-default border
                                                             ${isSelected
                                                                 ? 'bg-client-secondary text-white border-client-secondary'
                                                                 : 'bg-[#fff0f0] text-client-secondary border-transparent hover:bg-client-secondary hover:text-white'}`}
@@ -412,7 +412,7 @@ export const ProductDetailPage = () => {
                                 {Object.keys(selectedOptions).length > 0 && (
                                     <div
                                         onClick={() => { setSelectedOptions({}); setCanAddToCart(false); }}
-                                        className="underline font-secondary my-[10px] text-[1.3rem] cursor-pointer text-client-secondary hover:text-client-primary transition-default text-right"
+                                        className="underline font-secondary my-[10px] text-[0.8125rem] cursor-pointer text-client-secondary hover:text-client-primary transition-default text-right"
                                     >
                                         Xóa lựa chọn
                                     </div>
@@ -424,7 +424,7 @@ export const ProductDetailPage = () => {
                                     <input
                                         type="button"
                                         value="-"
-                                        className="cursor-pointer w-[45px] h-full rounded-l-[4rem] text-[3.4rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
+                                        className="cursor-pointer w-[45px] h-full rounded-l-[2.5rem] text-[2.125rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
                                         onClick={handleDecrease}
                                     />
                                     <input
@@ -433,18 +433,18 @@ export const ProductDetailPage = () => {
                                         min={1}
                                         max={currentMaxQuantity}
                                         onChange={handleChangeQuantity}
-                                        className="w-[45px] h-full bg-[#e67e2033] text-[1.6rem] text-center outline-none no-spinner"
+                                        className="w-[45px] h-full bg-[#e67e2033] text-[1rem] text-center outline-none no-spinner"
                                     />
                                     <input
                                         type="button"
                                         value="+"
-                                        className="cursor-pointer w-[45px] h-full rounded-r-[4rem] text-[2.4rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
+                                        className="cursor-pointer w-[45px] h-full rounded-r-[2.5rem] text-[1.5rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
                                         onClick={handleIncrease}
                                     />
                                 </div>
                                 <button
                                     onClick={handleAddToCart}
-                                    className={`bg-client-secondary flex-1 h-full rounded-[4rem] text-white text-[1.6rem] font-secondary transition-default flex items-center justify-center
+                                    className={`bg-client-secondary flex-1 h-full rounded-[2.5rem] text-white text-[1rem] font-secondary transition-default flex items-center justify-center
                                         ${canAddToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary' : 'opacity-60 cursor-not-allowed'}`}
                                     disabled={!canAddToCart}
                                 >
@@ -452,11 +452,11 @@ export const ProductDetailPage = () => {
                                 </button>
                                 <div
                                     onClick={handleToggleWishlist}
-                                    className={`w-[55px] h-[55px] flex items-center justify-center transition-default text-[2.5rem] p-[10px] bg-transparent border border-[#d7d7d7] rounded-full 
+                                    className={`w-[55px] h-[55px] flex items-center justify-center transition-default text-[1.5625rem] p-[10px] bg-transparent border border-[#d7d7d7] rounded-full 
                                     ${isWishloading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-client-primary'}
                                     ${isWishlisted ? 'text-client-primary fill-client-primary bg-client-primary/10 border-client-primary' : 'text-[#102937] hover:text-client-primary'}
                                     `}>
-                                    <Heart className="w-[3rem] h-[3rem]" strokeWidth={2} fill={isWishlisted ? 'currentColor' : 'none'} />
+                                    <Heart className="w-[1.875rem] h-[1.875rem]" strokeWidth={2} fill={isWishlisted ? 'currentColor' : 'none'} />
                                 </div>
                             </div>
 
@@ -483,7 +483,7 @@ export const ProductDetailPage = () => {
                                     navigate("/checkout");
                                 }}
                                 disabled={!canAddToCart}
-                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[2rem] text-white transition-default ${canAddToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
+                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[1.25rem] text-white transition-default ${canAddToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
                             >
                                 {outOfStock ? "Hết hàng" : "Mua ngay"}
                             </button>
@@ -514,7 +514,7 @@ export const ProductDetailPage = () => {
                     </div>
                     <div className="px-[10px] py-[5px] text-client-text flex-1">
                         <div>Sản phẩm</div>
-                        <Link to={`/product/detail/${slug}`} className="text-[2rem] font-secondary mb-[6px] text-client-secondary my-[5px] inline-block">
+                        <Link to={`/product/detail/${slug}`} className="text-[1.25rem] font-secondary mb-[6px] text-client-secondary my-[5px] inline-block">
                             {product.name}
                         </Link>
                         <p>đã được thêm vào giỏ hàng thành công!</p>

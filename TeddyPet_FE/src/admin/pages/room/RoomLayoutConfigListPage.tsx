@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -131,7 +131,7 @@ export const RoomLayoutConfigListPage = () => {
                             mutateStatus({ id: params.row.id, status: e.target.value as string });
                         }}
                         sx={{
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             fontWeight: 600,
                             minWidth: 180,
                             borderRadius: '8px',
@@ -148,7 +148,7 @@ export const RoomLayoutConfigListPage = () => {
                                         bgcolor: `${o.color}14`,
                                         color: o.color,
                                         fontWeight: 700,
-                                        fontSize: '1.2rem',
+                                        fontSize: '0.75rem',
                                         height: 28,
                                     }}
                                 />
@@ -156,7 +156,7 @@ export const RoomLayoutConfigListPage = () => {
                         }}
                     >
                         {STATUS_OPTIONS.map((o) => (
-                            <MenuItem key={o.value} value={o.value} sx={{ fontSize: '1.3rem' }}>
+                            <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
                                 <Chip
                                     label={o.label}
                                     size="small"
@@ -164,7 +164,7 @@ export const RoomLayoutConfigListPage = () => {
                                         bgcolor: `${o.color}14`,
                                         color: o.color,
                                         fontWeight: 700,
-                                        fontSize: '1.2rem',
+                                        fontSize: '0.75rem',
                                         height: 28,
                                         mr: 1,
                                     }}
@@ -216,10 +216,10 @@ export const RoomLayoutConfigListPage = () => {
                         disabled={isCreating}
                         sx={{
                             background: '#1C252E',
-                            minHeight: '3.6rem',
-                            minWidth: '14rem',
+                            minHeight: '2.25rem',
+                            minWidth: '8.75rem',
                             fontWeight: 700,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             padding: '6px 18px',
                             borderRadius: '8px',
                             textTransform: 'none',
@@ -257,7 +257,7 @@ export const RoomLayoutConfigListPage = () => {
                                 columnUnsortedIcon: UnsortedIcon,
                                 noRowsOverlay: () => (
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.8rem]">Chưa có layout. Bấm "Thêm layout phòng" để tạo.</span>}
+                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Chưa có layout. Bấm "Thêm layout phòng" để tạo.</span>}
                                     </Box>
                                 ),
                             }}
@@ -285,7 +285,7 @@ export const RoomLayoutConfigListPage = () => {
                     sx: { borderRadius: '16px', padding: '8px' }
                 }}
             >
-                <DialogTitle sx={{ fontSize: '2rem', fontWeight: 700, pb: 2 }}>Thêm layout phòng</DialogTitle>
+                <DialogTitle sx={{ fontSize: '1.25rem', fontWeight: 700, pb: 2 }}>Thêm layout phòng</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
                     <TextField
                         fullWidth
@@ -293,20 +293,20 @@ export const RoomLayoutConfigListPage = () => {
                         margin="dense"
                         value={layoutName}
                         onChange={(e) => setLayoutName(e.target.value)}
-                        InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                        InputProps={{ sx: { fontSize: '1.4rem' } }}
+                        InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
+                        InputProps={{ sx: { fontSize: '0.875rem' } }}
                     />
                     <FormControl fullWidth margin="dense">
-                        <InputLabel sx={{ fontSize: '1.4rem' }}>Dịch vụ yêu cầu phòng</InputLabel>
+                        <InputLabel sx={{ fontSize: '0.875rem' }}>Dịch vụ yêu cầu phòng</InputLabel>
                         <Select
                             value={selectedServiceId}
                             onChange={(e) => setSelectedServiceId(e.target.value as number)}
                             label="Dịch vụ yêu cầu phòng"
-                            sx={{ fontSize: '1.4rem' }}
+                            sx={{ fontSize: '0.875rem' }}
                         >
-                            <MenuItem value="" sx={{ fontSize: '1.4rem' }}><em>— Không chọn —</em></MenuItem>
+                            <MenuItem value="" sx={{ fontSize: '0.875rem' }}><em>— Không chọn —</em></MenuItem>
                             {services.map((s) => (
-                                <MenuItem key={s.serviceId} value={s.serviceId} sx={{ fontSize: '1.4rem' }}>
+                                <MenuItem key={s.serviceId} value={s.serviceId} sx={{ fontSize: '0.875rem' }}>
                                     {s.serviceName}
                                 </MenuItem>
                             ))}
@@ -320,8 +320,8 @@ export const RoomLayoutConfigListPage = () => {
                             margin="dense"
                             value={maxRows}
                             onChange={(e) => setMaxRows(e.target.value === '' ? '' : Number(e.target.value))}
-                            InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                            InputProps={{ sx: { fontSize: '1.4rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
+                            InputProps={{ sx: { fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -330,8 +330,8 @@ export const RoomLayoutConfigListPage = () => {
                             margin="dense"
                             value={maxCols}
                             onChange={(e) => setMaxCols(e.target.value === '' ? '' : Number(e.target.value))}
-                            InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                            InputProps={{ sx: { fontSize: '1.4rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
+                            InputProps={{ sx: { fontSize: '0.875rem' } }}
                         />
                     </Box>
                     <Box sx={{ mt: 1 }}>
@@ -348,9 +348,9 @@ export const RoomLayoutConfigListPage = () => {
                         onClick={handleClose}
                         variant="outlined"
                         sx={{
-                            minHeight: '4.8rem',
+                            minHeight: '3rem',
                             fontWeight: 700,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             padding: '8px 24px',
                             borderRadius: '8px',
                             textTransform: 'none',
@@ -373,9 +373,9 @@ export const RoomLayoutConfigListPage = () => {
                         onClick={() => create()}
                         sx={{
                             background: '#1C252E',
-                            minHeight: '4.8rem',
+                            minHeight: '3rem',
                             fontWeight: 700,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             padding: '8px 24px',
                             borderRadius: '8px',
                             textTransform: 'none',

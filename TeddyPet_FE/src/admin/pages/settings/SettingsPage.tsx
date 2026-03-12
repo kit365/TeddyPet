@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
     Box,
     Card,
@@ -411,7 +411,7 @@ export const SettingsPage = () => {
                 <Card sx={{ p: 4, borderRadius: '32px', border: '1px solid #F4F6F8', boxShadow: '0 8px 32px rgba(145, 158, 171, 0.05)' }}>
                     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
                         <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#00AB55', 0.1), color: '#00AB55', display: 'flex' }}>
-                            <StoreIcon sx={{ fontSize: '2.4rem' }} />
+                            <StoreIcon sx={{ fontSize: '1.5rem' }} />
                         </Box>
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 900, color: '#1C252E' }}>Vị trí cửa hàng</Typography>
@@ -431,7 +431,7 @@ export const SettingsPage = () => {
                             disabled={!isEditing}
                             InputProps={{
                                 startAdornment: <InputAdornment position="start"><LocationOnIcon sx={{ color: '#00AB55' }} /></InputAdornment>,
-                                sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' }
+                                sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' }
                             }}
                             sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#E5E8EB' }, '&:hover fieldset': { borderColor: '#00AB55' }, '&.Mui-focused fieldset': { borderColor: '#00AB55' } } }}
                         />
@@ -477,8 +477,8 @@ export const SettingsPage = () => {
                                                 onClick={() => handleSelectSuggestion(item)}
                                                 sx={{ p: 2, cursor: 'pointer', borderBottom: '1px solid #F4F6F8', '&:hover': { bgcolor: '#F9FAFB' } }}
                                             >
-                                                <Typography sx={{ fontWeight: 700, fontSize: '1.4rem', color: '#1C252E' }}>{item.display_name.split(',')[0]}</Typography>
-                                                <Typography sx={{ fontSize: '1.2rem', color: '#637381' }}>{item.display_name}</Typography>
+                                                <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1C252E' }}>{item.display_name.split(',')[0]}</Typography>
+                                                <Typography sx={{ fontSize: '0.75rem', color: '#637381' }}>{item.display_name}</Typography>
                                             </Box>
                                         ))}
                                     </Box>
@@ -497,14 +497,14 @@ export const SettingsPage = () => {
 
                             {/* Coordinate Overlay (Subtle) */}
                             <Box sx={{ position: 'absolute', bottom: 20, right: 20, zCenter: 1000, bgcolor: 'rgba(28, 37, 46, 0.8)', color: 'white', px: 2, py: 1, borderRadius: '8px', backdropFilter: 'blur(4px)', display: 'flex', gap: 2, alignItems: 'center' }}>
-                                <PushPinIcon sx={{ fontSize: '1.4rem', color: '#00AB55' }} />
-                                <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Tọa độ: {parseFloat(shopLat).toFixed(4)}, {parseFloat(shopLng).toFixed(4)}</Typography>
+                                <PushPinIcon sx={{ fontSize: '0.875rem', color: '#00AB55' }} />
+                                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>Tọa độ: {parseFloat(shopLat).toFixed(4)}, {parseFloat(shopLng).toFixed(4)}</Typography>
                             </Box>
                         </Box>
 
                         <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: alpha('#00AB55', 0.04), border: '1px dashed #00AB55', display: 'flex', alignItems: 'center', gap: 2.5 }}>
-                            <Box sx={{ fontSize: '2.4rem' }}>📍</Box>
-                            <Typography variant="body2" sx={{ color: '#1C252E', fontWeight: 600, fontSize: '1.3rem' }}>
+                            <Box sx={{ fontSize: '1.5rem' }}>📍</Box>
+                            <Typography variant="body2" sx={{ color: '#1C252E', fontWeight: 600, fontSize: '0.8125rem' }}>
                                 <b>Hướng dẫn:</b> Bạn hãy click trực tiếp vào bản đồ để chọn chính xác vị trí cửa hàng. Tọa độ này sẽ được sử dụng để tự động tính khoảng cách (Km) cho tất cả các đơn hàng mới.
                             </Typography>
                         </Box>
@@ -515,7 +515,7 @@ export const SettingsPage = () => {
                 <Card sx={{ p: 4, borderRadius: '32px', border: '1px solid #F4F6F8', boxShadow: '0 8px 32px rgba(145, 158, 171, 0.05)' }}>
                     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
                         <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#546E7A', 0.1), color: '#546E7A', display: 'flex' }}>
-                            <PushPinIcon sx={{ fontSize: '2.4rem' }} />
+                            <PushPinIcon sx={{ fontSize: '1.5rem' }} />
                         </Box>
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 900, color: '#1C252E' }}>Thông tin liên hệ & Mạng xã hội</Typography>
@@ -531,7 +531,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setShopPhone(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -540,7 +540,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setShopEmail(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -549,7 +549,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setShopWebsite(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -558,7 +558,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setFacebookUrl(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -567,7 +567,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setInstagramUrl(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <Box /> {/* Spacer */}
                         <TextField
@@ -577,7 +577,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setAppleStoreUrl(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                         <TextField
                             fullWidth
@@ -586,7 +586,7 @@ export const SettingsPage = () => {
                             onChange={(e) => setPlayStoreUrl(e.target.value)}
                             variant="outlined"
                             disabled={!isEditing}
-                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '1.4rem' } }}
+                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                     </Box>
                 </Card>
@@ -601,7 +601,7 @@ export const SettingsPage = () => {
                                 borderRadius: '16px',
                                 px: 6,
                                 py: 2,
-                                fontSize: '1.6rem',
+                                fontSize: '1rem',
                                 fontWeight: 900,
                                 bgcolor: '#1C252E',
                                 color: 'white',
@@ -623,7 +623,7 @@ export const SettingsPage = () => {
                                     borderRadius: '16px',
                                     px: 6,
                                     py: 2,
-                                    fontSize: '1.6rem',
+                                    fontSize: '1rem',
                                     fontWeight: 900,
                                     borderColor: '#637381',
                                     color: '#637381',
@@ -642,7 +642,7 @@ export const SettingsPage = () => {
                                     borderRadius: '16px',
                                     px: 10,
                                     py: 2.2,
-                                    fontSize: '1.6rem',
+                                    fontSize: '1rem',
                                     fontWeight: 900,
                                     bgcolor: '#00AB55',
                                     boxShadow: '0 8px 32px rgba(0, 171, 85, 0.3)',

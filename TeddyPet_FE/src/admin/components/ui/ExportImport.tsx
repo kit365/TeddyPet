@@ -1,4 +1,4 @@
-import { Menu, MenuItem, Button, CircularProgress } from "@mui/material";
+﻿import { Menu, MenuItem, Button, CircularProgress } from "@mui/material";
 import { useRef, useState } from "react";
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -29,14 +29,14 @@ export const ExportImport = ({
             <Button
                 ref={anchorRef}
                 onClick={() => setOpen(true)}
-                startIcon={<ImportExportIcon sx={{ fontSize: '1.8rem !important' }} />}
-                endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '1.6rem !important' }} />}
+                startIcon={<ImportExportIcon sx={{ fontSize: '1.125rem !important' }} />}
+                endIcon={<KeyboardArrowDownIcon sx={{ fontSize: '1rem !important' }} />}
                 sx={{
                     backgroundColor: '#fff',
                     color: '#1C252E',
                     border: '1px solid #919eab33',
                     fontWeight: 700,
-                    fontSize: '1.3rem',
+                    fontSize: '0.8125rem',
                     px: 2,
                     minHeight: '40px',
                     borderRadius: '10px',
@@ -74,18 +74,18 @@ export const ExportImport = ({
                     <MenuItem
                         onClick={() => { onExport(); setOpen(false); }}
                         disabled={isExporting}
-                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '0.8125rem', fontWeight: 600 }}
                     >
-                        {isExporting ? <CircularProgress size={20} /> : <FileDownloadIcon sx={{ fontSize: '2rem', color: '#637381' }} />}
+                        {isExporting ? <CircularProgress size={20} /> : <FileDownloadIcon sx={{ fontSize: '1.25rem', color: '#637381' }} />}
                         Xuất Excel
                     </MenuItem>
                 )}
                 {onImport && (
                     <MenuItem
                         onClick={() => { onImport(); setOpen(false); }}
-                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '0.8125rem', fontWeight: 600 }}
                     >
-                        <FileUploadIcon sx={{ fontSize: '2rem', color: '#637381' }} />
+                        <FileUploadIcon sx={{ fontSize: '1.25rem', color: '#637381' }} />
                         Nhập Excel
                     </MenuItem>
                 )}
@@ -93,9 +93,9 @@ export const ExportImport = ({
                     <MenuItem
                         onClick={() => { onDownloadTemplate(); setOpen(false); }}
                         disabled={isDownloadingTemplate}
-                        sx={{ gap: '12px', py: 1.5, fontSize: '1.3rem', fontWeight: 600 }}
+                        sx={{ gap: '12px', py: 1.5, fontSize: '0.8125rem', fontWeight: 600 }}
                     >
-                        {isDownloadingTemplate ? <CircularProgress size={20} /> : <DescriptionIcon sx={{ fontSize: '2rem', color: '#637381' }} />}
+                        {isDownloadingTemplate ? <CircularProgress size={20} /> : <DescriptionIcon sx={{ fontSize: '1.25rem', color: '#637381' }} />}
                         Tải Template
                     </MenuItem>
                 )}

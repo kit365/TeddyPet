@@ -1,4 +1,4 @@
-import { DataGrid } from '@mui/x-data-grid';
+﻿import { DataGrid } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -31,7 +31,7 @@ const categoryColumns: GridColDef<IServiceCategory>[] = [
                             bgcolor: color && /^#[0-9A-Fa-f]{6}$/.test(color) ? color : 'transparent',
                         }}
                     />
-                    {color ? <span style={{ fontSize: '1.2rem' }}>{color}</span> : '—'}
+                    {color ? <span style={{ fontSize: '0.75rem' }}>{color}</span> : '—'}
                 </Box>
             );
         },
@@ -68,7 +68,7 @@ export const ServiceCategoryList = () => {
                         columnUnsortedIcon: UnsortedIcon,
                         noRowsOverlay: () => (
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.8rem]">Không có dữ liệu</span>}
+                                {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Không có dữ liệu</span>}
                             </Box>
                         ),
                     }}

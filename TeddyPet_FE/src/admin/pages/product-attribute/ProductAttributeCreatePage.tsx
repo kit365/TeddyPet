@@ -1,4 +1,4 @@
-import {
+﻿import {
     Box,
     Stack,
     TextField,
@@ -204,7 +204,7 @@ export const ProductAttributeCreatePage = () => {
                                                         <MenuItem
                                                             key={type.value}
                                                             value={type.value}
-                                                            sx={{ fontSize: '1.4rem' }}
+                                                            sx={{ fontSize: '0.875rem' }}
                                                         >
                                                             {type.label}
                                                         </MenuItem>
@@ -214,7 +214,7 @@ export const ProductAttributeCreatePage = () => {
                                                     <Typography
                                                         sx={{
                                                             color: '#d32f2f',
-                                                            fontSize: '1.2rem',
+                                                            fontSize: '0.75rem',
                                                             mt: 0.5,
                                                             ml: 1.75
                                                         }}
@@ -288,14 +288,14 @@ export const ProductAttributeCreatePage = () => {
                                                                 checked={isAllSelected}
                                                                 indeterminate={isIndeterminate}
                                                             />
-                                                            <ListItemText primary="Chọn tất cả" primaryTypographyProps={{ style: { fontSize: '1.4rem', fontWeight: 600 } }} />
+                                                            <ListItemText primary="Chọn tất cả" primaryTypographyProps={{ style: { fontSize: '0.875rem', fontWeight: 600 } }} />
                                                         </MenuItem>
                                                         {measurementUnits.map((unit: any) => (
                                                             <MenuItem key={unit.code} value={unit.code}>
                                                                 <Checkbox checked={selected.indexOf(unit.code) > -1} />
                                                                 <ListItemText
                                                                     primary={`${unit.label} (${unit.symbol})`}
-                                                                    primaryTypographyProps={{ style: { fontSize: '1.4rem' } }}
+                                                                    primaryTypographyProps={{ style: { fontSize: '0.875rem' } }}
                                                                 />
                                                             </MenuItem>
                                                         ))}
@@ -304,7 +304,7 @@ export const ProductAttributeCreatePage = () => {
                                                         <Typography
                                                             sx={{
                                                                 color: '#d32f2f',
-                                                                fontSize: '1.2rem',
+                                                                fontSize: '0.75rem',
                                                                 mt: 0.5,
                                                                 ml: 1.75
                                                             }}
@@ -398,7 +398,7 @@ export const ProductAttributeCreatePage = () => {
                                                                         }}
                                                                     />
                                                                     {!isValidHex && (
-                                                                        <Typography sx={{ fontSize: '1rem', color: '#919EAB' }}>
+                                                                        <Typography sx={{ fontSize: '0.625rem', color: '#919EAB' }}>
                                                                             ?
                                                                         </Typography>
                                                                     )}
@@ -450,7 +450,7 @@ export const ProductAttributeCreatePage = () => {
                                                                         <MenuItem
                                                                             key={unit.code}
                                                                             value={unit.code}
-                                                                            sx={{ fontSize: '1.4rem' }}
+                                                                            sx={{ fontSize: '0.875rem' }}
                                                                         >
                                                                             {unit.label} ({unit.symbol})
                                                                         </MenuItem>
@@ -516,7 +516,7 @@ export const ProductAttributeCreatePage = () => {
                                     sx={{
                                         alignSelf: 'flex-start',
                                         color: '#00A76F',
-                                        fontSize: '1.4rem',
+                                        fontSize: '0.875rem',
                                         fontWeight: 600,
                                         textTransform: 'none',
                                         '&:hover': {
@@ -536,10 +536,10 @@ export const ProductAttributeCreatePage = () => {
                                 disabled={isPending}
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: "4.8rem",
-                                    minWidth: "6.4rem",
+                                    minHeight: "3rem",
+                                    minWidth: "4rem",
                                     fontWeight: 700,
-                                    fontSize: "1.4rem",
+                                    fontSize: "0.875rem",
                                     padding: "8px 22px",
                                     borderRadius: "8px",
                                     textTransform: "none",

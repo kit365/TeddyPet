@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+﻿import { Link, useParams } from "react-router-dom";
 import { ListServicesIcon } from "../../components/layouts/ListServicesIcon";
 import { ProductBanner } from "../product/sections/ProductBanner"
 import { SocialIcon } from "../../components/ui/SocialIcon";
@@ -107,7 +107,7 @@ export const BlogDetailPage = () => {
 
     if (!blog) {
         return (
-            <div className="text-center py-20 text-[2rem]">
+            <div className="text-center py-20 text-[1.25rem]">
                 Không tìm thấy bài viết
             </div>
         );
@@ -144,18 +144,18 @@ export const BlogDetailPage = () => {
                                 alt={blog.title}
                             />
                             <div className="absolute top-0">
-                                <div className="relative entry-date-format mb-[20px] w-[70px] pr-[10px] pb-[10px] bg-white text-white text-[2.2rem] rounded-br-[20px] text-center font-[600] leading-[1.1]">
+                                <div className="relative entry-date-format mb-[20px] w-[70px] pr-[10px] pb-[10px] bg-white text-white text-[1.375rem] rounded-br-[20px] text-center font-[600] leading-[1.1]">
                                     <div className="post-entry-date">18 Jun</div>
                                 </div>
                             </div>
 
                             {/* Title + Mô tả ngắn */}
                             <div className="my-[60px]">
-                                <h3 className="leading-[1.2] mb-[25px] font-secondary text-client-secondary text-[3.5rem] font-bold">
+                                <h3 className="leading-[1.2] mb-[25px] font-secondary text-client-secondary text-[2.1875rem] font-bold">
                                     {blog.title}
                                 </h3>
                                 {introText && (
-                                    <p className="text-[1.8rem] text-client-text leading-[1.6] italic border-l-4 border-client-primary pl-6 py-2 bg-gray-50 rounded-r-lg">
+                                    <p className="text-[1.125rem] text-client-text leading-[1.6] italic border-l-4 border-client-primary pl-6 py-2 bg-gray-50 rounded-r-lg">
                                         {introText}
                                     </p>
                                 )}
@@ -165,32 +165,32 @@ export const BlogDetailPage = () => {
                             <ListServicesIcon />
 
                             {/* Content (Tiptap enhanced styling) */}
-                            <div className="mt-[50px] blog-detail-content text-[1.7rem] leading-[1.8] text-client-text">
+                            <div className="mt-[50px] blog-detail-content text-[1.0625rem] leading-[1.8] text-client-text">
                                 <div dangerouslySetInnerHTML={{ __html: content }} />
                             </div>
 
                             {/* Tags + Share Socials */}
                             <div className="flex items-center justify-between gap-x-[30px] mt-[80px] py-[30px] border-y border-[#eee]">
                                 <div className="flex-1 flex items-center text-client-secondary">
-                                    <h4 className="font-secondary text-[2.4rem] mr-[20px] font-bold">Thẻ bài viết:</h4>
+                                    <h4 className="font-secondary text-[1.5rem] mr-[20px] font-bold">Thẻ bài viết:</h4>
                                     <div className="flex items-center gap-[10px] flex-wrap">
                                         {blog.tags && blog.tags.length > 0 ? (
                                             blog.tags.map((tag: any) => (
                                                 <Link
                                                     key={tag.tagId}
                                                     to={`/tags/${tag.tagId}`}
-                                                    className="px-[20px] py-[8px] bg-[#f9f9f9] border border-[#eee] rounded-[40px] leading-[1.1] hover:bg-client-primary hover:text-white transition-all duration-300 text-[1.4rem] font-medium"
+                                                    className="px-[20px] py-[8px] bg-[#f9f9f9] border border-[#eee] rounded-[40px] leading-[1.1] hover:bg-client-primary hover:text-white transition-all duration-300 text-[0.875rem] font-medium"
                                                 >
                                                     #{tag.name}
                                                 </Link>
                                             ))
                                         ) : (
-                                            <span className="text-[1.4rem] text-gray-400 italic">No tags</span>
+                                            <span className="text-[0.875rem] text-gray-400 italic">No tags</span>
                                         )}
                                     </div>
                                 </div>
                                 <div className="flex-1 flex items-center justify-end">
-                                    <h4 className="font-secondary text-[2.4rem] mr-[20px] font-bold">Chia sẻ:</h4>
+                                    <h4 className="font-secondary text-[1.5rem] mr-[20px] font-bold">Chia sẻ:</h4>
                                     <div><SocialIcon /></div>
                                 </div>
                             </div>
@@ -202,8 +202,8 @@ export const BlogDetailPage = () => {
                                         <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Pamperings.jpg" alt="" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <p className="text-[1.3rem] mb-[5px] text-client-primary font-bold uppercase tracking-wider">Trước</p>
-                                        <h3 className="text-[1.7rem] font-bold font-secondary leading-[1.3] text-client-secondary line-clamp-2">The Kind Hopper: A Raising For Rabbits</h3>
+                                        <p className="text-[0.8125rem] mb-[5px] text-client-primary font-bold uppercase tracking-wider">Trước</p>
+                                        <h3 className="text-[1.0625rem] font-bold font-secondary leading-[1.3] text-client-secondary line-clamp-2">The Kind Hopper: A Raising For Rabbits</h3>
                                     </div>
                                 </div>
                                 <div className="flex-1 p-[20px] border border-[#eee] rounded-[20px] bg-[#fffbf4] gap-[20px] flex items-center group cursor-pointer hover:border-client-primary transition-all duration-300">
@@ -211,49 +211,49 @@ export const BlogDetailPage = () => {
                                         <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/Pamperings.jpg" alt="" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <p className="text-[1.3rem] mb-[5px] text-client-primary font-bold uppercase tracking-wider">Sau</p>
-                                        <h3 className="text-[1.7rem] font-bold font-secondary leading-[1.3] text-client-secondary line-clamp-2">The Kind Hopper: A Raising For Rabbits</h3>
+                                        <p className="text-[0.8125rem] mb-[5px] text-client-primary font-bold uppercase tracking-wider">Sau</p>
+                                        <h3 className="text-[1.0625rem] font-bold font-secondary leading-[1.3] text-client-secondary line-clamp-2">The Kind Hopper: A Raising For Rabbits</h3>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Comments */}
                             <div className="mt-[100px]">
-                                <h3 className="mb-[35px] font-secondary text-[3rem] font-bold">Bình luận (0)</h3>
+                                <h3 className="mb-[35px] font-secondary text-[1.875rem] font-bold">Bình luận (0)</h3>
                                 <ul className="mb-[24px]">
                                     <li className="flex gap-[20px] pb-[35px] mb-[30px] border-b border-[#d7d7d7]">
                                         <img className="p-[2px] border border-[#d7d7d7] w-[60px] h-[60px] object-cover rounded-[10px]" src="https://secure.gravatar.com/avatar/4b4d70c085ba692974261304da0860f360cb1f3a616203402e9e19f2d3bda5f8?s=50&d=mm&r=g" alt="" />
                                         <div>
-                                            <div className="text-[1.8rem] text-client-secondary font-[700] mb-[8px]">developer</div>
-                                            <p className="text-client-text text-[1.3rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
-                                            <p className="text-client-text text-[1.6rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
+                                            <div className="text-[1.125rem] text-client-secondary font-[700] mb-[8px]">developer</div>
+                                            <p className="text-client-text text-[0.8125rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
+                                            <p className="text-client-text text-[1rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
                                         </div>
-                                        <span className="absolute right-0 text-white text-[1.4rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
+                                        <span className="absolute right-0 text-white text-[0.875rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
                                     </li>
                                     <li className="flex gap-[20px] pb-[35px] mb-[30px] border-b border-[#d7d7d7]">
                                         <img className="p-[2px] border border-[#d7d7d7] w-[60px] h-[60px] object-cover rounded-[10px]" src="https://secure.gravatar.com/avatar/4b4d70c085ba692974261304da0860f360cb1f3a616203402e9e19f2d3bda5f8?s=50&d=mm&r=g" alt="" />
                                         <div>
-                                            <div className="text-[1.8rem] text-client-secondary font-[700] mb-[8px]">developer</div>
-                                            <p className="text-client-text text-[1.3rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
-                                            <p className="text-client-text text-[1.6rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
+                                            <div className="text-[1.125rem] text-client-secondary font-[700] mb-[8px]">developer</div>
+                                            <p className="text-client-text text-[0.8125rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
+                                            <p className="text-client-text text-[1rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
                                         </div>
-                                        <span className="absolute right-0 text-white text-[1.4rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
+                                        <span className="absolute right-0 text-white text-[0.875rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
                                     </li>
                                 </ul>
                                 <div className="p-[45px] bg-[#fdfdfd] border-2 border-[#f8f8f8] rounded-[35px] shadow-sm">
-                                    <h3 className="mb-[15px] font-secondary text-[2.6rem] font-bold">Để lại lời nhắn</h3>
+                                    <h3 className="mb-[15px] font-secondary text-[1.625rem] font-bold">Để lại lời nhắn</h3>
                                     <p className="text-client-text font-[500] mb-[35px] opacity-70">Địa chỉ email của bạn sẽ không được công khai. Các trường bắt buộc được đánh dấu *</p>
                                     <form action="" className="flex flex-col gap-[25px]">
-                                        <textarea placeholder="Nội dung bình luận *" className="resize-none rounded-[20px] text-[1.6rem] py-[20px] px-[30px] border border-[#eee] h-[150px] w-full outline-none focus:border-client-primary transition-all bg-white" />
+                                        <textarea placeholder="Nội dung bình luận *" className="resize-none rounded-[20px] text-[1rem] py-[20px] px-[30px] border border-[#eee] h-[150px] w-full outline-none focus:border-client-primary transition-all bg-white" />
                                         <div className="flex gap-[25px]">
-                                            <input placeholder="Họ và tên *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[1.5rem]" type="text" />
-                                            <input placeholder="Email của bạn *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[1.5rem]" type="email" />
+                                            <input placeholder="Họ và tên *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" type="text" />
+                                            <input placeholder="Email của bạn *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" type="email" />
                                         </div>
                                         <div className="flex items-center checkbox cursor-pointer">
                                             <input type="checkbox" id="check" hidden />
-                                            <label htmlFor="check" className="pl-[12px] font-[500] text-client-text text-[1.4rem] cursor-pointer hover:text-client-primary transition-all">Lưu thông tin cho lần bình luận tiếp theo.</label>
+                                            <label htmlFor="check" className="pl-[12px] font-[500] text-client-text text-[0.875rem] cursor-pointer hover:text-client-primary transition-all">Lưu thông tin cho lần bình luận tiếp theo.</label>
                                         </div>
-                                        <button type="submit" className="mt-[10px] w-max cursor-pointer bg-client-primary hover:bg-client-secondary transition-all text-white font-secondary px-[45px] py-[20px] rounded-[60px] text-[1.7rem] font-bold shadow-lg">Gửi bình luận ngay</button>
+                                        <button type="submit" className="mt-[10px] w-max cursor-pointer bg-client-primary hover:bg-client-secondary transition-all text-white font-secondary px-[45px] py-[20px] rounded-[60px] text-[1.0625rem] font-bold shadow-lg">Gửi bình luận ngay</button>
                                     </form>
                                 </div>
                             </div>
@@ -270,9 +270,9 @@ export const BlogDetailPage = () => {
                             />
                             <button
                                 type="submit"
-                                className="absolute top-0 right-0 p-[10px] rotate-90 rounded-full text-client-primary bg-transparent hover:text-client-secondary transition-default cursor-pointer w-[5.7rem] h-[5.7rem] flex items-center justify-center"
+                                className="absolute top-0 right-0 p-[10px] rotate-90 rounded-full text-client-primary bg-transparent hover:text-client-secondary transition-default cursor-pointer w-[3.5625rem] h-[3.5625rem] flex items-center justify-center"
                             >
-                                <SearchIcon sx={{ fontSize: "3.5rem" }} />
+                                <SearchIcon sx={{ fontSize: "2.1875rem" }} />
                             </button>
                         </form>
 
@@ -290,20 +290,20 @@ export const BlogDetailPage = () => {
                                             alt={item.title}
                                         />
                                         <div className="ml-[24px] flex-1">
-                                            <p className="uppercase mb-[6px] text-[1.4rem] text-client-text">
+                                            <p className="uppercase mb-[6px] text-[0.875rem] text-client-text">
                                                 {/* Requires dayjs import if not present, checking imports... */}
                                                 {/* user's file has no dayjs import? checking previous File... */}
                                                 {/* BlogDetail.tsx didn't have dayjs. I'll add it. */}
                                                 {new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                             </p>
-                                            <Link to={`/blog/detail/${item.slug}`} className="text-[1.8rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">
+                                            <Link to={`/blog/detail/${item.slug}`} className="text-[1.125rem] font-secondary line-clamp-2 leading-[1.2] text-client-secondary hover:text-client-primary transition-default">
                                                 {item.title}
                                             </Link>
                                         </div>
                                     </li>
                                 ))}
                                 {(!recentBlogs || recentBlogs.length === 0) && (
-                                    <li className="text-[1.4rem] text-gray-500 italic">Không có bài viết mới</li>
+                                    <li className="text-[0.875rem] text-gray-500 italic">Không có bài viết mới</li>
                                 )}
                             </ul>
                         </div>
@@ -313,7 +313,7 @@ export const BlogDetailPage = () => {
                             <ProductAsideTitle title="Lọc theo thẻ" />
                             <div className="gap-[15px] mt-[20px] p-[20px] bg-[#fff0f066] rounded-[20px] flex flex-wrap">
                                 {filterTags.map(item => (
-                                    <Link to={item.url} className="text-client-secondary bg-white hover:text-white hover:bg-client-secondary transition-default py-[8px] px-[16px] text-[1.4rem] border border-[#10293726] rounded-[35px]">
+                                    <Link to={item.url} className="text-client-secondary bg-white hover:text-white hover:bg-client-secondary transition-default py-[8px] px-[16px] text-[0.875rem] border border-[#10293726] rounded-[35px]">
                                         {item.title}
                                     </Link>
                                 ))}

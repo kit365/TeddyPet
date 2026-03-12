@@ -1,4 +1,4 @@
-import { Stack, Typography, Box, Divider } from "@mui/material"
+﻿import { Stack, Typography, Box, Divider } from "@mui/material"
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { useTranslation } from "react-i18next";
 import { memo, useEffect, useState, useCallback, useRef } from "react";
@@ -130,7 +130,7 @@ export const Tiptap = memo(({ value = '', onChange }: TiptapProps) => {
         <Stack gap="12px" sx={{
             backgroundColor: isFullscreen ? "#1c252e7a" : "#fff"
         }}>
-            <Typography variant="h6" sx={{ fontSize: "1.4rem", fontWeight: "600" }}> {t("admin.tiptap.content_label")} </Typography>
+            <Typography variant="h6" sx={{ fontSize: "0.875rem", fontWeight: "600" }}> {t("admin.tiptap.content_label")} </Typography>
             {isFullscreen && (
                 <Box
                     onClick={toggleFullscreen}

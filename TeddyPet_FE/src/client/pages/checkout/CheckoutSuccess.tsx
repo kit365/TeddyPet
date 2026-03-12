@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import Cookies from "js-cookie";
 import { FooterSub } from "../../components/layouts/FooterSub";
@@ -75,8 +75,8 @@ export const CheckSuccessPage = () => {
     if (!order) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <h2 className="text-[2.4rem] font-bold text-client-secondary">Không tìm thấy đơn hàng</h2>
-                <Link to="/" className="text-client-primary hover:underline text-[1.6rem]">Quay lại trang chủ</Link>
+                <h2 className="text-[1.5rem] font-bold text-client-secondary">Không tìm thấy đơn hàng</h2>
+                <Link to="/" className="text-client-primary hover:underline text-[1rem]">Quay lại trang chủ</Link>
             </div>
         );
     }
@@ -90,30 +90,30 @@ export const CheckSuccessPage = () => {
                 className="bg-top"
             />
             <div className="app-container pb-[150px] 2xl:pb-[100px] relative mt-[50px]">
-                <div className="border-l-[5px] w-full mb-[30px] border-l-[#3db44c] bg-white px-[30px] py-[20px] text-client-text shadow-[0_0_3px_#10293726] text-[1.6rem]">
+                <div className="border-l-[5px] w-full mb-[30px] border-l-[#3db44c] bg-white px-[30px] py-[20px] text-client-text shadow-[0_0_3px_#10293726] text-[1rem]">
                     Cảm ơn bạn. Đơn hàng của bạn đã được nhận.
                 </div>
 
                 <div className="mb-[48px] grid grid-cols-4 border border-[#10293726] p-[25px] bg-white rounded-[8px]">
-                    <div className="text-[1.4rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
+                    <div className="text-[0.875rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
                         <div className="text-gray-500 mb-1">Số đơn hàng:</div>
-                        <div className="text-[1.8rem] font-bold text-client-secondary">{order.orderCode}</div>
+                        <div className="text-[1.125rem] font-bold text-client-secondary">{order.orderCode}</div>
                     </div>
-                    <div className="text-[1.4rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
+                    <div className="text-[0.875rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
                         <div className="text-gray-500 mb-1">Ngày:</div>
-                        <div className="text-[1.8rem] font-bold text-client-secondary">
+                        <div className="text-[1.125rem] font-bold text-client-secondary">
                             {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : '---'}
                         </div>
                     </div>
-                    <div className="text-[1.4rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
+                    <div className="text-[0.875rem] text-client-text text-center border-r border-dashed border-[#cfc8d8] px-[12px] my-[10px]">
                         <div className="text-gray-500 mb-1">Tổng cộng:</div>
-                        <div className="text-[1.8rem] font-bold text-client-primary">
+                        <div className="text-[1.125rem] font-bold text-client-primary">
                             {(order.finalAmount || 0).toLocaleString()}đ
                         </div>
                     </div>
-                    <div className="text-[1.4rem] text-client-text text-center px-[12px] my-[10px]">
+                    <div className="text-[0.875rem] text-client-text text-center px-[12px] my-[10px]">
                         <div className="text-gray-500 mb-1">Thanh toán:</div>
-                        <div className="text-[1.8rem] font-bold text-client-secondary">
+                        <div className="text-[1.125rem] font-bold text-client-secondary">
                             {order.payments?.[0]?.paymentMethod === 'CASH' ? 'Tiền mặt' : order.payments?.[0]?.paymentMethod || 'Chưa xác định'}
                         </div>
                     </div>
@@ -123,17 +123,17 @@ export const CheckSuccessPage = () => {
                     <div className="lg:col-span-2">
                         <section className="bg-white border-[1px] border-[#eee] rounded-[12px] overflow-hidden shadow-sm">
                             <div className="bg-gray-50 px-[30px] py-[20px] border-b border-[#eee]">
-                                <h2 className="text-[2rem] text-client-secondary font-bold">Chi tiết đơn hàng</h2>
+                                <h2 className="text-[1.25rem] text-client-secondary font-bold">Chi tiết đơn hàng</h2>
                             </div>
                             <div className="p-[30px]">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="text-[1.6rem] text-gray-500 border-b border-[#eee]">
+                                        <tr className="text-[1rem] text-gray-500 border-b border-[#eee]">
                                             <th className="text-left py-[15px] font-medium">Sản phẩm</th>
                                             <th className="text-right py-[15px] font-medium">Tổng</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-[1.5rem]">
+                                    <tbody className="text-[0.9375rem]">
                                         {order.orderItems?.map((item, index) => (
                                             <tr key={index} className="border-b border-[#f9f9f9] last:border-none">
                                                 <td className="py-[20px]">
@@ -153,7 +153,7 @@ export const CheckSuccessPage = () => {
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="text-[1.6rem]">
+                                    <tfoot className="text-[1rem]">
                                         <tr>
                                             <td className="text-left py-[15px] border-t border-[#eee] text-gray-500">Tạm tính:</td>
                                             <td className="text-right py-[15px] border-t border-[#eee] font-bold text-client-secondary">{(order.subtotal || 0).toLocaleString()}đ</td>
@@ -171,8 +171,8 @@ export const CheckSuccessPage = () => {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="text-left py-[20px] border-t border-[#eee] text-[1.8rem] font-bold text-client-secondary">Tổng cộng:</td>
-                                            <td className="text-right py-[20px] border-t border-[#eee] text-[2.2rem] font-bold text-client-primary">{(order.finalAmount || 0).toLocaleString()}đ</td>
+                                            <td className="text-left py-[20px] border-t border-[#eee] text-[1.125rem] font-bold text-client-secondary">Tổng cộng:</td>
+                                            <td className="text-right py-[20px] border-t border-[#eee] text-[1.375rem] font-bold text-client-primary">{(order.finalAmount || 0).toLocaleString()}đ</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -182,16 +182,16 @@ export const CheckSuccessPage = () => {
 
                     <div className="lg:col-span-1">
                         <section className="bg-white border-[1px] border-[#eee] rounded-[12px] p-[30px] shadow-sm flex flex-col gap-6">
-                            <h2 className="text-[2rem] font-bold text-client-secondary border-b border-[#eee] pb-[15px]">Thông tin nhận hàng</h2>
+                            <h2 className="text-[1.25rem] font-bold text-client-secondary border-b border-[#eee] pb-[15px]">Thông tin nhận hàng</h2>
                             <div className="space-y-6">
                                 <div className="flex items-start gap-[15px]">
                                     <div className="w-[40px] h-[40px] bg-client-primary/10 rounded-full flex items-center justify-center shrink-0">
                                         <EmailOutlinedIcon className="text-client-primary" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[1.4rem] text-gray-400">Người nhận</span>
-                                        <p className="text-[1.6rem] font-bold text-client-secondary">{order.shippingName}</p>
-                                        <p className="text-[1.4rem] text-gray-500">{order.user?.email || order.guestEmail}</p>
+                                        <span className="text-[0.875rem] text-gray-400">Người nhận</span>
+                                        <p className="text-[1rem] font-bold text-client-secondary">{order.shippingName}</p>
+                                        <p className="text-[0.875rem] text-gray-500">{order.user?.email || order.guestEmail}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-[15px]">
@@ -199,8 +199,8 @@ export const CheckSuccessPage = () => {
                                         <PhoneEnabledOutlinedIcon className="text-client-primary" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[1.4rem] text-gray-400">Số điện thoại</span>
-                                        <p className="text-[1.6rem] font-bold text-client-secondary">{order.shippingPhone}</p>
+                                        <span className="text-[0.875rem] text-gray-400">Số điện thoại</span>
+                                        <p className="text-[1rem] font-bold text-client-secondary">{order.shippingPhone}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-[15px]">
@@ -208,14 +208,14 @@ export const CheckSuccessPage = () => {
                                         <EditLocationAltOutlinedIcon className="text-client-primary" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[1.4rem] text-gray-400">Địa chỉ giao hàng</span>
-                                        <p className="text-[1.6rem] font-bold text-client-secondary leading-relaxed">{order.shippingAddress}</p>
+                                        <span className="text-[0.875rem] text-gray-400">Địa chỉ giao hàng</span>
+                                        <p className="text-[1rem] font-bold text-client-secondary leading-relaxed">{order.shippingAddress}</p>
                                     </div>
                                 </div>
                                 {order.notes && (
                                     <div className="bg-yellow-50 p-[15px] rounded-[8px] border-l-4 border-yellow-400">
-                                        <span className="text-[1.4rem] font-bold text-yellow-800">Ghi chú:</span>
-                                        <p className="text-[1.4rem] text-yellow-700 mt-1 italic">"{order.notes}"</p>
+                                        <span className="text-[0.875rem] font-bold text-yellow-800">Ghi chú:</span>
+                                        <p className="text-[0.875rem] text-yellow-700 mt-1 italic">"{order.notes}"</p>
                                     </div>
                                 )}
                             </div>
@@ -229,11 +229,11 @@ export const CheckSuccessPage = () => {
                                             navigate(`/tra-cuu-don-hang?code=${order.orderCode}${emailParam ? `&email=${emailParam}` : ''}`);
                                         }
                                     }}
-                                    className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[1.4rem] transition-all block"
+                                    className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all block"
                                 >
                                     {Cookies.get("token") ? "VỀ ĐƠN HÀNG CỦA TÔI" : "TRA CỨU ĐƠN HÀNG"}
                                 </button>
-                                <Link to="/shop" className="w-full mt-3 text-center text-client-primary font-bold text-[1.4rem] hover:underline block">
+                                <Link to="/shop" className="w-full mt-3 text-center text-client-primary font-bold text-[0.875rem] hover:underline block">
                                     TIẾP TỤC MUA SẮM
                                 </Link>
                             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -42,10 +42,10 @@ const InfoRow = ({
   value?: string | number | null;
 }) => (
   <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2.5 }}>
-    <Typography sx={{ color: "text.secondary", minWidth: 180, fontWeight: 600, fontSize: "1.45rem" }}>
+    <Typography sx={{ color: "text.secondary", minWidth: 180, fontWeight: 600, fontSize: "0.9062rem" }}>
       {label}
     </Typography>
-    <Typography sx={{ fontSize: "1.6rem", color: "text.primary", fontWeight: 500 }}>
+    <Typography sx={{ fontSize: "1rem", color: "text.primary", fontWeight: 500 }}>
       {value !== undefined && value !== null && value !== "" ? String(value) : "—"}
     </Typography>
   </Stack>
@@ -131,7 +131,7 @@ export const BookingDetailPage = () => {
               fontWeight: 800,
               mb: 1,
               textTransform: "none",
-              fontSize: "1.3rem",
+              fontSize: "0.8125rem",
               "&:hover": { bgcolor: "transparent", color: "#1C252E" },
             }}
           >
@@ -145,7 +145,7 @@ export const BookingDetailPage = () => {
               label={getBookingStatusLabel(booking.status)}
               sx={{
                 fontWeight: 800,
-                fontSize: "1.2rem",
+                fontSize: "0.75rem",
                 bgcolor: `${statusColor}18`,
                 color: statusColor,
                 border: `1px solid ${statusColor}`,
@@ -156,7 +156,7 @@ export const BookingDetailPage = () => {
               label={getPaymentStatusLabel(booking.paymentStatus)}
               sx={{
                 fontWeight: 800,
-                fontSize: "1.2rem",
+                fontSize: "0.75rem",
                 bgcolor: `${paymentColor}18`,
                 color: paymentColor,
                 border: `1px solid ${paymentColor}`,
@@ -178,7 +178,7 @@ export const BookingDetailPage = () => {
               border: "1px solid #FFF",
             }}
           >
-            <Typography sx={{ fontWeight: 900, fontSize: "1.8rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 900, fontSize: "1.125rem", mb: 3, color: "#1C252E" }}>
               Thông tin đặt lịch
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
@@ -225,7 +225,7 @@ export const BookingDetailPage = () => {
               border: "1px solid #FFF",
             }}
           >
-            <Typography sx={{ fontWeight: 900, fontSize: "1.8rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 900, fontSize: "1.125rem", mb: 3, color: "#1C252E" }}>
               Danh sách thú cưng
             </Typography>
             {(!booking.pets || booking.pets.length === 0) ? (
@@ -234,18 +234,18 @@ export const BookingDetailPage = () => {
               <Table size="medium">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Mã booking</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Tên thú cưng</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Loại</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Mã booking</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Tên thú cưng</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Loại</TableCell>
                     {booking.pets.some(
                       (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
                     ) && (
                         <>
-                          <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thức ăn mang theo</TableCell>
-                          <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Hướng dẫn cho ăn</TableCell>
+                          <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Thức ăn mang theo</TableCell>
+                          <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Hướng dẫn cho ăn</TableCell>
                         </>
                       )}
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }} align="right">
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }} align="right">
                       Thao tác
                     </TableCell>
                   </TableRow>
@@ -253,14 +253,14 @@ export const BookingDetailPage = () => {
                 <TableBody>
                   {booking.pets.map((pet) => (
                     <TableRow key={pet.id}>
-                      <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{booking.bookingCode}</TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", fontWeight: 600, py: 2 }}>{pet.petName}</TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{pet.petType}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>{booking.bookingCode}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", fontWeight: 600, py: 2 }}>{pet.petName}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>{pet.petType}</TableCell>
                       {booking.pets!.some(
                         (p) => (p.foodItems && p.foodItems.length > 0) || isFoodBrought(p.foodBrought)
                       ) && (
                           <>
-                            <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
+                            <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>
                               {pet.foodItems && pet.foodItems.length > 0
                                 ? pet.foodItems.map((i) => i.foodBroughtType ?? "—").join("; ") || "—"
                                 : isFoodBrought(pet.foodBrought)
@@ -271,7 +271,7 @@ export const BookingDetailPage = () => {
                                     : "—"
                                   : "—"}
                             </TableCell>
-                            <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
+                            <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>
                               {pet.foodItems && pet.foodItems.length > 0
                                 ? pet.foodItems.map((i) => i.feedingInstructions ?? "—").join("; ") || "—"
                                 : isFoodBrought(pet.foodBrought)
@@ -306,7 +306,7 @@ export const BookingDetailPage = () => {
               border: "1px solid #FFF",
             }}
           >
-            <Typography sx={{ fontWeight: 900, fontSize: "1.8rem", mb: 3, color: "#1C252E" }}>
+            <Typography sx={{ fontWeight: 900, fontSize: "1.125rem", mb: 3, color: "#1C252E" }}>
               Danh sách dịch vụ theo thú cưng
             </Typography>
             {allServices.length === 0 ? (
@@ -315,12 +315,12 @@ export const BookingDetailPage = () => {
               <Table size="medium">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Dịch vụ</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thú cưng</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thời gian</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Trạng thái</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }}>Thành tiền</TableCell>
-                    <TableCell sx={{ fontWeight: 800, fontSize: "1.5rem", py: 2 }} align="right">
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Dịch vụ</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Thú cưng</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Thời gian</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Trạng thái</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }}>Thành tiền</TableCell>
+                    <TableCell sx={{ fontWeight: 800, fontSize: "0.9375rem", py: 2 }} align="right">
                       Thao tác
                     </TableCell>
                   </TableRow>
@@ -328,14 +328,14 @@ export const BookingDetailPage = () => {
                 <TableBody>
                   {allServices.map(({ service, petName, petId }) => (
                     <TableRow key={service.id}>
-                      <TableCell sx={{ fontSize: "1.5rem", fontWeight: 600, py: 2 }}>{service.serviceName ?? `#${service.id}`}</TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{petName}</TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>
+                      <TableCell sx={{ fontSize: "0.9375rem", fontWeight: 600, py: 2 }}>{service.serviceName ?? `#${service.id}`}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>{petName}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>
                         {formatDateTime(service.scheduledStartTime)} –{" "}
                         {formatDateTime(service.scheduledEndTime)}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", py: 2 }}>{service.status ?? "—"}</TableCell>
-                      <TableCell sx={{ fontSize: "1.5rem", fontWeight: 600, py: 2 }}>
+                      <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>{service.status ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", fontWeight: 600, py: 2 }}>
                         {service.subtotal != null
                           ? formatCurrency(service.subtotal)
                           : "—"}

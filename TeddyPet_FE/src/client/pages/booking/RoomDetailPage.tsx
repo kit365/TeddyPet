@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+﻿import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
     getRoomById,
@@ -63,7 +63,7 @@ export const RoomDetailPage = () => {
         return (
             <div className="min-h-screen flex flex-col">
                 <main className="flex-1 px-4 py-8 max-w-[900px] mx-auto w-full">
-                    <Typography sx={{ fontSize: "1.5rem", color: "#666" }}>Không tìm thấy phòng.</Typography>
+                    <Typography sx={{ fontSize: "0.9375rem", color: "#666" }}>Không tìm thấy phòng.</Typography>
                     <Button
                         startIcon={<ArrowBackIcon />}
                         onClick={() => navigate("/dat-lich/chi-tiet", { state: { bookingDraft: state.bookingDraft } })}
@@ -92,7 +92,7 @@ export const RoomDetailPage = () => {
         return (
             <div className="min-h-screen flex flex-col">
                 <main className="flex-1 px-4 py-8 max-w-[900px] mx-auto w-full">
-                    <Typography sx={{ fontSize: "1.5rem", color: "#b91c1c" }}>
+                    <Typography sx={{ fontSize: "0.9375rem", color: "#b91c1c" }}>
                         Không tải được thông tin phòng. Vui lòng thử lại.
                     </Typography>
                     <Button
@@ -183,25 +183,25 @@ export const RoomDetailPage = () => {
                         component="button"
                         variant="body2"
                         onClick={() => navigate("/")}
-                        sx={{ fontSize: "1.35rem", color: "#637381", "&:hover": { color: "#ffbaa0" } }}
+                        sx={{ fontSize: "0.8438rem", color: "#637381", "&:hover": { color: "#ffbaa0" } }}
                     >
                         Trang chủ
                     </Link>
-                    <Typography component="span" sx={{ color: "#919EAB", fontSize: "1.35rem" }}>
+                    <Typography component="span" sx={{ color: "#919EAB", fontSize: "0.8438rem" }}>
                         /
                     </Typography>
                     <Link
                         component="button"
                         variant="body2"
                         onClick={() => navigate("/dat-lich/chi-tiet")}
-                        sx={{ fontSize: "1.35rem", color: "#637381", "&:hover": { color: "#ffbaa0" } }}
+                        sx={{ fontSize: "0.8438rem", color: "#637381", "&:hover": { color: "#ffbaa0" } }}
                     >
                         Đặt lịch
                     </Link>
-                    <Typography component="span" sx={{ color: "#919EAB", fontSize: "1.35rem" }}>
+                    <Typography component="span" sx={{ color: "#919EAB", fontSize: "0.8438rem" }}>
                         /
                     </Typography>
-                    <Typography sx={{ fontSize: "1.35rem", fontWeight: 600, color: "#181818" }}>
+                    <Typography sx={{ fontSize: "0.8438rem", fontWeight: 600, color: "#181818" }}>
                         {room.roomNumber} – {room.roomName || displayTypeName}
                     </Typography>
                 </Box>
@@ -215,7 +215,7 @@ export const RoomDetailPage = () => {
                             : navigate(-1)
                     }
                     sx={{
-                        fontSize: "1.4rem",
+                        fontSize: "0.875rem",
                         fontWeight: 600,
                         color: "#555",
                         textTransform: "none",
@@ -276,7 +276,7 @@ export const RoomDetailPage = () => {
                     >
                         <Typography
                             sx={{
-                                fontSize: "1.2rem",
+                                fontSize: "0.75rem",
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.08em",
@@ -295,7 +295,7 @@ export const RoomDetailPage = () => {
                                         room.status === "AVAILABLE"
                                             ? "rgba(0,167,111,0.9)"
                                             : "rgba(145,158,171,0.9)",
-                                    fontSize: "1.3rem",
+                                    fontSize: "0.8125rem",
                                     fontWeight: 700,
                                 }}
                             >
@@ -306,7 +306,7 @@ export const RoomDetailPage = () => {
                     )}
                     {!heroImage && (
                         <Box sx={{ p: 2.5, bgcolor: "rgba(255,186,160,0.12)", borderTop: "1px solid rgba(255,186,160,0.3)" }}>
-                            <Typography sx={{ fontSize: "1.2rem", fontWeight: 600, color: "#637381", textTransform: "uppercase" }}>
+                            <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "#637381", textTransform: "uppercase" }}>
                                 {displayTypeName}
                             </Typography>
                             <Box
@@ -318,7 +318,7 @@ export const RoomDetailPage = () => {
                                     borderRadius: "8px",
                                     bgcolor: room.status === "AVAILABLE" ? "rgba(0,167,111,0.15)" : "rgba(145,158,171,0.2)",
                                     color: room.status === "AVAILABLE" ? "#00A76F" : "#637381",
-                                    fontSize: "1.3rem",
+                                    fontSize: "0.8125rem",
                                     fontWeight: 700,
                                 }}
                             >
@@ -333,7 +333,7 @@ export const RoomDetailPage = () => {
                     <Typography
                         component="h1"
                         sx={{
-                            fontSize: { xs: "2.6rem", sm: "3.2rem", md: "3.6rem" },
+                            fontSize: { xs: "1.625rem", sm: "2rem", md: "2.25rem" },
                             fontWeight: 800,
                             color: "#181818",
                             lineHeight: 1.2,
@@ -356,7 +356,7 @@ export const RoomDetailPage = () => {
                         >
                             <Typography
                                 sx={{
-                                    fontSize: "1.65rem",
+                                    fontSize: "1.0312rem",
                                     color: "#454F5B",
                                     lineHeight: 1.7,
                                     fontStyle: "italic",
@@ -369,18 +369,18 @@ export const RoomDetailPage = () => {
                 </Box>
 
                 {/* Nội dung chính (article body) */}
-                <Box component="article" sx={{ "& .article-p": { mb: 2.5, fontSize: "1.6rem", lineHeight: 1.8, color: "#212B36" } }}>
+                <Box component="article" sx={{ "& .article-p": { mb: 2.5, fontSize: "1rem", lineHeight: 1.8, color: "#212B36" } }}>
                     {/* Về phòng này */}
                     {fullDescription && (
                         <Box sx={{ mb: 5 }}>
                             <Typography
                                 component="h2"
-                                sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 2 }}
+                                sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 2 }}
                             >
                                 Về phòng này
                             </Typography>
                             <Typography
-                                sx={{ fontSize: "1.6rem", lineHeight: 1.85, color: "#212B36", whiteSpace: "pre-wrap" }}
+                                sx={{ fontSize: "1rem", lineHeight: 1.85, color: "#212B36", whiteSpace: "pre-wrap" }}
                             >
                                 {fullDescription}
                             </Typography>
@@ -391,7 +391,7 @@ export const RoomDetailPage = () => {
                     <Box sx={{ mb: 5 }}>
                         <Typography
                             component="h2"
-                            sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 3 }}
+                            sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 3 }}
                         >
                             Tại sao nên chọn phòng này?
                         </Typography>
@@ -410,8 +410,8 @@ export const RoomDetailPage = () => {
                                         boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
                                     }}
                                 >
-                                    <CheckCircleOutlineIcon sx={{ color: "#00A76F", fontSize: "2.4rem", flexShrink: 0, mt: 0.2 }} />
-                                    <Typography sx={{ fontSize: "1.5rem", lineHeight: 1.6, color: "#212B36" }}>
+                                    <CheckCircleOutlineIcon sx={{ color: "#00A76F", fontSize: "1.5rem", flexShrink: 0, mt: 0.2 }} />
+                                    <Typography sx={{ fontSize: "0.9375rem", lineHeight: 1.6, color: "#212B36" }}>
                                         {text}
                                     </Typography>
                                 </Box>
@@ -423,7 +423,7 @@ export const RoomDetailPage = () => {
                     <Box sx={{ mb: 5 }}>
                         <Typography
                             component="h2"
-                            sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 3 }}
+                            sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 3 }}
                         >
                             Tiện nghi
                         </Typography>
@@ -444,15 +444,15 @@ export const RoomDetailPage = () => {
                                             boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                                         }}
                                     >
-                                        <StarIcon sx={{ color: "#ffbaa0", fontSize: "2rem" }} />
-                                        <Typography sx={{ fontSize: "1.45rem", fontWeight: 500, color: "#181818" }}>
+                                        <StarIcon sx={{ color: "#ffbaa0", fontSize: "1.25rem" }} />
+                                        <Typography sx={{ fontSize: "0.9062rem", fontWeight: 500, color: "#181818" }}>
                                             {a}
                                         </Typography>
                                     </Box>
                                 ))}
                             </Box>
                         ) : (
-                            <Typography sx={{ fontSize: "1.5rem", color: "#637381" }}>
+                            <Typography sx={{ fontSize: "0.9375rem", color: "#637381" }}>
                                 Phòng được trang bị đầy đủ tiện nghi cơ bản theo tiêu chuẩn {displayTypeName}.
                             </Typography>
                         )}
@@ -469,7 +469,7 @@ export const RoomDetailPage = () => {
                             mb: 5,
                         }}
                     >
-                        <Typography sx={{ fontSize: "1.8rem", fontWeight: 700, color: "#181818", mb: 2 }}>
+                        <Typography sx={{ fontSize: "1.125rem", fontWeight: 700, color: "#181818", mb: 2 }}>
                             Thông tin nhanh
                         </Typography>
                         <Box
@@ -511,7 +511,7 @@ export const RoomDetailPage = () => {
                         <Box sx={{ mb: 5 }}>
                             <Typography
                                 component="h2"
-                                sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 3 }}
+                                sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 3 }}
                             >
                                 Hình ảnh
                             </Typography>
@@ -549,13 +549,13 @@ export const RoomDetailPage = () => {
                         <Box sx={{ mb: 5 }}>
                             <Typography
                                 component="h2"
-                                sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 2 }}
+                                sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 2 }}
                             >
                                 Chính sách & yêu cầu
                             </Typography>
                             <Box sx={{ p: 3, bgcolor: "#fff", borderRadius: "16px", border: "1px solid rgba(145,158,171,0.2)" }}>
                                 {roomType?.cancellationPolicy && (
-                                    <Typography sx={{ fontSize: "1.5rem", lineHeight: 1.7, color: "#212B36", mb: 2 }}>
+                                    <Typography sx={{ fontSize: "0.9375rem", lineHeight: 1.7, color: "#212B36", mb: 2 }}>
                                         {roomType.cancellationPolicy}
                                     </Typography>
                                 )}
@@ -578,26 +578,26 @@ export const RoomDetailPage = () => {
                         <Box sx={{ mb: 5 }}>
                             <Typography
                                 component="h2"
-                                sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 2 }}
+                                sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 2 }}
                             >
                                 Phù hợp với
                             </Typography>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
-                                <PetsIcon sx={{ color: "#ffbaa0", fontSize: "2.8rem" }} />
+                                <PetsIcon sx={{ color: "#ffbaa0", fontSize: "1.75rem" }} />
                                 {roomType?.suitablePetTypes?.length ? (
-                                    <Typography sx={{ fontSize: "1.5rem", color: "#212B36" }}>
+                                    <Typography sx={{ fontSize: "0.9375rem", color: "#212B36" }}>
                                         {roomType.suitablePetTypes.join(", ")}
                                         {roomType?.maxPets != null && ` • Tối đa ${roomType.maxPets} thú cưng/phòng`}
                                     </Typography>
                                 ) : (
                                     roomType?.maxPets != null && (
-                                        <Typography sx={{ fontSize: "1.5rem", color: "#212B36" }}>
+                                        <Typography sx={{ fontSize: "0.9375rem", color: "#212B36" }}>
                                             Tối đa {roomType.maxPets} thú cưng mỗi phòng
                                         </Typography>
                                     )
                                 )}
                                 {roomType?.suitablePetSizes && (
-                                    <Typography component="span" sx={{ fontSize: "1.45rem", color: "#637381", ml: 1 }}>
+                                    <Typography component="span" sx={{ fontSize: "0.9062rem", color: "#637381", ml: 1 }}>
                                         • {roomType.suitablePetSizes}
                                     </Typography>
                                 )}
@@ -616,16 +616,16 @@ export const RoomDetailPage = () => {
                                 mb: 5,
                             }}
                         >
-                            <Typography sx={{ fontSize: "1.6rem", fontWeight: 600, color: "#637381", mb: 1 }}>
+                            <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: "#637381", mb: 1 }}>
                                 Giá tham khảo
                             </Typography>
-                            <Typography sx={{ fontSize: "2.4rem", fontWeight: 800, color: "#00A76F" }}>
+                            <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, color: "#00A76F" }}>
                                 {formatPrice(roomType.basePricePerNight)}
-                                <Typography component="span" sx={{ fontSize: "1.4rem", fontWeight: 500, color: "#637381", ml: 1 }}>
+                                <Typography component="span" sx={{ fontSize: "0.875rem", fontWeight: 500, color: "#637381", ml: 1 }}>
                                     / đêm
                                 </Typography>
                             </Typography>
-                            <Typography sx={{ fontSize: "1.35rem", color: "#637381", mt: 1 }}>
+                            <Typography sx={{ fontSize: "0.8438rem", color: "#637381", mt: 1 }}>
                                 Giá có thể thay đổi tùy dịch vụ và thời gian. Vui lòng xác nhận khi đặt lịch.
                             </Typography>
                         </Box>
@@ -636,11 +636,11 @@ export const RoomDetailPage = () => {
                         <Box sx={{ mb: 5 }}>
                             <Typography
                                 component="h2"
-                                sx={{ fontSize: "2.2rem", fontWeight: 700, color: "#181818", mb: 2 }}
+                                sx={{ fontSize: "1.375rem", fontWeight: 700, color: "#181818", mb: 2 }}
                             >
                                 Ghi chú
                             </Typography>
-                            <Typography sx={{ fontSize: "1.55rem", lineHeight: 1.7, color: "#212B36", whiteSpace: "pre-wrap" }}>
+                            <Typography sx={{ fontSize: "0.9688rem", lineHeight: 1.7, color: "#212B36", whiteSpace: "pre-wrap" }}>
                                 {room.notes}
                             </Typography>
                         </Box>
@@ -656,7 +656,7 @@ export const RoomDetailPage = () => {
                         sx={{
                             mt: 2,
                             py: 1.75,
-                            fontSize: "1.6rem",
+                            fontSize: "1rem",
                             fontWeight: 700,
                             borderRadius: "12px",
                             bgcolor: "#ffbaa0",
@@ -676,8 +676,8 @@ export const RoomDetailPage = () => {
 function QuickItem({ label, value }: { label: string; value: string }) {
     return (
         <Box>
-            <Typography sx={{ fontSize: "1.25rem", color: "#637381", fontWeight: 600, mb: 0.5 }}>{label}</Typography>
-            <Typography sx={{ fontSize: "1.45rem", color: "#181818", fontWeight: 500 }}>{value}</Typography>
+            <Typography sx={{ fontSize: "0.7812rem", color: "#637381", fontWeight: 600, mb: 0.5 }}>{label}</Typography>
+            <Typography sx={{ fontSize: "0.9062rem", color: "#181818", fontWeight: 500 }}>{value}</Typography>
         </Box>
     );
 }
@@ -694,7 +694,7 @@ function Chip({ label, icon }: { label: string; icon?: React.ReactNode }) {
                 borderRadius: "10px",
                 bgcolor: "rgba(0,167,111,0.1)",
                 color: "#00A76F",
-                fontSize: "1.35rem",
+                fontSize: "0.8438rem",
                 fontWeight: 600,
             }}
         >

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
@@ -131,7 +131,7 @@ export const StaffSkillListPage = () => {
 
         return (
             <span
-                className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[6px] font-[700] rounded-[6px]"
+                className="inline-flex items-center justify-center leading-1.5 min-w-[1.5rem] h-[1.5rem] text-[0.75rem] px-[6px] font-[700] rounded-[6px]"
                 style={{ backgroundColor: bg, color: text }}
             >
                 {label}
@@ -207,11 +207,11 @@ export const StaffSkillListPage = () => {
                         disabled={staffId === ''}
                         sx={{
                             backgroundColor: 'rgb(5 150 105)', // emerald-600
-                            minHeight: '3rem',
+                            minHeight: '1.875rem',
                             fontWeight: 600,
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             px: 2.5,
-                            borderRadius: '0.9rem',
+                            borderRadius: '0.5625rem',
                             textTransform: 'none',
                             boxShadow: '0 4px 10px rgba(16,185,129,0.25)',
                             '&:hover': {

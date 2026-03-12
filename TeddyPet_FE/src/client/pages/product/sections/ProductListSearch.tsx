@@ -1,4 +1,4 @@
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+﻿import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useProductSort } from '../../../hooks/useProductSort';
 import { useMemo } from 'react';
 
@@ -49,12 +49,12 @@ export const ProductListSearch = ({ totalElements = 0, page, size, onSortChange 
 
     return (
         <div className="px-[30px] py-[15px] mb-[40px] flex items-center justify-between bg-[#e67e201a] rounded-[192px]">
-            <div className="text-client-secondary text-[1.4rem] font-medium">
+            <div className="text-client-secondary text-[0.875rem] font-medium">
                 Showing {totalElements > 0 ? `${start}–${end} of ${totalElements}` : '0'} results
             </div>
             <div className="flex items-center">
                 <div
-                    className="text-client-secondary text-[1.4rem] font-medium relative cursor-pointer px-[20px] h-[50px] bg-white border border-[#1029371a] flex items-center rounded-[40px] transition-default hover:border-client-primary shadow-sm hover:shadow-md"
+                    className="text-client-secondary text-[0.875rem] font-medium relative cursor-pointer px-[20px] h-[50px] bg-white border border-[#1029371a] flex items-center rounded-[40px] transition-default hover:border-client-primary shadow-sm hover:shadow-md"
                     onClick={() => {
                         toggleMenu();
                     }}
@@ -62,8 +62,8 @@ export const ProductListSearch = ({ totalElements = 0, page, size, onSortChange 
                 >
                     {selectedOption?.label}
                     <ArrowDropDownIcon style={{
-                        width: "2.2rem",
-                        height: "2.2rem",
+                        width: "1.375rem",
+                        height: "1.375rem",
                         cursor: "pointer",
                         marginLeft: "10px",
                         transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
@@ -82,7 +82,7 @@ export const ProductListSearch = ({ totalElements = 0, page, size, onSortChange 
                                             }}
                                             onMouseEnter={() => setHoveredOption(item.value)}
                                             onMouseLeave={() => setHoveredOption(null)}
-                                            className={`px-[15px] py-[10px] rounded-[10px] transition-all cursor-pointer text-[1.4rem] font-medium mb-[2px] last:mb-0
+                                            className={`px-[15px] py-[10px] rounded-[10px] transition-all cursor-pointer text-[0.875rem] font-medium mb-[2px] last:mb-0
                                                 ${item.value === selectedOption.value
                                                     ? hoveredOption === item.value
                                                         ? "bg-client-primary/10 text-client-primary"
@@ -96,7 +96,7 @@ export const ProductListSearch = ({ totalElements = 0, page, size, onSortChange 
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="px-[10px] py-[12px] text-gray-400 text-center text-[1.3rem]">
+                                    <li className="px-[10px] py-[12px] text-gray-400 text-center text-[0.8125rem]">
                                         Không có kết quả
                                     </li>
                                 )}

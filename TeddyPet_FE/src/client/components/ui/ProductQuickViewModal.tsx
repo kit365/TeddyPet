@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, IconButton, Typography, Box, Skeleton, Divider } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link } from 'react-router-dom';
@@ -234,7 +234,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
 
                         {/* Info Section */}
                         <div className="flex flex-col">
-                            <Typography variant="h4" component="h2" sx={{ fontWeight: 700, mb: 1, fontFamily: 'var(--font-secondary)', fontSize: '2.4rem' }}>
+                            <Typography variant="h4" component="h2" sx={{ fontWeight: 700, mb: 1, fontFamily: 'var(--font-secondary)', fontSize: '1.5rem' }}>
                                 {product.name}
                             </Typography>
 
@@ -244,7 +244,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                     <StarIcon
                                         key={i}
                                         sx={{
-                                            fontSize: "2rem !important",
+                                            fontSize: "1.25rem !important",
                                             color: i < (product.averageRating || 5) ? "#ffbb00 !important" : "#ccc !important",
                                         }}
                                     />
@@ -256,22 +256,22 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                             <Box sx={{ mb: 2 }}>
                                 {selectedVariant ? (
                                     selectedVariant.stockQuantity <= 0 ? (
-                                        <p className="text-[#FF6262] font-bold text-[2rem]">Tạm hết hàng</p>
+                                        <p className="text-[#FF6262] font-bold text-[1.25rem]">Tạm hết hàng</p>
                                     ) : (selectedVariant.salePrice && selectedVariant.salePrice > 0) ? (
                                         <div className="flex items-center gap-3">
-                                            <p className="text-[#FF6262] font-bold text-[2.2rem]">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
-                                            <p className="text-[#999] line-through text-[1.6rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
+                                            <p className="text-[#FF6262] font-bold text-[1.375rem]">{selectedVariant.salePrice.toLocaleString("vi-VN")}đ</p>
+                                            <p className="text-[#999] line-through text-[1rem]">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
                                         </div>
                                     ) : (
-                                        <p className="text-[2.2rem] font-medium text-client-secondary">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
+                                        <p className="text-[1.375rem] font-medium text-client-secondary">{selectedVariant.price.toLocaleString("vi-VN")}đ</p>
                                     )
                                 ) : (
                                     product.attributes.length > 0 ? (
                                         product.minPrice === product.maxPrice ?
-                                            <p className="text-[2.2rem] font-medium text-client-secondary">{product.minPrice?.toLocaleString("vi-VN")}đ</p> :
-                                            <p className="text-[2.2rem] font-medium text-client-secondary">{product.minPrice?.toLocaleString("vi-VN")}đ - {product.maxPrice?.toLocaleString("vi-VN")}đ</p>
+                                            <p className="text-[1.375rem] font-medium text-client-secondary">{product.minPrice?.toLocaleString("vi-VN")}đ</p> :
+                                            <p className="text-[1.375rem] font-medium text-client-secondary">{product.minPrice?.toLocaleString("vi-VN")}đ - {product.maxPrice?.toLocaleString("vi-VN")}đ</p>
                                     ) : (
-                                        <p className="text-[#FF6262] font-bold text-[2rem]">Tạm hết hàng</p>
+                                        <p className="text-[#FF6262] font-bold text-[1.25rem]">Tạm hết hàng</p>
                                     )
                                 )}
                             </Box>
@@ -283,7 +283,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                 {product.attributes.map((attr) => (
                                     <div key={attr.attributeId} className="mb-[15px]">
                                         <div className="mb-[5px] text-client-secondary flex items-center">
-                                            <span className="font-secondary text-[1.6rem] ">{attr.name}:</span>
+                                            <span className="font-secondary text-[1rem] ">{attr.name}:</span>
                                             {selectedOptions[attr.attributeId] && (
                                                 <span className="text-client-secondary ml-[5px] font-medium">
                                                     {attributeValueMap[selectedOptions[attr.attributeId]]?.value}
@@ -299,7 +299,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                                     <div
                                                         key={valId}
                                                         onClick={() => handleSelectOption(attr.attributeId, valId)}
-                                                        className={`flex flex-col items-center justify-center m-[5px] py-[6px] px-[15px] cursor-pointer capitalize rounded-[3rem] transition-default border text-[1.4rem]
+                                                        className={`flex flex-col items-center justify-center m-[5px] py-[6px] px-[15px] cursor-pointer capitalize rounded-[1.875rem] transition-default border text-[0.875rem]
                                                             ${isSelected
                                                                 ? 'bg-client-secondary text-white border-client-secondary'
                                                                 : 'bg-[#fff0f0] text-client-secondary border-transparent hover:bg-client-secondary hover:text-white'}`}
@@ -319,7 +319,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                     <input
                                         type="button"
                                         value="-"
-                                        className="cursor-pointer w-[40px] h-full rounded-l-[3rem] text-[2.5rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear pb-1"
+                                        className="cursor-pointer w-[40px] h-full rounded-l-[1.875rem] text-[1.5625rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear pb-1"
                                         onClick={handleDecrease}
                                     />
                                     <input
@@ -328,12 +328,12 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                         min={1}
                                         max={currentMaxQuantity}
                                         onChange={handleChangeQuantity}
-                                        className="w-[40px] h-full bg-[#e67e2033] text-[1.6rem] text-center outline-none no-spinner"
+                                        className="w-[40px] h-full bg-[#e67e2033] text-[1rem] text-center outline-none no-spinner"
                                     />
                                     <input
                                         type="button"
                                         value="+"
-                                        className="cursor-pointer w-[40px] h-full rounded-r-[3rem] text-[2rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear pb-1"
+                                        className="cursor-pointer w-[40px] h-full rounded-r-[1.875rem] text-[1.25rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear pb-1"
                                         onClick={handleIncrease}
                                     />
                                 </div>
@@ -341,20 +341,20 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ sl
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={!canAddToCart}
-                                    className={`bg-client-secondary flex-1 h-full rounded-[3rem] text-white text-[1.4rem] font-bold uppercase transition-default flex items-center justify-center px-4
+                                    className={`bg-client-secondary flex-1 h-full rounded-[1.875rem] text-white text-[0.875rem] font-bold uppercase transition-default flex items-center justify-center px-4
                                         ${canAddToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary' : 'opacity-60 cursor-not-allowed'}`}
                                 >
                                     {outOfStock ? "Hết hàng" : "Thêm vào giỏ"}
                                 </button>
 
                                 <div className="w-[50px] h-full flex items-center justify-center text-client-secondary hover:text-client-primary transition-default p-[10px] bg-transparent border border-[#d7d7d7] rounded-full cursor-pointer">
-                                    <Heart className="w-[2.2rem] h-[2.2rem]" />
+                                    <Heart className="w-[1.375rem] h-[1.375rem]" />
                                 </div>
                             </div>
 
                             <Link
                                 to={`/product/detail/${product.slug}`}
-                                className="text-client-primary hover:underline text-[1.4rem] mt-2 inline-block"
+                                className="text-client-primary hover:underline text-[0.875rem] mt-2 inline-block"
                             >
                                 Xem chi tiết đầy đủ &rarr;
                             </Link>

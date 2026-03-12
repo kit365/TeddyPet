@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import { ProductBanner } from "../product/sections/ProductBanner"
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, MapPin, Phone, User, Search, LogOut, Navigation } from "lucide-react";
@@ -553,33 +553,33 @@ export const CheckoutPage = () => {
                             {/* Account Header */}
                             {user && (
                                 <div className="mb-[40px] p-[20px] bg-[#fcfcfc] border border-dashed border-gray-200 rounded-[15px] flex items-center justify-between">
-                                    <div className="flex items-center gap-[12px] text-[1.6rem] text-client-secondary font-medium">
+                                    <div className="flex items-center gap-[12px] text-[1rem] text-client-secondary font-medium">
                                         <div className="w-[40px] h-[40px] rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm">
-                                            <User className="w-[2rem] h-[2rem] text-client-primary" />
+                                            <User className="w-[1.25rem] h-[1.25rem] text-client-primary" />
                                         </div>
                                         <span>Tài khoản: <span className="font-bold">{user ? `${user.firstName} ${user.lastName}` : 'Khách'}</span></span>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={handleLogout}
-                                        className="px-[15px] py-[8px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[8px] text-[1.3rem] font-bold"
+                                        className="px-[15px] py-[8px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[8px] text-[0.8125rem] font-bold"
                                     >
-                                        <LogOut className="w-[1.6rem] h-[1.6rem]" />
+                                        <LogOut className="w-[1rem] h-[1rem]" />
                                         <span>Đăng xuất</span>
                                     </button>
                                 </div>
                             )}
 
-                            <h2 className="text-[2.5rem] font-secondary mt-[8px] mb-[30px] font-bold">Thông tin nhận hàng</h2>
+                            <h2 className="text-[1.5625rem] font-secondary mt-[8px] mb-[30px] font-bold">Thông tin nhận hàng</h2>
 
                             {/* Guest Verification Section */}
                             {!user && (
                                 <div className="space-y-[18px] mb-[35px] bg-client-primary/5 p-[25px] rounded-[20px] border border-dashed border-client-primary/20 shadow-inner">
                                     <div className="flex items-center gap-[10px] mb-[5px]">
                                         <div className="w-[30px] h-[30px] rounded-full bg-client-primary/10 flex items-center justify-center">
-                                            <EmailOutlinedIcon className="text-client-primary w-[1.8rem] h-[1.8rem]" />
+                                            <EmailOutlinedIcon className="text-client-primary w-[1.125rem] h-[1.125rem]" />
                                         </div>
-                                        <h3 className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
+                                        <h3 className="text-[1rem] font-bold text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
                                     </div>
                                     <div className="flex gap-[12px]">
                                         <div className="flex-1">
@@ -594,7 +594,7 @@ export const CheckoutPage = () => {
                                             type="button"
                                             disabled={otpCooldown > 0 || isSendingOtp}
                                             onClick={handleSendOtp}
-                                            className={`px-[25px] rounded-[40px] font-bold text-[1.3rem] transition-all uppercase tracking-wider ${otpCooldown > 0 || isSendingOtp
+                                            className={`px-[25px] rounded-[40px] font-bold text-[0.8125rem] transition-all uppercase tracking-wider ${otpCooldown > 0 || isSendingOtp
                                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                 : 'bg-client-secondary text-white hover:bg-client-primary shadow-lg shadow-client-secondary/20 active:scale-95'}`}
                                         >
@@ -607,7 +607,7 @@ export const CheckoutPage = () => {
                                         {...register("otpCode")}
                                         className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
                                     />
-                                    <div className="text-[1.2rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
+                                    <div className="text-[0.75rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
                                         <div className="w-[4px] h-[4px] bg-client-primary rounded-full"></div>
                                         Lưu ý: Chúng tôi sẽ dùng Email này để gửi thông tin hành trình đơn hàng.
                                     </div>
@@ -635,17 +635,17 @@ export const CheckoutPage = () => {
                                                 />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-[12px] text-[1.5rem] font-bold text-client-secondary">
+                                                <div className="flex items-center gap-[12px] text-[0.9375rem] font-bold text-client-secondary">
                                                     <span className="line-clamp-1">{addr.fullName}</span>
-                                                    {addr.isDefault && <span className="shrink-0 bg-client-primary/10 text-client-primary text-[1.1rem] px-[10px] py-[3px] rounded-full font-bold uppercase tracking-tighter">Mặc định</span>}
+                                                    {addr.isDefault && <span className="shrink-0 bg-client-primary/10 text-client-primary text-[0.6875rem] px-[10px] py-[3px] rounded-full font-bold uppercase tracking-tighter">Mặc định</span>}
                                                 </div>
                                                 <div className="flex items-center gap-[25px] mt-[6px]">
-                                                    <div className="flex items-center gap-[8px] text-[1.4rem] text-gray-500 font-medium">
-                                                        <Phone className="w-[1.6rem] h-[1.6rem] text-gray-400" />
+                                                    <div className="flex items-center gap-[8px] text-[0.875rem] text-gray-500 font-medium">
+                                                        <Phone className="w-[1rem] h-[1rem] text-gray-400" />
                                                         {addr.phone}
                                                     </div>
-                                                    <div className="flex items-center gap-[8px] text-[1.4rem] text-gray-500 truncate flex-1">
-                                                        <MapPin className="w-[1.6rem] h-[1.6rem] text-gray-400 shrink-0" />
+                                                    <div className="flex items-center gap-[8px] text-[0.875rem] text-gray-500 truncate flex-1">
+                                                        <MapPin className="w-[1rem] h-[1rem] text-gray-400 shrink-0" />
                                                         <span className="truncate">{addr.address}</span>
                                                     </div>
                                                 </div>
@@ -673,7 +673,7 @@ export const CheckoutPage = () => {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <div className={`text-[1.5rem] font-bold transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400'}`}>
+                                        <div className={`text-[0.9375rem] font-bold transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-400'}`}>
                                             Thêm địa chỉ giao hàng mới
                                         </div>
                                     </div>
@@ -722,11 +722,11 @@ export const CheckoutPage = () => {
                                             <div className="absolute top-[20px] left-[20px] right-[20px] z-[1000] flex gap-[10px]">
                                                 <div className="flex-1 relative">
                                                     <div className="absolute left-[15px] top-1/2 -translate-y-1/2">
-                                                        <Search className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                                        <Search className="w-[1.125rem] h-[1.125rem] text-gray-400" />
                                                     </div>
                                                     <input
                                                         type="text"
-                                                        className="w-full h-full border-none bg-white rounded-[12px] pl-[45px] pr-[15px] py-[12px] text-[1.4rem] focus:outline-none shadow-lg placeholder:text-gray-400"
+                                                        className="w-full h-full border-none bg-white rounded-[12px] pl-[45px] pr-[15px] py-[12px] text-[0.875rem] focus:outline-none shadow-lg placeholder:text-gray-400"
                                                         placeholder="Tìm kiếm vị trí trên bản đồ..."
                                                         value={searchKeyword}
                                                         onChange={(e) => setSearchKeyword(e.target.value)}
@@ -747,10 +747,10 @@ export const CheckoutPage = () => {
                                                                     onClick={() => handleSelectSuggestion(item)}
                                                                     className="px-[20px] py-[15px] hover:bg-gray-50 cursor-pointer border-b border-[#f5f5f5] last:border-none flex items-start gap-[12px]"
                                                                 >
-                                                                    <MapPin className="w-[1.6rem] h-[1.6rem] text-client-primary shrink-0 mt-[2px]" />
+                                                                    <MapPin className="w-[1rem] h-[1rem] text-client-primary shrink-0 mt-[2px]" />
                                                                     <div className="flex flex-col">
-                                                                        <span className="text-[1.4rem] font-bold text-client-secondary line-clamp-1">{item.display_name.split(',')[0]}</span>
-                                                                        <span className="text-[1.2rem] text-gray-500 line-clamp-1">{item.display_name}</span>
+                                                                        <span className="text-[0.875rem] font-bold text-client-secondary line-clamp-1">{item.display_name.split(',')[0]}</span>
+                                                                        <span className="text-[0.75rem] text-gray-500 line-clamp-1">{item.display_name}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -777,7 +777,7 @@ export const CheckoutPage = () => {
                                                     {...register("saveAddress")}
                                                     className="w-[18px] h-[18px] accent-client-primary cursor-pointer"
                                                 />
-                                                <span className="text-[1.4rem] text-gray-500 group-hover:text-client-secondary transition-default font-medium">
+                                                <span className="text-[0.875rem] text-gray-500 group-hover:text-client-secondary transition-default font-medium">
                                                     Lưu địa chỉ này vào sổ địa chỉ để dùng cho lần sau
                                                 </span>
                                             </label>
@@ -788,7 +788,7 @@ export const CheckoutPage = () => {
 
                             <div className="mt-[30px] mb-[40px] cursor-pointer">
                                 <input type="checkbox" id="orderNotesCheckbox" checked={showOrderNotes} onChange={() => setShowOrderNotes(!showOrderNotes)} className="hidden" />
-                                <label htmlFor="orderNotesCheckbox" className="text-client-text pl-[0px] text-[1.6rem] font-medium select-none flex items-center gap-[12px]">
+                                <label htmlFor="orderNotesCheckbox" className="text-client-text pl-[0px] text-[1rem] font-medium select-none flex items-center gap-[12px]">
                                     <div className={`w-[20px] h-[20px] border-2 rounded-[4px] flex items-center justify-center transition-all ${showOrderNotes ? 'bg-client-primary border-client-primary' : 'border-[#ddd]'}`}>
                                         {showOrderNotes && <div className="w-[10px] h-[6px] border-l-2 border-b-2 border-white -rotate-45 mb-[2px]"></div>}
                                     </div>
@@ -808,8 +808,8 @@ export const CheckoutPage = () => {
 
                             <div className="pt-[40px] border-t border-[#eee] flex items-center justify-between">
                                 <Link to="/cart" className="flex items-center text-client-secondary font-secondary hover:text-client-primary transition-default group">
-                                    <ArrowLeft className="text-[1.8rem] mr-[10px] transition-transform group-hover:-translate-x-1" />
-                                    <span className="text-[1.6rem] font-secondary font-medium">Trở lại giỏ hàng</span>
+                                    <ArrowLeft className="text-[1.125rem] mr-[10px] transition-transform group-hover:-translate-x-1" />
+                                    <span className="text-[1rem] font-secondary font-medium">Trở lại giỏ hàng</span>
                                 </Link>
                             </div>
                         </form>
@@ -818,7 +818,7 @@ export const CheckoutPage = () => {
                     {/* Order Summary Sidebar */}
                     <div className="w-[40%] ml-[50px] py-[50px]">
                         <div className="sticky top-[20px] bg-white rounded-[25px] border border-[#eee] overflow-hidden">
-                            <h2 className="py-[20px] px-[30px] text-[2rem] font-bold text-client-secondary border-b border-[#eee]">Tóm tắt đơn hàng</h2>
+                            <h2 className="py-[20px] px-[30px] text-[1.25rem] font-bold text-client-secondary border-b border-[#eee]">Tóm tắt đơn hàng</h2>
 
                             <div className="px-[35px] pb-[35px] pt-[15px]">
                                 {/* Product List */}
@@ -829,25 +829,25 @@ export const CheckoutPage = () => {
                                                 <div className="w-[65px] h-[65px] rounded-[12px] overflow-hidden border border-[#eee] bg-gray-50">
                                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                                                 </div>
-                                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 shadow-md aspect-square bg-client-primary w-[24px] rounded-full flex items-center justify-center text-white text-[1.1rem] font-bold border-2 border-white z-10">
+                                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 shadow-md aspect-square bg-client-primary w-[24px] rounded-full flex items-center justify-center text-white text-[0.6875rem] font-bold border-2 border-white z-10">
                                                     {item.quantity}
                                                 </div>
                                             </div>
                                             <div className="pl-[15px] pr-[10px] flex-1">
-                                                <div className="text-[1.4rem] font-bold text-client-secondary mb-[2px] line-clamp-1">{item.title}</div>
+                                                <div className="text-[0.875rem] font-bold text-client-secondary mb-[2px] line-clamp-1">{item.title}</div>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[#FF6262] font-bold text-[1.3rem]">{item.option.price.toLocaleString()}đ</p>
+                                                    <p className="text-[#FF6262] font-bold text-[0.8125rem]">{item.option.price.toLocaleString()}đ</p>
                                                     {item.option.originalPrice && (
-                                                        <p className="text-[#999] line-through text-[1.1rem]">{item.option.originalPrice.toLocaleString()}đ</p>
+                                                        <p className="text-[#999] line-through text-[0.6875rem]">{item.option.originalPrice.toLocaleString()}đ</p>
                                                     )}
                                                 </div>
                                                 {item.option.size && (
-                                                    <div className="text-[#999] text-[1.1rem] mt-[2px] italic">
+                                                    <div className="text-[#999] text-[0.6875rem] mt-[2px] italic">
                                                         {item.option.size}
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="text-client-secondary ml-auto font-bold text-[1.4rem] self-center">
+                                            <div className="text-client-secondary ml-auto font-bold text-[0.875rem] self-center">
                                                 {(item.option.price * item.quantity).toLocaleString()}đ
                                             </div>
                                         </li>
@@ -856,7 +856,7 @@ export const CheckoutPage = () => {
 
                                 {/* Payment Methods */}
                                 <div className="mb-[35px] pt-[25px] border-t border-[#eee]">
-                                    <h3 className="text-[1.6rem] font-bold text-client-secondary mb-[18px] tracking-tight">
+                                    <h3 className="text-[1rem] font-bold text-client-secondary mb-[18px] tracking-tight">
                                         Phương thức thanh toán
                                     </h3>
                                     <div className="space-y-[12px]">
@@ -872,7 +872,7 @@ export const CheckoutPage = () => {
                                                     onChange={() => setPaymentMethod(method.id)}
                                                     className="appearance-none w-[16px] h-[16px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[5px] bg-white transition-all cursor-pointer"
                                                 />
-                                                <span className={`text-[1.4rem] font-medium transition-colors ${paymentMethod === method.id ? 'text-client-secondary font-bold' : 'text-gray-600'}`}>
+                                                <span className={`text-[0.875rem] font-medium transition-colors ${paymentMethod === method.id ? 'text-client-secondary font-bold' : 'text-gray-600'}`}>
                                                     {method.label}
                                                 </span>
                                             </label>
@@ -882,12 +882,12 @@ export const CheckoutPage = () => {
 
                                 {/* Pricing Breakdown */}
                                 <div className="space-y-[15px] pt-[25px] border-t border-[#eee]">
-                                    <div className="flex justify-between text-[#666] text-[1.4rem]">
+                                    <div className="flex justify-between text-[#666] text-[0.875rem]">
                                         <span className="font-medium">Tạm tính</span>
                                         <span className="font-bold text-client-secondary">{checkoutTotalAmount.toLocaleString()}đ</span>
                                     </div>
 
-                                    <div className="flex justify-between text-[#666] text-[1.4rem]">
+                                    <div className="flex justify-between text-[#666] text-[0.875rem]">
                                         <span className="font-medium">Phí vận chuyển</span>
                                         <span className="font-bold text-client-secondary">
                                             {calculatingFee ? "Đang tính..." : (shippingFee !== null && shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
@@ -895,14 +895,14 @@ export const CheckoutPage = () => {
                                     </div>
 
                                     <div className="pt-[20px] border-t border-[#eee] flex justify-between items-center">
-                                        <span className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[2.6rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
+                                        <span className="text-[1rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
+                                        <div className="text-[1.625rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
                                     </div>
 
                                     <button
                                         onClick={handleSubmit(handlePlaceOrder)}
                                         disabled={isPlacingOrder}
-                                        className={`w-full mt-[10px] py-[16px] px-[30px] rounded-[40px] text-white font-bold transition-all text-[1.6rem] flex items-center justify-center gap-2 ${isPlacingOrder
+                                        className={`w-full mt-[10px] py-[16px] px-[30px] rounded-[40px] text-white font-bold transition-all text-[1rem] flex items-center justify-center gap-2 ${isPlacingOrder
                                             ? 'bg-gray-400 cursor-not-allowed'
                                             : 'bg-client-primary hover:bg-client-secondary cursor-pointer active:scale-95'
                                             }`}
@@ -931,13 +931,13 @@ export const CheckoutPage = () => {
                 <div className="app-container p-[80px] text-center pb-[150px]">
                     <div className="w-[160px] h-[160px] bg-white rounded-full flex items-center justify-center mx-auto mb-[40px] border-4 border-dashed border-gray-100 shadow-xl">
                         <ShoppingCartOutlinedIcon style={{
-                            fontSize: "7rem",
+                            fontSize: "4.375rem",
                             color: "#eee"
                         }} />
                     </div>
-                    <div className="text-client-secondary text-[3.2rem] font-black font-secondary mb-[20px] uppercase tracking-tighter">Giỏ hàng trống trơn!</div>
-                    <p className="max-w-[600px] mx-auto mb-[50px] text-client-text text-[1.8rem] leading-relaxed opacity-60">Bạn chưa chọn được món nào ưng ý sao? Hãy cùng khám phá thêm hàng ngàn sản phẩm tuyệt vời khác từ chúng tôi nhé!</p>
-                    <Link to="/shop" className="px-[60px] py-[22px] inline-flex bg-client-primary hover:bg-client-secondary transition-all text-white rounded-[9999px] font-black font-secondary text-[1.8rem] shadow-2xl shadow-client-primary/30 active:scale-95 uppercase tracking-[0.3em] italic">
+                    <div className="text-client-secondary text-[2rem] font-black font-secondary mb-[20px] uppercase tracking-tighter">Giỏ hàng trống trơn!</div>
+                    <p className="max-w-[600px] mx-auto mb-[50px] text-client-text text-[1.125rem] leading-relaxed opacity-60">Bạn chưa chọn được món nào ưng ý sao? Hãy cùng khám phá thêm hàng ngàn sản phẩm tuyệt vời khác từ chúng tôi nhé!</p>
+                    <Link to="/shop" className="px-[60px] py-[22px] inline-flex bg-client-primary hover:bg-client-secondary transition-all text-white rounded-[9999px] font-black font-secondary text-[1.125rem] shadow-2xl shadow-client-primary/30 active:scale-95 uppercase tracking-[0.3em] italic">
                         Tiếp tục mua hàng
                     </Link>
                 </div>

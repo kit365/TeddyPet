@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+﻿import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Collapse, ListSubheader, Stack } from '@mui/material';
 import { ArrowIcon } from "../../../assets/icons";
@@ -32,7 +32,7 @@ export const NavGroup = memo(({ title, data }: Props) => {
                         textTransform: 'uppercase',
                         color: '#919EAB',
                         fontWeight: "700",
-                        fontSize: "1.1rem",
+                        fontSize: "0.6875rem",
                         padding: "16px 8px 8px 12px",
                         position: "relative",
                         lineHeight: "1.5",
@@ -47,7 +47,7 @@ export const NavGroup = memo(({ title, data }: Props) => {
                 >
                     <ArrowIcon
                         sx={{
-                            fontSize: "1.6rem",
+                            fontSize: "1rem",
                             position: "absolute",
                             left: "-4px",
                             top: "15px",

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
@@ -83,7 +83,7 @@ export const ProductCategoryList = () => {
                                 columnUnsortedIcon: UnsortedIcon,
                                 noRowsOverlay: () => (
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.8rem]">{t('admin.common.no_data')}</span>}
+                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">{t('admin.common.no_data')}</span>}
                                     </Box>
                                 ),
                             }}

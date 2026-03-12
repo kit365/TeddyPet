@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, FormControl, InputLabel, FormHelperText, createTheme } from "@mui/material"
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, FormControl, InputLabel, FormHelperText, createTheme } from "@mui/material"
 import { useTranslation } from "react-i18next";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
@@ -47,7 +47,7 @@ export const BlogCreatePage = () => {
                         padding: 0,
                     },
                     option: {
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         padding: '6px',
                         marginBottom: '4px',
                         borderRadius: '6px',
@@ -248,9 +248,9 @@ export const BlogCreatePage = () => {
                                                 sx={{
                                                     '& .MuiAutocomplete-clearIndicator': {
                                                         color: "#637381",
-                                                        fontSize: "2.4rem",
+                                                        fontSize: "1.5rem",
                                                         '& .MuiSvgIcon-root': {
-                                                            fontSize: '1.8rem',
+                                                            fontSize: '1.125rem',
                                                         },
                                                     },
                                                     '& .MuiFormLabel-root': {
@@ -277,7 +277,7 @@ export const BlogCreatePage = () => {
                                                     "& .MuiChip-root": {
                                                         backgroundColor: "rgba(0, 184, 217, 0.16)",
                                                         color: "#006C9C",
-                                                        fontSize: "1.3rem",
+                                                        fontSize: "0.8125rem",
                                                         height: "24px",
                                                         borderRadius: "8px",
                                                     },
@@ -291,7 +291,7 @@ export const BlogCreatePage = () => {
                                                     "& .MuiChip-deleteIcon": {
                                                         color: "rgb(0, 108, 156)",
                                                         opacity: "0.48",
-                                                        fontSize: "1.5rem",
+                                                        fontSize: "0.9375rem",
                                                         marginRight: "4px",
                                                         marginLeft: "-4px"
                                                     },
@@ -342,10 +342,10 @@ export const BlogCreatePage = () => {
                                 disabled={isPending}
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: "4.8rem",
-                                    minWidth: "6.4rem",
+                                    minHeight: "3rem",
+                                    minWidth: "4rem",
                                     fontWeight: 700,
-                                    fontSize: "1.4rem",
+                                    fontSize: "0.875rem",
                                     padding: "8px 16px",
                                     borderRadius: "8px",
                                     textTransform: "none",

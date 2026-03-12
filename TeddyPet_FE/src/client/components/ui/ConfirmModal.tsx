@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { WarningCircle, CheckCircle, Xmark } from 'iconoir-react';
 
 interface ConfirmModalProps {
@@ -59,10 +59,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         {icons[type]}
                     </div>
 
-                    <h3 className="text-[2.6rem] font-black text-client-secondary mb-4 uppercase tracking-tighter">
+                    <h3 className="text-[1.625rem] font-black text-client-secondary mb-4 uppercase tracking-tighter">
                         {title}
                     </h3>
-                    <p className="text-[1.6rem] text-gray-500 font-medium leading-relaxed mb-10">
+                    <p className="text-[1rem] text-gray-500 font-medium leading-relaxed mb-10">
                         {message}
                     </p>
 
@@ -70,7 +70,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         <button
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className={`h-[65px] w-full rounded-[24px] text-white font-black text-[1.6rem] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${btnColors[type]} disabled:opacity-50 disabled:scale-100`}
+                            className={`h-[65px] w-full rounded-[24px] text-white font-black text-[1rem] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${btnColors[type]} disabled:opacity-50 disabled:scale-100`}
                         >
                             {isLoading ? (
                                 <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -82,7 +82,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="h-[60px] w-full bg-gray-50 text-gray-400 font-bold text-[1.5rem] rounded-[24px] hover:bg-gray-100 transition-all active:scale-95 disabled:opacity-50"
+                            className="h-[60px] w-full bg-gray-50 text-gray-400 font-bold text-[0.9375rem] rounded-[24px] hover:bg-gray-100 transition-all active:scale-95 disabled:opacity-50"
                         >
                             {cancelText}
                         </button>

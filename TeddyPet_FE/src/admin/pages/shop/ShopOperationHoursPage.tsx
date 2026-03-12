@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
@@ -84,7 +84,7 @@ export const ShopOperationHoursPage = () => {
         <>
             <ListHeader
                 title="Giờ hoạt động & ngày lễ"
-                titleSx={{ fontSize: '2.6rem' }}
+                titleSx={{ fontSize: '1.625rem' }}
                 breadcrumbItems={[
                     { label: 'Trang chủ', to: '/' },
                     { label: 'Cài đặt lịch' },
@@ -93,18 +93,18 @@ export const ShopOperationHoursPage = () => {
                     <Button
                         onClick={() => navigate(`/${prefixAdmin}/time-slot-exception/list`)}
                         variant="outlined"
-                        sx={{ textTransform: 'none', fontSize: '1.5rem' }}
+                        sx={{ textTransform: 'none', fontSize: '0.9375rem' }}
                     >
                         Quản lý ngoại lệ
                     </Button>
                 }
             />
 
-            <Card sx={{ borderRadius: '16px', overflow: 'hidden', mx: 5, fontSize: '1.5rem' }}>
+            <Card sx={{ borderRadius: '16px', overflow: 'hidden', mx: 5, fontSize: '0.9375rem' }}>
                 <CardContent sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" gap={2} mb={3}>
-                        <ScheduleIcon sx={{ color: '#ffbaa0', fontSize: '2.8rem' }} />
-                        <Typography variant="h6" sx={{ fontSize: '1.8rem', fontWeight: 600 }}>Giờ hoạt động theo ngày trong tuần</Typography>
+                        <ScheduleIcon sx={{ color: '#ffbaa0', fontSize: '1.75rem' }} />
+                        <Typography variant="h6" sx={{ fontSize: '1.125rem', fontWeight: 600 }}>Giờ hoạt động theo ngày trong tuần</Typography>
                     </Stack>
 
                     {isLoading ? (
@@ -112,22 +112,22 @@ export const ShopOperationHoursPage = () => {
                             <CircularProgress />
                         </Box>
                     ) : (
-                        <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.5rem' }, '& th': { fontWeight: 700, fontSize: '1.5rem' } }}>
+                        <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '0.9375rem' }, '& th': { fontWeight: 700, fontSize: '0.9375rem' } }}>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Thứ</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Nghỉ</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Giờ mở cửa</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Giờ đóng cửa</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Nghỉ trưa từ</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, fontSize: '1.5rem' }}>Nghỉ trưa đến</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Thứ</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Nghỉ</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Giờ mở cửa</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Giờ đóng cửa</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Nghỉ trưa từ</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>Nghỉ trưa đến</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {rows.map((r) => (
                                     <TableRow key={r.dayOfWeek}>
-                                        <TableCell sx={{ fontSize: '1.5rem' }}>{DAY_NAMES[r.dayOfWeek] ?? `Thứ ${r.dayOfWeek}`}</TableCell>
-                                        <TableCell sx={{ fontSize: '1.5rem' }}>
+                                        <TableCell sx={{ fontSize: '0.9375rem' }}>{DAY_NAMES[r.dayOfWeek] ?? `Thứ ${r.dayOfWeek}`}</TableCell>
+                                        <TableCell sx={{ fontSize: '0.9375rem' }}>
                                             <FormControlLabel
                                                 control={
                                                     <Switch
@@ -135,7 +135,7 @@ export const ShopOperationHoursPage = () => {
                                                         onChange={(e) => updateRow(r.dayOfWeek, { isDayOff: e.target.checked })}
                                                     />
                                                 }
-                                                label={<span style={{ fontSize: '1.5rem' }}>{r.isDayOff ? 'Nghỉ' : 'Làm'}</span>}
+                                                label={<span style={{ fontSize: '0.9375rem' }}>{r.isDayOff ? 'Nghỉ' : 'Làm'}</span>}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -147,7 +147,7 @@ export const ShopOperationHoursPage = () => {
                                                 disabled={!!r.isDayOff}
                                                 InputLabelProps={{ shrink: true }}
                                                 fullWidth
-                                                InputProps={{ sx: { fontSize: '1.5rem' } }}
+                                                InputProps={{ sx: { fontSize: '0.9375rem' } }}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -159,7 +159,7 @@ export const ShopOperationHoursPage = () => {
                                                 disabled={!!r.isDayOff}
                                                 InputLabelProps={{ shrink: true }}
                                                 fullWidth
-                                                InputProps={{ sx: { fontSize: '1.5rem' } }}
+                                                InputProps={{ sx: { fontSize: '0.9375rem' } }}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -172,7 +172,7 @@ export const ShopOperationHoursPage = () => {
                                                 InputLabelProps={{ shrink: true }}
                                                 placeholder="12:00"
                                                 fullWidth
-                                                InputProps={{ sx: { fontSize: '1.5rem' } }}
+                                                InputProps={{ sx: { fontSize: '0.9375rem' } }}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -185,7 +185,7 @@ export const ShopOperationHoursPage = () => {
                                                 InputLabelProps={{ shrink: true }}
                                                 placeholder="13:00"
                                                 fullWidth
-                                                InputProps={{ sx: { fontSize: '1.5rem' } }}
+                                                InputProps={{ sx: { fontSize: '0.9375rem' } }}
                                             />
                                         </TableCell>
                                     </TableRow>
@@ -199,7 +199,7 @@ export const ShopOperationHoursPage = () => {
                             variant="contained"
                             onClick={handleSave}
                             disabled={isPending}
-                            sx={{ background: '#1C252E', fontSize: '1.5rem', py: 1.5, '&:hover': { background: '#454F5B' } }}
+                            sx={{ background: '#1C252E', fontSize: '0.9375rem', py: 1.5, '&:hover': { background: '#454F5B' } }}
                         >
                             {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                         </Button>

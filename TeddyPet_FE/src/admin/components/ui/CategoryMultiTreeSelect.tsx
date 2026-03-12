@@ -1,4 +1,4 @@
-import {
+﻿import {
     Box,
     Checkbox,
     FormControl,
@@ -210,7 +210,7 @@ export const CategoryMultiTreeSelect = ({
                             sx={{
                                 pl: 2 + cat.level * 3,
                                 py: '8px',
-                                fontSize: '1.4rem',
+                                fontSize: '0.875rem',
                                 fontWeight: cat.level === 0 ? 600 : 400,
                                 gap: '8px'
                             }}
@@ -228,20 +228,20 @@ export const CategoryMultiTreeSelect = ({
                             <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                                 {cat.level > 0 && (
                                     <SubdirectoryArrowRightIcon
-                                        sx={{ fontSize: '1.6rem', color: '#919EAB', mr: 1, opacity: 0.5 }}
+                                        sx={{ fontSize: '1rem', color: '#919EAB', mr: 1, opacity: 0.5 }}
                                     />
                                 )}
                                 {cat.level === 0 ? (
-                                    <FolderIcon sx={{ fontSize: '1.8rem', mr: 1, color: '#FFAB00' }} />
+                                    <FolderIcon sx={{ fontSize: '1.125rem', mr: 1, color: '#FFAB00' }} />
                                 ) : (
-                                    <FolderOpenIcon sx={{ fontSize: '1.8rem', mr: 1, color: '#919EAB' }} />
+                                    <FolderOpenIcon sx={{ fontSize: '1.125rem', mr: 1, color: '#919EAB' }} />
                                 )}
                                 <ListItemText
                                     primary={cat.name}
                                     slotProps={{
                                         primary: {
                                             sx: {
-                                                fontSize: '1.4rem',
+                                                fontSize: '0.875rem',
                                                 fontWeight: 'inherit',
                                                 color: cat.level === 0 ? "#1C252E" : "#637381"
                                             }

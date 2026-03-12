@@ -1,4 +1,4 @@
-import { createTheme, Theme } from '@mui/material';
+﻿import { createTheme, Theme } from '@mui/material';
 
 export const getServiceTheme = (outerTheme: Theme) =>
     createTheme(outerTheme, {
@@ -18,8 +18,8 @@ export const getServiceTheme = (outerTheme: Theme) =>
                 styleOverrides: {
                     root: {
                         color: '#919EAB',
-                        fontSize: '1.5rem',
-                        '&.Mui-focused': { color: '#1C252E', fontWeight: '600', fontSize: '1.5rem' },
+                        fontSize: '0.9375rem',
+                        '&.Mui-focused': { color: '#1C252E', fontWeight: '600', fontSize: '0.9375rem' },
                     },
                 },
             },
@@ -28,7 +28,7 @@ export const getServiceTheme = (outerTheme: Theme) =>
                     root: {
                         color: '#1C252E',
                         borderRadius: '8px',
-                        fontSize: '1.5rem',
+                        fontSize: '0.9375rem',
                         '& .MuiOutlinedInput-notchedOutline': { borderColor: '#919eab33' },
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#1C252E' },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#1C252E', borderWidth: '2px' },

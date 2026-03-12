@@ -1,4 +1,4 @@
-import { Avatar, Box, LinearProgress, Link, ListItemText } from "@mui/material";
+﻿import { Avatar, Box, LinearProgress, Link, ListItemText } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridRenderCellParams } from "@mui/x-data-grid";
 import { DeleteIcon, EditIcon, EyeIcon } from "../../../assets/icons/index";
 import { COLORS } from "../configs/constants";
@@ -46,7 +46,7 @@ export const RenderProductCell = (params: GridRenderCellParams) => {
                         sx={{
                             color: COLORS.primary,
                             fontWeight: 600,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             transition: 'color 0.2s',
                         }}
                     >
@@ -55,11 +55,11 @@ export const RenderProductCell = (params: GridRenderCellParams) => {
                 }
                 secondary={
                     <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                        <Box component="span" sx={{ color: '#919EAB', fontSize: "1.3rem" }}>{category}</Box>
+                        <Box component="span" sx={{ color: '#919EAB', fontSize: "0.8125rem" }}>{category}</Box>
                         {params.row.petTypes && params.row.petTypes.length > 0 && (
                             <>
-                                <Box component="span" sx={{ color: '#919EAB', fontSize: "1.3rem" }}>•</Box>
-                                <Box component="span" sx={{ color: '#00B8D9', fontSize: "1.3rem", fontWeight: 600 }}>
+                                <Box component="span" sx={{ color: '#919EAB', fontSize: "0.8125rem" }}>•</Box>
+                                <Box component="span" sx={{ color: '#00B8D9', fontSize: "0.8125rem", fontWeight: 600 }}>
                                     {params.row.petTypes.map((t: string) => t === 'DOG' ? 'Chó' : (t === 'CAT' ? 'Mèo' : 'Khác')).join(', ')}
                                 </Box>
                             </>
@@ -85,7 +85,7 @@ export const RenderCreatedAtCell = (params: GridRenderCellParams) => {
 
     if (!rawDate || isNaN(new Date(rawDate).getTime())) {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', fontSize: '1.4rem', color: COLORS.secondary }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', fontSize: '0.875rem', color: COLORS.secondary }}>
                 N/A
             </Box>
         );
@@ -107,7 +107,7 @@ export const RenderCreatedAtCell = (params: GridRenderCellParams) => {
             }}>
             <span
                 style={{
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                     fontWeight: 600,
                     color: COLORS.primary,
                     transition: 'color 0.2s',
@@ -119,7 +119,7 @@ export const RenderCreatedAtCell = (params: GridRenderCellParams) => {
                 className="date-text"
                 component='span'
                 sx={{
-                    fontSize: "1.3rem",
+                    fontSize: "0.8125rem",
                     color: COLORS.secondary,
                     fontWeight: 500
                 }}
@@ -164,7 +164,7 @@ export const RenderStockCell = (params: GridRenderCellParams) => {
                 justifyContent: 'center',
                 height: '100%',
                 width: '100%',
-                fontSize: "1.2rem",
+                fontSize: "0.75rem",
                 color: "#637381"
             }}
         >
@@ -229,7 +229,7 @@ export const RenderStatusCell = (params: RenderStatusCellProps) => {
                     px: '8px',
                     minWidth: '50px',
                     borderRadius: '6px',
-                    fontSize: '1.3rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 700,
                     color: text,
                     bgcolor: bg,
@@ -259,7 +259,7 @@ export const RenderStockStatusCell = (params: GridRenderCellParams) => {
     }
 
     return (
-        <span style={{ color: color, fontWeight: 600, fontSize: '1.4rem' }}>
+        <span style={{ color: color, fontWeight: 600, fontSize: '0.875rem' }}>
             {label}
         </span>
     );
@@ -271,7 +271,7 @@ export const RenderProductTypeCell = (params: GridRenderCellParams) => {
 
     // You might want icons here
     return (
-        <span style={{ fontWeight: 600, fontSize: '1.3rem', color: '#637381' }}>
+        <span style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#637381' }}>
             {type === "SIMPLE" ? "Simple" : "Variable"}
         </span>
     );
@@ -294,7 +294,7 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             fontWeight: "600"
                         },
                     },
@@ -308,7 +308,7 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             fontWeight: "600"
                         },
                     },
@@ -338,7 +338,7 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             fontWeight: "600",
                             color: "#FF5630"
                         },

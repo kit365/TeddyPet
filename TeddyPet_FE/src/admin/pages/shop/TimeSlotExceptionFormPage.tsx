@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Stack, TextField, Button, FormControlLabel, Checkbox, MenuItem, Typography } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
@@ -12,8 +12,8 @@ import { useTimeSlotExceptionDetail, useCreateOrUpdateTimeSlotException } from '
 import { useServices } from '../service/hooks/useService';
 import { toast } from 'react-toastify';
 
-const FONT_LARGE = { fontSize: '1.5rem', '& .MuiInputBase-input': { fontSize: '1.5rem' }, '& .MuiInputLabel-root': { fontSize: '1.5rem' }, '& .MuiFormHelperText-root': { fontSize: '1.3rem' } };
-const LABEL_FONT = { fontSize: '1.4rem' };
+const FONT_LARGE = { fontSize: '0.9375rem', '& .MuiInputBase-input': { fontSize: '0.9375rem' }, '& .MuiInputLabel-root': { fontSize: '0.9375rem' }, '& .MuiFormHelperText-root': { fontSize: '0.8125rem' } };
+const LABEL_FONT = { fontSize: '0.875rem' };
 
 const schema = z
     .object({
@@ -111,13 +111,13 @@ export const TimeSlotExceptionFormPage = () => {
         );
     };
 
-    if (isEdit && isLoading) return <div className="p-8" style={{ fontSize: '1.5rem' }}>Đang tải...</div>;
+    if (isEdit && isLoading) return <div className="p-8" style={{ fontSize: '0.9375rem' }}>Đang tải...</div>;
 
     return (
-        <div className="mb-[40px]" style={{ fontSize: '1.5rem' }}>
+        <div className="mb-[40px]" style={{ fontSize: '0.9375rem' }}>
             <div className="mb-[40px] gap-[16px] flex items-start justify-end">
                 <div className="mr-auto">
-                    <Title title={isEdit ? 'Sửa ngoại lệ' : 'Thêm ngoại lệ'} sx={{ fontSize: '2.6rem' }} />
+                    <Title title={isEdit ? 'Sửa ngoại lệ' : 'Thêm ngoại lệ'} sx={{ fontSize: '1.625rem' }} />
                     <Breadcrumb
                         items={[
                             { label: 'Trang chủ', to: '/' },
@@ -132,7 +132,7 @@ export const TimeSlotExceptionFormPage = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
                 <Stack sx={{ margin: '0px 120px', gap: '40px' }}>
                     <CollapsibleCard title="Thông tin" subheader="Chi tiết ngoại lệ" expanded={expanded} onToggle={() => setExpanded((p) => !p)}>
-                        <Stack p="24px" gap="24px" sx={{ fontSize: '1.5rem' }}>
+                        <Stack p="24px" gap="24px" sx={{ fontSize: '0.9375rem' }}>
                             <Controller
                                 name="timeExceptionName"
                                 control={control}
@@ -205,7 +205,7 @@ export const TimeSlotExceptionFormPage = () => {
                                 render={({ field }) => (
                                     <FormControlLabel
                                         control={<Checkbox {...field} checked={!!field.value} />}
-                                        label={<Typography sx={{ fontSize: '1.4rem' }}>Lặp lại hàng năm (VD: Giỗ tổ, 30/4)</Typography>}
+                                        label={<Typography sx={{ fontSize: '0.875rem' }}>Lặp lại hàng năm (VD: Giỗ tổ, 30/4)</Typography>}
                                     />
                                 )}
                             />
@@ -229,10 +229,10 @@ export const TimeSlotExceptionFormPage = () => {
                         </Stack>
                     </CollapsibleCard>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Button type="button" variant="outlined" onClick={() => navigate(`/${prefixAdmin}/time-slot-exception/list`)} sx={{ fontSize: '1.4rem' }}>
+                        <Button type="button" variant="outlined" onClick={() => navigate(`/${prefixAdmin}/time-slot-exception/list`)} sx={{ fontSize: '0.875rem' }}>
                             Hủy
                         </Button>
-                        <Button type="submit" variant="contained" disabled={isPending} sx={{ background: '#1C252E', fontSize: '1.4rem', '&:hover': { background: '#454F5B' } }}>
+                        <Button type="submit" variant="contained" disabled={isPending} sx={{ background: '#1C252E', fontSize: '0.875rem', '&:hover': { background: '#454F5B' } }}>
                             {isPending ? 'Đang lưu...' : 'Lưu'}
                         </Button>
                     </Box>

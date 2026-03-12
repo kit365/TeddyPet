@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+﻿import { createTheme } from '@mui/material/styles';
 import { createElement } from 'react';
 import SvgIcon from '@mui/material/SvgIcon';
 import type { } from '@mui/x-data-grid/themeAugmentation';
@@ -47,7 +47,7 @@ export const adminTheme = createTheme({
         MuiMenuItem: {
             styleOverrides: {
                 root: {
-                    fontSize: '1.4rem',
+                    fontSize: '0.875rem',
                     color: '#1C252E',
                     marginBottom: '4px',
                     padding: '6px 8px',
@@ -62,11 +62,11 @@ export const adminTheme = createTheme({
             styleOverrides: {
                 root: {
                     color: "#919EAB",
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                     '&.Mui-focused': {
                         color: "#1C252E",
                         fontWeight: "600",
-                        fontSize: "1.5rem"
+                        fontSize: "0.9375rem"
                     },
                     '&.Mui-error': {
                         color: '#FF5630 !important'
@@ -79,7 +79,7 @@ export const adminTheme = createTheme({
                 root: {
                     color: "#1C252E",
                     borderRadius: "8px",
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                     '& .MuiOutlinedInput-notchedOutline': {
                         borderColor: "#919eab33",
                         transition: 'border-color 0.2s',
@@ -127,17 +127,33 @@ export const adminTheme = createTheme({
                     padding: '4px',
                     color: '#637381',
                     '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: '#00A76F' },
-                    '& .MuiSvgIcon-root': { fontSize: '2rem' },
+                    '& .MuiSvgIcon-root': { fontSize: '1.25rem' },
                 },
             },
         },
         MuiPaper: {
             styleOverrides: {
                 root: {
-                    ...backgroundPopup,
                     padding: "4px",
                     '& .MuiList-root': { padding: 0 },
+                    '&.background-popup': {
+                        ...backgroundPopup,
+                    }
                 },
+            }
+        },
+        MuiMenu: {
+            defaultProps: {
+                PaperProps: {
+                    className: 'background-popup'
+                }
+            }
+        },
+        MuiPopover: {
+            defaultProps: {
+                PaperProps: {
+                    className: 'background-popup'
+                }
             }
         },
         MuiDataGrid: {
@@ -155,6 +171,13 @@ export const adminTheme = createTheme({
             }
         },
         MuiSelect: {
+            defaultProps: {
+                MenuProps: {
+                    PaperProps: {
+                        className: 'background-popup'
+                    }
+                }
+            },
             styleOverrides: {
                 root: { '&.Mui-error .MuiSelect-icon': { color: '#FF5630 !important' } },
                 icon: {
@@ -166,10 +189,19 @@ export const adminTheme = createTheme({
                 }
             }
         },
+        MuiAutocomplete: {
+            defaultProps: {
+                slotProps: {
+                    paper: {
+                        className: 'background-popup'
+                    }
+                }
+            } as any
+        },
         MuiFormHelperText: {
             styleOverrides: {
                 root: {
-                    fontSize: '1.2rem', fontWeight: '500', marginTop: '6px',
+                    fontSize: '0.75rem', fontWeight: '500', marginTop: '6px',
                     marginLeft: '12px', marginRight: '12px',
                     '&.Mui-error': { color: '#FF5630 !important' }
                 }
@@ -185,7 +217,7 @@ export const adminTheme = createTheme({
         MuiTooltip: {
             styleOverrides: {
                 tooltip: {
-                    fontSize: "1.1rem",
+                    fontSize: "0.6875rem",
                     backgroundColor: "#1C252E",
                     borderRadius: "6px",
 

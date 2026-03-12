@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
 import { RoomList } from './sections/RoomList';
@@ -37,7 +37,7 @@ export const RoomListPage = () => {
                             sx={{
                                 bgcolor: '#fff',
                                 borderRadius: 1,
-                                '& .MuiOutlinedInput-root': { fontSize: '1.4rem' },
+                                '& .MuiOutlinedInput-root': { fontSize: '0.875rem' },
                             }}
                         />
                     </Box>

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Drawer,
   Typography,
   Box,
@@ -30,10 +30,10 @@ const InfoRow = ({
 }) => (
   <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 2 }}>
     <Box sx={{ minWidth: 180 }}>
-      <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: "1.4rem", display: "block", mb: 0.5 }}>
+      <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.875rem", display: "block", mb: 0.5 }}>
         {label}
       </Typography>
-      <Typography sx={{ fontSize: "1.55rem", color: "text.primary", fontWeight: 500 }}>
+      <Typography sx={{ fontSize: "0.9688rem", color: "text.primary", fontWeight: 500 }}>
         {value !== undefined && value !== null && value !== "" ? String(value) : "—"}
       </Typography>
     </Box>
@@ -64,7 +64,7 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
     >
       <Box sx={{ p: 3, height: "100%", overflow: "auto" }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: "1.8rem", color: "#1C252E" }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: "1.125rem", color: "#1C252E" }}>
             Chi tiết thú cưng
           </Typography>
           <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>

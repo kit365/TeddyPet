@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { LogoTeddyPet } from "../../../../assets/admin/LogoTeddyPet";
 import { NavGroup } from "./NavGroup";
@@ -75,7 +75,7 @@ export const SideBar = () => {
                     border: "1px solid #919eab1f",
                     pointerEvents: "auto",
                 }}>
-                <ArrowIcon sx={{ fontSize: "1.6rem", rotate: isOpen ? "90deg" : "270deg" }} />
+                <ArrowIcon sx={{ fontSize: "1rem", rotate: isOpen ? "90deg" : "270deg" }} />
             </IconButton>
 
             <div className={isOpen

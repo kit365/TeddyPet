@@ -1,4 +1,4 @@
-import {
+﻿import {
     DataGrid,
     GridColDef,
 } from '@mui/x-data-grid';
@@ -53,7 +53,7 @@ const CustomNoRowsOverlay = () => {
                     className="w-full h-full object-contain filter grayscale opacity-60"
                 />
             </div>
-            <Typography variant="body1" sx={{ fontSize: '1.5rem', fontWeight: 500, color: 'text.secondary' }}>
+            <Typography variant="body1" sx={{ fontSize: '0.9375rem', fontWeight: 500, color: 'text.secondary' }}>
                 Không tìm thấy sản phẩm nào
             </Typography>
         </Stack>
@@ -133,7 +133,7 @@ export const ProductList = () => {
                         pt: 1,
                         borderBottom: '1px solid rgba(145, 158, 171, 0.1)',
                         '& .MuiTab-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: 700,
                             textTransform: 'none',
                             minWidth: 100,
@@ -179,13 +179,13 @@ export const ProductList = () => {
                                 '& fieldset': { border: 'none' },
                                 '&:hover fieldset': { border: 'none' },
                                 '&.Mui-focused fieldset': { border: '1px solid #1C252E' },
-                                fontSize: '1.5rem'
+                                fontSize: '0.9375rem'
                             }
                         }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start" sx={{ mr: 0.5 }}>
-                                    <SearchIcon sx={{ color: 'text.secondary', fontSize: '2rem' }} />
+                                    <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
                                 </InputAdornment>
                             ),
                         }}
@@ -235,7 +235,7 @@ export const ProductList = () => {
                                 sx={{ 
                                     fontWeight: 700, 
                                     textTransform: 'none', 
-                                    fontSize: '1.3rem', 
+                                    fontSize: '0.8125rem', 
                                     whiteSpace: 'nowrap',
                                     borderRadius: '10px',
                                     px: 2,
@@ -268,8 +268,8 @@ export const ProductList = () => {
                         alignItems: 'center',
                         gap: 1
                     }}>
-                        <FilterListIcon sx={{ color: '#00A76F', fontSize: '1.8rem' }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#00A76F', fontSize: '1.4rem' }}>
+                        <FilterListIcon sx={{ color: '#00A76F', fontSize: '1.125rem' }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#00A76F', fontSize: '0.875rem' }}>
                             Kết quả tìm kiếm: 
                             <Box component="span" sx={{ ml: 0.5, color: '#1C252E' }}>
                                 {products.length} sản phẩm
@@ -321,11 +321,11 @@ export const ProductList = () => {
                                 bgcolor: '#F4F6F8',
                                 color: '#637381',
                                 fontWeight: 700,
-                                fontSize: '1.4rem'
+                                fontSize: '0.875rem'
                             },
                             '& .MuiDataGrid-cell': {
                                 borderBottom: '1px dashed rgba(145, 158, 171, 0.2)',
-                                fontSize: '1.4rem'
+                                fontSize: '0.875rem'
                             }
                         }}
                     />

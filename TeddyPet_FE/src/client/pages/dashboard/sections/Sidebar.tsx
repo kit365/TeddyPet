@@ -1,4 +1,4 @@
-import {
+﻿import {
     User, MapPin, PawPrint, Package,
     LogOut, Camera, ShieldCheck
 } from 'lucide-react';
@@ -16,7 +16,7 @@ interface SidebarItemProps {
 const SidebarItem = ({ to, icon: Icon, label, active }: SidebarItemProps) => (
     <Link
         to={to}
-        className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] transition-all ${active
+        className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[0.875rem] transition-all ${active
             ? `bg-client-primary text-white shadow-lg shadow-red-100 translate-x-2`
             : `text-slate-500 hover:bg-slate-50 hover:text-client-primary`
             }`}
@@ -50,13 +50,13 @@ export const Sidebar = () => {
     return (
         <div className="space-y-6">
             {/* User Brief Card */}
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/60 border border-white p-8 text-center relative overflow-hidden">
+            <div className="bg-white rounded-[1.5625rem] shadow-xl shadow-slate-200/60 border border-white p-8 text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-client-primary to-orange-400"></div>
 
                 <div className="relative inline-block mb-6">
                     <img
                         src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                        className="w-28 h-28 rounded-[2rem] border-4 border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
+                        className="w-28 h-28 rounded-[1.25rem] border-4 border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
                         alt="avatar"
                     />
                     <label htmlFor="profile_photo" className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg hover:scale-110 transition-transform border-4 border-white cursor-pointer">
@@ -68,15 +68,15 @@ export const Sidebar = () => {
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
                     {user.lastName} {user.firstName}
                 </h2>
-                <p className="text-[1.2rem] font-bold text-slate-400 uppercase tracking-widest mt-2">
+                <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-widest mt-2">
                     {user.email}
                 </p>
             </div>
 
             {/* Navigation Menu */}
-            <div className="bg-white p-3 rounded-[2.5rem] shadow-lg shadow-slate-200/40 border border-slate-100">
+            <div className="bg-white p-3 rounded-[1.5625rem] shadow-lg shadow-slate-200/40 border border-slate-100">
                 <div className="px-5 py-3">
-                    <p className="text-[1rem] font-black text-slate-300 uppercase tracking-[0.2em]">Tổng quan tài khoản</p>
+                    <p className="text-[0.625rem] font-black text-slate-300 uppercase tracking-[0.2em]">Tổng quan tài khoản</p>
                 </div>
                 <div className="space-y-1">
                     <SidebarItem
@@ -108,7 +108,7 @@ export const Sidebar = () => {
                 <div className="h-px bg-slate-50 my-3 mx-5"></div>
 
                 <div className="px-5 py-3">
-                    <p className="text-[1rem] font-black text-slate-300 uppercase tracking-[0.2em]">Cài đặt & Bảo mật</p>
+                    <p className="text-[0.625rem] font-black text-slate-300 uppercase tracking-[0.2em]">Cài đặt & Bảo mật</p>
                 </div>
                 <div className="space-y-1">
                     <SidebarItem
@@ -119,7 +119,7 @@ export const Sidebar = () => {
                     />
                     <button
                         onClick={handleLogout}
-                        className="w-[94%] mx-auto flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[1.4rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
+                        className="w-[94%] mx-auto flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[0.875rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
                     >
                         <LogOut size={20} />
                         <span className="flex-1 text-left">Đăng xuất</span>

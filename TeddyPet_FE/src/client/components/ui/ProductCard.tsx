@@ -1,4 +1,4 @@
-import StarIcon from "@mui/icons-material/Star";
+﻿import StarIcon from "@mui/icons-material/Star";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import { Link } from "react-router-dom";
 import type { Product } from "../../../types/products.type";
@@ -24,12 +24,12 @@ export const ProductCard = ({ product }: { product: Product }) => {
                         alt={product.title}
                     />
                     {product.isSoldOut && (
-                        <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[1.2rem] uppercase tracking-normal text-white bg-black/60 rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center pointer-events-none z-10">
+                        <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[0.75rem] uppercase tracking-normal text-white bg-black/60 rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center pointer-events-none z-10">
                             Hết hàng
                         </div>
                     )}
                     {product.isSale && !product.isSoldOut && (
-                        <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[1.2rem] uppercase tracking-normal text-white bg-client-primary rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center">
+                        <div className="px-[10px] absolute right-[20px] top-[20px] inline-flex text-[0.75rem] uppercase tracking-normal text-white bg-client-primary rounded-[30px] min-h-[25px] min-w-[50px] items-center justify-center">
                             SALE
                         </div>
                     )}
@@ -49,7 +49,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                             <StarIcon
                                 key={i}
                                 sx={{
-                                    fontSize: "2rem !important",
+                                    fontSize: "1.25rem !important",
                                     color: i < product.rating ? "#ffbb00 !important" : "#ccc !important",
                                 }}
                             />
@@ -59,7 +59,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                     {/* Title */}
                     <Link
                         to={product.url}
-                        className="block text-client-secondary text-[2.4rem] 2xl:text-[2.3rem] truncate font-secondary leading-[1.8] transition-all duration-[350ms] ease-in-out my-[10px] group-hover:text-white hover:opacity-70"
+                        className="block text-client-secondary text-[1.5rem] 2xl:text-[1.4375rem] truncate font-secondary leading-[1.8] transition-all duration-[350ms] ease-in-out my-[10px] group-hover:text-white hover:opacity-70"
                     >
                         {product.title}
                     </Link>
@@ -70,7 +70,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                             {product.price}
                         </p>
                         {product.oldPrice && (
-                            <p className="text-[#999] line-through text-[1.4rem] font-normal group-hover:text-white opacity-70">
+                            <p className="text-[#999] line-through text-[0.875rem] font-normal group-hover:text-white opacity-70">
                                 {product.oldPrice}
                             </p>
                         )}
@@ -84,7 +84,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                             <div className="w-[50px] h-[50px] rounded-full bg-client-primary flex items-center justify-center duration-[375ms] ease-[cubic-bezier(0.7,0,0.3,1)] group-hover:bg-client-secondary">
                                 <ShoppingCartOutlinedIcon
                                     className="text-white"
-                                    sx={{ fontSize: "2.5rem" }}
+                                    sx={{ fontSize: "1.5625rem" }}
                                 />
                             </div>
                         </Link>

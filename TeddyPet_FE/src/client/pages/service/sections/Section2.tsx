@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+﻿import { Link } from "react-router-dom"
 
 export const Section2 = () => {
     return (
@@ -18,8 +18,8 @@ export const Section2 = () => {
                     />
                     <div className="ml-[10px]">cam kết</div>
                 </div>
-                <h2 className="w-full text-center font-secondary text-[4.5rem] mb-[15px]">Trái tim trung thành – Mái ấm trọn đời.</h2>
-                <p className="text-[#6C6D71] mb-[18px] font-[500] text-[1.8rem]">Dịch vụ chăm sóc toàn diện, mang đến trải nghiệm nghỉ dưỡng thoải mái và an toàn nhất cho thú cưng của bạn.</p>
+                <h2 className="w-full text-center font-secondary text-[2.8125rem] mb-[15px]">Trái tim trung thành – Mái ấm trọn đời.</h2>
+                <p className="text-[#6C6D71] mb-[18px] font-[500] text-[1.125rem]">Dịch vụ chăm sóc toàn diện, mang đến trải nghiệm nghỉ dưỡng thoải mái và an toàn nhất cho thú cưng của bạn.</p>
                 <div className="flex w-full items-center">
                     <div className="w-[50%] p-[46px] relative">
                         <div className="mt-[30px]">
@@ -31,8 +31,8 @@ export const Section2 = () => {
                                 />
                             </div>
                             <div className="w-[65%]">
-                                <h3 className="text-[2.4rem] font-[700] text-[#02000F] mb-[5px]">Khách sạn cho chó</h3>
-                                <p className="mb-[5px] text-[2rem] text-[#02000F]">Chỉ từ <span className="ml-[5px]">100.000đ</span></p>
+                                <h3 className="text-[1.5rem] font-[700] text-[#02000F] mb-[5px]">Khách sạn cho chó</h3>
+                                <p className="mb-[5px] text-[1.25rem] text-[#02000F]">Chỉ từ <span className="ml-[5px]">100.000đ</span></p>
                                 <p className="text-[#6C6D71] font-[500]">Không gian nghỉ dưỡng lý tưởng giúp cún cưng thư giãn, vui chơi và được chăm sóc chu đáo.</p>
                             </div>
                             <Link
@@ -56,8 +56,8 @@ export const Section2 = () => {
                             </div>
                             <div className="flex-1">
                                 <div className="w-[90%]">
-                                    <h3 className="text-[2.4rem] font-[700] text-[#02000F] mb-[5px]">Khách sạn cho mèo</h3>
-                                    <p className="mb-[5px] text-[2rem] text-[#02000F]">Chỉ từ 100.00đ</p>
+                                    <h3 className="text-[1.5rem] font-[700] text-[#02000F] mb-[5px]">Khách sạn cho mèo</h3>
+                                    <p className="mb-[5px] text-[1.25rem] text-[#02000F]">Chỉ từ 100.00đ</p>
                                     <p className="text-[#6C6D71] font-[500]">Dịch vụ lưu trú dành riêng cho mèo, đảm bảo sạch sẽ, riêng tư và được chăm sóc chu đáo từng giờ.</p>
                                 </div>
                                 <Link
@@ -80,8 +80,8 @@ export const Section2 = () => {
                             </div>
                             <div className="flex-1">
                                 <div className="w-[90%]">
-                                    <h3 className="text-[2.4rem] font-[700] text-[#02000F] mb-[5px]">Spa & Chăm sóc thú cưng</h3>
-                                    <p className="mb-[5px] text-[2rem] text-[#02000F]">Chỉ từ 100.00đ</p>
+                                    <h3 className="text-[1.5rem] font-[700] text-[#02000F] mb-[5px]">Spa & Chăm sóc thú cưng</h3>
+                                    <p className="mb-[5px] text-[1.25rem] text-[#02000F]">Chỉ từ 100.00đ</p>
                                     <p className="text-[#6C6D71] font-[500]">Dịch vụ lưu trú dành riêng cho mèo, đảm bảo sạch sẽ, riêng tư và được chăm sóc chu đáo từng giờ.</p>
                                 </div>
                                 <Link

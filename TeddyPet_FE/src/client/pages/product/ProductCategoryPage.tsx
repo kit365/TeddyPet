@@ -1,4 +1,4 @@
-
+﻿
 import { useParams } from "react-router-dom";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { ProductBanner } from "./sections/ProductBanner";
@@ -148,7 +148,7 @@ export const ProductCategoryPage = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 text-[1.6rem] text-gray-500">
+                                <div className="text-center py-20 text-[1rem] text-gray-500">
                                     Không tìm thấy sản phẩm nào trong danh mục này.
                                 </div>
                             )}
@@ -159,7 +159,7 @@ export const ProductCategoryPage = () => {
                                         <li
                                             key={p}
                                             onClick={() => handlePageChange(p)}
-                                            className={`flex items-center cursor-pointer justify-center rounded-full w-[4.5rem] h-[4.5rem] text-[1.6rem] transition-default ${filters.page === p
+                                            className={`flex items-center cursor-pointer justify-center rounded-full w-[2.8125rem] h-[2.8125rem] text-[1rem] transition-default ${filters.page === p
                                                 ? "bg-client-secondary text-white"
                                                 : "bg-client-primary text-white hover:bg-client-secondary"
                                                 }`}

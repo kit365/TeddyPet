@@ -1,4 +1,4 @@
-import { Box, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Typography, Stack, Divider } from '@mui/material';
+﻿import { Box, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Typography, Stack, Divider } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getRoomLayoutConfigById, getRooms, getRoomTypes, setRoomPosition, type IRoom, type IRoomLayoutConfig, type IRoomType } from '../../api/room.api';
@@ -161,7 +161,7 @@ export const RoomLayoutEditorPage = () => {
     }, [placedRooms]);
 
     if (!id || layoutLoading || !layout) {
-        return <Box sx={{ p: '40px' }}><Typography sx={{ fontSize: '1.4rem' }}>Đang tải layout...</Typography></Box>;
+        return <Box sx={{ p: '40px' }}><Typography sx={{ fontSize: '0.875rem' }}>Đang tải layout...</Typography></Box>;
     }
 
     const maxRows = layout.maxRows ?? 10;
@@ -183,7 +183,7 @@ export const RoomLayoutEditorPage = () => {
             {/* Layout info banner */}
             {layout.serviceName && (
                 <Box sx={{ mx: '40px', display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, py: 1.5, borderRadius: '12px', background: 'rgba(0, 184, 217, 0.08)', border: '1px solid rgba(0, 184, 217, 0.24)' }}>
-                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: '#006C9C' }}>
+                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#006C9C' }}>
                         Dịch vụ:
                     </Typography>
                     <Chip
@@ -193,11 +193,11 @@ export const RoomLayoutEditorPage = () => {
                             bgcolor: 'rgba(0, 184, 217, 0.16)',
                             color: '#006C9C',
                             fontWeight: 700,
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             height: 28,
                         }}
                     />
-                    <Typography sx={{ fontSize: '1.3rem', color: '#637381', ml: 1 }}>
+                    <Typography sx={{ fontSize: '0.8125rem', color: '#637381', ml: 1 }}>
                         Chỉ hiển thị phòng thuộc loại phòng của dịch vụ này
                     </Typography>
                 </Box>
@@ -219,7 +219,7 @@ export const RoomLayoutEditorPage = () => {
                     }}
                 >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 700 }}>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
                             Sơ đồ ({maxRows}×{maxCols})
                         </Typography>
                     </Box>
@@ -266,15 +266,15 @@ export const RoomLayoutEditorPage = () => {
                                 >
                                     {room ? (
                                         <Stack alignItems="center" spacing={0.5}>
-                                            <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, color: '#00A76F', lineHeight: 1 }}>
+                                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#00A76F', lineHeight: 1 }}>
                                                 {room.roomNumber ?? ''}
                                             </Typography>
-                                            <Box sx={{ background: '#00A76F', color: '#fff', px: 0.8, py: 0.2, borderRadius: '4px', fontSize: '1rem', fontWeight: 600 }}>
+                                            <Box sx={{ background: '#00A76F', color: '#fff', px: 0.8, py: 0.2, borderRadius: '4px', fontSize: '0.625rem', fontWeight: 600 }}>
                                                 T{room.tier || 1}
                                             </Box>
                                         </Stack>
                                     ) : (
-                                        <Typography sx={{ fontSize: '1rem', color: '#919EAB', fontWeight: 500 }}>
+                                        <Typography sx={{ fontSize: '0.625rem', color: '#919EAB', fontWeight: 500 }}>
                                             {row + 1},{col + 1}
                                         </Typography>
                                     )}
@@ -301,10 +301,10 @@ export const RoomLayoutEditorPage = () => {
                     }}
                 >
                     <Box sx={{ p: 2.5, borderBottom: '1px dashed rgba(145, 158, 171, 0.24)' }}>
-                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 700 }}>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
                             Chuồng chờ xếp
                         </Typography>
-                        <Typography sx={{ fontSize: '1.3rem', color: '#637381', mt: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.8125rem', color: '#637381', mt: 0.5 }}>
                             Kéo và thả vào vị trí trống
                         </Typography>
                     </Box>
@@ -312,8 +312,8 @@ export const RoomLayoutEditorPage = () => {
                     {/* Room type filter */}
                     <Box sx={{ px: 2, pt: 2, pb: 1 }}>
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: '1.3rem' }}>
-                                <FilterListIcon sx={{ fontSize: '1.4rem', mr: 0.5, verticalAlign: 'middle' }} />
+                            <InputLabel sx={{ fontSize: '0.8125rem' }}>
+                                <FilterListIcon sx={{ fontSize: '0.875rem', mr: 0.5, verticalAlign: 'middle' }} />
                                 Lọc theo loại phòng
                             </InputLabel>
                             <Select
@@ -321,13 +321,13 @@ export const RoomLayoutEditorPage = () => {
                                 onChange={(e) => setSelectedRoomTypeFilter(e.target.value as number | '')}
                                 label="Lọc theo loại phòng___"
                                 sx={{
-                                    fontSize: '1.3rem',
+                                    fontSize: '0.8125rem',
                                     borderRadius: '10px',
                                     '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(145,158,171,0.32)' },
                                     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#919EAB' },
                                 }}
                             >
-                                <MenuItem value="" sx={{ fontSize: '1.3rem' }}>
+                                <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>
                                     <em>Tất cả loại phòng ({unplacedRooms.length + (selectedRoomTypeFilter ? (rooms as IRoom[]).filter((r) => {
                                         if (r.roomLayoutConfigId && r.roomLayoutConfigId === layoutId) return false;
                                         if (layoutServiceId) {
@@ -347,7 +347,7 @@ export const RoomLayoutEditorPage = () => {
                                         return r.roomTypeId === rt.roomTypeId;
                                     }).length;
                                     return (
-                                        <MenuItem key={rt.roomTypeId} value={rt.roomTypeId} sx={{ fontSize: '1.3rem' }}>
+                                        <MenuItem key={rt.roomTypeId} value={rt.roomTypeId} sx={{ fontSize: '0.8125rem' }}>
                                             {rt.displayTypeName || rt.typeName} ({count})
                                         </MenuItem>
                                     );
@@ -358,10 +358,10 @@ export const RoomLayoutEditorPage = () => {
 
                     <Box sx={{ p: 2, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         {roomsLoading ? (
-                            <Typography sx={{ fontSize: '1.4rem', color: '#637381', textAlign: 'center', py: 4 }}>Đang tải...</Typography>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#637381', textAlign: 'center', py: 4 }}>Đang tải...</Typography>
                         ) : unplacedRooms.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 4, px: 2, background: '#F9FAFB', borderRadius: '12px', border: '1px dashed rgba(145, 158, 171, 0.24)' }}>
-                                <Typography sx={{ fontSize: '1.4rem', color: '#637381' }}>
+                                <Typography sx={{ fontSize: '0.875rem', color: '#637381' }}>
                                     {selectedRoomTypeFilter ? 'Không có chuồng nào thuộc loại phòng này.' : 'Không có chuồng nào cần xếp.'}
                                 </Typography>
                             </Box>
@@ -390,10 +390,10 @@ export const RoomLayoutEditorPage = () => {
                                 >
                                     <DragIndicatorIcon sx={{ color: '#919EAB' }} />
                                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600 }}>
+                                        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>
                                             {room.roomName || room.roomNumber || `Phòng #${room.roomId}`}
                                         </Typography>
-                                        <Typography sx={{ fontSize: '1.2rem', color: '#637381', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <Typography sx={{ fontSize: '0.75rem', color: '#637381', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {room.roomTypeName || 'Chưa phân loại'}
                                         </Typography>
                                     </Box>
@@ -413,13 +413,13 @@ export const RoomLayoutEditorPage = () => {
                     sx: { borderRadius: '16px', padding: '8px' }
                 }}
             >
-                <DialogTitle sx={{ fontSize: '2rem', fontWeight: 700, pb: 2 }}>Thông tin vị trí</DialogTitle>
+                <DialogTitle sx={{ fontSize: '1.25rem', fontWeight: 700, pb: 2 }}>Thông tin vị trí</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: '16px !important' }}>
                     <Box sx={{ background: 'rgba(0, 167, 111, 0.08)', borderRadius: '8px', p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: '#00A76F' }}>
+                        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#00A76F' }}>
                             Khu vực đặt:
                         </Typography>
-                        <Typography sx={{ fontSize: '1.4rem', color: '#212B36' }}>
+                        <Typography sx={{ fontSize: '0.875rem', color: '#212B36' }}>
                             Hàng {dropTarget ? dropTarget.row + 1 : ''}, Cột {dropTarget ? dropTarget.col + 1 : ''}
                         </Typography>
                     </Box>
@@ -430,8 +430,8 @@ export const RoomLayoutEditorPage = () => {
                         value={roomNumber}
                         onChange={(e) => setRoomNumber(e.target.value)}
                         placeholder="VD: P.101"
-                        InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                        InputProps={{ sx: { fontSize: '1.4rem' } }}
+                        InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
+                        InputProps={{ sx: { fontSize: '0.875rem' } }}
                     />
 
                     <TextField
@@ -440,8 +440,8 @@ export const RoomLayoutEditorPage = () => {
                         value={tier}
                         onChange={(e) => setTier(e.target.value)}
                         placeholder="VD: 1 hoặc 2"
-                        InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
-                        InputProps={{ sx: { fontSize: '1.4rem' } }}
+                        InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
+                        InputProps={{ sx: { fontSize: '0.875rem' } }}
                     />
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1 }}>
@@ -450,9 +450,9 @@ export const RoomLayoutEditorPage = () => {
                         variant="outlined"
                         fullWidth
                         sx={{
-                            minHeight: '4.8rem',
+                            minHeight: '3rem',
                             fontWeight: 700,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             borderRadius: '8px',
                             textTransform: 'none',
                             borderColor: '#637381',
@@ -469,9 +469,9 @@ export const RoomLayoutEditorPage = () => {
                         fullWidth
                         sx={{
                             background: '#1C252E',
-                            minHeight: '4.8rem',
+                            minHeight: '3rem',
                             fontWeight: 700,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             borderRadius: '8px',
                             textTransform: 'none',
                             '&:hover': { background: '#454F5B' },

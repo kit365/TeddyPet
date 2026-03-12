@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import StarIcon from "@mui/icons-material/Star";
@@ -150,14 +150,14 @@ export const FeedbackPage = () => {
             <section className="py-[100px] bg-white">
                 <div className="app-container max-w-[900px]">
                     <div className="mb-[50px] text-center">
-                        <h2 className="text-[3.5rem] font-secondary text-client-secondary mb-[15px]">Chào {orderInfo.customerName}!</h2>
-                        <p className="text-[1.8rem] text-client-text">Cảm ơn bạn đã tin tưởng TeddyPet. Hãy chia sẻ trải nghiệm của bạn về các sản phẩm đã mua nhé.</p>
+                        <h2 className="text-[2.1875rem] font-secondary text-client-secondary mb-[15px]">Chào {orderInfo.customerName}!</h2>
+                        <p className="text-[1.125rem] text-client-text">Cảm ơn bạn đã tin tưởng TeddyPet. Hãy chia sẻ trải nghiệm của bạn về các sản phẩm đã mua nhé.</p>
                     </div>
 
                     {allSubmitted ? (
                         <div className="text-center py-[50px] bg-[#f9f9f9] rounded-[30px] border border-dashed border-client-primary">
-                            <h3 className="text-[2.5rem] font-secondary text-client-primary mb-[10px]">Cảm ơn bạn đã đánh giá!</h3>
-                            <p className="text-[1.6rem] text-client-text mb-[30px]">Ý kiến của bạn giúp TeddyPet ngày càng hoàn thiện hơn.</p>
+                            <h3 className="text-[1.5625rem] font-secondary text-client-primary mb-[10px]">Cảm ơn bạn đã đánh giá!</h3>
+                            <p className="text-[1rem] text-client-text mb-[30px]">Ý kiến của bạn giúp TeddyPet ngày càng hoàn thiện hơn.</p>
                             <button
                                 onClick={() => navigate(orderId ? "/dashboard/review" : "/")}
                                 className="bg-client-primary text-white font-secondary px-[40px] py-[15px] rounded-[40px] hover:bg-client-secondary transition-default"
@@ -177,8 +177,8 @@ export const FeedbackPage = () => {
                                             <img src={item.imageUrl || "https://placeholder.com/150"} alt={item.productName} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="text-[2.2rem] font-secondary text-client-secondary mb-[5px]">{item.productName}</h4>
-                                            {item.variantName && <p className="text-client-primary mb-[15px] text-[1.4rem]">Phân loại: {item.variantName}</p>}
+                                            <h4 className="text-[1.375rem] font-secondary text-client-secondary mb-[5px]">{item.productName}</h4>
+                                            {item.variantName && <p className="text-client-primary mb-[15px] text-[0.875rem]">Phân loại: {item.variantName}</p>}
 
                                             <div className="flex items-center gap-1 mb-[20px]">
                                                 {[...Array(5)].map((_, i) => {
@@ -194,8 +194,8 @@ export const FeedbackPage = () => {
                                                             onClick={() => !state.submitted && handleRatingChange(key, starIdx)}
                                                         >
                                                             {active ?
-                                                                <StarIcon sx={{ fontSize: "3rem", color: "#FF6262" }} /> :
-                                                                <StarBorderIcon sx={{ fontSize: "3rem", color: "#ccc" }} />
+                                                                <StarIcon sx={{ fontSize: "1.875rem", color: "#FF6262" }} /> :
+                                                                <StarBorderIcon sx={{ fontSize: "1.875rem", color: "#ccc" }} />
                                                             }
                                                         </div>
                                                     );
@@ -204,7 +204,7 @@ export const FeedbackPage = () => {
 
                                             <div className="mb-[20px]">
                                                 <textarea
-                                                    className={`w-full border border-[#d7d7d7] rounded-[15px] p-[15px] outline-none transition-default min-h-[100px] text-[1.6rem] ${state.submitted ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'focus:border-client-primary'}`}
+                                                    className={`w-full border border-[#d7d7d7] rounded-[15px] p-[15px] outline-none transition-default min-h-[100px] text-[1rem] ${state.submitted ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'focus:border-client-primary'}`}
                                                     placeholder="Hãy chia sẻ điều bạn thích nhất về sản phẩm này nhé..."
                                                     value={state.comment}
                                                     onChange={(e) => !state.submitted && handleCommentChange(key, e.target.value)}
@@ -213,14 +213,14 @@ export const FeedbackPage = () => {
                                             </div>
 
                                             {state.submitted ? (
-                                                <div className="inline-flex items-center gap-2 text-emerald-600 font-bold text-[1.4rem] bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
+                                                <div className="inline-flex items-center gap-2 text-emerald-600 font-bold text-[0.875rem] bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
                                                     <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                                                     BẠN ĐÃ ĐÁNH GIÁ SẢN PHẨM NÀY
                                                 </div>
                                             ) : (
                                                 <button
                                                     onClick={() => handleSubmit(item)}
-                                                    className="bg-client-secondary text-white font-secondary px-[30px] py-[12px] rounded-[30px] hover:bg-client-primary transition-default text-[1.6rem]"
+                                                    className="bg-client-secondary text-white font-secondary px-[30px] py-[12px] rounded-[30px] hover:bg-client-primary transition-default text-[1rem]"
                                                 >
                                                     Gửi đánh giá
                                                 </button>

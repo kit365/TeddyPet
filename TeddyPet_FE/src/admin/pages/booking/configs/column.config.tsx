@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import type { GridColDef } from "@mui/x-data-grid";
 import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -42,7 +42,7 @@ export const getBookingColumns = (
         component="span"
         sx={{
           fontWeight: 700,
-          fontSize: "1.45rem",
+          fontSize: "0.9062rem",
           color: "#1C252E",
           cursor: "pointer",
           width: "100%",
@@ -67,7 +67,7 @@ export const getBookingColumns = (
     align: "center",
     headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontWeight: 600, fontSize: "1.45rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
     ),
   },
 
@@ -82,7 +82,7 @@ export const getBookingColumns = (
       const start = params.value as string;
       const end = (params.row as BookingResponse).bookingEndDate;
       return (
-        <Typography sx={{ fontSize: "1.45rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
+        <Typography sx={{ fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
           {formatDateTimeShort(start)} → {formatDateTimeShort(end)}
         </Typography>
       );
@@ -97,7 +97,7 @@ export const getBookingColumns = (
     align: "center",
     headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.45rem", fontWeight: 600, color: "#1C252E", width: "100%", textAlign: "center" }}>
+      <Typography sx={{ fontSize: "0.9062rem", fontWeight: 600, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
@@ -111,7 +111,7 @@ export const getBookingColumns = (
     align: "center",
     headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.45rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
+      <Typography sx={{ fontSize: "0.9062rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
@@ -132,7 +132,7 @@ export const getBookingColumns = (
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.2rem",
+              fontSize: "0.75rem",
               bgcolor: isPaid ? "#dcfce7" : "#ffe4e6",
               color: isPaid ? "#166534" : "#9f1239",
               border: `1px solid ${isPaid ? "#bbf7d0" : "#fecdd3"}`,
@@ -151,7 +151,7 @@ export const getBookingColumns = (
     align: "center",
     headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontSize: "1.45rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
+      <Typography sx={{ fontSize: "0.9062rem", fontWeight: 500, color: "#1C252E", width: "100%", textAlign: "center" }}>
         {formatCurrency(Number(params.value ?? 0))}
       </Typography>
     ),
@@ -177,7 +177,7 @@ export const getBookingColumns = (
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.2rem",
+              fontSize: "0.75rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,
@@ -206,7 +206,7 @@ export const getBookingColumns = (
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.2rem",
+              fontSize: "0.75rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,
@@ -233,7 +233,7 @@ export const getBookingColumns = (
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "1.2rem",
+              fontSize: "0.75rem",
               bgcolor: color ? `${color}18` : "#f0f0f0",
               color: color || "#637381",
               border: `1px solid ${color || "#e0e0e0"}`,
@@ -300,7 +300,7 @@ export const getBookingColumns = (
               },
             }}
           >
-            <MoreVertIcon sx={{ fontSize: "1.8rem", color: "#637381" }} />
+            <MoreVertIcon sx={{ fontSize: "1.125rem", color: "#637381" }} />
           </IconButton>
           <Menu
             anchorEl={anchorEl}
@@ -324,25 +324,25 @@ export const getBookingColumns = (
           >
             <MenuItem onClick={handleViewDetail}>
               <ListItemIcon>
-                <VisibilityIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+                <VisibilityIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Xem chi tiết" 
-                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
             <MenuItem onClick={handleEdit}>
               <ListItemIcon>
-                <EditIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+                <EditIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Chỉnh sửa" 
-                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
             <MenuItem onClick={handleRequestRefund}>
               <ListItemIcon>
-                <RefreshIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+                <RefreshIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
               </ListItemIcon>
               <ListItemText
                 primary={
@@ -353,12 +353,12 @@ export const getBookingColumns = (
                     )}
                   </Box>
                 }
-                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
             <MenuItem onClick={handleRequestCancel}>
               <ListItemIcon>
-                <CancelOutlinedIcon sx={{ fontSize: "1.6rem", color: "#ef4444" }} />
+                <CancelOutlinedIcon sx={{ fontSize: "1rem", color: "#ef4444" }} />
               </ListItemIcon>
               <ListItemText
                 primary={
@@ -369,16 +369,16 @@ export const getBookingColumns = (
                     )}
                   </Box>
                 }
-                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
             <MenuItem onClick={handleDelete}>
               <ListItemIcon>
-                <DeleteIcon sx={{ fontSize: "1.6rem", color: "#dc2626" }} />
+                <DeleteIcon sx={{ fontSize: "1rem", color: "#dc2626" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Xóa" 
-                primaryTypographyProps={{ fontSize: "1.4rem", color: "#dc2626" }}
+                primaryTypographyProps={{ fontSize: "0.875rem", color: "#dc2626" }}
               />
             </MenuItem>
           </Menu>

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { Input } from "./sections/Input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,13 +46,13 @@ export const LoginPage = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
             <div className="bg-[#e67e2026] p-[70px] rounded-[20px] max-w-[615px] w-full">
-                <h2 className="text-[4rem] text-client-secondary font-[700] text-center mb-[12px]">
+                <h2 className="text-[2.5rem] text-client-secondary font-[700] text-center mb-[12px]">
                     Đăng nhập
                 </h2>
                 <p className="text-client-text text-center mb-[40px]">
                     Vui lòng nhập thông tin đăng nhập của bạn
                 </p>
-                <div className="m-[10px] py-[10px] px-[40px] text-[#000] rounded-[20px] border border-client-secondary text-[1.4rem] font-[500] text-center shadow-[0_0_0px_#ff6262] hover:text-white hover:bg-client-secondary transition-default cursor-pointer">
+                <div className="m-[10px] py-[10px] px-[40px] text-[#000] rounded-[20px] border border-client-secondary text-[0.875rem] font-[500] text-center shadow-[0_0_0px_#ff6262] hover:text-white hover:bg-client-secondary transition-default cursor-pointer">
                     Google
                 </div>
                 <p className="mt-[30px] mb-[40px] text-client-text text-center">Hoặc đăng nhập với</p>

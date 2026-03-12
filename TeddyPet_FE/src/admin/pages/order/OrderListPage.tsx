@@ -1,4 +1,4 @@
-import { ListHeader } from "../../components/ui/ListHeader";
+﻿import { ListHeader } from "../../components/ui/ListHeader";
 import { OrderList } from "./sections/OrderList";
 import { prefixAdmin } from "../../constants/routes";
 import { useTranslation } from "react-i18next";
@@ -72,7 +72,7 @@ export const OrderListPage = () => {
                                 borderRadius: "10px",
                                 textTransform: "none",
                                 fontWeight: 700,
-                                fontSize: "1.3rem",
+                                fontSize: "0.8125rem",
                                 px: 3,
                                 py: 1.2,
                                 color: "#fff",
@@ -90,7 +90,7 @@ export const OrderListPage = () => {
                                 borderRadius: "10px",
                                 textTransform: "none",
                                 fontWeight: 700,
-                                fontSize: "1.3rem",
+                                fontSize: "0.8125rem",
                                 px: 3,
                                 py: 1.2,
                                 color: "#1C252E",
@@ -110,7 +110,7 @@ export const OrderListPage = () => {
                                 borderRadius: "10px",
                                 textTransform: "none",
                                 fontWeight: 700,
-                                fontSize: "1.3rem",
+                                fontSize: "0.8125rem",
                                 px: 3,
                                 py: 1.2,
                                 boxShadow: "0 8px 16px rgba(28, 37, 46, 0.24)",

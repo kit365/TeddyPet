@@ -1,4 +1,4 @@
-import { Avatar, Box, Link, ListItemText } from "@mui/material";
+﻿import { Avatar, Box, Link, ListItemText } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridRenderCellParams } from "@mui/x-data-grid";
 import { DeleteIcon, EditIcon, EyeIcon } from "../../../assets/icons/index";
 import { COLORS } from "../configs/constants";
@@ -49,7 +49,7 @@ export const RenderCategoryNameCell = (params: GridRenderCellParams) => {
             sx={{
                 color: COLORS.primary,
                 fontWeight: 700,
-                fontSize: '1.6rem',
+                fontSize: '1rem',
                 transition: 'color 0.2s',
                 display: 'block',
                 overflow: 'hidden',
@@ -77,7 +77,7 @@ const CATEGORY_TYPE_LABELS: Record<string, string> = {
 export const RenderCategoryTypeCell = (params: GridRenderCellParams) => {
     const v = params.row.categoryType;
     const label = v ? (CATEGORY_TYPE_LABELS[v] ?? v) : '—';
-    return <span style={{ fontSize: '1.5rem', color: COLORS.primary, fontWeight: 600 }}>{label}</span>;
+    return <span style={{ fontSize: '0.9375rem', color: COLORS.primary, fontWeight: 600 }}>{label}</span>;
 };
 
 /** suitablePetTypes: DOG, CAT, OTHER -> hiển thị */
@@ -89,9 +89,9 @@ const PET_TYPE_LABELS: Record<string, string> = {
 
 export const RenderSuitablePetTypesCell = (params: GridRenderCellParams) => {
     const arr = params.row.suitablePetTypes;
-    if (!arr || !Array.isArray(arr) || arr.length === 0) return <span style={{ fontSize: '1.5rem', color: '#637381' }}>—</span>;
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return <span style={{ fontSize: '0.9375rem', color: '#637381' }}>—</span>;
     const labels = arr.map((t: string) => PET_TYPE_LABELS[t] ?? t);
-    return <span style={{ fontSize: '1.5rem', color: COLORS.primary, fontWeight: 500 }}>{labels.join(', ')}</span>;
+    return <span style={{ fontSize: '0.9375rem', color: COLORS.primary, fontWeight: 500 }}>{labels.join(', ')}</span>;
 };
 
 // Sản phẩm (giữ cho tương thích nếu dùng ở chỗ khác)
@@ -103,7 +103,7 @@ export const RenderTitleCell = (params: GridRenderCellParams) => {
             <Avatar alt={altImage || name} src={imageUrl} variant="rounded" sx={{ width: 64, height: 64, borderRadius: '12px', backgroundColor: '#F4F6F8' }} />
             <ListItemText
                 primary={
-                    <Link href={`/${prefixAdmin}/product-category/edit/${categoryId}`} className="product-title" onClick={(e) => { e.preventDefault(); navigate(`/${prefixAdmin}/product-category/edit/${categoryId}`); }} underline="hover" sx={{ color: COLORS.primary, fontWeight: 700, fontSize: '1.6rem', transition: 'color 0.2s' }}>
+                    <Link href={`/${prefixAdmin}/product-category/edit/${categoryId}`} className="product-title" onClick={(e) => { e.preventDefault(); navigate(`/${prefixAdmin}/product-category/edit/${categoryId}`); }} underline="hover" sx={{ color: COLORS.primary, fontWeight: 700, fontSize: '1rem', transition: 'color 0.2s' }}>
                         {name}
                     </Link>
                 }
@@ -136,7 +136,7 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
 
             <span
                 style={{
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                     color: COLORS.primary,
                     transition: 'color 0.2s',
                     textTransform: 'capitalize',
@@ -149,7 +149,7 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
                 className="date-text"
                 component='span'
                 sx={{
-                    fontSize: "1.32rem",
+                    fontSize: "0.825rem",
                     color: COLORS.secondary,
                     textTransform: 'lowercase',
                     fontWeight: 500
@@ -182,7 +182,7 @@ export const RenderStatusCell = (params: GridRenderCellParams) => {
 
     return (
         <span
-            className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.8rem] text-[1.4rem] px-[10px] font-[700] rounded-[8px]"
+            className="inline-flex items-center justify-center leading-1.5 min-w-[1.5rem] h-[1.75rem] text-[0.875rem] px-[10px] font-[700] rounded-[8px]"
             style={{
                 backgroundColor: bg,
                 color: text,
@@ -220,13 +220,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
     return (
         <GridActionsCell {...params}>
             <GridActionsCellItem
-                icon={<EyeIcon sx={{ fontSize: '2rem' }} />}
+                icon={<EyeIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Chi tiết"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600"
                         },
                     },
@@ -234,13 +234,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={() => navigate(`/${prefixAdmin}/product-category/detail/${categoryId}`)}
             />
             <GridActionsCellItem
-                icon={<EditIcon sx={{ fontSize: '2rem' }} />}
+                icon={<EditIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Chỉnh sửa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600"
                         },
                     },
@@ -248,13 +248,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={handleEdit}
             />
             <GridActionsCellItem
-                icon={<DeleteIcon sx={{ fontSize: '2rem' }} />}
+                icon={<DeleteIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Xóa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600",
                             color: "#FF5630"
                         },

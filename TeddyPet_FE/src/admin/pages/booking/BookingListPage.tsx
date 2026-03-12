@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { BookingList } from "./sections/BookingList";
 import { BookingCalendarView } from "./sections/BookingCalendarView";
@@ -37,7 +37,7 @@ export const BookingListPage = () => {
                     sx={{
                         mb: 0,
                         "& .MuiTab-root": {
-                            fontSize: "1.5rem",
+                            fontSize: "0.9375rem",
                             fontWeight: 700,
                             textTransform: "none",
                             minHeight: 48,

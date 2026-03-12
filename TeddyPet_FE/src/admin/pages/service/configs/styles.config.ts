@@ -1,4 +1,4 @@
-import { COLORS } from './constants';
+﻿import { COLORS } from './constants';
 import { SxProps, Theme } from '@mui/material';
 
 export const dataGridCardStyles = {
@@ -29,7 +29,7 @@ export const dataGridStyles: SxProps<Theme> = {
         background: COLORS.backgroundLight,
         '& .MuiDataGrid-columnHeader': {
             color: COLORS.secondary,
-            fontSize: '1.4rem',
+            fontSize: '0.875rem',
             border: 'none',
             borderBottom: `1px solid ${COLORS.border}`,
             backgroundColor: COLORS.backgroundLight,
@@ -41,7 +41,7 @@ export const dataGridStyles: SxProps<Theme> = {
     '& .MuiDataGrid-footerContainer': {
         borderTop: '1px dashed',
         minHeight: 'auto',
-        fontSize: '1.5rem',
+        fontSize: '0.9375rem',
         color: 'inherit',
         display: 'flex',
         alignItems: 'center',
@@ -49,13 +49,13 @@ export const dataGridStyles: SxProps<Theme> = {
             alignItems: 'center',
         },
         '& .MuiTablePagination-selectLabel': {
-            fontSize: '1.5rem',
+            fontSize: '0.9375rem',
             color: 'inherit',
             lineHeight: 1.5,
             marginBottom: 0,
         },
         '& .MuiSelect-select': {
-            fontSize: '1.5rem',
+            fontSize: '0.9375rem',
             lineHeight: 1.5,
             paddingTop: 0,
             paddingBottom: 0,
@@ -63,14 +63,14 @@ export const dataGridStyles: SxProps<Theme> = {
             alignItems: 'center',
         },
         '& .MuiTablePagination-displayedRows': {
-            fontSize: '1.5rem',
+            fontSize: '0.9375rem',
             color: 'inherit',
             lineHeight: 1.5,
         },
     },
     '& .MuiDataGrid-cell': {
         color: 'inherit',
-        fontSize: '1.4rem',
+        fontSize: '0.875rem',
         display: 'flex',
         alignItems: 'center',
         borderRightStyle: 'dashed',
@@ -90,7 +90,7 @@ export const dataGridStyles: SxProps<Theme> = {
         '& .MuiSvgIcon-root': { color: COLORS.secondary },
     },
     '& .MuiDataGrid-actionsCell .MuiIconButton-root': { color: '#637381' },
-    '& .MuiDataGrid-actionsCell .MuiSvgIcon-root': { fontSize: '2rem' },
+    '& .MuiDataGrid-actionsCell .MuiSvgIcon-root': { fontSize: '1.25rem' },
     '&.MuiDataGrid-root': {
         '--DataGrid-t-color-interactive-focus': COLORS.success,
         '--DataGrid-t-color-border-base': COLORS.border,

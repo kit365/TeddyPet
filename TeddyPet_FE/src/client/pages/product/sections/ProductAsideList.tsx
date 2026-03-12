@@ -1,4 +1,4 @@
-import PetsIcon from "@mui/icons-material/Pets";
+﻿import PetsIcon from "@mui/icons-material/Pets";
 import { memo } from "react";
 
 interface CategoryItem {
@@ -27,14 +27,14 @@ export const ProductAsideList = memo(({ categories, selectedSlugs = [], onSelect
                                 onSelect(cat.slug);
                             }
                         }}
-                        className={`transition-default flex items-center gap-[6px] py-[8px] px-[16px] text-[1.4rem] border rounded-[35px] ${isSelected
+                        className={`transition-default flex items-center gap-[6px] py-[8px] px-[16px] text-[0.875rem] border rounded-[35px] ${isSelected
                             ? "bg-client-primary text-white border-client-primary"
                             : "bg-white text-client-secondary border-[#10293726] hover:bg-client-primary hover:text-white"
                             }`}
                     >
-                        <PetsIcon sx={{ fontSize: "1.4rem" }} className="flex-shrink-0" />
+                        <PetsIcon sx={{ fontSize: "0.875rem" }} className="flex-shrink-0" />
                         <span className="leading-none">{cat.name}</span>
-                        <span className={`text-[1.1rem] opacity-60`}>
+                        <span className={`text-[0.6875rem] opacity-60`}>
                             ({cat.count})
                         </span>
                     </button>

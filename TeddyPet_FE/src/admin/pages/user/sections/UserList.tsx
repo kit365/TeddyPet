@@ -1,4 +1,4 @@
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+﻿import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -108,11 +108,11 @@ export const UserList = () => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1 }}>
                                 {isLoading && <CircularProgress size={32} />}
                                 {!isLoading && isError && (
-                                    <span className="text-[1.8rem]" style={{ color: '#d32f2f', textAlign: 'center', maxWidth: 360 }}>
+                                    <span className="text-[1.125rem]" style={{ color: '#d32f2f', textAlign: 'center', maxWidth: 360 }}>
                                         Không tải được danh sách. Vui lòng đăng xuất, đăng nhập lại bằng tài khoản ADMIN (ví dụ admin@gmail.com) và thử lại.
                                     </span>
                                 )}
-                                {!isLoading && !isError && <span className="text-[1.8rem]">Không có dữ liệu</span>}
+                                {!isLoading && !isError && <span className="text-[1.125rem]">Không có dữ liệu</span>}
                             </Box>
                         ),
                     }}

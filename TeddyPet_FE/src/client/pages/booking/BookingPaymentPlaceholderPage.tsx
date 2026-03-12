@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+﻿import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -101,13 +101,13 @@ export const BookingPaymentPlaceholderPage = () => {
             <div className="app-container py-[60px]">
                 <div className="max-w-[960px] mx-auto bg-white rounded-[16px] border border-[#eee] shadow-[0_2px_16px_rgba(0,0,0,0.06)] overflow-hidden">
                     <div className="px-[24px] py-[18px] bg-gradient-to-r from-[#ffbaa0]/12 to-[#e67e2010] border-b border-[#eee]">
-                        <h2 className="text-[2.2rem] font-[800] text-[#181818]">Thanh toán cọc (tạm thời)</h2>
-                        <p className="text-[1.5rem] text-[#505050] mt-2">
+                        <h2 className="text-[1.375rem] font-[800] text-[#181818]">Thanh toán cọc (tạm thời)</h2>
+                        <p className="text-[0.9375rem] text-[#505050] mt-2">
                             Chức năng thanh toán sẽ được tích hợp sau. Hiện tại hệ thống chỉ tạo “giữ chỗ 5 phút”.
                         </p>
                     </div>
 
-                    <div className="p-[24px] space-y-[18px] text-[1.5rem]">
+                    <div className="p-[24px] space-y-[18px] text-[0.9375rem]">
                         <div className="flex flex-wrap gap-2 items-center justify-between bg-[#fff7f3] border border-[#ffe0ce] rounded-[12px] px-4 py-3">
                             <div>
                                 <div className="text-[#181818] font-[700]">Mã giữ chỗ (Deposit)</div>
@@ -128,21 +128,21 @@ export const BookingPaymentPlaceholderPage = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             <div className="flex flex-col items-center justify-center border border-dashed border-[#e5e7eb] rounded-[14px] px-4 py-5 bg-[#f9fafb]">
-                                <div className="mb-3 text-[1.4rem] font-[600] text-[#111827]">
+                                <div className="mb-3 text-[0.875rem] font-[600] text-[#111827]">
                                     Quét mã QR để thanh toán
                                 </div>
                                 <div className="w-[220px] h-[220px] rounded-[12px] bg-[#ffedd5] flex items-center justify-center border border-[#fed7aa] shadow-inner mb-3">
-                                    <div className="w-[180px] h-[180px] rounded-[8px] flex items-center justify-center text-[1.1rem] text-[#6b7280] text-center px-4 bg-[#f9fafb] border border-dashed border-[#d1d5db]">
+                                    <div className="w-[180px] h-[180px] rounded-[8px] flex items-center justify-center text-[0.6875rem] text-[#6b7280] text-center px-4 bg-[#f9fafb] border border-dashed border-[#d1d5db]">
                                         QR mẫu (sau này sẽ thay bằng QR thật của cổng thanh toán)
                                     </div>
                                 </div>
-                                <div className="text-[1.3rem] text-[#6b7280] text-center">
+                                <div className="text-[0.8125rem] text-[#6b7280] text-center">
                                     Vui lòng đảm bảo số tiền và nội dung thanh toán khớp với hướng dẫn bên phải.
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="text-[1.4rem] font-[700] text-[#111827] mb-1">
+                                <div className="text-[0.875rem] font-[700] text-[#111827] mb-1">
                                     Chọn hình thức thanh toán
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -161,7 +161,7 @@ export const BookingPaymentPlaceholderPage = () => {
                                                 type="button"
                                                 onClick={() => setPaymentMethod(id as PaymentMethod)}
                                                 className={
-                                                    "px-4 py-2 rounded-[999px] border text-[1.3rem] font-[600] transition-colors " +
+                                                    "px-4 py-2 rounded-[999px] border text-[0.8125rem] font-[600] transition-colors " +
                                                     (selected
                                                         ? "border-[#ff8a4a] bg-[#ffedd5] text-[#c45a3a]"
                                                         : "border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]")
@@ -174,9 +174,9 @@ export const BookingPaymentPlaceholderPage = () => {
                                 </div>
 
                                 {paymentMethod === "BANK_TRANSFER" && (
-                                    <div className="mt-2 space-y-3 text-[1.35rem] text-[#111827]">
+                                    <div className="mt-2 space-y-3 text-[0.8438rem] text-[#111827]">
                                         <div className="font-[600]">Thông tin tài khoản ngân hàng</div>
-                                        <ul className="space-y-1 text-[1.3rem] text-[#374151]">
+                                        <ul className="space-y-1 text-[0.8125rem] text-[#374151]">
                                             <li>
                                                 <span className="font-[500]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
                                             </li>
@@ -193,17 +193,17 @@ export const BookingPaymentPlaceholderPage = () => {
                                                 <input
                                                     readOnly
                                                     value={transferContent}
-                                                    className="flex-1 rounded-[10px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[1.35rem] font-[600] text-[#111827]"
+                                                    className="flex-1 rounded-[10px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[0.8438rem] font-[600] text-[#111827]"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={handleCopyContent}
-                                                    className="px-3 py-2 rounded-[10px] border border-[#e5e7eb] bg-white text-[1.3rem] hover:bg-[#f3f4f6]"
+                                                    className="px-3 py-2 rounded-[10px] border border-[#e5e7eb] bg-white text-[0.8125rem] hover:bg-[#f3f4f6]"
                                                 >
                                                     Copy
                                                 </button>
                                             </div>
-                                            <p className="mt-1 text-[1.25rem] text-[#6b7280]">
+                                            <p className="mt-1 text-[0.7812rem] text-[#6b7280]">
                                                 Vui lòng giữ nguyên nội dung này để hệ thống đối chiếu chính xác giao dịch.
                                             </p>
                                         </div>
@@ -211,7 +211,7 @@ export const BookingPaymentPlaceholderPage = () => {
                                 )}
 
                                 {paymentMethod === "MOMO" && (
-                                    <div className="mt-2 text-[1.35rem] text-[#374151] space-y-1">
+                                    <div className="mt-2 text-[0.8438rem] text-[#374151] space-y-1">
                                         <p>
                                             Mở ứng dụng <span className="font-[600]">MoMo</span>, chọn{" "}
                                             <span className="font-[600]">Quét mã</span> và quét QR bên trái.
@@ -221,7 +221,7 @@ export const BookingPaymentPlaceholderPage = () => {
                                 )}
 
                                 {paymentMethod === "ZALOPAY" && (
-                                    <div className="mt-2 text-[1.35rem] text-[#374151] space-y-1">
+                                    <div className="mt-2 text-[0.8438rem] text-[#374151] space-y-1">
                                         <p>
                                             Mở ứng dụng <span className="font-[600]">ZaloPay</span>, chọn{" "}
                                             <span className="font-[600]">Thanh toán QR</span> và quét mã bên trái.
@@ -231,7 +231,7 @@ export const BookingPaymentPlaceholderPage = () => {
                                 )}
 
                                 {paymentMethod === "VNPAY" && (
-                                    <div className="mt-2 text-[1.35rem] text-[#374151] space-y-1">
+                                    <div className="mt-2 text-[0.8438rem] text-[#374151] space-y-1">
                                         <p>
                                             Sử dụng ứng dụng ngân hàng hỗ trợ <span className="font-[600]">VNPAY-QR</span>{" "}
                                             để quét mã bên trái.

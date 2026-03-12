@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { ProductCard } from "../../components/ui/ProductCard";
 import type { Product } from "../../../types/products.type";
 import { Heart } from "lucide-react";
@@ -109,19 +109,19 @@ export const WishlistPage = () => {
             <div className="app-container flex-grow py-12">
                 <div className="flex justify-between items-end border-b border-slate-100 pb-8 mb-12">
                     <div>
-                        <h3 className="text-[2.8rem] font-black text-slate-800 tracking-tight italic flex items-center gap-3">
+                        <h3 className="text-[1.75rem] font-black text-slate-800 tracking-tight italic flex items-center gap-3">
                             <Heart className="text-rose-500 fill-rose-500" size={32} />
                             Sản phẩm yêu thích
                         </h3>
-                        <p className="text-[1.2rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Bộ sưu tập dành riêng cho thú cưng của bạn</p>
+                        <p className="text-[0.75rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Bộ sưu tập dành riêng cho thú cưng của bạn</p>
                     </div>
-                    <div className="px-6 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[1.4rem] font-black text-rose-500 uppercase tracking-widest">
+                    <div className="px-6 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[0.875rem] font-black text-rose-500 uppercase tracking-widest">
                         {totalElements} Sản phẩm
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10 text-[1.6rem] text-slate-500">Đang tải...</div>
+                    <div className="text-center py-10 text-[1rem] text-slate-500">Đang tải...</div>
                 ) : wishlistItems.length > 0 ? (
                     <>
                         <div className="grid grid-cols-4 gap-[30px]">
@@ -146,7 +146,7 @@ export const WishlistPage = () => {
                         )}
                     </>
                 ) : (
-                    <div className="text-center py-20 text-[1.6rem] text-slate-500">Bạn chưa có sản phẩm yêu thích nào.</div>
+                    <div className="text-center py-20 text-[1rem] text-slate-500">Bạn chưa có sản phẩm yêu thích nào.</div>
                 )}
             </div>
             <FooterSub />

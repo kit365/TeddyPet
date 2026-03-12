@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Header } from "../../components/layouts/Header";
@@ -80,61 +80,61 @@ export const LoginWithEmailPage = () => {
             <div className="app-container my-[100px]">
                 <div className="flex items-center justify-center mx-auto max-w-[900px]">
                     <div className="w-full max-w-[520px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px] p-[40px]">
-                        <h3 className="text-center text-[2.6rem] font-[600] mb-[24px] text-[#333]">
+                        <h3 className="text-center text-[1.625rem] font-[600] mb-[24px] text-[#333]">
                             Đăng nhập bằng email (OTP)
                         </h3>
                         {step === "email" ? (
                             <form onSubmit={handleSendOtp} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">
                                         Email
                                     </label>
                                     <Input
                                         placeholder="email@example.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full mt-[10px] bg-client-primary rounded-[8px] py-[12px] font-[600] text-[1.5rem] text-white disabled:opacity-50"
+                                    className="w-full mt-[10px] bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white disabled:opacity-50"
                                 >
                                     {isLoading ? "Đang gửi mã..." : "Gửi mã xác thực"}
                                 </button>
                             </form>
                         ) : (
                             <form onSubmit={handleVerifyOtp} className="flex flex-col gap-[20px]">
-                                <p className="text-[1.4rem] text-[#555]">
+                                <p className="text-[0.875rem] text-[#555]">
                                     Mã xác thực đã được gửi đến{" "}
                                     <span className="font-[600] text-client-secondary">{email}</span>. Vui lòng nhập mã gồm 6
                                     số để đăng nhập.
                                 </p>
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">
                                         Mã OTP
                                     </label>
                                     <Input
                                         placeholder="Nhập mã 6 số"
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full mt-[10px] bg-client-primary rounded-[8px] py-[12px] font-[600] text-[1.5rem] text-white disabled:opacity-50"
+                                    className="w-full mt-[10px] bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white disabled:opacity-50"
                                 >
                                     {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setStep("email")}
-                                    className="mt-[4px] text-[1.3rem] text-client-secondary hover:text-client-primary"
+                                    className="mt-[4px] text-[0.8125rem] text-client-secondary hover:text-client-primary"
                                 >
                                     Đổi email khác
                                 </button>

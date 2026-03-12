@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+﻿import { forwardRef } from "react";
 
 interface InputProps {
     name: string;
@@ -22,7 +22,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     {...rest}
                 />
                 <div className="min-h-[22px] ml-[32px]">
-                    {error && <span className="text-client-secondary text-[1.4rem]">{error}</span>}
+                    {error && <span className="text-client-secondary text-[0.875rem]">{error}</span>}
                 </div>
             </div>
         )

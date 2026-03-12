@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -76,7 +76,7 @@ export const RegisterPage = () => {
                     </div>
                     <div className="flex-1">
                         <div className="py-[30px] pr-[20px]">
-                            <h2 className="text-center font-secondary text-[4rem] 2xl:text-[3.5rem] text-white mt-[24px] mb-[12px]">Đăng ký</h2>
+                            <h2 className="text-center font-secondary text-[2.5rem] 2xl:text-[2.1875rem] text-white mt-[24px] mb-[12px]">Đăng ký</h2>
                             <p className="text-center text-white">Bạn chưa có tài khoản?</p>
                             <form onSubmit={handleSubmit(onSubmit)} className="mt-[30px] w-full">
                                 <div className="flex gap-[16px]">
@@ -123,7 +123,7 @@ export const RegisterPage = () => {
                                     {...registerField("confirmPassword")}
                                     error={errors.confirmPassword?.message}
                                 />
-                                <button className="w-full mt-[10px] mb-[20px] py-[16px] px-[30px] bg-client-secondary text-white font-secondary text-[1.8rem] rounded-[40px] transition-default cursor-pointer hover:bg-white hover:text-client-secondary">Đăng ký</button>
+                                <button className="w-full mt-[10px] mb-[20px] py-[16px] px-[30px] bg-client-secondary text-white font-secondary text-[1.125rem] rounded-[40px] transition-default cursor-pointer hover:bg-white hover:text-client-secondary">Đăng ký</button>
                             </form>
                             <p className="text-center text-white">Bạn đã có tài khoản? <Link className="underline decoration-transparent hover:decoration-white transition-all duration-300 ease-linear" to={"/auth/login"}>Đăng nhập</Link></p>
                         </div>

@@ -1,4 +1,4 @@
-import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from "@mui/material";
+﻿import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from "@mui/material";
 import { UploadFileIcon, UploadIcon } from "../../assets/icons";
 import { useDropzone } from "react-dropzone";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -116,7 +116,7 @@ export const UploadSingleFile = memo(
                                 "&:hover": { bgcolor: "#FF5630" },
                             }}
                         >
-                            <svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24">
+                            <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
                                 <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
                             </svg>
                         </ButtonBase>
@@ -160,8 +160,8 @@ export const UploadSingleFile = memo(
                 <div className="w-full flex items-center justify-center flex-col">
                     <UploadFileIcon />
                     <div className="flex flex-col gap-[8px] text-center">
-                        <div className="text-[1.8rem] font-[600]">Kéo thả hoặc chọn tệp</div>
-                        <div className="text-[1.4rem] text-[#637381]">
+                        <div className="text-[1.125rem] font-[600]">Kéo thả hoặc chọn tệp</div>
+                        <div className="text-[0.875rem] text-[#637381]">
                             Kéo tệp vào đây, hoặc <span className="underline text-[#00A76F]">chọn tệp</span>
                         </div>
                     </div>
@@ -171,7 +171,7 @@ export const UploadSingleFile = memo(
 
         return (
             <Stack>
-                <Typography variant="h6" sx={{ fontSize: "1.4rem", fontWeight: 600, mb: "12px" }}>
+                <Typography variant="h6" sx={{ fontSize: "0.875rem", fontWeight: 600, mb: "12px" }}>
                     {title}
                 </Typography>
 
@@ -187,7 +187,7 @@ export const UploadSingleFile = memo(
                                             size="small"
                                             onClick={handleRemove}
                                             sx={{
-                                                p: "0px 8px", minHeight: "30px", fontSize: "1.2rem", fontWeight: 700,
+                                                p: "0px 8px", minHeight: "30px", fontSize: "0.75rem", fontWeight: 700,
                                                 textTransform: "none", border: "1px solid #919eab52", borderRadius: "8px",
                                                 color: "#1C252E", "&:hover": { bgcolor: "#919eab14" },
                                             }}
@@ -200,7 +200,7 @@ export const UploadSingleFile = memo(
                                             startIcon={<UploadIcon />}
                                             disabled={isUploading}
                                             sx={{
-                                                p: "4px 8px", minHeight: "30px", fontSize: "1.2rem", fontWeight: 700,
+                                                p: "4px 8px", minHeight: "30px", fontSize: "0.75rem", fontWeight: 700,
                                                 textTransform: "none", color: "#fff", bgcolor: "#1C252E",
                                                 "&:hover": { bgcolor: "#454F5B" },
                                             }}
@@ -226,7 +226,7 @@ export const UploadSingleFile = memo(
                                             size="small"
                                             onClick={handleRemove}
                                             sx={{
-                                                p: "0px 8px", minHeight: "30px", minWidth: "64px", fontSize: "1.2rem",
+                                                p: "0px 8px", minHeight: "30px", minWidth: "64px", fontSize: "0.75rem",
                                                 fontWeight: 700, textTransform: "none", border: "1px solid #919eab52",
                                                 borderRadius: "8px", color: "#1C252E",
                                                 "&:hover": { bgcolor: "#919eab14", borderColor: "currentColor" },
@@ -239,7 +239,7 @@ export const UploadSingleFile = memo(
                                             onClick={handleUpload}
                                             startIcon={<UploadIcon />}
                                             sx={{
-                                                p: "4px 8px", minHeight: "30px", minWidth: "64px", fontSize: "1.2rem",
+                                                p: "4px 8px", minHeight: "30px", minWidth: "64px", fontSize: "0.75rem",
                                                 fontWeight: 700, textTransform: "none", color: "#fff", bgcolor: "#1C252E",
                                                 "&:hover": { bgcolor: "#454F5B", boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)" },
                                             }}
