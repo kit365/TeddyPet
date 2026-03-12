@@ -40,36 +40,22 @@ public class PaymentController {
     }
 
     /**
-     * PayOS webhook health check - để verify URL
-     */
-    @GetMapping("/payos/webhook")
-    @Operation(summary = "PayOS Webhook Health", description = "Health check cho PayOS verify URL")
-    public ResponseEntity<String> webhookHealth() {
-        return ResponseEntity.ok("OK");
-    }
-
-    /**
      * Webhook PayOS - Nhận thông báo từ PayOS khi thanh toán hoàn tất
      */
     @PostMapping("/payos/webhook")
     @Operation(summary = "PayOS Webhook", description = "Nhận thông báo tự động từ PayOS")
     public ResponseEntity<Void> handlePayosWebhook(@RequestBody Webhook webhook, HttpServletRequest request) {
-        log.info("📥 Nhận Webhook từ PayOS - Data: {}", webhook.getData());
+        log.info("📥 Nhận Webhook từ PayOS: {}", webhook);
 
-        if (webhook == null || webhook.getData() == null) {
-            log.warn("Invalid webhook received - null data");
+        if (webhook.getData() == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        try {
-            paymentService.processPaymentCallback(
-                    PaymentGatewayEnum.PAYOS,
-                    webhook,
-                    request);
-            log.info("✅ PayOS webhook processed successfully");
-        } catch (Exception e) {
-            log.error("❌ PayOS webhook processing failed: {}", e.getMessage(), e);
-        }
+        // Routing to our service
+        paymentService.processPaymentCallback(
+                PaymentGatewayEnum.PAYOS,
+                webhook.getData(),
+                request);
 
         return ResponseEntity.ok().build();
     }

@@ -85,6 +85,11 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     }
 
     @Override
+    public Optional<Order> findByOrderCodeAndEmailOrPhone(String orderCode, String identifier) {
+        return orderRepository.findByOrderCodeAndEmailOrPhone(orderCode, identifier);
+    }
+
+    @Override
     public List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime) {
         return orderRepository.findByStatusAndDeliveringAtBefore(status, dateTime);
     }

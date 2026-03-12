@@ -172,7 +172,7 @@ export const FooterSub = () => {
                     </div>
                 </div>
                 <div className="app-container py-[30px] flex items-center justify-between">
-                    <div className="text-client-text">© <span className="text-client-secondary hover:text-client-primary transition-default cursor-pointer">Designthemes</span> all rights Reserved</div>
+                    <div className="text-client-text">© <span className="text-client-secondary hover:text-client-primary transition-default cursor-pointer">TeddyPet Team</span> all rights Reserved</div>
                     <div className="flex items-center text-client-text">
                         <Link to={"#"} className="hover:text-client-primary transition-default cursor-pointer">Điều khoản Sử dụng</Link>
                         <span className="mx-[10px]">|</span>

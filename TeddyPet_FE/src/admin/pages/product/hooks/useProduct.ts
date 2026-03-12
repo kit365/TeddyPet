@@ -14,14 +14,16 @@ import { getBrands } from '../../../api/brand.api';
 import { ApiResponse } from '../../../config/type';
 
 // --- COUNTRIES ---
+const transformCountries = (data: any) => data.map((country: any) => ({
+    code: country.cca2,
+    name: country.name.common
+})).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
 export const useCountries = () => {
     return useQuery({
         queryKey: ['countries'],
         queryFn: getCountries,
-        select: (data) => data.map((country: any) => ({
-            code: country.cca2,
-            name: country.name.common
-        })).sort((a: any, b: any) => a.name.localeCompare(b.name))
+        select: transformCountries
     });
 };
 
@@ -30,7 +32,7 @@ export const useProductTags = () => {
     return useQuery({
         queryKey: ['product-tags'],
         queryFn: getProductTags,
-        select: (res: ApiResponse<any>) => res.data || [],
+        select: (res: ApiResponse<any>) => res.data ?? [], // Use nullish coalescing to avoid new array ref if possible, although res.data is usually stable
     });
 };
 

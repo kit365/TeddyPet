@@ -9,11 +9,9 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Autocomplete,
     IconButton,
     Typography,
     Checkbox,
-    FormControlLabel,
     ListItemText
 } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
@@ -63,7 +61,6 @@ export const ProductAttributeCreatePage = () => {
 
     // Fetch options
     const { data: displayTypes = [] } = useDisplayTypes();
-    const { data: salesUnits = [] } = useSalesUnits();
     const { data: measurementUnits = [] } = useMeasurementUnits();
 
     const {
@@ -416,16 +413,16 @@ export const ProductAttributeCreatePage = () => {
                                                     control={control}
                                                     render={({ field: inputField, fieldState }) => (
                                                         <TextField
-                                                            {...inputField}
-                                                            type="number"
                                                             label="Giá trị"
                                                             placeholder="0"
-                                                            error={!!fieldState.error}
-                                                            helperText={fieldState.error?.message}
+                                                            value={(inputField.value ?? 0) === 0 ? "" : (inputField.value ?? 0).toLocaleString("vi-VN")}
                                                             onChange={(e) => {
-                                                                const numValue = Number(e.target.value);
+                                                                const numValue = Number(e.target.value.replace(/\D/g, ""));
                                                                 inputField.onChange(numValue);
                                                             }}
+                                                            onWheel={(e) => (e.target as HTMLElement).blur()}
+                                                            error={!!fieldState.error}
+                                                            helperText={fieldState.error?.message}
                                                             sx={{ width: 150 }}
                                                         />
                                                     )}

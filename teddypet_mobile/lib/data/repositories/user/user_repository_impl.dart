@@ -10,7 +10,7 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<UserProfileResponse?> getProfile() async {
     final response = await _apiClient.get<Map<String, dynamic>>(
-      '/auth/me', // BE để ở auth/me
+      '/auth/me',
       fromJson: (json) => json as Map<String, dynamic>,
     );
 

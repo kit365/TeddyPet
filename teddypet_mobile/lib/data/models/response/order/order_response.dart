@@ -2,7 +2,7 @@ class OrderResponse {
   final String id;
   final String orderCode;
   final num? numericCode;
-  final dynamic user;
+  final UserOrderInfoResponse? user;
   final int? userAddressId;
   final String? guestEmail;
   final double subtotal;
@@ -23,6 +23,7 @@ class OrderResponse {
   final String? cancelledAt;
   final String? cancelledBy;
   final String? deliveredAt;
+  final String? deliveringAt;
   final String? completedAt;
   final String? returnReason;
   final String? returnEvidence;
@@ -33,6 +34,7 @@ class OrderResponse {
 
   // Thuận tiện cho UI, lấy từ payments[0]
   String? get paymentMethod => payments.isNotEmpty ? payments.first.paymentMethod : null;
+  String? get paymentStatus => payments.isNotEmpty ? payments.first.status : null;
 
   OrderResponse({
     required this.id,
@@ -59,6 +61,7 @@ class OrderResponse {
     this.cancelledAt,
     this.cancelledBy,
     this.deliveredAt,
+    this.deliveringAt,
     this.completedAt,
     this.returnReason,
     this.returnEvidence,
@@ -73,7 +76,7 @@ class OrderResponse {
       id: json['id'] as String,
       orderCode: json['orderCode'] as String,
       numericCode: json['numericCode'] as num?,
-      user: json['user'],
+      user: json['user'] != null ? UserOrderInfoResponse.fromJson(json['user'] as Map<String, dynamic>) : null,
       userAddressId: json['userAddressId'] as int?,
       guestEmail: json['guestEmail'] as String?,
       subtotal: (json['subtotal'] ?? 0).toDouble(),
@@ -100,6 +103,7 @@ class OrderResponse {
       cancelledAt: json['cancelledAt'] as String?,
       cancelledBy: json['cancelledBy'] as String?,
       deliveredAt: json['deliveredAt'] as String?,
+      deliveringAt: json['deliveringAt'] as String?,
       completedAt: json['completedAt'] as String?,
       returnReason: json['returnReason'] as String?,
       returnEvidence: json['returnEvidence'] as String?,
@@ -107,6 +111,41 @@ class OrderResponse {
       adminReturnNote: json['adminReturnNote'] as String?,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
+    );
+  }
+}
+
+/// User info trong response order
+class UserOrderInfoResponse {
+  final String? userId;
+  final String? firstName;
+  final String? lastName;
+  final String? email;
+  final String? phoneNumber;
+  final String? avatarUrl;
+  final String? altImage;
+
+  UserOrderInfoResponse({
+    this.userId,
+    this.firstName,
+    this.lastName,
+    this.email,
+    this.phoneNumber,
+    this.avatarUrl,
+    this.altImage,
+  });
+
+  String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
+
+  factory UserOrderInfoResponse.fromJson(Map<String, dynamic> json) {
+    return UserOrderInfoResponse(
+      userId: json['userId'] as String?,
+      firstName: json['firstName'] as String?,
+      lastName: json['lastName'] as String?,
+      email: json['email'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
+      avatarUrl: json['avatarUrl'] as String?,
+      altImage: json['altImage'] as String?,
     );
   }
 }

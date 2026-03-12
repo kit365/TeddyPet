@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,7 +35,6 @@ public class PaymentApplicationService implements PaymentService {
     private final OrderService orderService;
     private final PaymentRepositoryPort paymentRepositoryPort;
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
-    private final fpt.teddypet.application.port.output.NotificationPublisherPort notificationPublisherPort;
     private Map<PaymentGatewayEnum, PaymentGatewayPort<?>> gatewayMap;
 
     @PostConstruct
@@ -58,20 +56,11 @@ public class PaymentApplicationService implements PaymentService {
 
         String paymentUrl = gatewayAdapter.buildPaymentUrl(order, ipAddress, returnUrl);
 
+        // Use orderCode or numericCode as the primary transaction identifier for
+        // searching during callbacks
         String transactionRef = (order.getNumericCode() != null)
                 ? String.valueOf(order.getNumericCode())
                 : order.getOrderCode();
-
-        // Check if payment already exists for this transaction
-        Optional<Payment> existingPayment = paymentRepositoryPort.findByTransactionId(transactionRef);
-
-        if (existingPayment.isPresent()) {
-            Payment payment = existingPayment.get();
-            if (payment.getStatus() == PaymentStatusEnum.PENDING) {
-                log.info("Reusing existing PENDING payment for order: {}", orderId);
-                return paymentUrl;
-            }
-        }
 
         Payment payment = Payment.builder()
                 .order(order)
@@ -79,7 +68,7 @@ public class PaymentApplicationService implements PaymentService {
                 .paymentMethod(gateway.getPaymentMethod())
                 .status(PaymentStatusEnum.PENDING)
                 .paymentGateway(gateway.name())
-                .transactionId(transactionRef)
+                .transactionId(transactionRef) // Crucial for finding it back in callback
                 .notes(PaymentConstants.Messages.MSG_PAYMENT_INITIATED + gateway.getDisplayName())
                 .build();
 
@@ -95,16 +84,14 @@ public class PaymentApplicationService implements PaymentService {
     public PaymentResult processPaymentCallback(PaymentGatewayEnum gateway,
             Object callbackData,
             HttpServletRequest request) {
-        log.info("🔄 Processing callback for gateway: {}", gateway);
         PaymentGatewayPort<?> adapter = getGatewayAdapter(gateway);
 
         try {
             @SuppressWarnings("unchecked")
             PaymentGatewayPort<Object> typedAdapter = (PaymentGatewayPort<Object>) adapter;
 
+            // Adapter handles ALL gateway logic
             GatewayCallbackResult gwResult = typedAdapter.handleCallback(callbackData, request);
-            log.info("📋 Callback result - TransactionId: {}, Success: {}", gwResult.transactionId(),
-                    gwResult.success());
 
             if (!gwResult.success()) {
                 markPaymentFailed(gwResult, gateway);
@@ -136,16 +123,10 @@ public class PaymentApplicationService implements PaymentService {
     }
 
     private void updatePaymentAndOrder(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
-        log.info("🔍 Looking for payment with transactionId: {}", result.transactionId());
-
         Payment payment = paymentRepositoryPort.findByTransactionId(result.transactionId())
-                .orElseThrow(() -> {
-                    log.error("❌ Payment not found for transactionId: {}", result.transactionId());
-                    return new PaymentException.PaymentNotFoundException(result.transactionId());
-                });
+                .orElseThrow(() -> new PaymentException.PaymentNotFoundException(result.transactionId()));
 
-        log.info("✅ Found payment: id={}, status={}", payment.getId(), payment.getStatus());
-
+        // Idempotency check (domain logic)
         if (payment.isAlreadyCompleted()) {
             log.warn(PaymentConstants.Messages.LOG_DUPLICATE_CALLBACK,
                     result.transactionId(), payment.getStatus());
@@ -157,33 +138,10 @@ public class PaymentApplicationService implements PaymentService {
             paymentRepositoryPort.save(payment);
 
             Order order = payment.getOrder();
-            orderService.updateOrderStatus(order.getId(), OrderStatusEnum.CONFIRMED);
+            orderService.updateOrderStatus(order.getId(), OrderStatusEnum.PROCESSING);
 
             log.info(PaymentConstants.Messages.PAYMENT_COMPLETED,
                     gateway, result.transactionId(), order.getId());
-
-            // Send notification to Admin
-            notificationPublisherPort.sendToTopic("admin-orders",
-                    fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
-                            .title("Thanh toán thành công")
-                            .message("Đơn hàng #" + order.getOrderCode() + " đã được thanh toán thành công.")
-                            .type("PAYMENT_SUCCESS")
-                            .targetUrl("/admin/order/detail/" + order.getId())
-                            .timestamp(java.time.LocalDateTime.now())
-                            .build());
-
-            // Send notification to Customer
-            if (order.getUser() != null) {
-                notificationPublisherPort.sendToUser(order.getUser().getUsername(),
-                        fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
-                                .title("Thanh toán thành công")
-                                .message("Chúng tôi đã nhận được thanh toán cho đơn hàng #" + order.getOrderCode()
-                                        + ". Cảm ơn bạn!")
-                                .type("PAYMENT_SUCCESS_CUSTOMER")
-                                .targetUrl("/dashboard/orders/" + order.getId())
-                                .timestamp(java.time.LocalDateTime.now())
-                                .build());
-            }
         } catch (PaymentDomainException e) {
             log.error("Domain violation: {}", e.getMessage());
             throw e;
@@ -202,21 +160,6 @@ public class PaymentApplicationService implements PaymentService {
                                 paymentRepositoryPort.save(payment);
                                 log.warn(PaymentConstants.Messages.LOG_PAYMENT_FAILED_WARN,
                                         gateway, result.transactionId());
-
-                                // Notify customer about failure
-                                Order order = payment.getOrder();
-                                if (order.getUser() != null) {
-                                    notificationPublisherPort.sendToUser(order.getUser().getUsername(),
-                                            fpt.teddypet.application.dto.response.notification.NotificationResponse
-                                                    .builder()
-                                                    .title("Thanh toán thất bại")
-                                                    .message("Thanh toán cho đơn hàng #" + order.getOrderCode()
-                                                            + " không thành công. Lý do: " + result.message())
-                                                    .type("PAYMENT_FAILED")
-                                                    .targetUrl("/dashboard/orders/" + order.getId())
-                                                    .timestamp(java.time.LocalDateTime.now())
-                                                    .build());
-                                }
                             } catch (Exception e) {
                                 log.error("Failed to mark payment as failed for txnId: {}",
                                         result.transactionId(), e);

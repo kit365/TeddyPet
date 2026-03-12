@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../application/cart/cart_app_service.dart';
 import '../../../data/models/entities/cart/cart_entity.dart';
+import '../../controllers/cart/cart_controller.dart';
 
 class CartProvider extends ChangeNotifier {
-  final CartAppService _cartAppService;
+  final CartController _controller;
 
-  CartProvider(this._cartAppService);
+  CartProvider(this._controller);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -20,7 +20,7 @@ class CartProvider extends ChangeNotifier {
     }
 
     try {
-      _cart = await _cartAppService.getMyCart();
+      _cart = await _controller.getMyCart();
     } catch (e) {
       debugPrint("Lỗi tải giỏ hàng: \$e");
     } finally {
@@ -32,7 +32,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<bool> addToCart(int variantId, int quantity) async {
-    final success = await _cartAppService.addToCart(variantId, quantity);
+    final success = await _controller.addToCart(variantId, quantity);
     if (success) {
       await fetchMyCart(background: true); // Refetch sau khi cập nhật thành công (chạy ngầm, ko hiện quay spinner)
     }
@@ -40,7 +40,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<bool> updateCartItem(int variantId, int quantity) async {
-    final success = await _cartAppService.updateCartItem(variantId, quantity);
+    final success = await _controller.updateCartItem(variantId, quantity);
     if (success) {
       await fetchMyCart(background: true);
     }
@@ -48,7 +48,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<bool> removeMyCartItem(int variantId) async {
-    final success = await _cartAppService.removeMyCartItem(variantId);
+    final success = await _controller.removeMyCartItem(variantId);
     if (success) {
       await fetchMyCart(background: true);
     }

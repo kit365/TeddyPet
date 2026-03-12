@@ -1,5 +1,3 @@
-import 'package:teddypet_mobile/data/models/request/user/update_profile_request.dart';
-import 'package:teddypet_mobile/data/models/response/user/user_profile_response.dart';
 import '../../../../application/auth/auth_app_service.dart';
 import '../../../../data/models/entities/auth/user_entity.dart';
 import '../../../../data/models/response/auth/register_response.dart';
@@ -35,5 +33,18 @@ class AuthController {
 
   Future<UserEntity?> loginWithGoogle(String idToken) async {
     return await _authAppService.loginWithGoogle(idToken);
+  }
+
+  // === Change Password ===
+  Future<int> sendChangePasswordOtp() async {
+    return await _authAppService.sendChangePasswordOtp();
+  }
+
+  Future<bool> verifyChangePasswordOtp(String otpCode) async {
+    return await _authAppService.verifyChangePasswordOtp(otpCode);
+  }
+
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode) async {
+    return await _authAppService.changePassword(oldPassword, newPassword, otpCode);
   }
 }

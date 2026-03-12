@@ -377,12 +377,12 @@ export const ProductVariants = ({
                                         })}
 
                                         <TableCell sx={{ minWidth: 80, fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
-                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
                                         <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Giá bán</TableCell>
                                         <TableCell sx={{ minWidth: 140, fontSize: '1.4rem', fontWeight: 600 }}>Giá khuyến mãi</TableCell>
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Trọng lượng</TableCell>
                                         <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Đơn vị</TableCell>
+                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
                                         {!readOnly && <TableCell width={50} align="center"></TableCell>}
                                     </TableRow>
                                 </TableHead>
@@ -416,14 +416,38 @@ export const ProductVariants = ({
                                                     }}
                                                     displayEmpty
                                                     renderValue={(selected) => {
-                                                        if (!selected) return <Box sx={{ width: 44, height: 44, bgcolor: '#f4f6f8', borderRadius: '8px', border: '1px dashed #919eab52' }} />;
-                                                        return <Box component="img" src={String(selected)} sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: '8px', border: '1px solid #919eab29' }} />;
+                                                        const imgSrc = selected ? String(selected) : null;
+                                                        return (
+                                                            <Box sx={{ 
+                                                                width: 44, 
+                                                                height: 44, 
+                                                                bgcolor: '#f4f6f8', 
+                                                                borderRadius: '8px', 
+                                                                border: '1px solid #919eab29',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                {imgSrc ? (
+                                                                    <Box component="img" src={imgSrc} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                ) : (
+                                                                    <Box sx={{ width: 20, height: 20, border: '2px dashed #919eab52', borderRadius: '4px' }} />
+                                                                )}
+                                                            </Box>
+                                                        );
                                                     }}
                                                     sx={{
-                                                        minWidth: 80,
-                                                        '& .MuiSelect-select': { padding: '8px !important', display: 'flex', justifyContent: 'center' },
-                                                        '& fieldset': { borderColor: 'transparent !important' },
-                                                        '&:hover fieldset': { borderColor: '#919eab52 !important' }
+                                                        minWidth: 60,
+                                                        '& .MuiSelect-select': { 
+                                                            padding: '0px !important', 
+                                                            display: 'flex', 
+                                                            justifyContent: 'center', 
+                                                            alignItems: 'center',
+                                                            minHeight: '44px' 
+                                                        },
+                                                        '& fieldset': { border: 'none !important' },
+                                                        '&:hover fieldset': { border: 'none !important' }
                                                     }}
                                                 >
                                                     <MenuItem value=""><em>None</em></MenuItem>
@@ -438,6 +462,97 @@ export const ProductVariants = ({
                                                     })}
                                                 </Select>
                                             </TableCell>
+
+                                            <TableCell>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.originalPrice === 0 ? "" : variant.originalPrice.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].originalPrice = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 120 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '1.4rem' },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.price === 0 ? "" : variant.price.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].price = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 120 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '1.4rem' },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.stock === 0 ? "" : variant.stock.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].stock = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 100 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '1.4rem' },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.weight === 0 ? "" : variant.weight.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].weight = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 100 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '1.4rem' },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur(),
+                                                        endAdornment: <Typography sx={{ fontSize: '1.2rem', color: 'text.secondary', ml: 0.5 }}>g</Typography>
+                                                    }}
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Select
+                                                    size="small"
+                                                    disabled={readOnly}
+                                                    value={variant.unit || "PIECE"}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].unit = e.target.value as string;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 90, fontSize: '1.3rem' }}
+                                                >
+                                                    {salesUnitOptions.map((opt) => (
+                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '1.3rem' }}>
+                                                            {opt.label}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </TableCell>
+
                                             <TableCell>
                                                 <Select
                                                     size="small"
@@ -449,101 +564,16 @@ export const ProductVariants = ({
                                                         onVariantsChange(newVariants);
                                                     }}
                                                     sx={{
-                                                        minWidth: 100, fontSize: '1.3rem',
+                                                        minWidth: 110, fontSize: '1.3rem',
                                                         color: variant.status === "ACTIVE" ? '#00A76F' : (variant.status === "DRAFT" ? '#637381' : '#FF5630'),
                                                         bgcolor: variant.status === "ACTIVE" ? 'rgba(0, 167, 111, 0.08)' : (variant.status === "DRAFT" ? 'rgba(99, 115, 129, 0.08)' : 'rgba(255, 86, 48, 0.08)'),
                                                         fontWeight: 600,
                                                         '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
                                                     }}
                                                 >
-                                                    <MenuItem value="ACTIVE" sx={{ color: '#00A76F', fontWeight: 600 }}>Active</MenuItem>
-                                                    <MenuItem value="DRAFT" sx={{ color: '#637381', fontWeight: 600 }}>Draft</MenuItem>
-                                                    <MenuItem value="HIDDEN" sx={{ color: '#FF5630', fontWeight: 600 }}>Hidden</MenuItem>
-                                                </Select>
-                                            </TableCell>
-
-                                            <TableCell>
-                                                <TextField
-                                                    size="small"
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={variant.originalPrice}
-                                                    onChange={(e) => {
-                                                        const newVariants = [...variants];
-                                                        newVariants[index].originalPrice = Number(e.target.value);
-                                                        // Ensure sale price is reset if needed, but mainly this is the Price
-                                                        onVariantsChange(newVariants);
-                                                    }}
-                                                    sx={{ minWidth: 100 }}
-                                                    fullWidth
-                                                    InputProps={{ sx: { fontSize: '1.4rem' } }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <TextField
-                                                    size="small"
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={variant.price}
-                                                    onChange={(e) => {
-                                                        const newVariants = [...variants];
-                                                        newVariants[index].price = Number(e.target.value);
-                                                        onVariantsChange(newVariants);
-                                                    }}
-                                                    sx={{ minWidth: 100 }}
-                                                    fullWidth
-                                                    InputProps={{ sx: { fontSize: '1.4rem' } }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <TextField
-                                                    size="small"
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={variant.stock}
-                                                    onChange={(e) => {
-                                                        const newVariants = [...variants];
-                                                        newVariants[index].stock = Number(e.target.value);
-                                                        onVariantsChange(newVariants);
-                                                    }}
-                                                    sx={{ minWidth: 80 }}
-                                                    fullWidth
-                                                    InputProps={{ sx: { fontSize: '1.4rem' } }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <TextField
-                                                    size="small"
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={variant.weight || 0}
-                                                    onChange={(e) => {
-                                                        const newVariants = [...variants];
-                                                        newVariants[index].weight = Number(e.target.value);
-                                                        onVariantsChange(newVariants);
-                                                    }}
-                                                    sx={{ minWidth: 80 }}
-                                                    fullWidth
-                                                    InputProps={{ sx: { fontSize: '1.4rem' } }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Select
-                                                    size="small"
-                                                    disabled={readOnly}
-                                                    value={variant.unit || "PIECE"}
-                                                    onChange={(e) => {
-                                                        const newVariants = [...variants];
-                                                        newVariants[index].unit = e.target.value as string;
-                                                        onVariantsChange(newVariants);
-                                                    }}
-                                                    sx={{ minWidth: 80, fontSize: '1.3rem' }}
-                                                >
-                                                    {salesUnitOptions.map((opt) => (
-                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '1.3rem' }}>
-                                                            {opt.label}
-                                                        </MenuItem>
-                                                    ))}
+                                                    <MenuItem value="ACTIVE" sx={{ color: '#00A76F', fontWeight: 600 }}>Đang bán</MenuItem>
+                                                    <MenuItem value="DRAFT" sx={{ color: '#637381', fontWeight: 600 }}>Bản nháp</MenuItem>
+                                                    <MenuItem value="HIDDEN" sx={{ color: '#FF5630', fontWeight: 600 }}>Tạm ẩn</MenuItem>
                                                 </Select>
                                             </TableCell>
                                             {!readOnly && (

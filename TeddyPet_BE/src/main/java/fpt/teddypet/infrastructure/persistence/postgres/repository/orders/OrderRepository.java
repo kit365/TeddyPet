@@ -33,6 +33,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     // Guest order lookup
     Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail);
 
+    @Query("SELECT o FROM Order o WHERE o.orderCode = :orderCode AND (o.guestEmail = :identifier OR o.shippingPhone = :identifier)")
+    Optional<Order> findByOrderCodeAndEmailOrPhone(String orderCode, String identifier);
+
     List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);

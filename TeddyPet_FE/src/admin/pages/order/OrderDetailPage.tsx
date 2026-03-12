@@ -898,11 +898,7 @@ export const OrderDetailPage = () => {
                                     </Box>
                                     <Stack spacing={0}>
                                         <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hình thức</Typography>
-                                        <Typography sx={{ fontSize: '1.4rem', color: '#1C252E', fontWeight: 800 }}>
-                                            {order.payments[0]?.paymentMethod === 'CASH' 
-                                                ? 'Thanh toán khi nhận hàng' 
-                                                : (order.payments[0]?.status === 'COMPLETED' ? 'Đã thanh toán Online' : 'Chờ thanh toán Online')}
-                                        </Typography>
+                                        <Typography sx={{ fontSize: '1.4rem', color: '#1C252E', fontWeight: 800 }}>{order.payments[0]?.paymentMethod === 'CASH' ? 'Thanh toán khi nhận hàng' : 'Đã thanh toán Online'}</Typography>
                                     </Stack>
                                 </Stack>
                             </Stack>
@@ -921,39 +917,24 @@ export const OrderDetailPage = () => {
                                 <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', mb: 3, color: '#1C252E' }}>Bước xử lý tiếp theo</Typography>
                                 <Stack spacing={2.5}>
                                     {getNextAction(order.status) && (
-                                        <>
-                                            {order.status === 'CONFIRMED' && order.payments[0]?.paymentMethod === 'BANK_TRANSFER' && order.payments[0]?.status !== 'COMPLETED' && (
-                                                <Box sx={{ 
-                                                    p: 2, 
-                                                    bgcolor: '#FEF3C7', 
-                                                    border: '1px solid #FCD34D',
-                                                    borderRadius: '12px',
-                                                    textAlign: 'center'
-                                                }}>
-                                                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 700, color: '#92400E' }}>
-                                                        Khách hàng chưa thanh toán. Không thể bắt đầu đóng gói
-                                                    </Typography>
-                                                </Box>
-                                            )}
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                startIcon={getNextAction(order.status)?.icon}
-                                                onClick={() => getNextAction(order.status) && handleUpdateStatus(getNextAction(order.status)!.status)}
-                                                disabled={updating || (order.status === 'CONFIRMED' && order.payments[0]?.paymentMethod === 'BANK_TRANSFER' && order.payments[0]?.status !== 'COMPLETED')}
-                                                sx={{
-                                                    py: 2,
-                                                    borderRadius: '20px',
-                                                    fontSize: '1.6rem',
-                                                    fontWeight: 900,
-                                                    textTransform: 'none',
-                                                    bgcolor: getNextAction(order.status)?.color,
-                                                    '&:hover': { bgcolor: getNextAction(order.status)?.color, filter: 'brightness(0.9)' }
-                                                }}
-                                            >
-                                                {updating ? 'Đang xử lý...' : getNextAction(order.status)?.label}
-                                            </Button>
-                                        </>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            startIcon={getNextAction(order.status)?.icon}
+                                            onClick={() => getNextAction(order.status) && handleUpdateStatus(getNextAction(order.status)!.status)}
+                                            disabled={updating}
+                                            sx={{
+                                                py: 2,
+                                                borderRadius: '20px',
+                                                fontSize: '1.6rem',
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                bgcolor: getNextAction(order.status)?.color,
+                                                '&:hover': { bgcolor: getNextAction(order.status)?.color, filter: 'brightness(0.9)' }
+                                            }}
+                                        >
+                                            {updating ? 'Đang xử lý...' : getNextAction(order.status)?.label}
+                                        </Button>
                                     )}
                                     {/* Nút hủy đơn cho PENDING và CONFIRMED */}
                                     {['PENDING', 'CONFIRMED'].includes(order.status) && (

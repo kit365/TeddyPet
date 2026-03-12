@@ -11,7 +11,9 @@ class UserController {
     return await _userAppService.getProfile();
   }
 
-  Future<UserProfileResponse?> updateProfile(UpdateProfileRequest request) async {
+  Future<UserProfileResponse?> updateProfile(
+    UpdateProfileRequest request,
+  ) async {
     return await _userAppService.updateProfile(request);
   }
 }

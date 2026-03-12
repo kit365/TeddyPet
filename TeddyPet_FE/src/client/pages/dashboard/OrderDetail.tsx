@@ -119,7 +119,7 @@ const OrderStepper = ({ status }: { status: string }) => {
 
 export const OrderDetailPage = () => {
     const { id } = useParams<{ id: string }>();
-    const { order, loading: fetching, refreshing, refresh } = useOrderDetail(id as string);
+    const { order, loading: fetching, refresh } = useOrderDetail(id as string);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -174,12 +174,13 @@ export const OrderDetailPage = () => {
             toast.success("Thanh toán thành công! TeddyPet đang chuẩn bị hàng cho bạn.");
             navigate(location.pathname, { replace: true });
 
+            // Polling logic: thử refresh vài lần vì webhook có thể chậm
             let count = 0;
             const poll = setInterval(() => {
                 refresh();
                 count++;
-                if (count >= 10) clearInterval(poll);
-            }, 2000);
+                if (count >= 5) clearInterval(poll);
+            }, 3000);
         }
     }, [location.search, refresh]);
 
@@ -353,19 +354,12 @@ export const OrderDetailPage = () => {
         return diffInDays <= 7;
     };
 
-    const isPaid = order.payments?.some(p => p.status === 'COMPLETED') ?? false;
-    const paymentInfo = order.payments?.[0]; // Dùng để lấy method chính
+    const paymentInfo = order.payments?.[0];
+    const isPaid = paymentInfo?.status === 'COMPLETED';
+    const paymentMethodLabel = paymentInfo?.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản VietQR (PayOS)' : 'Thanh toán khi nhận hàng (COD)';
 
     return (
-        <div className="bg-[#fcfcfc] min-h-screen pb-[120px] relative">
-            {/* Background Refresh Loading Overlay */}
-            {refreshing && (
-                <div className="fixed top-[100px] right-[40px] z-[100] bg-white/80 backdrop-blur-sm border border-gray-100 p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-slideInRight">
-                    <div className="w-5 h-5 border-2 border-client-primary/10 border-t-client-primary rounded-full animate-spin"></div>
-                    <span className="text-[1.2rem] font-bold text-gray-500 uppercase tracking-widest">Đang cập nhật...</span>
-                </div>
-            )}
-
+        <div className="bg-[#fcfcfc] min-h-screen pb-[120px]">
             <ProductBanner
                 pageTitle={`Chi tiết đơn hàng`}
                 breadcrumbs={breadcrumbs}
@@ -621,11 +615,7 @@ export const OrderDetailPage = () => {
                                             </div>
                                             <div>
                                                 <div className="text-[1.1rem] text-gray-400 font-bold uppercase tracking-wider">Phương thức</div>
-                                                <div className="text-[1.4rem] font-black text-client-secondary">
-                                                    {paymentInfo?.paymentMethod === 'BANK_TRANSFER'
-                                                        ? (isPaid ? 'Chuyển khoản VietQR (PayOS) - Đã thanh toán' : 'Chuyển khoản VietQR (PayOS) - Chờ thanh toán')
-                                                        : 'Thanh toán khi nhận hàng (COD)'}
-                                                </div>
+                                                <div className="text-[1.4rem] font-black text-client-secondary">{paymentMethodLabel}</div>
                                             </div>
                                         </div>
 

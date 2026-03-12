@@ -14,7 +14,6 @@ import java.util.UUID;
 public record OrderResponse(
         UUID id,
         String orderCode,
-        Long numericCode,
         UserOrderInfoResponse user, // null nếu guest checkout
         Long userAddressId, // ID của địa chỉ đã lưu (null nếu nhập thủ công hoặc guest)
         String guestEmail, // Email của guest (null nếu user đăng nhập)

@@ -16,7 +16,7 @@ import { AuthSupportActions } from "../register-login/sections/AuthSupportAction
 const schema = z.object({
     usernameOrEmail: z
         .string()
-        .nonempty("Vui lòng nhập tên người dùng!")
+        .nonempty("Vui lòng nhập email!")
     ,
     password: z
         .string()
@@ -144,9 +144,9 @@ export const LoginPage = () => {
                             <h3 className="text-center text-[3rem] font-[600] mb-[50px] text-[#333]">Đăng nhập 👋</h3>
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Tên người dùng</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Email</label>
                                     <Input
-                                        placeholder="Tên người dùng"
+                                        placeholder="Email"
                                         {...register("usernameOrEmail")}
                                         error={errors.usernameOrEmail?.message}
                                         errorColor="text-red-500"

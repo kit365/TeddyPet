@@ -36,6 +36,7 @@ export const ProductDetailPage = () => {
 
     // Toast
     const [showToast, setShowToast] = useState(false);
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
 
     // Cart Store
     const addToCart = useCartStore((state) => state.addToCart);
@@ -185,14 +186,19 @@ export const ProductDetailPage = () => {
     }, [showToast]);
 
     // Handlers
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product || !selectedVariant) return;
 
-        const existingCartItem = cartItems.find(item => item.id === selectedVariant.variantId);
-        const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
+        setIsAddingToCart(true);
+        // Small delay for feedback
+        await new Promise(resolve => setTimeout(resolve, 600));
 
-        if (currentCartQuantity + quantity > selectedVariant.stockQuantity) {
-            toast.error(`Bạn đã có ${currentCartQuantity} sản phẩm trong giỏ hàng. Số lượng tồn kho chỉ còn ${selectedVariant.stockQuantity}. Không thể thêm quá số lượng này.`);
+        const existingCartItemInAdd = cartItems.find(item => item.id === selectedVariant.variantId);
+        const currentCartQuantityInAdd = existingCartItemInAdd ? existingCartItemInAdd.quantity : 0;
+
+        if (currentCartQuantityInAdd + quantity > selectedVariant.stockQuantity) {
+            toast.error(`Bạn đã có ${currentCartQuantityInAdd} sản phẩm trong giỏ hàng. Số lượng tồn kho chỉ còn ${selectedVariant.stockQuantity}. Không thể thêm quá số lượng này.`);
+            setIsAddingToCart(false);
             return;
         }
 
@@ -210,6 +216,7 @@ export const ProductDetailPage = () => {
         };
 
         addToCart(cartItem);
+        setIsAddingToCart(false);
         setShowToast(true);
     };
 
@@ -445,10 +452,17 @@ export const ProductDetailPage = () => {
                                 <button
                                     onClick={handleAddToCart}
                                     className={`bg-client-secondary flex-1 h-full rounded-[4rem] text-white text-[1.6rem] font-secondary transition-default flex items-center justify-center
-                                        ${canAddToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary' : 'opacity-60 cursor-not-allowed'}`}
-                                    disabled={!canAddToCart}
+                                        ${canAddToCart && !isAddingToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary' : 'opacity-60 cursor-not-allowed'}`}
+                                    disabled={!canAddToCart || isAddingToCart}
                                 >
-                                    {outOfStock ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                                    {isAddingToCart ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Đang thêm...
+                                        </div>
+                                    ) : (
+                                        outOfStock ? "Hết hàng" : "Thêm vào giỏ hàng"
+                                    )}
                                 </button>
                                 <div
                                     onClick={handleToggleWishlist}
@@ -461,11 +475,14 @@ export const ProductDetailPage = () => {
                             </div>
 
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (!canAddToCart || !selectedVariant) {
                                         toast.error("Vui lòng chọn đầy đủ các tùy chọn sản phẩm!");
                                         return;
                                     }
+                                    setIsAddingToCart(true);
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                    
                                     const buyNowItem: CartItem = {
                                         id: selectedVariant.variantId,
                                         title: product.name,
@@ -480,12 +497,20 @@ export const ProductDetailPage = () => {
                                     };
                                     // Set buyNowItem only, don't add to persistent cart to avoid lingering items
                                     useCartStore.getState().setBuyNowItem(buyNowItem);
+                                    setIsAddingToCart(false);
                                     navigate("/checkout");
                                 }}
-                                disabled={!canAddToCart}
-                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[2rem] text-white transition-default ${canAddToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
+                                disabled={!canAddToCart || isAddingToCart}
+                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[2rem] text-white transition-default ${canAddToCart && !isAddingToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
                             >
-                                {outOfStock ? "Hết hàng" : "Mua ngay"}
+                                {isAddingToCart ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Đang chuyển hướng...
+                                    </div>
+                                ) : (
+                                    outOfStock ? "Hết hàng" : "Mua ngay"
+                                )}
                             </button>
 
                             <ul className="mt-[50px]">

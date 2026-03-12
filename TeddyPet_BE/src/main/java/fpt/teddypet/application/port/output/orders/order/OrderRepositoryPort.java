@@ -34,6 +34,8 @@ public interface OrderRepositoryPort {
     // Guest order lookup
     Optional<Order> findByOrderCodeAndGuestEmail(String orderCode, String guestEmail);
 
+    Optional<Order> findByOrderCodeAndEmailOrPhone(String orderCode, String identifier);
+
     List<Order> findByStatusAndDeliveringAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);

@@ -61,7 +61,13 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      if (authProvider.token == null) {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                        return;
+                      }
+                      Navigator.pushNamed(context, AppRoutes.wishlist);
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       color: Colors.transparent, // Để dễ bấm

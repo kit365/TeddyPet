@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { trackOrder, confirmReceived, lookupGuestOrder } from "../../../api/order.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
 import {
-    Search, Package, MapPin, User, Phone, CheckCircle, WarningCircle,
+    Search, Package, MapPin, CheckCircle, WarningCircle,
     RefreshDouble, ClipboardCheck, Truck, Box as BoxIcon, HomeSimple,
-    Mail, Copy, NavArrowRight, HelpCircle, ChatBubble, Wallet, Calendar,
-    ShieldCheck, InfoCircle, ShareAndroid, Star
+    Mail, Copy, HelpCircle, ChatBubble, Wallet, Calendar,
+    ShieldCheck, InfoCircle, Star
 } from "iconoir-react";
 import { format } from "date-fns";
 import { useAuthStore } from "../../../stores/useAuthStore";
@@ -87,7 +87,7 @@ const OrderStepper = ({ status }: { status: string }) => {
 };
 
 export const OrderTrackingPage = () => {
-    const [searchParams] = useSearchParams();
+    const location = useLocation();
     const { user } = useAuthStore();
     const isAuthenticated = !!user;
 
@@ -103,24 +103,26 @@ export const OrderTrackingPage = () => {
     const hasAutoLooked = useRef(false);
 
     useEffect(() => {
-        const codeFromUrl = searchParams.get("code");
-        const emailFromUrl = searchParams.get("email");
-        if (codeFromUrl) setOrderCode(codeFromUrl);
-        if (emailFromUrl) setEmail(emailFromUrl);
-    }, [searchParams]);
+        const urlParams = new URLSearchParams(location.search);
+        const codeFromUrl = urlParams.get("code");
+        const emailFromUrl = urlParams.get("email");
+        if (codeFromUrl && codeFromUrl !== orderCode) setOrderCode(codeFromUrl);
+        if (emailFromUrl && emailFromUrl !== email) setEmail(emailFromUrl);
+    }, [location.search]);
 
     useEffect(() => {
-        const codeFromUrl = searchParams.get("code");
-        const emailFromUrl = searchParams.get("email");
+        const urlParams = new URLSearchParams(location.search);
+        const codeFromUrl = urlParams.get("code");
+        const emailFromUrl = urlParams.get("email");
+        
         if (codeFromUrl && !hasAutoLooked.current && !order) {
-            // Lấy email ưu tiên từ URL rồi mới tới state
             const targetEmail = emailFromUrl || email;
             if (isAuthenticated || targetEmail) {
                 hasAutoLooked.current = true;
                 doTrackOrder(codeFromUrl, targetEmail);
             }
         }
-    }, [searchParams, isAuthenticated, email, order]);
+    }, [location.search, isAuthenticated, email, order]);
 
     const doTrackOrder = async (code: string, emailInput?: string) => {
         if (!code) return;

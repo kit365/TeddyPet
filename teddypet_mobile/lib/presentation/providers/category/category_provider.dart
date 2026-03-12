@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../application/category/category_app_service.dart';
 import '../../../data/models/response/category/category_response.dart';
+import '../../controllers/category/category_controller.dart';
 
 class CategoryProvider extends ChangeNotifier {
-  final CategoryAppService _categoryAppService;
+  final CategoryController _controller;
 
-  CategoryProvider(this._categoryAppService);
+  CategoryProvider(this._controller);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -29,7 +29,7 @@ class CategoryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _categories = await _categoryAppService.getCategories();
+      _categories = await _controller.getCategories();
       _selectedIndex = 0;
     } catch (e) {
       debugPrint("Error fetching categories: \$e");

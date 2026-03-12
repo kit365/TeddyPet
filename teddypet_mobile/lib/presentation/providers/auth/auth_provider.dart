@@ -1,5 +1,3 @@
-import 'package:teddypet_mobile/data/models/request/user/update_profile_request.dart';
-import 'package:teddypet_mobile/data/models/response/user/user_profile_response.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -187,5 +185,54 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('access_token');
     _token = null;
     notifyListeners();
+  }
+
+  // === Change Password ===
+  Future<int> sendChangePasswordOtp() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      return await _controller.sendChangePasswordOtp();
+    } catch (e) {
+      _error = _handleError(e);
+      return -1;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> verifyChangePasswordOtp(String otpCode) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      return await _controller.verifyChangePasswordOtp(otpCode);
+    } catch (e) {
+      _error = _handleError(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      return await _controller.changePassword(oldPassword, newPassword, otpCode);
+    } catch (e) {
+      _error = _handleError(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

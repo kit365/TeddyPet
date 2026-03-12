@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { ProductBanner } from "../product/sections/ProductBanner"
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ArrowRight, MapPin, Phone, User, Search, LogOut, Navigation } from "lucide-react";
 import { useCartStore } from "../../../stores/useCartStore";
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
@@ -18,8 +18,9 @@ import { toast } from "react-toastify";
 import { createOrder } from "../../../api/order.api";
 import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
 import { UserAddressResponse } from "../../../types/address.type";
-import { sendGuestOtp } from "../../../api/otp.api";
+import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
 import { getShippingEstimation } from "../../api/shipping.api";
+import { CheckCircle2, ShieldCheck, Mail, Key } from "lucide-react";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -83,6 +84,7 @@ function LocationMarker({
 
 export const CheckoutPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, logout } = useAuthStore();
     const [showOrderNotes, setShowOrderNotes] = useState(false);
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
@@ -106,6 +108,8 @@ export const CheckoutPage = () => {
     // Guest Auth States
     const [otpCooldown, setOtpCooldown] = useState(0);
     const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [isGuestVerified, setIsGuestVerified] = useState(false);
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
     const items = useCartStore((state) => state.items);
     const cartTotalAmount = useCartStore((state) => state.totalAmountChecked());
@@ -120,11 +124,6 @@ export const CheckoutPage = () => {
         ? (buyNowItem.option.price * buyNowItem.quantity)
         : cartTotalAmount;
 
-    // Clear buyNowItem only on success, not on unmount to avoid Strict Mode issues
-    useEffect(() => {
-        // We handle clearing buyNowItem in handlePlaceOrder success case
-    }, []);
-
     const { register, handleSubmit, setValue, watch } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -135,6 +134,43 @@ export const CheckoutPage = () => {
             saveAddress: false
         }
     });
+
+    // Handle auto-verification from URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const email = params.get("verify-email");
+        const otp = params.get("otp");
+
+        if (email) {
+            setValue("guestEmail", email);
+        }
+        if (otp) {
+            setValue("otpCode", otp);
+            toast.info("Đã tự động điền mã xác thực từ email.");
+            
+            // Auto trigger verification if both are present
+            if (email && otp) {
+                handleVerifyOtpAction(email, otp);
+            }
+        }
+    }, [location.search, setValue]);
+
+    const handleVerifyOtpAction = async (email: string, otp: string) => {
+        setIsVerifyingOtp(true);
+        try {
+            const response = await verifyGuestOtp(email, otp);
+            if (response.success) {
+                toast.success("Xác thực email thành công! Bạn có thể tiếp tục đặt hàng.");
+                setIsGuestVerified(true);
+            } else {
+                toast.error(response.message || "Mã xác thực không chính xác");
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Lỗi xác thực OTP");
+        } finally {
+            setIsVerifyingOtp(false);
+        }
+    };
 
     // Update form values if user loads after initial render
     useEffect(() => {
@@ -176,6 +212,16 @@ export const CheckoutPage = () => {
         }
     };
 
+    const watchOtpCode = watch("otpCode");
+
+    const onManualVerify = () => {
+        if (!watchGuestEmail || !watchOtpCode) {
+            toast.error("Vui lòng nhập đầy đủ Email và mã OTP");
+            return;
+        }
+        handleVerifyOtpAction(watchGuestEmail, watchOtpCode);
+    };
+
     // Fetch initial addresses
     useEffect(() => {
         const fetchAddresses = async () => {
@@ -206,8 +252,6 @@ export const CheckoutPage = () => {
         fetchAddresses();
     }, [user]);
 
-
-
     const calculateShipping = async (lat: number, lon: number) => {
         let provinceId = 0;
         // Mock HCM detection
@@ -231,25 +275,10 @@ export const CheckoutPage = () => {
         }
     };
 
-    // Calculate shipping when selecting existing address
-    // Calculate shipping when selecting existing address
     useEffect(() => {
-        // Disabled automatic shipping calculation on client side as per requirement
         setShippingFee(0);
-
-        /* 
-        if (selectedAddressId !== "new" && addresses.length > 0) {
-            const addr = addresses.find(a => a.id.toString() === selectedAddressId);
-            if (addr && addr.latitude && addr.longitude) {
-                calculateShipping(addr.latitude, addr.longitude);
-            } else {
-                setShippingFee(null);
-            }
-        }
-        */
     }, [selectedAddressId, addresses]);
 
-    // Map Logic handling
     const handleCurrentLocation = () => {
         if (!navigator.geolocation) {
             toast.info("Trình duyệt của bạn không hỗ trợ định vị GPS");
@@ -283,16 +312,13 @@ export const CheckoutPage = () => {
             if (data && data.display_name) {
                 isManualChange.current = false;
                 setValue("address", data.display_name);
-
-                // Calculate shipping - DISABLED as per new requirement (no fee for unconfirmed orders)
-                // calculateShipping(lat, lon);
+                setSearchKeyword(data.display_name);
                 setShippingFee(0);
             }
         } catch (error) {
             console.error("Lỗi reverse geocoding:", error);
         }
     };
-
 
     const geocodeFromAddress = async (query: string, isFromSearch: boolean = false) => {
         if (!query.trim() || query.length < 3) return;
@@ -304,7 +330,6 @@ export const CheckoutPage = () => {
 
             let data = await trySearch(query);
 
-            // Fallback xuyệt (/)
             if (!(data.features && data.features.length > 0) && query.includes("/")) {
                 const parts = query.split(/[\s,]+/);
                 const houseNumIndex = parts.findIndex(p => p.includes("/"));
@@ -321,22 +346,22 @@ export const CheckoutPage = () => {
                 setNewPos(new L.LatLng(lat, lon));
                 setValue("latitude", lat);
                 setValue("longitude", lon);
-                if (isFromSearch) {
-                    setMapCenter([lat, lon]);
-                    
-                    const p = feature.properties;
-                    const houseNum = p.housenumber ? `${p.housenumber} ` : "";
-                    const street = p.street || "";
-                    const name = (p.name && p.name !== p.street) ? p.name : "";
-                    
-                    const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
-                    const parts = [mainPart, p.district, p.city, p.country];
-                    const displayName = parts.filter(Boolean).join(", ");
-                    
+                setMapCenter([lat, lon]);
+                
+                const p = feature.properties;
+                const houseNum = p.housenumber ? `${p.housenumber} ` : "";
+                const street = p.street || "";
+                const name = (p.name && p.name !== p.street) ? p.name : "";
+                
+                const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
+                const parts = [mainPart, p.district, p.city, p.country];
+                const displayName = parts.filter(Boolean).join(", ");
+                
+                if (isFromSearch || !isManualChange.current) {
                     setValue("address", displayName);
-                    setSearchKeyword("");
-                    setShowSuggestions(false);
                 }
+                setSearchKeyword(displayName);
+                setShowSuggestions(false);
                 calculateShipping(lat, lon);
             }
         } catch (error) {
@@ -392,12 +417,10 @@ export const CheckoutPage = () => {
         setValue("latitude", lat);
         setValue("longitude", lon);
         setValue("address", suggestion.display_name);
-        setSearchKeyword("");
+        setSearchKeyword(suggestion.display_name);
         setShowSuggestions(false);
         calculateShipping(lat, lon);
     };
-
-
 
     const handlePlaceOrder = async (data: FormData) => {
         const activeItems = checkoutItems;
@@ -409,14 +432,14 @@ export const CheckoutPage = () => {
 
         const saveAddressValue = data.saveAddress || false;
 
-        // Validate address
         if (selectedAddressId === "new") {
             if (!data.fullName || !data.phone || !data.address) {
                 toast.error("Vui lòng điền đầy đủ thông tin giao hàng!");
                 return;
             }
-            if (!user && (!data.guestEmail || !data.otpCode)) {
-                toast.error("Vui lòng nhập Email và mã OTP để xác thực khách hàng!");
+            if (!user && !isGuestVerified) {
+                toast.error("Vui lòng xác thực Email trước khi đặt hàng!");
+                setIsPlacingOrder(false);
                 return;
             }
         }
@@ -424,7 +447,6 @@ export const CheckoutPage = () => {
         setIsPlacingOrder(true);
 
         try {
-            // Save address if user is logged in and checkbox is checked
             if (user && selectedAddressId === "new" && saveAddressValue) {
                 try {
                     await createAddress({
@@ -433,26 +455,22 @@ export const CheckoutPage = () => {
                         address: data.address!,
                         latitude: data.latitude,
                         longitude: data.longitude,
-                        isDefault: addresses.length === 0 // Make default if it's the first address
+                        isDefault: addresses.length === 0
                     });
                     toast.info("Đã lưu địa chỉ mới vào sổ địa chỉ");
                 } catch (error) {
                     console.error("Lỗi khi lưu địa chỉ:", error);
-                    // Continue with order even if address saving fails
                 }
             }
 
-            // Prepare order items
             const orderItems: OrderItemRequest[] = activeItems.map(item => ({
                 variantId: Number(item.id),
                 quantity: item.quantity
             }));
 
-            // Prepare order request
             let orderRequest: OrderRequest;
 
             if (selectedAddressId === "new") {
-                // New address case
                 orderRequest = {
                     paymentMethod: paymentMethod,
                     receiverName: data.fullName!,
@@ -462,16 +480,12 @@ export const CheckoutPage = () => {
                     longitude: data.longitude,
                     note: data.note,
                     items: orderItems,
-                    // Only send guest info if not logged in
                     ...(!user && {
                         guestEmail: data.guestEmail,
                         otpCode: data.otpCode,
-                        latitude: data.latitude,
-                        longitude: data.longitude,
                     })
                 };
             } else {
-                // Existing address case
                 const selectedAddr = addresses.find(addr => addr.id.toString() === selectedAddressId);
                 if (!selectedAddr) {
                     toast.error("Địa chỉ không hợp lệ!");
@@ -574,43 +588,94 @@ export const CheckoutPage = () => {
 
                             {/* Guest Verification Section */}
                             {!user && (
-                                <div className="space-y-[18px] mb-[35px] bg-client-primary/5 p-[25px] rounded-[20px] border border-dashed border-client-primary/20 shadow-inner">
-                                    <div className="flex items-center gap-[10px] mb-[5px]">
-                                        <div className="w-[30px] h-[30px] rounded-full bg-client-primary/10 flex items-center justify-center">
-                                            <EmailOutlinedIcon className="text-client-primary w-[1.8rem] h-[1.8rem]" />
+                                <div className="space-y-[18px] mb-[35px] bg-client-primary/5 p-[25px] rounded-[30px] border border-dashed border-client-primary/20 shadow-inner relative overflow-hidden">
+                                    {isGuestVerified && (
+                                        <div className="absolute top-[15px] right-[25px] animate-scaleUp">
+                                            <div className="flex items-center gap-[8px] bg-emerald-500 text-white px-[15px] py-[6px] rounded-full text-[1.2rem] font-bold shadow-lg shadow-emerald-500/20">
+                                                <ShieldCheck className="w-[1.6rem] h-[1.6rem]" />
+                                                Đã xác thực
+                                            </div>
                                         </div>
-                                        <h3 className="text-[1.6rem] font-bold text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
-                                    </div>
-                                    <div className="flex gap-[12px]">
-                                        <div className="flex-1">
-                                            <input
-                                                type="email"
-                                                placeholder="Email của bạn *"
-                                                {...register("guestEmail")}
-                                                className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
-                                            />
+                                    )}
+                                    
+                                    <div className="flex items-center justify-between mb-[15px]">
+                                        <div className="flex items-center gap-[15px]">
+                                            <div className="w-[50px] h-[50px] rounded-full bg-client-primary/10 flex items-center justify-center">
+                                                <EmailOutlinedIcon className="text-client-primary w-[2.8rem] h-[2.8rem]" />
+                                            </div>
+                                            <h3 className="text-[2.2rem] font-black text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
                                         </div>
-                                        <button
-                                            type="button"
-                                            disabled={otpCooldown > 0 || isSendingOtp}
-                                            onClick={handleSendOtp}
-                                            className={`px-[25px] rounded-[40px] font-bold text-[1.3rem] transition-all uppercase tracking-wider ${otpCooldown > 0 || isSendingOtp
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'bg-client-secondary text-white hover:bg-client-primary shadow-lg shadow-client-secondary/20 active:scale-95'}`}
-                                        >
-                                            {isSendingOtp ? 'Đang gửi...' : otpCooldown > 0 ? `Lại sau (${otpCooldown}s)` : 'Gửi mã'}
-                                        </button>
+                                        {isGuestVerified && (
+                                            <div className="flex items-center gap-[6px] px-[15px] py-[8px] bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 animate-scaleIn border border-white/20">
+                                                <CheckCircle2 className="w-[1.6rem] h-[1.6rem]" />
+                                                <span className="text-[1.3rem] font-black uppercase tracking-wider">Đã xác thực</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <input
-                                        type="text"
-                                        placeholder="Nhập mã xác thực (OTP) *"
-                                        {...register("otpCode")}
-                                        className="w-full rounded-[40px] border border-[#eee] text-client-secondary py-[14px] px-[25px] outline-none focus:border-client-primary transition-all bg-white hover:border-gray-300"
-                                    />
-                                    <div className="text-[1.2rem] text-gray-400 italic mt-[5px] flex items-center gap-[6px]">
-                                        <div className="w-[4px] h-[4px] bg-client-primary rounded-full"></div>
-                                        Lưu ý: Chúng tôi sẽ dùng Email này để gửi thông tin hành trình đơn hàng.
+
+                                    <div className="grid grid-cols-1 gap-[20px]">
+                                        <div className="flex gap-[12px]">
+                                            <div className="flex-1 relative">
+                                                <div className="absolute left-[20px] top-1/2 -translate-y-1/2">
+                                                    <Mail className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                                </div>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Địa chỉ Email (Để nhận mã xác thực) *"
+                                                    disabled={isGuestVerified}
+                                                    {...register("guestEmail")}
+                                                    className={`w-full rounded-[40px] border border-[#eee] text-client-secondary py-[18px] pl-[55px] pr-[30px] text-[1.5rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
+                                                />
+                                            </div>
+                                            {!isGuestVerified && (
+                                                <button
+                                                    type="button"
+                                                    disabled={otpCooldown > 0 || isSendingOtp}
+                                                    onClick={handleSendOtp}
+                                                    className={`px-[30px] rounded-[40px] font-black text-[1.4rem] transition-all uppercase tracking-wider min-w-[150px] ${otpCooldown > 0 || isSendingOtp
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-client-secondary text-white hover:bg-client-primary shadow-xl shadow-client-secondary/20 active:scale-95'}`}
+                                                >
+                                                    {isSendingOtp ? '...' : otpCooldown > 0 ? `LẠI SAU (${otpCooldown}S)` : 'GỬI MÃ'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-[12px]">
+                                            <div className="flex-1 relative">
+                                                <div className="absolute left-[20px] top-1/2 -translate-y-1/2">
+                                                    <Key className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Mã xác thực 6 số *"
+                                                    disabled={isGuestVerified}
+                                                    {...register("otpCode")}
+                                                    className={`w-full rounded-[40px] border border-[#eee] text-client-secondary py-[18px] pl-[55px] pr-[30px] text-[1.5rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
+                                                />
+                                            </div>
+                                            {!isGuestVerified && (
+                                                <button
+                                                    type="button"
+                                                    disabled={isVerifyingOtp || !watchOtpCode}
+                                                    onClick={onManualVerify}
+                                                    className={`px-[35px] rounded-[40px] font-extrabold text-[1.4rem] transition-all uppercase tracking-widest border-2 min-w-[180px] ${isVerifyingOtp || !watchOtpCode
+                                                        ? 'border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed'
+                                                        : 'border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white active:scale-95 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20'}`}
+                                                >
+                                                    {isVerifyingOtp ? '...' : 'XÁC THỰC NGAY'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    <div className="flex items-center gap-[10px] mt-[15px] pl-[10px]">
+                                        <div className="w-[8px] h-[8px] bg-client-primary rounded-full animate-pulse"></div>
+                                        <p className="text-[1.4rem] text-gray-400 italic font-bold">
+                                            Chúng tôi sẽ dùng Email này để gửi hóa đơn và thông tin tra cứu đơn hàng.
+                                        </p>
+                                    </div>
+                                    
                                 </div>
                             )}
 
@@ -726,10 +791,18 @@ export const CheckoutPage = () => {
                                                     </div>
                                                     <input
                                                         type="text"
-                                                        className="w-full h-full border-none bg-white rounded-[12px] pl-[45px] pr-[15px] py-[12px] text-[1.4rem] focus:outline-none shadow-lg placeholder:text-gray-400"
+                                                        className="w-full h-full border-none bg-white rounded-[12px] pl-[45px] pr-[15px] py-[15px] text-[1.5rem] font-medium focus:outline-none shadow-lg placeholder:text-gray-400"
                                                         placeholder="Tìm kiếm vị trí trên bản đồ..."
                                                         value={searchKeyword}
                                                         onChange={(e) => setSearchKeyword(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                if (suggestions.length > 0) {
+                                                                    handleSelectSuggestion(suggestions[0]);
+                                                                }
+                                                            }
+                                                        }}
                                                     />
                                                     <button
                                                         type="button"
@@ -917,7 +990,7 @@ export const CheckoutPage = () => {
                                             </>
                                         ) : (
                                             <>
-                                                ĐẶT HÀNG NGAY
+                                                {!user && !isGuestVerified ? "VUI LÒNG XÁC THỰC EMAIL" : "ĐẶT HÀNG NGAY"}
                                                 <ArrowRight className="w-6 h-6 rotate-[-45deg]" />
                                             </>
                                         )}

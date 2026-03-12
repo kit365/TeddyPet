@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:teddypet_mobile/presentation/pages/auth/forgot_password.dart';
 import 'package:teddypet_mobile/presentation/pages/auth/login_page.dart';
 import 'package:teddypet_mobile/presentation/pages/auth/register_page.dart';
+import 'package:teddypet_mobile/presentation/pages/auth/change_password_page.dart';
 import 'package:teddypet_mobile/presentation/pages/profile/profile_page.dart';
 import 'package:teddypet_mobile/presentation/pages/profile/edit_profile_page.dart';
 import 'package:teddypet_mobile/presentation/pages/profile/address_list_page.dart';
 import 'package:teddypet_mobile/presentation/pages/profile/add_edit_address_page.dart';
+import 'package:teddypet_mobile/presentation/pages/profile/account_settings_page.dart';
 import 'package:teddypet_mobile/presentation/pages/main/main_page.dart';
 import 'package:teddypet_mobile/data/models/response/user/user_address_response.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/checkout_page.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/payment_method_page.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/order_success_page.dart';
+import 'package:teddypet_mobile/presentation/pages/order/my_purchases_page.dart';
+import 'package:teddypet_mobile/presentation/pages/order/order_detail_page.dart';
+import 'package:teddypet_mobile/presentation/pages/wishlist/wishlist_page.dart';
 import '../../data/models/entities/order/order_entity.dart';
 
 import 'app_routes.dart';
@@ -43,6 +48,14 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const EditProfilePage(),
         );
+      case AppRoutes.accountSettings:
+        return MaterialPageRoute(
+          builder: (_) => const AccountSettingsPage(),
+        );
+      case AppRoutes.changePassword:
+        return MaterialPageRoute(
+          builder: (_) => const ChangePasswordPage(),
+        );
       case AppRoutes.addressList:
         return MaterialPageRoute(
           builder: (_) => const AddressListPage(),
@@ -65,6 +78,29 @@ class AppRouter {
         final order = settings.arguments as OrderEntity;
         return MaterialPageRoute(
           builder: (_) => OrderSuccessPage(order: order),
+        );
+      case AppRoutes.myPurchases:
+        return MaterialPageRoute(
+          builder: (_) => const MyPurchasesPage(),
+        );
+      case AppRoutes.orderDetail:
+        // Hỗ trợ cả OrderEntity và orderId (String)
+        final args = settings.arguments;
+        if (args is OrderEntity) {
+          return MaterialPageRoute(
+            builder: (_) => OrderDetailPage(order: args),
+          );
+        } else if (args is String) {
+          return MaterialPageRoute(
+            builder: (_) => OrderDetailPage(orderId: args),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => const OrderDetailPage(),
+        );
+      case AppRoutes.wishlist:
+        return MaterialPageRoute(
+          builder: (_) => const WishlistPage(),
         );
       default:
         return MaterialPageRoute(

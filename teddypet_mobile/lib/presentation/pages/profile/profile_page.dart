@@ -65,7 +65,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     // Menu Items (Chung)
                     _buildMenuItem(Icons.shopping_bag_outlined, 'Đơn mua', () {
-                      if (!isLoggedIn) _showLoginRequired();
+                      if (!isLoggedIn) {
+                        _showLoginRequired();
+                      } else {
+                        Navigator.pushNamed(context, AppRoutes.myPurchases);
+                      }
                     }),
                     const Divider(height: 1, indent: 60, endIndent: 20, color: Color(0xFFF1F1F1)),
                     _buildMenuItem(Icons.favorite_border_rounded, 'Yêu thích', () {
@@ -86,7 +90,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (!isLoggedIn) {
                         _showLoginRequired();
                       } else {
-                        Navigator.pushNamed(context, AppRoutes.editProfile);
+                        Navigator.pushNamed(context, AppRoutes.accountSettings);
                       }
                     }),
 

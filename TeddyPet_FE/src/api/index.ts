@@ -27,31 +27,9 @@ apiApp.interceptors.request.use(
         const isAdmin = window.location.pathname.startsWith("/admin");
         const token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
 
-        // Check if this is a public booking API
-        const isBookingPublicApi =
-            !isAdmin &&
-            (config.url?.includes('/api/service-categories') ||
-                config.url?.includes('/api/services') ||
-                config.url?.includes('/api/service-pricings') ||
-                config.url?.includes('/api/room-layout-configs') ||
-                config.url?.includes('/api/rooms') ||
-                config.url?.includes('/api/room-types') ||
-                config.url?.includes('/api/bookings') || // This includes /api/bookings/deposit-intent and /api/bookings/code/
-                config.url?.includes('/api/bookings/code/') || // Specific booking detail endpoint
-                config.url?.includes('/api/time-slots') ||
-                config.url?.includes('/api/bank-information') ||
-                config.url?.includes('/api/banks') ||
-                config.url?.includes('/api/booking-deposit-refund-policies') ||
-                config.url?.includes('/api/settings') ||
-                config.url?.includes('/api/otp') ||
-                config.url?.includes('/api/orders') ||
-                config.url?.includes('/api/carts') ||
-                config.url?.includes('/api/feedbacks') ||
-                config.url?.includes('/api/home') ||
-                config.url?.includes('/api/blog'));
 
         // Only add authorization header if token exists and it's not a public API that should work without auth
-        if (token && !isBookingPublicApi) {
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

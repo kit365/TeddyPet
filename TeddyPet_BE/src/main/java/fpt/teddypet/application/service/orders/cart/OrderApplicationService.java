@@ -275,6 +275,7 @@ public class OrderApplicationService implements OrderService {
                 .shippingAddress(finalShippingAddress)
                 .latitude(request.latitude())
                 .longitude(request.longitude())
+                .guestEmail(user.getEmail())
 
                 .notes(request.note())
                 .shippingFee(BigDecimal.ZERO)
@@ -695,7 +696,7 @@ public class OrderApplicationService implements OrderService {
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
                         OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND));
 
-        return orderMapper.toResponse(order);
+        return toEnhancedResponse(order);
     }
 
     @Override

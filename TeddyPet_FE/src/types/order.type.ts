@@ -44,7 +44,6 @@ export interface OrderPaymentResponse {
 export interface OrderResponse {
     id: string;
     orderCode: string;
-    numericCode?: number;
     user?: {
         fullName: string;
         email: string;

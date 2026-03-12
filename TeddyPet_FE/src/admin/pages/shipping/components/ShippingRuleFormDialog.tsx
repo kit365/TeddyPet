@@ -195,10 +195,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
                             <TextField
                                 label="Ngưỡng Freeship (km)"
-                                type="number"
                                 fullWidth
-                                value={formData.freeShipDistanceKm}
-                                onChange={(e) => setFormData({ ...formData, freeShipDistanceKm: Number(e.target.value) })}
+                                value={(formData?.freeShipDistanceKm ?? 0) === 0 ? "" : (formData?.freeShipDistanceKm ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, freeShipDistanceKm: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Khoảng cách dưới ngưỡng này phí ship = 0₫"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>km</InputAdornment>,
@@ -207,10 +207,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             />
                             <TextField
                                 label="Ngưỡng Freeship (Số tiền)"
-                                type="number"
                                 fullWidth
-                                value={formData.freeShipThreshold}
-                                onChange={(e) => setFormData({ ...formData, freeShipThreshold: Number(e.target.value) })}
+                                value={(formData?.freeShipThreshold ?? 0) === 0 ? "" : (formData?.freeShipThreshold ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, freeShipThreshold: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Tổng đơn trên mức này sẽ được miễn phí ship"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>₫</InputAdornment>,
@@ -219,10 +219,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             />
                             <TextField
                                 label="Đơn giá mỗi km"
-                                type="number"
                                 fullWidth
-                                value={formData.feePerKm}
-                                onChange={(e) => setFormData({ ...formData, feePerKm: Number(e.target.value) })}
+                                value={(formData?.feePerKm ?? 0) === 0 ? "" : (formData?.feePerKm ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, feePerKm: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>₫</InputAdornment>,
                                     sx: { borderRadius: '12px' }
@@ -230,10 +230,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             />
                             <TextField
                                 label="Phí tối thiểu"
-                                type="number"
                                 fullWidth
-                                value={formData.minFee}
-                                onChange={(e) => setFormData({ ...formData, minFee: Number(e.target.value) })}
+                                value={(formData?.minFee ?? 0) === 0 ? "" : (formData?.minFee ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, minFee: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Phí ship thấp nhất khi không được miễn phí"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>₫</InputAdornment>,
@@ -242,10 +242,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             />
                             <TextField
                                 label="Tối đa tự ship (km)"
-                                type="number"
                                 fullWidth
-                                value={formData.maxInternalDistanceKm}
-                                onChange={(e) => setFormData({ ...formData, maxInternalDistanceKm: Number(e.target.value) })}
+                                value={(formData?.maxInternalDistanceKm ?? 0) === 0 ? "" : (formData?.maxInternalDistanceKm ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, maxInternalDistanceKm: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Quá km này sẽ hiện cảnh báo Book Grab"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>km</InputAdornment>,
@@ -269,10 +269,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
 
                             <TextField
                                 label="Cân nặng cơ bản"
-                                type="number"
                                 fullWidth
-                                value={formData.baseWeight}
-                                onChange={(e) => setFormData({ ...formData, baseWeight: Number(e.target.value) })}
+                                value={(formData?.baseWeight ?? 0) === 0 ? "" : (formData?.baseWeight ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, baseWeight: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Khoảng cân nặng đã bao gồm trong phí km"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>kg</InputAdornment>,
@@ -281,10 +281,10 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             />
                             <TextField
                                 label="Phụ thu quá cân"
-                                type="number"
                                 fullWidth
-                                value={formData.overWeightFee}
-                                onChange={(e) => setFormData({ ...formData, overWeightFee: Number(e.target.value) })}
+                                value={(formData?.overWeightFee ?? 0) === 0 ? "" : (formData?.overWeightFee ?? 0).toLocaleString("vi-VN")}
+                                onChange={(e) => setFormData({ ...formData, overWeightFee: Number(e.target.value.replace(/\D/g, "")) })}
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 helperText="Phí cộng thêm cho mỗi kg vượt mức"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>₫/kg</InputAdornment>,
@@ -338,11 +338,11 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                                 <TextField
                                     label="Số km dự kiến"
-                                    type="number"
                                     fullWidth
                                     size="small"
-                                    value={testDistance}
-                                    onChange={(e) => setTestDistance(Number(e.target.value))}
+                                    value={testDistance === 0 ? "" : testDistance.toLocaleString("vi-VN")}
+                                    onChange={(e) => setTestDistance(Number(e.target.value.replace(/\D/g, "")))}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end" sx={{ fontWeight: 900, color: '#1C252E' }}>km</InputAdornment>,
                                         sx: {
@@ -355,11 +355,11 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                 />
                                 <TextField
                                     label="Tổng đơn hàng"
-                                    type="number"
                                     fullWidth
                                     size="small"
-                                    value={testOrderTotal}
-                                    onChange={(e) => setTestOrderTotal(Number(e.target.value))}
+                                    value={testOrderTotal === 0 ? "" : testOrderTotal.toLocaleString("vi-VN")}
+                                    onChange={(e) => setTestOrderTotal(Number(e.target.value.replace(/\D/g, "")))}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end" sx={{ fontWeight: 900, color: '#1C252E' }}>₫</InputAdornment>,
                                         sx: {
@@ -372,11 +372,11 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                 />
                                 <TextField
                                     label="Cân nặng thực tế"
-                                    type="number"
                                     fullWidth
                                     size="small"
-                                    value={testWeight}
-                                    onChange={(e) => setTestWeight(Number(e.target.value))}
+                                    value={testWeight === 0 ? "" : testWeight.toLocaleString("vi-VN")}
+                                    onChange={(e) => setTestWeight(Number(e.target.value.replace(/\D/g, "")))}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end" sx={{ fontWeight: 900, color: '#1C252E' }}>kg</InputAdornment>,
                                         sx: {

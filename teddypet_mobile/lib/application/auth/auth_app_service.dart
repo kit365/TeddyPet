@@ -9,4 +9,9 @@ abstract class AuthAppService {
   Future<bool> verifyOtp(String otp);
   Future<bool> resetPassword(String otp, String newPassword, String confirmPassword);
   Future<UserEntity?> loginWithGoogle(String idToken);
+  
+  // Change password (for logged-in users)
+  Future<int> sendChangePasswordOtp();
+  Future<bool> verifyChangePasswordOtp(String otpCode);
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode);
 }

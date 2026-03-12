@@ -9,4 +9,9 @@ abstract class AuthRepository {
   Future<RegisterResponse?> register(String username, String email, String password, String firstName, String lastName, String? phoneNumber);
   Future<UserEntity?> verifyRegisterOtp(String email, String otpCode);
   Future<UserEntity?> loginWithGoogle(String idToken);
+  
+  // Change password (for logged-in users)
+  Future<int> sendChangePasswordOtp();
+  Future<bool> verifyChangePasswordOtp(String otpCode);
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode);
 }

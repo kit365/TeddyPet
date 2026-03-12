@@ -7,7 +7,7 @@ import { useCreateBrand } from "../brand/hooks/useBrand";
 import { useCreateProductCategory } from "../product-category/hooks/useProductCategory";
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
@@ -30,9 +30,9 @@ const PET_TYPE_LABELS: Record<string, string> = {
 };
 
 const PRODUCT_STATUS_LABELS: Record<string, string> = {
-    "DRAFT": "Nháp (Draft)",
-    "ACTIVE": "Hoạt động (Active)",
-    "HIDDEN": "Ẩn (Hidden)"
+    "DRAFT": "Bản nháp",
+    "ACTIVE": "Đang hoạt động",
+    "HIDDEN": "Tạm ẩn"
 };
 
 const AGE_RANGE_LABELS: Record<string, string> = {
@@ -148,7 +148,9 @@ export const ProductFormPage = () => {
 
     const [editingTag, setEditingTag] = useState<any>(null);
 
-    const resetFormStates = () => {
+    const isInitializedRef = useRef<string | null>(null);
+
+    const resetFormStates = useCallback(() => {
         setSelectedTags([]);
         setSelectedCategoryIds([]);
         setSelectedAgeIds([]);
@@ -168,7 +170,7 @@ export const ProductFormPage = () => {
         setSimpleUnit("PIECE");
         setBarcode("");
         setDescription("");
-    };
+    }, []);
 
     const populateForm = useCallback((p: any) => {
         if (!p) return;
@@ -238,13 +240,18 @@ export const ProductFormPage = () => {
     }, [countries]);
 
     // Initialize/Reset form based on mode and product data
+    // Use isInitializedRef and stricter dependencies to prevent infinite re-render loop
     useEffect(() => {
-        if (mode === 'create') {
-            resetFormStates();
-        } else if (product) {
-            populateForm(product);
+        if (!isProductLoading) {
+            if (mode === 'create' && isInitializedRef.current !== 'create') {
+                isInitializedRef.current = 'create';
+                resetFormStates();
+            } else if (mode === 'edit' && product && isInitializedRef.current !== `edit-${id}`) {
+                isInitializedRef.current = `edit-${id}`;
+                populateForm(product);
+            }
         }
-    }, [product, mode, countries, populateForm]);
+    }, [product, mode, id, isProductLoading, populateForm, resetFormStates]);
 
     const handleChangeStatus = (event: SelectChangeEvent) => {
         if (isReadOnly) return;
@@ -512,6 +519,51 @@ export const ProductFormPage = () => {
                     },
                 }
             },
+            MuiFormLabel: {
+                styleOverrides: {
+                    root: {
+                        color: "#919EAB",
+                        fontSize: "1.5rem",
+                        '&.Mui-focused': {
+                            color: "#1C252E",
+                            fontWeight: "600",
+                        }
+                    }
+                }
+            },
+            MuiOutlinedInput: {
+                styleOverrides: {
+                    root: {
+                        color: "#1C252E",
+                        borderRadius: "12px",
+                        fontSize: "1.5rem",
+                        '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: "#919eab33",
+                            transition: 'border-color 0.2s',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: "#1C252E",
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: "#1C252E",
+                            borderWidth: "2px",
+                        },
+                    },
+                    input: {
+                        padding: "16.5px 14px",
+                    }
+                }
+            },
+            MuiButton: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: "10px",
+                        textTransform: "none",
+                        fontWeight: 700,
+                        fontSize: "1.5rem",
+                    }
+                }
+            }
         }
     });
 
@@ -548,36 +600,14 @@ export const ProductFormPage = () => {
                         {t('admin.common.edit')}
                     </Button>
                 )}
-                {mode !== 'view' && (
-                  <Stack direction="row" spacing={2}>
-                     <Button 
-                        variant="outlined" 
-                        onClick={() => navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`)}
-                        sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 700 }}
-                     >
-                        Hủy
-                     </Button>
-                     <Button 
-                        form="product-form"
-                        type="submit"
-                        variant="contained" 
-                        startIcon={<Check size={18}/>}
-                        sx={{ 
-                            borderRadius: "8px", 
-                            textTransform: "none", 
-                            fontWeight: 700,
-                            bgcolor: '#1C252E', 
-                            '&:hover': { bgcolor: '#454F5B' } 
-                        }}
-                     >
-                        {mode === 'create' ? t('admin.common.create') : "Lưu thay đổi"}
-                     </Button>
-                  </Stack>
-                )}
             </div>
 
             <ThemeProvider theme={localTheme}>
-                <form id="product-form" onSubmit={handleSubmit}>
+                <form 
+                    id="product-form" 
+                    onSubmit={handleSubmit}
+                    key={mode === 'create' ? 'create' : (product?.id || 'loading')}
+                >
                     <Stack sx={{ margin: { xs: "0px 20px", lg: "0px 120px" }, gap: "40px", pb: 5 }}>
                         
                         {/* 1. PRODUCT TYPE */}
@@ -771,14 +801,20 @@ export const ProductFormPage = () => {
                                         value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimplePrice(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ readOnly: isReadOnly }}
+                                        InputProps={{ 
+                                            readOnly: isReadOnly,
+                                            onWheel: (e) => (e.target as HTMLElement).blur()
+                                        }}
                                     />
                                     <TextField
                                         label="Giá khuyến mãi (VNĐ)"
                                         value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleSalePrice(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ readOnly: isReadOnly }}
+                                        InputProps={{ 
+                                            readOnly: isReadOnly,
+                                            onWheel: (e) => (e.target as HTMLElement).blur()
+                                        }}
                                         helperText={!isReadOnly && "Nhập 0 nếu không có giảm giá"}
                                     />
                                     <TextField
@@ -787,14 +823,21 @@ export const ProductFormPage = () => {
                                         value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleStock(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ readOnly: isReadOnly }}
+                                        InputProps={{ 
+                                            readOnly: isReadOnly,
+                                            onWheel: (e) => (e.target as HTMLElement).blur()
+                                        }}
                                     />
                                     <TextField
                                         label="Trọng lượng (gram)"
                                         value={simpleWeight === 0 ? "" : simpleWeight.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleWeight(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ readOnly: isReadOnly }}
+                                        InputProps={{ 
+                                            readOnly: isReadOnly,
+                                            onWheel: (e) => (e.target as HTMLElement).blur(),
+                                            endAdornment: <InputAdornment position="end">g</InputAdornment>
+                                        }}
                                     />
                                     <FormControl sx={{ flex: 1, minWidth: '200px' }}>
                                         <InputLabel>Đơn vị</InputLabel>
@@ -905,6 +948,49 @@ export const ProductFormPage = () => {
                         </CollapsibleCard>
 
                     </Stack>
+                    
+                    {/* Bottom Actions Bar (Static) */}
+                    {mode !== 'view' && (
+                        <Box sx={{
+                            margin: { xs: "0px 20px", lg: "0px 120px" },
+                            mt: 5,
+                            mb: 10,
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: 2,
+                        }}>
+                             <Button 
+                                variant="outlined" 
+                                color="inherit"
+                                onClick={() => navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`)}
+                                sx={{ 
+                                    px: 4, 
+                                    py: 1.5,
+                                    borderColor: 'rgba(145, 158, 171, 0.32)',
+                                    color: '#637381',
+                                    '&:hover': { bgcolor: 'rgba(145, 158, 171, 0.08)', borderColor: '#1C252E', color: '#1C252E' } 
+                                }}
+                             >
+                                {t('admin.common.cancel')}
+                             </Button>
+                             <Button 
+                                type="submit"
+                                variant="contained" 
+                                startIcon={<Check size={22}/>}
+                                sx={{ 
+                                    px: 4, 
+                                    py: 1.5,
+                                    bgcolor: '#1C252E', 
+                                    minWidth: '180px',
+                                    fontSize: '1.6rem',
+                                    boxShadow: '0 8px 16px 0 rgba(28, 37, 46, 0.24)',
+                                    '&:hover': { bgcolor: '#454F5B' } 
+                                }}
+                             >
+                                {mode === 'create' ? t('admin.common.create') : "Lưu thay đổi"}
+                             </Button>
+                        </Box>
+                    )}
                 </form>
 
                 <QuickCreateDialog 

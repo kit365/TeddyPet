@@ -42,4 +42,20 @@ class AuthAppServiceImpl implements AuthAppService {
   Future<UserEntity?> loginWithGoogle(String idToken) {
     return _repository.loginWithGoogle(idToken);
   }
+
+  // === Change Password ===
+  @override
+  Future<int> sendChangePasswordOtp() {
+    return _repository.sendChangePasswordOtp();
+  }
+
+  @override
+  Future<bool> verifyChangePasswordOtp(String otpCode) {
+    return _repository.verifyChangePasswordOtp(otpCode);
+  }
+
+  @override
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode) {
+    return _repository.changePassword(oldPassword, newPassword, otpCode);
+  }
 }

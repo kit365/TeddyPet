@@ -7,9 +7,6 @@ import '../../models/request/auth/reset_password_request.dart';
 import '../../models/request/auth/verify_otp_request.dart';
 import '../../models/response/auth/auth_response.dart';
 import '../../models/response/auth/register_response.dart';
-import 'package:teddypet_mobile/core/network/api_response.dart';
-import '../../models/request/user/update_profile_request.dart';
-import '../../models/response/user/user_profile_response.dart';
 import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -121,10 +118,45 @@ class AuthRepositoryImpl implements AuthRepository {
 
   UserEntity _mapToEntity(AuthResponse response) {
     return UserEntity(
-      id: response.id, // Đã có ID xịn từ BE
+      id: response.id,
       email: response.email,
       username: response.username,
       token: response.token,
     );
+  }
+
+  // === Change Password (for logged-in users) ===
+  @override
+  Future<int> sendChangePasswordOtp() async {
+    final response = await _apiClient.post<int>(
+      '/users/change-password/send-otp',
+      fromJson: (json) => json as int,
+    );
+    
+    if (response.success) {
+      return response.data ?? 0;
+    }
+    throw Exception(response.message);
+  }
+
+  @override
+  Future<bool> verifyChangePasswordOtp(String otpCode) async {
+    final response = await _apiClient.post(
+      '/users/change-password/verify-otp?otpCode=$otpCode',
+    );
+    return response.success;
+  }
+
+  @override
+  Future<bool> changePassword(String oldPassword, String newPassword, String otpCode) async {
+    final response = await _apiClient.put(
+      '/users/change-password',
+      data: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+        'otpCode': otpCode,
+      },
+    );
+    return response.success;
   }
 }
