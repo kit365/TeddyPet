@@ -51,6 +51,7 @@ public interface ServiceMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "priceUnit", ignore = true)
     @Mapping(target = "isRequiredRoom", defaultExpression = "java(false)")
+    /*
     @Mapping(target = "beforeDeadlineRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"100.00\"))")
     @Mapping(target = "afterDeadlineRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"50.00\"))")
     @Mapping(target = "noShowRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"0.00\"))")
@@ -60,5 +61,6 @@ public interface ServiceMapper {
     @Mapping(target = "rescheduleLimit", defaultExpression = "java(2)")
     @Mapping(target = "allowForceMajeure", defaultExpression = "java(true)")
     @Mapping(target = "forceMajeureRefundPct", defaultExpression = "java(new java.math.BigDecimal(\"100.00\"))")
+    */
     void updateServiceFromRequest(ServiceUpsertRequest request, @MappingTarget Service entity);
 }

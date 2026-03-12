@@ -114,7 +114,8 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Boolean isRequiredRoom = false;
 
-    // ===== Refund Policy =====
+/*
+    // ===== Refund Policy (Deprecated in V33) =====
     @Column(name = "before_deadline_refund_pct", precision = 5, scale = 2)
     @Builder.Default
     private BigDecimal beforeDeadlineRefundPct = new BigDecimal("100.00");
@@ -150,6 +151,7 @@ public class Service extends BaseEntity {
     @Column(name = "force_majeure_refund_pct", precision = 5, scale = 2)
     @Builder.Default
     private BigDecimal forceMajeureRefundPct = new BigDecimal("100.00");
+*/
 
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

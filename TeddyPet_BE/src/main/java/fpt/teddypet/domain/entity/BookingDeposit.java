@@ -96,4 +96,8 @@ public class BookingDeposit extends BaseEntity {
 
     @Column(name = "hold_payload", nullable = false)
     private String holdPayloadJson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refund_policy_id")
+    private BookingDepositRefundPolicy refundPolicy;
 }

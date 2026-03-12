@@ -22,22 +22,25 @@ public record ServiceResponse(
                 BigDecimal basePrice,
                 Integer maxPetsPerSession,
                 Integer advanceBookingHours,
-                Integer cancellationDeadlineHours,
                 String imageURL,
                 List<String> galleryImages,
                 Integer requiredStaffCount,
                 String requiredCertifications,
                 Boolean requiresVaccination,
                 Integer displayOrder,
-                Boolean isPopular,
                 Boolean isAddon,
                 Boolean isAdditionalCharge,
+                /*
+                Boolean isPopular,
                 Boolean isCritical,
                 String addonType,
+                Integer cancellationDeadlineHours,
+                */
                 String metaTitle,
                 String metaDescription,
                 @JsonProperty("isActive") boolean isActive,
                 Boolean isRequiredRoom,
+                /*
                 // Refund Policy
                 BigDecimal beforeDeadlineRefundPct,
                 BigDecimal afterDeadlineRefundPct,
@@ -48,6 +51,7 @@ public record ServiceResponse(
                 Integer rescheduleLimit,
                 Boolean allowForceMajeure,
                 BigDecimal forceMajeureRefundPct,
+                */
                 boolean isDeleted,
                 LocalDateTime createdAt,
                 LocalDateTime updatedAt,

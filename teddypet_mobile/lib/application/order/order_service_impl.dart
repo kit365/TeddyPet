@@ -12,4 +12,14 @@ class OrderServiceImpl implements OrderService {
   Future<OrderEntity?> createOrder(OrderRequest request) async {
     return await _orderRepository.createOrder(request);
   }
+
+  @override
+  Future<OrderEntity?> getOrderDetail(String id) async {
+    return await _orderRepository.getOrderDetail(id);
+  }
+
+  @override
+  Future<OrderEntity?> getOrderByCode(String code) async {
+    return await _orderRepository.getOrderByCode(code);
+  }
 }

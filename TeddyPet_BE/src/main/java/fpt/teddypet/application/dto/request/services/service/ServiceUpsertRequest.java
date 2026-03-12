@@ -19,24 +19,27 @@ public record ServiceUpsertRequest(
                 BigDecimal basePrice,
                 Integer maxPetsPerSession,
                 Integer advanceBookingHours,
-                Integer cancellationDeadlineHours,
                 @Size(max = 255) String imageURL,
                 List<String> galleryImages,
                 Integer requiredStaffCount,
                 String requiredCertifications,
                 Boolean requiresVaccination,
                 Integer displayOrder,
-                Boolean isPopular,
                 Boolean isAddon,
                 Boolean isAdditionalCharge,
+                /*
+                Boolean isPopular,
                 Boolean isCritical,
                 @Size(max = 50) String addonType,
+                Integer cancellationDeadlineHours,
+                */
                 @Size(max = 255) String metaTitle,
                 @Size(max = 500) String metaDescription,
                 Boolean isActive,
-                Boolean isRequiredRoom,
+                Boolean isRequiredRoom
+                /*
                 // Refund Policy
-                BigDecimal beforeDeadlineRefundPct,
+                ,BigDecimal beforeDeadlineRefundPct,
                 BigDecimal afterDeadlineRefundPct,
                 BigDecimal noShowRefundPct,
                 BigDecimal noShowPenalty,
@@ -44,5 +47,7 @@ public record ServiceUpsertRequest(
                 Integer rescheduleDeadlineHours,
                 Integer rescheduleLimit,
                 Boolean allowForceMajeure,
-                BigDecimal forceMajeureRefundPct) {
+                BigDecimal forceMajeureRefundPct
+                */
+                ) {
 }
