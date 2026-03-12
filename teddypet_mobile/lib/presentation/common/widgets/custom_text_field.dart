@@ -7,6 +7,9 @@ class CustomTextField extends StatelessWidget {
   final bool isPassword;
   final String? errorText;
   final TextInputType? keyboardType;
+  final IconData? prefixIcon;
+  final int maxLines;
+  final String? Function(String?)? validator;
 
   const CustomTextField({
     super.key,
@@ -16,6 +19,9 @@ class CustomTextField extends StatelessWidget {
     this.isPassword = false,
     this.errorText,
     this.keyboardType,
+    this.prefixIcon,
+    this.maxLines = 1,
+    this.validator,
   });
 
   @override
@@ -32,15 +38,18 @@ class CustomTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
           controller: controller,
           obscureText: isPassword,
           keyboardType: keyboardType,
+          maxLines: maxLines,
+          validator: validator,
           style: const TextStyle(fontSize: 16),
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey[400]),
             errorText: errorText,
+            prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFFE67E22)) : null,
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -53,6 +62,14 @@ class CustomTextField extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE67E22), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 2),
             ),
             filled: true,
             fillColor: Colors.white,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:teddypet_mobile/core/theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -14,28 +15,18 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: onPressed != null && !isLoading
-            ? const LinearGradient(
-                colors: [Color(0xFFE67E22), Color(0xFFD35400)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              )
-            : null,
-        color: (onPressed == null || isLoading) ? Colors.grey[300] : null,
-      ),
+      height: 48,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
+          backgroundColor: AppColors.primary,
+          disabledBackgroundColor: Colors.grey[300],
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
+          elevation: 0,
         ),
         child: isLoading
             ? const SizedBox(

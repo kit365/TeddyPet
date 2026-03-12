@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:teddypet_mobile/core/providers/auth_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/auth/auth_provider.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/custom_text_field.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/primary_button.dart';
 

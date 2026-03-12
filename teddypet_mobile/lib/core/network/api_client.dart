@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../domain/common/dto/api_response.dart'; 
+
+import 'api_response.dart';
+
 
 class ApiClient {
   late final Dio _dio;
@@ -94,6 +96,19 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.put(path, data: data);
+      return ApiResponse<T>.fromJson(response.data, fromJson);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+    T Function(dynamic json)? fromJson,
+  }) async {
+    try {
+      final response = await _dio.patch(path, data: data);
       return ApiResponse<T>.fromJson(response.data, fromJson);
     } catch (e) {
       rethrow;
