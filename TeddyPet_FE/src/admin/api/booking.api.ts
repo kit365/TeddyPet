@@ -91,4 +91,16 @@ export const approveAdminChargeItem = async (
     return response.data;
 };
 
+export interface ApproveCancelRequest {
+    approved: boolean;
+}
+
+export const approveOrRejectAdminCancelRequest = async (
+    bookingId: string | number,
+    body: ApproveCancelRequest
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/cancel-request`, body, withAuth());
+    return response.data;
+};
+
 

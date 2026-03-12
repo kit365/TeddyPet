@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { DataGrid } from "@mui/x-data-grid";
 import Card from "@mui/material/Card";
 import Stack from "@mui/material/Stack";
@@ -12,6 +13,12 @@ import Tab from "@mui/material/Tab";
 import Badge from "@mui/material/Badge";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import {
   dataGridCardStyles,
   dataGridContainerStyles,
@@ -21,8 +28,8 @@ import { useDataGridLocale } from "../../../hooks/useDataGridLocale";
 import { getBookingColumns } from "../configs/column.config";
 import { BOOKING_STATUS_OPTIONS, type BookingStatusFilter } from "../constants";
 import { prefixAdmin } from "../../../constants/routes";
-import { getAdminBookings } from "../../../api/booking.api";
-import type { BookingResponse } from "../../../types/booking.type";
+import { approveOrRejectAdminCancelRequest, getAdminBookings } from "../../../api/booking.api";
+import type { BookingResponse } from "../../../../types/booking.type";
 
 const CustomNoRowsOverlay = () => (
   <Stack height="100%" alignItems="center" justifyContent="center">
@@ -43,19 +50,52 @@ const CustomNoRowsOverlay = () => (
 const normalizeBooking = (b: Record<string, unknown>): BookingResponse => ({
   ...b,
   id: String(b.id ?? ""),
+  bookingCode: String(b.bookingCode ?? ""),
+  customerName: String(b.customerName ?? ""),
+  customerEmail: String(b.customerEmail ?? ""),
+  customerPhone: String(b.customerPhone ?? ""),
+  customerAddress: b.customerAddress != null ? String(b.customerAddress) : undefined,
+  source: b.source != null ? String(b.source) : undefined,
+  bookingType: String(b.bookingType ?? ""),
   totalAmount: Number(b.totalAmount ?? 0),
   paidAmount: Number(b.paidAmount ?? 0),
   remainingAmount: Number(b.remainingAmount ?? 0),
   deposit: Number(b.deposit ?? 0),
-  source: b.source != null ? String(b.source) : undefined,
+  depositPaid: b.depositPaid != null ? Boolean(b.depositPaid) : undefined,
+  depositId: b.depositId != null ? Number(b.depositId) : undefined,
+  depositExpiresAt: b.depositExpiresAt != null ? String(b.depositExpiresAt) : undefined,
+  paymentStatus: String(b.paymentStatus ?? "PENDING"),
+  paymentMethod: b.paymentMethod != null ? String(b.paymentMethod) : undefined,
+  status: String(b.status ?? "PENDING"),
+  cancelRequested: b.cancelRequested != null ? Boolean(b.cancelRequested) : undefined,
+  cancelledReason: b.cancelledReason != null ? String(b.cancelledReason) : undefined,
+  internalNotes: b.internalNotes != null ? String(b.internalNotes) : undefined,
   bookingStartDate: b.bookingStartDate != null ? String(b.bookingStartDate) : "",
   bookingEndDate: b.bookingEndDate != null ? String(b.bookingEndDate) : undefined,
+  cancelledAt: b.cancelledAt != null ? String(b.cancelledAt) : undefined,
+  cancelledBy: b.cancelledBy != null ? String(b.cancelledBy) : undefined,
+  createdAt: b.createdAt != null ? String(b.createdAt) : "",
+  createdBy: b.createdBy != null ? String(b.createdBy) : undefined,
+  updatedAt: b.updatedAt != null ? String(b.updatedAt) : "",
+  updatedBy: b.updatedBy != null ? String(b.updatedBy) : undefined,
+  petName: b.petName != null ? String(b.petName) : undefined,
 } as BookingResponse);
 
 export const BookingList = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<BookingStatusFilter>("ALL");
   const [keyword, setKeyword] = useState("");
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedCancelBooking, setSelectedCancelBooking] = useState<BookingResponse | null>(null);
+  const [cancelActionLoading, setCancelActionLoading] = useState(false);
+  const [cancelActionError, setCancelActionError] = useState<string | null>(null);
+
+  const isCancelRequested = (row?: BookingResponse | null) => {
+    if (!row) return false;
+    return row.cancelRequested === true;
+  };
 
   const { data: apiData, isLoading } = useQuery({
     queryKey: ["admin-bookings"],
@@ -93,7 +133,23 @@ export const BookingList = () => {
 
   const columns = useMemo(
     () =>
-      getBookingColumns((row) => navigate(`/${prefixAdmin}/booking/detail/${row.id}`)),
+      getBookingColumns(
+        (row) => navigate(`/${prefixAdmin}/booking/detail/${row.id}`),
+        (row) => navigate(`/${prefixAdmin}/booking/edit/${row.id}`),
+        (row) => {
+          // TODO: Implement refund request functionality
+          console.log("Request refund for booking:", row.id);
+        },
+        (row) => {
+          setSelectedCancelBooking(row);
+          setCancelDialogOpen(true);
+          setCancelActionError(null);
+        },
+        (row) => {
+          // TODO: Implement delete functionality with confirmation
+          console.log("Delete booking:", row.id);
+        }
+      ),
     [navigate]
   );
 
@@ -248,6 +304,124 @@ export const BookingList = () => {
           />
         </div>
       </Card>
+
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={() => {
+          if (cancelActionLoading) return;
+          setCancelDialogOpen(false);
+          setSelectedCancelBooking(null);
+          setCancelActionError(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "1.6rem", fontWeight: 800 }}>
+          Duyệt yêu cầu hủy đơn
+        </DialogTitle>
+        <DialogContent dividers>
+          {cancelActionError && (
+            <Alert severity="error" sx={{ mb: 2, fontSize: "1.35rem" }}>
+              {cancelActionError}
+            </Alert>
+          )}
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 1 }}>
+            Booking: <b>{selectedCancelBooking?.bookingCode ?? "—"}</b>
+          </Typography>
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 2 }}>
+            Khách hàng: <b>{selectedCancelBooking?.customerName ?? "—"}</b>
+          </Typography>
+
+          <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
+            Lý do hủy
+          </Typography>
+          <Box
+            sx={{
+              p: 1.5,
+              bgcolor: "#fff7ed",
+              border: "1px solid #fed7aa",
+              borderRadius: "12px",
+              mb: 1,
+            }}
+          >
+            <Typography sx={{ fontSize: "1.35rem", color: "#9a3412", whiteSpace: "pre-wrap" }}>
+              {selectedCancelBooking?.cancelledReason ?? "—"}
+            </Typography>
+          </Box>
+
+          <Typography sx={{ fontSize: "1.25rem", color: "text.secondary" }}>
+            Trạng thái hiện tại:{" "}
+            <b>{String(selectedCancelBooking?.status ?? "").toUpperCase() || "—"}</b>
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              if (cancelActionLoading) return;
+              setCancelDialogOpen(false);
+              setSelectedCancelBooking(null);
+              setCancelActionError(null);
+            }}
+            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 700 }}
+          >
+            Đóng
+          </Button>
+          <Button
+            color="error"
+            variant="outlined"
+            disabled={
+              cancelActionLoading ||
+              !isCancelRequested(selectedCancelBooking)
+            }
+            onClick={async () => {
+              if (!selectedCancelBooking) return;
+              setCancelActionLoading(true);
+              setCancelActionError(null);
+              try {
+                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, { approved: false });
+                await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                setCancelDialogOpen(false);
+                setSelectedCancelBooking(null);
+              } catch (e) {
+                console.error(e);
+                setCancelActionError("Không thể từ chối yêu cầu hủy đơn.");
+              } finally {
+                setCancelActionLoading(false);
+              }
+            }}
+            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800, borderRadius: "10px" }}
+          >
+            Từ chối
+          </Button>
+          <Button
+            color="success"
+            variant="contained"
+            disabled={
+              cancelActionLoading ||
+              !isCancelRequested(selectedCancelBooking)
+            }
+            onClick={async () => {
+              if (!selectedCancelBooking) return;
+              setCancelActionLoading(true);
+              setCancelActionError(null);
+              try {
+                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, { approved: true });
+                await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                setCancelDialogOpen(false);
+                setSelectedCancelBooking(null);
+              } catch (e) {
+                console.error(e);
+                setCancelActionError("Không thể duyệt yêu cầu hủy đơn.");
+              } finally {
+                setCancelActionLoading(false);
+              }
+            }}
+            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800, borderRadius: "10px" }}
+          >
+            Duyệt
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

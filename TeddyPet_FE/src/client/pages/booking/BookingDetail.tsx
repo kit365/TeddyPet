@@ -40,6 +40,9 @@ import { toast } from "react-toastify";
 import "dayjs/locale/vi";
 import { buildCreateBookingPayload } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
+import { getBanks, getMyBankInformation } from "../../../api/bank.api";
+import type { BankOption, BankInformationPayload } from "../../../types/bank.type";
+import { useAuthStore } from "../../../stores/useAuthStore";
 
 const defaultStep1Data: BookingStep1FormData = {
     fullName: "",
@@ -1630,17 +1633,67 @@ export const BookingDetailPage = () => {
     const [isSubmitting] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [isBankInfoOpen, setIsBankInfoOpen] = useState(false);
     const [petErrors, setPetErrors] = useState<Record<string, PetFieldErrors>>({});
 
-    const handleProceedToPayment = async () => {
+    // --- Bank info state ---
+    const authUser = useAuthStore((s) => s.user);
+    const isLoggedIn = !!authUser;
+
+    const { data: banksData } = useQuery({
+        queryKey: ["banks-list"],
+        queryFn: getBanks,
+        select: (res) => res.data ?? [],
+        staleTime: 10 * 60 * 1000,
+    });
+    const banks: BankOption[] = banksData ?? [];
+
+    const { data: myBankAccountsData } = useQuery({
+        queryKey: ["my-bank-accounts"],
+        queryFn: getMyBankInformation,
+        select: (res) => res.data ?? [],
+        enabled: isLoggedIn,
+        staleTime: 2 * 60 * 1000,
+    });
+    const myBankAccounts = myBankAccountsData ?? [];
+
+    // Bank info form state (for adding new account or guest)
+    const [bankFormMode, setBankFormMode] = useState<"select" | "add-new">("select");
+    const [selectedBankAccountId, setSelectedBankAccountId] = useState<number | null>(null);
+    const [bankForm, setBankForm] = useState<BankInformationPayload>({
+        accountNumber: "",
+        accountHolderName: "",
+        bankCode: "",
+        note: "",
+    });
+
+    const openBankInfoModal = () => {
+        // Reset bank form when opening
+        if (isLoggedIn && myBankAccounts.length > 0) {
+            setBankFormMode("select");
+            // Auto select default account if exists
+            const defaultAcc = myBankAccounts.find((a) => a.isDefault) ?? myBankAccounts[0];
+            setSelectedBankAccountId(defaultAcc?.id ?? null);
+        } else {
+            setBankFormMode("add-new");
+            setSelectedBankAccountId(null);
+        }
+        setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
+        setIsBankInfoOpen(true);
+    };
+
+    const handleProceedToPayment = async (bankPayload?: BankInformationPayload) => {
         if (!validateBeforePayment()) return;
         setIsHolding(true);
         try {
             const payload = buildCreateBookingPayload(step1Data, pets);
-            const res = await createBookingDepositIntent(payload);
+            // Attach bank info if provided (guest or newly added)
+            const finalPayload = bankPayload
+                ? { ...payload, bankInformation: bankPayload }
+                : payload;
+            const res = await createBookingDepositIntent(finalPayload);
             if (res?.success && res?.data?.depositId && res?.data?.bookingCode) {
                 toast.success("Đơn đặt lịch của bạn đã được xác nhận, vui lòng thanh toán cọc để giữ chỗ.");
-                // Redirect straight to booking detail page, and set activeView = 'payment'
                 navigate(`/dat-lich/chi-tiet-don/${res.data.bookingCode}`, {
                     replace: true,
                     state: { openPayment: true }
@@ -1671,6 +1724,29 @@ export const BookingDetailPage = () => {
             }
         } finally {
             setIsHolding(false);
+            setIsBankInfoOpen(false);
+        }
+    };
+
+    const handleBankInfoConfirm = async () => {
+        if (isLoggedIn && bankFormMode === "select") {
+            // Logged-in user selected an existing account — no need to send bankPayload
+            await handleProceedToPayment();
+        } else {
+            // Guest or adding new: validate form
+            if (!bankForm.accountNumber.trim()) {
+                toast.error("Vui lòng nhập số tài khoản.");
+                return;
+            }
+            if (!bankForm.accountHolderName.trim()) {
+                toast.error("Vui lòng nhập tên chủ tài khoản.");
+                return;
+            }
+            if (!bankForm.bankCode) {
+                toast.error("Vui lòng chọn ngân hàng.");
+                return;
+            }
+            await handleProceedToPayment(bankForm);
         }
     };
 
@@ -3343,13 +3419,204 @@ export const BookingDetailPage = () => {
                                 <button
                                     type="button"
                                     disabled={isHolding}
-                                    onClick={async () => {
-                                        await handleProceedToPayment();
+                                    onClick={() => {
                                         setIsSummaryOpen(false);
+                                        openBankInfoModal();
                                     }}
                                     className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[1.5rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
+                                    Tiếp tục thanh toán
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ==================== BANK INFO MODAL ==================== */}
+                {isBankInfoOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4">
+                        <div className="bg-white rounded-[18px] max-w-[600px] w-full max-h-[85vh] overflow-y-auto shadow-[0_24px_64px_rgba(15,23,42,0.45)] p-[28px] sm:p-[32px]">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3 mb-5">
+                                <div>
+                                    <h3 className="text-[2rem] font-[800] text-[#181818]">Thông tin tài khoản ngân hàng</h3>
+                                    <p className="text-[1.3rem] text-[#6b7280] mt-1">
+                                        {isLoggedIn
+                                            ? "Chọn tài khoản để hoàn tiền cọc nếu cần, hoặc thêm tài khoản mới."
+                                            : "Cung cấp tài khoản để hoàn tiền cọc nếu cần."}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBankInfoOpen(false)}
+                                    className="text-[2rem] leading-none px-2 text-[#888] hover:text-[#e53935]"
+                                    aria-label="Đóng"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            {/* Logged-in: show existing accounts */}
+                            {isLoggedIn && myBankAccounts.length > 0 && bankFormMode === "select" && (
+                                <div className="space-y-4">
+                                    <div className="text-[1.4rem] font-[700] text-[#374151] mb-2">Tài khoản đã lưu</div>
+                                    <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+                                        {myBankAccounts.map((acc) => {
+                                            const isSelected = selectedBankAccountId === acc.id;
+                                            return (
+                                                <button
+                                                    key={acc.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedBankAccountId(acc.id)}
+                                                    className={`w-full text-left rounded-[14px] border-2 p-4 transition-all ${
+                                                        isSelected
+                                                            ? "border-[#ffbaa0] bg-[#fff7f3]"
+                                                            : "border-[#e5e7eb] bg-white hover:border-[#ffbaa0]/60"
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div>
+                                                            <div className="text-[1.45rem] font-[700] text-[#111827]">
+                                                                {acc.bankName}
+                                                            </div>
+                                                            <div className="text-[1.3rem] text-[#4b5563] mt-[2px]">
+                                                                {acc.accountNumber} — {acc.accountHolderName}
+                                                            </div>
+                                                            {acc.note && (
+                                                                <div className="text-[1.2rem] text-[#9ca3af] mt-[2px]">
+                                                                    {acc.note}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {acc.isDefault && (
+                                                            <span className="shrink-0 text-[1.1rem] font-[700] text-[#c45a3a] bg-[#ffedd5] px-2 py-1 rounded-full">
+                                                                Mặc định
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBankFormMode("add-new");
+                                            setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
+                                            setSelectedBankAccountId(null);
+                                        }}
+                                        className="mt-2 flex items-center gap-2 text-[1.35rem] font-[600] text-[#c45a3a] hover:underline"
+                                    >
+                                        <span className="text-[1.6rem]">+</span> Thêm tài khoản ngân hàng mới
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Guest or Add-new form */}
+                            {(!isLoggedIn || bankFormMode === "add-new") && (
+                                <div className="space-y-4">
+                                    {isLoggedIn && bankFormMode === "add-new" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setBankFormMode("select");
+                                                const defaultAcc = myBankAccounts.find((a) => a.isDefault) ?? myBankAccounts[0];
+                                                setSelectedBankAccountId(defaultAcc?.id ?? null);
+                                            }}
+                                            className="text-[1.3rem] text-[#6b7280] hover:text-[#111827] flex items-center gap-1"
+                                        >
+                                            ← Quay lại danh sách tài khoản
+                                        </button>
+                                    )}
+
+                                    <div className="space-y-4">
+                                        {/* Bank select */}
+                                        <div>
+                                            <label className="block text-[1.4rem] font-[600] text-[#181818] mb-[8px]">
+                                                Ngân hàng <span className="text-[#e67e20]">*</span>
+                                            </label>
+                                            <select
+                                                value={bankForm.bankCode}
+                                                onChange={(e) => setBankForm((prev) => ({ ...prev, bankCode: e.target.value }))}
+                                                className="w-full py-[13px] px-[16px] text-[1.45rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all rounded-[12px] bg-white"
+                                            >
+                                                <option value="">— Chọn ngân hàng —</option>
+                                                {banks.map((b) => (
+                                                    <option key={b.bankCode} value={b.bankCode}>
+                                                        {b.bankName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Account number */}
+                                        <div>
+                                            <label className="block text-[1.4rem] font-[600] text-[#181818] mb-[8px]">
+                                                Số tài khoản <span className="text-[#e67e20]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="VD: 0123456789"
+                                                value={bankForm.accountNumber}
+                                                onChange={(e) => setBankForm((prev) => ({ ...prev, accountNumber: e.target.value }))}
+                                                className="w-full py-[13px] px-[16px] text-[1.45rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all rounded-[12px]"
+                                            />
+                                        </div>
+
+                                        {/* Account holder name */}
+                                        <div>
+                                            <label className="block text-[1.4rem] font-[600] text-[#181818] mb-[8px]">
+                                                Tên chủ tài khoản <span className="text-[#e67e20]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="VD: NGUYEN VAN A"
+                                                value={bankForm.accountHolderName}
+                                                onChange={(e) => setBankForm((prev) => ({ ...prev, accountHolderName: e.target.value.toUpperCase() }))}
+                                                className="w-full py-[13px] px-[16px] text-[1.45rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all rounded-[12px]"
+                                            />
+                                        </div>
+
+                                        {/* Note (optional) */}
+                                        <div>
+                                            <label className="block text-[1.4rem] font-[600] text-[#181818] mb-[8px]">
+                                                Ghi chú <span className="text-[1.2rem] text-[#9ca3af] font-[400]">(tuỳ chọn)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="VD: Tài khoản MB Bank cá nhân"
+                                                value={bankForm.note ?? ""}
+                                                onChange={(e) => setBankForm((prev) => ({ ...prev, note: e.target.value }))}
+                                                className="w-full py-[13px] px-[16px] text-[1.45rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all rounded-[12px]"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* No accounts yet for logged-in user */}
+                            {isLoggedIn && myBankAccounts.length === 0 && bankFormMode === "select" && (
+                                <div className="text-[1.35rem] text-[#9ca3af] text-center py-4">
+                                    Bạn chưa có tài khoản ngân hàng nào. Vui lòng thêm bên dưới.
+                                </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div className="mt-6 flex flex-wrap justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBankInfoOpen(false)}
+                                    className="py-[11px] px-[22px] rounded-[12px] border border-[#d1d5db] bg-white text-[#111827] text-[1.4rem] font-[600] hover:bg-[#f3f4f6]"
+                                >
+                                    Quay lại
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isHolding || (isLoggedIn && bankFormMode === "select" && selectedBankAccountId === null && myBankAccounts.length > 0)}
+                                    onClick={handleBankInfoConfirm}
+                                    className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[1.5rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isHolding ? "Đang xử lý..." : "Xác nhận & Tiến hành đặt lịch"}
                                 </button>
                             </div>
                         </div>

@@ -1,7 +1,9 @@
 import { apiApp } from "./index";
 import type { ApiResponse } from "../types/common.type";
-import type { BookingPetForm, PetFoodBroughtItemForm } from "../types/booking.type";
+import type { BookingPetForm } from "../types/booking.type";
 import type { BookingStep1FormData } from "../client/pages/booking/Booking";
+import type { ClientBookingDetailResponse } from "../types/booking.type";
+import type { BankInformationPayload } from "../types/bank.type";
 
 export interface CreateBookingPetServicePayload {
     serviceId: number;
@@ -48,6 +50,8 @@ export interface CreateBookingRequest {
     bookingType: string;
     /** Danh sách thú cưng + dịch vụ; BE sẽ map sang BookingPet + BookingPetService */
     pets: CreateBookingPetPayload[];
+    /** Thông tin tài khoản ngân hàng để hoàn cọc (tuỳ chọn) */
+    bankInformation?: BankInformationPayload | null;
 }
 
 export type CreateBookingResponse = ApiResponse<{
@@ -58,6 +62,21 @@ export const createBookingFromClient = async (
     payload: CreateBookingRequest
 ): Promise<CreateBookingResponse> => {
     const response = await apiApp.post<CreateBookingResponse>("/api/bookings", payload);
+    return response.data;
+};
+
+export interface CancelBookingRequest {
+    reason?: string;
+    bankInformation?: BankInformationPayload;
+}
+
+export type CancelBookingResponse = ApiResponse<ClientBookingDetailResponse>;
+
+export const cancelBookingFromClient = async (
+    bookingCode: string,
+    payload: CancelBookingRequest
+): Promise<CancelBookingResponse> => {
+    const response = await apiApp.post<CancelBookingResponse>(`/api/bookings/code/${bookingCode}/cancel`, payload);
     return response.data;
 };
 

@@ -154,6 +154,9 @@ export interface BookingResponse {
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod | string;
   status: BookingStatus;
+  /** Client requested cancel booking (uses cancelRequested flag) */
+  cancelRequested?: boolean;
+  cancelledReason?: string | null;
   internalNotes?: string;
   bookingStartDate: string; // ISO datetime
   bookingEndDate?: string;

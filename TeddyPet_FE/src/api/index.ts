@@ -27,7 +27,31 @@ apiApp.interceptors.request.use(
         const isAdmin = window.location.pathname.startsWith("/admin");
         const token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
 
-        if (token) {
+        // Check if this is a public booking API
+        const isBookingPublicApi =
+            !isAdmin &&
+            (config.url?.includes('/api/service-categories') ||
+                config.url?.includes('/api/services') ||
+                config.url?.includes('/api/service-pricings') ||
+                config.url?.includes('/api/room-layout-configs') ||
+                config.url?.includes('/api/rooms') ||
+                config.url?.includes('/api/room-types') ||
+                config.url?.includes('/api/bookings') || // This includes /api/bookings/deposit-intent and /api/bookings/code/
+                config.url?.includes('/api/bookings/code/') || // Specific booking detail endpoint
+                config.url?.includes('/api/time-slots') ||
+                config.url?.includes('/api/bank-information') ||
+                config.url?.includes('/api/banks') ||
+                config.url?.includes('/api/booking-deposit-refund-policies') ||
+                config.url?.includes('/api/settings') ||
+                config.url?.includes('/api/otp') ||
+                config.url?.includes('/api/orders') ||
+                config.url?.includes('/api/carts') ||
+                config.url?.includes('/api/feedbacks') ||
+                config.url?.includes('/api/home') ||
+                config.url?.includes('/api/blog'));
+
+        // Only add authorization header if token exists and it's not a public API that should work without auth
+        if (token && !isBookingPublicApi) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -59,6 +83,10 @@ apiApp.interceptors.response.use(
                 return Promise.reject(error);
             }
 
+            // Optional auth check: allow public pages to load without redirecting to login
+            // Example: booking detail page is public; app may call /api/auth/me on refresh to hydrate user state.
+            const isOptionalAuthApi = !isAdmin && (originalRequest.url?.includes('/api/auth/me') || false);
+
             if (isRefreshing) {
                 return new Promise(function (resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -83,12 +111,22 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/room-layout-configs') ||
                     originalRequest.url?.includes('/api/rooms') ||
                     originalRequest.url?.includes('/api/room-types') ||
-                    originalRequest.url?.includes('/api/bookings') ||
+                    originalRequest.url?.includes('/api/bookings') || // This includes /api/bookings/deposit-intent and /api/bookings/code/
+                    originalRequest.url?.includes('/api/bookings/code/') || // Specific booking detail endpoint
                     originalRequest.url?.includes('/api/time-slots') ||
-                    originalRequest.url?.includes('/api/settings'));
+                    originalRequest.url?.includes('/api/bank-information') ||
+                    originalRequest.url?.includes('/api/banks') ||
+                    originalRequest.url?.includes('/api/booking-deposit-refund-policies') ||
+                    originalRequest.url?.includes('/api/settings') ||
+                    originalRequest.url?.includes('/api/otp') ||
+                    originalRequest.url?.includes('/api/orders') ||
+                    originalRequest.url?.includes('/api/carts') ||
+                    originalRequest.url?.includes('/api/feedbacks') ||
+                    originalRequest.url?.includes('/api/home') ||
+                    originalRequest.url?.includes('/api/blog'));
 
             if (!refreshToken) {
-                if (isBookingPublicApi) {
+                if (isBookingPublicApi || isOptionalAuthApi) {
                     return Promise.reject(error);
                 }
                 if (isAdmin) {
@@ -126,6 +164,13 @@ apiApp.interceptors.response.use(
 
             } catch (err) {
                 processQueue(err, null);
+                
+                // For public booking APIs, don't redirect even if refresh fails
+                if (isBookingPublicApi || isOptionalAuthApi) {
+                    isRefreshing = false;
+                    return Promise.reject(err);
+                }
+                
                 if (isAdmin) {
                     Cookies.remove(tokenKey);
                     Cookies.remove(refreshTokenKey);

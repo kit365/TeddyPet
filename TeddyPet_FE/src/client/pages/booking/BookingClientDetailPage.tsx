@@ -13,6 +13,7 @@ import type {
 } from "../../../types/booking.type";
 import { apiApp } from "../../../api";
 import { confirmBookingDeposit } from "../../../api/booking-deposit.api";
+import { CancelBookingModal } from "./components/CancelBookingModal";
 
 /* ─── helpers ─── */
 const formatCurrency = (v?: number | null) =>
@@ -31,6 +32,17 @@ const getBookingStatusLabel = (status: BookingStatus | string) => {
         case "COMPLETED": return "Hoàn tất";
         case "CANCELLED": return "Đã hủy";
         default: return status || "—";
+    }
+};
+
+const getBookingStatusBadgeClass = (status: BookingStatus | string) => {
+    switch (status) {
+        case "COMPLETED": return "bg-[#d1fae5] text-[#065f46]";
+        case "CANCELLED": return "bg-[#fee2e2] text-[#991b1b]";
+        case "CONFIRMED": return "bg-[#e0e7ff] text-[#3730a3]";
+        case "IN_PROGRESS": return "bg-[#dbeafe] text-[#1e40af]";
+        case "PENDING": return "bg-[#fef3c7] text-[#92400e]";
+        default: return "bg-[#f3f4f6] text-[#374151]";
     }
 };
 
@@ -88,6 +100,9 @@ export const BookingClientDetailPage = () => {
     const [isConfirming, setIsConfirming] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("BANK_TRANSFER");
 
+    // Cancel modal state
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
     // Countdown timer
     const expiresAt = booking?.depositExpiresAt ? dayjs(booking.depositExpiresAt) : null;
     const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -97,8 +112,17 @@ export const BookingClientDetailPage = () => {
         try {
             const res = await apiApp.get<{ data: ClientBookingDetailResponse }>(`/api/bookings/code/${bookingCode}`);
             setBooking(res.data.data);
-        } catch {
-            toast.error("Không tìm thấy đơn đặt lịch.");
+        } catch (error: any) {
+            console.error("Error fetching booking details:", error);
+            if (error.response?.status === 404) {
+                toast.error("Không tìm thấy đơn đặt lịch.");
+            } else if (error.response?.status === 401 || error.response?.status === 403) {
+                // For public booking APIs, 401/403 might mean the booking exists but requires different access
+                // Don't redirect to login, just show a generic error
+                toast.error("Không thể truy cập thông tin đơn đặt lịch.");
+            } else {
+                toast.error("Đã xảy ra lỗi khi tải thông tin đơn đặt lịch.");
+            }
         } finally {
             setLoading(false);
         }
@@ -140,6 +164,7 @@ export const BookingClientDetailPage = () => {
 
     const canEditServices =
         booking &&
+        booking.status !== "CANCELLED" &&
         !booking.depositPaid &&
         (booking.paymentStatus === "PENDING" || booking.paymentStatus === "PARTIAL");
 
@@ -352,9 +377,9 @@ export const BookingClientDetailPage = () => {
                                 </h2>
                             )}
                             {booking && (
-                                <p className="mt-1 text-[1.35rem] text-[#5f6368]">
+                                <p className="mt-1 text-[1.35rem] text-[#5f6368] flex items-center">
                                     Trạng thái:{" "}
-                                    <span className="font-[600] text-[#111827]">
+                                    <span className={`inline-flex items-center px-[8px] py-[4px] rounded-[6px] text-[1.3rem] font-[700] ml-2 ${getBookingStatusBadgeClass(booking.status)}`}>
                                         {getBookingStatusLabel(booking.status)}
                                     </span>
                                 </p>
@@ -417,7 +442,7 @@ export const BookingClientDetailPage = () => {
                                             Trạng thái & thanh toán
                                         </p>
                                         <div className="space-y-1.5 text-[1.4rem] text-[#064e3b]">
-                                            <InfoRow label="Trạng thái đặt lịch" value={getBookingStatusLabel(booking.status)} />
+                                            <InfoRow label="Trạng thái đặt lịch" value={<span className={`inline-flex items-center px-[8px] py-[3px] rounded-[6px] text-[1.25rem] font-[700] ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>} />
                                             <InfoRow label="Thanh toán" value={booking.depositPaid ? <span className="font-[600] text-[#059669]">Đã thanh toán cọc</span> : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>} />
                                             {booking.paymentMethod && <InfoRow label="PT thanh toán" value={booking.paymentMethod} />}
                                             <div className="pt-2 space-y-0.5 border-t border-[#d1fae5] mt-2">
@@ -436,6 +461,46 @@ export const BookingClientDetailPage = () => {
                                     </div>
                                 </div>
 
+                                {/* Bank Info (if deposit not paid and not cancelled) */}
+                                {!booking.depositPaid && booking.depositId && booking.status !== "CANCELLED" && (
+                                    <div className="rounded-[8px] bg-white border border-[#f3e0d6] px-5 py-4 mb-6 shadow-sm">
+                                        <p className="text-[1.5rem] font-[700] text-[#c45a3a] mb-3">Thông tin chuyển khoản ngân hàng (Cọc)</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            <ul className="space-y-1.5 text-[1.35rem] text-[#374151]">
+                                                <li>
+                                                    <span className="font-[600] inline-block w-[100px]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
+                                                </li>
+                                                <li>
+                                                    <span className="font-[600] inline-block w-[100px]">Số TK:</span> 0123 456 789
+                                                </li>
+                                                <li>
+                                                    <span className="font-[600] inline-block w-[100px]">Chủ TK:</span> CÔNG TY TNHH TEDDYPET
+                                                </li>
+                                            </ul>
+                                            <div className="md:border-l md:border-[#f1f1f1] md:pl-5">
+                                                <div className="font-[600] text-[1.35rem] text-[#111827] mb-2">Nội dung chuyển khoản (quan trọng)</div>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        readOnly
+                                                        value={transferContent}
+                                                        className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[1.4rem] font-[700] text-[#111827] outline-none"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCopyContent}
+                                                        className="px-4 py-2 rounded-[6px] border border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a] text-[1.35rem] hover:bg-[#ffece4] font-[600] transition-colors"
+                                                    >
+                                                        Copy
+                                                    </button>
+                                                </div>
+                                                <p className="text-[#6b7280] text-[1.2rem] mt-2 italic">
+                                                    * Vui lòng nhập đúng nội dung chuyển khoản để hệ thống xác nhận tự động.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* ── Section 2: Pets ── */}
                                 {booking.pets && booking.pets.length > 0 && (
                                     <>
@@ -448,13 +513,8 @@ export const BookingClientDetailPage = () => {
 
                                 {/* Action bar */}
                                 <div className="pt-4 mt-6 border-t border-[#f1f1f1] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                    <div className="text-[1.3rem] text-[#6b7280]">
-                                        {canEdit
-                                            ? "Bạn có thể chỉnh sửa đơn đặt lịch này trước khi chúng tôi xử lý."
-                                            : "Đơn đặt lịch đã ở trạng thái không thể chỉnh sửa thêm."}
-                                    </div>
                                     <div className="flex items-center gap-3">
-                                        {booking.paymentStatus === "PENDING" && !booking.depositPaid && booking.depositId && (
+                                        {booking && booking.status === "PENDING" && booking.paymentStatus === "PENDING" && !booking.depositPaid && booking.depositId && !isExpired && (
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveView("payment")}
@@ -463,22 +523,33 @@ export const BookingClientDetailPage = () => {
                                                 Thanh toán cọc ngay
                                             </button>
                                         )}
-                                        <button
-                                            type="button"
-                                            disabled={!canEdit}
-                                            onClick={() => {
-                                                if (!booking) return;
-                                                const expiresParam = booking.depositExpiresAt
-                                                    ? `?expiresAt=${encodeURIComponent(booking.depositExpiresAt)}`
-                                                    : "";
-                                                navigate(
-                                                    `/dat-lich/chi-tiet-don/${booking.bookingCode}/chinh-sua${expiresParam}`
-                                                );
-                                            }}
-                                            className="inline-flex items-center justify-center rounded-[8px] bg-[#ffbaa0] text-[#181818] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#e6a890] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            Chỉnh sửa thông tin
-                                        </button>
+                                        {booking && booking.status !== "CANCELLED" && (!showDepositTimer || !isExpired) && (
+                                            <button
+                                                type="button"
+                                                disabled={!canEdit}
+                                                onClick={() => {
+                                                    if (!booking) return;
+                                                    const expiresParam = booking.depositExpiresAt
+                                                        ? `?expiresAt=${encodeURIComponent(booking.depositExpiresAt)}`
+                                                        : "";
+                                                    navigate(
+                                                        `/dat-lich/chi-tiet-don/${booking.bookingCode}/chinh-sua${expiresParam}`
+                                                    );
+                                                }}
+                                                className="inline-flex items-center justify-center rounded-[8px] bg-[#ffbaa0] text-[#181818] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#e6a890] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Chỉnh sửa thông tin
+                                            </button>
+                                        )}
+                                        {booking && booking.status === "PENDING" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCancelModalOpen(true)}
+                                                className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
+                                            >
+                                                Hủy đơn đặt lịch
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </>
@@ -491,12 +562,6 @@ export const BookingClientDetailPage = () => {
                                     <div>
                                         <div className="text-[#181818] font-[700]">Mã giữ chỗ (Deposit)</div>
                                         <div className="text-[#505050] text-[1.4rem]">{booking.depositId ?? "—"}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[#181818] font-[700]">Thời gian giữ chỗ còn lại</div>
-                                        <div className={`font-[700] text-[1.4rem] ${isExpired ? "text-[#ef4444]" : "text-[#c45a3a]"}`}>
-                                            {isExpired ? "Hết hạn" : formattedRemaining}
-                                        </div>
                                     </div>
                                 </div>
 
@@ -599,6 +664,15 @@ export const BookingClientDetailPage = () => {
                                             >
                                                 Quay lại chi tiết
                                             </button>
+                                            {booking.status === "PENDING" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCancelModalOpen(true)}
+                                                    className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
+                                                >
+                                                    Hủy đơn đặt lịch
+                                                </button>
+                                            )}
                                             <button
                                                 type="button"
                                                 disabled={!booking.depositId || isConfirming || isExpired}
@@ -620,6 +694,18 @@ export const BookingClientDetailPage = () => {
                     </div>
                 </div>
             </div>
+            
+            {booking && (
+                <CancelBookingModal
+                    booking={booking}
+                    open={isCancelModalOpen}
+                    onClose={() => setIsCancelModalOpen(false)}
+                    onSuccess={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        fetchData();
+                    }}
+                />
+            )}
             <FooterSub />
         </div>
     );
