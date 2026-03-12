@@ -1,16 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
-<<<<<<< Updated upstream
-import { useQuery } from '@tanstack/react-query';
-import { Box, Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, Lock, Clock, Calendar } from 'lucide-react';
-<<<<<<< HEAD
-=======
-=======
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { Box, Typography } from '@mui/material';
-import { CalendarOff, Clock3, Hourglass, UserMinus, Check } from 'lucide-react';
->>>>>>> Stashed changes
->>>>>>> feature/users
+import { Box, Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { CalendarOff, CalendarX2, Clock3, Hourglass, UserMinus, Lock, Clock, Calendar, Check } from 'lucide-react';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import {
@@ -20,6 +11,7 @@ import {
     useMyRegistrations,
     useRequestLeave,
     useUndoLeave,
+    useCancelMyRegistration,
 } from '../hooks/useWorkShift';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
@@ -78,6 +70,7 @@ export const WorkShiftStaffPage = () => {
     const { mutate: registerForShift, isPending: registering } = useRegisterForShift();
     const { mutate: requestLeave, isPending: leaving } = useRequestLeave();
     const { mutate: undoLeave, isPending: undoingLeave } = useUndoLeave();
+    const { mutate: cancelMyRegistration, isPending: cancelling } = useCancelMyRegistration();
     const [isHistoryMode, setIsHistoryMode] = useState(false);
     const [registeredShiftIds, setRegisteredShiftIds] = useState<Set<number>>(() => new Set());
     const [cancelledShiftIds, setCancelledShiftIds] = useState<Set<number>>(() => new Set());
@@ -354,6 +347,25 @@ export const WorkShiftStaffPage = () => {
         });
     };
 
+    const handleCancelRegistration = (shiftId: number) => {
+        cancelMyRegistration(shiftId, {
+            onSuccess: (res: any) => {
+                if (res?.success) {
+                    setCancelledShiftIds((prev) => new Set(prev).add(shiftId));
+                    setRegisteredShiftIds((prev) => {
+                        const s = new Set(prev);
+                        s.delete(shiftId);
+                        return s;
+                    });
+                    toast.success(res.message ?? 'Đã hoàn tác đăng ký.');
+                } else toast.error(res?.message ?? 'Hoàn tác thất bại');
+            },
+            onError: (err: any) => {
+                toast.error(err?.response?.data?.message ?? err?.message ?? 'Hoàn tác đăng ký thất bại.');
+            },
+        });
+    };
+
     return (
         <>
             <ListHeader
@@ -555,22 +567,6 @@ export const WorkShiftStaffPage = () => {
                                                                     Chờ duyệt
                                                                 </div>
                                                             ) : isRegistered(shift.shiftId) && !isCancelled(shift.shiftId) ? (
-<<<<<<< HEAD
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={cancelling || registering}
-                                                                    onClick={() => handleCancelRegistration(shift.shiftId)}
-                                                                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                                                    title="Nhấn để hoàn tác đăng ký"
-                                                                >
-                                                                    <Hourglass className="h-3.5 w-3.5" />
-                                                                    Chờ duyệt
-                                                                </button>
-                                                            ) : !canRegisterForShift(shift) ? (
-                                                                <p className="text-[0.8rem] text-gray-400">Đã đủ người</p>
-                                                            ) : (
-=======
->>>>>>> feature/users
                                                                 <button
                                                                     type="button"
                                                                     disabled={cancelling || registering}
