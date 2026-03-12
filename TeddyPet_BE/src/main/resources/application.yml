@@ -7,7 +7,7 @@ spring:
   application:
     name: teddypet
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
 
 brevo:
   from: ${BREVO_FROM:kietops365@gmail.com}
