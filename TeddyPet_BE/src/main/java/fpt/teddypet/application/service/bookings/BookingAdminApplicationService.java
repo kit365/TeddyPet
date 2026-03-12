@@ -1,6 +1,7 @@
 package fpt.teddypet.application.service.bookings;
 
 import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
@@ -147,6 +148,47 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 return toItemResponse(item);
         }
 
+        @Override
+        @Transactional
+        public AdminBookingListItemResponse approveOrRejectCancelRequest(Long bookingId, ApproveBookingCancelRequest request) {
+                if (request == null || request.approved() == null) {
+                        throw new IllegalArgumentException("approved là bắt buộc.");
+                }
+
+                Booking booking = getBookingOrThrow(bookingId);
+                if (!Boolean.TRUE.equals(booking.getCancelRequested())) {
+                        throw new IllegalStateException("Booking không có yêu cầu hủy đang chờ xử lý.");
+                }
+
+                if (Boolean.TRUE.equals(request.approved())) {
+                        booking.setStatus("CANCELLED");
+                        booking.setCancelRequested(false);
+                        // Cancel all associated pet services
+                        for (var pet : booking.getPets()) {
+                                for (var svc : pet.getServices()) {
+                                        svc.setStatus("CANCELLED");
+                                }
+                        }
+                        // Cancel pending deposits
+                        bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
+                                if ("PENDING".equalsIgnoreCase(deposit.getStatus())) {
+                                        deposit.setStatus("CANCELLED");
+                                        bookingDepositRepository.save(deposit);
+                                }
+                        });
+                } else {
+                        // Reject cancel request: revert to PENDING and clear cancel fields
+                        booking.setStatus("PENDING");
+                        booking.setCancelRequested(false);
+                        booking.setCancelledAt(null);
+                        booking.setCancelledBy(null);
+                        booking.setCancelledReason(null);
+                }
+
+                bookingRepository.save(booking);
+                return toListItem(booking);
+        }
+
         private BookingPetService getBookingPetServiceOrThrow(Long bookingId, Long petId, Long bookingPetServiceId) {
                 Booking booking = getBookingOrThrow(bookingId);
                 BookingPetService bps = booking.getPets().stream()
@@ -183,6 +225,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         : false;
                 }
 
+                boolean cancelRequested = Boolean.TRUE.equals(booking.getCancelRequested());
+
                 return new AdminBookingListItemResponse(
                                 booking.getId() != null ? booking.getId().toString() : null,
                                 booking.getBookingCode(),
@@ -199,9 +243,11 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 booking.getPaymentStatus(),
                                 booking.getPaymentMethod(),
                                 booking.getStatus(),
+                                cancelRequested,
+                                booking.getCancelledBy(),
+                                booking.getCancelledReason(),
+                                booking.getCancelledAt(),
                                 booking.getInternalNotes(),
-                                booking.getBookingStartDate(),
-                                booking.getBookingEndDate(),
                                 booking.getCreatedAt(),
                                 booking.getUpdatedAt());
         }

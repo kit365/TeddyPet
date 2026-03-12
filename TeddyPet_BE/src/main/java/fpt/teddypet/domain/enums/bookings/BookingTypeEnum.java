@@ -4,5 +4,9 @@ public enum BookingTypeEnum {
     WALK_IN,
     ONLINE,
     PHONE,
-    APP
+    APP,
+    ON_WEBSITE,
+    SPA_CARE,
+    HOTEL_DOG,
+    HOTEL_CAT
 }

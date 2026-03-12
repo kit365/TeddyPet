@@ -26,6 +26,7 @@ public record ServiceUpsertRequest(
         Integer bufferTime,
         BigDecimal basePrice,
         Integer maxPetsPerSession,
+        @Min(0)
         Integer advanceBookingHours,
         Integer cancellationDeadlineHours,
         @Size(max = 255)
@@ -46,6 +47,16 @@ public record ServiceUpsertRequest(
         @Size(max = 500)
         String metaDescription,
         Boolean isActive,
-        Boolean isRequiredRoom
+        Boolean isRequiredRoom,
+        // Refund Policy
+        BigDecimal beforeDeadlineRefundPct,
+        BigDecimal afterDeadlineRefundPct,
+        BigDecimal noShowRefundPct,
+        BigDecimal noShowPenalty,
+        Boolean allowReschedule,
+        Integer rescheduleDeadlineHours,
+        Integer rescheduleLimit,
+        Boolean allowForceMajeure,
+        BigDecimal forceMajeureRefundPct
 ) {
 }

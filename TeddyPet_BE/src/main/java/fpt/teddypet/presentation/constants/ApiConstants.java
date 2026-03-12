@@ -115,5 +115,10 @@ public final class ApiConstants {
     public static final String API_BOOKINGS = BASE_API + "/bookings";
     /** Admin booking management APIs */
     public static final String API_ADMIN_BOOKINGS = BASE_API + "/admin/bookings";
+    public static final String API_ADMIN_BOOKING_DEPOSIT_REFUND_POLICIES = BASE_API + "/admin/booking-deposit-refund-policies";
+
+    // Bank API base path
+    public static final String API_BANKS = BASE_API + "/banks";
+    public static final String API_BANK_INFORMATION = BASE_API + "/bank-information";
 
 }

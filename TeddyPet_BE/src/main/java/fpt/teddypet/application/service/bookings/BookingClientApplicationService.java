@@ -59,6 +59,8 @@ public class BookingClientApplicationService implements BookingClientService {
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
     private final UserRepository userRepository;
+    private final fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository;
+    private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository;
 
     @Override
     public CreateBookingResponse createBooking(CreateBookingRequest request) {
@@ -190,8 +192,6 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getPaymentMethod(),
                 booking.getStatus(),
                 booking.getInternalNotes(),
-                booking.getBookingStartDate(),
-                booking.getBookingEndDate(),
                 depositId,
                 depositExpiresAt,
                 booking.getCreatedAt(),
@@ -227,6 +227,102 @@ public class BookingClientApplicationService implements BookingClientService {
                             });
                 }
             }
+        }
+
+        bookingRepository.save(booking);
+
+        return getClientBookingDetailByCode(bookingCode);
+    }
+
+    @Override
+    public ClientBookingDetailResponse cancelBooking(String bookingCode, fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+
+        if (!"PENDING".equals(booking.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể hủy đơn đặt lịch ở trạng thái chờ xử lý hoặc chưa thanh toán cọc.");
+        }
+
+        boolean depositPaid = bookingDepositRepository.findByBookingId(booking.getId()).stream()
+                .map(fpt.teddypet.domain.entity.BookingDeposit::getDepositPaid).filter(Boolean.TRUE::equals)
+                .findFirst().orElse(false);
+
+        BigDecimal refundAmount = BigDecimal.ZERO;
+
+        if (depositPaid) {
+            fpt.teddypet.domain.entity.BookingDepositRefundPolicy policy = bookingDepositRefundPolicyRepository.findDefaultActivePolicy()
+                    .orElse(null);
+
+            if (policy != null) {
+                LocalDateTime earliestCheckIn = booking.getPets().stream()
+                        .flatMap(pet -> pet.getServices().stream())
+                        .map(svc -> {
+                            if (svc.getEstimatedCheckInDate() != null) return svc.getEstimatedCheckInDate().atStartOfDay();
+                            if (svc.getScheduledStartTime() != null) return svc.getScheduledStartTime();
+                            return null;
+                        })
+                        .filter(java.util.Objects::nonNull)
+                        .min(LocalDateTime::compareTo)
+                        .orElse(LocalDateTime.now().plusDays(7));
+
+                long hoursUntilCheckIn = ChronoUnit.HOURS.between(LocalDateTime.now(), earliestCheckIn);
+
+                BigDecimal refundPercentage = BigDecimal.ZERO;
+                if (hoursUntilCheckIn >= policy.getFullRefundHours()) {
+                    refundPercentage = policy.getFullRefundPercentage();
+                } else if (hoursUntilCheckIn >= policy.getPartialRefundHours()) {
+                    refundPercentage = policy.getPartialRefundPercentage();
+                } else if (hoursUntilCheckIn >= policy.getNoRefundHours()) {
+                    refundPercentage = policy.getNoRefundPercentage();
+                }
+
+                if (refundPercentage != null && refundPercentage.compareTo(BigDecimal.ZERO) > 0 && booking.getPaidAmount() != null) {
+                    refundAmount = booking.getPaidAmount().multiply(refundPercentage).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                }
+            }
+
+            if (request.bankInformation() != null) {
+                fpt.teddypet.domain.entity.BankInformation bankInfo = new fpt.teddypet.domain.entity.BankInformation();
+                bankInfo.setUserId(booking.getUser() != null ? booking.getUser().getId() : null);
+                bankInfo.setBookingId(booking.getId());
+                bankInfo.setBankName(request.bankInformation().bankName());
+                bankInfo.setBankCode(request.bankInformation().bankCode());
+                bankInfo.setAccountHolderName(request.bankInformation().accountHolderName());
+                bankInfo.setAccountNumber(request.bankInformation().accountNumber());
+                bankInfo.setVerify(false);
+                bankInfo.setDefault(false);
+                bankInformationRepository.save(bankInfo);
+                booking.setRefundMethod("BANK_TRANSFER");
+            }
+        }
+
+        booking.setCancelledAt(LocalDateTime.now());
+        booking.setCancelledBy("CLIENT");
+        booking.setCancelledReason(request.reason());
+        booking.setRefundAmount(refundAmount);
+
+        // If deposit was paid, this is a "cancel request" that admin should review.
+        // Use status=CANCELLED and a separate cancelRequested flag (no CANCEL_REQUESTED status).
+        // If deposit not paid, cancel immediately (cancelRequested=false).
+        if (depositPaid) {
+            booking.setStatus("CANCELLED");
+            booking.setCancelRequested(true);
+        } else {
+            booking.setStatus("CANCELLED");
+            booking.setCancelRequested(false);
+            // Cancel all associated pet services
+            for (fpt.teddypet.domain.entity.BookingPet pet : booking.getPets()) {
+                for (fpt.teddypet.domain.entity.BookingPetService svc : pet.getServices()) {
+                    svc.setStatus("CANCELLED");
+                }
+            }
+            // Cancel pending deposits
+            bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
+                if ("PENDING".equals(deposit.getStatus())) {
+                    deposit.setStatus("CANCELLED");
+                    bookingDepositRepository.save(deposit);
+                }
+            });
         }
 
         bookingRepository.save(booking);
@@ -274,10 +370,7 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setPaidAmount(BigDecimal.ZERO);
         booking.setRemainingAmount(bookingTotal);
 
-        // Ngày bắt đầu/kết thúc booking dựa trên các dịch vụ
-        LocalDateTime[] range = calculateBookingRange(booking);
-        booking.setBookingStartDate(range[0]);
-        booking.setBookingEndDate(range[1]);
+        // compute max min for something else? no longer stored on booking
 
         Booking saved = bookingRepository.save(booking);
 

@@ -24,5 +24,7 @@ public interface BookingAdminService {
     AdminBookingPetServiceItemResponse addChargeItem(Long bookingId, Long petId, Long bookingPetServiceId, AddChargeItemRequest request);
 
     AdminBookingPetServiceItemResponse approveChargeItem(Long bookingId, Long petId, Long bookingPetServiceId, Long itemId, ApproveChargeItemRequest request);
+
+    AdminBookingListItemResponse approveOrRejectCancelRequest(Long bookingId, fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest request);
 }
 

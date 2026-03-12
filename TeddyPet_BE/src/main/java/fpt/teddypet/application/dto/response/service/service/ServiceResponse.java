@@ -39,6 +39,16 @@ public record ServiceResponse(
         @JsonProperty("isActive")
         boolean isActive,
         Boolean isRequiredRoom,
+        // Refund Policy
+        BigDecimal beforeDeadlineRefundPct,
+        BigDecimal afterDeadlineRefundPct,
+        BigDecimal noShowRefundPct,
+        BigDecimal noShowPenalty,
+        Boolean allowReschedule,
+        Integer rescheduleDeadlineHours,
+        Integer rescheduleLimit,
+        Boolean allowForceMajeure,
+        BigDecimal forceMajeureRefundPct,
         boolean isDeleted,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

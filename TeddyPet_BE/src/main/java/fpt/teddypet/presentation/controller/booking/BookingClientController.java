@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.controller.booking;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
+import fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
@@ -47,5 +48,14 @@ public class BookingClientController {
             @Valid @RequestBody UpdateBookingContactRequest request) {
         ClientBookingDetailResponse data = bookingClientService.updateBookingContact(bookingCode, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin liên hệ thành công", data));
+    }
+
+    @PostMapping("/code/{bookingCode}/cancel")
+    @Operation(summary = "Yêu cầu hủy đơn đặt lịch (client)")
+    public ResponseEntity<ApiResponse<ClientBookingDetailResponse>> cancelBooking(
+            @PathVariable String bookingCode,
+            @RequestBody ClientCancelBookingRequest request) {
+        ClientBookingDetailResponse data = bookingClientService.cancelBooking(bookingCode, request);
+        return ResponseEntity.ok(ApiResponse.success("Hủy đơn thành công", data));
     }
 }

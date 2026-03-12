@@ -96,9 +96,18 @@ public class SecurityConfig {
                         // Booking: cho phép khách đặt lịch và tra cứu booking
                         .requestMatchers(HttpMethod.POST, "/api/bookings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/bookings/code/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/bookings/code/*/contact").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/bookings/code/*/cancel").permitAll()
+                        // Booking: policy hoàn cọc public cho khách xem khi hủy đơn
+                        .requestMatchers(HttpMethod.GET, "/api/booking-deposit-refund-policies", "/api/booking-deposit-refund-policies/**")
+                        .permitAll()
                         // Booking deposits (giữ chỗ + xác nhận cọc): cho phép khách vãng lai
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/confirm").permitAll()
+                        // Banks: cho phép khách xem danh sách ngân hàng để nhập thông tin hoàn cọc
+                        .requestMatchers(HttpMethod.GET, "/api/banks", "/api/banks/**").permitAll()
+                        // Guest Cart Sync
+                        .requestMatchers(HttpMethod.POST, "/api/carts/guest/**", "/api/cart/guest/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

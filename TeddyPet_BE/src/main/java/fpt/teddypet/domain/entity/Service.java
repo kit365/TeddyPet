@@ -64,9 +64,6 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Integer advanceBookingHours = 24;
 
-    @Column(name = "cancellation_deadline_hours")
-    private Integer cancellationDeadlineHours;
-
     @Column(name = "image_url", length = 255)
     private String imageURL;
 
@@ -88,10 +85,6 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Integer displayOrder = 0;
 
-    @Column(name = "is_popular", nullable = false)
-    @Builder.Default
-    private Boolean isPopular = false;
-
     @Column(name = "is_addon", nullable = false)
     @Builder.Default
     private Boolean isAddon = false;
@@ -99,13 +92,6 @@ public class Service extends BaseEntity {
     @Column(name = "is_additional_charge", nullable = false)
     @Builder.Default
     private Boolean isAdditionalCharge = false;
-
-    @Column(name = "is_critical", nullable = false)
-    @Builder.Default
-    private Boolean isCritical = false;
-
-    @Column(name = "addon_type", length = 50)
-    private String addonType;
 
     @Column(name = "meta_title", length = 255)
     private String metaTitle;
