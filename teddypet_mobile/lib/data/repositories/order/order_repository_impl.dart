@@ -31,4 +31,39 @@ class OrderRepositoryImpl implements OrderRepository {
       return null;
     }
   }
+  @override
+  Future<OrderEntity?> getOrderDetail(String id) async {
+    try {
+      final response = await _apiClient.get<OrderResponse>(
+        '$_baseEndpoint/my-orders/$id',
+        fromJson: (json) => OrderResponse.fromJson(json),
+      );
+
+      if (response.success && response.data != null) {
+        return OrderEntity.fromResponse(response.data!);
+      }
+      return null;
+    } catch (e) {
+      print("Lỗi khi getOrderDetail: $e");
+      return null;
+    }
+  }
+
+  @override
+  Future<OrderEntity?> getOrderByCode(String code) async {
+    try {
+      final response = await _apiClient.get<OrderResponse>(
+        '$_baseEndpoint/my-orders/code/$code',
+        fromJson: (json) => OrderResponse.fromJson(json),
+      );
+
+      if (response.success && response.data != null) {
+        return OrderEntity.fromResponse(response.data!);
+      }
+      return null;
+    } catch (e) {
+      print("Lỗi khi getOrderByCode: $e");
+      return null;
+    }
+  }
 }

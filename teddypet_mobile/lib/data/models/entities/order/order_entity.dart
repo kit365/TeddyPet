@@ -14,6 +14,13 @@ class OrderEntity {
   final String? shippingName;
   final String? shippingPhone;
   final List<OrderItemEntity> items;
+  final String? createdAt;
+  final String? deliveredAt;
+  final String? completedAt;
+  final String? cancelledAt;
+  final String? cancelReason;
+  final String? returnReason;
+  final String? adminReturnNote;
 
   OrderEntity({
     required this.id,
@@ -29,6 +36,13 @@ class OrderEntity {
     this.shippingName,
     this.shippingPhone,
     required this.items,
+    this.createdAt,
+    this.deliveredAt,
+    this.completedAt,
+    this.cancelledAt,
+    this.cancelReason,
+    this.returnReason,
+    this.adminReturnNote,
   });
 
   factory OrderEntity.fromResponse(OrderResponse data) {
@@ -46,6 +60,13 @@ class OrderEntity {
       shippingName: data.shippingName,
       shippingPhone: data.shippingPhone,
       items: data.orderItems.map((item) => OrderItemEntity.fromResponse(item)).toList(),
+      createdAt: data.createdAt,
+      deliveredAt: data.deliveredAt,
+      completedAt: data.completedAt,
+      cancelledAt: data.cancelledAt,
+      cancelReason: data.cancelReason,
+      returnReason: data.returnReason,
+      adminReturnNote: data.adminReturnNote,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:teddypet_mobile/presentation/pages/cart/cart_page.dart';
 import 'package:teddypet_mobile/presentation/pages/profile/profile_page.dart';
 import 'package:teddypet_mobile/presentation/providers/auth/auth_provider.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
+import 'package:teddypet_mobile/presentation/pages/order/order_detail_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -26,7 +27,31 @@ class _MainPageState extends State<MainPage> {
       const HomePage(),
       const CategoryPage(), // Gắn trang danh mục vào đây
       const CartPage(), // Gắn trang giỏ hàng vào đây (index 2)
-      const Center(child: Text('Thông báo (Coming soon)')), // Placeholder cho Thông báo
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.notifications_none, size: 60, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Thông báo (Coming soon)', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrderDetailPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Text('XEM DEMO CHI TIẾT ĐƠN HÀNG', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
       authProvider.token != null ? const ProfilePage() : _buildLoginPrompt(),
     ];
 

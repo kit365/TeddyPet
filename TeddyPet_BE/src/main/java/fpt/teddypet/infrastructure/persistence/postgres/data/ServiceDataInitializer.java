@@ -252,6 +252,18 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .isRequiredRoom(false)
                 .displayOrder(100)
                 .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
+                /*
+                // Refund Policy defaults
+                .beforeDeadlineRefundPct(new BigDecimal("100.00"))
+                .afterDeadlineRefundPct(new BigDecimal("50.00"))
+                .noShowRefundPct(BigDecimal.ZERO)
+                .noShowPenalty(BigDecimal.ZERO)
+                .allowReschedule(true)
+                .rescheduleDeadlineHours(24)
+                .rescheduleLimit(2)
+                .allowForceMajeure(true)
+                .forceMajeureRefundPct(new BigDecimal("100.00"))
+                */
                 .isActive(true)
                 .isDeleted(false)
                 .build();
@@ -283,8 +295,19 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .priceUnit(priceUnit)
                 .isAddon(isAddon)
                 .isRequiredRoom(isRequiredRoom)
-                .displayOrder(displayOrder)
                 .suitablePetTypes(Arrays.asList(PetTypeEnum.DOG, PetTypeEnum.CAT))
+                /*
+                // Refund Policy defaults
+                .beforeDeadlineRefundPct(new BigDecimal("100.00"))
+                .afterDeadlineRefundPct(new BigDecimal("50.00"))
+                .noShowRefundPct(BigDecimal.ZERO)
+                .noShowPenalty(BigDecimal.ZERO)
+                .allowReschedule(true)
+                .rescheduleDeadlineHours(24)
+                .rescheduleLimit(2)
+                .allowForceMajeure(true)
+                .forceMajeureRefundPct(new BigDecimal("100.00"))
+                */
                 .isActive(true)
                 .isDeleted(false)
                 .build();

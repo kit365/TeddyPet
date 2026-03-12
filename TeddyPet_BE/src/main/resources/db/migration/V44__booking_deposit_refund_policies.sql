@@ -52,7 +52,12 @@ alter table booking_deposits
 
 create index if not exists idx_booking_deposits_refund_policy_id on booking_deposits (refund_policy_id);
 
-alter table booking_deposits
-    add constraint fk_booking_deposits_refund_policy
-        foreign key (refund_policy_id) references booking_deposit_refund_policies(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.constraint_column_usage WHERE constraint_name = 'fk_booking_deposits_refund_policy') THEN
+        ALTER TABLE booking_deposits
+            ADD CONSTRAINT fk_booking_deposits_refund_policy
+            FOREIGN KEY (refund_policy_id) REFERENCES booking_deposit_refund_policies(id);
+    END IF;
+END $$;
 
