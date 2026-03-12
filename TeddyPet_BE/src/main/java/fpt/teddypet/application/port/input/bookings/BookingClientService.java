@@ -27,4 +27,9 @@ public interface BookingClientService {
      * Cập nhật thông tin liên hệ của booking (tên, email, sdt, địa chỉ).
      */
     ClientBookingDetailResponse updateBookingContact(String bookingCode, UpdateBookingContactRequest request);
+
+    /**
+     * Khách hàng gửi yêu cầu hủy booking
+     */
+    ClientBookingDetailResponse cancelBooking(String bookingCode, fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest request);
 }

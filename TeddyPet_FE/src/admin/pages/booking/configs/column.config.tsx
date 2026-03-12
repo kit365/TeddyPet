@@ -1,5 +1,12 @@
+import React from "react";
 import type { GridColDef } from "@mui/x-data-grid";
-import { Typography, Chip, Box } from "@mui/material";
+import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -16,7 +23,13 @@ const formatCurrency = (value: number) =>
 const formatDateTimeShort = (value?: string) =>
   value ? new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
-export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void): GridColDef[] => [
+export const getBookingColumns = (
+  onViewDetail: (row: BookingResponse) => void,
+  onEdit?: (row: BookingResponse) => void,
+  onRequestRefund?: (row: BookingResponse) => void,
+  onRequestCancel?: (row: BookingResponse) => void,
+  onDelete?: (row: BookingResponse) => void
+): GridColDef[] => [
   {
     field: "bookingCode",
     headerName: "Mã đặt lịch",
@@ -226,6 +239,149 @@ export const getBookingColumns = (onViewDetail: (row: BookingResponse) => void):
               border: `1px solid ${color || "#e0e0e0"}`,
             }}
           />
+        </Box>
+      );
+    },
+  },
+  {
+    field: "actions",
+    headerName: "Thao tác nhé",
+    minWidth: 80,
+    flex: 0.3,
+    align: "center",
+    headerAlign: "center",
+    sortable: false,
+    filterable: false,
+    renderCell: (params) => {
+      const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+      const open = Boolean(anchorEl);
+      
+      const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+      };
+      
+      const handleClose = () => {
+        setAnchorEl(null);
+      };
+
+      const handleViewDetail = () => {
+        handleClose();
+        onViewDetail(params.row as BookingResponse);
+      };
+
+      const handleEdit = () => {
+        handleClose();
+        onEdit?.(params.row as BookingResponse);
+      };
+
+      const handleRequestRefund = () => {
+        handleClose();
+        onRequestRefund?.(params.row as BookingResponse);
+      };
+
+      const handleRequestCancel = () => {
+        handleClose();
+        onRequestCancel?.(params.row as BookingResponse);
+      };
+
+      const handleDelete = () => {
+        handleClose();
+        onDelete?.(params.row as BookingResponse);
+      };
+
+      return (
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <IconButton
+            size="small"
+            onClick={handleClick}
+            sx={{
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.04)",
+              },
+            }}
+          >
+            <MoreVertIcon sx={{ fontSize: "1.8rem", color: "#637381" }} />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            PaperProps={{
+              sx: {
+                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
+                borderRadius: "8px",
+                mt: 1,
+              },
+            }}
+          >
+            <MenuItem onClick={handleViewDetail}>
+              <ListItemIcon>
+                <VisibilityIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Xem chi tiết" 
+                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+              />
+            </MenuItem>
+            <MenuItem onClick={handleEdit}>
+              <ListItemIcon>
+                <EditIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Chỉnh sửa" 
+                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+              />
+            </MenuItem>
+            <MenuItem onClick={handleRequestRefund}>
+              <ListItemIcon>
+                <RefreshIcon sx={{ fontSize: "1.6rem", color: "#1C252E" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box component="span">Yêu cầu hoàn tiền</Box>
+                    {(params.row as BookingResponse).cancelRequested === true && (
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
+                    )}
+                  </Box>
+                }
+                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+              />
+            </MenuItem>
+            <MenuItem onClick={handleRequestCancel}>
+              <ListItemIcon>
+                <CancelOutlinedIcon sx={{ fontSize: "1.6rem", color: "#ef4444" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box component="span">Yêu cầu hủy đơn</Box>
+                    {(params.row as BookingResponse).cancelRequested === true && (
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
+                    )}
+                  </Box>
+                }
+                primaryTypographyProps={{ fontSize: "1.4rem", color: "#1C252E" }}
+              />
+            </MenuItem>
+            <MenuItem onClick={handleDelete}>
+              <ListItemIcon>
+                <DeleteIcon sx={{ fontSize: "1.6rem", color: "#dc2626" }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Xóa" 
+                primaryTypographyProps={{ fontSize: "1.4rem", color: "#dc2626" }}
+              />
+            </MenuItem>
+          </Menu>
         </Box>
       );
     },

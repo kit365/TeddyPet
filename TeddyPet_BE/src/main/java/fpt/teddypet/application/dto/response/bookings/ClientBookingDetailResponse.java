@@ -20,7 +20,6 @@ public record ClientBookingDetailResponse(
                 String paymentMethod,
                 String status,
                 String internalNotes,
-
                 Long depositId,
                 LocalDateTime depositExpiresAt,
                 LocalDateTime createdAt,

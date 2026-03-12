@@ -70,7 +70,6 @@ public class Booking extends BaseEntity {
     private String specialRequests;
 
 
-
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
@@ -98,6 +97,10 @@ public class Booking extends BaseEntity {
 
     @Column(name = "cancelled_reason", columnDefinition = "TEXT")
     private String cancelledReason;
+
+    @Column(name = "cancel_requested", nullable = false)
+    @Builder.Default
+    private Boolean cancelRequested = false;
 
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

@@ -18,8 +18,11 @@ public record AdminBookingListItemResponse(
         String paymentStatus,
         String paymentMethod,
         String status,
+        Boolean cancelRequested,
+        String cancelledBy,
+        String cancelledReason,
+        LocalDateTime cancelledAt,
         String internalNotes,
-
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

@@ -64,8 +64,6 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Integer advanceBookingHours = 24;
 
-
-
     @Column(name = "image_url", length = 255)
     private String imageURL;
 
@@ -87,8 +85,6 @@ public class Service extends BaseEntity {
     @Builder.Default
     private Integer displayOrder = 0;
 
-
-
     @Column(name = "is_addon", nullable = false)
     @Builder.Default
     private Boolean isAddon = false;
@@ -96,10 +92,6 @@ public class Service extends BaseEntity {
     @Column(name = "is_additional_charge", nullable = false)
     @Builder.Default
     private Boolean isAdditionalCharge = false;
-
-
-
-
 
     @Column(name = "meta_title", length = 255)
     private String metaTitle;
@@ -113,43 +105,6 @@ public class Service extends BaseEntity {
     @Column(name = "is_required_room", nullable = false)
     @Builder.Default
     private Boolean isRequiredRoom = false;
-
-    // ===== Refund Policy =====
-    @Column(name = "before_deadline_refund_pct", precision = 5, scale = 2)
-    @Builder.Default
-    private BigDecimal beforeDeadlineRefundPct = new BigDecimal("100.00");
-
-    @Column(name = "after_deadline_refund_pct", precision = 5, scale = 2)
-    @Builder.Default
-    private BigDecimal afterDeadlineRefundPct = new BigDecimal("50.00");
-
-    @Column(name = "no_show_refund_pct", precision = 5, scale = 2)
-    @Builder.Default
-    private BigDecimal noShowRefundPct = new BigDecimal("0.00");
-
-    @Column(name = "no_show_penalty", precision = 10, scale = 2)
-    @Builder.Default
-    private BigDecimal noShowPenalty = new BigDecimal("0.00");
-
-    @Column(name = "allow_reschedule")
-    @Builder.Default
-    private Boolean allowReschedule = true;
-
-    @Column(name = "reschedule_deadline_hours")
-    @Builder.Default
-    private Integer rescheduleDeadlineHours = 24;
-
-    @Column(name = "reschedule_limit")
-    @Builder.Default
-    private Integer rescheduleLimit = 2;
-
-    @Column(name = "allow_force_majeure")
-    @Builder.Default
-    private Boolean allowForceMajeure = true;
-
-    @Column(name = "force_majeure_refund_pct", precision = 5, scale = 2)
-    @Builder.Default
-    private BigDecimal forceMajeureRefundPct = new BigDecimal("100.00");
 
     @OneToMany(mappedBy = "service", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

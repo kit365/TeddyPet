@@ -2,6 +2,7 @@ package fpt.teddypet.presentation.controller.admin;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
@@ -90,6 +91,16 @@ public class BookingAdminController {
             @Valid @RequestBody ApproveChargeItemRequest request
     ) {
         AdminBookingPetServiceItemResponse data = bookingAdminService.approveChargeItem(bookingId, petId, bookingPetServiceId, itemId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PatchMapping("/{bookingId}/cancel-request")
+    @Operation(summary = "Duyệt / từ chối yêu cầu hủy đơn đặt lịch (client)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> approveOrRejectCancelRequest(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody ApproveBookingCancelRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.approveOrRejectCancelRequest(bookingId, request);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 }
