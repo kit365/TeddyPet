@@ -1,4 +1,4 @@
-import { Button } from "../../../components/ui/Button"
+﻿import { Button } from "../../../components/ui/Button"
 import { SaleOff } from "../../../components/ui/SaleOff"
 import { SHOP_CONTENT } from "../../../constants/shop-content";
 
@@ -15,7 +15,7 @@ export const Section4 = () => {
                         <div className="inline-block uppercase text-white bg-[#C32643] px-[18px] py-[5px] rounded-[30px] mb-[10px]">
                             {SHOP_CONTENT.BANNERS.LIMITED_OFFER}
                         </div>
-                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.SPECIAL_DISCOUNT}</h3>
+                        <h3 className="text-white text-[2.5rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.SPECIAL_DISCOUNT}</h3>
                         <Button
                             content={SHOP_CONTENT.BANNERS.BUY_NOW}
                             svgColor="text-white"
@@ -35,7 +35,7 @@ export const Section4 = () => {
                         <div className="inline-block uppercase text-white bg-[#AF6900] px-[18px] py-[5px] rounded-[30px] mb-[10px]">
                             {SHOP_CONTENT.BANNERS.GREAT_SAVINGS}
                         </div>
-                        <h3 className="text-white text-[4rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.GET_OFFER_NOW}</h3>
+                        <h3 className="text-white text-[2.5rem] font-secondary leading-[1.2] mb-[20px]">{SHOP_CONTENT.BANNERS.GET_OFFER_NOW}</h3>
                         <Button
                             content={SHOP_CONTENT.BANNERS.ORDER_NOW}
                             svgColor="text-white"

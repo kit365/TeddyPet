@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -69,7 +69,7 @@ const svcStatusLabel = (s?: string) => {
 /* ─── Sub-component: Section Header ─── */
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-[1.6rem] font-[700] text-[#111827] tracking-tight">{children}</h3>
+        <h3 className="text-[1rem] font-[700] text-[#111827] tracking-tight">{children}</h3>
     </div>
 );
 
@@ -218,10 +218,10 @@ export const BookingClientDetailPage = () => {
         if (!items || items.length === 0) return null;
         return (
             <div className="mt-2">
-                <div className="text-[1.25rem] font-[600] text-[#6366f1] mb-1">Dịch vụ add-on:</div>
+                <div className="text-[0.7812rem] font-[600] text-[#6366f1] mb-1">Dịch vụ add-on:</div>
                 <div className="space-y-1">
                     {items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-3 text-[1.25rem] text-[#374151] bg-[#f5f3ff] px-3 py-1 rounded-[8px]">
+                        <div key={item.id} className="flex items-center gap-3 text-[0.7812rem] text-[#374151] bg-[#f5f3ff] px-3 py-1 rounded-[8px]">
                             <span className="font-[500]">{item.itemName ?? "—"}</span>
                             <span className="text-[#6b7280]">x{item.quantity ?? 1}</span>
                             <span className="ml-auto font-[600]">{formatCurrency(item.subtotal)}</span>
@@ -237,16 +237,16 @@ export const BookingClientDetailPage = () => {
         return (
             <div key={svc.id} className="rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 shadow-sm mb-3">
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-[1.35rem] font-[700] text-[#4338ca]">
+                    <span className="text-[0.8438rem] font-[700] text-[#4338ca]">
                         {`Dịch vụ ${idx + 1}: `}
                         <span className="text-[#111827]">{svc.serviceName ?? "—"}</span>
                     </span>
-                    <span className={`text-[1.15rem] font-[600] px-2 py-0.5 rounded-[4px] ${svc.status === "COMPLETED" ? "bg-[#d1fae5] text-[#065f46]" : svc.status === "CANCELLED" ? "bg-[#fee2e2] text-[#991b1b]" : "bg-[#fef3c7] text-[#92400e]"}`}>
+                    <span className={`text-[0.7188rem] font-[600] px-2 py-0.5 rounded-[4px] ${svc.status === "COMPLETED" ? "bg-[#d1fae5] text-[#065f46]" : svc.status === "CANCELLED" ? "bg-[#fee2e2] text-[#991b1b]" : "bg-[#fef3c7] text-[#92400e]"}`}>
                         {svcStatusLabel(svc.status)}
                     </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[1.3rem]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[0.8125rem]">
                     {svc.estimatedCheckInDate && (
                         <InfoRow label="Ngày nhận" value={fmtDate(svc.estimatedCheckInDate)} />
                     )}
@@ -272,18 +272,18 @@ export const BookingClientDetailPage = () => {
                 {hasRoom && (
                     <div className="mt-2 p-2.5 rounded-[8px] bg-[#f0fdf4] border border-[#bbf7d0]">
                         <div className="flex items-center justify-between mb-1">
-                            <div className="text-[1.2rem] font-[600] text-[#166534]">Căn phòng đã xếp</div>
+                            <div className="text-[0.75rem] font-[600] text-[#166534]">Căn phòng đã xếp</div>
                             {svc.roomId && (
                                 <button
                                     type="button"
                                     onClick={() => navigate(`/dat-lich/phong/${svc.roomId}`)}
-                                    className="text-[1.2rem] font-[600] text-[#166534] underline hover:text-[#14532d]"
+                                    className="text-[0.75rem] font-[600] text-[#166534] underline hover:text-[#14532d]"
                                 >
                                     Xem chi tiết phòng
                                 </button>
                             )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 text-[1.25rem] text-[#166534]">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 text-[0.7812rem] text-[#166534]">
                             {svc.roomName && <div><span className="font-[500]">Tên: </span>{svc.roomName}</div>}
                             {svc.roomNumber && <div><span className="font-[500]">Số phòng: </span>{svc.roomNumber}</div>}
                             {svc.displayTypeName && <div><span className="font-[500]">Loại: </span>{svc.displayTypeName}</div>}
@@ -300,10 +300,10 @@ export const BookingClientDetailPage = () => {
         if (!foods || foods.length === 0) return null;
         return (
             <div className="mt-3">
-                <div className="text-[1.3rem] font-[600] text-[#92400e] mb-2">Thức ăn mang theo:</div>
+                <div className="text-[0.8125rem] font-[600] text-[#92400e] mb-2">Thức ăn mang theo:</div>
                 <div className="space-y-1.5">
                     {foods.map((food) => (
-                        <div key={food.id} className="flex flex-wrap gap-x-4 gap-y-1 text-[1.25rem] text-[#78350f] bg-[#fffbeb] px-3 py-2 rounded-[8px] border border-[#fde68a]">
+                        <div key={food.id} className="flex flex-wrap gap-x-4 gap-y-1 text-[0.7812rem] text-[#78350f] bg-[#fffbeb] px-3 py-2 rounded-[8px] border border-[#fde68a]">
                             {food.foodBroughtType && <span><span className="font-[500]">Loại:</span> {food.foodBroughtType}</span>}
                             {food.foodBrand && <span><span className="font-[500]">Nhãn hiệu:</span> {food.foodBrand}</span>}
                             {food.quantity != null && <span><span className="font-[500]">Số lượng:</span> {food.quantity}</span>}
@@ -319,15 +319,15 @@ export const BookingClientDetailPage = () => {
         <div key={pet.id} className="rounded-[8px] border border-[#f3e0d6] bg-white overflow-hidden shadow-sm mb-4">
             {/* Pet header */}
             <div className="px-5 py-3 bg-[#fff5f0] border-b border-[#f3e0d6]">
-                <h4 className="text-[1.45rem] font-[700] text-[#111827]">
+                <h4 className="text-[0.9062rem] font-[700] text-[#111827]">
                     Thú cưng {idx + 1}: <span className="text-[#c45a3a]">{pet.petName ?? "—"}</span>
-                    <span className="ml-2 text-[1.2rem] font-[500] text-[#6b7280]">({petTypeLabel(pet.petType)})</span>
+                    <span className="ml-2 text-[0.75rem] font-[500] text-[#6b7280]">({petTypeLabel(pet.petType)})</span>
                 </h4>
             </div>
 
             <div className="p-4 space-y-3">
                 {/* Pet info row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[1.3rem]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[0.8125rem]">
                     <InfoRow label="Liên hệ khẩn cấp" value={pet.emergencyContactName} />
                     <InfoRow label="SĐT khẩn cấp" value={pet.emergencyContactPhone} />
                     {pet.weightAtBooking != null && (
@@ -350,7 +350,7 @@ export const BookingClientDetailPage = () => {
                 {/* Services */}
                 {pet.services && pet.services.length > 0 && (
                     <div className="mt-4">
-                        <div className="text-[1.3rem] font-[600] text-[#4338ca] mb-2">Dịch vụ đã đăng ký:</div>
+                        <div className="text-[0.8125rem] font-[600] text-[#4338ca] mb-2">Dịch vụ đã đăng ký:</div>
                         {pet.services.map((svc, sIdx) => renderService(svc, sIdx))}
                     </div>
                 )}
@@ -365,11 +365,11 @@ export const BookingClientDetailPage = () => {
                     {/* Header */}
                     <div className="px-[28px] py-[22px] bg-[#fff5f0] border-b border-[#f3e0d6] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <p className="uppercase tracking-[0.05em] text-[1.2rem] font-[700] text-[#c45a3a]">
+                            <p className="uppercase tracking-[0.05em] text-[0.75rem] font-[700] text-[#c45a3a]">
                                 {activeView === "detail" ? "Chi tiết đơn đặt lịch" : "Thanh toán cọc"}
                             </p>
                             {booking && (
-                                <h2 className="mt-1 text-[2.2rem] font-[800] text-[#181818]">
+                                <h2 className="mt-1 text-[1.375rem] font-[800] text-[#181818]">
                                     Mã đặt lịch:{" "}
                                     <span className="text-[#c45a3a]">
                                         {booking.bookingCode}
@@ -377,9 +377,9 @@ export const BookingClientDetailPage = () => {
                                 </h2>
                             )}
                             {booking && (
-                                <p className="mt-1 text-[1.35rem] text-[#5f6368] flex items-center">
+                                <p className="mt-1 text-[0.8438rem] text-[#5f6368] flex items-center">
                                     Trạng thái:{" "}
-                                    <span className={`inline-flex items-center px-[8px] py-[4px] rounded-[6px] text-[1.3rem] font-[700] ml-2 ${getBookingStatusBadgeClass(booking.status)}`}>
+                                    <span className={`inline-flex items-center px-[8px] py-[4px] rounded-[6px] text-[0.8125rem] font-[700] ml-2 ${getBookingStatusBadgeClass(booking.status)}`}>
                                         {getBookingStatusLabel(booking.status)}
                                     </span>
                                 </p>
@@ -389,8 +389,8 @@ export const BookingClientDetailPage = () => {
                             {/* Countdown timer */}
                             {showDepositTimer && (
                                 <div className={`flex flex-col items-center justify-center px-4 py-2 rounded-[8px] bg-white border ${isExpired ? "border-[#ef4444]" : "border-[#ffe0ce]"}`}>
-                                    <div className="text-[1.1rem] font-[600] text-[#181818]">Giờ còn lại</div>
-                                    <div className={`text-[1.6rem] font-[800] ${isExpired ? "text-[#ef4444]" : "text-[#c45a3a]"}`}>
+                                    <div className="text-[0.6875rem] font-[600] text-[#181818]">Giờ còn lại</div>
+                                    <div className={`text-[1rem] font-[800] ${isExpired ? "text-[#ef4444]" : "text-[#c45a3a]"}`}>
                                         {isExpired ? "Hết hạn" : formattedRemaining}
                                     </div>
                                 </div>
@@ -398,21 +398,21 @@ export const BookingClientDetailPage = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate("/dat-lich")}
-                                className="inline-flex items-center justify-center rounded-[999px] border border-[#f1bca1] bg-white text-[#c45a3a] text-[1.35rem] font-[600] px-[16px] py-[8px] hover:bg-[#ffefe7] transition-colors"
+                                className="inline-flex items-center justify-center rounded-[999px] border border-[#f1bca1] bg-white text-[#c45a3a] text-[0.8438rem] font-[600] px-[16px] py-[8px] hover:bg-[#ffefe7] transition-colors"
                             >
                                 Quay về đặt lịch mới
                             </button>
                         </div>
                     </div>
 
-                    <div className="p-[24px] md:p-[28px] space-y-[20px] text-[1.5rem] bg-[#fffcfb]">
+                    <div className="p-[24px] md:p-[28px] space-y-[20px] text-[0.9375rem] bg-[#fffcfb]">
                         {loading && (
-                            <div className="text-[1.5rem] text-[#6b7280]">
+                            <div className="text-[0.9375rem] text-[#6b7280]">
                                 Đang tải thông tin đơn đặt lịch...
                             </div>
                         )}
                         {!loading && !booking && (
-                            <div className="text-[#ef4444] text-[1.5rem]">
+                            <div className="text-[#ef4444] text-[0.9375rem]">
                                 Không tìm thấy đơn đặt lịch.
                             </div>
                         )}
@@ -425,10 +425,10 @@ export const BookingClientDetailPage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                                     {/* Customer info */}
                                     <div className="rounded-[8px] border border-[#f3e0d6] bg-white px-5 py-4">
-                                        <p className="text-[1.5rem] font-[700] text-[#111827] mb-3">
+                                        <p className="text-[0.9375rem] font-[700] text-[#111827] mb-3">
                                             Thông tin khách hàng
                                         </p>
-                                        <div className="space-y-1.5 text-[1.4rem] text-[#374151]">
+                                        <div className="space-y-1.5 text-[0.875rem] text-[#374151]">
                                             <InfoRow label="Mã đặt lịch" value={<span className="font-[700] text-[#c45a3a]">{booking.bookingCode}</span>} />
                                             <InfoRow label="Họ tên" value={booking.customerName} />
                                             <InfoRow label="Email" value={booking.customerEmail} />
@@ -438,11 +438,11 @@ export const BookingClientDetailPage = () => {
 
                                     {/* Status & payment */}
                                     <div className="rounded-[8px] border border-[#e5f2ec] bg-[#f8fffb] px-5 py-4">
-                                        <p className="text-[1.5rem] font-[700] text-[#065f46] mb-3">
+                                        <p className="text-[0.9375rem] font-[700] text-[#065f46] mb-3">
                                             Trạng thái & thanh toán
                                         </p>
-                                        <div className="space-y-1.5 text-[1.4rem] text-[#064e3b]">
-                                            <InfoRow label="Trạng thái đặt lịch" value={<span className={`inline-flex items-center px-[8px] py-[3px] rounded-[6px] text-[1.25rem] font-[700] ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>} />
+                                        <div className="space-y-1.5 text-[0.875rem] text-[#064e3b]">
+                                            <InfoRow label="Trạng thái đặt lịch" value={<span className={`inline-flex items-center px-[8px] py-[3px] rounded-[6px] text-[0.7812rem] font-[700] ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>} />
                                             <InfoRow label="Thanh toán" value={booking.depositPaid ? <span className="font-[600] text-[#059669]">Đã thanh toán cọc</span> : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>} />
                                             {booking.paymentMethod && <InfoRow label="PT thanh toán" value={booking.paymentMethod} />}
                                             <div className="pt-2 space-y-0.5 border-t border-[#d1fae5] mt-2">
@@ -455,7 +455,7 @@ export const BookingClientDetailPage = () => {
                                 </div>
 
                                 {/* Booking dates */}
-                                <div className="rounded-[8px] bg-[#f1f5f9] px-5 py-3 text-[1.35rem] mb-6">
+                                <div className="rounded-[8px] bg-[#f1f5f9] px-5 py-3 text-[0.8438rem] mb-6">
                                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-[#334155]">
                                         <InfoRow label="Thời gian đặt lịch" value={fmtDateTime(booking.createdAt)} />
                                     </div>
@@ -464,9 +464,9 @@ export const BookingClientDetailPage = () => {
                                 {/* Bank Info (if deposit not paid and not cancelled) */}
                                 {!booking.depositPaid && booking.depositId && booking.status !== "CANCELLED" && (
                                     <div className="rounded-[8px] bg-white border border-[#f3e0d6] px-5 py-4 mb-6 shadow-sm">
-                                        <p className="text-[1.5rem] font-[700] text-[#c45a3a] mb-3">Thông tin chuyển khoản ngân hàng (Cọc)</p>
+                                        <p className="text-[0.9375rem] font-[700] text-[#c45a3a] mb-3">Thông tin chuyển khoản ngân hàng (Cọc)</p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <ul className="space-y-1.5 text-[1.35rem] text-[#374151]">
+                                            <ul className="space-y-1.5 text-[0.8438rem] text-[#374151]">
                                                 <li>
                                                     <span className="font-[600] inline-block w-[100px]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
                                                 </li>
@@ -478,22 +478,22 @@ export const BookingClientDetailPage = () => {
                                                 </li>
                                             </ul>
                                             <div className="md:border-l md:border-[#f1f1f1] md:pl-5">
-                                                <div className="font-[600] text-[1.35rem] text-[#111827] mb-2">Nội dung chuyển khoản (quan trọng)</div>
+                                                <div className="font-[600] text-[0.8438rem] text-[#111827] mb-2">Nội dung chuyển khoản (quan trọng)</div>
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         readOnly
                                                         value={transferContent}
-                                                        className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[1.4rem] font-[700] text-[#111827] outline-none"
+                                                        className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[0.875rem] font-[700] text-[#111827] outline-none"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={handleCopyContent}
-                                                        className="px-4 py-2 rounded-[6px] border border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a] text-[1.35rem] hover:bg-[#ffece4] font-[600] transition-colors"
+                                                        className="px-4 py-2 rounded-[6px] border border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a] text-[0.8438rem] hover:bg-[#ffece4] font-[600] transition-colors"
                                                     >
                                                         Copy
                                                     </button>
                                                 </div>
-                                                <p className="text-[#6b7280] text-[1.2rem] mt-2 italic">
+                                                <p className="text-[#6b7280] text-[0.75rem] mt-2 italic">
                                                     * Vui lòng nhập đúng nội dung chuyển khoản để hệ thống xác nhận tự động.
                                                 </p>
                                             </div>
@@ -518,7 +518,7 @@ export const BookingClientDetailPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveView("payment")}
-                                                className="inline-flex items-center justify-center rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#45a049] transition-colors"
+                                                className="inline-flex items-center justify-center rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#45a049] transition-colors"
                                             >
                                                 Thanh toán cọc ngay
                                             </button>
@@ -536,7 +536,7 @@ export const BookingClientDetailPage = () => {
                                                         `/dat-lich/chi-tiet-don/${booking.bookingCode}/chinh-sua${expiresParam}`
                                                     );
                                                 }}
-                                                className="inline-flex items-center justify-center rounded-[8px] bg-[#ffbaa0] text-[#181818] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#e6a890] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                                                className="inline-flex items-center justify-center rounded-[8px] bg-[#ffbaa0] text-[#181818] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#e6a890] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                             >
                                                 Chỉnh sửa thông tin
                                             </button>
@@ -545,7 +545,7 @@ export const BookingClientDetailPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsCancelModalOpen(true)}
-                                                className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
+                                                className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
                                             >
                                                 Hủy đơn đặt lịch
                                             </button>
@@ -561,31 +561,31 @@ export const BookingClientDetailPage = () => {
                                 <div className="flex flex-wrap gap-2 items-center justify-between bg-white border border-[#f3e0d6] rounded-[8px] px-4 py-3 mb-4">
                                     <div>
                                         <div className="text-[#181818] font-[700]">Mã giữ chỗ (Deposit)</div>
-                                        <div className="text-[#505050] text-[1.4rem]">{booking.depositId ?? "—"}</div>
+                                        <div className="text-[#505050] text-[0.875rem]">{booking.depositId ?? "—"}</div>
                                     </div>
                                 </div>
 
-                                <p className="text-[#505050] text-[1.4rem] mb-6">
+                                <p className="text-[#505050] text-[0.875rem] mb-6">
                                     Nếu quá thời gian quy định chưa thanh toán, hệ thống sẽ tự động hủy đơn giữ chỗ. Bạn sẽ phải thực hiện lại quy trình đặt lịch.
                                 </p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="flex flex-col items-center justify-center rounded-[8px] px-4 py-6 bg-white border border-[#f1f1f1]">
-                                        <div className="mb-4 text-[1.45rem] font-[600] text-[#111827]">
+                                        <div className="mb-4 text-[0.9062rem] font-[600] text-[#111827]">
                                             Quét mã QR để thanh toán
                                         </div>
                                         <div className="w-[200px] h-[200px] rounded-[12px] bg-[#f9fafb] flex items-center justify-center border border-[#e5e7eb] mb-4">
-                                            <div className="text-[1.2rem] text-[#9ca3af] text-center px-4">
+                                            <div className="text-[0.75rem] text-[#9ca3af] text-center px-4">
                                                 (QR Code)
                                             </div>
                                         </div>
-                                        <div className="text-[1.3rem] text-[#6b7280] text-center w-[80%]">
+                                        <div className="text-[0.8125rem] text-[#6b7280] text-center w-[80%]">
                                             Vui lòng đảm bảo số tiền và nội dung thanh toán.
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <div className="text-[1.45rem] font-[700] text-[#111827] mb-2">
+                                        <div className="text-[0.9062rem] font-[700] text-[#111827] mb-2">
                                             Hình thức thanh toán
                                         </div>
                                         <div className="flex flex-wrap gap-2 mb-4">
@@ -604,7 +604,7 @@ export const BookingClientDetailPage = () => {
                                                         type="button"
                                                         onClick={() => setPaymentMethod(id)}
                                                         className={
-                                                            "px-4 py-2 rounded-[8px] border text-[1.3rem] font-[600] transition-colors " +
+                                                            "px-4 py-2 rounded-[8px] border text-[0.8125rem] font-[600] transition-colors " +
                                                             (selected
                                                                 ? "border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a]"
                                                                 : "border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]")
@@ -617,9 +617,9 @@ export const BookingClientDetailPage = () => {
                                         </div>
 
                                         {paymentMethod === "BANK_TRANSFER" && (
-                                            <div className="mt-2 space-y-3 text-[1.35rem] text-[#111827] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
+                                            <div className="mt-2 space-y-3 text-[0.8438rem] text-[#111827] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
                                                 <div className="font-[600] mb-2">Tài khoản ngân hàng</div>
-                                                <ul className="space-y-1.5 text-[1.3rem] text-[#374151]">
+                                                <ul className="space-y-1.5 text-[0.8125rem] text-[#374151]">
                                                     <li>
                                                         <span className="font-[500] inline-block w-[100px]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
                                                     </li>
@@ -636,12 +636,12 @@ export const BookingClientDetailPage = () => {
                                                         <input
                                                             readOnly
                                                             value={transferContent}
-                                                            className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[1.35rem] font-[700] text-[#111827] outline-none"
+                                                            className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[0.8438rem] font-[700] text-[#111827] outline-none"
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={handleCopyContent}
-                                                            className="px-3 py-2 rounded-[6px] border border-[#e5e7eb] bg-white text-[1.3rem] hover:bg-[#f3f4f6] font-[500]"
+                                                            className="px-3 py-2 rounded-[6px] border border-[#e5e7eb] bg-white text-[0.8125rem] hover:bg-[#f3f4f6] font-[500]"
                                                         >
                                                             Copy
                                                         </button>
@@ -651,7 +651,7 @@ export const BookingClientDetailPage = () => {
                                         )}
 
                                         {paymentMethod !== "BANK_TRANSFER" && (
-                                            <div className="mt-2 text-[1.35rem] text-[#374151] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
+                                            <div className="mt-2 text-[0.8438rem] text-[#374151] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
                                                 Quét mã QR qua ứng dụng {paymentMethod} để tiến hành thanh toán giữ chỗ.
                                             </div>
                                         )}
@@ -660,7 +660,7 @@ export const BookingClientDetailPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveView("detail")}
-                                                className="py-[10px] px-[20px] rounded-[8px] border border-[#ddd] bg-white text-[#181818] font-[600] text-[1.4rem] hover:bg-[#f5f5f5] transition-colors"
+                                                className="py-[10px] px-[20px] rounded-[8px] border border-[#ddd] bg-white text-[#181818] font-[600] text-[0.875rem] hover:bg-[#f5f5f5] transition-colors"
                                             >
                                                 Quay lại chi tiết
                                             </button>
@@ -668,7 +668,7 @@ export const BookingClientDetailPage = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsCancelModalOpen(true)}
-                                                    className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[1.4rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
+                                                    className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
                                                 >
                                                     Hủy đơn đặt lịch
                                                 </button>
@@ -677,7 +677,7 @@ export const BookingClientDetailPage = () => {
                                                 type="button"
                                                 disabled={!booking.depositId || isConfirming || isExpired}
                                                 onClick={handleConfirmPayment}
-                                                className="py-[10px] px-[20px] rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[1.4rem] hover:bg-[#45a049] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                                                className="py-[10px] px-[20px] rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] hover:bg-[#45a049] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                                 title="Mô phỏng thanh toán thành công"
                                             >
                                                 {isExpired

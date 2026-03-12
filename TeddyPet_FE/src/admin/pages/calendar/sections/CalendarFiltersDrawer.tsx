@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
     Box,
     Drawer,
@@ -91,7 +91,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
             >
                 {/* Header */}
                 <Box sx={{ py: "16px", pl: "20px", pr: "8px", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.8rem' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>
                         Bộ lọc
                     </Typography>
                     <Box>
@@ -125,7 +125,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                 }}>
                     {/* Colors Section */}
                     <Box sx={{ p: '24px 20px 0px' }}>
-                        <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 600, fontSize: '1.3rem', color: '#1C252E' }}>
+                        <Typography variant="subtitle2" sx={{ mb: '8px', fontWeight: 600, fontSize: '0.8125rem', color: '#1C252E' }}>
                             Màu sắc
                         </Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -169,7 +169,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
 
                     {/* Range Section */}
                     <Box sx={{ p: '24px 20px' }}>
-                        <Typography variant="subtitle2" sx={{ mb: '12px', fontWeight: 600, fontSize: '1.3rem', color: '#1C252E' }}>
+                        <Typography variant="subtitle2" sx={{ mb: '12px', fontWeight: 600, fontSize: '0.8125rem', color: '#1C252E' }}>
                             Phạm vi
                         </Typography>
                         <Stack
@@ -206,11 +206,11 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                         fullWidth: true,
                                         InputLabelProps: {
                                             shrink: true,
-                                            sx: { color: '#637381', fontSize: '1.6rem', fontWeight: 600 }
+                                            sx: { color: '#637381', fontSize: '1rem', fontWeight: 600 }
                                         },
                                         sx: {
                                             '& .MuiPickersOutlinedInput-root': {
-                                                fontSize: '1.5rem',
+                                                fontSize: '0.9375rem',
                                                 borderRadius: '8px',
                                                 '& .MuiOutlinedInput-notchedOutline': {
                                                     borderWidth: '1px',
@@ -221,7 +221,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 },
                                             },
                                             '& .MuiInputBase-input': {
-                                                fontSize: '1.5rem',
+                                                fontSize: '0.9375rem',
                                                 padding: '12px 14px',
                                             },
                                         }
@@ -250,7 +250,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 padding: 0,
                                             },
                                             '& .MuiPickersDay-root': {
-                                                fontSize: '1.2rem',
+                                                fontSize: '0.75rem',
                                                 fontWeight: 500,
                                                 '&:hover': {
                                                     bgcolor: '#00a76f14 !important',
@@ -266,10 +266,10 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                             },
                                             '& .MuiDayCalendar-weekDayLabel': {
                                                 color: '#637381',
-                                                fontSize: '1.2rem',
+                                                fontSize: '0.75rem',
                                             },
                                             '& .MuiPickersCalendarHeader-label': {
-                                                fontSize: '1.6rem',
+                                                fontSize: '1rem',
                                                 fontWeight: 500,
                                             },
                                             '& .MuiPickersCalendarHeader-switchViewIcon': {
@@ -280,7 +280,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 fontSize: '24px',
                                             },
                                             '& .MuiYearCalendar-root .MuiYearCalendar-button': {
-                                                fontSize: '1.6rem !important',
+                                                fontSize: '1rem !important',
                                                 fontWeight: '600 !important',
                                             },
                                             '& .MuiYearCalendar-root .MuiYearCalendar-button.Mui-selected': {
@@ -314,11 +314,11 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                         fullWidth: true,
                                         InputLabelProps: {
                                             shrink: true,
-                                            sx: { color: '#637381', fontSize: '1.6rem', fontWeight: 600 }
+                                            sx: { color: '#637381', fontSize: '1rem', fontWeight: 600 }
                                         },
                                         sx: {
                                             '& .MuiPickersOutlinedInput-root': {
-                                                fontSize: '1.5rem',
+                                                fontSize: '0.9375rem',
                                                 borderRadius: '8px',
                                                 '& .MuiOutlinedInput-notchedOutline': {
                                                     borderWidth: '1px',
@@ -329,7 +329,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 },
                                             },
                                             '& .MuiInputBase-input': {
-                                                fontSize: '1.5rem',
+                                                fontSize: '0.9375rem',
                                                 padding: '12px 14px',
                                             },
                                         }
@@ -358,7 +358,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 padding: 0,
                                             },
                                             '& .MuiPickersDay-root': {
-                                                fontSize: '1.2rem',
+                                                fontSize: '0.75rem',
                                                 fontWeight: 500,
                                                 '&:hover': {
                                                     bgcolor: '#00a76f14 !important',
@@ -375,10 +375,10 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                             },
                                             '& .MuiDayCalendar-weekDayLabel': {
                                                 color: '#637381',
-                                                fontSize: '1.2rem',
+                                                fontSize: '0.75rem',
                                             },
                                             '& .MuiPickersCalendarHeader-label': {
-                                                fontSize: '1.6rem',
+                                                fontSize: '1rem',
                                                 fontWeight: 500,
                                             },
                                             '& .MuiPickersCalendarHeader-switchViewIcon': {
@@ -389,7 +389,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                                 fontSize: '24px',
                                             },
                                             '& .MuiYearCalendar-root .MuiYearCalendar-button': {
-                                                fontSize: '1.6rem !important',
+                                                fontSize: '1rem !important',
                                                 fontWeight: '600 !important',
                                             },
                                             '& .MuiYearCalendar-root .MuiYearCalendar-button.Mui-selected': {
@@ -406,7 +406,7 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
 
                     {/* Events Section */}
                     <Box sx={{ pt: '24px' }}>
-                        <Typography variant="subtitle2" sx={{ px: '20px', mb: '8px', fontWeight: 600, fontSize: '1.3rem', color: '#1C252E' }}>
+                        <Typography variant="subtitle2" sx={{ px: '20px', mb: '8px', fontWeight: 600, fontSize: '0.8125rem', color: '#1C252E' }}>
                             Sự kiện ({events.length})
                         </Typography>
                         <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none' }}>
@@ -440,13 +440,13 @@ export const CalendarFiltersDrawer: React.FC<CalendarFiltersDrawerProps> = ({
                                             disableTypography
                                             sx={{ margin: "0" }}
                                             primary={
-                                                <Typography variant="caption" sx={{ color: '#919EAB', fontSize: '1.2rem', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                                                <Typography variant="caption" sx={{ color: '#919EAB', fontSize: '0.75rem', fontWeight: 600, display: 'block', mb: 0.5 }}>
                                                     {dayjs(event.start).format('DD MMM YYYY HH:mm')}
                                                     {event.start.includes('T') && ` - ${dayjs(event.start).add(1, 'hour').format('DD MMM YYYY HH:mm')}`}
                                                 </Typography>
                                             }
                                             secondary={
-                                                <Typography variant="subtitle2" sx={{ color: '#1C252E', fontWeight: 600, fontSize: '1.4rem' }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#1C252E', fontWeight: 600, fontSize: '0.875rem' }}>
                                                     {event.title}
                                                 </Typography>
                                             }

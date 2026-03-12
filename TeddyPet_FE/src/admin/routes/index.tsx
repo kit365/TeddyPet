@@ -19,6 +19,9 @@ import { BlogDetailPage } from "../pages/blog/BlogDetailPage";
 import { BlogEditPage } from "../pages/blog/BlogEditPage";
 import { LoginPage } from "../pages/authen/LoginPage";
 import { DashboardPage } from "../pages/dashboard/DashboardPage";
+import { AnalyticsPage } from "../pages/dashboard/AnalyticsPage";
+import { SystemPage } from "../pages/dashboard/SystemPage";
+import { EcommercePage } from "../pages/dashboard/EcommercePage";
 import { ProductAttributeListPage } from "../pages/product-attribute/ProductAttributeListPage";
 import { ProductAttributeCreatePage } from "../pages/product-attribute/ProductAttributeCreatePage";
 import { ProductAttributeEditPage } from "../pages/product-attribute/ProductAttributeEditPage";
@@ -88,6 +91,9 @@ import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard/analytics", element: <AnalyticsPage /> },
+    { path: "dashboard/system", element: <SystemPage /> },
+    { path: "dashboard/ecommerce", element: <EcommercePage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "product/list", element: <AdminOnlyGuard><ProductListPage /></AdminOnlyGuard> },
     { path: "product/create", element: <AdminOnlyGuard><ProductFormPage /></AdminOnlyGuard> },

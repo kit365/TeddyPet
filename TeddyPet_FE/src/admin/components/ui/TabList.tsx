@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Tabs, Tab, styled } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
@@ -12,7 +12,7 @@ const TabBadge = styled('span')(() => ({
     marginLeft: '8px',
     padding: '0px 6px',
     borderRadius: '6px',
-    fontSize: '1.2rem',
+    fontSize: '0.75rem',
     fontWeight: 700,
     transition: 'all 0.2s',
 }));
@@ -123,7 +123,7 @@ const tabStyle = {
     minWidth: 0,
     minHeight: 48,
     padding: '9px 0',
-    fontSize: '1.4rem',
+    fontSize: '0.875rem',
     fontWeight: "500",
     color: '#637381',
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
@@ -148,7 +148,7 @@ export const RoomList = ({ searchQuery = '', onSearchChange }: { searchQuery?: s
                         borderColor: 'divider',
                         px: 2,
                         pt: 1,
-                        '& .MuiTab-root': { fontSize: '1.5rem', fontWeight: 600, textTransform: 'none', minHeight: 48 },
+                        '& .MuiTab-root': { fontSize: '0.9375rem', fontWeight: 600, textTransform: 'none', minHeight: 48 },
                     }}
                 >
                     <Tab label="Tất cả" value={0} />
@@ -171,7 +171,7 @@ export const RoomList = ({ searchQuery = '', onSearchChange }: { searchQuery?: s
                             columnUnsortedIcon: UnsortedIcon,
                             noRowsOverlay: () => (
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                    {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.8rem]">Không có dữ liệu</span>}
+                                    {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Không có dữ liệu</span>}
                                 </Box>
                             ),
                         }}

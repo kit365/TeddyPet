@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { getOrderStatus } from '../../constants/status.constant';
 
 interface StatusBadgeProps {
@@ -11,7 +11,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ""
 
     return (
         <span
-            className={`px-[12px] py-[6px] rounded-[8px] text-[1.3rem] font-[700] uppercase inline-block ${className}`}
+            className={`px-[12px] py-[6px] rounded-[8px] text-[0.8125rem] font-[700] uppercase inline-block ${className}`}
             style={{
                 color: color,
                 backgroundColor: bgColor,

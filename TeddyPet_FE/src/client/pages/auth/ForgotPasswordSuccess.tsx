@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+﻿import { Link, useLocation } from "react-router-dom";
 import { Header } from "../../components/layouts/Header";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { Mail } from "iconoir-react";
@@ -54,11 +54,11 @@ export const ForgotPasswordSuccessPage = () => {
                         <Mail className="w-[60px] h-[60px] text-green-500" strokeWidth={1.5} />
                     </div>
 
-                    <h2 className="text-[3.6rem] font-[700] text-client-secondary mb-[20px]">
+                    <h2 className="text-[2.25rem] font-[700] text-client-secondary mb-[20px]">
                         Kiểm tra email của bạn
                     </h2>
 
-                    <p className="text-[1.8rem] text-[#555] mb-[40px] leading-relaxed max-w-[600px] mx-auto">
+                    <p className="text-[1.125rem] text-[#555] mb-[40px] leading-relaxed max-w-[600px] mx-auto">
                         Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến <span className="font-bold text-client-primary">{email}</span>.
                         <br />
                         Vui lòng kiểm tra hộp thư đến (và cả mục Spam) để lấy lại mật khẩu.
@@ -67,7 +67,7 @@ export const ForgotPasswordSuccessPage = () => {
                     <div className="flex justify-center gap-[20px]">
                         <Link
                             to="/auth/login"
-                            className="bg-client-secondary text-white px-[40px] py-[15px] rounded-[30px] text-[1.6rem] font-[600] hover:bg-client-primary transition-all duration-300"
+                            className="bg-client-secondary text-white px-[40px] py-[15px] rounded-[30px] text-[1rem] font-[600] hover:bg-client-primary transition-all duration-300"
                         >
                             Quay lại đăng nhập
                         </Link>

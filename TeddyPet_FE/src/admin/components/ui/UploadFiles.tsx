@@ -1,4 +1,4 @@
-import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from "@mui/material"
+﻿import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from "@mui/material"
 import { UploadFileIcon, UploadIcon } from "../../assets/icons"
 import { useDropzone } from 'react-dropzone';
 import { useEffect, memo, useState, useCallback, useRef, useMemo } from "react";
@@ -116,7 +116,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
                         bgcolor: '#1C252E', color: '#fff',
                         width: 22, height: 22, borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.2rem', fontWeight: 'bold',
+                        fontSize: '0.75rem', fontWeight: 'bold',
                         border: '2px solid #fff', zIndex: 1
                     }}>
                         {index + 1}
@@ -132,7 +132,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
                                 '&:hover': { bgcolor: "#FF5630" } // Đổi sang màu đỏ khi hover nút xóa
                             }}
                         >
-                            <svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24">
+                            <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
                                 <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
                             </svg>
                         </ButtonBase>
@@ -168,7 +168,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
 
     return (
         <Stack>
-            <Typography variant="h6" sx={{ fontSize: "1.4rem", fontWeight: "600", mb: "12px" }}>{t("admin.upload.title")}</Typography>
+            <Typography variant="h6" sx={{ fontSize: "0.875rem", fontWeight: "600", mb: "12px" }}>{t("admin.upload.title")}</Typography>
             <div
                 {...getRootProps()}
                 className=
@@ -179,8 +179,8 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
                 <div className="w-full flex items-center justify-center flex-col">
                     <UploadFileIcon />
                     <div className="flex flex-col gap-[8px] text-center">
-                        <div className="text-[1.8rem] font-[600]">{t("admin.upload.drag_drop")}</div>
-                        <div className="text-[1.4rem] text-[#637381]">
+                        <div className="text-[1.125rem] font-[600]">{t("admin.upload.drag_drop")}</div>
+                        <div className="text-[0.875rem] text-[#637381]">
                             {t("admin.upload.drag_text")} <span className="underline text-[#00A76F]">{t("admin.upload.select_file")}</span> {t("admin.upload.browse_computer")}
                         </div>
                     </div>
@@ -205,7 +205,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
                                     p: "0px 8px",
                                     minHeight: "30px",
                                     minWidth: "64px",
-                                    fontSize: "1.2rem",
+                                    fontSize: "0.75rem",
                                     fontWeight: "700",
                                     textTransform: "none",
                                     border: "1px solid #919eab52",
@@ -228,7 +228,7 @@ export const UploadFiles = memo(({ files, onFilesChange, folder = 'teddypet', di
                                     p: "4px 8px",
                                     minHeight: "30px",
                                     minWidth: "64px",
-                                    fontSize: "1.2rem",
+                                    fontSize: "0.75rem",
                                     fontWeight: "700",
                                     textTransform: "none",
                                     border: "1px solid #919eab52",

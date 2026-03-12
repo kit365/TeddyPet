@@ -1,4 +1,4 @@
-import type { Product } from "../../../../types/products.type";
+﻿import type { Product } from "../../../../types/products.type";
 import { Button } from "../../../components/ui/Button"
 import { ProductCard } from "../../../components/ui/ProductCard";
 import { SaleOff } from "../../../components/ui/SaleOff"
@@ -75,7 +75,7 @@ export const Section7 = () => {
                         }}
                     >
                         <SaleOff content={SHOP_CONTENT.BANNERS.OFF_20} backgroundColor="bg-[#FFF3E2]" textColor="text-client-secondary" />
-                        <h2 className="text-white text-[4rem] leading-[1.2] font-secondary relative">{SHOP_CONTENT.BANNERS.PREMIUM_DESTINATION}</h2>
+                        <h2 className="text-white text-[2.5rem] leading-[1.2] font-secondary relative">{SHOP_CONTENT.BANNERS.PREMIUM_DESTINATION}</h2>
                         <div className="relative">
                             <Button
                                 content={SHOP_CONTENT.BANNERS.VIEW_ALL_PRODUCTS}

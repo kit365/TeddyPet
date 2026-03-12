@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Search, Navigation } from "lucide-react";
+﻿import { ArrowRight, MapPin, Search, Navigation } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sidebar } from "./sections/Sidebar";
 import { useState, useEffect, useRef } from "react";
@@ -321,9 +321,9 @@ export const AddressCreatePage = () => {
                 </div>
                 <div className="w-[75%] px-[12px]">
                     <div className="mt-[100px] p-[35px] bg-white shadow-[0px_8px_24px_#959da533] rounded-[12px]">
-                        <h3 className="text-[2.4rem] font-[600] text-client-secondary mb-[25px] flex items-center justify-between">
+                        <h3 className="text-[1.5rem] font-[600] text-client-secondary mb-[25px] flex items-center justify-between">
                             Thêm địa chỉ mới
-                            <Link className="relative overflow-hidden group bg-[#ffa500] rounded-[8px] px-[25px] py-[12px] font-[500] text-[1.4rem] text-white" to={"/dashboard/address"}>
+                            <Link className="relative overflow-hidden group bg-[#ffa500] rounded-[8px] px-[25px] py-[12px] font-[500] text-[0.875rem] text-white" to={"/dashboard/address"}>
                                 <span className="relative z-10">Hủy</span>
                                 <div className="absolute top-0 left-0 w-full h-full bg-[#cc8400] transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                             </Link>
@@ -332,35 +332,35 @@ export const AddressCreatePage = () => {
                             <form className="space-y-[20px]" onSubmit={onSubmit}>
                                 <div className="grid grid-cols-2 gap-[25px]">
                                     <div className="flex flex-col gap-[10px]">
-                                        <label className="text-[1.5rem] font-[600] text-client-secondary">Họ tên người nhận</label>
+                                        <label className="text-[0.9375rem] font-[600] text-client-secondary">Họ tên người nhận</label>
                                         <input
                                             type="text"
                                             required
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
-                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[1.5rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
+                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
                                             placeholder="Nhập họ tên"
                                         />
                                     </div>
                                     <div className="flex flex-col gap-[10px]">
-                                        <label className="text-[1.5rem] font-[600] text-client-secondary">Số điện thoại</label>
+                                        <label className="text-[0.9375rem] font-[600] text-client-secondary">Số điện thoại</label>
                                         <input
                                             type="text"
                                             required
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
-                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[1.5rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
+                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
                                             placeholder="Nhập số điện thoại"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">
-                                    <label className="text-[1.5rem] font-[600] text-client-secondary">Địa chỉ chi tiết</label>
+                                    <label className="text-[0.9375rem] font-[600] text-client-secondary">Địa chỉ chi tiết</label>
                                     <div className="relative group">
                                         <textarea
                                             name="address"
                                             rows={2}
-                                            className="w-full border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[1.5rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] group-hover:bg-white resize-none outline-none"
+                                            className="w-full border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] group-hover:bg-white resize-none outline-none"
                                             placeholder="Gõ địa chỉ hoặc chọn trên bản đồ..."
                                             value={address}
                                             onChange={(e) => {
@@ -370,12 +370,12 @@ export const AddressCreatePage = () => {
                                             }}
                                         />
                                         <div className="absolute right-[12px] top-[12px]">
-                                            <MapPin className="w-[1.8rem] h-[1.8rem] text-client-primary" />
+                                            <MapPin className="w-[1.125rem] h-[1.125rem] text-client-primary" />
                                         </div>
                                     </div>
                                     {isNotFound && (
-                                        <p className="text-[1.3rem] text-red-500 font-[500] mt-[10px] flex items-center gap-[6px]">
-                                            <span className="text-[1.6rem]">⚠️</span>
+                                        <p className="text-[0.8125rem] text-red-500 font-[500] mt-[10px] flex items-center gap-[6px]">
+                                            <span className="text-[1rem]">⚠️</span>
                                             Không tìm thấy vị trí này trên bản đồ. Vui lòng kiểm tra lại địa chỉ hoặc chọn trực tiếp từ bản đồ bên dưới.
                                         </p>
                                     )}
@@ -385,11 +385,11 @@ export const AddressCreatePage = () => {
                                     <div className="absolute top-[20px] left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[500px]">
                                         <div className="relative flex items-center bg-white/90 backdrop-blur-md shadow-[0px_10px_30px_rgba(0,0,0,0.1)] rounded-[8px] border border-white/50 p-[5px]">
                                             <div className="pl-[15px]">
-                                                <Search className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                                <Search className="w-[1.125rem] h-[1.125rem] text-gray-400" />
                                             </div>
                                             <input
                                                 type="text"
-                                                className="flex-1 border-none bg-transparent rounded-[8px] px-[12px] py-[10px] text-[1.4rem] focus:outline-none placeholder:text-gray-400"
+                                                className="flex-1 border-none bg-transparent rounded-[8px] px-[12px] py-[10px] text-[0.875rem] focus:outline-none placeholder:text-gray-400"
                                                 placeholder="Tìm kiếm địa điểm..."
                                                 value={searchKeyword}
                                                 onChange={(e) => setSearchKeyword(e.target.value)}
@@ -400,7 +400,7 @@ export const AddressCreatePage = () => {
                                                 className="p-[8px] mr-[5px] text-client-primary hover:bg-gray-100 rounded-full transition-colors"
                                                 title="Vị trí hiện tại"
                                             >
-                                                <Navigation className="w-[1.8rem] h-[1.8rem]" />
+                                                <Navigation className="w-[1.125rem] h-[1.125rem]" />
                                             </button>
                                             <button
                                                 type="button"
@@ -408,7 +408,7 @@ export const AddressCreatePage = () => {
                                                     e.preventDefault();
                                                     geocodeFromAddress(searchKeyword, true);
                                                 }}
-                                                className="bg-client-secondary text-white px-[18px] py-[8px] rounded-[8px] text-[1.4rem] font-[500] hover:bg-client-primary transition-all active:scale-95"
+                                                className="bg-client-secondary text-white px-[18px] py-[8px] rounded-[8px] text-[0.875rem] font-[500] hover:bg-client-primary transition-all active:scale-95"
                                             >
                                                 Tìm kiếm
                                             </button>
@@ -422,10 +422,10 @@ export const AddressCreatePage = () => {
                                                         onClick={() => handleSelectSuggestion(item)}
                                                         className="px-[20px] py-[15px] hover:bg-client-primary/5 cursor-pointer border-b border-[#f5f5f5] last:border-none flex items-start gap-[12px] transition-colors"
                                                     >
-                                                        <MapPin className="w-[1.6rem] h-[1.6rem] text-client-secondary shrink-0 mt-[2px]" />
+                                                        <MapPin className="w-[1rem] h-[1rem] text-client-secondary shrink-0 mt-[2px]" />
                                                         <div className="flex flex-col gap-[2px]">
-                                                            <span className="text-[1.4rem] font-[500] text-[#333] line-clamp-1">{item.display_name.split(',')[0]}</span>
-                                                            <span className="text-[1.2rem] text-gray-500 line-clamp-1">{item.display_name}</span>
+                                                            <span className="text-[0.875rem] font-[500] text-[#333] line-clamp-1">{item.display_name.split(',')[0]}</span>
+                                                            <span className="text-[0.75rem] text-gray-500 line-clamp-1">{item.display_name}</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -458,7 +458,7 @@ export const AddressCreatePage = () => {
                                         checked={isDefault}
                                         onChange={() => setIsDefault(!isDefault)}
                                     />
-                                    <label htmlFor="default_address_checkbox" className="text-[1.4rem] font-[500] text-[#555] cursor-pointer select-none">
+                                    <label htmlFor="default_address_checkbox" className="text-[0.875rem] font-[500] text-[#555] cursor-pointer select-none">
                                         Đặt làm địa chỉ mặc định
                                     </label>
                                 </div>
@@ -467,10 +467,10 @@ export const AddressCreatePage = () => {
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[30px] py-[12px] font-[500] text-[1.4rem] text-white cursor-pointer flex items-center gap-[8px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[30px] py-[12px] font-[500] text-[0.875rem] text-white cursor-pointer flex items-center gap-[8px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <span className="relative z-10">{submitting ? "Đang thêm..." : "Thêm mới địa chỉ"}</span>
-                                        <ArrowRight className="relative z-10 w-[1.8rem] h-[1.8rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />
+                                        <ArrowRight className="relative z-10 w-[1.125rem] h-[1.125rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />
                                         <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                     </button>
                                 </div>

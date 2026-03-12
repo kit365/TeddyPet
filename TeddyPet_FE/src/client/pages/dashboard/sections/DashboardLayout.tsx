@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ProductBanner } from "../../product/sections/ProductBanner";
 import { Sidebar } from "./Sidebar";
 
@@ -23,14 +23,14 @@ export const DashboardLayout = ({ pageTitle, breadcrumbs, children }: DashboardL
                     <Sidebar />
                 </div>
                 <div className="w-[75%]">
-                    <div className="bg-white min-h-[450px] rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white p-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white min-h-[450px] rounded-[1.875rem] shadow-xl shadow-slate-200/50 border border-white p-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {children}
                     </div>
                 </div>
             </div>
 
             {/* FOOTER MINI */}
-            <div className="max-w-[1440px] w-full mx-auto px-8 mt-12 flex justify-between items-center text-[1rem] font-black text-slate-300 uppercase tracking-widest pb-10">
+            <div className="max-w-[1440px] w-full mx-auto px-8 mt-12 flex justify-between items-center text-[0.625rem] font-black text-slate-300 uppercase tracking-widest pb-10">
                 <p>© 2026 TeddyPet - Chăm sóc bằng cả trái tim</p>
                 <div className="flex gap-8">
                     <a href="#" className="hover:text-indigo-600 transition-colors">Điều khoản</a>

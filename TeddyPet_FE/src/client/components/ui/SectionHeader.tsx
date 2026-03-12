@@ -1,4 +1,4 @@
-interface SectionHeaderProps {
+﻿interface SectionHeaderProps {
     subtitle?: string;
     title: string;
     desc?: string;
@@ -27,7 +27,7 @@ export const SectionHeader = ({
                 </p>
             )}
             <h2
-                className={`text-[5rem] 2xl:text-[4.5rem] 2xl:font-[500] leading-[1.2] font-secondary mb-[20px] ${widthTitle ?? ""}`}
+                className={`text-[3.125rem] 2xl:text-[2.8125rem] 2xl:font-[500] leading-[1.2] font-secondary mb-[20px] ${widthTitle ?? ""}`}
             >
                 {title}
             </h2>

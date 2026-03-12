@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState, useEffect } from 'react';
@@ -403,7 +403,7 @@ export const ServiceCreatePage = () => {
                                     ? 'Thêm quy tắc giá'
                                     : 'Thêm khung giờ'
                         }
-                        sx={{ fontSize: '2.6rem' }}
+                        sx={{ fontSize: '1.625rem' }}
                     />
                     <Breadcrumb
                         items={[
@@ -534,15 +534,15 @@ export const ServiceCreatePage = () => {
                                                         label="Loại thú cưng phù hợp"
                                                         renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
                                                         onChange={(e) => field.onChange(e.target.value as string[])}
-                                                        sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                                        sx={{ '& .MuiSelect-select': { fontSize: '0.6641rem' } }}
                                                         MenuProps={{
-                                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '0.6641rem' } } },
                                                         }}
                                                     >
                                                         {petTypes.map((pt) => (
                                                             <MenuItem key={pt} value={pt}>
                                                                 <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
-                                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
+                                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '0.6641rem' }} />
                                                             </MenuItem>
                                                         ))}
                                                     </Select>
@@ -566,8 +566,8 @@ export const ServiceCreatePage = () => {
                                     </Box>
                                     {isRequiredRoom && (
                                         <Box sx={{ mt: 2 }}>
-                                            <Box sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
-                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '1.3rem' } }}>
+                                            <Box sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
+                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.8125rem' } }}>
                                                 <TableHead>
                                                     <TableRow>
                                                         <TableCell>Tên loại phòng</TableCell>
@@ -595,7 +595,7 @@ export const ServiceCreatePage = () => {
                                                 </TableBody>
                                             </Table>
                                             {roomTypes.length === 0 && (
-                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '1.3rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '0.8125rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
                                             )}
                                         </Box>
                                     )}
@@ -656,14 +656,14 @@ export const ServiceCreatePage = () => {
                             <CollapsibleCard title="Quy định hoàn tiền" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
                                 <Stack p="24px" gap="24px">
                                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                        <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
+                                        <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
+                                        <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
                                     </Box>
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                                         <SwitchButton control={control} name="allowReschedule" label="Cho phép đổi lịch" />
@@ -680,9 +680,9 @@ export const ServiceCreatePage = () => {
                                     disabled={isPending || isUpdating}
                                     onClick={handleCreateNow}
                                     sx={{
-                                        minHeight: '4.8rem',
+                                        minHeight: '3rem',
                                         fontWeight: 700,
-                                        fontSize: '1.4rem',
+                                        fontSize: '0.875rem',
                                         padding: '8px 24px',
                                         borderRadius: '8px',
                                         textTransform: 'none',
@@ -699,9 +699,9 @@ export const ServiceCreatePage = () => {
                                         disabled={isPending || isUpdating}
                                         sx={{
                                             background: '#1C252E',
-                                            minHeight: '4.8rem',
+                                            minHeight: '3rem',
                                             fontWeight: 700,
-                                            fontSize: '1.4rem',
+                                            fontSize: '0.875rem',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             textTransform: 'none',
@@ -723,7 +723,7 @@ export const ServiceCreatePage = () => {
                             expanded={expandedPricing}
                             onToggle={() => setExpandedPricing((p) => !p)}
                         >
-                            <Stack p="24px" gap="24px" sx={{ '& .MuiInputBase-input, & .MuiInputLabel-root, & .MuiFormHelperText-root': { fontSize: '1.5rem' }, '& .MuiTableCell-root': { fontSize: '1.5rem' } }}>
+                            <Stack p="24px" gap="24px" sx={{ '& .MuiInputBase-input, & .MuiInputLabel-root, & .MuiFormHelperText-root': { fontSize: '0.9375rem' }, '& .MuiTableCell-root': { fontSize: '0.9375rem' } }}>
                                 <Box
                                     component="form"
                                     onSubmit={handlePricingSubmit(handlePricingFormSubmit)}
@@ -770,15 +770,15 @@ export const ServiceCreatePage = () => {
                                                     label="Loại thú cưng phù hợp"
                                                     renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
                                                     onChange={(e) => field.onChange(e.target.value as string[])}
-                                                    sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                                    sx={{ '& .MuiSelect-select': { fontSize: '0.6641rem' } }}
                                                     MenuProps={{
-                                                        PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                                        PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '0.6641rem' } } },
                                                     }}
                                                 >
                                                     {petTypes.map((pt) => (
                                                         <MenuItem key={pt} value={pt}>
                                                             <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
-                                                            <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
+                                                            <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '0.6641rem' }} />
                                                         </MenuItem>
                                                     ))}
                                                 </Select>
@@ -933,7 +933,7 @@ export const ServiceCreatePage = () => {
                                                     setEditingDraftId(null);
                                                     resetPricingToBlank();
                                                 }}
-                                                sx={{ fontSize: '1.5rem' }}
+                                                sx={{ fontSize: '0.9375rem' }}
                                             >
                                                 Hủy chỉnh sửa
                                             </Button>
@@ -941,16 +941,16 @@ export const ServiceCreatePage = () => {
                                         <Button
                                             type="submit"
                                             variant="contained"
-                                            sx={{ fontSize: '1.5rem' }}
+                                            sx={{ fontSize: '0.9375rem' }}
                                         >
                                             {editingDraftId ? 'Cập nhật quy tắc giá' : 'Thêm quy tắc giá'}
                                         </Button>
                                     </Box>
                                 </Box>
 
-                                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.5rem', py: 2 } }}>
+                                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '0.9375rem', py: 2 } }}>
                                     <TableHead>
-                                        <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 700, fontSize: '1.6rem', py: 2 } }}>
+                                        <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 700, fontSize: '1rem', py: 2 } }}>
                                             <TableCell>Tên quy tắc</TableCell>
                                             <TableCell align="right">Giá (VNĐ)</TableCell>
                                             <TableCell align="right">Ưu tiên</TableCell>
@@ -961,7 +961,7 @@ export const ServiceCreatePage = () => {
                                     <TableBody>
                                         {pricingDrafts.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} sx={{ color: '#637381', py: 4, fontSize: '1.5rem' }}>
+                                                <TableCell colSpan={5} sx={{ color: '#637381', py: 4, fontSize: '0.9375rem' }}>
                                                     Chưa có quy tắc giá. Điền form bên trên và nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>
@@ -977,22 +977,22 @@ export const ServiceCreatePage = () => {
                                                         }),
                                                     }}
                                                 >
-                                                    <TableCell sx={{ fontSize: '1.5rem', fontWeight: lastAddedDraftId === p.id ? 600 : 400 }}>{p.pricingName}</TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: '1.5rem' }}>{Number(p.price).toLocaleString('vi-VN')}</TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: '1.5rem' }}>{p.priority}</TableCell>
-                                                    <TableCell sx={{ fontSize: '1.5rem' }}>{p.isActive ? 'Hoạt động' : 'Tạm dừng'}</TableCell>
+                                                    <TableCell sx={{ fontSize: '0.9375rem', fontWeight: lastAddedDraftId === p.id ? 600 : 400 }}>{p.pricingName}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: '0.9375rem' }}>{Number(p.price).toLocaleString('vi-VN')}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: '0.9375rem' }}>{p.priority}</TableCell>
+                                                    <TableCell sx={{ fontSize: '0.9375rem' }}>{p.isActive ? 'Hoạt động' : 'Tạm dừng'}</TableCell>
                                                     <TableCell align="right">
                                                         <IconButton
                                                             size="medium"
                                                             onClick={() => setEditingDraftId(p.id)}
-                                                            sx={{ fontSize: '1.8rem' }}
+                                                            sx={{ fontSize: '1.125rem' }}
                                                         >
                                                             <EditIcon fontSize="medium" />
                                                         </IconButton>
                                                         <IconButton
                                                             size="medium"
                                                             color="error"
-                                                            sx={{ fontSize: '1.8rem' }}
+                                                            sx={{ fontSize: '1.125rem' }}
                                                             onClick={() => {
                                                                 if (!window.confirm('Xóa quy tắc giá này?')) return;
                                                                 setPricingDrafts((prev) => prev.filter((x) => x.id !== p.id));
@@ -1030,7 +1030,7 @@ export const ServiceCreatePage = () => {
                             <Button
                                 variant="outlined"
                                 onClick={() => setStep(1)}
-                                sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
+                                sx={{ minHeight: '3rem', fontSize: '0.875rem', py: 1.5, textTransform: 'none' }}
                             >
                                 Quay lại
                             </Button>
@@ -1040,9 +1040,9 @@ export const ServiceCreatePage = () => {
                                 disabled={isPending || isUpdating}
                                 onClick={handleCreateNow}
                                 sx={{
-                                    minHeight: '4.8rem',
+                                    minHeight: '3rem',
                                     fontWeight: 700,
-                                    fontSize: '1.4rem',
+                                    fontSize: '0.875rem',
                                     padding: '8px 24px',
                                     borderRadius: '8px',
                                     textTransform: 'none',
@@ -1059,9 +1059,9 @@ export const ServiceCreatePage = () => {
                                     disabled={isPending || isUpdating}
                                     sx={{
                                         background: '#1C252E',
-                                        minHeight: '4.8rem',
+                                        minHeight: '3rem',
                                         fontWeight: 700,
-                                        fontSize: '1.4rem',
+                                        fontSize: '0.875rem',
                                         padding: '8px 16px',
                                         borderRadius: '8px',
                                         textTransform: 'none',
@@ -1087,7 +1087,7 @@ export const ServiceCreatePage = () => {
                                     <Button
                                         variant="outlined"
                                         onClick={() => setStep(2)}
-                                        sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
+                                        sx={{ minHeight: '3rem', fontSize: '0.875rem', py: 1.5, textTransform: 'none' }}
                                     >
                                         Quay lại
                                     </Button>
@@ -1097,9 +1097,9 @@ export const ServiceCreatePage = () => {
                                         disabled={isPending || isUpdating}
                                         onClick={handleCreateNow}
                                         sx={{
-                                            minHeight: '4.8rem',
+                                            minHeight: '3rem',
                                             fontWeight: 700,
-                                            fontSize: '1.4rem',
+                                            fontSize: '0.875rem',
                                             padding: '8px 24px',
                                             borderRadius: '8px',
                                             textTransform: 'none',
@@ -1115,9 +1115,9 @@ export const ServiceCreatePage = () => {
                                         disabled={isPending || isUpdating}
                                         sx={{
                                             background: '#1C252E',
-                                            minHeight: '4.8rem',
+                                            minHeight: '3rem',
                                             fontWeight: 700,
-                                            fontSize: '1.4rem',
+                                            fontSize: '0.875rem',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             textTransform: 'none',
@@ -1169,7 +1169,7 @@ export const ServiceCreatePage = () => {
                             </>
                         ) : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                <Box sx={{ fontSize: '1.4rem', color: '#637381' }}>
+                                <Box sx={{ fontSize: '0.875rem', color: '#637381' }}>
                                     Dịch vụ add-on hoặc Additional charge không cần cấu hình khung giờ (time slots). Thời gian sẽ
                                     được xử lý cùng với dịch vụ chính.
                                 </Box>
@@ -1177,7 +1177,7 @@ export const ServiceCreatePage = () => {
                                     <Button
                                         variant="outlined"
                                         onClick={() => setStep(2)}
-                                        sx={{ minHeight: '4.8rem', fontSize: '1.4rem', py: 1.5, textTransform: 'none' }}
+                                        sx={{ minHeight: '3rem', fontSize: '0.875rem', py: 1.5, textTransform: 'none' }}
                                     >
                                         Quay lại
                                     </Button>
@@ -1187,9 +1187,9 @@ export const ServiceCreatePage = () => {
                                         disabled={isPending || isUpdating}
                                         onClick={handleCreateNow}
                                         sx={{
-                                            minHeight: '4.8rem',
+                                            minHeight: '3rem',
                                             fontWeight: 700,
-                                            fontSize: '1.4rem',
+                                            fontSize: '0.875rem',
                                             padding: '8px 24px',
                                             borderRadius: '8px',
                                             textTransform: 'none',

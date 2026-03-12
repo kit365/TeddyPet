@@ -1,4 +1,4 @@
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+﻿import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -114,7 +114,7 @@ export const TimeSlotExceptionList = () => {
                                 {isLoading ? (
                                     <CircularProgress size={32} />
                                 ) : (
-                                    <span className="text-[1.8rem]">Chưa có ngoại lệ nào</span>
+                                    <span className="text-[1.125rem]">Chưa có ngoại lệ nào</span>
                                 )}
                             </Box>
                         ),
@@ -126,9 +126,9 @@ export const TimeSlotExceptionList = () => {
                     getRowHeight={() => 'auto'}
                     sx={{
                         ...dataGridStyles,
-                        fontSize: '1.4rem',
-                        '& .MuiDataGrid-columnHeaders': { fontSize: '1.4rem' },
-                        '& .MuiDataGrid-cell': { fontSize: '1.4rem' },
+                        fontSize: '0.875rem',
+                        '& .MuiDataGrid-columnHeaders': { fontSize: '0.875rem' },
+                        '& .MuiDataGrid-cell': { fontSize: '0.875rem' },
                     }}
                 />
             </div>

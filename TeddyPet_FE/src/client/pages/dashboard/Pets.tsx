@@ -1,4 +1,4 @@
-import { Plus, Settings, PawPrint } from "lucide-react";
+﻿import { Plus, Settings, PawPrint } from "lucide-react";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { useEffect, useState } from "react";
 import { getMyPetProfiles, createPetProfile, updatePetProfile, deletePetProfile } from "../../../api/petProfile.api";
@@ -114,12 +114,12 @@ export const PetsPage = () => {
                         <div className="w-12 h-12 bg-red-50 text-client-primary rounded-2xl flex items-center justify-center">
                             <PawPrint size={24} />
                         </div>
-                        <h2 className="text-[2rem] font-black text-slate-800 tracking-tight">Các bé của tôi</h2>
+                        <h2 className="text-[1.25rem] font-black text-slate-800 tracking-tight">Các bé của tôi</h2>
                     </div>
                     <button
                         type="button"
                         onClick={handleOpenCreate}
-                        className="flex items-center gap-3 bg-client-primary text-white px-8 py-4 rounded-[1.2rem] font-black text-[1.2rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-red-50"
+                        className="flex items-center gap-3 bg-client-primary text-white px-8 py-4 rounded-[0.75rem] font-black text-[0.75rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-red-50"
                     >
                         <Plus size={18} /> Đăng ký bé mới
                     </button>
@@ -130,8 +130,8 @@ export const PetsPage = () => {
                         <div className="text-slate-500 font-bold">Đang tải...</div>
                     </div>
                 ) : pets.length === 0 ? (
-                    <div className="bg-white border border-slate-100 rounded-[2rem] p-12 text-center">
-                        <p className="text-slate-500 text-[1.1rem] mb-4">Bạn chưa đăng ký thú cưng nào.</p>
+                    <div className="bg-white border border-slate-100 rounded-[1.25rem] p-12 text-center">
+                        <p className="text-slate-500 text-[0.6875rem] mb-4">Bạn chưa đăng ký thú cưng nào.</p>
                         <button
                             type="button"
                             onClick={handleOpenCreate}
@@ -145,20 +145,20 @@ export const PetsPage = () => {
                         {pets.map((pet) => (
                             <div
                                 key={pet.id}
-                                className="bg-white border border-slate-100 rounded-[3rem] p-10 flex gap-8 hover:border-red-100 hover:shadow-2xl hover:shadow-red-50/50 transition-all group relative ring-1 ring-slate-50"
+                                className="bg-white border border-slate-100 rounded-[1.875rem] p-10 flex gap-8 hover:border-red-100 hover:shadow-2xl hover:shadow-red-50/50 transition-all group relative ring-1 ring-slate-50"
                             >
                                 <img
                                     src={getAvatar(pet)}
                                     alt={pet.name}
-                                    className="w-44 h-44 rounded-[2.5rem] object-cover group-hover:scale-105 transition-transform duration-500 shadow-sm"
+                                    className="w-44 h-44 rounded-[1.5625rem] object-cover group-hover:scale-105 transition-transform duration-500 shadow-sm"
                                 />
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start pt-2">
                                         <div>
-                                            <h3 className="text-[2.4rem] font-black text-slate-800 tracking-tighter mb-1">
+                                            <h3 className="text-[1.5rem] font-black text-slate-800 tracking-tighter mb-1">
                                                 {pet.name}
                                             </h3>
-                                            <p className="text-[1rem] font-black text-client-primary uppercase tracking-[0.1em]">
+                                            <p className="text-[0.625rem] font-black text-client-primary uppercase tracking-[0.1em]">
                                                 {formatBreed(pet)}
                                             </p>
                                         </div>
@@ -175,18 +175,18 @@ export const PetsPage = () => {
                                     </div>
                                     <div className="mt-6 flex gap-12">
                                         <div className="flex flex-col items-center">
-                                            <p className="text-[0.9rem] font-black text-slate-300 uppercase tracking-widest">
+                                            <p className="text-[0.5625rem] font-black text-slate-300 uppercase tracking-widest">
                                                 Tuổi
                                             </p>
-                                            <p className="text-[1.8rem] font-bold text-slate-800 mt-1">
+                                            <p className="text-[1.125rem] font-bold text-slate-800 mt-1">
                                                 {formatAge(pet.birthDate)}
                                             </p>
                                         </div>
                                         <div className="flex flex-col items-center">
-                                            <p className="text-[0.9rem] font-black text-slate-300 uppercase tracking-widest">
+                                            <p className="text-[0.5625rem] font-black text-slate-300 uppercase tracking-widest">
                                                 Cân nặng
                                             </p>
-                                            <p className="text-[1.8rem] font-bold text-slate-800 mt-1">
+                                            <p className="text-[1.125rem] font-bold text-slate-800 mt-1">
                                                 {pet.weight != null ? `${pet.weight}kg` : "—"}
                                             </p>
                                         </div>
@@ -197,11 +197,11 @@ export const PetsPage = () => {
                     </div>
                 )}
 
-                <div className="flex items-center gap-6 p-8 bg-slate-50/50 rounded-[2rem] border border-slate-100/50">
+                <div className="flex items-center gap-6 p-8 bg-slate-50/50 rounded-[1.25rem] border border-slate-100/50">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-client-primary shadow-sm">
                         <PawPrint size={18} />
                     </div>
-                    <p className="text-[1.3rem] font-bold text-slate-400">
+                    <p className="text-[0.8125rem] font-bold text-slate-400">
                         TeddyPet luôn đồng hành cùng sức khỏe thú cưng của bạn.
                     </p>
                 </div>

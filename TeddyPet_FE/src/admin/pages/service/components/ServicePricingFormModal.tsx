@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Box, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText } from '@mui/material';
+﻿import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Box, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText } from '@mui/material';
 import type { IRoomType } from '../../../api/room.api';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -108,7 +108,7 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, isRequiredRo
                                             value={field.value ?? ''}
                                             label="Loại phòng"
                                             onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                            sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                            sx={{ '& .MuiSelect-select': { fontSize: '0.6641rem' } }}
                                             displayEmpty
                                         >
                                             <MenuItem value="">— Không chọn —</MenuItem>
@@ -150,15 +150,15 @@ export const ServicePricingFormModal = ({ open, onClose, serviceId, isRequiredRo
                                         label="Loại thú cưng phù hợp"
                                         renderValue={(selected) => (Array.isArray(selected) ? selected : []).map(getPetTypeLabel).join(', ')}
                                         onChange={(e) => field.onChange(e.target.value as string[])}
-                                        sx={{ '& .MuiSelect-select': { fontSize: '1.0625rem' } }}
+                                        sx={{ '& .MuiSelect-select': { fontSize: '0.6641rem' } }}
                                         MenuProps={{
-                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '1.0625rem' } } },
+                                            PaperProps: { sx: { '& .MuiMenuItem-root .MuiListItemText-primary': { fontSize: '0.6641rem' } } },
                                         }}
                                     >
                                         {petTypes.map((pt) => (
                                             <MenuItem key={pt} value={pt}>
                                                 <Checkbox checked={(Array.isArray(field.value) ? field.value : []).includes(pt)} />
-                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '1.0625rem' }} />
+                                                <ListItemText primary={getPetTypeLabel(pt)} primaryTypographyProps={{ fontSize: '0.6641rem' }} />
                                             </MenuItem>
                                         ))}
                                     </Select>

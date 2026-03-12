@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
+﻿import React, { useRef, useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -175,10 +175,10 @@ export const BookingCalendarView = () => {
           mb: 1.5,
         }}
       >
-        <Typography sx={{ fontWeight: 700, fontSize: "1.6rem", color: "#1C252E", mr: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "#1C252E", mr: 1 }}>
           Lịch
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 400, fontSize: "1.3rem", color: "#637381" }}>
+        <Typography variant="body2" sx={{ fontWeight: 400, fontSize: "0.8125rem", color: "#637381" }}>
           <Box component="span" sx={{ color: "#1C252E", fontWeight: 600 }}>
             {events.length}
           </Box>{" "}
@@ -195,8 +195,8 @@ export const BookingCalendarView = () => {
                 size: "small",
                 sx: {
                   minWidth: 160,
-                  "& .MuiInputBase-input": { fontSize: "1.35rem" },
-                  "& .MuiInputLabel-root": { fontSize: "1.35rem" },
+                  "& .MuiInputBase-input": { fontSize: "0.8438rem" },
+                  "& .MuiInputLabel-root": { fontSize: "0.8438rem" },
                 },
               },
               popper: {
@@ -207,15 +207,15 @@ export const BookingCalendarView = () => {
                     padding: "16px",
                   },
                   "& .MuiPickersDay-root": {
-                    fontSize: "1.6rem",
+                    fontSize: "1rem",
                     width: 42,
                     height: 42,
                   },
                   "& .MuiDayCalendar-weekDayLabel": {
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                   },
                   "& .MuiPickersCalendarHeader-label": {
-                    fontSize: "1.8rem",
+                    fontSize: "1.125rem",
                     fontWeight: 600,
                   },
                   "& .MuiPickersArrowSwitcher-button .MuiSvgIcon-root": {
@@ -236,8 +236,8 @@ export const BookingCalendarView = () => {
                 size: "small",
                 sx: {
                   minWidth: 160,
-                  "& .MuiInputBase-input": { fontSize: "1.35rem" },
-                  "& .MuiInputLabel-root": { fontSize: "1.35rem" },
+                  "& .MuiInputBase-input": { fontSize: "0.8438rem" },
+                  "& .MuiInputLabel-root": { fontSize: "0.8438rem" },
                 },
               },
               popper: {
@@ -248,15 +248,15 @@ export const BookingCalendarView = () => {
                     padding: "16px",
                   },
                   "& .MuiPickersDay-root": {
-                    fontSize: "1.6rem",
+                    fontSize: "1rem",
                     width: 42,
                     height: 42,
                   },
                   "& .MuiDayCalendar-weekDayLabel": {
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                   },
                   "& .MuiPickersCalendarHeader-label": {
-                    fontSize: "1.8rem",
+                    fontSize: "1.125rem",
                     fontWeight: 600,
                   },
                   "& .MuiPickersArrowSwitcher-button .MuiSvgIcon-root": {
@@ -273,7 +273,7 @@ export const BookingCalendarView = () => {
             sx={{
               color: "#FF5630",
               fontWeight: 600,
-              fontSize: "1.3rem",
+              fontSize: "0.8125rem",
               textTransform: "none",
               py: 0.5,
               minHeight: "auto",
@@ -291,7 +291,7 @@ export const BookingCalendarView = () => {
             background: "#1C252E",
             minHeight: "32px",
             fontWeight: 600,
-            fontSize: "1.3rem",
+            fontSize: "0.8125rem",
             borderRadius: "8px",
             textTransform: "none",
             boxShadow: "none",
@@ -319,7 +319,7 @@ export const BookingCalendarView = () => {
             marginLeft: "-1px",
             marginBottom: "-1px",
             width: "calc(100% + 2px)",
-            fontSize: "1.6rem",
+            fontSize: "1rem",
             "--fc-border-color": "rgba(145, 158, 171, 0.2)",
             "--fc-page-bg-color": "#fff",
             "--fc-neutral-bg-color": "#F4F6F8",
@@ -370,7 +370,7 @@ export const BookingCalendarView = () => {
             verticalAlign: "middle",
             "& .fc-col-header-cell-cushion": {
               fontWeight: 700,
-              fontSize: "1.6rem",
+              fontSize: "1rem",
               color: "#1C252E",
               textTransform: "capitalize",
               textDecoration: "none !important",
@@ -384,7 +384,7 @@ export const BookingCalendarView = () => {
           "& .fc .fc-timegrid-axis": { verticalAlign: "middle !important" },
           "& .fc .fc-timegrid-axis-cushion": {
             color: "#637381",
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             fontWeight: 400,
             textDecoration: "none !important",
             textAlign: "center",
@@ -394,7 +394,7 @@ export const BookingCalendarView = () => {
           },
           "& .fc .fc-timegrid-slot-label-cushion": {
             color: "#637381",
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             fontWeight: 400,
             textAlign: "right",
             paddingRight: "8px",
@@ -415,7 +415,7 @@ export const BookingCalendarView = () => {
             },
           },
           "& .fc .fc-daygrid-day-number": {
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             fontWeight: 500,
             padding: "4px 8px",
             color: "#637381",
@@ -439,7 +439,7 @@ export const BookingCalendarView = () => {
           "& .fc .fc-daygrid-event-dot": { display: "none" },
           "& .fc .fc-event-main": {
             padding: "4px 8px",
-            fontSize: "1.5rem",
+            fontSize: "0.9375rem",
             display: "flex",
             alignItems: "center",
             gap: "4px",
@@ -447,13 +447,13 @@ export const BookingCalendarView = () => {
             maxWidth: "100%",
           },
           "& .fc .fc-event-time": {
-            fontSize: "1.5rem",
+            fontSize: "0.9375rem",
             fontWeight: 700,
             flexShrink: 0,
             whiteSpace: "nowrap",
           },
           "& .fc .fc-event-title": {
-            fontSize: "1.5rem",
+            fontSize: "0.9375rem",
             fontWeight: 500,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -472,16 +472,16 @@ export const BookingCalendarView = () => {
             cursor: "pointer",
           },
           "& .fc .fc-list-event-time": {
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             color: "#637381",
             fontWeight: 400,
           },
           "& .fc .fc-list-event-title": {
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             fontWeight: 400,
           },
           "& .fc .fc-list-day-cushion": {
-            fontSize: "1.4rem",
+            fontSize: "0.875rem",
             fontWeight: 600,
           },
         }}
@@ -537,7 +537,7 @@ export const BookingCalendarView = () => {
             </IconButton>
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, fontSize: "1.7rem", minWidth: "160px", textAlign: "center", color: "#1C252E" }}
+              sx={{ fontWeight: 600, fontSize: "1.0625rem", minWidth: "160px", textAlign: "center", color: "#1C252E" }}
             >
               {capitalizeFirstLetter(dayjs(date).format("MMMM YYYY"))}
             </Typography>
@@ -556,7 +556,7 @@ export const BookingCalendarView = () => {
                 borderRadius: "8px",
                 minHeight: "30px",
                 minWidth: "64px",
-                fontSize: "1.2rem",
+                fontSize: "0.75rem",
                 textTransform: "none",
                 fontWeight: 700,
                 padding: "4px 8px",

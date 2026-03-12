@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+﻿import { useTranslation } from 'react-i18next';
 import { GridColDef } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
 import { RenderActionsCell, RenderCreatedAtCell, RenderProductCell, RenderStatusCell, RenderStockCell } from '../utils/render-cells';
@@ -39,7 +39,7 @@ export const useProductColumns = () => {
             filterable: true,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                    <span style={{ fontWeight: 600, fontSize: '1.5rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(params.value || 0)}
                     </span>
                 </Box>

@@ -1,4 +1,4 @@
-const data = [
+﻿const data = [
     {
         url: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/service-png-img-alt-01.png",
         title: "Chăm sóc mèo",
@@ -31,7 +31,7 @@ export const ListServicesIcon = () => {
                             alt={item.title}
                         />
                     </div>
-                    <div className="text-client-secondary text-[1.5rem] text-center">
+                    <div className="text-client-secondary text-[0.9375rem] text-center">
                         {item.title}
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import { Avatar, Box, Link, ListItemText } from '@mui/material';
+﻿import { Avatar, Box, Link, ListItemText } from '@mui/material';
 import {
     GridActionsCell,
     GridActionsCellItem,
@@ -40,7 +40,7 @@ export const RenderServiceTitleCell = (params: GridRenderCellParams<IService>) =
                             navigate(`/${prefixAdmin}/service/edit/${serviceId}`);
                         }}
                         underline="hover"
-                        sx={{ color: COLORS.primary, fontWeight: 600, fontSize: '1.3rem' }}
+                        sx={{ color: COLORS.primary, fontWeight: 600, fontSize: '0.8125rem' }}
                     >
                         {serviceName}
                     </Link>
@@ -74,7 +74,7 @@ export const RenderComboTitleCell = (params: GridRenderCellParams<IServiceCombo>
                             navigate(`/${prefixAdmin}/service-combo/edit/${comboId}`);
                         }}
                         underline="hover"
-                        sx={{ color: COLORS.primary, fontWeight: 600, fontSize: '1.3rem' }}
+                        sx={{ color: COLORS.primary, fontWeight: 600, fontSize: '0.8125rem' }}
                     >
                         {comboName}
                     </Link>
@@ -92,8 +92,8 @@ export const RenderCreatedAtCell = ({ value }: { value: Date | string | null }) 
     if (!dateObj.isValid()) return null;
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '1.4rem', color: COLORS.primary }}>{dateObj.format('DD MMM, YYYY')}</span>
-            <Box component="span" sx={{ fontSize: '1.2rem', color: COLORS.secondary }}>
+            <span style={{ fontSize: '0.875rem', color: COLORS.primary }}>{dateObj.format('DD MMM, YYYY')}</span>
+            <Box component="span" sx={{ fontSize: '0.75rem', color: COLORS.secondary }}>
                 {dateObj.format('hh:mm A')}
             </Box>
         </Box>
@@ -107,7 +107,7 @@ export const RenderStatusCell = (params: GridRenderCellParams<{ isActive: boolea
     const text = isActive ? '#006C9C' : '#B91C1C';
     return (
         <span
-            className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[6px] font-[700] rounded-[6px]"
+            className="inline-flex items-center justify-center leading-1.5 min-w-[1.5rem] h-[1.5rem] text-[0.75rem] px-[6px] font-[700] rounded-[6px]"
             style={{ backgroundColor: bg, color: text }}
         >
             {label}

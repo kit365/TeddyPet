@@ -1,4 +1,4 @@
-const data = [
+﻿const data = [
     "Nuông Chiều Thú Cưng Yêu!",
     "Bạn Đồng Hành Tuyệt Vời",
     "Giảm Đến 30% Cho Mọi Đơn",
@@ -17,11 +17,11 @@ export const RunningTextBanner = () => {
         let textClasses = "font-secondary capitalize px-[15px] transition-all duration-300";
 
         if (mod === 0) {
-            textClasses += " text-[3.3rem] text-transparent font-[400] [-webkit-text-stroke:1px_#fff]";
+            textClasses += " text-[2.0625rem] text-transparent font-[400] [-webkit-text-stroke:1px_#fff]";
         } else if (mod === 1) {
-            textClasses += " text-[4.1rem] font-[600] text-white";
+            textClasses += " text-[2.5625rem] font-[600] text-white";
         } else { // mod === 2
-            textClasses += " text-[2.5rem] font-[500] text-white";
+            textClasses += " text-[1.5625rem] font-[500] text-white";
         }
 
         return (

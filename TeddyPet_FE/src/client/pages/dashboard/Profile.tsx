@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { Edit2, User, Bell, CreditCard, ShieldCheck, Check, X } from "lucide-react";
 import { DashboardLayout } from "./sections/DashboardLayout";
@@ -63,7 +63,7 @@ export const ProfilePage = () => {
                         <User size={48} />
                     </div>
                     <div className="text-center">
-                        <p className="text-[2rem] font-black text-slate-800 tracking-tight">Vui lòng đăng nhập</p>
+                        <p className="text-[1.25rem] font-black text-slate-800 tracking-tight">Vui lòng đăng nhập</p>
                         <p className="text-slate-400 mt-2 font-medium">Bạn cần đăng nhập để quản lý thông tin cá nhân.</p>
                     </div>
                     <Link to="/auth/login" className="bg-client-primary text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-red-100">
@@ -79,15 +79,15 @@ export const ProfilePage = () => {
             <div className="space-y-12">
                 <div className="flex justify-between items-end border-b border-slate-100 pb-8">
                     <div>
-                        <h3 className="text-[2.8rem] font-black text-slate-800 tracking-tight flex items-center gap-3">
+                        <h3 className="text-[1.75rem] font-black text-slate-800 tracking-tight flex items-center gap-3">
                             Thông tin cá nhân
                         </h3>
-                        <p className="text-[1.2rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Dữ liệu định danh chính chủ</p>
+                        <p className="text-[0.75rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">Dữ liệu định danh chính chủ</p>
                     </div>
                     {!isEditing ? (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="flex items-center gap-3 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-lg shadow-client-primary/20"
+                            className="flex items-center gap-3 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[0.6875rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-lg shadow-client-primary/20"
                         >
                             <Edit2 size={16} /> Chỉnh sửa
                         </button>
@@ -95,14 +95,14 @@ export const ProfilePage = () => {
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => setIsEditing(false)}
-                                className="text-[1.2rem] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest px-6 py-3 transition-colors flex items-center gap-2"
+                                className="text-[0.75rem] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest px-6 py-3 transition-colors flex items-center gap-2"
                             >
                                 <X size={18} /> Hủy
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
-                                className={`flex items-center gap-3 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-red-100 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+                                className={`flex items-center gap-3 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[0.6875rem] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-red-100 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -117,7 +117,7 @@ export const ProfilePage = () => {
                     <div className="grid grid-cols-2 gap-10">
                         {/* HỌ */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <User size={14} className="text-slate-300" /> Họ
                             </label>
                             {isEditing ? (
@@ -125,10 +125,10 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.lastName}
                                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
+                                <div className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
                                     {user.lastName}
                                 </div>
                             )}
@@ -136,7 +136,7 @@ export const ProfilePage = () => {
 
                         {/* TÊN */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <User size={14} className="text-slate-300" /> Tên
                             </label>
                             {isEditing ? (
@@ -144,10 +144,10 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.firstName}
                                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
+                                <div className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
                                     {user.firstName}
                                 </div>
                             )}
@@ -157,10 +157,10 @@ export const ProfilePage = () => {
                     <div className="grid grid-cols-2 gap-10">
                         {/* EMAIL */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Bell size={14} className="text-slate-300" /> Email liên hệ
                             </label>
-                            <div className="bg-slate-50 border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-500 flex justify-between items-center shadow-sm shadow-slate-200/50 opacity-70">
+                            <div className="bg-slate-50 border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-500 flex justify-between items-center shadow-sm shadow-slate-200/50 opacity-70">
                                 {user.email}
                                 <ShieldCheck size={22} className="text-emerald-500 fill-emerald-50" />
                             </div>
@@ -168,7 +168,7 @@ export const ProfilePage = () => {
 
                         {/* SỐ ĐIỆN THOẠI */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <CreditCard size={14} className="text-slate-300" /> Số điện thoại
                             </label>
                             {isEditing ? (
@@ -176,10 +176,10 @@ export const ProfilePage = () => {
                                     type="text"
                                     value={formData.phoneNumber}
                                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
+                                <div className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
                                     {user.phoneNumber || "0764349919"}
                                 </div>
                             )}
@@ -189,7 +189,7 @@ export const ProfilePage = () => {
                     <div className="grid grid-cols-2 gap-10">
                         {/* NGÀY SINH */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Edit2 size={14} className="text-slate-300" /> Ngày sinh
                             </label>
                             {isEditing ? (
@@ -197,10 +197,10 @@ export const ProfilePage = () => {
                                     type="date"
                                     value={formData.dateOfBirth}
                                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
+                                    className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all"
                                 />
                             ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
+                                <div className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
                                     {new Date(formData.dateOfBirth).toLocaleDateString("vi-VN", {
                                         day: "2-digit",
                                         month: "2-digit",
@@ -212,14 +212,14 @@ export const ProfilePage = () => {
 
                         {/* GIỚI TÍNH */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <User size={14} className="text-slate-300" /> Giới tính
                             </label>
                             {isEditing ? (
                                 <select
                                     value={formData.gender}
                                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                    className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all appearance-none cursor-pointer"
+                                    className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm focus:border-client-primary focus:ring-4 focus:ring-red-50 outline-none transition-all appearance-none cursor-pointer"
                                 >
                                     <option value="MALE">Nam</option>
                                     <option value="FEMALE">Nữ</option>
@@ -227,7 +227,7 @@ export const ProfilePage = () => {
                                     <option value="PREFER_NOT_TO_SAY">Không tiết lộ</option>
                                 </select>
                             ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
+                                <div className="bg-white border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-800 shadow-sm shadow-slate-200/50">
                                     {user.gender === "MALE" ? "Nam" : user.gender === "FEMALE" ? "Nữ" : user.gender === "OTHER" ? "Khác" : "Chưa cập nhật"}
                                 </div>
                             )}
@@ -237,10 +237,10 @@ export const ProfilePage = () => {
                     <div className="grid grid-cols-2 gap-10">
                         {/* NGÀY THAM GIA */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-[1.1rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <ShieldCheck size={14} className="text-slate-300" /> Ngày tham gia
                             </label>
-                            <div className="bg-slate-50 border border-slate-100 rounded-[2rem] px-10 py-8 text-[1.8rem] font-bold text-slate-500 flex justify-between items-center shadow-sm shadow-slate-200/50">
+                            <div className="bg-slate-50 border border-slate-100 rounded-[1.25rem] px-10 py-8 text-[1.125rem] font-bold text-slate-500 flex justify-between items-center shadow-sm shadow-slate-200/50">
                                 04/02/2024
                             </div>
                         </div>
@@ -250,16 +250,16 @@ export const ProfilePage = () => {
                 {/* BANNER BẢO MẬT */}
                 {!isEditing && (
                     <div className="pt-10 animate-in fade-in zoom-in duration-500">
-                        <div className="bg-gradient-to-r from-slate-800 to-client-secondary rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-200 ring-1 ring-white/10">
+                        <div className="bg-gradient-to-r from-slate-800 to-client-secondary rounded-[1.875rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-200 ring-1 ring-white/10">
                             <div className="absolute -top-10 -right-10 opacity-10 rotate-12">
                                 <ShieldCheck size={250} />
                             </div>
                             <div className="relative z-10 flex justify-between items-center gap-10">
                                 <div>
-                                    <h4 className="text-[2.2rem] font-black tracking-tight italic leading-tight">Bảo vệ tài khoản</h4>
-                                    <p className="text-[1.4rem] text-slate-300 font-medium mt-3 max-w-[450px]">Đảm bảo tài khoản của bạn luôn an toàn với các phương thức xác thực và đổi mật khẩu định kỳ.</p>
+                                    <h4 className="text-[1.375rem] font-black tracking-tight italic leading-tight">Bảo vệ tài khoản</h4>
+                                    <p className="text-[0.875rem] text-slate-300 font-medium mt-3 max-w-[450px]">Đảm bảo tài khoản của bạn luôn an toàn với các phương thức xác thực và đổi mật khẩu định kỳ.</p>
                                 </div>
-                                <Link to="/dashboard/change-password" title="Quản lý" className="bg-white/10 hover:bg-white text-white hover:text-client-secondary px-10 py-4 rounded-[1.5rem] text-[1.2rem] font-black uppercase transition-all tracking-widest backdrop-blur-md border border-white/20">
+                                <Link to="/dashboard/change-password" title="Quản lý" className="bg-white/10 hover:bg-white text-white hover:text-client-secondary px-10 py-4 rounded-[0.9375rem] text-[0.75rem] font-black uppercase transition-all tracking-widest backdrop-blur-md border border-white/20">
                                     Thiết lập ngay
                                 </Link>
                             </div>

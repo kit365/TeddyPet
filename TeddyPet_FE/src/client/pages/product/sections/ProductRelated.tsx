@@ -1,4 +1,4 @@
-import { Navigation } from "swiper/modules";
+﻿import { Navigation } from "swiper/modules";
 import type { Product, APIProduct } from "../../../../types/products.type";
 import { ProductCard } from "../../../components/ui/ProductCard"
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -76,7 +76,7 @@ export const ProductRelated = ({ productId }: ProductRelatedProps) => {
 
     return (
         <div className="app-container pb-[150px] 2xl:pb-[120px] relative">
-            <h2 className="text-[3.5rem] 2xl:text-[2.8rem] font-secondary text-client-secondary mb-[40px]">Sản phẩm liên quan</h2>
+            <h2 className="text-[2.1875rem] 2xl:text-[1.75rem] font-secondary text-client-secondary mb-[40px]">Sản phẩm liên quan</h2>
             <div className="flex gap-[10px] absolute top-[-3%] right-0">
                 <div ref={prevButtonRef} className="w-[50px] h-[50px] rounded-full bg-client-primary hover:bg-client-secondary cursor-pointer transition-default flex items-center justify-center prev-button"></div>
                 <div ref={nextButtonRef} className="w-[50px] h-[50px] rounded-full bg-client-primary hover:bg-client-secondary cursor-pointer transition-default flex items-center justify-center next-button"></div>

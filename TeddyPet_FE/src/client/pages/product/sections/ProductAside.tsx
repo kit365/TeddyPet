@@ -1,4 +1,4 @@
-import SearchIcon from "@mui/icons-material/Search";
+﻿import SearchIcon from "@mui/icons-material/Search";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import StarIcon from "@mui/icons-material/Star";
@@ -177,9 +177,9 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                 />
                 <button
                     type="submit"
-                    className="absolute top-0 right-0 p-[10px] rotate-90 rounded-full text-white bg-client-primary hover:bg-client-secondary transition-default cursor-pointer w-[5.7rem] h-[5.7rem] flex items-center justify-center"
+                    className="absolute top-0 right-0 p-[10px] rotate-90 rounded-full text-white bg-client-primary hover:bg-client-secondary transition-default cursor-pointer w-[3.5625rem] h-[3.5625rem] flex items-center justify-center"
                 >
-                    <SearchIcon sx={{ fontSize: "3.5rem" }} />
+                    <SearchIcon sx={{ fontSize: "2.1875rem" }} />
                 </button>
             </form>
 
@@ -228,7 +228,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                     </div>
 
                     {/* Giá hiển thị */}
-                    <div className="flex justify-between mt-[20px] text-client-text text-[1.4rem]">
+                    <div className="flex justify-between mt-[20px] text-client-text text-[0.875rem]">
                         <span>
                             {SHOP_CONTENT.ASIDE.PRICE_LABEL}: {(minPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ - {(maxPricePercent / 100 * MAX_PRICE_LIMIT).toLocaleString("vi-VN")}đ
                         </span>
@@ -237,7 +237,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                 <div className="relative block min-w-[135px] mt-[15px]">
                     <button
                         onClick={handlePriceFilter}
-                        className={`button-text cursor-pointer before:bg-white after:bg-white bg-client-primary hover:bg-client-secondary text-white hover:[box-shadow:0_0_30px_#ffffff33] inline-block relative mask-[url('/mask-bg-button.svg')] mask-no-repeat mask-center mask-[size:100%] rounded-[10px] px-[40px] py-[10px] text-[1.6rem] font-secondary transition-default`}
+                        className={`button-text cursor-pointer before:bg-white after:bg-white bg-client-primary hover:bg-client-secondary text-white hover:[box-shadow:0_0_30px_#ffffff33] inline-block relative mask-[url('/mask-bg-button.svg')] mask-no-repeat mask-center mask-[size:100%] rounded-[10px] px-[40px] py-[10px] text-[1rem] font-secondary transition-default`}
                     >
                         {SHOP_CONTENT.ASIDE.FILTER_BUTTON}
                     </button>
@@ -258,7 +258,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                                 />
                             </Link>
                             <div>
-                                <Link to={`/product/detail/${item.slug}`} className="text-[1.7rem] font-secondary text-client-secondary hover:text-[#10293799] transition-default mb-[2px] line-clamp-2 leading-tight">
+                                <Link to={`/product/detail/${item.slug}`} className="text-[1.0625rem] font-secondary text-client-secondary hover:text-[#10293799] transition-default mb-[2px] line-clamp-2 leading-tight">
                                     {item.name}
                                 </Link>
                                 <div className="flex items-center mb-[7px] ml-[-5px]">
@@ -266,7 +266,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                                         <StarIcon
                                             key={i}
                                             sx={{
-                                                fontSize: "1.8rem !important",
+                                                fontSize: "1.125rem !important",
                                                 color: "#ffbb00 !important",
                                             }}
                                         />
@@ -299,7 +299,7 @@ export const ProductAside = ({ filters, onFiltersChange }: ProductAsideProps) =>
                             <button
                                 key={idx}
                                 onClick={() => handleTagSelect(item.slug)}
-                                className={`transition-default py-[8px] px-[16px] text-[1.4rem] border rounded-[35px] ${isActive
+                                className={`transition-default py-[8px] px-[16px] text-[0.875rem] border rounded-[35px] ${isActive
                                     ? "bg-client-secondary text-white border-client-secondary"
                                     : "bg-white text-client-secondary border-[#10293726] hover:bg-client-secondary hover:text-white"
                                     }`}

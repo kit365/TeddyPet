@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { Input } from "./sections/Input";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { z } from "zod";
@@ -84,92 +84,92 @@ export const RegisterPage = () => {
                     </div>
                     <div className="flex-1 max-w-[642px] ml-[-150px] relative z-20">
                         <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
-                            <h3 className="text-center text-[3rem] font-[600] mb-[50px] text-[#333]">Đăng ký để tiếp tục 👋</h3>
+                            <h3 className="text-center text-[1.875rem] font-[600] mb-[50px] text-[#333]">Đăng ký để tiếp tục 👋</h3>
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="flex gap-[20px]">
                                     <div className="flex-1 relative">
-                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Họ</label>
+                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Họ</label>
                                         <Input
                                             placeholder="Họ"
                                             {...register("lastName")}
                                             error={errors.lastName?.message}
                                             errorColor="text-red-500"
-                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                             containerClassName="!mb-0"
                                         />
                                     </div>
                                     <div className="flex-1 relative">
-                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Tên</label>
+                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Tên</label>
                                         <Input
                                             placeholder="Tên"
                                             {...register("firstName")}
                                             error={errors.firstName?.message}
                                             errorColor="text-red-500"
-                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                             containerClassName="!mb-0"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Tên người dùng</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Tên người dùng</label>
                                     <Input
                                         placeholder="Tên người dùng"
                                         {...register("username")}
                                         error={errors.username?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Email</label>
                                     <Input
                                         placeholder="example@Zenis.com"
                                         type="email"
                                         {...register("email")}
                                         error={errors.email?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Số điện thoại</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Số điện thoại</label>
                                     <Input
                                         placeholder="Số điện thoại"
                                         {...register("phone")}
                                         error={errors.phone?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="flex gap-[20px]">
                                     <div className="flex-1 relative">
-                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Mật khẩu</label>
+                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Mật khẩu</label>
                                         <Input
                                             placeholder="********"
                                             type="password"
                                             {...register("password")}
                                             error={errors.password?.message}
                                             errorColor="text-red-500"
-                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                             containerClassName="!mb-0"
                                         />
                                     </div>
                                     <div className="flex-1 relative">
-                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Xác nhận mật khẩu</label>
+                                        <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Xác nhận mật khẩu</label>
                                         <Input
                                             placeholder="********"
                                             type="password"
                                             {...register("confirmPassword")}
                                             error={errors.confirmPassword?.message}
                                             errorColor="text-red-500"
-                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                            className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                             containerClassName="!mb-0"
                                         />
                                     </div>
@@ -177,10 +177,10 @@ export const RegisterPage = () => {
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[1.5rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
+                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
                                 >
                                     <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Đăng ký"}</span>
-                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[2rem] h-[2rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
+                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[1.25rem] h-[1.25rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
                                     <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                 </button>
                             </form>

@@ -1,4 +1,4 @@
-import {
+﻿import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -150,7 +150,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                     {/* Section 1: Target Area */}
                     <Box>
                         <Typography variant="subtitle1" sx={{ color: COLORS.primary, fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <MapIcon sx={{ fontSize: '1.2rem', color: COLORS.secondary }} /> Vùng áp dụng
+                            <MapIcon sx={{ fontSize: '0.75rem', color: COLORS.secondary }} /> Vùng áp dụng
                         </Typography>
                         <Box sx={{ p: 3, borderRadius: '16px', bgcolor: COLORS.backgroundLight, border: `1px dashed ${COLORS.border}` }}>
                             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -189,7 +189,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                     {/* Section 2: Pricing Rules */}
                     <Box>
                         <Typography variant="subtitle1" sx={{ color: COLORS.primary, fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <SettingsIcon sx={{ fontSize: '1.2rem', color: COLORS.secondary }} /> Cấu hình phí
+                            <SettingsIcon sx={{ fontSize: '0.75rem', color: COLORS.secondary }} /> Cấu hình phí
                         </Typography>
 
                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
@@ -322,7 +322,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
 
                         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
                             <Box sx={{ bgcolor: COLORS.primary, p: 1, borderRadius: '10px', display: 'flex' }}>
-                                <CalculateIcon sx={{ color: 'white', fontSize: '1.4rem' }} />
+                                <CalculateIcon sx={{ color: 'white', fontSize: '0.875rem' }} />
                             </Box>
                             <Box>
                                 <Typography variant="h5" sx={{ fontWeight: 800, color: COLORS.primary, letterSpacing: -0.5 }}>
@@ -348,7 +348,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                         sx: {
                                             bgcolor: 'white',
                                             borderRadius: '12px',
-                                            '& input': { fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
+                                            '& input': { fontSize: '0.875rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
                                         }
                                     }}
                                     InputLabelProps={{ shrink: true, sx: { fontWeight: 900, color: '#1C252E !important' } }}
@@ -365,7 +365,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                         sx: {
                                             bgcolor: 'white',
                                             borderRadius: '12px',
-                                            '& input': { fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
+                                            '& input': { fontSize: '0.875rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
                                         }
                                     }}
                                     InputLabelProps={{ shrink: true, sx: { fontWeight: 900, color: '#1C252E !important' } }}
@@ -382,7 +382,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                         sx: {
                                             bgcolor: 'white',
                                             borderRadius: '12px',
-                                            '& input': { fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
+                                            '& input': { fontSize: '0.875rem', fontWeight: 800, textAlign: 'center', color: '#1C252E' }
                                         }
                                     }}
                                     InputLabelProps={{ shrink: true, sx: { fontWeight: 900, color: '#1C252E !important' } }}
@@ -400,23 +400,23 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                             }}>
                                 <Box>
-                                    <Typography variant="overline" sx={{ color: '#454F5B', fontWeight: 900, display: 'block', mb: 0.5, fontSize: '0.8rem' }}>
+                                    <Typography variant="overline" sx={{ color: '#454F5B', fontWeight: 900, display: 'block', mb: 0.5, fontSize: '0.5rem' }}>
                                         Phí ship ước tính:
                                     </Typography>
                                     <Typography variant="h4" sx={{
                                         color: testDistance > (formData.maxInternalDistanceKm || 10) ? '#D32F2F' : '#00A76F',
                                         fontWeight: 900,
-                                        fontSize: '2.2rem'
+                                        fontSize: '1.375rem'
                                     }}>
                                         {testDistance > (formData.maxInternalDistanceKm || 10) ? "⚠️ Book Grab" : `${previewResult.toLocaleString()}₫`}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                                    <Typography sx={{ color: '#1C252E', fontWeight: 900, mb: 1, display: 'block', fontSize: '1.2rem' }}>
+                                    <Typography sx={{ color: '#1C252E', fontWeight: 900, mb: 1, display: 'block', fontSize: '0.75rem' }}>
                                         Công thức: Max(MinFee, Km*Giá + Cân*Phụ)
                                     </Typography>
                                     <Box sx={{ bgcolor: '#1C252E', color: 'white', px: 3, py: 1.5, borderRadius: '14px', display: 'inline-block' }}>
-                                        <Typography sx={{ fontWeight: 900, fontSize: '1.4rem' }}>
+                                        <Typography sx={{ fontWeight: 900, fontSize: '0.875rem' }}>
                                             {previewResult.toLocaleString()}₫
                                         </Typography>
                                     </Box>
@@ -431,7 +431,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                 <Button onClick={onClose} sx={{
                     color: COLORS.secondary,
                     fontWeight: 700,
-                    fontSize: '1rem',
+                    fontSize: '0.625rem',
                     textTransform: 'none',
                     px: 3
                 }}>
@@ -445,7 +445,7 @@ export const ShippingRuleFormDialog = ({ open, onClose, onSuccess, initialData }
                         bgcolor: COLORS.primary,
                         color: 'white',
                         fontWeight: 800,
-                        fontSize: '1rem',
+                        fontSize: '0.625rem',
                         textTransform: 'uppercase',
                         px: 6,
                         py: 1.5,

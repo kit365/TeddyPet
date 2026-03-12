@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
@@ -70,10 +70,10 @@ export const ShippingRuleListPage = () => {
             onClick={handleCreate}
             sx={{
                 background: '#1C252E',
-                minHeight: "3.6rem",
-                minWidth: "6.4rem",
+                minHeight: "2.25rem",
+                minWidth: "4rem",
                 fontWeight: 700,
-                fontSize: "1.4rem",
+                fontSize: "0.875rem",
                 padding: "6px 12px",
                 borderRadius: "8px",
                 textTransform: "none",
@@ -119,16 +119,16 @@ export const ShippingRuleListPage = () => {
                                 color: '#00AB55',
                                 display: 'flex'
                             }}>
-                                <StorefrontIcon sx={{ fontSize: '2.8rem' }} />
+                                <StorefrontIcon sx={{ fontSize: '1.75rem' }} />
                             </Box>
                             <Box>
-                                <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#00AB55', textTransform: 'uppercase', letterSpacing: '1px', mb: 0.5 }}>
+                                <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#00AB55', textTransform: 'uppercase', letterSpacing: '1px', mb: 0.5 }}>
                                     Địa chỉ gốc cửa hàng (Pickup Point)
                                 </Typography>
-                                <Typography variant="h5" sx={{ fontWeight: 800, fontSize: '1.8rem', color: '#1C252E' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 800, fontSize: '1.125rem', color: '#1C252E' }}>
                                     {shopAddress || "Đang tải địa chỉ..."}
                                 </Typography>
-                                <Typography sx={{ fontSize: '1.3rem', color: '#637381', mt: 0.5 }}>
+                                <Typography sx={{ fontSize: '0.8125rem', color: '#637381', mt: 0.5 }}>
                                     Hệ thống sử dụng địa chỉ này để tính khoảng cách giao hàng.
                                 </Typography>
                             </Box>
@@ -145,7 +145,7 @@ export const ShippingRuleListPage = () => {
                                 color: '#1C252E',
                                 borderColor: '#E5E8EB',
                                 fontWeight: 800,
-                                fontSize: '1.3rem',
+                                fontSize: '0.8125rem',
                                 textTransform: 'none',
                                 '&:hover': {
                                     borderColor: '#1C252E',

@@ -1,4 +1,4 @@
-import AppBar from "@mui/material/AppBar";
+﻿import AppBar from "@mui/material/AppBar";
 import useScrollTrigger from '@mui/material/useScrollTrigger';
 import React from "react";
 import Container from "@mui/material/Container";
@@ -193,14 +193,14 @@ export const Header = () => {
                         }}
                     >
                         <div className="flex items-center gap-[10px]">
-                            <span className="text-[2.2rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
+                            <span className="text-[1.375rem] font-[800] text-[#1c252e] uppercase tracking-wider">TEDDYPET DASHBOARD</span>
                         </div>
                         <Box className="flex items-center gap-[6px]">
                             <Box onClick={handleOpenSearchDialog} className="flex items-center pr-[8px] cursor-pointer bg-[#919eab14] hover:bg-[#919eab29] rounded-[12px] transition-colors duration-150 ease-in-out">
                                 <Box className="p-[8px]">
-                                    <svg className="text-[2rem] text-[#637381]" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" id="«ro»" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="m20.71 19.29l-3.4-3.39A7.92 7.92 0 0 0 19 11a8 8 0 1 0-8 8a7.92 7.92 0 0 0 4.9-1.69l3.39 3.4a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.42M5 11a6 6 0 1 1 6 6a6 6 0 0 1-6-6"></path></svg>
+                                    <svg className="text-[1.25rem] text-[#637381]" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" id="«ro»" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="m20.71 19.29l-3.4-3.39A7.92 7.92 0 0 0 19 11a8 8 0 1 0-8 8a7.92 7.92 0 0 0 4.9-1.69l3.39 3.4a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.42M5 11a6 6 0 1 1 6 6a6 6 0 0 1-6-6"></path></svg>
                                 </Box>
-                                <span className="h-[2.4rem] min-w-[2.4rem] flex items-center justify-center text-[#1C252E] text-[1.2rem] font-[900] pl-[6px] pr-[6px] rounded-[6px] bg-white box-shadow-[0_1px_2px_0_rgba(145,158,171,0.16)]"><span className="text-[0.7rem] mt-[1px] mr-[1px]">⌘</span>K</span>
+                                <span className="h-[1.5rem] min-w-[1.5rem] flex items-center justify-center text-[#1C252E] text-[0.75rem] font-[900] pl-[6px] pr-[6px] rounded-[6px] bg-white box-shadow-[0_1px_2px_0_rgba(145,158,171,0.16)]"><span className="text-[0.4375rem] mt-[1px] mr-[1px]">⌘</span>K</span>
                             </Box>
 
                             <Button
@@ -261,7 +261,7 @@ export const Header = () => {
                                     sx={{
                                         padding: "6px 8px",
                                         mb: "4px",
-                                        fontSize: '1.3rem !important',
+                                        fontSize: '0.8125rem !important',
                                         '&.Mui-selected': {
                                             fontWeight: 600,
                                             backgroundColor: '#919eab29 !important',
@@ -280,7 +280,7 @@ export const Header = () => {
                                     sx={{
                                         padding: "6px 8px",
                                         mb: "4px",
-                                        fontSize: '1.3rem !important',
+                                        fontSize: '0.8125rem !important',
                                         '&.Mui-selected': {
                                             fontWeight: 600,
                                             backgroundColor: '#919eab29 !important',
@@ -313,7 +313,7 @@ export const Header = () => {
                                         max={99}
                                         sx={{
                                             '& .MuiBadge-badge': {
-                                                fontSize: '1rem',
+                                                fontSize: '0.625rem',
                                                 fontWeight: 800,
                                                 minWidth: '20px',
                                                 height: '20px',
@@ -328,7 +328,7 @@ export const Header = () => {
                                         <NotificationsIcon
                                             sx={{
                                                 color: "#637381",
-                                                fontSize: "2.2rem",
+                                                fontSize: "1.375rem",
                                                 transition: 'transform 0.2s',
                                                 '&:hover': {
                                                     transform: 'rotate(15deg)'
@@ -362,8 +362,8 @@ export const Header = () => {
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', py: 2, px: 3, background: 'linear-gradient(to right, #f8f9fa, #ffffff)' }}>
                                     <Box sx={{ flexGrow: 1 }}>
-                                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#1a202c' }}>Thông báo</Typography>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '1rem', mt: 0.2 }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '0.875rem', color: '#1a202c' }}>Thông báo</Typography>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.625rem', mt: 0.2 }}>
                                             Bạn có <span style={{ color: '#3b82f6', fontWeight: 700 }}>{unreadCount}</span> thông báo mới
                                         </Typography>
                                     </Box>
@@ -371,10 +371,10 @@ export const Header = () => {
                                         <Button
                                             size="small"
                                             onClick={() => setOpenConfirmAll(true)}
-                                            startIcon={<DoneAllIcon sx={{ fontSize: '1.8rem !important' }} />}
+                                            startIcon={<DoneAllIcon sx={{ fontSize: '1.125rem !important' }} />}
                                             sx={{
                                                 color: '#3b82f6',
-                                                fontSize: '0.9rem',
+                                                fontSize: '0.5625rem',
                                                 fontWeight: 700,
                                                 textTransform: 'none',
                                                 borderRadius: '8px',
@@ -427,7 +427,7 @@ export const Header = () => {
                                                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#3b82f6', flexShrink: 0, boxShadow: '0 0 8px rgba(59, 130, 246, 0.4)' }} />
                                                     <Typography variant="subtitle1" sx={{
                                                         fontWeight: 800,
-                                                        fontSize: '1.15rem',
+                                                        fontSize: '0.7188rem',
                                                         color: '#1a202c',
                                                         flexGrow: 1,
                                                         lineHeight: 1.3
@@ -437,7 +437,7 @@ export const Header = () => {
                                                 </Box>
                                                 <Typography variant="body1" sx={{
                                                     color: '#454f5b',
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.625rem',
                                                     lineHeight: 1.5,
                                                     pl: 3.5
                                                 }}>
@@ -446,18 +446,18 @@ export const Header = () => {
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, pl: 3.5, gap: 1 }}>
                                                     <Typography variant="caption" sx={{
                                                         color: 'text.disabled',
-                                                        fontSize: '0.85rem',
+                                                        fontSize: '0.5312rem',
                                                         fontWeight: 500
                                                     }}>
                                                         {new Date(notif.timestamp).toLocaleString('vi-VN')}
                                                     </Typography>
-                                                    <Box sx={{ px: 1, py: 0.2, borderRadius: '4px', bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700 }}>Mới</Box>
+                                                    <Box sx={{ px: 1, py: 0.2, borderRadius: '4px', bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '0.4688rem', fontWeight: 700 }}>Mới</Box>
                                                 </Box>
                                             </MenuItem>
                                         ))
                                     ) : (
                                         <Box sx={{ py: 10, textAlign: 'center', px: 4 }}>
-                                            <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '1.3rem', fontWeight: 500, opacity: 0.6 }}>
+                                            <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '0.8125rem', fontWeight: 500, opacity: 0.6 }}>
                                                 Hiện chưa có thông báo nào dành cho bạn
                                             </Typography>
                                         </Box>
@@ -472,11 +472,11 @@ export const Header = () => {
                                         sx: { borderRadius: '20px', p: 1, width: '400px' }
                                     }}
                                 >
-                                    <DialogTitle sx={{ fontWeight: 800, fontSize: '1.5rem', textAlign: 'center' }}>
+                                    <DialogTitle sx={{ fontWeight: 800, fontSize: '0.9375rem', textAlign: 'center' }}>
                                         Xác nhận
                                     </DialogTitle>
                                     <DialogContent>
-                                        <Typography sx={{ textAlign: 'center', fontSize: '1.1rem', color: 'text.secondary' }}>
+                                        <Typography sx={{ textAlign: 'center', fontSize: '0.6875rem', color: 'text.secondary' }}>
                                             Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc?
                                         </Typography>
                                     </DialogContent>
@@ -487,7 +487,7 @@ export const Header = () => {
                                                 borderRadius: '12px',
                                                 textTransform: 'none',
                                                 fontWeight: 700,
-                                                fontSize: '1rem',
+                                                fontSize: '0.625rem',
                                                 px: 3
                                             }}
                                         >
@@ -505,7 +505,7 @@ export const Header = () => {
                                                 borderRadius: '12px',
                                                 textTransform: 'none',
                                                 fontWeight: 700,
-                                                fontSize: '1rem',
+                                                fontSize: '0.625rem',
                                                 px: 3,
                                                 boxShadow: '0 8px 16px rgba(59, 130, 246, 0.24)'
                                             }}
@@ -525,7 +525,7 @@ export const Header = () => {
                                         sx={{
                                             py: 1.5,
                                             fontWeight: 800,
-                                            fontSize: '1.1rem',
+                                            fontSize: '0.6875rem',
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.05em'
                                         }}
@@ -544,7 +544,7 @@ export const Header = () => {
                                 <SettingsIcon
                                     sx={{
                                         color: "#637381",
-                                        fontSize: "2.2rem",
+                                        fontSize: "1.375rem",
                                         animation: "spin 10s linear infinite",
                                         "@keyframes spin": {
                                             "0%": { transform: "rotate(0deg)" },
@@ -559,7 +559,7 @@ export const Header = () => {
                                     padding: 0,
                                 }}
                             >
-                                <div className="relative rounded-full p-[3px] w-[4rem] h-[4rem] header__avatar">
+                                <div className="relative rounded-full p-[3px] w-[2.5rem] h-[2.5rem] header__avatar">
                                     <Avatar className="w-full h-full" src="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-25.webp" />
                                 </div>
                             </Button>
@@ -601,12 +601,12 @@ export const Header = () => {
                         input: {
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <Search className="text-[1.6rem] text-[#637381] font-[600]" />
+                                    <Search className="text-[1rem] text-[#637381] font-[600]" />
                                 </InputAdornment>
                             ),
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <span className="px-[6px] text-[#637381] h-[24px] min-w-[24px] inline-flex justify-center items-center text-[1.2rem] font-[700] rounded-[6px] bg-[#919EAB29]">Esc</span>
+                                    <span className="px-[6px] text-[#637381] h-[24px] min-w-[24px] inline-flex justify-center items-center text-[0.75rem] font-[700] rounded-[6px] bg-[#919EAB29]">Esc</span>
                                 </InputAdornment>
                             ),
                             disableUnderline: true,
@@ -623,7 +623,7 @@ export const Header = () => {
                         },
 
                         '& .MuiInputBase-input': {
-                            fontSize: "1.7rem",
+                            fontSize: "1.0625rem",
                             fontWeight: "600",
                         }
                     }}
@@ -638,19 +638,19 @@ export const Header = () => {
                                     className="flex items-center py-[8px] px-[16px] border border-dashed border-b-[#919eab33] bg-transparent border-transparent rounded-[8px] hover:border-[#00A76F] hover:bg-[#00a76f14]"
                                 >
                                     <div className="flex-1">
-                                        <div className="text-[1.4rem] font-[600] text-[#1C252E]">{route.category}</div>
-                                        <span className="text-[1.2rem] text-[#637381]">{route.path}</span>
+                                        <div className="text-[0.875rem] font-[600] text-[#1C252E]">{route.category}</div>
+                                        <span className="text-[0.75rem] text-[#637381]">{route.path}</span>
                                     </div>
-                                    <div className="h-[24px] min-w-[24px] inline-flex items-center justify-center px-[6px] text-[1.2rem] bg-[#919EAB29] font-[700] text-[#1C252E] rounded-[6px]">{route.label}</div>
+                                    <div className="h-[24px] min-w-[24px] inline-flex items-center justify-center px-[6px] text-[0.75rem] bg-[#919EAB29] font-[700] text-[#1C252E] rounded-[6px]">{route.label}</div>
                                 </Link>
                             </li>
                         ))
                     ) : (
                         <li className="flex-1 flex items-center justify-center">
                             <div className="text-center text-[#1C252E]">
-                                <div className="text-[1.8rem] font-[600] mb-[15px]">Không tìm thấy</div>
-                                <p className="text-[1.4rem]">Không tìm thấy kết quả nào cho <span className="font-[700]">"{searchQuery}"</span>.</p>
-                                <span className="text-[1.4rem]">Hãy thử kiểm tra lại lỗi chính tả hoặc dùng từ cho đầy đủ.</span>
+                                <div className="text-[1.125rem] font-[600] mb-[15px]">Không tìm thấy</div>
+                                <p className="text-[0.875rem]">Không tìm thấy kết quả nào cho <span className="font-[700]">"{searchQuery}"</span>.</p>
+                                <span className="text-[0.875rem]">Hãy thử kiểm tra lại lỗi chính tả hoặc dùng từ cho đầy đủ.</span>
                             </div>
                         </li>
                     )}
@@ -677,7 +677,7 @@ export const Header = () => {
                         pt: 2.5,
                         pb: 1.5,
                         fontWeight: 700,
-                        fontSize: '1.1rem',
+                        fontSize: '0.6875rem',
                         borderBottom: '1px solid',
                         borderColor: 'grey.100',
                         bgcolor: 'grey.50',
@@ -709,7 +709,7 @@ export const Header = () => {
                                         width: 80,
                                         height: 80,
                                         bgcolor: 'primary.main',
-                                        fontSize: '2.25rem',
+                                        fontSize: '1.4062rem',
                                         cursor: editMode ? 'pointer' : 'default',
                                     }}
                                     onClick={() => {
@@ -724,7 +724,7 @@ export const Header = () => {
                                     <Typography
                                         sx={{
                                             fontWeight: 700,
-                                            fontSize: '1.5rem', // ~ text-2xl
+                                            fontSize: '0.9375rem', // ~ text-2xl
                                             color: 'grey.900',
                                             mb: 0.5,
                                             whiteSpace: 'nowrap',
@@ -738,7 +738,7 @@ export const Header = () => {
                                         <Typography
                                             sx={{
                                                 fontWeight: 700,
-                                                fontSize: '1rem', // ~ text-base
+                                                fontSize: '0.625rem', // ~ text-base
                                                 color: 'primary.main',
                                                 mb: 0.25,
                                                 whiteSpace: 'nowrap',
@@ -749,7 +749,7 @@ export const Header = () => {
                                             {myProfile.positionName}
                                         </Typography>
                                     )}
-                                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'grey.500' }}>
+                                    <Typography sx={{ fontSize: '0.5469rem', fontWeight: 500, color: 'grey.500' }}>
                                         ID: {myProfile.staffId}
                                         {myProfile.employmentType &&
                                             ` · ${myProfile.employmentType === 'FULL_TIME' ? 'Toàn thời gian' : 'Bán thời gian'}`}
@@ -772,7 +772,7 @@ export const Header = () => {
                                     <Typography
                                         sx={{
                                             fontWeight: 700,
-                                            fontSize: '1.05rem', // ~ text-lg
+                                            fontSize: '0.6562rem', // ~ text-lg
                                             mb: 2,
                                             color: 'grey.900',
                                             borderBottom: '1px solid',
@@ -799,12 +799,12 @@ export const Header = () => {
                                             disabled={!editMode}
                                             sx={{
                                                 '& .MuiInputLabel-root': {
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 600, // label đậm hơn
                                                     color: 'grey.700',
                                                 },
                                                 '& .MuiOutlinedInput-input': {
-                                                    fontSize: '0.95rem', // ~ text-base
+                                                    fontSize: '0.5938rem', // ~ text-base
                                                     color: 'grey.900',
                                                 },
                                                 '& .MuiOutlinedInput-root': {
@@ -825,12 +825,12 @@ export const Header = () => {
                                             disabled={!editMode}
                                             sx={{
                                                 '& .MuiInputLabel-root': {
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 600,
                                                     color: 'grey.700',
                                                 },
                                                 '& .MuiOutlinedInput-input': {
-                                                    fontSize: '0.95rem',
+                                                    fontSize: '0.5938rem',
                                                     color: 'grey.900',
                                                 },
                                                 '& .MuiOutlinedInput-root': {
@@ -852,12 +852,12 @@ export const Header = () => {
                                             sx={{
                                                 gridColumn: { xs: 'span 1', sm: 'span 2' },
                                                 '& .MuiInputLabel-root': {
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 600,
                                                     color: 'grey.700',
                                                 },
                                                 '& .MuiOutlinedInput-input': {
-                                                    fontSize: '0.95rem',
+                                                    fontSize: '0.5938rem',
                                                     color: 'grey.900',
                                                 },
                                                 '& .MuiOutlinedInput-root': {
@@ -883,7 +883,7 @@ export const Header = () => {
                                     <Typography
                                         sx={{
                                             fontWeight: 700,
-                                            fontSize: '1.05rem',
+                                            fontSize: '0.6562rem',
                                             mb: 2,
                                             color: 'grey.900',
                                             borderBottom: '1px solid',
@@ -904,7 +904,7 @@ export const Header = () => {
                                         <Box>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 500, // label đậm hơn
                                                     color: 'grey.500',
                                                     mb: 0.5,
@@ -914,7 +914,7 @@ export const Header = () => {
                                             </Typography>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '1rem', // text-base
+                                                    fontSize: '0.625rem', // text-base
                                                     fontWeight: 700,
                                                     color: 'grey.900',
                                                 }}
@@ -925,7 +925,7 @@ export const Header = () => {
                                         <Box>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 500,
                                                     color: 'grey.500',
                                                     mb: 0.5,
@@ -935,7 +935,7 @@ export const Header = () => {
                                             </Typography>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.625rem',
                                                     fontWeight: 700,
                                                     color: 'grey.900',
                                                 }}
@@ -952,7 +952,7 @@ export const Header = () => {
                                         <Box>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 500,
                                                     color: 'grey.500',
                                                     mb: 0.5,
@@ -962,7 +962,7 @@ export const Header = () => {
                                             </Typography>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.625rem',
                                                     fontWeight: 700,
                                                     color: 'grey.900',
                                                 }}
@@ -973,7 +973,7 @@ export const Header = () => {
                                         <Box>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 500,
                                                     color: 'grey.500',
                                                     mb: 0.5,
@@ -983,7 +983,7 @@ export const Header = () => {
                                             </Typography>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.625rem',
                                                     fontWeight: 700,
                                                     color: 'grey.900',
                                                 }}
@@ -994,7 +994,7 @@ export const Header = () => {
                                         <Box>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.5469rem',
                                                     fontWeight: 500,
                                                     color: 'grey.500',
                                                     mb: 0.5,
@@ -1004,7 +1004,7 @@ export const Header = () => {
                                             </Typography>
                                             <Typography
                                                 sx={{
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.625rem',
                                                     fontWeight: 700,
                                                     color: 'grey.900',
                                                 }}

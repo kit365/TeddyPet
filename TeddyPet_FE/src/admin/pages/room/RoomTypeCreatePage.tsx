@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState } from 'react';
@@ -360,7 +360,7 @@ export const RoomTypeCreatePage = () => {
                                                                     readOnly
                                                                     className="mr-3 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                                                 />
-                                                                <Box fontSize="1.4rem">{getPetTypeLabel(pt)}</Box>
+                                                                <Box fontSize="0.875rem">{getPetTypeLabel(pt)}</Box>
                                                             </Box>
                                                         </MenuItem>
                                                     );
@@ -411,9 +411,9 @@ export const RoomTypeCreatePage = () => {
                                 variant="contained"
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: '4.8rem',
+                                    minHeight: '3rem',
                                     fontWeight: 700,
-                                    fontSize: '1.4rem',
+                                    fontSize: '0.875rem',
                                     padding: '8px 24px',
                                     borderRadius: '8px',
                                     textTransform: 'none',

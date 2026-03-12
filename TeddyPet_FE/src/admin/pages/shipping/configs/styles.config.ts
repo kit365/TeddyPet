@@ -1,4 +1,4 @@
-import { SxProps, Theme } from '@mui/material/styles';
+﻿import { SxProps, Theme } from '@mui/material/styles';
 import { COLORS } from './constants';
 
 export const dataGridStyles: SxProps<Theme> = {
@@ -18,7 +18,7 @@ export const dataGridStyles: SxProps<Theme> = {
         borderBottom: `1px solid ${COLORS.border}`,
         '& .MuiDataGrid-columnHeader': {
             color: COLORS.secondary,
-            fontSize: "1.3rem",
+            fontSize: "0.8125rem",
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
@@ -35,10 +35,10 @@ export const dataGridStyles: SxProps<Theme> = {
     '& .MuiDataGrid-footerContainer': {
         borderTop: `1px dashed ${COLORS.border}`,
         minHeight: "48px",
-        fontSize: "1.4rem",
+        fontSize: "0.875rem",
         color: "inherit",
         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-            fontSize: "1.3rem",
+            fontSize: "0.8125rem",
             fontWeight: 600,
             color: COLORS.secondary
         }
@@ -60,7 +60,7 @@ export const dataGridStyles: SxProps<Theme> = {
     // CELL
     '& .MuiDataGrid-cell': {
         color: 'inherit',
-        fontSize: "1.4rem",
+        fontSize: "0.875rem",
         display: 'flex',
         alignItems: 'center',
         padding: '16px',

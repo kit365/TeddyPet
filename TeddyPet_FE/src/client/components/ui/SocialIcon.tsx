@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { Facebook, Instagram } from "iconoir-react";
 
 export const SocialIcon = ({ facebookUrl = "#", instagramUrl = "#" }: { facebookUrl?: string, instagramUrl?: string }) => {
@@ -17,7 +17,7 @@ export const SocialIcon = ({ facebookUrl = "#", instagramUrl = "#" }: { facebook
                      hover:text-client-secondary hover:bg-white transition-default"
                 >
                     <Link to={to}>
-                        <Icon strokeWidth={2} className="w-[1.6rem] h-[1.6rem]" />
+                        <Icon strokeWidth={2} className="w-[1rem] h-[1rem]" />
                     </Link>
                 </li>
             ))}

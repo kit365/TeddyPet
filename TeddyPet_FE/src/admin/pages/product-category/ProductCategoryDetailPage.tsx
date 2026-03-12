@@ -1,4 +1,4 @@
-import {
+﻿import {
     Box,
     Button,
     Container,
@@ -73,7 +73,7 @@ export const ProductCategoryDetailPage = () => {
                     sx={{
                         fontWeight: 700,
                         textTransform: "none",
-                        fontSize: "1.8rem",
+                        fontSize: "1.125rem",
                         borderRadius: "8px",
                         p: 0,
                         mb: 1,
@@ -118,17 +118,17 @@ export const ProductCategoryDetailPage = () => {
 
                 {/* Status Dropdown */}
                 <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', mb: 0.5 }}>Trạng thái</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 0.5 }}>Trạng thái</Typography>
                     <Select
                         value={category.isActive ? 'true' : 'false'}
                         onChange={handleStatusChange}
                         sx={{
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             '& .MuiSelect-select': { py: 1 }
                         }}
                     >
-                        <MenuItem value="true" sx={{ fontSize: '1.4rem' }}>Hoạt động</MenuItem>
-                        <MenuItem value="false" sx={{ fontSize: '1.4rem' }}>Ngừng hoạt động</MenuItem>
+                        <MenuItem value="true" sx={{ fontSize: '0.875rem' }}>Hoạt động</MenuItem>
+                        <MenuItem value="false" sx={{ fontSize: '0.875rem' }}>Ngừng hoạt động</MenuItem>
                     </Select>
                 </FormControl>
             </Box>
@@ -162,7 +162,7 @@ export const ProductCategoryDetailPage = () => {
                                     sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                             ) : (
-                                <CategoryIcon sx={{ fontSize: '3rem', color: '#11998e' }} />
+                                <CategoryIcon sx={{ fontSize: '1.875rem', color: '#11998e' }} />
                             )}
                         </Box>
 
@@ -175,7 +175,7 @@ export const ProductCategoryDetailPage = () => {
                                     px: 1.5,
                                     py: 0.5,
                                     borderRadius: '6px',
-                                    fontSize: '1.2rem',
+                                    fontSize: '0.75rem',
                                     fontWeight: 700,
                                     backgroundColor: category.isActive ? '#22c55e' : '#ef4444',
                                     color: '#fff',
@@ -184,7 +184,7 @@ export const ProductCategoryDetailPage = () => {
                             >
                                 {category.isActive ? 'Hoạt động' : 'Ngừng'}
                             </Box>
-                            <Typography sx={{ fontSize: '2rem', fontWeight: 700, color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#1C252E' }}>
                                 {category.name}
                             </Typography>
                         </Box>
@@ -193,18 +193,18 @@ export const ProductCategoryDetailPage = () => {
                     {/* Info Grid */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, mb: 4 }}>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Danh mục cha
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: category.parentName ? '#1C252E' : '#919EAB' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: category.parentName ? '#1C252E' : '#919EAB' }}>
                                 {category.parentName || 'Không có'}
                             </Typography>
                         </Box>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Vị trí hiển thị
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 {category.position || '--'}
                             </Typography>
                         </Box>
@@ -212,18 +212,18 @@ export const ProductCategoryDetailPage = () => {
 
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, mb: 4 }}>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Ngày tạo
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 {dayjs(category.createdAt).locale('vi').format('DD MMM YYYY')}
                             </Typography>
                         </Box>
                         <Box>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Cập nhật lần cuối
                             </Typography>
-                            <Typography sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                 {dayjs(category.updatedAt).locale('vi').format('DD MMM YYYY')}
                             </Typography>
                         </Box>
@@ -232,7 +232,7 @@ export const ProductCategoryDetailPage = () => {
                     {/* Slug */}
                     {category.slug && (
                         <Box sx={{ mb: 4 }}>
-                            <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
                                 Đường dẫn (Slug)
                             </Typography>
                             <Chip
@@ -241,7 +241,7 @@ export const ProductCategoryDetailPage = () => {
                                     backgroundColor: '#f4f6f8',
                                     color: '#637381',
                                     fontWeight: 500,
-                                    fontSize: '1.3rem',
+                                    fontSize: '0.8125rem',
                                     fontFamily: 'monospace',
                                 }}
                             />
@@ -251,7 +251,7 @@ export const ProductCategoryDetailPage = () => {
                     <Divider sx={{ my: 4 }} />
 
                     {/* Description */}
-                    <Typography sx={{ fontSize: '1.2rem', color: '#919EAB', fontWeight: 600, mb: 2 }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 2 }}>
                         Mô tả danh mục
                     </Typography>
                     {category.description ? (
@@ -259,7 +259,7 @@ export const ProductCategoryDetailPage = () => {
                             <div dangerouslySetInnerHTML={{ __html: category.description }} />
                         </Box>
                     ) : (
-                        <Typography sx={{ fontSize: '1.4rem', color: '#919EAB', fontStyle: 'italic' }}>
+                        <Typography sx={{ fontSize: '0.875rem', color: '#919EAB', fontStyle: 'italic' }}>
                             Chưa có mô tả
                         </Typography>
                     )}

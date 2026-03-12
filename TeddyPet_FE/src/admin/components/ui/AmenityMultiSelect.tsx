@@ -1,4 +1,4 @@
-import { Autocomplete, TextField } from '@mui/material';
+﻿import { Autocomplete, TextField } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { getAmenityCategoriesWithAmenities } from '../../api/amenity.api';
 import type { IAmenityListItem } from '../../api/amenity.api';
@@ -59,9 +59,9 @@ export function AmenityMultiSelect({ value, onChange, label = 'Tiện nghi', pla
                     placeholder={placeholder}
                     size="small"
                     sx={{
-                        '& .MuiInputBase-input': { fontSize: '1.45rem' },
-                        '& .MuiInputLabel-root': { fontSize: '1.4rem' },
-                        '& .MuiChip-label': { fontSize: '1.35rem' },
+                        '& .MuiInputBase-input': { fontSize: '0.9062rem' },
+                        '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                        '& .MuiChip-label': { fontSize: '0.8438rem' },
                     }}
                 />
             )}
@@ -71,8 +71,8 @@ export function AmenityMultiSelect({ value, onChange, label = 'Tiện nghi', pla
                         maxHeight: 420,
                         minWidth: 320,
                         '& .MuiAutocomplete-listbox': {
-                            '& .MuiAutocomplete-option': { fontSize: '1.45rem', minHeight: 44 },
-                            '& .MuiListSubheader-root': { fontSize: '1.35rem', fontWeight: 600 },
+                            '& .MuiAutocomplete-option': { fontSize: '0.9062rem', minHeight: 44 },
+                            '& .MuiListSubheader-root': { fontSize: '0.8438rem', fontWeight: 600 },
                         },
                     },
                 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Handbag, Heart, Search, User, Bell } from "iconoir-react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
@@ -41,7 +41,7 @@ export const MainHeader = () => {
             draggable: true,
             style: {
                 borderRadius: '15px',
-                fontSize: '1.4rem',
+                fontSize: '0.875rem',
                 fontWeight: 'bold',
                 fontFamily: 'Quicksand, sans-serif'
             }
@@ -140,7 +140,7 @@ export const MainHeader = () => {
                                 value={keyword}
                                 onChange={(e) => setKeyword(e.target.value)}
                                 placeholder="Tìm kiếm sản phẩm"
-                                className="w-[95.2%] bg-[#10293708] rounded-l-[4rem] h-[50px] border border-[#d7d7d7] px-[32px] py-[16px] focus:outline-none focus:border-[#102937] transition-[border] duration-300 ease-linear"
+                                className="w-[95.2%] bg-[#10293708] rounded-l-[2.5rem] h-[50px] border border-[#d7d7d7] px-[32px] py-[16px] focus:outline-none focus:border-[#102937] transition-[border] duration-300 ease-linear"
                             />
                             <div
                                 onClick={() => {
@@ -149,7 +149,7 @@ export const MainHeader = () => {
                                         setShowSuggestions(false);
                                     }
                                 }}
-                                className="ml-[-25px] w-[5rem] h-[5rem] rounded-full bg-client-secondary flex items-center justify-center text-white cursor-pointer hover:bg-client-primary transition-[background] duration-300 ease-linear"
+                                className="ml-[-25px] w-[3.125rem] h-[3.125rem] rounded-full bg-client-secondary flex items-center justify-center text-white cursor-pointer hover:bg-client-primary transition-[background] duration-300 ease-linear"
                             >
                                 <Search stroke="3" />
                             </div>
@@ -172,7 +172,7 @@ export const MainHeader = () => {
                                                     className="w-[50px] h-[50px] object-cover rounded-[5px]"
                                                 />
                                                 <div>
-                                                    <p className="text-[1.4rem] font-secondary text-client-secondary line-clamp-1">{product.name}</p>
+                                                    <p className="text-[0.875rem] font-secondary text-client-secondary line-clamp-1">{product.name}</p>
                                                 </div>
                                             </Link>
                                         </li>
@@ -184,16 +184,16 @@ export const MainHeader = () => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-[30px] w-[34.2%] justify-end mr-[16px]">
-                        <Link to="/wishlist" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                            <Heart stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                        <Link to="/wishlist" className="w-[2.1875rem] h-[2.1875rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                            <Heart stroke="2" className="w-[1.5625rem] h-[1.5625rem]" />
                         </Link>
 
                         {/* Notification Bell */}
                         {user && (
-                            <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                                <Bell stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                            <div className="group relative w-[2.1875rem] h-[2.1875rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                                <Bell stroke="2" className="w-[1.5625rem] h-[1.5625rem]" />
                                 {clientUnreadCount > 0 && (
-                                    <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{clientUnreadCount}</span>
+                                    <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[0.625rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{clientUnreadCount}</span>
                                 )}
 
                                 {/* Dropdown list with Super Bridge */}
@@ -207,7 +207,7 @@ export const MainHeader = () => {
                                             {clientUnreadCount > 0 && (
                                                 <button
                                                     onClick={handleMarkAllAsRead}
-                                                    className="text-[1.2rem] text-client-primary font-bold hover:underline py-1"
+                                                    className="text-[0.75rem] text-client-primary font-bold hover:underline py-1"
                                                 >
                                                     Đánh dấu đã đọc
                                                 </button>
@@ -224,18 +224,18 @@ export const MainHeader = () => {
                                                         }}
                                                         className="px-[20px] py-[12px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
                                                     >
-                                                        <p className="text-[1.3rem] font-bold text-client-secondary mb-[2px]">{n.title}</p>
-                                                        <p className="text-[1.2rem] text-gray-500 line-clamp-2">{n.message}</p>
-                                                        <p className="text-[1rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
+                                                        <p className="text-[0.8125rem] font-bold text-client-secondary mb-[2px]">{n.title}</p>
+                                                        <p className="text-[0.75rem] text-gray-500 line-clamp-2">{n.message}</p>
+                                                        <p className="text-[0.625rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="px-[20px] py-[30px] text-center text-gray-400 text-[1.4rem]">
+                                                <div className="px-[20px] py-[30px] text-center text-gray-400 text-[0.875rem]">
                                                     Không có thông báo mới
                                                 </div>
                                             )}
                                         </div>
-                                        <Link to="/dashboard/orders" className="block text-center py-[10px] text-[1.2rem] text-client-primary font-bold hover:bg-gray-50">
+                                        <Link to="/dashboard/orders" className="block text-center py-[10px] text-[0.75rem] text-client-primary font-bold hover:bg-gray-50">
                                             Xem tất cả đơn hàng
                                         </Link>
                                     </div>
@@ -244,12 +244,12 @@ export const MainHeader = () => {
                         )}
 
                         {/* Cart Dropdown with Bridge */}
-                        <div className="group relative w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center cursor-pointer">
+                        <div className="group relative w-[2.1875rem] h-[2.1875rem] p-[5px] flex items-center justify-center cursor-pointer">
                             <Link to="/cart">
-                                <Handbag stroke="2" className="w-[2.5rem] h-[2.5rem] text-[#102937] group-hover:text-client-primary transition-default" />
+                                <Handbag stroke="2" className="w-[1.5625rem] h-[1.5625rem] text-[#102937] group-hover:text-client-primary transition-default" />
                             </Link>
                             {cartCount > 0 && (
-                                <span className="absolute right-[-1px] top-[-5px] w-[18px] h-[18px] text-[1rem] bg-client-secondary text-white rounded-full flex items-center justify-center">{cartCount}</span>
+                                <span className="absolute right-[-1px] top-[-5px] w-[18px] h-[18px] text-[0.625rem] bg-client-secondary text-white rounded-full flex items-center justify-center">{cartCount}</span>
                             )}
                             <div className="hidden group-hover:block absolute top-[100%] right-[-20px] pt-[15px] z-50 animate-fadeIn">
                                 {/* Invisible Bridge */}
@@ -262,20 +262,20 @@ export const MainHeader = () => {
                                                 <li key={item.id} className="p-[15px] w-full relative bg-[#fff0f0] rounded-[10px] flex mb-[15px]">
                                                     <div
                                                         onClick={() => handleRemove(item.id as string)}
-                                                        className="absolute left-[-7px] top-[-7px] text-[1.2rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
+                                                        className="absolute left-[-7px] top-[-7px] text-[0.75rem] bg-[#10293726] text-client-secondary hover:bg-client-primary hover:text-white transition-default w-[20px] h-[20px] rounded-full flex items-center justify-center">
                                                         x
                                                     </div>
                                                     <Link to="#" className="inline-block w-[80px] h-[80px] mr-[20px]">
                                                         <img src={item.image} width={80} height={80} alt="" className="w-full h-full object-cover rounded-[10px]" />
                                                     </Link>
                                                     <div>
-                                                        <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.8rem] mb-[3px]">{item.title}</h3>
-                                                        <div className="text-client-text text-[1.4rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
-                                                        <div className="text-client-text text-[1.4rem] flex items-center gap-2">
+                                                        <h3 className="text-client-secondary hover:text-client-text transition-default font-secondary text-[1.125rem] mb-[3px]">{item.title}</h3>
+                                                        <div className="text-client-text text-[0.875rem] font-[400] mb-[5px]"><span className="text-client-secondary font-secondary mr-[2px]">Kích cỡ:</span> {item.option?.size}</div>
+                                                        <div className="text-client-text text-[0.875rem] flex items-center gap-2">
                                                             <span>{item.quantity} x </span>
                                                             <span className="text-client-secondary font-bold">{item.option?.price?.toLocaleString()}đ</span>
                                                             {item.option?.originalPrice && (
-                                                                <span className="text-[#999] line-through text-[1.1rem] opacity-70">
+                                                                <span className="text-[#999] line-through text-[0.6875rem] opacity-70">
                                                                     {item.option.originalPrice.toLocaleString()}đ
                                                                 </span>
                                                             )}
@@ -283,13 +283,13 @@ export const MainHeader = () => {
                                                     </div>
                                                 </li>
                                             ))}
-                                            <div className="border-t border-[#d7d7d7] text-client-secondary font-[700] text-[1.8rem] mt-[20px] pt-[10px] flex justify-between">
+                                            <div className="border-t border-[#d7d7d7] text-client-secondary font-[700] text-[1.125rem] mt-[20px] pt-[10px] flex justify-between">
                                                 <strong>Tạm tính:</strong>
                                                 <span>{totalAmount.toLocaleString()}đ</span>
                                             </div>
                                             <div className="mt-[20px] mb-[5px]">
-                                                <Link to="/cart" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
-                                                <Link to="/checkout" className="block text-[1.4rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
+                                                <Link to="/cart" className="block text-[0.875rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px] mb-[10px]">Xem giỏ hàng</Link>
+                                                <Link to="/checkout" className="block text-[0.875rem] font-secondary bg-client-secondary hover:bg-client-primary transition-default text-white py-[16px] px-[30px] cursor-pointer text-center rounded-[40px]">Thanh toán</Link>
                                             </div>
                                         </ul>
                                     ) : (
@@ -300,7 +300,7 @@ export const MainHeader = () => {
                         </div>
                         {user ? (
                             <div className="group relative">
-                                <Link to="/dashboard/profile" className="w-[3.5rem] h-[3.5rem] rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:border-client-primary transition-default">
+                                <Link to="/dashboard/profile" className="w-[2.1875rem] h-[2.1875rem] rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:border-client-primary transition-default">
                                     <img
                                         src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
                                         alt={user.username}
@@ -311,22 +311,22 @@ export const MainHeader = () => {
                                 <div className="hidden group-hover:block absolute top-[45px] right-0 min-w-[200px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] z-50 py-[10px] animate-fadeIn">
                                     <div className="px-[20px] py-[10px] border-b border-[#f0f0f0]">
                                         <p className="font-bold text-client-secondary truncate">{user.lastName} {user.firstName}</p>
-                                        <p className="text-[1.2rem] text-gray-500 truncate">{user.email}</p>
+                                        <p className="text-[0.75rem] text-gray-500 truncate">{user.email}</p>
                                     </div>
-                                    <Link to="/dashboard/profile" className="block px-[20px] py-[10px] text-[1.4rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
+                                    <Link to="/dashboard/profile" className="block px-[20px] py-[10px] text-[0.875rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
                                         Hồ sơ cá nhân
                                     </Link>
                                     <div
                                         onClick={handleLogout}
-                                        className="block px-[20px] py-[10px] text-[1.4rem] text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
+                                        className="block px-[20px] py-[10px] text-[0.875rem] text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
                                     >
                                         Đăng xuất
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <Link to="/auth/login" className="w-[3.5rem] h-[3.5rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                                <User stroke="2" className="w-[2.5rem] h-[2.5rem]" />
+                            <Link to="/auth/login" className="w-[2.1875rem] h-[2.1875rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
+                                <User stroke="2" className="w-[1.5625rem] h-[1.5625rem]" />
                             </Link>
                         )}
                         <Button

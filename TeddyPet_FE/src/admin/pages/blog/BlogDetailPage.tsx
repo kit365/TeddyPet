@@ -1,4 +1,4 @@
-import {
+﻿import {
     Box,
     Button,
     Container,
@@ -131,7 +131,7 @@ export const BlogDetailPage = () => {
                         sx={{
                             fontWeight: 700,
                             textTransform: "none",
-                            fontSize: "1.3rem",
+                            fontSize: "0.8125rem",
                             borderRadius: "8px",
                             "&:hover": {
                                 backgroundColor: "#919eab14"
@@ -169,7 +169,7 @@ export const BlogDetailPage = () => {
                             sx={{
                                 textTransform: "none",
                                 fontWeight: 700,
-                                fontSize: "1.3rem",
+                                fontSize: "0.8125rem",
                                 backgroundColor: "#1C252E",
                                 color: "#fff",
                                 borderRadius: "8px",
@@ -204,7 +204,7 @@ export const BlogDetailPage = () => {
                                     overflow: "visible",
                                     mt: 1,
                                     '& .MuiMenuItem-root': {
-                                        fontSize: '1.4rem'
+                                        fontSize: '0.875rem'
                                     }
                                 }
                             }
@@ -223,7 +223,7 @@ export const BlogDetailPage = () => {
                             sx={getItemStyle(status, "PUBLISHED")}
                             onClick={() => handleChangeStatus("PUBLISHED")}
                         >
-                            <UploadIcon sx={{ fontSize: "2rem" }} />
+                            <UploadIcon sx={{ fontSize: "1.25rem" }} />
                             Xuất bản
                         </MenuItem>
 
@@ -261,10 +261,10 @@ export const BlogDetailPage = () => {
             >
                 <Container sx={{ height: "100%", position: "relative" }}>
                     <Stack sx={{ height: '100%', justifyContent: 'flex-end', pb: '80px' }}>
-                        <Typography sx={{ fontSize: "3rem", maxWidth: "720px", fontWeight: "700", zIndex: "9", color: "#fff", lineHeight: "1.5" }}>
+                        <Typography sx={{ fontSize: "1.875rem", maxWidth: "720px", fontWeight: "700", zIndex: "9", color: "#fff", lineHeight: "1.5" }}>
                             {blog.title}
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2, color: '#fff', opacity: 0.8, fontSize: '1.4rem' }}>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2, color: '#fff', opacity: 0.8, fontSize: '0.875rem' }}>
                             <Box component="span">
                                 {dayjs(blog.createdAt).locale('vi').format('DD MMM YYYY, HH:mm')}
                             </Box>
@@ -289,20 +289,20 @@ export const BlogDetailPage = () => {
 
                                     '& .MuiSvgIcon-root': {
                                         color: "#fff",
-                                        width: "2rem",
-                                        height: "2rem"
+                                        width: "1.25rem",
+                                        height: "1.25rem"
                                     }
                                 },
                                 '& .MuiSpeedDialAction-fab': {
-                                    width: "4rem",
-                                    height: "4rem",
+                                    width: "2.5rem",
+                                    height: "2.5rem",
                                     boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)",
                                     backgroundColor: "#FFFFFF",
                                     m: "8px",
 
                                     '& svg': {
-                                        width: "2rem",
-                                        height: "2rem"
+                                        width: "1.25rem",
+                                        height: "1.25rem"
                                     }
                                 }
                             }}
@@ -343,7 +343,7 @@ export const BlogDetailPage = () => {
                 </Stack>
             </Container> */}
             <Box sx={{ maxWidth: "720px", mt: "80px", px: "24px", mx: "auto", pb: "40px" }}>
-                <Typography variant="h6" sx={{ fontWeight: "600", fontSize: "1.6rem", color: '#1C252E' }}>
+                <Typography variant="h6" sx={{ fontWeight: "600", fontSize: "1rem", color: '#1C252E' }}>
                     {blog.excerpt}
                 </Typography>
                 <hr className="my-[32px] border-[#919eab33] border-solid" />
@@ -361,7 +361,7 @@ export const BlogDetailPage = () => {
                                 key={tag.tagId}
                                 label={tag.name}
                                 sx={{
-                                    fontSize: "1.3rem",
+                                    fontSize: "0.8125rem",
                                     color: "#1C252E",
                                     borderRadius: "10px"
                                 }}
@@ -371,8 +371,8 @@ export const BlogDetailPage = () => {
                 </div>
                 {/* Comments */}
                 <div className="mt-[40px] mb-[24px] flex">
-                    <h4 className="text-[2.4rem] font-[700]">Bình luận</h4>
-                    <h6 className="text-[#919EAB] text-[1.4rem] font-[600]">(4)</h6>
+                    <h4 className="text-[1.5rem] font-[700]">Bình luận</h4>
+                    <h6 className="text-[#919EAB] text-[0.875rem] font-[600]">(4)</h6>
                 </div>
                 <form noValidate autoComplete="off">
                     <Box sx={{
@@ -420,10 +420,10 @@ export const BlogDetailPage = () => {
                             type="submit"
                             sx={{
                                 background: '#1C252E',
-                                minHeight: "3.6rem",
-                                minWidth: "6.4rem",
+                                minHeight: "2.25rem",
+                                minWidth: "4rem",
                                 fontWeight: 700,
-                                fontSize: "1.4rem",
+                                fontSize: "0.875rem",
                                 padding: "6px 12px",
                                 borderRadius: "8px",
                                 textTransform: "none",
@@ -442,91 +442,91 @@ export const BlogDetailPage = () => {
                 <hr className="mt-[40px] mb-[16px] border-[#919eab33] border-solid" />
                 {/* Comment 1 */}
                 <div className="pt-[24px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
-                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "1.2rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "1.5rem" }} />}>Phản hồi</Button>
+                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "0.75rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "0.9375rem" }} />}>Phản hồi</Button>
                 </div>
                 <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
-                    </div>
-                </div>
-                <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
-                    <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
                 </div>
                 <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                    </div>
+                </div>
+                <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
+                    <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
                 </div>
                 {/* Comment 2 */}
                 <div className="pt-[24px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
-                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "1.2rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "1.5rem" }} />}>Phản hồi</Button>
+                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "0.75rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "0.9375rem" }} />}>Phản hồi</Button>
                 </div>
                 <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
-                    </div>
-                </div>
-                <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
-                    <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
                 </div>
                 <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                    </div>
+                </div>
+                <div className="pt-[24px] pl-[64px] flex relative gap-[16px]">
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
+                    <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
                 </div>
                 {/* Cmt 3 */}
                 <div className="pt-[24px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
-                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "1.2rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "1.5rem" }} />}>Phản hồi</Button>
+                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "0.75rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "0.9375rem" }} />}>Phản hồi</Button>
                 </div>
                 {/* Cmt 4 */}
                 <div className="pt-[24px] flex relative gap-[16px]">
-                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "4.8rem", height: "4.8rem" }} />
+                    <Avatar src="https://api-prod-minimal-v700.pages.dev/assets/images/avatar/avatar-1.webp" sx={{ width: "3rem", height: "3rem" }} />
                     <div className="pb-[24px] flex flex-col border-b border-[#919eab33] flex-1">
-                        <h6 className="text-[1.4rem] font-[600] mb-[4px]">Jayvion Simon</h6>
-                        <span className="text-[#919EAB] text-[1.2rem]">16 Jan 2026</span>
-                        <p className="text-[1.4rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
+                        <h6 className="text-[0.875rem] font-[600] mb-[4px]">Jayvion Simon</h6>
+                        <span className="text-[#919EAB] text-[0.75rem]">16 Jan 2026</span>
+                        <p className="text-[0.875rem] mt-[8px]">She eagerly opened the gift, her eyes sparkling with excitement.</p>
                     </div>
-                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "1.2rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "1.5rem" }} />}>Phản hồi</Button>
+                    <Button sx={{ '&:hover': { background: '#919eab14' }, fontWeight: "700", p: "4px", color: "inherit", borderRadius: "8px", height: "30px", fontSize: "0.75rem", textTransform: "none", position: "absolute", right: "0" }} startIcon={<EditIcon sx={{ mr: "0px", fontSize: "0.9375rem" }} />}>Phản hồi</Button>
                 </div>
                 <Pagination
                     count={8}
@@ -535,7 +535,7 @@ export const BlogDetailPage = () => {
                     sx={{
                         my: "64px",
                         "& .MuiPaginationItem-root": {
-                            fontSize: "1.4rem",
+                            fontSize: "0.875rem",
                             color: "#1C252E",
                             lineHeight: "1.57143"
                         },
@@ -543,8 +543,8 @@ export const BlogDetailPage = () => {
                             opacity: "0.48"
                         },
                         '& .MuiSvgIcon-root': {
-                            width: "2rem",
-                            height: "2rem"
+                            width: "1.25rem",
+                            height: "1.25rem"
                         },
                         "& .Mui-selected": {
                             backgroundColor: "#1C252E !important",

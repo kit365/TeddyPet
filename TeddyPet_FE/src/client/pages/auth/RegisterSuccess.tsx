@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+﻿import { Link, useLocation } from "react-router-dom";
 import { Header } from "../../components/layouts/Header";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { Mail } from "iconoir-react";
@@ -53,11 +53,11 @@ export const RegisterSuccessPage = () => {
                         <Mail className="w-[60px] h-[60px] text-green-500" strokeWidth={1.5} />
                     </div>
 
-                    <h2 className="text-[3.6rem] font-[700] text-client-secondary mb-[20px]">
+                    <h2 className="text-[2.25rem] font-[700] text-client-secondary mb-[20px]">
                         Đăng ký thành công!
                     </h2>
 
-                    <p className="text-[1.8rem] text-[#555] mb-[40px] leading-relaxed max-w-[600px] mx-auto">
+                    <p className="text-[1.125rem] text-[#555] mb-[40px] leading-relaxed max-w-[600px] mx-auto">
                         Cảm ơn bạn đã đăng ký tài khoản. Chúng tôi đã gửi một email xác thực đến <span className="font-bold text-client-primary">{email}</span>.
                         <br />
                         Vui lòng kiểm tra hộp thư đến (và cả mục Spam) để kích hoạt tài khoản của bạn.
@@ -66,19 +66,19 @@ export const RegisterSuccessPage = () => {
                     <div className="flex justify-center gap-[20px]">
                         <Link
                             to="/auth/login"
-                            className="bg-client-secondary text-white px-[40px] py-[15px] rounded-[30px] text-[1.6rem] font-[600] hover:bg-client-primary transition-all duration-300"
+                            className="bg-client-secondary text-white px-[40px] py-[15px] rounded-[30px] text-[1rem] font-[600] hover:bg-client-primary transition-all duration-300"
                         >
                             Đăng nhập
                         </Link>
                         <Link
                             to="/"
-                            className="bg-white border border-[#eee] text-client-secondary px-[40px] py-[15px] rounded-[30px] text-[1.6rem] font-[600] hover:bg-[#f9f9f9] transition-all duration-300"
+                            className="bg-white border border-[#eee] text-client-secondary px-[40px] py-[15px] rounded-[30px] text-[1rem] font-[600] hover:bg-[#f9f9f9] transition-all duration-300"
                         >
                             Về trang chủ
                         </Link>
                     </div>
 
-                    <p className="mt-[40px] text-[1.4rem] text-[#999]">
+                    <p className="mt-[40px] text-[0.875rem] text-[#999]">
                         Không nhận được email? {" "}
                         {cooldown > 0 ? (
                             <span className="text-client-primary cursor-not-allowed">

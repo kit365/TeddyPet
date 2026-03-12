@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { useCartStore } from "../../../stores/useCartStore";
@@ -64,7 +64,7 @@ export const CartPage = () => {
                     <div className="w-[65%] bg-white rounded-[20px] border border-[#d7d7d7] overflow-hidden mx-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="w-full text-[2rem] font-secondary text-white bg-client-primary">
+                                <tr className="w-full text-[1.25rem] font-secondary text-white bg-client-primary">
                                     <th className="w-[60px] border-r border-[#d7d7d7] py-[10px] px-[20px]">
                                         <div className="checkbox checkbox-cart flex items-center justify-center">
                                             <input
@@ -121,7 +121,7 @@ export const CartPage = () => {
                                                     />
                                                     {!isAvailable && (
                                                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                                                            <span className="text-white font-black text-[1.4rem] uppercase tracking-widest bg-red-600/90 py-2 px-4 rounded-full shadow-lg border border-red-400 animate-pulse">
+                                                            <span className="text-white font-black text-[0.875rem] uppercase tracking-widest bg-red-600/90 py-2 px-4 rounded-full shadow-lg border border-red-400 animate-pulse">
                                                                 Tạm hết hàng
                                                             </span>
                                                         </div>
@@ -133,7 +133,7 @@ export const CartPage = () => {
                                                 <div className="text-center">
                                                     <Link
                                                         to={`/product/detail/the-ten`}
-                                                        className="mb-[20px] block text-[2rem] font-secondary"
+                                                        className="mb-[20px] block text-[1.25rem] font-secondary"
                                                     >
                                                         {item.title}
                                                     </Link>
@@ -144,13 +144,13 @@ export const CartPage = () => {
 
                                                     <p className="text-client-text mb-[20px] 2xl:mb-[15px] flex items-center justify-center gap-4">
                                                         <span className="">
-                                                            <span className="font-secondary 2xl:text-[1.4rem] text-client-secondary mr-[5px]">
+                                                            <span className="font-secondary 2xl:text-[0.875rem] text-client-secondary mr-[5px]">
                                                                 Phân loại:
                                                             </span>
                                                             {item.option.size}
                                                         </span>
                                                         {item.stockQuantity !== undefined && (
-                                                            <span className={`text-[1.2rem] px-3 py-1 rounded-full font-bold ${item.stockQuantity > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                                            <span className={`text-[0.75rem] px-3 py-1 rounded-full font-bold ${item.stockQuantity > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                                                                 {item.stockQuantity > 0 ? `Còn ${item.stockQuantity}` : 'Hết hàng'}
                                                             </span>
                                                         )}
@@ -169,7 +169,7 @@ export const CartPage = () => {
                                                                         item.quantity - 1
                                                                     )
                                                                 }
-                                                                className={`w-[40px] h-full rounded-l-[4rem] text-[2.5rem] bg-[#e67e2033] text-center transition-[color] duration-200 ease-linear ${item.quantity <= 1
+                                                                className={`w-[40px] h-full rounded-l-[2.5rem] text-[1.5625rem] bg-[#e67e2033] text-center transition-[color] duration-200 ease-linear ${item.quantity <= 1
                                                                     ? "cursor-not-allowed"
                                                                     : "cursor-pointer hover:text-client-primary"
                                                                     }`}
@@ -179,7 +179,7 @@ export const CartPage = () => {
                                                                 min={1}
                                                                 readOnly
                                                                 value={item.quantity}
-                                                                className="w-[40px] h-full bg-[#e67e2033] text-[1.6rem] text-center outline-none no-spinner"
+                                                                className="w-[40px] h-full bg-[#e67e2033] text-[1rem] text-center outline-none no-spinner"
                                                             />
                                                             <input
                                                                 type="button"
@@ -190,7 +190,7 @@ export const CartPage = () => {
                                                                         item.quantity + 1
                                                                     )
                                                                 }
-                                                                className="cursor-pointer w-[40px] h-full rounded-r-[4rem] text-[2.5rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
+                                                                className="cursor-pointer w-[40px] h-full rounded-r-[2.5rem] text-[1.5625rem] bg-[#e67e2033] hover:text-client-primary text-center transition-[color] duration-200 ease-linear"
                                                             />
                                                         </div>
 
@@ -207,7 +207,7 @@ export const CartPage = () => {
                                             </td>
 
                                             <td className="w-[150px] text-center">
-                                                <span className="text-[2rem] font-bold text-client-secondary">
+                                                <span className="text-[1.25rem] font-bold text-client-secondary">
                                                     {(item.option.price * item.quantity).toLocaleString()}đ
                                                 </span>
                                             </td>
@@ -220,7 +220,7 @@ export const CartPage = () => {
                     <div className="flex-1 ml-[50px]">
                         <div className="sticky top-[0px] min-h-[100px]">
                             <div className="overflow-hidden border border-[#d7d7d7] bg-white rounded-[20px]">
-                                <h2 className="py-[10px] px-[20px] text-[2rem] font-secondary text-white bg-client-primary text-center">Tóm tắt đơn hàng</h2>
+                                <h2 className="py-[10px] px-[20px] text-[1.25rem] font-secondary text-white bg-client-primary text-center">Tóm tắt đơn hàng</h2>
 
                                 {/* Selected Items Summary */}
                                 <div className="p-[20px]">
@@ -234,17 +234,17 @@ export const CartPage = () => {
                                                         className="w-[60px] h-[60px] object-cover rounded-[8px] border border-gray-200"
                                                     />
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-[1.4rem] font-medium text-client-secondary line-clamp-2 mb-[5px]">
+                                                        <p className="text-[0.875rem] font-medium text-client-secondary line-clamp-2 mb-[5px]">
                                                             {item.title}
                                                         </p>
-                                                        <p className="text-[1.2rem] text-gray-500 mb-[3px]">
+                                                        <p className="text-[0.75rem] text-gray-500 mb-[3px]">
                                                             {item.option.price.toLocaleString()}đ × {item.quantity}
                                                         </p>
-                                                        <p className="text-[1.2rem] text-gray-400">
+                                                        <p className="text-[0.75rem] text-gray-400">
                                                             Màu sắc: {item.option.size}
                                                         </p>
                                                     </div>
-                                                    <div className="text-[1.4rem] font-bold text-client-secondary">
+                                                    <div className="text-[0.875rem] font-bold text-client-secondary">
                                                         {(item.option.price * item.quantity).toLocaleString()}đ
                                                     </div>
                                                 </div>
@@ -254,7 +254,7 @@ export const CartPage = () => {
 
                                     {/* Subtotal */}
                                     <div className="border-t border-[#d7d7d7] pt-[15px] mb-[15px]">
-                                        <div className="flex justify-between items-center text-client-text font-[400] text-[1.5rem]">
+                                        <div className="flex justify-between items-center text-client-text font-[400] text-[0.9375rem]">
                                             <span>Tạm tính</span>
                                             <span>{subtotal.toLocaleString()}đ</span>
                                         </div>
@@ -262,8 +262,8 @@ export const CartPage = () => {
 
                                     {/* Total */}
                                     <div className="flex justify-between items-center mb-[20px]">
-                                        <span className="text-[1.8rem] font-secondary text-client-secondary">Tổng thanh toán</span>
-                                        <span className="text-[2rem] font-bold text-client-primary">
+                                        <span className="text-[1.125rem] font-secondary text-client-secondary">Tổng thanh toán</span>
+                                        <span className="text-[1.25rem] font-bold text-client-primary">
                                             {total.toLocaleString()}đ
                                         </span>
                                     </div>
@@ -280,7 +280,7 @@ export const CartPage = () => {
                                     </Link>
 
                                     {/* Note */}
-                                    <p className="text-[1.2rem] text-gray-400 text-center mt-[10px]">
+                                    <p className="text-[0.75rem] text-gray-400 text-center mt-[10px]">
                                         (Nhận thanh toán sau khi lên đơn hàng)
                                     </p>
                                 </div>

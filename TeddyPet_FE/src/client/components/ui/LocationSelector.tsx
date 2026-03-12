@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { MapPin, Search, Navigation } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -246,8 +246,8 @@ export const LocationSelector = () => {
                     <MapPin className="w-[18px] h-[18px]" />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-[1.1rem] text-gray-400 font-medium">Giao tới:</span>
-                    <span className="text-[1.3rem] font-secondary text-client-secondary truncate w-[140px]">
+                    <span className="text-[0.6875rem] text-gray-400 font-medium">Giao tới:</span>
+                    <span className="text-[0.8125rem] font-secondary text-client-secondary truncate w-[140px]">
                         {address}
                     </span>
                 </div>
@@ -257,8 +257,8 @@ export const LocationSelector = () => {
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-[20px] w-[900px] max-w-[95vw] h-[650px] flex flex-col overflow-hidden shadow-2xl scale-up">
                         <div className="p-[20px] border-b flex justify-between items-center">
-                            <h2 className="text-[2rem] font-secondary text-client-secondary">Chọn địa chỉ giao hàng</h2>
-                            <button onClick={() => setIsOpen(false)} className="text-[2.5rem] text-gray-400 hover:text-client-secondary transition-colors">&times;</button>
+                            <h2 className="text-[1.25rem] font-secondary text-client-secondary">Chọn địa chỉ giao hàng</h2>
+                            <button onClick={() => setIsOpen(false)} className="text-[1.5625rem] text-gray-400 hover:text-client-secondary transition-colors">&times;</button>
                         </div>
 
                         <div className="flex-1 flex overflow-hidden">
@@ -283,7 +283,7 @@ export const LocationSelector = () => {
                                                 value={searchKeyword}
                                                 onChange={(e) => setSearchKeyword(e.target.value)}
                                                 placeholder="Tìm kiếm địa chỉ..."
-                                                className="w-full p-[10px] outline-none text-[1.4rem]"
+                                                className="w-full p-[10px] outline-none text-[0.875rem]"
                                             />
                                             <button
                                                 onClick={handleCurrentLocation}
@@ -299,7 +299,7 @@ export const LocationSelector = () => {
                                                     <div
                                                         key={i}
                                                         onClick={() => handleSelectSuggestion(s)}
-                                                        className="p-[12px] border-b last:border-0 hover:bg-gray-50 cursor-pointer text-[1.3rem] transition-colors"
+                                                        className="p-[12px] border-b last:border-0 hover:bg-gray-50 cursor-pointer text-[0.8125rem] transition-colors"
                                                     >
                                                         {s.display_name}
                                                     </div>
@@ -314,24 +314,24 @@ export const LocationSelector = () => {
                             <div className="w-[40%] p-[25px] flex flex-col justify-between bg-gray-50">
                                 <div className="flex flex-col gap-[20px]">
                                     <div className="bg-white p-[15px] rounded-[15px] border shadow-sm">
-                                        <label className="text-gray-400 text-[1.2rem] block mb-[5px] font-medium">Địa chỉ hiện tại</label>
-                                        <p className="text-client-secondary text-[1.4rem] font-medium line-clamp-3">
+                                        <label className="text-gray-400 text-[0.75rem] block mb-[5px] font-medium">Địa chỉ hiện tại</label>
+                                        <p className="text-client-secondary text-[0.875rem] font-medium line-clamp-3">
                                             {tempAddress || address}
                                         </p>
                                     </div>
-                                    <div className="text-[1.3rem] text-gray-500 leading-relaxed italic pr-[10px]">
+                                    <div className="text-[0.8125rem] text-gray-500 leading-relaxed italic pr-[10px]">
                                         * Bạn có thể gõ tìm địa chỉ hoặc click trực tiếp lên bản đồ để chọn vị trí chính xác nhất.
                                     </div>
 
                                     {user && (
                                         <div className="mt-[10px] flex-1 overflow-hidden flex flex-col">
                                             <div className="flex items-center justify-between mb-[10px]">
-                                                <h4 className="text-[1.4rem] font-bold text-client-secondary uppercase tracking-tight">Vị trí đã lưu</h4>
-                                                <a href="/dashboard/address/create" className="text-[1.2rem] text-client-primary hover:underline font-bold" onClick={() => setIsOpen(false)}>Thêm mới</a>
+                                                <h4 className="text-[0.875rem] font-bold text-client-secondary uppercase tracking-tight">Vị trí đã lưu</h4>
+                                                <a href="/dashboard/address/create" className="text-[0.75rem] text-client-primary hover:underline font-bold" onClick={() => setIsOpen(false)}>Thêm mới</a>
                                             </div>
                                             <div className="overflow-y-auto pr-[5px] space-y-[8px] flex-1 max-h-[180px]">
                                                 {loadingSaved ? (
-                                                    <p className="text-[1.2rem] text-gray-400">Đang tải...</p>
+                                                    <p className="text-[0.75rem] text-gray-400">Đang tải...</p>
                                                 ) : savedAddresses.length > 0 ? (
                                                     savedAddresses.map((addr) => (
                                                         <div
@@ -349,14 +349,14 @@ export const LocationSelector = () => {
                                                             <div className="flex items-start gap-[10px]">
                                                                 <MapPin className="w-[14px] h-[14px] text-gray-400 mt-[3px] group-hover:text-client-primary" />
                                                                 <div className="flex-1 overflow-hidden">
-                                                                    <p className="text-[1.3rem] font-bold text-client-secondary truncate group-hover:text-client-primary">{addr.fullName}</p>
-                                                                    <p className="text-[1.1rem] text-gray-500 truncate">{addr.address}</p>
+                                                                    <p className="text-[0.8125rem] font-bold text-client-secondary truncate group-hover:text-client-primary">{addr.fullName}</p>
+                                                                    <p className="text-[0.6875rem] text-gray-500 truncate">{addr.address}</p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p className="text-[1.2rem] text-gray-400 italic">Chưa có địa chỉ nào được lưu.</p>
+                                                    <p className="text-[0.75rem] text-gray-400 italic">Chưa có địa chỉ nào được lưu.</p>
                                                 )}
                                             </div>
                                         </div>
@@ -366,13 +366,13 @@ export const LocationSelector = () => {
                                 <div className="flex flex-col gap-[12px]">
                                     <button
                                         onClick={handleConfirm}
-                                        className="w-full bg-client-secondary text-white py-[16px] rounded-[12px] text-[1.6rem] font-secondary hover:bg-client-primary transition-all shadow-md active:scale-[0.98]"
+                                        className="w-full bg-client-secondary text-white py-[16px] rounded-[12px] text-[1rem] font-secondary hover:bg-client-primary transition-all shadow-md active:scale-[0.98]"
                                     >
                                         Xác nhận địa chỉ
                                     </button>
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="w-full bg-white border border-gray-200 text-gray-500 py-[14px] rounded-[12px] text-[1.5rem] hover:bg-gray-50 transition-colors"
+                                        className="w-full bg-white border border-gray-200 text-gray-500 py-[14px] rounded-[12px] text-[0.9375rem] hover:bg-gray-50 transition-colors"
                                     >
                                         Để sau
                                     </button>

@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+﻿import { forwardRef } from "react";
 
 interface InputProps {
     name: string;
@@ -22,7 +22,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps & { className?: str
                     className={`w-full bg-white text-client-text outline-none border border-[#d7d7d7] px-[32px] py-[16px] rounded-[40px] focus:border focus:border-client-primary transition-default ${className}`}
                     {...rest}
                 />
-                {error && <span className={`${errorColor} ml-[32px] text-[1.4rem]`}>{error}</span>}
+                {error && <span className={`${errorColor} ml-[32px] text-[0.875rem]`}>{error}</span>}
             </div>
         )
     }

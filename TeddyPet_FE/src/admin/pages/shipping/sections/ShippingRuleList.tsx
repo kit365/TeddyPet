@@ -1,4 +1,4 @@
-import { DataGrid } from '@mui/x-data-grid';
+﻿import { DataGrid } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import { useDataGridLocale } from '../../../hooks/useDataGridLocale';
 import { dataGridCardStyles, dataGridContainerStyles, dataGridStyles } from '../configs/styles.config';
@@ -16,7 +16,7 @@ interface ShippingRuleListProps {
 const CustomNoRowsOverlay = () => {
     return (
         <Stack height="100%" alignItems="center" justifyContent="center">
-            <Typography variant="body1" sx={{ fontSize: '1.5rem', fontWeight: 500, color: 'text.secondary' }}>
+            <Typography variant="body1" sx={{ fontSize: '0.9375rem', fontWeight: 500, color: 'text.secondary' }}>
                 Không có dữ liệu
             </Typography>
         </Stack>

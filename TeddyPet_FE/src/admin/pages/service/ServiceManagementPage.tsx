@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Tabs, Tab, Box } from '@mui/material';
 import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
@@ -43,10 +43,10 @@ export const ServiceManagementPage = () => {
                     '& .MuiTab-root': { mx: 1, minWidth: 'auto', px: 2 },
                 }}
             >
-                <Tab label="Dịch vụ" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
-                <Tab label="Add-ons" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
-                <Tab label="Additional Charge" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
-                <Tab label="Gói dịch vụ" sx={{ textTransform: 'none', fontSize: '1.4rem', fontWeight: 500 }} />
+                <Tab label="Dịch vụ" sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }} />
+                <Tab label="Add-ons" sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }} />
+                <Tab label="Additional Charge" sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }} />
+                <Tab label="Gói dịch vụ" sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }} />
             </Tabs>
 
             {showCategoryTabs && (
@@ -59,7 +59,7 @@ export const ServiceManagementPage = () => {
                         mb: '24px',
                         minHeight: 40,
                         '& .MuiTabs-indicator': { backgroundColor: '#637381', height: 2 },
-                        '& .MuiTab-root': { minHeight: 40, py: 1, textTransform: 'none', fontSize: '1.3rem', mx: 1, minWidth: 'auto', px: 2 },
+                        '& .MuiTab-root': { minHeight: 40, py: 1, textTransform: 'none', fontSize: '0.8125rem', mx: 1, minWidth: 'auto', px: 2 },
                     }}
                 >
                     <Tab label="Tất cả" value="all" />

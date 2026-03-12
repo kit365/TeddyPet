@@ -1,4 +1,4 @@
-import { Avatar, Box, Link, ListItemText } from "@mui/material";
+﻿import { Avatar, Box, Link, ListItemText } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridRenderCellParams } from "@mui/x-data-grid";
 import { DeleteIcon, EditIcon, EyeIcon } from "../../../assets/icons/index";
 import { COLORS } from "../configs/constants";
@@ -53,7 +53,7 @@ export const RenderTitleCell = (params: GridRenderCellParams) => {
                         sx={{
                             color: COLORS.primary,
                             fontWeight: 700,
-                            fontSize: '1.6rem',
+                            fontSize: '1rem',
                             transition: 'color 0.2s',
                         }}
                     >
@@ -91,7 +91,7 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
 
             <span
                 style={{
-                    fontSize: "1.5rem",
+                    fontSize: "0.9375rem",
                     color: COLORS.primary,
                     transition: 'color 0.2s',
                     textTransform: 'capitalize',
@@ -104,7 +104,7 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
                 className="date-text"
                 component='span'
                 sx={{
-                    fontSize: "1.3rem",
+                    fontSize: "0.8125rem",
                     color: COLORS.secondary,
                     textTransform: 'lowercase',
                     fontWeight: 500
@@ -135,7 +135,7 @@ export const RenderStatusCell = (params: GridRenderCellParams) => {
 
     return (
         <span
-            className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.8rem] text-[1.4rem] px-[10px] font-[700] rounded-[8px]"
+            className="inline-flex items-center justify-center leading-1.5 min-w-[1.5rem] h-[1.75rem] text-[0.875rem] px-[10px] font-[700] rounded-[8px]"
             style={{
                 backgroundColor: bg,
                 color: text,
@@ -172,13 +172,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
     return (
         <GridActionsCell {...params}>
             <GridActionsCellItem
-                icon={<EyeIcon sx={{ fontSize: '2rem' }} />}
+                icon={<EyeIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Chi tiết"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600"
                         },
                     },
@@ -186,13 +186,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={() => navigate(`/${prefixAdmin}/brand/detail/${brandId}`)}
             />
             <GridActionsCellItem
-                icon={<EditIcon sx={{ fontSize: '2rem' }} />}
+                icon={<EditIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Chỉnh sửa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600"
                         },
                     },
@@ -200,13 +200,13 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
                 onClick={handleEdit}
             />
             <GridActionsCellItem
-                icon={<DeleteIcon sx={{ fontSize: '2rem' }} />}
+                icon={<DeleteIcon sx={{ fontSize: '1.25rem' }} />}
                 label="Xóa"
                 showInMenu
                 {...({
                     sx: {
                         '& .MuiTypography-root': {
-                            fontSize: '1.5rem',
+                            fontSize: '0.9375rem',
                             fontWeight: "600",
                             color: "#FF5630"
                         },

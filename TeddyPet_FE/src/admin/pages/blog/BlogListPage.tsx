@@ -1,4 +1,4 @@
-import Button from "@mui/material/Button";
+﻿import Button from "@mui/material/Button";
 import AddIcon from '@mui/icons-material/Add';
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
@@ -84,10 +84,10 @@ export const BlogListPage = () => {
                     onClick={() => navigate(`/${prefixAdmin}/blog/create`)}
                     sx={{
                         background: '#1C252E',
-                        minHeight: "3.6rem",
-                        minWidth: "6.4rem",
+                        minHeight: "2.25rem",
+                        minWidth: "4rem",
                         fontWeight: 700,
-                        fontSize: "1.4rem",
+                        fontSize: "0.875rem",
                         padding: "6px 12px",
                         borderRadius: "8px",
                         textTransform: "none",

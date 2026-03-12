@@ -1,4 +1,4 @@
-import {
+﻿import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -135,7 +135,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                fontSize: '2rem',
+                fontSize: '1.25rem',
                 fontWeight: 700,
                 color: '#1C252E',
                 padding: "0 0 20px 0",
@@ -152,7 +152,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                 <CircularProgress size={16} /> : <DescriptionIcon />
                         }
                         sx={{
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             textTransform: 'none',
                             color: '#637381',
                             borderColor: '#919EAB33',
@@ -172,19 +172,19 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                         open={openMenu}
                         onClose={handleMenuClose}
                     >
-                        <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                        <MenuItem onClick={() => { handleMenuClose(); importMutation.reset(); setIsImportModalOpen(true); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                             <FileUploadIcon fontSize="small" /> Nhập Excel
                         </MenuItem>
-                        <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                        <MenuItem onClick={() => { handleMenuClose(); exportMutation.mutate(); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                             <FileDownloadIcon fontSize="small" /> Xuất Excel
                         </MenuItem>
-                        <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '1.4rem', gap: 1 }}>
+                        <MenuItem onClick={() => { handleMenuClose(); templateMutation.mutate(); }} sx={{ fontSize: '0.875rem', gap: 1 }}>
                             <SimCardDownloadIcon fontSize="small" /> Tải Template
                         </MenuItem>
                     </Menu>
                     <Tooltip title={t("admin.common.close")}>
                         <IconButton onClick={onClose} size="small" sx={{ color: '#637381' }}>
-                            <CloseIcon sx={{ fontSize: '2rem' }} />
+                            <CloseIcon sx={{ fontSize: '1.25rem' }} />
                         </IconButton>
                     </Tooltip>
                 </Box>
@@ -206,10 +206,10 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                 if (e.key === 'Enter') handleSave();
                             }}
                             InputProps={{
-                                sx: { borderRadius: '10px', fontSize: '1.4rem', height: '48px' }
+                                sx: { borderRadius: '10px', fontSize: '0.875rem', height: '48px' }
                             }}
                             InputLabelProps={{
-                                sx: { fontSize: '1.4rem' }
+                                sx: { fontSize: '0.875rem' }
                             }}
                         />
                         <TextField
@@ -221,15 +221,15 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                             value={tagDesc}
                             onChange={(e) => setTagDesc(e.target.value)}
                             InputProps={{
-                                sx: { borderRadius: '10px', fontSize: '1.4rem', p: 1.5 }
+                                sx: { borderRadius: '10px', fontSize: '0.875rem', p: 1.5 }
                             }}
                             InputLabelProps={{
-                                sx: { fontSize: '1.4rem' }
+                                sx: { fontSize: '0.875rem' }
                             }}
                         />
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-                                <Typography sx={{ fontSize: '1.4rem', color: '#637381', fontWeight: 500 }}>
+                                <Typography sx={{ fontSize: '0.875rem', color: '#637381', fontWeight: 500 }}>
                                     Màu sắc:
                                 </Typography>
                                 <Box sx={{
@@ -259,7 +259,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                         }}
                                     />
                                 </Box>
-                                <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, color: '#212B36', fontFamily: 'monospace' }}>
+                                <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#212B36', fontFamily: 'monospace' }}>
                                     {tagColor.toUpperCase()}
                                 </Typography>
                             </Box>
@@ -270,7 +270,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                         sx={{
                                             borderRadius: '10px',
                                             textTransform: 'none',
-                                            fontSize: '1.4rem',
+                                            fontSize: '0.875rem',
                                             fontWeight: 600,
                                             color: '#637381',
                                             height: '40px'
@@ -287,7 +287,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                         borderRadius: '10px',
                                         textTransform: 'none',
                                         fontWeight: 700,
-                                        fontSize: '1.4rem',
+                                        fontSize: '0.875rem',
                                         px: 3,
                                         height: '40px',
                                         background: '#1C252E',
@@ -315,7 +315,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                             <CircularProgress />
                         </Box>
                     ) : tags.length === 0 ? (
-                        <Typography sx={{ textAlign: 'center', color: '#919EAB', py: 4, fontSize: '1.4rem' }}>
+                        <Typography sx={{ textAlign: 'center', color: '#919EAB', py: 4, fontSize: '0.875rem' }}>
                             {t("admin.product.tags.no_tags")}
                         </Typography>
                     ) : (
@@ -330,14 +330,14 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                                 onClick={() => handleEdit(tag)}
                                                 sx={{ color: '#637381' }}
                                             >
-                                                <EditIcon sx={{ fontSize: '1.8rem' }} />
+                                                <EditIcon sx={{ fontSize: '1.125rem' }} />
                                             </IconButton>
                                             <IconButton
                                                 size="small"
                                                 onClick={() => handleDelete(tag.id || tag.tagId)}
                                                 sx={{ color: '#FF5630' }}
                                             >
-                                                <DeleteIcon sx={{ fontSize: '1.8rem' }} />
+                                                <DeleteIcon sx={{ fontSize: '1.125rem' }} />
                                             </IconButton>
                                         </Stack>
                                     }
@@ -359,12 +359,12 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                                                 color: tag.color,
                                                 borderColor: `${tag.color}40`,
                                                 fontWeight: 700,
-                                                fontSize: '1.3rem',
+                                                fontSize: '0.8125rem',
                                                 height: '28px'
                                             }}
                                             variant="outlined"
                                         />
-                                        <Typography sx={{ fontSize: '1.3rem', color: '#637381', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Typography sx={{ fontSize: '0.8125rem', color: '#637381', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {tag.description && tag.description}
                                         </Typography>
                                     </Box>

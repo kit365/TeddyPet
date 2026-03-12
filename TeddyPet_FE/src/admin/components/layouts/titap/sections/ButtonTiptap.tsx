@@ -1,4 +1,4 @@
-import { memo } from "react";
+﻿import { memo } from "react";
 import { ButtonBase, SxProps, Theme, Tooltip } from "@mui/material";
 
 type ToolbarButtonProps = {
@@ -31,8 +31,8 @@ export const ButtonTiptap = memo(({
                     sx={{
                         padding: "0px 6px",
                         borderRadius: "6px",
-                        width: "2.8rem",
-                        height: "2.8rem",
+                        width: "1.75rem",
+                        height: "1.75rem",
                         opacity: disabled ? 0.48 : 1,
                         backgroundColor: active ? "#919eab29" : "transparent",
                         border: active ? "1px solid #919eab14" : "none",

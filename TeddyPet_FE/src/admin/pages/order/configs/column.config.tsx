@@ -1,4 +1,4 @@
-import { GridColDef } from '@mui/x-data-grid';
+﻿import { GridColDef } from '@mui/x-data-grid';
 import { Stack, Typography, IconButton, Tooltip, Box } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -40,7 +40,7 @@ export const getOrderColumns = (
                             fontWeight: 900,
                             color: '#3F51B5',
                             textDecoration: 'none',
-                            fontSize: '1.3rem',
+                            fontSize: '0.8125rem',
                             letterSpacing: '0.5px',
                             whiteSpace: 'nowrap',
                             textAlign: 'center',
@@ -65,10 +65,10 @@ export const getOrderColumns = (
                 return (
                     <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Stack spacing={0} alignItems="center">
-                            <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#1C252E' }}>
                                 {date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </Typography>
-                            <Typography sx={{ fontSize: '1rem', color: '#919EAB', fontWeight: 700 }}>
+                            <Typography sx={{ fontSize: '0.625rem', color: '#919EAB', fontWeight: 700 }}>
                                 {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                             </Typography>
                         </Stack>
@@ -85,13 +85,13 @@ export const getOrderColumns = (
                 const row = params.row;
                 return (
                     <Stack spacing={0} sx={{ py: 1 }}>
-                        <Typography noWrap sx={{ fontWeight: 800, fontSize: '1.35rem', color: '#1C252E' }}>
+                        <Typography noWrap sx={{ fontWeight: 800, fontSize: '0.8438rem', color: '#1C252E' }}>
                             {row.user?.fullName || row.shippingName}
                         </Typography>
-                        <Typography sx={{ fontSize: '1.2rem', color: '#637381', fontWeight: 600 }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#637381', fontWeight: 600 }}>
                             {row.shippingPhone}
                         </Typography>
-                        <Typography noWrap sx={{ fontSize: '1.1rem', color: '#919EAB', fontWeight: 700 }}>
+                        <Typography noWrap sx={{ fontSize: '0.6875rem', color: '#919EAB', fontWeight: 700 }}>
                             {row.user?.email || row.guestEmail || ''}
                         </Typography>
                     </Stack>
@@ -108,7 +108,7 @@ export const getOrderColumns = (
                 const items = params.value as any[];
                 return (
                     <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#1C252E' }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.875rem', color: '#1C252E' }}>
                             {items.reduce((acc, item) => acc + item.quantity, 0)}
                         </Typography>
                     </Box>
@@ -137,11 +137,11 @@ export const getOrderColumns = (
                         {/* Phương thức thanh toán */}
                         <Stack direction="row" spacing={0.5} alignItems="center">
                             {isCOD ? (
-                                <PaymentsIcon sx={{ color: '#637381', fontSize: '1.4rem' }} />
+                                <PaymentsIcon sx={{ color: '#637381', fontSize: '0.875rem' }} />
                             ) : (
-                                <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '1.4rem' }} />
+                                <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '0.875rem' }} />
                             )}
-                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '0.6875rem', color: '#1C252E' }}>
                                 {isCOD ? 'COD' : 'CK'}
                             </Typography>
                         </Stack>
@@ -153,7 +153,7 @@ export const getOrderColumns = (
                             bgcolor: statusBgColor,
                         }}>
                             <Typography sx={{
-                                fontSize: '0.85rem',
+                                fontSize: '0.5312rem',
                                 fontWeight: 800,
                                 color: statusColor,
                                 whiteSpace: 'nowrap'
@@ -173,7 +173,7 @@ export const getOrderColumns = (
             headerAlign: 'center',
             renderCell: (params) => (
                 <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '1.5rem', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
+                    <Typography sx={{ fontWeight: 900, color: '#1C252E', fontSize: '0.9375rem', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
                         {params.value?.toLocaleString('vi-VN')}₫
                     </Typography>
                 </Box>
@@ -206,7 +206,7 @@ export const getOrderColumns = (
                             <Typography sx={{
                                 color: textColor,
                                 fontWeight: 700,
-                                fontSize: '1.05rem',
+                                fontSize: '0.6562rem',
                                 whiteSpace: 'nowrap'
                             }}>
                                 {label}
@@ -233,7 +233,7 @@ export const getOrderColumns = (
                                 onClick={() => onQuickConfirm?.(params.row.id)}
                                 sx={{ color: '#00A76F', '&:hover': { bgcolor: 'rgba(0, 167, 111, 0.08)' } }}
                             >
-                                <CheckCircleOutlineIcon sx={{ fontSize: '1.8rem' }} />
+                                <CheckCircleOutlineIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -245,7 +245,7 @@ export const getOrderColumns = (
                                 onClick={() => onUpdateStatus?.(params.row.id, 'PROCESSING')}
                                 sx={{ color: '#16A34A', '&:hover': { bgcolor: 'rgba(22, 163, 74, 0.08)' } }}
                             >
-                                <InventoryIcon sx={{ fontSize: '1.8rem' }} />
+                                <InventoryIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -257,7 +257,7 @@ export const getOrderColumns = (
                                 onClick={() => onUpdateStatus?.(params.row.id, 'DELIVERING')}
                                 sx={{ color: '#1064ad', '&:hover': { bgcolor: 'rgba(16, 100, 173, 0.08)' } }}
                             >
-                                <LocalShippingIcon sx={{ fontSize: '1.8rem' }} />
+                                <LocalShippingIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -269,7 +269,7 @@ export const getOrderColumns = (
                                 onClick={() => onUpdateStatus?.(params.row.id, 'DELIVERED')}
                                 sx={{ color: '#118D57', '&:hover': { bgcolor: 'rgba(17, 141, 87, 0.08)' } }}
                             >
-                                <DoneAllIcon sx={{ fontSize: '1.8rem' }} />
+                                <DoneAllIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -282,7 +282,7 @@ export const getOrderColumns = (
                                 onClick={() => onCancelOrder?.(params.row.id)}
                                 sx={{ color: '#FF5630', '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' } }}
                             >
-                                <CancelIcon sx={{ fontSize: '1.8rem' }} />
+                                <CancelIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -295,7 +295,7 @@ export const getOrderColumns = (
                                 onClick={() => onReturnOrder?.(params.row.id)}
                                 sx={{ color: '#B76E00', '&:hover': { bgcolor: 'rgba(255, 171, 0, 0.08)' } }}
                             >
-                                <ReplayIcon sx={{ fontSize: '1.8rem' }} />
+                                <ReplayIcon sx={{ fontSize: '1.125rem' }} />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -306,7 +306,7 @@ export const getOrderColumns = (
                             onClick={() => onPrintOrder?.(params.row.id, params.row.orderCode)}
                             sx={{ color: '#637381' }}
                         >
-                            <LocalPrintshopIcon sx={{ fontSize: '1.8rem' }} />
+                            <LocalPrintshopIcon sx={{ fontSize: '1.125rem' }} />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Xem chi tiết">
@@ -316,7 +316,7 @@ export const getOrderColumns = (
                             size="small"
                             sx={{ color: '#637381' }}
                         >
-                            <VisibilityIcon sx={{ fontSize: '2rem' }} />
+                            <VisibilityIcon sx={{ fontSize: '1.25rem' }} />
                         </IconButton>
                     </Tooltip>
                 </Stack>

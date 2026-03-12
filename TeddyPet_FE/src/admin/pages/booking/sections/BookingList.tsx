@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,7 +40,7 @@ const CustomNoRowsOverlay = () => (
         className="w-full h-full object-contain filter grayscale opacity-60"
       />
     </div>
-    <Typography variant="body1" sx={{ fontSize: "1.5rem", fontWeight: 500, color: "text.secondary" }}>
+    <Typography variant="body1" sx={{ fontSize: "0.9375rem", fontWeight: 500, color: "text.secondary" }}>
       Không tìm thấy đặt lịch nào
     </Typography>
   </Stack>
@@ -184,7 +184,7 @@ export const BookingList = () => {
             pt: 0.5,
             borderBottom: "1px solid rgba(145, 158, 171, 0.1)",
             "& .MuiTab-root": {
-              fontSize: "1.3rem",
+              fontSize: "0.8125rem",
               fontWeight: 700,
               textTransform: "none",
               minWidth: 70,
@@ -209,7 +209,7 @@ export const BookingList = () => {
                       sx={{
                         ml: 1.5,
                         "& .MuiBadge-badge": {
-                          fontSize: "1rem",
+                          fontSize: "0.625rem",
                           height: 18,
                           minWidth: 18,
                           position: "static",
@@ -230,7 +230,7 @@ export const BookingList = () => {
           sx={{ p: 2, alignItems: { md: "center" }, justifyContent: "space-between" }}
         >
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1C252E", fontSize: "1.6rem" }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1C252E", fontSize: "1rem" }}>
               {status === "ALL" ? "Tất cả đặt lịch" : BOOKING_STATUS_OPTIONS.find((o) => o.value === status)?.label}
               <Box component="span" sx={{ ml: 1, color: "text.secondary", fontWeight: 500 }}>
                 ({filteredRows.length})
@@ -256,7 +256,7 @@ export const BookingList = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "text.secondary", fontSize: "1.8rem" }} />
+                  <SearchIcon sx={{ color: "text.secondary", fontSize: "1.125rem" }} />
                 </InputAdornment>
               ),
             }}
@@ -285,13 +285,13 @@ export const BookingList = () => {
                 bgcolor: "#F4F6F8",
                 color: "#637381",
                 fontWeight: 700,
-                fontSize: "1.45rem",
+                fontSize: "0.9062rem",
                 alignItems: "center",
                 justifyContent: "center",
               },
               "& .MuiDataGrid-cell": {
                 borderBottom: "1px dashed rgba(145, 158, 171, 0.2)",
-                fontSize: "1.45rem",
+                fontSize: "0.9062rem",
                 alignItems: "center",
                 justifyContent: "center",
                 display: "flex",

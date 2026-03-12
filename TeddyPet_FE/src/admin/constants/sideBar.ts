@@ -10,21 +10,35 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ForumIcon from '@mui/icons-material/Forum';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 export const menuOverviewData = [
+    {
+        id: "ecommerce",
+        Icon: ShoppingCartIcon,
+        label: "Bán hàng",
+        path: `/${prefixAdmin}/dashboard/ecommerce`,
+        allowedRoles: ["ADMIN"],
+    },
     {
         id: "analytics",
         Icon: DataExplorationIcon,
         label: "Phân tích",
-        tKey: "admin.sidebar.analytics",
         path: `/${prefixAdmin}/dashboard/analytics`,
+        allowedRoles: ["ADMIN"],
+    },
+    {
+        id: "system",
+        Icon: SettingsIcon,
+        label: "Hệ thống",
+        path: `/${prefixAdmin}/dashboard/system`,
         allowedRoles: ["ADMIN"],
     },
     {
         id: "booking",
         Icon: ScheduleSendIcon,
         label: "Đặt lịch",
-        tKey: "admin.sidebar.booking",
         path: `/${prefixAdmin}/dashboard/booking`,
         allowedRoles: ["ADMIN", "STAFF"],
     },

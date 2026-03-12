@@ -1,4 +1,4 @@
-import { MailSolid } from "iconoir-react";
+﻿import { MailSolid } from "iconoir-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom"
 import { SocialIcon } from "../ui/SocialIcon";
@@ -85,7 +85,7 @@ export const TopBar = () => {
 
                     </div>
                     <Link to={`mailto:${shopEmail}`} className="flex items-center text-white hover:text-[#FFFFFFBF] transition-[color] duration-300">
-                        <MailSolid className="w-[1.7rem] h-[1.7rem] mr-[10px] text-white" />
+                        <MailSolid className="w-[1.0625rem] h-[1.0625rem] mr-[10px] text-white" />
                         <span>{shopEmail}</span>
                     </Link>
                 </div>

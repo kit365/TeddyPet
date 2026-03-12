@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { Input } from "./sections/Input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,26 +54,26 @@ export const ForgotPasswordPage = () => {
                     </div>
                     <div className="w-[509px] ml-[-150px] relative z-20">
                         <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
-                            <h3 className="text-center text-[3rem] font-[600] mb-[50px] text-[#333]">Quên mật khẩu 👋</h3>
+                            <h3 className="text-center text-[1.875rem] font-[600] mb-[50px] text-[#333]">Quên mật khẩu 👋</h3>
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Email</label>
                                     <Input
                                         placeholder="Nhập email của bạn"
                                         {...register("email")}
                                         error={errors.email?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[1.5rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
+                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
                                 >
                                     <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Lấy lại mật khẩu"}</span>
-                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[2rem] h-[2rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
+                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[1.25rem] h-[1.25rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
                                     <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                 </button>
                             </form>

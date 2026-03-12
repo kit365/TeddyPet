@@ -1,4 +1,4 @@
-import { ListHeader } from '../../components/ui/ListHeader';
+﻿import { ListHeader } from '../../components/ui/ListHeader';
 import { prefixAdmin } from '../../constants/routes';
 import { TimeSlotExceptionList } from './sections/TimeSlotExceptionList';
 
@@ -6,7 +6,7 @@ export const TimeSlotExceptionListPage = () => (
     <>
         <ListHeader
             title="Quản lý ngoại lệ lịch"
-            titleSx={{ fontSize: '2.6rem' }}
+            titleSx={{ fontSize: '1.625rem' }}
             breadcrumbItems={[
                 { label: 'Trang chủ', to: '/' },
                 { label: 'Cài đặt lịch', to: `/${prefixAdmin}/shop-operation-hours` },

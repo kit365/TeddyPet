@@ -1,4 +1,4 @@
-import { FooterSub } from "../../components/layouts/FooterSub";
+﻿import { FooterSub } from "../../components/layouts/FooterSub";
 import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
@@ -68,13 +68,13 @@ export const BookingPage = () => {
             <div className="relative">
                 <div className="app-container flex py-[100px] bg-white">
                     <div className="px-[20px] w-[42%] z-[10]">
-                        <p className="uppercase text-client-secondary text-[1.7rem] font-[700] mb-[15px]">
+                        <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
                             Dịch vụ cao cấp
                         </p>
-                        <h2 className="text-[5.7rem] 2xl:text-[5.7rem] 2xl:font-[500] text-[#181818] leading-[1.2] font-third mb-[20px]">
+                        <h2 className="text-[3.5625rem] 2xl:text-[3.5625rem] 2xl:font-[500] text-[#181818] leading-[1.2] font-third mb-[20px]">
                             Hãy để chúng tôi chăm sóc bé cưng của bạn
                         </h2>
-                        <p className="text-[#505050] font-[500] text-[1.8rem] inline-block mt-[15px]">
+                        <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
                             Hãy mang bé cưng đến với chúng tôi – nơi đội ngũ chuyên viên sẽ
                             chăm sóc tận tâm và chuyên nghiệp nhất.
                         </p>
@@ -89,16 +89,16 @@ export const BookingPage = () => {
 
             <div className="app-container flex py-[100px]">
                 <div className="w-[50%] px-[30px]">
-                    <h2 className="text-[4.7rem] font-third text-[#181818] mb-[64px]">
+                    <h2 className="text-[2.9375rem] font-third text-[#181818] mb-[64px]">
                         Liên hệ chúng tôi
                     </h2>
 
                     <div className="flex gap-[16px] mb-[32px] group">
                         <div className="w-[45px] h-[45px] text-[#181818] flex items-center justify-center shadow-[0_0_72px_#afe2e5_inset] group-hover:shadow-[0_0_4px_#afe2e5_inset] transition-all duration-200 ease rounded-full">
-                            <EditLocationAltIcon style={{ fontSize: "2.8rem" }} />
+                            <EditLocationAltIcon style={{ fontSize: "1.75rem" }} />
                         </div>
                         <div>
-                            <div className="text-[2rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
+                            <div className="text-[1.25rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
                                 Địa điểm
                             </div>
                             <p>64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
@@ -107,10 +107,10 @@ export const BookingPage = () => {
 
                     <div className="flex gap-[16px] mb-[32px] group">
                         <div className="w-[45px] h-[45px] text-[#181818] flex items-center justify-center shadow-[0_0_72px_#cfecbc_inset] group-hover:shadow-[0_0_4px_#cfecbc_inset] transition-all duration-200 ease rounded-full">
-                            <EditLocationAltIcon style={{ fontSize: "2.8rem" }} />
+                            <EditLocationAltIcon style={{ fontSize: "1.75rem" }} />
                         </div>
                         <div>
-                            <div className="text-[2rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
+                            <div className="text-[1.25rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
                                 Thời gian
                             </div>
                             <p>Thứ 2 - Thứ 7: 7:00 sáng - 4:00 chiều</p>
@@ -119,10 +119,10 @@ export const BookingPage = () => {
 
                     <div className="flex gap-[16px] mb-[32px] group">
                         <div className="w-[45px] h-[45px] text-[#181818] flex items-center justify-center shadow-[0_0_72px_#ffbaa0_inset] group-hover:shadow-[0_0_4px_#ffbaa0_inset] transition-all duration-300 ease rounded-full">
-                            <RocketLaunchIcon style={{ fontSize: "2.8rem" }} />
+                            <RocketLaunchIcon style={{ fontSize: "1.75rem" }} />
                         </div>
                         <div>
-                            <div className="text-[2rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
+                            <div className="text-[1.25rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
                                 Chăm sóc di động
                             </div>
                             <p>
@@ -148,15 +148,15 @@ export const BookingPage = () => {
                                     <PersonOutlineOutlinedIcon sx={{ fontSize: 28, color: "#c45a3a" }} />
                                 </div>
                                 <div>
-                                    <h3 className="text-[2rem] font-[700] text-[#181818]">Thông tin liên hệ</h3>
-                                    <p className="text-[1.4rem] text-[#505050] mt-[4px]">Phần 1/3 — Thông tin cơ bản khách hàng</p>
+                                    <h3 className="text-[1.25rem] font-[700] text-[#181818]">Thông tin liên hệ</h3>
+                                    <p className="text-[0.875rem] text-[#505050] mt-[4px]">Phần 1/3 — Thông tin cơ bản khách hàng</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="p-[32px] space-y-[24px]">
                             <div>
-                                <label htmlFor="fullname" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                <label htmlFor="fullname" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
                                     Họ và tên <span className="text-[#e67e20]">*</span>
                                 </label>
                                 <input
@@ -167,13 +167,13 @@ export const BookingPage = () => {
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     required
-                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-[20px]">
                                 <div>
-                                    <label htmlFor="email" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                    <label htmlFor="email" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
                                         Email <span className="text-[#e67e20]">*</span>
                                     </label>
                                     <input
@@ -184,11 +184,11 @@ export const BookingPage = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="phone" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                    <label htmlFor="phone" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
                                         Số điện thoại <span className="text-[#e67e20]">*</span>
                                     </label>
                                     <input
@@ -199,13 +199,13 @@ export const BookingPage = () => {
                                         value={formData.phone}
                                         onChange={handleChange}
                                         required
-                                        className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label htmlFor="address" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
                                     Địa chỉ
                                 </label>
                                 <input
@@ -215,12 +215,12 @@ export const BookingPage = () => {
                                     name="address"
                                     value={formData.address}
                                     onChange={handleChange}
-                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="message" className="block text-[1.4rem] font-[600] text-[#181818] mb-[10px]">
+                                <label htmlFor="message" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
                                     Lời nhắn
                                 </label>
                                 <textarea
@@ -231,15 +231,15 @@ export const BookingPage = () => {
                                     rows={4}
                                     value={formData.message}
                                     onChange={handleChange}
-                                    className="w-full py-[14px] px-[20px] text-[1.5rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px] resize-none"
+                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px] resize-none"
                                 />
-                                <p className="text-[1.2rem] text-[#888] mt-[6px]">{formData.message.length}/2000</p>
+                                <p className="text-[0.75rem] text-[#888] mt-[6px]">{formData.message.length}/2000</p>
                             </div>
 
                             <div className="pt-[8px]">
                                 <button
                                     type="submit"
-                                    className="w-full py-[16px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1.6rem] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    className="w-full py-[16px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1rem] transition-colors duration-200 shadow-sm hover:shadow-md"
                                 >
                                     Tiếp theo
                                 </button>
@@ -257,29 +257,29 @@ export const BookingPage = () => {
                     <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <EditLocationAltIcon style={{ fontSize: "4rem" }} />
+                                <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
                             </div>
                             <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
+                                <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
                                 <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
                             </div>
                         </div>
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <PhoneEnabledOutlinedIcon style={{ fontSize: "4rem" }} />
+                                <PhoneEnabledOutlinedIcon style={{ fontSize: "2.5rem" }} />
                             </div>
                             <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
+                                <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
                                 <p className="text-[#181818]">+84346587796</p>
                                 <p className="text-[#181818]">+84346587796</p>
                             </div>
                         </div>
                         <div className="flex mb-[32px]">
                             <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                <MailOutlineOutlinedIcon style={{ fontSize: "4rem" }} />
+                                <MailOutlineOutlinedIcon style={{ fontSize: "2.5rem" }} />
                             </div>
                             <div className="pl-[20px]">
-                                <div className="text-[2.2rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
+                                <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
                                 <p className="text-[#181818]">teddypet@gmail.com</p>
                             </div>
                         </div>

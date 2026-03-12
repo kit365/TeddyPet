@@ -1,4 +1,4 @@
-import { SxProps, Theme } from "@mui/material";
+﻿import { SxProps, Theme } from "@mui/material";
 
 export const editorContainerStyles: SxProps<Theme> = {
     scrollbarWidth: "thin",
@@ -24,7 +24,7 @@ export const editorHeadingStyles: SxProps<Theme> = {
 };
 
 export const sharedContentStyles: SxProps<Theme> = {
-    fontSize: "1.6rem",
+    fontSize: "1rem",
     "& img": {
         display: "block",
         width: "100%",
@@ -33,13 +33,13 @@ export const sharedContentStyles: SxProps<Theme> = {
         borderRadius: "8px",
         transition: "all 0.2s",
     },
-    "& p": { fontSize: "1.6rem", my: "10px", lineHeight: "1.5" },
-    "& h1": { fontSize: "6.4rem", fontWeight: "800", mt: "20px", mb: "8px", lineHeight: "1.25" },
-    "& h2": { fontSize: "4.8rem", fontWeight: "800", mt: "20px", mb: "8px", lineHeight: "1.33" },
-    "& h3": { fontSize: "3.2rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
-    "& h4": { fontSize: "2.4rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
-    "& h5": { fontSize: "1.9rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
-    "& h6": { fontSize: "1.8rem", fontWeight: "600", mt: "14px", mb: "8px", lineHeight: "1.56" },
+    "& p": { fontSize: "1rem", my: "10px", lineHeight: "1.5" },
+    "& h1": { fontSize: "4rem", fontWeight: "800", mt: "20px", mb: "8px", lineHeight: "1.25" },
+    "& h2": { fontSize: "3rem", fontWeight: "800", mt: "20px", mb: "8px", lineHeight: "1.33" },
+    "& h3": { fontSize: "2rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
+    "& h4": { fontSize: "1.5rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
+    "& h5": { fontSize: "1.1875rem", fontWeight: "700", mt: "14px", mb: "8px", lineHeight: "1.5" },
+    "& h6": { fontSize: "1.125rem", fontWeight: "600", mt: "14px", mb: "8px", lineHeight: "1.56" },
     "& a": { color: "#00A76F", textDecoration: "underline" },
     "& ul, & ol": { paddingLeft: "16px" },
     "& li": { lineHeight: "1.8" },

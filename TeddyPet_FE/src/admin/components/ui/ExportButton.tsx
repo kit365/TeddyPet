@@ -1,4 +1,4 @@
-import { Menu, MenuItem, Tooltip, Button, SvgIcon } from "@mui/material";
+﻿import { Menu, MenuItem, Tooltip, Button, SvgIcon } from "@mui/material";
 import { ExportCsv, ExportPrint } from "@mui/x-data-grid";
 import { useRef, useState } from "react";
 
@@ -27,14 +27,14 @@ export const ExportButton = () => {
                     size="small"
                     disableElevation
                     startIcon={
-                        <CustomExportIcon sx={{ fontSize: '1.8rem !important' }} />
+                        <CustomExportIcon sx={{ fontSize: '1.125rem !important' }} />
                     }
                     onClick={() => setOpen(true)}
                     sx={{
                         textTransform: 'none',
                         minWidth: '64px',
                         minHeight: '30px',
-                        fontSize: '1.3rem',
+                        fontSize: '0.8125rem',
                         padding: '4px',
                         fontWeight: 700,
                         borderRadius: '8px',

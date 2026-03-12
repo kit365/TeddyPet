@@ -1,4 +1,4 @@
-import {
+﻿import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -40,9 +40,9 @@ export const StatusConfirmDialog = ({
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
                     <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#00AB55', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                        <HelpOutlineIcon sx={{ fontSize: '1.8rem' }} />
+                        <HelpOutlineIcon sx={{ fontSize: '1.125rem' }} />
                     </Box>
-                    <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#1C252E' }}>
+                    <Typography sx={{ fontWeight: 900, fontSize: '1.125rem', color: '#1C252E' }}>
                         Xác nhận chuyển trạng thái
                     </Typography>
                 </Stack>
@@ -52,7 +52,7 @@ export const StatusConfirmDialog = ({
             </DialogTitle>
 
             <DialogContent sx={{ px: 4, py: 2 }}>
-                <Typography sx={{ mb: 2, fontSize: '1.4rem', color: '#637381' }}>
+                <Typography sx={{ mb: 2, fontSize: '0.875rem', color: '#637381' }}>
                     Bạn có chắc chắn muốn chuyển đơn hàng sang trạng thái:
                 </Typography>
 
@@ -65,7 +65,7 @@ export const StatusConfirmDialog = ({
                         textAlign: 'center'
                     }}
                 >
-                    <Typography sx={{ color: statusInfo.color, fontWeight: 900, fontSize: '1.6rem', textTransform: 'uppercase' }}>
+                    <Typography sx={{ color: statusInfo.color, fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase' }}>
                         {statusInfo.label}
                     </Typography>
                 </Box>

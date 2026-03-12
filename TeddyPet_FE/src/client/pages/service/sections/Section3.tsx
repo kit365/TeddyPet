@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 export const Section3 = () => {
     const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -51,7 +51,7 @@ export const Section3 = () => {
                     </div>
 
                     {/* title */}
-                    <h2 className="w-full font-secondary text-[4.5rem] mb-[30px]">
+                    <h2 className="w-full font-secondary text-[2.8125rem] mb-[30px]">
                         Câu hỏi thường gặp
                     </h2>
 
@@ -64,7 +64,7 @@ export const Section3 = () => {
                                     }`}
                             >
                                 <div
-                                    className={`service-question relative pl-[30px] pr-[55px] pb-[12px] font-[600] cursor-pointer text-[1.8rem] text-[#02000F] flex gap-[10px] items-center select-none ${openIndex === index ? "isOpen" : ""
+                                    className={`service-question relative pl-[30px] pr-[55px] pb-[12px] font-[600] cursor-pointer text-[1.125rem] text-[#02000F] flex gap-[10px] items-center select-none ${openIndex === index ? "isOpen" : ""
                                         }`}
                                     onClick={() => toggleFAQ(index)}
                                 >

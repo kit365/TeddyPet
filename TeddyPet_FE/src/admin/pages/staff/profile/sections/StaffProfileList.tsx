@@ -1,4 +1,4 @@
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+﻿import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -92,7 +92,7 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
                 <Tooltip title={text} enterDelay={300}>
                     <Typography
                         sx={{
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -122,7 +122,7 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
             return (
                 <span
                     className={isFullTime ? fullClasses : partClasses}
-                    style={{ fontSize: '1.3rem', whiteSpace: 'nowrap' }}
+                    style={{ fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
                 >
                     {raw}
                 </span>
@@ -148,13 +148,13 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
                 return (
                     <button
                         type="button"
-                        className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[1.3rem] font-medium text-emerald-700 whitespace-nowrap"
+                        className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[0.8125rem] font-medium text-emerald-700 whitespace-nowrap"
                     >
                         Đã cấp
                     </button>
                 );
             }
-            return <span className="text-[1.3rem] text-gray-400 whitespace-nowrap">Chưa cấp</span>;
+            return <span className="text-[0.8125rem] text-gray-400 whitespace-nowrap">Chưa cấp</span>;
         },
     },
     {
@@ -171,7 +171,7 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
 
             return (
                 <span
-                    className="inline-flex items-center justify-center leading-1.5 min-w-[2.4rem] h-[2.4rem] text-[1.2rem] px-[6px] font-[700] rounded-[6px] whitespace-nowrap"
+                    className="inline-flex items-center justify-center leading-1.5 min-w-[1.5rem] h-[1.5rem] text-[0.75rem] px-[6px] font-[700] rounded-[6px] whitespace-nowrap"
                     style={{ backgroundColor: bg, color: text }}
                 >
                     {label}
@@ -215,7 +215,7 @@ export const StaffProfileList = () => {
                         columnUnsortedIcon: (props) => <SortIconWrapper Icon={UnsortedIcon} {...props} />,
                         noRowsOverlay: () => (
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.8rem]">Không có dữ liệu</span>}
+                                {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Không có dữ liệu</span>}
                             </Box>
                         ),
                     }}
@@ -230,7 +230,7 @@ export const StaffProfileList = () => {
                         '&.MuiDataGrid-root': { overflow: 'hidden' },
                         '& .MuiDataGrid-virtualScroller': { overflowX: 'hidden' },
                         '& .MuiDataGrid-main': { minWidth: 0 },
-                        '& .MuiDataGrid-columnHeader.column-header-position': { fontSize: '1.4rem' },
+                        '& .MuiDataGrid-columnHeader.column-header-position': { fontSize: '0.875rem' },
                     }}
                 />
             </Box>

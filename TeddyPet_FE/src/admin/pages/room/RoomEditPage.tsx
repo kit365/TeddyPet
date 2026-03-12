@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, CircularProgress } from '@mui/material';
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, CircularProgress } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { AmenityMultiSelect, parseAmenityIds } from '../../components/ui/AmenityMultiSelect';
@@ -210,9 +210,9 @@ export const RoomEditPage = () => {
                                 variant="contained"
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: '4.8rem',
+                                    minHeight: '3rem',
                                     fontWeight: 700,
-                                    fontSize: '1.4rem',
+                                    fontSize: '0.875rem',
                                     padding: '8px 24px',
                                     borderRadius: '8px',
                                     textTransform: 'none',

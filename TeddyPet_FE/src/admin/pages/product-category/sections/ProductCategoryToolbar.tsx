@@ -1,4 +1,4 @@
-import { Toolbar, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+﻿import { Toolbar, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { SelectMulti } from "../../../components/ui/SelectMulti";
 import { Search } from "../../../components/ui/Search";
 import { STATUS_OPTIONS } from "../configs/constants";
@@ -26,7 +26,7 @@ export const ProductCategoryToolbar = () => {
                                 const v = e.target.value;
                                 filterCtx.setParentFilter(v === "all" ? "all" : Number(v));
                             }}
-                            sx={{ fontSize: "1.4rem", borderRadius: "8px" }}
+                            sx={{ fontSize: "0.875rem", borderRadius: "8px" }}
                         >
                             <MenuItem value="all">Tất cả</MenuItem>
                             {filterCtx.parentOptions.map(({ id, label }) => (

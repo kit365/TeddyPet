@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from '@mui/material';
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState, useEffect } from 'react';
@@ -164,9 +164,9 @@ export const ServiceCategoryEditPage = () => {
                                 disabled={isPending}
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: '4.8rem',
+                                    minHeight: '3rem',
                                     fontWeight: 700,
-                                    fontSize: '1.4rem',
+                                    fontSize: '0.875rem',
                                     padding: '8px 16px',
                                     borderRadius: '8px',
                                     textTransform: 'none',

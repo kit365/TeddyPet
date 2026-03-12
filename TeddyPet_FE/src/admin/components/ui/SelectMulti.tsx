@@ -1,4 +1,4 @@
-import FormControl from '@mui/material/FormControl';
+﻿import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -27,7 +27,7 @@ interface SelectMultiProps {
 
 // Global premium styles
 const LABEL_STYLE = {
-    fontSize: "1.4rem",
+    fontSize: "0.875rem",
     color: "rgb(99, 115, 129)",
     // Adjusted to ensure the label sits perfectly in the middle of a 40px container
     transform: 'translate(14px, 10px) scale(1)', 
@@ -39,7 +39,7 @@ const LABEL_STYLE = {
 };
 
 const SELECT_SX = {
-    fontSize: "1.4rem",
+    fontSize: "0.875rem",
     borderRadius: "10px",
     bgcolor: 'white',
     height: '40px',
@@ -128,7 +128,7 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                             '& .MuiInputLabel-root': LABEL_STYLE,
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: '10px',
-                                fontSize: '1.4rem',
+                                fontSize: '0.875rem',
                                 bgcolor: 'white',
                                 height: '40px',
                                 display: 'flex',
@@ -146,7 +146,7 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                     />
                 )}
                 renderOption={(props, option, { selected }) => (
-                    <li {...props} style={{ fontSize: '1.4rem' }}>
+                    <li {...props} style={{ fontSize: '0.875rem' }}>
                         <Checkbox
                             size="small"
                             checked={selected}
@@ -162,7 +162,7 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                             key={option.value}
                             label={option.label}
                             size="small"
-                            sx={{ borderRadius: '6px', fontWeight: 600, height: 24, fontSize: '1.2rem' }}
+                            sx={{ borderRadius: '6px', fontWeight: 600, height: 24, fontSize: '0.75rem' }}
                         />
                     ))
                 }
@@ -183,7 +183,7 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                     handleChange(val as string[]);
                 }}
                 renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, fontSize: '1.4rem' }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, fontSize: '0.875rem' }}>
                         {options
                             .filter(opt => selected.includes(opt.value))
                             .slice(0, 1) // Only show 1 to keep it clean
@@ -201,7 +201,7 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                         value={option.value} 
                         sx={{
                             pl: (option.level || 0) * 2 + 1.5,
-                            fontSize: '1.4rem',
+                            fontSize: '0.875rem',
                             py: 1,
                         }}
                     >
