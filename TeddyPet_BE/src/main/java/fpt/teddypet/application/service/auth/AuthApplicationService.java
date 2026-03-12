@@ -64,6 +64,7 @@ public class AuthApplicationService implements AuthService {
         String roleName = user.getRole().getName();
 
         return new AuthResponse(
+                user.getId(),
                 token,
                 user.getUsername(),
                 user.getEmail(),
@@ -336,6 +337,7 @@ public class AuthApplicationService implements AuthService {
                 user.getAltImage(),
                 user.getGender(),
                 user.getDateOfBirth(),
+                user.getCreatedAt(),
                 user.getStatus(),
                 user.getRole().getName());
     }
@@ -399,6 +401,91 @@ public class AuthApplicationService implements AuthService {
             log.error(AuthLogMessages.LOG_AUTH_REGISTER_ERROR_DB, e.getMessage(), e);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public RegisterResponse registerMobile(RegisterRequest request) {
+        log.info("[AuthService] Mobile register start for: {}", request.email());
+
+        if (userService.existsByEmail(request.email())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_EMAIL_DUPLICATE);
+        }
+        if (userService.existsByUsername(request.username())) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_USERNAME_DUPLICATE);
+        }
+
+        try {
+            var defaultRole = roleService.getDefaultRole();
+
+            User user = User.builder()
+                    .username(request.username())
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .firstName(request.firstName())
+                    .lastName(request.lastName())
+                    .phoneNumber(request.phoneNumber())
+                    .status(UserStatusEnum.PENDING_VERIFICATION)
+                    .role(defaultRole)
+                    .build();
+
+            userService.save(user);
+            log.info("[AuthService] Mobile register saved user: {}", user.getId());
+
+            // Generate OTP and send via email (reuse existing OTP infrastructure)
+            String otp = generateOtp();
+            verificationTokenPort.saveGuestOtp(user.getEmail(), otp);
+            verificationTokenPort.saveResendCooldown(user.getEmail());
+            emailServicePort.sendSecurityOtp(user.getEmail(), otp);
+
+            return new RegisterResponse(
+                    AuthMessages.MESSAGE_REGISTER_SUCCESS + " Mã OTP đã được gửi đến email của bạn.",
+                    resendCooldownSeconds,
+                    LocalDateTime.now().plusSeconds(resendCooldownSeconds));
+
+        } catch (Exception e) {
+            log.error(AuthLogMessages.LOG_AUTH_REGISTER_ERROR_DB, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse verifyRegisterOtp(String email, String otpCode) {
+        log.info("[AuthService] Verify register OTP for: {}", email);
+
+        if (otpCode == null || otpCode.isBlank()) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_REQUIRED);
+        }
+
+        // Validate OTP
+        java.util.Optional<String> storedOtp = verificationTokenPort.getGuestOtp(email);
+        if (storedOtp.isEmpty() || !storedOtp.get().equals(otpCode)) {
+            throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_INVALID);
+        }
+
+        // Activate user
+        User user = userService.getByEmail(email);
+        if (user.getStatus() == UserStatusEnum.ACTIVE) {
+            throw new IllegalStateException(AuthMessages.MESSAGE_EMAIL_ALREADY_VERIFIED);
+        }
+
+        user.setStatus(UserStatusEnum.ACTIVE);
+        userService.save(user);
+
+        // Cleanup OTP
+        verificationTokenPort.deleteGuestOtp(email);
+
+        log.info("[AuthService] Mobile register verified for: {}", email);
+
+        // Auto login after verification
+        return generateTokenResponse(user);
+    }
+
+    private String generateOtp() {
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        int otp = 100000 + random.nextInt(900000);
+        return String.valueOf(otp);
     }
 
     @Override

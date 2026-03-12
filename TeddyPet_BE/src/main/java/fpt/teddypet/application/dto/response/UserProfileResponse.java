@@ -4,6 +4,7 @@ import fpt.teddypet.domain.enums.GenderEnum;
 import fpt.teddypet.domain.enums.UserStatusEnum;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -21,6 +22,7 @@ public record UserProfileResponse(
         String altImage,
         GenderEnum gender,
         LocalDate dateOfBirth,
+        LocalDateTime createdAt,
         UserStatusEnum status,
         String role) {
 }

@@ -143,6 +143,13 @@ public class ProductSpecification {
         };
     }
 
+    public static Specification<Product> buildExcludeProductIdSpecification(Long productId) {
+        if (productId == null) {
+            return null;
+        }
+        return (root, query, criteriaBuilder) -> criteriaBuilder.notEqual(root.get(Product_.id), productId);
+    }
+
     public static Specification<Product> buildTagSlugsFilterSpecification(List<String> tagSlugs) {
         if (tagSlugs == null || tagSlugs.isEmpty()) {
             return null;

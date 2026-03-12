@@ -69,11 +69,7 @@ public class Booking extends BaseEntity {
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequests;
 
-    @Column(name = "booking_start_date")
-    private LocalDateTime bookingStartDate;
 
-    @Column(name = "booking_end_date")
-    private LocalDateTime bookingEndDate;
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;

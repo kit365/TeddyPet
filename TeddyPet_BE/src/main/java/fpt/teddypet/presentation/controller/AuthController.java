@@ -42,6 +42,22 @@ public class AuthController {
                 .body(ApiResponse.success(response.message(), response));
     }
 
+    @PostMapping("/mobile/register")
+    @Operation(summary = "Đăng ký tài khoản cho Mobile", description = "Đăng ký tài khoản bằng email + gửi OTP 6 số để xác thực thay vì link email.")
+    public ResponseEntity<ApiResponse<RegisterResponse>> registerMobile(@Valid @RequestBody RegisterRequest request) {
+        RegisterResponse response = authService.registerMobile(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response.message(), response));
+    }
+
+    @PostMapping("/mobile/verify-register-otp")
+    @Operation(summary = "Xác thực OTP đăng ký cho Mobile", description = "Xác thực mã OTP sau khi đăng ký trên Mobile. Nếu OTP hợp lệ, tài khoản được kích hoạt và trả về token để auto-login.")
+    public ResponseEntity<ApiResponse<TokenResponse>> verifyRegisterOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        TokenResponse response = authService.verifyRegisterOtp(request.email(), request.otpCode());
+        return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_VERIFY_EMAIL_SUCCESS, response));
+    }
+
     @PostMapping("/resend-email")
     @Operation(summary = "Gửi lại email xác thực", description = "Gửi lại email xác thực cho người dùng, có giới hạn thời gian chờ 2 phút.")
     public ResponseEntity<ApiResponse<RegisterResponse>> resendVerificationEmail(

@@ -19,8 +19,7 @@ public record AdminBookingListItemResponse(
         String paymentMethod,
         String status,
         String internalNotes,
-        LocalDateTime bookingStartDate,
-        LocalDateTime bookingEndDate,
+
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

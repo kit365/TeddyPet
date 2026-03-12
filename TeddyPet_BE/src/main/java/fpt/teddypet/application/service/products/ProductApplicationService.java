@@ -269,6 +269,7 @@ public class ProductApplicationService implements ProductService {
     public ProductResponse getBySlugResponse(String slug) {
         log.info(ProductLogMessages.LOG_PRODUCT_GET_BY_SLUG, slug);
         Product product = productRepositoryPort.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
+                .filter(p -> ProductStatusEnum.ACTIVE.equals(p.getStatus()))
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_SLUG, slug)));
         return productMapper.toResponse(product);
@@ -293,6 +294,7 @@ public class ProductApplicationService implements ProductService {
     @Transactional(readOnly = true)
     public ProductDetailResponse getDetailBySlug(String slug) {
         Product product = productRepositoryPort.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
+                .filter(p -> ProductStatusEnum.ACTIVE.equals(p.getStatus()))
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_SLUG, slug)));
         return mapToDetailResponse(product);
@@ -409,6 +411,7 @@ public class ProductApplicationService implements ProductService {
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
                 ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildCategorySlugsFilterSpecification(List.of(slug))));
 
         Pageable pageable = PageRequest.of(page, size, buildSort(sortKey, sortDirection));
@@ -430,6 +433,7 @@ public class ProductApplicationService implements ProductService {
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
                 ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildBrandSlugsFilterSpecification(List.of(slug))));
 
         Pageable pageable = PageRequest.of(page, size, buildSort(sortKey, sortDirection));
@@ -475,7 +479,12 @@ public class ProductApplicationService implements ProductService {
         if (categoryIds.isEmpty()) {
             productPage = Page.empty();
         } else {
-            productPage = productRepositoryPort.findRelatedProducts(categoryIds, productId, pageable);
+            Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
+                    ProductSpecification.buildBaseSpecification(),
+                    ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
+                    ProductSpecification.buildCategoryFilterSpecification(categoryIds),
+                    ProductSpecification.buildExcludeProductIdSpecification(productId)));
+            productPage = productRepositoryPort.findAll(spec, pageable);
         }
 
         return PageResponse.fromPage(productPage.map(productMapper::toResponse));
@@ -488,6 +497,7 @@ public class ProductApplicationService implements ProductService {
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
                 ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildKeywordSearchSpecification(keyword)));
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "viewCount", "soldCount"));

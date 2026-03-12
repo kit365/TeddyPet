@@ -19,6 +19,16 @@ public interface AuthService {
      */
     RegisterResponse registerWithResponse(RegisterRequest request);
 
+    /**
+     * Register for mobile - sends OTP instead of email verification link
+     */
+    RegisterResponse registerMobile(RegisterRequest request);
+
+    /**
+     * Verify registration OTP for mobile - activates account after OTP verification
+     */
+    TokenResponse verifyRegisterOtp(String email, String otpCode);
+
     AuthResponse login(LoginRequest request);
 
     /**

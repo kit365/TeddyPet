@@ -38,15 +38,15 @@ public interface ServiceMapper {
     @Mapping(target = "basePrice", ignore = true)
     @Mapping(target = "shortDescription", source = "shortDescription")
     @Mapping(target = "bufferTime", defaultExpression = "java(15)")
-    @Mapping(target = "cancellationDeadlineHours", defaultExpression = "java(12)")
+
     @Mapping(target = "maxPetsPerSession", defaultExpression = "java(1)")
     @Mapping(target = "requiredStaffCount", defaultExpression = "java(1)")
     @Mapping(target = "requiresVaccination", defaultExpression = "java(false)")
     @Mapping(target = "displayOrder", defaultExpression = "java(0)")
-    @Mapping(target = "isPopular", defaultExpression = "java(false)")
+
     @Mapping(target = "isAddon", defaultExpression = "java(false)")
     @Mapping(target = "isAdditionalCharge", defaultExpression = "java(false)")
-    @Mapping(target = "isCritical", defaultExpression = "java(false)")
+
     @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "priceUnit", ignore = true)

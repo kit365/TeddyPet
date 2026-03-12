@@ -190,8 +190,6 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getPaymentMethod(),
                 booking.getStatus(),
                 booking.getInternalNotes(),
-                booking.getBookingStartDate(),
-                booking.getBookingEndDate(),
                 depositId,
                 depositExpiresAt,
                 booking.getCreatedAt(),
@@ -274,10 +272,7 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setPaidAmount(BigDecimal.ZERO);
         booking.setRemainingAmount(bookingTotal);
 
-        // Ngày bắt đầu/kết thúc booking dựa trên các dịch vụ
-        LocalDateTime[] range = calculateBookingRange(booking);
-        booking.setBookingStartDate(range[0]);
-        booking.setBookingEndDate(range[1]);
+
 
         Booking saved = bookingRepository.save(booking);
 
@@ -699,46 +694,7 @@ public class BookingClientApplicationService implements BookingClientService {
         };
     }
 
-    private LocalDateTime[] calculateBookingRange(Booking booking) {
-        LocalDateTime min = null;
-        LocalDateTime max = null;
 
-        for (BookingPet pet : booking.getPets()) {
-            for (BookingPetService svc : pet.getServices()) {
-                LocalDateTime start = null;
-                LocalDateTime end = null;
-
-                if (svc.getEstimatedCheckInDate() != null) {
-                    start = svc.getEstimatedCheckInDate().atStartOfDay();
-                }
-                if (svc.getScheduledStartTime() != null) {
-                    start = svc.getScheduledStartTime();
-                }
-
-                if (svc.getEstimatedCheckOutDate() != null) {
-                    end = svc.getEstimatedCheckOutDate().atTime(23, 59);
-                }
-                if (svc.getScheduledEndTime() != null) {
-                    end = svc.getScheduledEndTime();
-                }
-
-                if (start != null) {
-                    min = (min == null || start.isBefore(min)) ? start : min;
-                }
-                if (end != null) {
-                    max = (max == null || end.isAfter(max)) ? end : max;
-                }
-            }
-        }
-
-        if (min == null) {
-            min = LocalDateTime.now();
-        }
-        if (max == null) {
-            max = min;
-        }
-        return new LocalDateTime[] { min, max };
-    }
 
     private String generateBookingCode() {
         LocalDateTime now = LocalDateTime.now();

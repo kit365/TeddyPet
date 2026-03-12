@@ -86,6 +86,7 @@ public class UserApplicationService implements UserService {
                 u.getAltImage(),
                 u.getGender(),
                 u.getDateOfBirth(),
+                u.getCreatedAt(),
                 u.getStatus(),
                 u.getRole() != null ? u.getRole().getName() : null);
     }
@@ -167,6 +168,7 @@ public class UserApplicationService implements UserService {
                 savedUser.getAltImage(),
                 savedUser.getGender(),
                 savedUser.getDateOfBirth(),
+                savedUser.getCreatedAt(),
                 savedUser.getStatus(),
                 savedUser.getRole().getName());
     }

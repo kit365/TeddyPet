@@ -200,8 +200,6 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 booking.getPaymentMethod(),
                                 booking.getStatus(),
                                 booking.getInternalNotes(),
-                                booking.getBookingStartDate(),
-                                booking.getBookingEndDate(),
                                 booking.getCreatedAt(),
                                 booking.getUpdatedAt());
         }

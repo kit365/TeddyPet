@@ -246,7 +246,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .duration(durationMinutes)
                 .bufferTime(15)
                 .advanceBookingHours(24)
-                .cancellationDeadlineHours(12)
+
                 .maxPetsPerSession(1)
                 .requiredStaffCount(1)
                 .basePrice(basePrice != null ? basePrice : BigDecimal.ZERO)
@@ -291,7 +291,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 .duration(durationMinutes)
                 .bufferTime(15)
                 .advanceBookingHours(24)
-                .cancellationDeadlineHours(12)
+
                 .maxPetsPerSession(1)
                 .requiredStaffCount(1)
                 .basePrice(basePrice)
