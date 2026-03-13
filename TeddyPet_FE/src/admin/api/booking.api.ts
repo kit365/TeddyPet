@@ -93,6 +93,8 @@ export const approveAdminChargeItem = async (
 
 export interface ApproveCancelRequest {
     approved: boolean;
+    staffNotes?: string;
+    refundProof?: string;
 }
 
 export const approveOrRejectAdminCancelRequest = async (
@@ -153,3 +155,12 @@ export const confirmFullPayment = async (
     return response.data;
 };
 
+export const checkInBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-in`, {}, withAuth());
+    return response.data;
+};
+
+export const checkOutBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-out`, {}, withAuth());
+    return response.data;
+};

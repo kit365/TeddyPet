@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import type { GridColDef } from "@mui/x-data-grid";
 import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, Badge } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -6,6 +6,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -18,10 +19,6 @@ import type { BookingResponse } from "../../../../types/booking.type";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
-/** Định dạng ngắn cho cột thời gian: dd/MM HH:mm */
-const formatDateTimeShort = (value?: string) =>
-  value ? new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-
 /** Định dạng cho cột Thời gian đặt lịch: dd/mm - hh/mm (PM/AM) */
 const formatBookingDateTime = (value?: string) => {
   if (!value) return "—";
@@ -38,7 +35,7 @@ export const getBookingColumns = (
   onViewDetail: (row: BookingResponse) => void,
   onEdit?: (row: BookingResponse) => void,
   onRequestCancel?: (row: BookingResponse) => void,
-  onCancelBooking?: (row: BookingResponse) => void,
+  onPayment?: (row: BookingResponse) => void,
   onDelete?: (row: BookingResponse) => void
 ): GridColDef[] => [
   {
@@ -83,17 +80,33 @@ export const getBookingColumns = (
   },
 
   {
-    field: "bookingStartDate",
-    headerName: "Thời gian đặt (năm hiện tại)",
+    field: "bookingCheckInDate",
+    headerName: "Check-in",
     minWidth: 128,
     flex: 0.7,
     align: "center",
     headerAlign: "center",
     renderCell: (params) => {
-      const start = params.value as string;
+      const val = params.value as string | undefined;
       return (
         <Typography sx={{ fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
-          {formatBookingDateTime(start)}
+          {val ? formatBookingDateTime(val) : "—"}
+        </Typography>
+      );
+    },
+  },
+  {
+    field: "bookingCheckOutDate",
+    headerName: "Check-out",
+    minWidth: 128,
+    flex: 0.7,
+    align: "center",
+    headerAlign: "center",
+    renderCell: (params) => {
+      const val = params.value as string | undefined;
+      return (
+        <Typography sx={{ fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
+          {val ? formatBookingDateTime(val) : "—"}
         </Typography>
       );
     },
@@ -289,6 +302,11 @@ export const getBookingColumns = (
         onRequestCancel?.(params.row as BookingResponse);
       };
 
+      const handlePayment = () => {
+        handleClose();
+        onPayment?.(params.row as BookingResponse);
+      };
+
       const handleDelete = () => {
         handleClose();
         onDelete?.(params.row as BookingResponse);
@@ -376,6 +394,18 @@ export const getBookingColumns = (
                 primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
+            {["PENDING", "CONFIRMED", "READY", "COMPLETED"].includes((params.row as BookingResponse).status?.toUpperCase()) && 
+             (params.row as BookingResponse).paymentStatus !== "PAID" && (
+              <MenuItem onClick={handlePayment}>
+                <ListItemIcon>
+                  <PaymentsIcon sx={{ fontSize: "1rem", color: "#00A76F" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Thanh toán"
+                  primaryTypographyProps={{ fontSize: "0.875rem", color: "#00A76F", fontWeight: 700 }}
+                />
+              </MenuItem>
+            )}
             <MenuItem onClick={handleDelete}>
               <ListItemIcon>
                 <DeleteIcon sx={{ fontSize: "1rem", color: "#dc2626" }} />

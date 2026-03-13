@@ -9,6 +9,7 @@ public record AdminBookingPetServiceResponse(
         Long id,
         Long bookingPetId,
         Long assignedStaffId,
+        String assignedStaffName,
         Long serviceId,
         Long serviceComboId,
         String serviceName,
@@ -32,6 +33,7 @@ public record AdminBookingPetServiceResponse(
         String afterPhotos,
         String beforePhotos,
         String videos,
+        Boolean isRequiredRoom,
         List<AdminBookingPetServiceItemResponse> items
 ) {
 }
