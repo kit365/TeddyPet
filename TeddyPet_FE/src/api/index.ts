@@ -101,7 +101,12 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/carts') ||
                     originalRequest.url?.includes('/api/feedbacks') ||
                     originalRequest.url?.includes('/api/home') ||
-                    originalRequest.url?.includes('/api/blog'));
+                    originalRequest.url?.includes('/api/blog') ||
+                    originalRequest.url?.includes('/api/products') ||
+                    originalRequest.url?.includes('/api/categories') ||
+                    originalRequest.url?.includes('/api/brands') ||
+                    originalRequest.url?.includes('/api/tags') ||
+                    originalRequest.url?.includes('/api/notifications'));
 
             if (!refreshToken) {
                 if (isBookingPublicApi || isOptionalAuthApi) {
@@ -115,7 +120,9 @@ apiApp.interceptors.response.use(
                 }
                 processQueue(error, null);
                 isRefreshing = false;
-                if (window.location.pathname !== loginPath) {
+                const isProtectedRoute = isAdmin || window.location.pathname.startsWith("/dashboard");
+
+                if (window.location.pathname !== loginPath && isProtectedRoute) {
                     window.location.href = loginPath;
                 }
                 return Promise.reject(error);
@@ -155,7 +162,8 @@ apiApp.interceptors.response.use(
                 } else {
                     useAuthStore.getState().logout();
                 }
-                if (window.location.pathname !== loginPath) {
+                const isProtectedRoute = isAdmin || window.location.pathname.startsWith("/dashboard");
+                if (window.location.pathname !== loginPath && isProtectedRoute) {
                     window.location.href = loginPath;
                 }
                 return Promise.reject(err);

@@ -16,6 +16,7 @@ import fpt.teddypet.domain.entity.AvatarImage;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
 import fpt.teddypet.domain.entity.staff.StaffPosition;
 import fpt.teddypet.domain.enums.UserStatusEnum;
+import fpt.teddypet.domain.enums.RoleEnum;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,12 @@ public class StaffProfileApplicationService implements StaffProfileService {
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
     private final AvatarImageRepository avatarImageRepository;
+    private final fpt.teddypet.application.port.output.AdminGoogleWhitelistPort adminGoogleWhitelistPort;
+    private final fpt.teddypet.application.port.input.AuthService authService;
+    private final fpt.teddypet.application.port.output.EmailServicePort emailServicePort;
+
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Override
     @Transactional
@@ -65,6 +72,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .address(request.address())
                 .bankAccountNo(request.bankAccountNo())
                 .bankName(request.bankName())
+                .backupEmail(request.backupEmail())
                 .position(position)
                 .employmentType(request.employmentType())
                 .build();
@@ -72,8 +80,62 @@ public class StaffProfileApplicationService implements StaffProfileService {
             createAvatarImageForStaff(request.avatarUrl(), request.fullName());
         }
         StaffProfile saved = staffProfileRepositoryPort.save(staff);
-        tryLinkExistingUserByEmail(saved);
+        
+        // Flow: Automatic account creation if role is assigned
+        if (request.email() != null && !request.email().isBlank() && request.assignedRole() != null) {
+            provisionAccountAutomatically(saved, request.assignedRole());
+        } else {
+            tryLinkExistingUserByEmail(saved);
+        }
+        
         return toResponse(saved);
+    }
+
+    @Transactional
+    protected void provisionAccountAutomatically(StaffProfile profile, String roleName) {
+        String email = profile.getEmail();
+        Role role = roleService.findByName(roleName);
+        
+        // Security check
+        if (RoleEnum.ADMIN.name().equals(role.getName()) || RoleEnum.SUPER_ADMIN.name().equals(role.getName())) {
+            User currentUser = authService.getCurrentUser();
+            if (!RoleEnum.SUPER_ADMIN.name().equals(currentUser.getRole().getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ Super Admin mới được phép cấp quyền Admin.");
+            }
+        }
+
+        User user;
+        if (userRepositoryPort.existsByEmail(email)) {
+            user = userRepositoryPort.getByEmail(email);
+            user.setRole(role);
+            // If it was a customer/user, they now have higher privileges and must change password if they haven't set one for admin
+            // Or just force it for safety
+            user.setMustChangePassword(true);
+        } else {
+            String[] nameParts = StaffProfileHelper.splitFullName(profile.getFullName());
+            user = User.builder()
+                    .username(email) // Default username as email
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Random password
+                    .firstName(nameParts[0])
+                    .lastName(nameParts[1])
+                    .phoneNumber(profile.getPhoneNumber())
+                    .dateOfBirth(profile.getDateOfBirth())
+                    .gender(profile.getGender())
+                    .avatarUrl(profile.getAvatarUrl())
+                    .altImage(profile.getAltImage())
+                    .status(UserStatusEnum.ACTIVE)
+                    .role(role)
+                    .mustChangePassword(true)
+                    .backupEmail(profile.getBackupEmail())
+                    .build();
+        }
+        
+        User savedUser = userRepositoryPort.save(user);
+        profile.setUser(savedUser);
+        staffProfileRepositoryPort.save(profile);
+        
+        autoWhitelistForGoogle(email, role.getName());
     }
 
     /**
@@ -109,7 +171,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
             return;
 
         User existingUser = userRepositoryPort.getByEmail(email);
-        if (existingUser.getRole() == null || !"USER".equals(existingUser.getRole().getName()))
+        if (existingUser.getRole() == null || !RoleEnum.USER.name().equals(existingUser.getRole().getName()))
             return;
 
         staffProfileRepositoryPort.findByUserId(existingUser.getId()).ifPresent(existingProfile -> {
@@ -119,10 +181,13 @@ public class StaffProfileApplicationService implements StaffProfileService {
             }
         });
 
-        Role staffRole = roleService.findByName("STAFF");
+        Role staffRole = roleService.findByName(RoleEnum.STAFF.name());
         existingUser.setRole(staffRole);
         syncProfileToUser(profile, existingUser);
         userRepositoryPort.save(existingUser);
+        
+        autoWhitelistForGoogle(existingUser.getEmail(), staffRole.getName());
+        
         profile.setUser(existingUser);
         staffProfileRepositoryPort.save(profile);
     }
@@ -141,6 +206,14 @@ public class StaffProfileApplicationService implements StaffProfileService {
         }
 
         Role staffRole = roleService.findByName(request.roleName());
+        
+        // Security check: Only SUPER_ADMIN can assign ADMIN/SUPER_ADMIN role
+        if (RoleEnum.ADMIN.name().equals(staffRole.getName()) || RoleEnum.SUPER_ADMIN.name().equals(staffRole.getName())) {
+            User currentUser = authService.getCurrentUser();
+            if (!RoleEnum.SUPER_ADMIN.name().equals(currentUser.getRole().getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ Super Admin mới được phép cấp quyền Admin.");
+            }
+        }
 
         if (userRepositoryPort.existsByEmail(email)) {
             // Case B: Customer becoming Staff - link existing User (preserve customer data)
@@ -154,42 +227,54 @@ public class StaffProfileApplicationService implements StaffProfileService {
 
             existingUser.setRole(staffRole);
 
-            if (request.username() != null && !request.username().isBlank()
-                    && !request.username().equals(existingUser.getUsername())) {
-                if (userRepositoryPort.existsByUsername(request.username())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Username đã được sử dụng: " + request.username());
-                }
-                existingUser.setUsername(request.username());
+            String targetUsername = (request.username() != null && !request.username().isBlank()) 
+                    ? request.username() : email;
+            String targetPassword = (request.password() != null && !request.password().isBlank())
+                    ? request.password() : UUID.randomUUID().toString();
+
+            if (!targetUsername.equals(existingUser.getUsername()) && userRepositoryPort.existsByUsername(targetUsername)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã được sử dụng: " + targetUsername);
             }
+            
+            existingUser.setUsername(targetUsername);
             if (request.password() != null && !request.password().isBlank()) {
-                existingUser.setPassword(passwordEncoder.encode(request.password()));
+                existingUser.setPassword(passwordEncoder.encode(targetPassword));
+            } else if (existingUser.getPassword() == null || existingUser.getPassword().isBlank()) {
+                // If existing user has no password (e.g. only Google login), set a random one
+                existingUser.setPassword(passwordEncoder.encode(targetPassword));
             }
+
+            // Force mustChangePassword if password was changed or set for the first time
+            existingUser.setMustChangePassword(true);
+            
+            existingUser.setRole(staffRole);
             existingUser.setAvatarUrl(profile.getAvatarUrl());
             existingUser.setAltImage(profile.getAltImage());
+            existingUser.setBackupEmail(profile.getBackupEmail());
 
             User savedUser = userRepositoryPort.save(existingUser);
             profile.setUser(savedUser);
             StaffProfile saved = staffProfileRepositoryPort.save(profile);
+            
+            autoWhitelistForGoogle(savedUser.getEmail(), staffRole.getName());
+            
             return toResponse(saved);
         } else {
             // Case A: New Staff - create new User
-            if (request.username() == null || request.username().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username là bắt buộc khi tạo tài khoản mới");
-            }
-            if (request.password() == null || request.password().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password là bắt buộc khi tạo tài khoản mới");
-            }
-            if (userRepositoryPort.existsByUsername(request.username())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Username đã được sử dụng: " + request.username());
+            String targetUsername = (request.username() != null && !request.username().isBlank()) 
+                    ? request.username() : email;
+            String targetPassword = (request.password() != null && !request.password().isBlank())
+                    ? request.password() : UUID.randomUUID().toString();
+
+            if (userRepositoryPort.existsByUsername(targetUsername)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã được sử dụng: " + targetUsername);
             }
 
             String[] nameParts = StaffProfileHelper.splitFullName(profile.getFullName());
             User user = User.builder()
-                    .username(request.username())
+                    .username(targetUsername)
                     .email(email)
-                    .password(passwordEncoder.encode(request.password()))
+                    .password(passwordEncoder.encode(targetPassword))
                     .firstName(nameParts[0])
                     .lastName(nameParts[1])
                     .phoneNumber(profile.getPhoneNumber())
@@ -199,12 +284,50 @@ public class StaffProfileApplicationService implements StaffProfileService {
                     .altImage(profile.getAltImage())
                     .status(UserStatusEnum.ACTIVE)
                     .role(staffRole)
+                    .mustChangePassword(true)
+                    .backupEmail(profile.getBackupEmail())
                     .build();
 
             User savedUser = userRepositoryPort.save(user);
             profile.setUser(savedUser);
             StaffProfile saved = staffProfileRepositoryPort.save(profile);
+            
+            autoWhitelistForGoogle(savedUser.getEmail(), staffRole.getName());
+            
             return toResponse(saved);
+        }
+    }
+    
+    private void autoWhitelistForGoogle(String email, String role) {
+        if (email == null || email.isBlank()) return;
+        
+        String normalizedEmail = email.toLowerCase().trim();
+        // Only invite if not already in whitelist or if in a non-accepted state
+        if (adminGoogleWhitelistPort.findByEmail(normalizedEmail).isEmpty()) {
+            String token = UUID.randomUUID().toString();
+            java.time.LocalDateTime expiry = java.time.LocalDateTime.now().plusDays(1);
+            User currentUser = null;
+            try {
+                currentUser = authService.getCurrentUser();
+            } catch (Exception e) {
+                // Ignore if no current user (e.g. system init)
+            }
+
+            fpt.teddypet.domain.entity.AdminGoogleWhitelist whitelist = fpt.teddypet.domain.entity.AdminGoogleWhitelist.builder()
+                    .email(normalizedEmail)
+                    .role(role)
+                    .status("PENDING")
+                    .isActive(true)
+                    .isDeleted(false)
+                    .addedBy(currentUser != null ? currentUser.getEmail() : "SYSTEM_AUTO")
+                    .invitationToken(token)
+                    .tokenExpiredAt(expiry)
+                    .build();
+            adminGoogleWhitelistPort.save(whitelist);
+            
+            // Send invitation email
+            String invitationLink = frontendUrl + "/admin/auth/accept-invitation?token=" + token;
+            emailServicePort.sendAdminInvitationEmail(normalizedEmail, invitationLink);
         }
     }
 
@@ -248,6 +371,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
         staff.setAddress(request.address());
         staff.setBankAccountNo(request.bankAccountNo());
         staff.setBankName(request.bankName());
+        staff.setBackupEmail(request.backupEmail());
         if (request.positionId() != null) {
             StaffPosition position = staffPositionRepositoryPort.findById(request.positionId())
                     .orElseThrow(() -> new EntityNotFoundException(
@@ -280,6 +404,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
         user.setGender(profile.getGender());
         user.setAvatarUrl(profile.getAvatarUrl());
         user.setAltImage(profile.getAltImage());
+        user.setBackupEmail(profile.getBackupEmail());
     }
 
     @Override
@@ -352,10 +477,16 @@ public class StaffProfileApplicationService implements StaffProfileService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số CCCD/CMND đã được sử dụng: " + citizenId);
         }
     }
-
     private StaffProfileResponse toResponse(StaffProfile staff) {
         User user = staff.getUser();
         StaffPosition position = staff.getPosition();
+        String whitelistStatus = null;
+        if (staff.getEmail() != null) {
+            whitelistStatus = adminGoogleWhitelistPort.findByEmail(staff.getEmail().toLowerCase().trim())
+                    .map(w -> w.getStatus())
+                    .orElse(null);
+        }
+
         return new StaffProfileResponse(
                 staff.getId(),
                 user != null ? user.getId() : null,
@@ -375,6 +506,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 position != null ? position.getCode() : null,
                 position != null ? position.getName() : null,
                 staff.getEmploymentType(),
+                staff.getBackupEmail(),
+                whitelistStatus,
                 staff.isActive());
     }
 

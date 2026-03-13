@@ -24,6 +24,7 @@ export const LoginPage = () => {
     const [searchParams] = useSearchParams();
     const forbidden = searchParams.get("forbidden") === "1";
     const [showPassword, setShowPassword] = useState(false);
+    const [isGlobalLoading, setIsGlobalLoading] = useState(false);
     const handleTogglePasswordVisibility = () => {
         setShowPassword(prev => !prev)
     }
@@ -51,7 +52,7 @@ export const LoginPage = () => {
             <ToastContainer />
 
             {/* Global Loading Overlay for Google Login */}
-            {isGooglePending && (
+            {isGlobalLoading && (
                 <Box
                     sx={{
                         position: 'fixed',
@@ -167,7 +168,7 @@ export const LoginPage = () => {
                         </div>
                         {/* Right */}
                         <div className="flex flex-col items-center justify-center flex-1 py-[80px] px-[16px]">
-                            <Box sx={{ width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column" }}>
+                            <Box sx={{ width: "100%", maxWidth: "480px", display: "flex", flexDirection: "column" }}>
                                 <h5 className="text-[1.1875rem] font-[700] mb-[40px]">Đăng nhập vào tài khoản của bạn</h5>
                                 <form onSubmit={handleSubmit(onSubmit)}>
                                     <Box sx={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -257,15 +258,41 @@ export const LoginPage = () => {
                                             <Box sx={{ flex: 1, height: '1px', bgcolor: '#E5E8EB' }} />
                                         </Box>
 
-                                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                        <Box id="google-login-container" sx={{ display: 'flex', justifyContent: 'center' }}>
                                             <SafeGoogleLogin
                                                 onSuccess={credential => {
-                                                    googleLoginMutate(credential);
+                                                    const googleBtnContainer = document.getElementById('google-login-container');
+                                                    if (googleBtnContainer) {
+                                                        googleBtnContainer.style.opacity = '0';
+                                                        googleBtnContainer.style.pointerEvents = 'none';
+                                                        googleBtnContainer.style.transform = 'scale(0.95)';
+                                                        googleBtnContainer.style.transition = 'all 0.2s ease';
+                                                    }
+
+
+                                                    setTimeout(() => {
+                                                        setIsGlobalLoading(true);
+
+
+                                                        setTimeout(() => {
+                                                            googleLoginMutate(credential, {
+                                                                onError: () => {
+                                                                    setIsGlobalLoading(false);
+                                                                    if (googleBtnContainer) {
+                                                                        googleBtnContainer.style.opacity = '1';
+                                                                        googleBtnContainer.style.pointerEvents = 'auto';
+                                                                        googleBtnContainer.style.transform = 'scale(1)';
+                                                                    }
+                                                                }
+                                                            });
+                                                        }, 150);
+                                                    }, 200);
                                                 }}
                                                 onError={() => {
+                                                    setIsGlobalLoading(false);
                                                     toast.error('Đăng nhập Google thất bại');
                                                 }}
-                                                disabled={isGooglePending || isPending}
+                                                disabled={isGooglePending || isPending || isGlobalLoading}
                                             />
                                         </Box>
                                     </Box>

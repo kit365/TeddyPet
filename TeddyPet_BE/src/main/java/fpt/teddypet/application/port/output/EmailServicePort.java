@@ -53,6 +53,14 @@ public interface EmailServicePort {
     void sendSecurityOtp(String to, String otp);
 
     /**
+     * Send admin invitation link
+     *
+     * @param to recipient email
+     * @param link the full invitation link
+     */
+    void sendAdminInvitationEmail(String to, String link);
+
+    /**
      * Send order confirmation email with full details
      * 
      * @param order The order entity

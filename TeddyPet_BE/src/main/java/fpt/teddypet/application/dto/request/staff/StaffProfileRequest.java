@@ -41,7 +41,10 @@ public record StaffProfileRequest(
 
         Long positionId,
 
-        EmploymentTypeEnum employmentType
+        EmploymentTypeEnum employmentType,
+        
+        @Email
+        String backupEmail
 ) {
 }
 

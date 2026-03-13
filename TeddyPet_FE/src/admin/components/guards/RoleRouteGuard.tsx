@@ -4,7 +4,7 @@ import { getMe } from "../../../api/auth.api";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 
-type Role = "ADMIN" | "STAFF";
+type Role = "ADMIN" | "STAFF" | "SUPER_ADMIN";
 
 interface RoleRouteGuardProps {
     allowedRoles: Role[];

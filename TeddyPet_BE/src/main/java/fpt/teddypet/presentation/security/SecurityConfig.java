@@ -3,10 +3,15 @@ package fpt.teddypet.presentation.security;
 import fpt.teddypet.config.CorsConstants;
 import fpt.teddypet.presentation.filter.JwtAuthenticationFilter;
 import fpt.teddypet.presentation.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import fpt.teddypet.domain.enums.RoleEnum;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -142,9 +147,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public org.springframework.security.access.hierarchicalroles.RoleHierarchy roleHierarchy() {
-        org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl hierarchy = new org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl();
-        hierarchy.setHierarchy("ROLE_STAFF > ROLE_CUSTOMER");
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+        String hierarchyStr = String.format("ROLE_%s > ROLE_%s\nROLE_%s > ROLE_%s\nROLE_%s > ROLE_%s",
+                RoleEnum.SUPER_ADMIN.name(), RoleEnum.ADMIN.name(),
+                RoleEnum.ADMIN.name(), RoleEnum.STAFF.name(),
+                RoleEnum.STAFF.name(), RoleEnum.USER.name());
+        hierarchy.setHierarchy(hierarchyStr);
         return hierarchy;
+    }
+
+    @Bean
+    static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
     }
 }

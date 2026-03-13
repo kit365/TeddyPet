@@ -70,6 +70,13 @@ public record StaffCreationDTO(
 
         @JsonProperty("employmentType")
         @NotNull(message = "Loại hình công việc không được để trống")
-        EmploymentTypeEnum employmentType
+        EmploymentTypeEnum employmentType,
+
+        @JsonProperty("assignedRole")
+        String assignedRole,
+
+        @JsonProperty("backupEmail")
+        @Email
+        String backupEmail
 ) {
 }

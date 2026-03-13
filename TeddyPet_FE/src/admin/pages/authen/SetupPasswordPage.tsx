@@ -43,7 +43,7 @@ export const SetupPasswordPage = () => {
 
             // Redirect based on role
             const role = user?.role;
-            if (role === "ADMIN") {
+            if (role === "ADMIN" || role === "SUPER_ADMIN") {
                 setTimeout(() => navigate("/admin/dashboard/ecommerce"), 1500);
             } else if (role === "STAFF") {
                 setTimeout(() => navigate("/admin/staff/dashboard"), 1500);

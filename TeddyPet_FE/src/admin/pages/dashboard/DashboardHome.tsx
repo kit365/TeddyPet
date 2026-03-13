@@ -8,7 +8,7 @@ import { prefixAdmin } from "../../constants/routes";
 export const DashboardHome = () => {
     const { data: meRes, isLoading } = useQuery({
         queryKey: ["me-admin"],
-        queryFn: getMe,
+        queryFn: () => getMe(),
     });
 
     if (isLoading) {
@@ -19,9 +19,9 @@ export const DashboardHome = () => {
         );
     }
 
-    const role = meRes?.data?.role;
+    const role = (meRes as any)?.data?.role;
 
-    if (role === "ADMIN") {
+    if (role === "ADMIN" || role === "SUPER_ADMIN") {
         return <Navigate to={`/${prefixAdmin}/dashboard/ecommerce`} replace />;
     }
 

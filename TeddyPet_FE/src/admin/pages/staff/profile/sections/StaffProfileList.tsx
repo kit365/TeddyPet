@@ -1,4 +1,4 @@
-﻿import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -17,7 +17,7 @@ function SortIconWrapper({
 }
 import { DATA_GRID_LOCALE_VN } from '../../../service/configs/localeText.config';
 import { dataGridCardStyles, dataGridContainerStyles, dataGridStyles } from '../../../service/configs/styles.config';
-import { useStaffProfiles, useDeactivateStaff, useReactivateStaff } from '../../hooks/useStaffProfile';
+import { useStaffProfiles, useDeactivateStaff, useReactivateStaff, useResendGoogleInvitation } from '../../hooks/useStaffProfile';
 import { useNavigate } from 'react-router-dom';
 import { prefixAdmin } from '../../../../constants/routes';
 import { toast } from 'react-toastify';
@@ -78,6 +78,7 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
     { field: 'staffId', headerName: 'ID', width: 64, flex: 0 },
     { field: 'fullName', headerName: 'Họ tên', minWidth: 100, flex: 1 },
     { field: 'email', headerName: 'Email', minWidth: 120, width: 140, flex: 0, valueGetter: (v: string) => v ?? '—' },
+    { field: 'backupEmail', headerName: 'Email dự phòng', minWidth: 120, width: 140, flex: 0, valueGetter: (v: string) => v ?? '—' },
     { field: 'phoneNumber', headerName: 'SĐT', width: 100, flex: 0, valueGetter: (v: string) => v ?? '—' },
     {
         field: 'positionName',
@@ -135,6 +136,63 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
         width: 80,
         flex: 0,
         valueGetter: (v: string) => GENDER_LABELS[v] ?? v ?? '—',
+    },
+    {
+        field: 'googleWhitelistStatus',
+        headerName: 'Google Login',
+        width: 155,
+        flex: 0,
+        renderCell: (params) => {
+            const row = params.row as IStaffProfile;
+            const status = row.googleWhitelistStatus;
+            const email = row.email;
+            const { mutate: resend, isPending } = useResendGoogleInvitation();
+
+            if (!email) return <span className="text-gray-400">—</span>;
+
+            const handleResend = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (window.confirm(`Gửi lại lời mời tới ${email}?`)) {
+                    resend(email, {
+                        onSuccess: (res: any) => {
+                            if (res.success) toast.success('Đã gửi lại lời mời');
+                            else toast.error(res.message || 'Có lỗi');
+                        },
+                        onError: (err: any) => {
+                            toast.error(err?.response?.data?.message || 'Gửi lại thất bại');
+                        }
+                    });
+                }
+            };
+
+            if (status === 'ACCEPTED') {
+                return (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        Đã xác nhận
+                    </span>
+                );
+            }
+
+            if (status === 'PENDING' || status === 'EXPIRED') {
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${status === 'EXPIRED' ? 'bg-red-50 text-red-700 ring-red-600/20' : 'bg-amber-50 text-amber-700 ring-amber-600/20'}`}>
+                            {status === 'PENDING' ? 'Chờ xác nhận' : 'Hết hạn'}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleResend}
+                            disabled={isPending}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline font-semibold"
+                        >
+                            {isPending ? '...' : 'Mời lại'}
+                        </button>
+                    </Box>
+                );
+            }
+
+            return <span className="text-gray-400">N/A</span>;
+        }
     },
     {
         field: 'userId',

@@ -28,8 +28,8 @@ public class StaffProfileController {
     private final StaffProfileService staffProfileService;
     private final AuthService authService;
 
-    @PostMapping("/onboarding")
-    @Operation(summary = "Flow A: Tạo hồ sơ nhân viên (không tài khoản)", description = "Cho nhân viên không cần truy cập hệ thống: lau dọn, bảo vệ,...")
+    @PostMapping
+    @Operation(summary = "Flow A: Tạo hồ sơ nhân viên + Tự động cấp tài khoản (nếu có email)", description = "Nếu có email và role, hệ thống sẽ tự động tạo User/Whitelist. Nếu không, chỉ tạo hồ sơ.")
     public ResponseEntity<ApiResponse<StaffProfileResponse>> createProfile(
             @Valid @RequestBody StaffCreationDTO request) {
         StaffProfileResponse response = staffProfileService.createProfile(request);

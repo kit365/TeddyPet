@@ -46,6 +46,9 @@ import { BookingListPage } from "../pages/booking/BookingListPage";
 import { BookingDetailPage } from "../pages/booking/BookingDetailPage";
 import { BookingPetDetailPage } from "../pages/booking/BookingPetDetailPage";
 import { BookingPetServiceDetailPage } from "../pages/booking/BookingPetServiceDetailPage";
+import { BookingCreatePage } from "../pages/booking/BookingCreatePage";
+import { BookingCreateDetailPage } from "../pages/booking/BookingCreateDetailPage";
+import { BookingRefundPolicyListPage } from "../pages/booking/BookingRefundPolicyListPage";
 import { ShopOperationHoursPage } from "../pages/shop/ShopOperationHoursPage";
 import { TimeSlotExceptionListPage } from "../pages/shop/TimeSlotExceptionListPage";
 import { TimeSlotExceptionFormPage } from "../pages/shop/TimeSlotExceptionFormPage";
@@ -89,6 +92,10 @@ import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage
 import { FeedbackListPage } from "../pages/feedback/FeedbackListPage";
 import { EmployeeDashboardPage } from "../pages/staff/dashboard/EmployeeDashboardPage";
 import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
+import { AcceptInvitationPage } from "../pages/authen/AcceptInvitationPage";
+import { BankInformationVerifyPage } from "../pages/bank-information/BankInformationVerifyPage";
+import { CalendarPage } from "../pages/calendar/CalendarPage";
+
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
@@ -96,6 +103,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "dashboard/system", element: <SystemPage /> },
     { path: "dashboard/ecommerce", element: <EcommercePage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
+    { path: "calendar", element: <AdminOnlyGuard><CalendarPage /></AdminOnlyGuard> },
     { path: "product/list", element: <AdminOnlyGuard><ProductListPage /></AdminOnlyGuard> },
     { path: "product/create", element: <AdminOnlyGuard><ProductFormPage /></AdminOnlyGuard> },
     { path: "product/edit/:id", element: <AdminOnlyGuard><ProductFormPage /></AdminOnlyGuard> },
@@ -127,9 +135,13 @@ export const AdminRoutes: RouteObject[] = [
     { path: "order/manual", element: <ManualOrderPage /> },
     { path: "feedback/list", element: <FeedbackListPage /> },
     { path: "booking/list", element: <BookingListPage /> },
+    { path: "booking/create", element: <BookingCreatePage /> },
+    { path: "booking/create/detail", element: <BookingCreateDetailPage /> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },
     { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },
     { path: "booking/detail/:id/pet/:petId/service/:serviceId", element: <BookingPetServiceDetailPage /> },
+    { path: "booking/refund-policy/list", element: <AdminOnlyGuard><BookingRefundPolicyListPage /></AdminOnlyGuard> },
+    { path: "bank-information/verify", element: <AdminOnlyGuard><BankInformationVerifyPage /></AdminOnlyGuard> },
     { path: "shipping/list", element: <AdminOnlyGuard><ShippingRuleListPage /></AdminOnlyGuard> },
     { path: "settings", element: <AdminOnlyGuard><SettingsPage /></AdminOnlyGuard> },
     { path: "service/list", element: <AdminOnlyGuard><ServiceManagementPage /></AdminOnlyGuard> },
@@ -177,7 +189,7 @@ export const AdminRoutes: RouteObject[] = [
     {
         path: "staff/work-shifts",
         element: (
-            <RoleRouteGuard allowedRoles={["ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts/register`}>
+            <RoleRouteGuard allowedRoles={["ADMIN", "SUPER_ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts/register`}>
                 <WorkShiftAdminPage />
             </RoleRouteGuard>
         ),
@@ -185,7 +197,7 @@ export const AdminRoutes: RouteObject[] = [
     {
         path: "staff/work-shifts/register",
         element: (
-            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
+            <RoleRouteGuard allowedRoles={["STAFF", "SUPER_ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
                 <WorkShiftStaffPage />
             </RoleRouteGuard>
         ),
@@ -195,7 +207,7 @@ export const AdminRoutes: RouteObject[] = [
     {
         path: "staff/dashboard",
         element: (
-            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/profile/list`}>
+            <RoleRouteGuard allowedRoles={["STAFF", "SUPER_ADMIN"]} redirectTo={`/${prefixAdmin}/staff/profile/list`}>
                 <EmployeeDashboardPage />
             </RoleRouteGuard>
         ),
@@ -203,7 +215,7 @@ export const AdminRoutes: RouteObject[] = [
     {
         path: "staff/personal-schedule",
         element: (
-            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/profile/list`}>
+            <RoleRouteGuard allowedRoles={["STAFF", "SUPER_ADMIN"]} redirectTo={`/${prefixAdmin}/staff/profile/list`}>
                 <PersonalSchedule />
             </RoleRouteGuard>
         ),
@@ -212,5 +224,6 @@ export const AdminRoutes: RouteObject[] = [
 
 export const AdminAuthRoutes: RouteObject[] = [
     { path: "auth/login", element: <LoginPage /> },
+    { path: "auth/accept-invitation", element: <AcceptInvitationPage /> },
     { path: "setup-password", element: <SetupPasswordPage /> },
 ];

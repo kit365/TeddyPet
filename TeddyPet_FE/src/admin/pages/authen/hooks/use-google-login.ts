@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import Cookies from "js-cookie";
 import { useAuthStore } from "../../../../stores/useAuthStore";
 
-const ALLOWED_ADMIN_ROLES = ['ADMIN', 'STAFF'];
+const ALLOWED_ADMIN_ROLES = ['ADMIN', 'STAFF', 'SUPER_ADMIN'];
 
 export const useGoogleLogin = () => {
     const navigate = useNavigate();
@@ -59,16 +59,16 @@ export const useGoogleLogin = () => {
 
             if (fullUserData.mustChangePassword) {
                 toast.info("Vui lòng thiết lập mật khẩu lần đầu.");
-                setTimeout(() => navigate("/admin/setup-password"), 500);
+                setTimeout(() => navigate("/admin/setup-password"), 100);
                 return;
             }
 
             toast.success("Đăng nhập Google thành công!");
-            const target = role === "ADMIN" ? "/admin/dashboard/ecommerce" 
+            const target = (role === "ADMIN" || role === "SUPER_ADMIN") ? "/admin/dashboard/ecommerce" 
                          : role === "STAFF" ? "/admin/staff/dashboard" 
                          : "/admin/dashboard/analytics";
             
-            setTimeout(() => navigate(target), 500);
+            setTimeout(() => navigate(target), 100);
         },
         onError: (error: any) => {
             const errorMessage = error.message || error?.response?.data?.message || "Đăng nhập Google thất bại!";

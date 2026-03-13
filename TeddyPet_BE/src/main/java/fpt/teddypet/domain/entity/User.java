@@ -79,6 +79,9 @@ public class User extends BaseEntity implements UserDetails {
     @Builder.Default
     private Boolean mustChangePassword = false;
 
+    @Column(name = "backup_email")
+    private String backupEmail;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     @ToString.Exclude
