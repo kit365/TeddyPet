@@ -31,7 +31,7 @@ public class BookingDepositRefundPolicyAdminApplicationService implements Bookin
     public BookingDepositRefundPolicyResponse create(UpsertBookingDepositRefundPolicyRequest request) {
         BookingDepositRefundPolicy entity = new BookingDepositRefundPolicy();
         applyUpsert(entity, request);
-        // Nếu set mặc định, clear mặc định cũ
+        // Nếu set mặc định, clear mặc định cũ (chỉ 1 bản ghi isDefault=true)
         if (Boolean.TRUE.equals(request.isDefault())) {
             bookingDepositRefundPolicyRepository.findAllNotDeletedOrderByDisplayOrder()
                     .forEach(p -> {
@@ -39,6 +39,8 @@ public class BookingDepositRefundPolicyAdminApplicationService implements Bookin
                             p.setIsDefault(false);
                         }
                     });
+            // Bản ghi mặc định luôn phải đang hoạt động
+            entity.setActive(true);
         }
         BookingDepositRefundPolicy saved = bookingDepositRefundPolicyRepository.save(entity);
         return toResponse(saved);
@@ -57,6 +59,8 @@ public class BookingDepositRefundPolicyAdminApplicationService implements Bookin
                             p.setIsDefault(false);
                         }
                     });
+            // Bản ghi mặc định luôn phải đang hoạt động
+            entity.setActive(true);
         }
         BookingDepositRefundPolicy saved = bookingDepositRefundPolicyRepository.save(entity);
         return toResponse(saved);
