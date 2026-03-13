@@ -9,7 +9,7 @@ import { adminTheme } from "../../config/theme"
 import { loginSchema, LoginFormValues } from "../../schemas/login.schema"
 import { useLogin } from "./hooks/use-login"
 import { useGoogleLogin } from "./hooks/use-google-login"
-import { GoogleLogin } from "@react-oauth/google"
+import { SafeGoogleLogin } from "./components/SafeGoogleLogin"
 import { toast, ToastContainer } from "react-toastify"
 
 const LOGOS = [
@@ -258,16 +258,14 @@ export const LoginPage = () => {
                                         </Box>
 
                                         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                            <GoogleLogin
-                                                onSuccess={credentialResponse => {
-                                                    if (credentialResponse.credential) {
-                                                        googleLoginMutate(credentialResponse.credential);
-                                                    }
+                                            <SafeGoogleLogin
+                                                onSuccess={credential => {
+                                                    googleLoginMutate(credential);
                                                 }}
                                                 onError={() => {
                                                     toast.error('Đăng nhập Google thất bại');
-                                                } }
-                                                useOneTap
+                                                }}
+                                                disabled={isGooglePending || isPending}
                                             />
                                         </Box>
                                     </Box>
