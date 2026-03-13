@@ -95,7 +95,6 @@ import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
 import { AcceptInvitationPage } from "../pages/authen/AcceptInvitationPage";
 import { BankInformationVerifyPage } from "../pages/bank-information/BankInformationVerifyPage";
 import { CalendarPage } from "../pages/calendar/CalendarPage";
-import { BookingRefundPolicyListPage } from "../pages/booking/BookingRefundPolicyListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
