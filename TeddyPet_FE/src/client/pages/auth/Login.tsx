@@ -288,7 +288,7 @@ export const LoginPage = () => {
                                         toast.error("Đăng nhập Google thất bại!");
                                     }}
                                     useOneTap
-                                    shape="circle"
+                                    shape="pill"
                                     theme="outline"
                                     text="signin_with"
                                     width="100%"

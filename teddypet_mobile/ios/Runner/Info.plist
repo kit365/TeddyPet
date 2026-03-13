@@ -49,6 +49,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TeddyPet cần quyền truy cập vị trí để giúp bạn tìm các cửa hàng gần nhất</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TeddyPet cần quyền truy cập vị trí để giúp bạn tìm các cửa hàng gần nhất</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

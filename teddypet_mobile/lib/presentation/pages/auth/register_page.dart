@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
 import 'package:teddypet_mobile/core/utils/snackbar_utils.dart';
 import 'package:teddypet_mobile/core/utils/dialog_utils.dart';
+import 'package:teddypet_mobile/core/utils/location_utils.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/custom_text_field.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/primary_button.dart';
 import 'package:teddypet_mobile/presentation/providers/auth/auth_provider.dart';
@@ -27,6 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   // 2. Step management
   int _step = 0; // 0: Form, 1: OTP
+  String? _userLocation; // Lưu tọa độ GPS của người dùng
 
   // 3. Logic: Gửi Form Đăng Ký
   Future<void> _handleRegister() async {
@@ -51,6 +53,13 @@ class _RegisterPageState extends State<RegisterPage> {
     if (password.length < 6) {
       SnackBarUtils.show(context, 'Mật khẩu phải có ít nhất 6 ký tự!', isError: true);
       return;
+    }
+
+    // Lấy GPS location của user
+    SnackBarUtils.show(context, 'Đang lấy vị trí của bạn...');
+    final location = await SignupLocationHelper.requestLocationForSignup();
+    if (location != null) {
+      _userLocation = location;
     }
 
     final authProvider = context.read<AuthProvider>();
