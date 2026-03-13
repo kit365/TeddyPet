@@ -108,6 +108,7 @@ export interface BookingPetServiceResponse {
   id: number;
   bookingPetId: number;
   assignedStaffId?: number;
+  assignedStaffName?: string;
   serviceId?: number;
   serviceComboId?: number;
   timeSlotId?: number;
@@ -132,6 +133,7 @@ export interface BookingPetServiceResponse {
   customerRating?: number;
   customerReview?: string;
   serviceName?: string;
+  isRequiredRoom?: boolean;
   items?: BookingPetServiceItemResponse[];
 }
 
@@ -149,6 +151,7 @@ export interface BookingResponse {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  deposit?: number;
   depositPaid?: boolean;
   depositId?: number;
   depositExpiresAt?: string;
@@ -159,8 +162,8 @@ export interface BookingResponse {
   cancelRequested?: boolean;
   cancelledReason?: string | null;
   internalNotes?: string;
-  bookingStartDate: string; // ISO datetime
-  bookingEndDate?: string;
+  bookingCheckInDate?: string; // ISO datetime, set by Check-in button
+  bookingCheckOutDate?: string; // set by Check-out button
   cancelledAt?: string;
   cancelledBy?: string;
   createdAt: string;
@@ -325,8 +328,8 @@ export interface ClientBookingDetailResponse {
   paymentMethod?: string;
   status: string;
   internalNotes?: string;
-  bookingStartDate: string;
-  bookingEndDate?: string;
+  bookingCheckInDate?: string;
+  bookingCheckOutDate?: string;
   depositId?: number;
   depositExpiresAt?: string;
   createdAt?: string;

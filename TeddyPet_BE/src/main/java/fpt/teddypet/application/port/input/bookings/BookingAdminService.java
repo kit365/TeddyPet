@@ -30,5 +30,9 @@ public interface BookingAdminService {
     AdminBookingListItemResponse confirmReadyToWork(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmBookingReadyRequest request);
 
     AdminBookingListItemResponse confirmFullPayment(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmFullPaymentRequest request);
+
+    AdminBookingListItemResponse checkIn(Long bookingId);
+
+    AdminBookingListItemResponse checkOut(Long bookingId);
 }
 

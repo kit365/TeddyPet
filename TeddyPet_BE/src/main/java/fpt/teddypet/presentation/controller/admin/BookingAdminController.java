@@ -123,5 +123,19 @@ public class BookingAdminController {
         AdminBookingListItemResponse data = bookingAdminService.confirmFullPayment(bookingId, request);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
+
+    @PatchMapping("/{bookingId}/check-in")
+    @Operation(summary = "Check-in: ghi nhận thời gian vào (booking_check_in_date)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> checkIn(@PathVariable Long bookingId) {
+        AdminBookingListItemResponse data = bookingAdminService.checkIn(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PatchMapping("/{bookingId}/check-out")
+    @Operation(summary = "Check-out: ghi nhận thời gian ra (booking_check_out_date)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> checkOut(@PathVariable Long bookingId) {
+        AdminBookingListItemResponse data = bookingAdminService.checkOut(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
 }
 

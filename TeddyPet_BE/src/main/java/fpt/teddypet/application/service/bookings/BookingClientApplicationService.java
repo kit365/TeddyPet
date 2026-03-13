@@ -238,8 +238,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getInternalNotes(),
                 depositId,
                 depositExpiresAt,
-                booking.getBookingStartDate(),
-                booking.getBookingEndDate(),
+                booking.getBookingCheckInDate(),
+                booking.getBookingCheckOutDate(),
                 booking.getCreatedAt(),
                 petResponses);
     }
@@ -609,10 +609,8 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setSpecialRequests(request.note());
         booking.setStatus("PENDING");
         booking.setPaymentStatus("PENDING");
-        booking.setPaymentMethod(BookingPaymentMethodEnum.CASH.name());
         booking.setCustomerPhone(request.customerPhone());
         booking.setCustomerEmail(request.customerEmail());
-        booking.setBookingStartDate(LocalDateTime.now());
 
         // Gắn user (guest hoặc customer) dựa trên thông tin liên hệ
         fpt.teddypet.domain.entity.User user = ensureUserForBooking(request);

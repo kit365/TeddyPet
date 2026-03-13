@@ -74,8 +74,9 @@ export const getPaymentStatusColor = (status: PaymentStatus): string => {
 export const getBookingTypeLabel = (type: string): string =>
   BOOKING_SERVICE_LABELS[type] ?? type;
 
+/** Chỉ hỗ trợ Tiền mặt và Chuyển khoản; giá trị khác hiển thị "—". */
 export const getPaymentMethodLabel = (method?: string): string =>
-  method ? (PAYMENT_METHOD_LABELS[method] ?? method) : "—";
+  method ? (PAYMENT_METHOD_LABELS[method] ?? "—") : "—";
 
 export const getPaymentMethodColor = (method?: string): string =>
   method ? (PAYMENT_METHOD_COLORS[method] ?? "#637381") : "#637381";

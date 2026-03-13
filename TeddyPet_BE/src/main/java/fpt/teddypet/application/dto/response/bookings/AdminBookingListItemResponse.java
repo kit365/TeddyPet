@@ -24,8 +24,8 @@ public record AdminBookingListItemResponse(
         String cancelledReason,
         LocalDateTime cancelledAt,
         String internalNotes,
-        LocalDateTime bookingStartDate,
-        LocalDateTime bookingEndDate,
+        LocalDateTime bookingCheckInDate,
+        LocalDateTime bookingCheckOutDate,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }
