@@ -4,6 +4,7 @@ class AppRoutes {
     static const String register = "/register";
     static const String forgotPassword = "/forgot-password";
     static const String productDetail = "/product-detail";
+    static const String productReviews = "/product-reviews";
     static const String profile = "/profile";
     static const String editProfile = "/edit-profile";
     static const String accountSettings = "/account-settings";

@@ -13,7 +13,7 @@ import { TopSellingProducts } from "../../components/dashboard/ecommerce/TopSell
 import { PetDistribution } from "../../components/dashboard/ecommerce/PetDistribution";
 import { ServiceStatistics } from "../../components/dashboard/ecommerce/ServiceStatistics";
 import { useAuthStore } from "../../../stores/useAuthStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const CAROUSEL_DATA = [
      {
@@ -41,6 +41,14 @@ export const EcommercePage = () => {
         queryKey: ["dashboard-stats"],
         queryFn: getDashboardStats
     });
+
+    // Auto-scroll carousel
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
 
     const { data: chartRes } = useQuery({
         queryKey: ["revenue-chart", 7],
@@ -79,7 +87,7 @@ export const EcommercePage = () => {
                     }}
                 >
                     <WelcomeWidget
-                        title={`Chào mừng trở lại 👋 \n ${user?.fullName || 'Quản trị viên'}`}
+                        title={`Chào mừng trở lại 👋 \n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
                         description="Chào mừng bạn đến với hệ thống quản trị. Hãy bắt đầu quản lý các dịch vụ và đơn hàng của bạn ngay hôm nay."
                         img="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/illustrations/characters/character-present.webp"
                         bgImg="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/background/background-5.webp"
@@ -152,7 +160,7 @@ export const EcommercePage = () => {
                                                 >
                                                     {item.title}
                                                 </Typography>
-                                                <Typography variant="body2" sx={{ opacity: 0.8, color: 'inherit', noWrap: true }}>
+                                                <Typography variant="body2" noWrap sx={{ opacity: 0.8, color: 'inherit' }}>
                                                     {item.description}
                                                 </Typography>
                                             </div>

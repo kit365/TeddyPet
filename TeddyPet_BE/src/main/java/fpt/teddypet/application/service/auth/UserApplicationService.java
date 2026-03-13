@@ -88,7 +88,8 @@ public class UserApplicationService implements UserService {
                 u.getDateOfBirth(),
                 u.getCreatedAt(),
                 u.getStatus(),
-                u.getRole() != null ? u.getRole().getName() : null);
+                u.getRole() != null ? u.getRole().getName() : null,
+                u.getMustChangePassword() != null ? u.getMustChangePassword() : false);
     }
 
     @Override
@@ -170,6 +171,7 @@ public class UserApplicationService implements UserService {
                 savedUser.getDateOfBirth(),
                 savedUser.getCreatedAt(),
                 savedUser.getStatus(),
-                savedUser.getRole().getName());
+                savedUser.getRole().getName(),
+                savedUser.getMustChangePassword() != null ? savedUser.getMustChangePassword() : false);
     }
 }
