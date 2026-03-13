@@ -22,6 +22,8 @@ import { CheckoutPage } from "../pages/checkout/Checkout";
 import { CheckSuccessPage } from "../pages/checkout/CheckoutSuccess";
 import { OrderTrackingPage } from "../pages/checkout/OrderTracking";
 import { ProfilePage } from "../pages/dashboard/Profile";
+import { ProfileFreshPage } from "../pages/dashboard/ProfileFresh";
+import { AccountSettingsPage } from "../pages/dashboard/AccountSettings";
 import { OverviewPage } from "../pages/dashboard/Overview";
 import { ProfileEditPage } from "../pages/dashboard/ProfileEdit";
 import { AddressListPage } from "../pages/dashboard/AddressList";
@@ -87,6 +89,8 @@ export const ClientRoutes: RouteObject[] = [
         element: <AuthGuard />,
         children: [
             { path: "profile", element: <ProfilePage /> },
+            { path: "profile-fresh", element: <ProfileFreshPage /> },
+            { path: "account-settings", element: <AccountSettingsPage /> },
             { path: "overview", element: <OverviewPage /> },
             { path: "profile/edit", element: <ProfileEditPage /> },
             { path: "address", element: <AddressListPage /> },

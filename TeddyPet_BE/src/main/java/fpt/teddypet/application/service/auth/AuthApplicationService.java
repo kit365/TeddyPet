@@ -371,23 +371,44 @@ public class AuthApplicationService implements AuthService {
             assignedRole = whitelistOpt.get().getRole();
         }
 
-        if (!isDefaultAdmin && !isWhitelistedInDb) {
-            log.warn("[AuthService] Từ chối đăng nhập Google cho tài khoản không nằm trong whitelist: {}", email);
-            throw new IllegalArgumentException("Tài khoản chưa được cấp quyền truy cập vào hệ thống.");
-        }
+        // Remove strict whitelist blocking to allow normal users to login via Google
+        // They will default to assignedRole = RoleEnum.USER.name()
 
         User user;
         if (userService.existsByEmail(email)) {
             user = userService.getByEmail(email);
-            // Cập nhật thông tin profile
+            
+            String dbRoleName = user.getRole().getName();
+            // Robust check for staff/admin roles (handling potential ROLE_ prefix)
+            boolean isStaffInDb = !dbRoleName.equalsIgnoreCase(RoleEnum.USER.name()) && 
+                                  !dbRoleName.equalsIgnoreCase("ROLE_" + RoleEnum.USER.name());
+            boolean isWhitelistedForGoogle = !assignedRole.equals(RoleEnum.USER.name());
+
+            // Case: Invited Staff/Admin (Pending). 
+            // They MUST verify via the original invitation link (token) first.
+            // This is because the token acts as an "Approval/Acceptance" of the invitation.
+            // Even if whitelisted for Google, a pending invitation must still be accepted manually via the token link.
+            if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION && isStaffInDb) {
+                log.warn("[AuthService] Một tài khoản nhân viên chưa kích hoạt ({}) cố tình dùng Google để bỏ qua bước xác thực lời mời.", email);
+                throw new IllegalArgumentException("Tài khoản này đang trong trạng thái chờ kích hoạt (Lời mời nhân viên). Vui lòng xác thực qua liên kết trong email mời của bạn để chính thức 'Chấp thuận tham gia hệ thống' trước khi sử dụng Google Login.");
+            }
+
+            // Auto-verify ONLY for normal users (Customers/USER role) or already active staff.
+            user.setStatus(UserStatusEnum.ACTIVE);
+            
+            // Update profile info
             user.setFirstName(fixedFirstName);
             user.setLastName(fixedLastName);
             user.setAvatarUrl(avatarUrl);
-            user.setStatus(UserStatusEnum.ACTIVE);
             
-            // Cập nhật role mới nhất từ whitelist
-            Role newRole = roleService.findByName(assignedRole);
-            user.setRole(newRole);
+            // Role assignment logic:
+            // 1. If whitelisted for Google -> Upgrade/Assign to that privileged role
+            // 2. If currently a plain USER -> Can be assigned/updated to USER (default)
+            // 3. Otherwise (is a Staff not in Google Whitelist) -> DO NOT downgrade role to USER
+            if (isWhitelistedForGoogle || user.getRole().getName().equals(RoleEnum.USER.name())) {
+                Role newRole = roleService.findByName(assignedRole);
+                user.setRole(newRole);
+            }
             
             // Respect user's wish: if already exists, don't force change unless already set
             if (user.getMustChangePassword() == null) {
@@ -814,9 +835,19 @@ public class AuthApplicationService implements AuthService {
             throw new IllegalArgumentException("Lời mời này đã quá hạn (24 giờ). Vui lòng yêu cầu Admin gửi lại.");
         }
 
+        if ("COMPLETED".equals(whitelist.getStatus())) {
+            throw new IllegalArgumentException("Mã mời này đã được sử dụng và hoàn thiện thiết lập. Vui lòng đăng nhập bình thường.");
+        }
+
         if ("ACCEPTED".equals(whitelist.getStatus())) {
-            // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
+            // Kiểm tra xem User thực sự đã đổi pass chưa (phòng trường hợp status chưa sync)
             User existingUser = userService.getByEmail(whitelist.getEmail());
+            if (!Boolean.TRUE.equals(existingUser.getMustChangePassword())) {
+                whitelist.setStatus("COMPLETED");
+                adminGoogleWhitelistPort.save(whitelist);
+                throw new IllegalArgumentException("Mã mời này đã được hoàn thiện. Vui lòng đăng nhập bằng mật khẩu của bạn.");
+            }
+            // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
             return generateTokenResponse(existingUser);
         }
 
@@ -858,9 +889,16 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public void setupInitialPassword(fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request) {
-        User user = getCurrentUser();
+        User currentUser = getCurrentUser();
+        // Load fresh from DB to avoid stale object from SecurityContext
+        User user = userService.getByEmail(currentUser.getEmail());
         
         if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+            // Check if user already has a password set. If yes, consider it a success/already done.
+            if (user.getPassword() != null && !user.getPassword().isBlank()) {
+                log.info("[AuthService] setupInitialPassword called for user {} who already has a password.", user.getUsername());
+                return;
+            }
             throw new IllegalStateException("Người dùng này không được yêu cầu đổi mật khẩu khởi tạo.");
         }
 
@@ -871,5 +909,12 @@ public class AuthApplicationService implements AuthService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         userService.save(user);
+
+        // Đánh dấu mã mời đã hoàn tất để vô hiệu hóa link trong Email
+        adminGoogleWhitelistPort.findByEmail(user.getEmail().toLowerCase().trim())
+                .ifPresent(w -> {
+                    w.setStatus("COMPLETED");
+                    adminGoogleWhitelistPort.save(w);
+                });
     }
 }

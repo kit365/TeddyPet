@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Handbag, Heart, Search, User, Bell } from "iconoir-react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
@@ -40,24 +40,18 @@ export const MainHeader = () => {
             pauseOnHover: true,
             draggable: true,
             style: {
-                borderRadius: '15px',
-                fontSize: '0.875rem',
+                borderRadius: '12px',
+                fontSize: '1rem',
                 fontWeight: 'bold',
-                fontFamily: 'Quicksand, sans-serif'
+                fontFamily: 'Lora, serif'
             }
         });
     };
 
-    // Filter notifications for client side - Memoized to ensure consistency
+    // For client side, show all notifications that aren't read.
+    // We trust the private queue only delivers relevant ones.
     const clientNotifications = React.useMemo(() => {
-        return notifications.filter(n =>
-            !n.isRead &&
-            n.type && (
-                n.type.includes('CUSTOMER') ||
-                n.type.includes('REPLIED') ||
-                n.type.includes('STATUS')
-            )
-        );
+        return notifications.filter(n => !n.isRead);
     }, [notifications]);
 
     const clientUnreadCount = clientNotifications.length;
@@ -222,11 +216,11 @@ export const MainHeader = () => {
                                                             markAsRead(n.id);
                                                             if (n.targetUrl) navigate(n.targetUrl);
                                                         }}
-                                                        className="px-[22px] py-[14px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
+                                                        className="px-[22px] py-[16px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
                                                     >
-                                                        <p className="text-[0.875rem] font-bold text-client-secondary mb-[3px]">{n.title}</p>
-                                                        <p className="text-[0.8125rem] text-gray-500 line-clamp-2">{n.message}</p>
-                                                        <p className="text-[0.6875rem] text-gray-400 mt-[5px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
+                                                        <p className="text-[1rem] font-bold text-client-secondary mb-[5px]">{n.title}</p>
+                                                        <p className="text-[0.875rem] text-gray-500 line-clamp-2 leading-relaxed">{n.message}</p>
+                                                        <p className="text-[0.75rem] text-gray-400 mt-[8px] font-medium">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
                                                     </div>
                                                 ))
                                             ) : (
