@@ -35,8 +35,8 @@ const OrderStepper = ({ status }: { status: string }) => {
 
     if (isCancelled) {
         return (
-            <div className="bg-red-50/50 border-2 border-dashed border-red-200 rounded-[32px] p-[30px] flex items-center gap-[20px] animate-fadeIn mb-[30px]">
-                <div className="w-[60px] h-[60px] bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg">
+            <div className="bg-red-50/50 border-2 border-dashed border-red-200 rounded-[24px] p-[20px] flex items-center gap-[14px] animate-fadeIn mb-[20px]">
+                <div className="w-[46px] h-[46px] bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg">
                     <WarningCircle className="w-[3rem] h-[3rem]" />
                 </div>
                 <div>
@@ -50,11 +50,11 @@ const OrderStepper = ({ status }: { status: string }) => {
     const isCompleted = status === 'COMPLETED';
 
     return (
-        <div className="bg-white p-[35px] rounded-[32px] border border-gray-100 shadow-sm mb-[30px] animate-fadeIn">
+        <div className="bg-white p-[22px] rounded-[24px] border border-gray-100 shadow-sm mb-[20px] animate-fadeIn">
             <div className="relative flex items-center justify-between px-[1rem]">
-                <div className="absolute top-[30px] left-[8%] right-[8%] h-[4px] bg-gray-100 -z-0 rounded-full"></div>
+                <div className="absolute top-[22px] left-[8%] right-[8%] h-[4px] bg-gray-100 -z-0 rounded-full"></div>
                 <div
-                    className={`absolute top-[30px] left-[8%] h-[4px] transition-all duration-[1200ms] ease-in-out -z-0 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-client-primary'}`}
+                    className={`absolute top-[22px] left-[8%] h-[4px] transition-all duration-[1200ms] ease-in-out -z-0 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-client-primary'}`}
                     style={{ width: currentIdx > 0 ? `${(currentIdx / (steps.length - 1)) * 84}%` : '0%' }}
                 ></div>
 
@@ -63,9 +63,9 @@ const OrderStepper = ({ status }: { status: string }) => {
                     const isCurrent = index === currentIdx;
 
                     return (
-                        <div key={step.key} className="flex flex-col items-center gap-[15px] z-10 w-[14%] relative">
+                        <div key={step.key} className="flex flex-col items-center gap-[10px] z-10 w-[14%] relative">
                             <div
-                                className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all duration-700 ${isActive
+                                className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-all duration-700 ${isActive
                                     ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-110 shadow-lg'
                                     : 'bg-white text-gray-200 border-2 border-gray-100'
                                     } ${isCurrent ? (isCompleted ? 'ring-8 ring-emerald-50' : 'ring-8 ring-client-primary/10') : ''}`}
@@ -201,71 +201,73 @@ export const OrderTrackingPage = () => {
                 className="bg-top"
             />
 
-            <div className="app-container py-[80px]">
-                <div className="max-w-[1100px] mx-auto space-y-[30px]">
+            <div className="app-container py-[32px]">
+                <div className="max-w-[1100px] mx-auto space-y-[20px] flex flex-col items-center">
 
                     {/* 1. FORM TRA CỨU */}
                     {(!order || error) && !loading && (
-                        <div className="bg-white p-[50px] rounded-[40px] shadow-sm border border-[#eee] animate-fadeIn text-center">
-                            <h2 className="text-[2.6rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
-                            <p className="text-[1.5rem] text-gray-400 font-medium mb-10 italic">
-                                {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
-                            </p>
+                        <div className="w-full flex justify-center">
+                            <div className="bg-white p-[24px] rounded-[22px] shadow-sm border border-[#eee] animate-fadeIn text-center w-full max-w-[980px] mx-auto origin-top scale-[0.9] md:scale-[0.94] lg:scale-[0.96]">
+                                <h2 className="text-[2.6rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
+                                <p className="text-[1.5rem] text-gray-400 font-medium mb-7 italic">
+                                    {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
+                                </p>
 
-                            {isAuthenticated && (
-                                <div className="mb-8 p-4 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
-                                    <p className="text-[1.3rem] text-client-secondary font-bold">
-                                        💡 Bạn có thể vào <Link to="/dashboard/orders" className="text-client-primary underline">Lịch sử đơn hàng</Link> để xem danh sách trọn vẹn nhất.
-                                    </p>
-                                </div>
-                            )}
-
-                            <form onSubmit={handleManualLookup} className="max-w-[500px] mx-auto space-y-4">
-                                <div className="relative">
-                                    <Package className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 w-6 h-6" />
-                                    <input
-                                        type="text"
-                                        placeholder="Mã đơn hàng (ORD-XXXXXX)"
-                                        value={orderCode}
-                                        onChange={(e) => setOrderCode(e.target.value)}
-                                        className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
-                                    />
-                                </div>
-                                {!isAuthenticated && (
-                                    <div className="relative animate-fadeIn">
-                                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 w-6 h-6" />
-                                        <input
-                                            type="text"
-                                            placeholder="Địa chỉ Email hoặc Số điện thoại"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-[65px] pl-16 pr-6 rounded-[22px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
-                                        />
+                                {isAuthenticated && (
+                                    <div className="mb-6 p-3 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
+                                        <p className="text-[1.3rem] text-client-secondary font-bold">
+                                            💡 Bạn có thể vào <Link to="/dashboard/orders" className="text-client-primary underline">Lịch sử đơn hàng</Link> để xem danh sách trọn vẹn nhất.
+                                        </p>
                                     </div>
                                 )}
-                                <button type="submit" className="w-full h-[65px] bg-client-secondary hover:bg-client-primary text-white font-black text-[1.6rem] rounded-[22px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                                    <Search className="w-6 h-6" /> TRA CỨU NGAY
-                                </button>
-                            </form>
+
+                                <form onSubmit={handleManualLookup} className="max-w-[620px] mx-auto space-y-4">
+                                    <div className="relative">
+                                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Mã đơn hàng (ORD-XXXXXX)"
+                                            value={orderCode}
+                                            onChange={(e) => setOrderCode(e.target.value)}
+                                            className="w-full h-[56px] pl-12 pr-5 rounded-[14px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
+                                        />
+                                    </div>
+                                    {!isAuthenticated && (
+                                        <div className="relative animate-fadeIn">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
+                                            <input
+                                                type="text"
+                                                placeholder="Địa chỉ Email hoặc Số điện thoại"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                className="w-full h-[56px] pl-12 pr-5 rounded-[14px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.6rem] bg-gray-50/50 font-black transition-all"
+                                            />
+                                        </div>
+                                    )}
+                                    <button type="submit" className="w-full h-[56px] mt-1 bg-client-secondary hover:bg-client-primary text-white font-black text-[1.6rem] rounded-[14px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                                        <Search className="w-4 h-4" /> TRA CỨU NGAY
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     )}
 
                     {loading && (
-                        <div className="bg-white p-[80px] rounded-[40px] text-center shadow-sm">
-                            <div className="w-[60px] h-[60px] border-[6px] border-client-primary/10 border-t-client-primary rounded-full animate-spin mx-auto mb-6"></div>
+                        <div className="bg-white p-[48px] rounded-[28px] text-center shadow-sm">
+                            <div className="w-[44px] h-[44px] border-[4px] border-client-primary/10 border-t-client-primary rounded-full animate-spin mx-auto mb-6"></div>
                             <h2 className="text-[1.8rem] font-bold text-gray-400">Đang tìm đơn hàng của bạn...</h2>
                         </div>
                     )}
 
                     {/* 2. KẾT QUẢ "CỰC PHẨM" */}
                     {!loading && order && (
-                        <div className="space-y-[30px] animate-fadeIn">
+                        <div className="space-y-[20px] animate-fadeIn">
 
                             {/* Header chi tiết */}
-                            <div className="flex justify-between items-center bg-white p-[30px] px-[40px] rounded-[30px] border border-gray-100 shadow-sm">
+                            <div className="flex justify-between items-center bg-white p-[20px] px-[24px] rounded-[20px] border border-gray-100 shadow-sm">
                                 <div className="flex items-center gap-4">
                                     <h2 className="text-[2.2rem] font-black text-client-secondary uppercase">Mã đơn: {order.orderCode}</h2>
-                                    <button onClick={() => copyToClipboard(order.orderCode)} className="w-[45px] h-[45px] bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:text-client-primary hover:bg-client-primary/10 transition-all">
+                                    <button onClick={() => copyToClipboard(order.orderCode)} className="w-[36px] h-[36px] bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:text-client-primary hover:bg-client-primary/10 transition-all">
                                         <Copy className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -279,8 +281,8 @@ export const OrderTrackingPage = () => {
                             <OrderStepper status={order.status} />
 
                             {/* GRID 1:1 - ĐỊA CHỈ & HỖ TRỢ */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-[30px]">
-                                <div className="bg-white p-[35px] rounded-[35px] border border-gray-100 shadow-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+                                <div className="bg-white p-[24px] rounded-[24px] border border-gray-100 shadow-sm">
                                     <h3 className="text-[1.8rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
                                         <MapPin className="text-client-primary w-7 h-7" /> Địa chỉ giao tới
                                     </h3>
@@ -297,16 +299,16 @@ export const OrderTrackingPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white p-[35px] rounded-[35px] border border-gray-100 shadow-sm bg-gradient-to-tr from-white to-blue-50/20">
+                                <div className="bg-white p-[24px] rounded-[24px] border border-gray-100 shadow-sm bg-gradient-to-tr from-white to-blue-50/20">
                                     <h3 className="text-[1.8rem] font-black text-client-secondary mb-[25px] flex items-center gap-3 uppercase">
                                         <HelpCircle className="text-blue-500 w-7 h-7" /> Cần giúp đỡ?
                                     </h3>
                                     <p className="text-[1.4rem] text-gray-500 font-medium mb-8 leading-relaxed">Đơn hàng của bạn đang được xử lý. Nếu có bất kỳ thắc mắc nào, đừng ngần ngại liên hệ với chúng tôi.</p>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <a href="#" className="h-[55px] bg-client-secondary text-white rounded-[20px] font-black text-[1.4rem] flex items-center justify-center gap-2 shadow-lg">
+                                        <a href="#" className="h-[46px] bg-client-secondary text-white rounded-[14px] font-black text-[1.4rem] flex items-center justify-center gap-2 shadow-lg">
                                             <ChatBubble className="w-5 h-5" /> Chat ngay
                                         </a>
-                                        <button onClick={() => { setOrder(null); setOrderCode(""); setEmail(""); }} className="h-[55px] border-2 border-gray-100 rounded-[20px] text-gray-400 font-black text-[1.4rem] hover:border-client-primary hover:text-client-primary transition-all">
+                                        <button onClick={() => { setOrder(null); setOrderCode(""); setEmail(""); }} className="h-[46px] border-2 border-gray-100 rounded-[14px] text-gray-400 font-black text-[1.4rem] hover:border-client-primary hover:text-client-primary transition-all">
                                             Tra đơn khác
                                         </button>
                                     </div>
@@ -314,15 +316,15 @@ export const OrderTrackingPage = () => {
                             </div>
 
                             {/* DANH SÁCH SẢN PHẨM */}
-                            <div className="bg-white rounded-[35px] border border-gray-100 shadow-sm overflow-hidden">
-                                <div className="p-[30px] border-b border-gray-50 bg-gray-50/30 flex items-center gap-4">
+                            <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+                                <div className="p-[20px] border-b border-gray-50 bg-gray-50/30 flex items-center gap-4">
                                     <Package className="text-client-primary w-7 h-7" />
                                     <h3 className="text-[1.8rem] font-black text-client-secondary uppercase">Sản phẩm trong kiện ({order.orderItems?.length})</h3>
                                 </div>
-                                <div className="p-[30px] space-y-4">
+                                <div className="p-[20px] space-y-4">
                                     {order.orderItems?.map((item, idx) => (
-                                        <div key={idx} className="flex gap-6 p-4 rounded-[24px] hover:bg-gray-50/50 transition-all group">
-                                            <div className="w-[85px] h-[85px] rounded-[18px] overflow-hidden border border-gray-100 shrink-0 relative shadow-sm">
+                                        <div key={idx} className="flex gap-6 p-4 rounded-[16px] hover:bg-gray-50/50 transition-all group">
+                                            <div className="w-[72px] h-[72px] rounded-[12px] overflow-hidden border border-gray-100 shrink-0 relative shadow-sm">
                                                 <img src={item.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />
                                                 <div className="absolute top-0 right-0 bg-client-primary text-white text-[1rem] font-black px-2 py-1 rounded-bl-xl">x{item.quantity}</div>
                                             </div>
@@ -347,7 +349,7 @@ export const OrderTrackingPage = () => {
                             </div>
 
                             {/* THANH TOÁN & THỜI GIAN */}
-                            <div className="bg-white p-[40px] rounded-[35px] border border-gray-100 shadow-xl shadow-gray-100/20">
+                            <div className="bg-white p-[24px] rounded-[24px] border border-gray-100 shadow-xl shadow-gray-100/20">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                     <div className="space-y-6">
                                         <h3 className="text-[1.8rem] font-black text-client-secondary uppercase border-b border-gray-100 pb-4">Chi tiết giao dịch</h3>
@@ -404,7 +406,7 @@ export const OrderTrackingPage = () => {
                                 <button
                                     onClick={handleConfirmReceived}
                                     disabled={isSubmitting}
-                                    className="w-full h-[65px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[1.7rem] rounded-[24px] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
+                                    className="w-full h-[56px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[1.7rem] rounded-[18px] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 mt-10 hover:scale-[1.01] active:scale-95"
                                 >
                                     {isSubmitting ? <RefreshDouble className="w-[2.4rem] h-[2.4rem] animate-spin" /> : <CheckCircle className="w-[2.4rem] h-[2.4rem]" />}
                                     {isSubmitting ? "Đang xác nhận..." : "TÔI ĐÃ NHẬN ĐƯỢC HÀNG"}
@@ -422,8 +424,8 @@ export const OrderTrackingPage = () => {
                         className="absolute inset-0 bg-client-secondary/40 backdrop-blur-md"
                         onClick={() => setShowFeedbackModal(false)}
                     ></div>
-                    <div className="bg-white rounded-[40px] p-10 max-w-[500px] w-full relative z-10 shadow-2xl border border-gray-100 text-center animate-scaleUp">
-                        <div className="w-[100px] h-[100px] bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-6 shadow-sm border border-emerald-100">
+                    <div className="bg-white rounded-[28px] p-10 max-w-[440px] w-full relative z-10 shadow-2xl border border-gray-100 text-center animate-scaleUp">
+                        <div className="w-[72px] h-[72px] bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-6 shadow-sm border border-emerald-100">
                             <Star className="w-[5rem] h-[5rem] fill-current" />
                         </div>
                         <h3 className="text-[2.6rem] font-black text-client-secondary mb-4 leading-tight uppercase">
@@ -435,13 +437,13 @@ export const OrderTrackingPage = () => {
                         <div className="flex flex-col gap-3">
                             <Link
                                 to={`/feedback?orderId=${order?.id}${!order?.user ? `&email=${order?.guestEmail || email}` : ''}`}
-                                className="h-[65px] bg-client-primary text-white rounded-[24px] font-black text-[1.8rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
+                                className="h-[54px] bg-client-primary text-white rounded-[16px] font-black text-[1.8rem] flex items-center justify-center gap-3 hover:bg-client-secondary shadow-xl shadow-client-primary/30 transition-all hover:scale-[1.02] active:scale-95"
                             >
                                 <Star className="w-6 h-6" /> ĐÁNH GIÁ NGAY
                             </Link>
                             <button
                                 onClick={() => setShowFeedbackModal(false)}
-                                className="h-[55px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
+                                className="h-[46px] text-gray-400 font-bold text-[1.5rem] hover:text-client-secondary transition-colors uppercase tracking-widest"
                             >
                                 Để sau nhé
                             </button>

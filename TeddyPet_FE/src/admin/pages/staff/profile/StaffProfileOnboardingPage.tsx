@@ -9,6 +9,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useStaffPositions } from '../position/hooks/useStaffPosition';
 import type { IStaffOnboardingRequest, GenderEnum, EmploymentTypeEnum } from '../../../api/staffProfile.api';
+import { useQuery } from '@tanstack/react-query';
+import { getMe } from '../../../../api/auth.api';
+import { MeResponse } from '../../../../types/auth.type';
 
 type FormValues = IStaffOnboardingRequest & {};
 
@@ -44,6 +47,8 @@ export const StaffProfileOnboardingPage = () => {
             bankName: '',
             positionId: undefined as number | undefined,
             employmentType: undefined as EmploymentTypeEnum | undefined,
+            assignedRole: 'STAFF',
+            backupEmail: '',
         },
     });
 
@@ -59,6 +64,9 @@ export const StaffProfileOnboardingPage = () => {
     }, [prefilledEmail, prefilledFullName, prefilledPhone, reset]);
     const { data: positions = [] } = useStaffPositions();
     const { mutate: create, isPending } = useCreateStaffOnboarding();
+    const { data: meRes } = useQuery<MeResponse>({ queryKey: ["me-admin"], queryFn: () => getMe() });
+    const isSuperAdmin = meRes?.data?.role === 'SUPER_ADMIN';
+    // const isAdmin = meRes?.data?.role === 'ADMIN'; 
 
     const onSubmit = (data: FormValues) => {
         create(
@@ -68,7 +76,7 @@ export const StaffProfileOnboardingPage = () => {
                 phoneNumber: data.phoneNumber?.trim() || undefined,
                 citizenId: data.citizenId?.trim() || undefined,
                 dateOfBirth: data.dateOfBirth || undefined,
-                gender: data.gender && data.gender !== '' ? data.gender : undefined,
+                gender: (data.gender && (data.gender as string) !== '') ? data.gender : undefined,
                 avatarUrl: data.avatarUrl?.trim() || undefined,
                 altImage: data.altImage?.trim() || undefined,
                 address: data.address?.trim() || undefined,
@@ -76,6 +84,8 @@ export const StaffProfileOnboardingPage = () => {
                 bankName: data.bankName?.trim() || undefined,
                 positionId: data.positionId ?? undefined,
                 employmentType: data.employmentType ?? undefined,
+                assignedRole: data.assignedRole || 'STAFF',
+                backupEmail: data.backupEmail?.trim() || undefined,
             },
             {
                 onSuccess: (res: any) => {
@@ -136,7 +146,18 @@ export const StaffProfileOnboardingPage = () => {
                     <Controller
                         name="email"
                         control={control}
-                        render={({ field }) => <TextField {...field} label="Email" type="email" fullWidth />}
+                        rules={{ required: 'Nhập email nhân viên' }}
+                        render={({ field, fieldState }) => (
+                            <TextField
+                                {...field}
+                                label="Email"
+                                type="email"
+                                required
+                                fullWidth
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
+                            />
+                        )}
                     />
                     <Controller
                         name="phoneNumber"
@@ -184,13 +205,17 @@ export const StaffProfileOnboardingPage = () => {
                     <Controller
                         name="positionId"
                         control={control}
-                        render={({ field }) => (
+                        rules={{ required: 'Chọn chức vụ' }}
+                        render={({ field, fieldState }) => (
                             <TextField
                                 {...field}
                                 select
                                 label="Chức vụ"
+                                required
                                 fullWidth
                                 value={field.value ?? ''}
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
                                 onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                             >
                                 <MenuItem value="">
@@ -207,13 +232,17 @@ export const StaffProfileOnboardingPage = () => {
                     <Controller
                         name="employmentType"
                         control={control}
-                        render={({ field }) => (
+                        rules={{ required: 'Chọn loại hình công việc' }}
+                        render={({ field, fieldState }) => (
                             <TextField
                                 {...field}
                                 select
                                 label="Loại hình"
+                                required
                                 fullWidth
                                 value={field.value ?? ''}
+                                error={!!fieldState.error}
+                                helperText={fieldState.error?.message}
                                 onChange={(e) => field.onChange(e.target.value || undefined)}
                             >
                                 <MenuItem value="">
@@ -227,6 +256,41 @@ export const StaffProfileOnboardingPage = () => {
                             </TextField>
                         )}
                     />
+                    
+                    {isSuperAdmin && (
+                        <Controller
+                            name="assignedRole"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    select
+                                    label="Quyền hệ thống (Role)"
+                                    fullWidth
+                                    value={field.value ?? 'STAFF'}
+                                >
+                                    <MenuItem value="STAFF">Staff (Nhân viên)</MenuItem>
+                                    <MenuItem value="ADMIN">Admin (Quản trị viên)</MenuItem>
+                                </TextField>
+                            )}
+                        />
+                    )}
+                    
+                    <Controller
+                        name="backupEmail"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                label="Email dự phòng (Backup Email)"
+                                type="email"
+                                fullWidth
+                                placeholder="Dùng để khôi phục tài khoản nếu email chính gặp sự cố"
+                                helperText="Tùy chọn. Khuyến khích sử dụng email cá nhân khác."
+                            />
+                        )}
+                    />
+
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
                         <Button
                             type="button"

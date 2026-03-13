@@ -5,6 +5,7 @@ import fpt.teddypet.application.constants.user.UserLogMessages;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.output.UserRepositoryPort;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.domain.enums.RoleEnum;
 import fpt.teddypet.domain.enums.UserStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -103,7 +104,7 @@ public class UserApplicationService implements UserService {
     public void trackFailedLogin(User user) {
         // Skip for SUPER_ADMIN
         // Skip for SUPER_ADMIN
-        boolean isSuperAdmin = "SUPER_ADMIN".equals(user.getRole().getName());
+        boolean isSuperAdmin = RoleEnum.SUPER_ADMIN.name().equals(user.getRole().getName());
         if (isSuperAdmin) {
             return;
         }

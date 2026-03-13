@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { LogoTeddyPet } from "../../../../assets/admin/LogoTeddyPet";
 import { NavGroup } from "./NavGroup";
@@ -11,8 +11,8 @@ import { useMemo } from "react";
 
 export const SideBar = () => {
     const { isOpen, toggleSidebar } = useSidebar();
-    const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: getMe });
-    const role = meRes?.data?.role as "ADMIN" | "STAFF" | undefined;
+    const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: () => getMe() });
+    const role = (meRes as any)?.data?.role as "ADMIN" | "STAFF" | "SUPER_ADMIN" | undefined;
 
     /** Khi chưa có role (đang load) coi như STAFF để không lộ menu chỉ dành cho ADMIN. */
     const effectiveRole = role ?? "STAFF";
@@ -37,8 +37,14 @@ export const SideBar = () => {
                 // đồng thời tôn trọng allowedRoles trên từng child.
                 if (group.id === "staff") {
                     const children = rawChildren.filter((child: any) => {
-                        if (child.role && child.role !== effectiveRole) return false;
                         if (child.allowedRoles && !child.allowedRoles.includes(effectiveRole)) return false;
+                        
+                        // Legacy role filter: SUPER_ADMIN can see everything
+                        if (child.role) {
+                            if (effectiveRole === "SUPER_ADMIN") return true;
+                            if (child.role !== effectiveRole) return false;
+                        }
+                        
                         return true;
                     });
                     return { ...group, children };

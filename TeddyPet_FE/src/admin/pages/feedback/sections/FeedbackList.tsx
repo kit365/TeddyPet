@@ -47,8 +47,8 @@ export const FeedbackList = () => {
     const [editComment, setEditComment] = useState("");
     const [submittingEdit, setSubmittingEdit] = useState(false);
 
-    const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: getMe });
-    const isAdminRole = meRes?.data?.role === 'ADMIN';
+    const { data: meRes } = useQuery({ queryKey: ["me-admin"], queryFn: () => getMe() });
+    const isAdminRole = (meRes as any)?.data?.role === 'ADMIN' || (meRes as any)?.data?.role === 'SUPER_ADMIN';
 
     const fetchFeedbacks = async () => {
         setLoading(true);

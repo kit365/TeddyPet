@@ -29,7 +29,7 @@ export const StaffProfileEditPage = () => {
     const { data: res } = useStaffProfileById(id);
     const profile = (res as any)?.data;
     const [showAccountForm, setShowAccountForm] = useState(false);
-    const [accountForm, setAccountForm] = useState<Pick<IAccountProvisionRequest, 'username' | 'password'>>({ username: '', password: '' });
+    const [accountForm, setAccountForm] = useState<IAccountProvisionRequest>({ username: '', password: '', roleName: 'STAFF' });
 
     const { control, handleSubmit, reset } = useForm<FormValues>({
         defaultValues: {
@@ -46,6 +46,7 @@ export const StaffProfileEditPage = () => {
             bankName: '',
             positionId: undefined as number | undefined,
             employmentType: undefined as EmploymentTypeEnum | undefined,
+            backupEmail: '',
         },
     });
 
@@ -66,6 +67,7 @@ export const StaffProfileEditPage = () => {
                 bankName: profile.bankName ?? '',
                 positionId: profile.positionId ?? undefined,
                 employmentType: profile.employmentType ?? undefined,
+                backupEmail: profile.backupEmail ?? '',
             });
         }
     }, [profile, reset]);
@@ -85,7 +87,7 @@ export const StaffProfileEditPage = () => {
                     phoneNumber: data.phoneNumber?.trim() || undefined,
                     citizenId: data.citizenId?.trim() || undefined,
                     dateOfBirth: data.dateOfBirth || undefined,
-                    gender: data.gender && data.gender !== '' ? data.gender : undefined,
+                    gender: (data.gender && (data.gender as string) !== '') ? data.gender : undefined,
                     avatarUrl: data.avatarUrl?.trim() || undefined,
                     altImage: data.altImage?.trim() || undefined,
                     address: data.address?.trim() || undefined,
@@ -93,6 +95,7 @@ export const StaffProfileEditPage = () => {
                     bankName: data.bankName?.trim() || undefined,
                     positionId: data.positionId ?? undefined,
                     employmentType: data.employmentType ?? undefined,
+                    backupEmail: data.backupEmail?.trim() || undefined,
                 },
             },
             {
@@ -111,8 +114,8 @@ export const StaffProfileEditPage = () => {
                 staffId: Number(id),
                 data: {
                     username: accountForm.username?.trim() || undefined,
-                    password: (accountForm.password != null && accountForm.password !== '') ? accountForm.password : undefined,
-                    roleName: 'STAFF',
+                    password: accountForm.password?.trim() || undefined,
+                    roleName: accountForm.roleName,
                 },
             },
             {
@@ -247,9 +250,23 @@ export const StaffProfileEditPage = () => {
                                         </MenuItem>
                                     ))}
                                 </TextField>
-                            )}
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
+                        )}
+                    />
+                    <Controller
+                        name="backupEmail"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                label="Email dự phòng (Backup Email)"
+                                type="email"
+                                fullWidth
+                                placeholder="Dùng để khôi phục tài khoản nếu email chính gặp sự cố"
+                                helperText="Tùy chọn. Khuyến khích sử dụng email cá nhân khác."
+                            />
+                        )}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
                             <Button type="button" variant="outlined" onClick={() => (window.location.href = `/${prefixAdmin}/staff/profile/list`)}>
                                 Hủy
                             </Button>
@@ -261,20 +278,43 @@ export const StaffProfileEditPage = () => {
                 </Box>
 
                 {profile && !profile.userId && (
-                    <Box sx={{ mt: 4, p: 2, border: '1px solid #919eab33', borderRadius: 2 }}>
-                        <Title title="Cấp tài khoản" />
+                    <Box sx={{ mt: 4, p: 3, border: '1px solid #e5e7eb', borderRadius: 3, bgcolor: '#f8fafc' }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#1e293b' }}>
+                            Cấp tài khoản & Phân quyền
+                        </Typography>
                         {!showAccountForm ? (
-                            <Button variant="outlined" onClick={() => setShowAccountForm(true)}>
-                                Cấp tài khoản cho nhân viên này
-                            </Button>
+                            <Box sx={{ textAlign: 'center', py: 2 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Nhân viên này chưa có tài khoản đăng nhập hệ thống.
+                                </Typography>
+                                <Button variant="contained" onClick={() => setShowAccountForm(true)}>
+                                    Cấp tài khoản mới
+                                </Button>
+                            </Box>
                         ) : (
-                            <Stack spacing={2} sx={{ mt: 2, maxWidth: 400 }}>
-                                <Box sx={{ py: 1, px: 1.5, bgcolor: 'action.hover', borderRadius: 1, typography: 'body2', color: 'text.secondary' }}>
-                                    Nếu người này <strong>đã có tài khoản</strong> (email đã đăng ký trên hệ thống), để trống Tên đăng nhập và Mật khẩu — hệ thống sẽ chỉ gán vai trò nhân viên cho tài khoản đó.
+                            <Stack spacing={2.5} sx={{ mt: 2, maxWidth: 500 }}>
+                                <Box sx={{ py: 1.5, px: 2, bgcolor: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 2, typography: 'body2', color: '#1e40af' }}>
+                                    <strong>Hướng dẫn:</strong><br/>
+                                    • Nếu email <strong>{profile.email}</strong> đã có tài khoản khách hàng, hãy để trống Tên đăng nhập và Mật khẩu. Hệ thống sẽ tự động liên kết và nâng cấp lên tài khoản nhân viên.<br/>
+                                    • Nếu chưa có, hãy nhập Tên đăng nhập. Mật khẩu có thể để trống để hệ thống tự tạo ngẫu nhiên.
                                 </Box>
+
+                                {isSuperAdmin && (
+                                    <TextField
+                                        select
+                                        label="Vai trò cấp quyền (Role)"
+                                        value={accountForm.roleName}
+                                        onChange={(e) => setAccountForm(p => ({ ...p, roleName: e.target.value }))}
+                                        fullWidth
+                                    >
+                                        <MenuItem value="STAFF">Staff (Nhân viên)</MenuItem>
+                                        <MenuItem value="ADMIN">Admin (Quản trị viên)</MenuItem>
+                                    </TextField>
+                                )}
+
                                 <TextField
                                     label="Tên đăng nhập"
-                                    placeholder="Để trống nếu email đã có tài khoản"
+                                    placeholder="Ví dụ: kietnt"
                                     value={accountForm.username}
                                     onChange={(e) => setAccountForm((p) => ({ ...p, username: e.target.value }))}
                                     fullWidth
@@ -282,14 +322,14 @@ export const StaffProfileEditPage = () => {
                                 <TextField
                                     label="Mật khẩu"
                                     type="password"
-                                    placeholder="Để trống nếu email đã có tài khoản"
+                                    placeholder="Để trống để tự tạo ngẫu nhiên"
                                     value={accountForm.password}
                                     onChange={(e) => setAccountForm((p) => ({ ...p, password: e.target.value }))}
                                     fullWidth
                                 />
-                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                <Box sx={{ display: 'flex', gap: 2, pt: 1 }}>
                                     <Button variant="contained" onClick={onProvisionAccount} disabled={isProvisioning}>
-                                        {isProvisioning ? 'Đang cấp...' : 'Cấp tài khoản'}
+                                        {isProvisioning ? 'Đang xử lý...' : 'Xác nhận cấp tài khoản'}
                                     </Button>
                                     <Button variant="outlined" onClick={() => setShowAccountForm(false)}>
                                         Hủy

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{email/fragments/head :: head(title='Lời mời quản trị hệ thống')}">
+    <title>Lời mời quản trị hệ thống</title>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div th:replace="~{email/fragments/header :: header}"></div>
+
+        <!-- Content -->
+        <div style="line-height: 1.6; text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #4A90A4; font-size: 28px; margin-bottom: 15px;">Lời mời cộng tác 🐾</h2>
+                <p style="color: #64748b;">Bạn đã được mời tham gia vào đội ngũ quản trị của TeddyPet.</p>
+            </div>
+
+            <p>Xin chào,</p>
+            <p>Admin của TeddyPet đã thêm bạn vào danh sách nhân sự quản trị hệ thống. Để kích hoạt tài khoản và thiết lập mật khẩu, vui lòng nhấn vào nút bên dưới:</p>
+
+            <!-- CTA Button -->
+            <div style="margin: 30px 0;"
+                th:replace="~{email/fragments/components :: button(text='Chấp nhận lời mời', url=${invitationLink})}">
+            </div>
+
+            <div class="warning-box" style="text-align: left;">
+                <p style="margin: 0;">
+                    <strong>Lưu ý:</strong><br>
+                    - Lời mời này sẽ hết hạn sau <strong>24 giờ</strong> kể từ thời điểm gửi.<br>
+                    - Nếu đây là lần đầu bạn tham gia hệ thống, bạn sẽ được hướng dẫn tạo mật khẩu sau khi nhấn nút.<br>
+                    - Nếu bạn không biết về TeddyPet, vui lòng bỏ qua email này.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div th:replace="~{email/fragments/footer :: footer}"></div>
+    </div>
+</body>
+
+</html>

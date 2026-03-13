@@ -14,9 +14,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import fpt.teddypet.application.port.output.AdminGoogleWhitelistPort;
 import jakarta.annotation.PostConstruct;
 import java.util.Collections;
-import java.util.List;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.RoleService;
 import fpt.teddypet.application.port.input.UserService;
@@ -25,6 +25,7 @@ import fpt.teddypet.application.port.output.JwtTokenProviderPort;
 import fpt.teddypet.application.port.output.VerificationTokenPort;
 import fpt.teddypet.domain.entity.User;
 import fpt.teddypet.domain.entity.Role;
+import fpt.teddypet.domain.enums.RoleEnum;
 import fpt.teddypet.domain.enums.UserStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,7 @@ public class AuthApplicationService implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final VerificationTokenPort verificationTokenPort;
     private final EmailServicePort emailServicePort;
+    private final AdminGoogleWhitelistPort adminGoogleWhitelistPort;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -74,7 +76,7 @@ public class AuthApplicationService implements AuthService {
     private String googleClientId;
 
     @Value("${app.google.allowed-admin-emails:}")
-    private String allowedAdminEmails;
+    private String googleAllowedAdminEmails;
 
     private GoogleIdTokenVerifier googleVerifier;
 
@@ -347,30 +349,45 @@ public class AuthApplicationService implements AuthService {
         String fixedFirstName = formatName(firstName);
         String fixedLastName = formatName(lastName);
 
-        // Kiểm tra xem email có thuộc danh sách Admin được cấu hình không
-        boolean isAdminEmail = false;
-        if (allowedAdminEmails != null && !allowedAdminEmails.isBlank()) {
-            List<String> allowedList = List.of(allowedAdminEmails.split(","));
-            isAdminEmail = allowedList.stream()
-                    .map(String::trim)
-                    .anyMatch(e -> e.equalsIgnoreCase(email));
+        // 1. Kiểm tra trong danh sách admin cứng (Env/Config)
+        boolean isDefaultAdmin = false;
+        if (googleAllowedAdminEmails != null && !googleAllowedAdminEmails.isBlank()) {
+            isDefaultAdmin = java.util.Arrays.asList(googleAllowedAdminEmails.split(","))
+                    .stream().anyMatch(e -> e.trim().equalsIgnoreCase(email));
+        }
+
+        // 2. Kiểm tra trong database whitelist
+        Optional<fpt.teddypet.domain.entity.AdminGoogleWhitelist> whitelistOpt = adminGoogleWhitelistPort.findByEmail(email);
+        boolean isWhitelistedInDb = whitelistOpt.isPresent() && "ACCEPTED".equals(whitelistOpt.get().getStatus());
+        
+        String assignedRole = RoleEnum.USER.name();
+        if (isDefaultAdmin) {
+            assignedRole = "admin@gmail.com".equalsIgnoreCase(email) ? RoleEnum.SUPER_ADMIN.name() : RoleEnum.ADMIN.name();
+        } else if (isWhitelistedInDb) {
+            assignedRole = whitelistOpt.get().getRole();
+        }
+
+        if (!isDefaultAdmin && !isWhitelistedInDb) {
+            log.warn("[AuthService] Từ chối đăng nhập Google cho tài khoản không nằm trong whitelist: {}", email);
+            throw new IllegalArgumentException("Tài khoản chưa được cấp quyền truy cập vào hệ thống.");
         }
 
         User user;
         if (userService.existsByEmail(email)) {
             user = userService.getByEmail(email);
-            // Cập nhật tên nếu có thay đổi
+            // Cập nhật thông tin profile
             user.setFirstName(fixedFirstName);
             user.setLastName(fixedLastName);
             user.setAvatarUrl(avatarUrl);
+            user.setStatus(UserStatusEnum.ACTIVE);
             
-            if (isAdminEmail && !user.getRole().getName().equals("ADMIN")) {
-                user.setRole(roleService.findByName("ADMIN"));
-            }
+            // Cập nhật role mới nhất từ whitelist
+            user.setRole(roleService.findByName(assignedRole));
+            
             userService.save(user);
         } else {
-            log.info("[AuthService] Tạo người dùng mới từ Google: {}", email);
-            Role role = isAdminEmail ? roleService.findByName("ADMIN") : roleService.getDefaultRole();
+            log.info("[AuthService] Tạo người dùng mới từ Google: {} với quyền: {}", email, assignedRole);
+            Role role = roleService.findByName(assignedRole);
             
             user = User.builder()
                     .email(email)

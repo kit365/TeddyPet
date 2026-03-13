@@ -73,32 +73,32 @@ export const AuthSupportActions = ({ defaultEmail }: AuthSupportActionsProps) =>
     };
 
     return (
-        <div className="mt-6 border-t border-gray-200 pt-6">
+        <div className="">
             {!isChangingEmail ? (
-                <div className="flex flex-col gap-3">
-                    <p className="text-[1.3rem] text-client-text text-center italic">
-                        Tài khoản chưa xác thực?
+                <div className="flex items-center justify-between w-full gap-4 px-1">
+                    <p className="text-[0.75rem] text-slate-500 font-medium shrink-0">
+                        Chưa xác thực?
                     </p>
-                    <div className="flex justify-center gap-4">
+                    <div className="flex justify-end gap-4 items-center">
                         <button
                             onClick={handleResend}
                             disabled={resendMutation.isPending}
-                            className="text-[1.3rem] text-client-primary hover:underline font-medium disabled:opacity-50"
+                            className="text-[0.8125rem] text-client-primary hover:underline font-bold disabled:opacity-50 whitespace-nowrap"
                         >
-                            {resendMutation.isPending ? "Đang gửi..." : "Gửi lại mã xác thực"}
+                            {resendMutation.isPending ? "Đang gửi..." : "Gửi lại mã"}
                         </button>
-                        <span className="text-gray-300">|</span>
+                        <span className="h-3.5 border-l border-gray-300"></span>
                         <button
                             onClick={() => setIsChangingEmail(true)}
-                            className="text-[1.3rem] text-client-secondary hover:underline font-medium"
+                            className="text-[0.8125rem] text-client-secondary hover:underline font-bold whitespace-nowrap"
                         >
-                            Đổi email nhận mã
+                            Đổi email
                         </button>
                     </div>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit(onSubmitChangeEmail)} className="animate-fadeIn">
-                    <h4 className="text-[1.5rem] font-bold text-client-secondary mb-4 text-center">Đổi Email Xác Thực</h4>
+                    <h4 className="text-[0.9375rem] font-bold text-client-secondary mb-4 text-center">Đổi Email Xác Thực</h4>
                     <div className="flex flex-col gap-4">
                         <Input
                             placeholder="Email cũ (đã đăng ký)"
@@ -120,14 +120,14 @@ export const AuthSupportActions = ({ defaultEmail }: AuthSupportActionsProps) =>
                             <button
                                 type="button"
                                 onClick={() => setIsChangingEmail(false)}
-                                className="px-6 py-2 text-[1.3rem] rounded-full border border-gray-200 hover:bg-gray-50 transition-all font-medium"
+                                className="px-5 py-1.5 text-[0.8125rem] rounded-full border border-gray-200 hover:bg-gray-50 transition-all font-medium"
                             >
                                 Hủy
                             </button>
                             <button
                                 type="submit"
                                 disabled={changeEmailMutation.isPending}
-                                className="px-6 py-2 bg-client-primary text-white text-[1.3rem] rounded-full hover:bg-client-secondary transition-all font-medium disabled:opacity-50"
+                                className="px-5 py-1.5 bg-client-primary text-white text-[0.8125rem] rounded-full hover:bg-client-secondary transition-all font-medium disabled:opacity-50"
                             >
                                 {changeEmailMutation.isPending ? "Đang xử lý..." : "Cập nhật & Gửi mã"}
                             </button>

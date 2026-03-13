@@ -236,6 +236,20 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendAdminInvitationEmail(String to, String link) {
+        log.info("Sending admin invitation email to {}", to);
+        String subject = String.format("[%s] Lời mời tham gia quản trị hệ thống", appName);
+
+        Context context = prepareContext();
+        context.setVariable("invitationLink", link);
+
+        String htmlBody = templateEngine.process("email/auth/admin-invitation", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendOrderConfirmation(Order order) {
         String logEmail = order.getGuestEmail() != null ? order.getGuestEmail()
                 : (order.getUser() != null ? order.getUser().getEmail() : "N/A");

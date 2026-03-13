@@ -3,6 +3,7 @@ package fpt.teddypet.domain.enums;
 public enum RoleEnum {
     USER,
     ADMIN,
-    STAFF
+    STAFF,
+    SUPER_ADMIN
 }
 

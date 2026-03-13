@@ -31,6 +31,8 @@ export interface IStaffProfile {
     positionCode?: string | null;
     positionName?: string | null;
     employmentType?: EmploymentTypeEnum | null;
+    backupEmail?: string | null;
+    googleWhitelistStatus?: string | null;
     active: boolean;
 }
 
@@ -48,6 +50,8 @@ export interface IStaffOnboardingRequest {
     bankName?: string | null;
     positionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
+    assignedRole?: string | null;
+    backupEmail?: string | null;
 }
 
 export interface IStaffProfileUpdateRequest {
@@ -64,6 +68,7 @@ export interface IStaffProfileUpdateRequest {
     bankName?: string | null;
     positionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
+    backupEmail?: string | null;
 }
 
 export interface IAccountProvisionRequest {
@@ -89,7 +94,7 @@ export const getMyStaffProfile = async (): Promise<ApiResponse<IStaffProfile>> =
 };
 
 export const createStaffOnboarding = async (data: IStaffOnboardingRequest): Promise<ApiResponse<IStaffProfile>> => {
-    const res = await apiApp.post(`${BASE}/onboarding`, data, withAuth());
+    const res = await apiApp.post(BASE, data, withAuth());
     return res.data;
 };
 

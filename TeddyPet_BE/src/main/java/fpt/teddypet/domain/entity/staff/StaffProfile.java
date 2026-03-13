@@ -89,6 +89,9 @@ public class StaffProfile extends BaseEntity {
     @Column(name = "bank_name", length = 150)
     private String bankName;
 
+    @Column(name = "backup_email")
+    private String backupEmail;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private StaffPosition position;

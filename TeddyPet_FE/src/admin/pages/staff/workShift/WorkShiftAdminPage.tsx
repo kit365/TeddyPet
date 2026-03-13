@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -175,10 +175,10 @@ export const WorkShiftAdminPage = () => {
     const tokenAdmin = Cookies.get('tokenAdmin');
     const { data: meRes } = useQuery({
         queryKey: ['me-admin', tokenAdmin],
-        queryFn: getMe,
+        queryFn: () => getMe(),
         enabled: !!tokenAdmin,
     });
-    const isAdminRole = meRes?.data?.role === 'ADMIN';
+    const isAdminRole = (meRes as any)?.data?.role === 'ADMIN' || (meRes as any)?.data?.role === 'SUPER_ADMIN';
 
     const nextWeek = getNextWeekRange();
     const [from, setFrom] = useState<string>(nextWeek.start);

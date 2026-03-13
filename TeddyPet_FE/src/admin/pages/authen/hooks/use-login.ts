@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import Cookies from "js-cookie";
 import { useAuthStore } from "../../../../stores/useAuthStore";
 
-const ALLOWED_ADMIN_ROLES = ['ADMIN', 'STAFF'];
+const ALLOWED_ADMIN_ROLES = ['ADMIN', 'STAFF', 'SUPER_ADMIN'];
 
 export const useLogin = () => {
     const navigate = useNavigate();
@@ -51,18 +51,18 @@ export const useLogin = () => {
 
                     if (fullUserData.mustChangePassword) {
                         toast.info("Vui lòng thiết lập mật khẩu của bạn.");
-                        setTimeout(() => navigate("/admin/setup-password"), 500);
+                        setTimeout(() => navigate("/admin/setup-password"), 100);
                         return;
                     }
                 }
 
                 toast.success(response.message);
-                if (role === "ADMIN") {
-                    setTimeout(() => navigate("/admin/dashboard/ecommerce"), 500);
+                if (role === "ADMIN" || role === "SUPER_ADMIN") {
+                    setTimeout(() => navigate("/admin/dashboard/ecommerce"), 100);
                 } else if (role === "STAFF") {
-                    setTimeout(() => navigate("/admin/staff/dashboard"), 500);
+                    setTimeout(() => navigate("/admin/staff/dashboard"), 100);
                 } else {
-                    setTimeout(() => navigate("/admin/dashboard/analytics"), 500);
+                    setTimeout(() => navigate("/admin/dashboard/analytics"), 100);
                 }
             } catch {
                 toast.error("Không thể xác thực quyền. Vui lòng thử lại.");

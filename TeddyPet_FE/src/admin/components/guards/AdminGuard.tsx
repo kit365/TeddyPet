@@ -7,7 +7,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useEffect } from "react";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { toast } from 'react-toastify';
-const ALLOWED_ADMIN_ROLES = ["ADMIN", "STAFF"];
+const ALLOWED_ADMIN_ROLES = ["ADMIN", "STAFF", "SUPER_ADMIN"];
 
 export const AdminGuard = () => {
     const tokenAdmin = Cookies.get("tokenAdmin");

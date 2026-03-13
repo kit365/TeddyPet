@@ -11,6 +11,7 @@ import {
     type IStaffProfileUpdateRequest,
     type IAccountProvisionRequest,
 } from '../../../api/staffProfile.api';
+import { resendGoogleInvitation } from '../../../api/google-whitelist.api';
 import { ApiResponse } from '../../../config/type';
 
 export const useStaffProfiles = () => {
@@ -77,5 +78,11 @@ export const useReactivateStaff = () => {
     return useMutation({
         mutationFn: reactivateStaff,
         onSuccess: () => qc.invalidateQueries({ queryKey: ['staff-profiles'] }),
+    });
+};
+
+export const useResendGoogleInvitation = () => {
+    return useMutation({
+        mutationFn: (email: string) => resendGoogleInvitation(email),
     });
 };

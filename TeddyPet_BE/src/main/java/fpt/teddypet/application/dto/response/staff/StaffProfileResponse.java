@@ -25,6 +25,8 @@ public record StaffProfileResponse(
         String positionCode,
         String positionName,
         EmploymentTypeEnum employmentType,
+        String backupEmail,
+        String googleWhitelistStatus, // PENDING, ACCEPTED, EXPIRED, null
         boolean active
 ) {
 }

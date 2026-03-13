@@ -7,9 +7,9 @@ interface AdminOnlyGuardProps {
     children: React.ReactNode;
 }
 
-/** Chỉ cho phép ADMIN. STAFF truy cập sẽ bị redirect về trang nhiệm vụ. */
+/** Chỉ cho phép ADMIN/SUPER_ADMIN. STAFF truy cập sẽ bị redirect về trang nhiệm vụ. */
 export const AdminOnlyGuard = ({ children }: AdminOnlyGuardProps) => (
-    <RoleRouteGuard allowedRoles={["ADMIN"]} redirectTo={STAFF_REDIRECT}>
+    <RoleRouteGuard allowedRoles={["ADMIN", "SUPER_ADMIN"]} redirectTo={STAFF_REDIRECT}>
         {children}
     </RoleRouteGuard>
 );

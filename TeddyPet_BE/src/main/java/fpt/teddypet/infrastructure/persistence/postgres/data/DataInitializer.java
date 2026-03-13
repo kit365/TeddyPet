@@ -68,6 +68,16 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(staffRole);
             log.info("✅ Created {} role", RoleEnum.STAFF.name());
         }
+
+        // Create SUPER_ADMIN role if not exists
+        if (!roleRepository.existsByName(RoleEnum.SUPER_ADMIN.name())) {
+            Role superAdminRole = Role.builder()
+                    .name(RoleEnum.SUPER_ADMIN.name())
+                    .description("Super Administrator role")
+                    .build();
+            roleRepository.save(superAdminRole);
+            log.info("✅ Created {} role", RoleEnum.SUPER_ADMIN.name());
+        }
     }
 
     private void initializeUsers() {
