@@ -71,15 +71,16 @@ export const LoginPage = () => {
                 const { token, refreshToken } = response.data;
 
                 try {
-                    loginStore(response.data as any, token, refreshToken);
-
                     const { getMe } = await import("../../../api/auth.api");
                     const userResponse = await getMe(token);
+                    
                     if (userResponse.success) {
                         const fullUserData = {
                             ...userResponse.data,
                             mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
                         };
+                        
+                        // Consolidation: Only call loginStore once with full data
                         loginStore(fullUserData, token, refreshToken);
                         
                         if (fullUserData.mustChangePassword) {
@@ -87,12 +88,15 @@ export const LoginPage = () => {
                             setTimeout(() => navigate("/auth/setup-password"), 1500);
                             return;
                         }
+                        
+                        navigate("/dashboard/profile");
+                    } else {
+                        toast.error("Không thể lấy thông tin người dùng.");
                     }
                 } catch (error) {
                     console.error("Failed to fetch user profile", error);
+                    toast.error("Lỗi xác thực thông tin người dùng.");
                 }
-
-                navigate("/dashboard/profile");
             } else {
                 toast.error(response.message || "Đăng nhập thất bại!");
                 if (response.message?.includes("xác thực email")) {
@@ -116,38 +120,38 @@ export const LoginPage = () => {
 
             {/* Global Loading Overlay for Google Login */}
             {isGoogleLoading && (
-                <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md animate-fadeIn">
+                <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md animate-fadeIn transition-all duration-500">
                     <div className="relative">
                         <div className="w-24 h-24 border-4 border-slate-100 rounded-full"></div>
                         <div className="absolute top-0 left-0 w-24 h-24 border-4 border-client-primary border-t-transparent rounded-full animate-spin"></div>
-                        <div className="absolute inset-4 bg-red-50 rounded-full flex items-center justify-center shadow-inner">
+                        <div className="absolute inset-4 bg-red-50 rounded-full flex items-center justify-center">
                              <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" alt="Google" className="w-8 h-8 opacity-80" />
                         </div>
                     </div>
                     <div className="mt-10 text-center">
-                        <h4 className="text-[1.8rem] font-bold text-slate-800 tracking-tight">Xác thực Google...</h4>
-                        <p className="text-[1rem] text-slate-400 mt-2">Đang kết nối đến TeddyPet</p>
+                        <h4 className="text-[2rem] font-black text-slate-800 tracking-tight animate-pulse">Xác thực tài khoản Google</h4>
+                        <p className="text-[1.4rem] text-slate-400 font-medium mt-2">Vui lòng chờ trong giây lát...</p>
                     </div>
                 </div>
             )}
 
             {notification && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-fadeIn p-4">
-                    <div className="bg-white rounded-[12px] shadow-[0_10px_40px_rgba(0,0,0,0.2)] p-[30px] md:p-[40px] text-center w-full max-w-[450px] relative overflow-hidden animate-slideUp">
+                    <div className="bg-white rounded-[12px] shadow-[0_10px_40px_rgba(0,0,0,0.2)] p-[40px] text-center w-full max-w-[450px] relative overflow-hidden animate-slideUp">
                         <div className={`absolute top-0 left-0 w-full h-[6px] ${notification.success ? 'bg-green-500' : 'bg-red-500'}`}></div>
 
-                        <div className={`w-[60px] h-[60px] md:w-[80px] md:h-[80px] mx-auto mb-[25px] rounded-full flex items-center justify-center ${notification.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <div className={`w-[80px] h-[80px] mx-auto mb-[25px] rounded-full flex items-center justify-center ${notification.success ? 'bg-green-50' : 'bg-red-50'}`}>
                             {notification.success ? (
-                                <CheckCircle className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] text-green-500" strokeWidth={2} />
+                                <CheckCircle className="w-[40px] h-[40px] text-green-500" strokeWidth={2} />
                             ) : (
-                                <XmarkCircle className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] text-red-500" strokeWidth={2} />
+                                <XmarkCircle className="w-[40px] h-[40px] text-red-500" strokeWidth={2} />
                             )}
                         </div>
 
-                        <h3 className="text-[1.25rem] md:text-[1.5rem] font-[700] text-[#333] mb-[10px]">
+                        <h3 className="text-[1.5rem] font-[700] text-[#333] mb-[10px]">
                             {notification.success ? "Thành công!" : "Thất bại!"}
                         </h3>
-                        <p className="text-[0.875rem] md:text-[1rem] text-[#666] mb-[30px] leading-relaxed">
+                        <p className="text-[1rem] text-[#666] mb-[30px] leading-relaxed">
                             {notification.message}
                         </p>
 
@@ -163,55 +167,58 @@ export const LoginPage = () => {
 
             <div className="app-container my-[100px]">
                 <div className="flex items-center justify-center mx-auto max-w-[1200px]">
-                    <div className="w-[570px] h-[720px] relative z-10 hidden md:block">
-                        <img src="https://i.imgur.com/LZKlu0w.jpeg" alt="" className="w-full h-full object-cover rounded-[12px]" />
+                    <div className="w-[570px] h-[720px] relative z-10">
+                        <img src="https://i.imgur.com/LZKlu0w.jpeg" alt="" className="w-full h-full object-cover rounded-[12px] shadow-lg" />
                     </div>
-                    <div className="flex-1 max-w-[642px] md:ml-[-150px] relative z-20">
-                        <div className="p-[30px] md:p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
-                            <h3 className="text-center text-[1.875rem] font-[600] mb-[40px] text-[#333]">Chào bạn trở lại! 👋</h3>
-                            
+                    <div className="flex-1 max-w-[642px] ml-[-150px] relative z-20">
+                        <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
+                            <div className="text-center mb-[40px]">
+                                <h3 className="text-[1.875rem] font-[600] text-[#333]">Chào bạn trở lại! 👋</h3>
+                                <p className="text-[0.875rem] text-[#666] mt-2">Đăng nhập để tiếp tục chăm sóc thú cưng</p>
+                            </div>
+
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary z-10">Email</label>
                                     <Input
-                                        placeholder="your@email.com"
+                                        placeholder="Email hoặc tên đăng nhập"
                                         {...register("usernameOrEmail")}
                                         error={errors.usernameOrEmail?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary transition-all"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Mật khẩu</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary z-10">Mật khẩu</label>
                                     <Input
-                                        placeholder="********"
+                                        placeholder="Nhập mật khẩu của bạn"
                                         type="password"
                                         {...register("password")}
                                         error={errors.password?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary transition-all"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-between mt-[-10px]">
-                                    <div className="flex items-center gap-[10px] cursor-pointer group">
+                                <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center gap-[10px] group cursor-pointer">
                                         <input
                                             type="checkbox"
                                             id="rememberPassword"
                                             {...register("rememberPassword")}
-                                            className="w-[16px] h-[16px] border-2 border-[#eee] rounded-[4px] cursor-pointer accent-client-primary"
+                                            className="appearance-none w-[18px] h-[18px] border-2 border-[#eee] rounded-[4px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%224%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] "
                                         />
-                                        <label htmlFor="rememberPassword" className="text-[0.875rem] cursor-pointer select-none text-[#666] group-hover:text-client-primary transition-colors">Nhớ mật khẩu</label>
+                                        <label htmlFor="rememberPassword" className="text-[0.875rem] cursor-pointer select-none text-[#666]">Nhớ mật khẩu</label>
                                     </div>
-                                    <Link to="/auth/forgot-password" university-none className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem] font-medium">Quên mật khẩu?</Link>
+                                    <Link to="/auth/forgot-password" university-none className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem]">Quên mật khẩu?</Link>
                                 </div>
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[10px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
+                                    className="w-full mt-[10px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-semibold text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
                                 >
                                     <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Đăng nhập"}</span>
                                     {!isSubmitting && <ArrowRight className="relative z-10 w-[1.25rem] h-[1.25rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
@@ -225,61 +232,67 @@ export const LoginPage = () => {
                                 </div>
                             )}
 
-                            <p className="text-center text-[#7d7b7b] mt-[25px]">Bạn chưa có tài khoản? <Link className="font-bold text-client-secondary hover:text-client-primary transition-all duration-300 ease-linear" to={"/auth/register"}>Đăng ký ngay</Link></p>
+                            <div className="text-center text-[#7d7b7b] mt-[25px]">
+                                Bạn chưa có tài khoản?{" "}
+                                <Link
+                                    className="font-bold text-client-secondary hover:text-client-primary transition-all"
+                                    to={"/auth/register"}
+                                >
+                                    Đăng ký ngay
+                                </Link>
+                            </div>
+
                             <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[42%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[42%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0">HOẶC</p>
                             
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/auth/login-email")}
-                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[0.875rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
-                                >
-                                    Đăng nhập qua Email (không mật khẩu)
-                                </button>
-                                
-                                <div className="flex justify-center mt-2">
-                                    <GoogleLogin
-                                        onSuccess={async (credentialResponse) => {
-                                            if (credentialResponse.credential) {
-                                                setIsGoogleLoading(true);
-                                                try {
-                                                    const response = await loginWithGoogle(credentialResponse.credential);
-                                                    if (response.success) {
-                                                        const { token, refreshToken } = response.data;
-                                                        loginStore(response.data as any, token, refreshToken);
+                            <div className="flex justify-center mt-2 w-full">
+                                <GoogleLogin
+                                    onSuccess={async (credentialResponse) => {
+                                        if (credentialResponse.credential) {
+                                            setIsGoogleLoading(true);
+                                            try {
+                                                const response = await loginWithGoogle(credentialResponse.credential);
+                                                if (response.success) {
+                                                    toast.success("Đăng nhập Google thành công!");
+                                                    
+                                                    const { token, refreshToken } = response.data;
+                                                    
+                                                    const { getMe } = await import("../../../api/auth.api");
+                                                    const userResponse = await getMe(token);
+                                                    
+                                                    if (userResponse.success) {
+                                                        const fullUserData = {
+                                                            ...userResponse.data,
+                                                            mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
+                                                        };
                                                         
-                                                        const { getMe } = await import("../../../api/auth.api");
-                                                        const userResponse = await getMe(token);
+                                                        // Ensure store is updated ONLY with full data containing ID
+                                                        loginStore(fullUserData, token, refreshToken);
                                                         
-                                                        if (userResponse.success) {
-                                                            const fullUserData = {
-                                                                ...userResponse.data,
-                                                                mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
-                                                            };
-                                                            loginStore(fullUserData, token, refreshToken);
-                                                            
-                                                            if (fullUserData.mustChangePassword) {
-                                                                toast.info("Vui lòng thiết lập mật khẩu cá nhân.");
-                                                                setTimeout(() => navigate("/auth/setup-password"), 1500);
-                                                                return;
-                                                            }
-                                                            navigate("/dashboard/profile");
+                                                        if (fullUserData.mustChangePassword) {
+                                                            toast.info("Vui lòng thiết lập mật khẩu của bạn.");
+                                                            setTimeout(() => navigate("/auth/setup-password"), 1500);
+                                                            return;
                                                         }
+                                                        navigate("/dashboard/profile");
                                                     }
-                                                } catch (error: any) {
-                                                    toast.error(error?.response?.data?.message || "Đăng nhập Google thất bại!");
-                                                } finally {
-                                                    setIsGoogleLoading(false);
                                                 }
+                                            } catch (error: any) {
+                                                console.error("Google Login Error:", error);
+                                                toast.error(error?.response?.data?.message || "Đăng nhập Google thất bại!");
+                                            } finally {
+                                                setIsGoogleLoading(false);
                                             }
-                                        }}
-                                        onError={() => toast.error("Đăng nhập Google thất bại!")}
-                                        shape="pill"
-                                        theme="outline"
-                                        text="signin_with"
-                                        width="100%"
-                                    />
-                                </div>
+                                        }
+                                    }}
+                                    onError={() => {
+                                        toast.error("Đăng nhập Google thất bại!");
+                                    }}
+                                    useOneTap
+                                    shape="pill"
+                                    theme="outline"
+                                    text="signin_with"
+                                    width="100%"
+                                />
                             </div>
                         </div>
                     </div>

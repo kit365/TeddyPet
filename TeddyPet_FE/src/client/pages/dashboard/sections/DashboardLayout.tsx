@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { ProductBanner } from "../../product/sections/ProductBanner";
 import { Sidebar } from "./Sidebar";
 
