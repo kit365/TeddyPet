@@ -110,10 +110,17 @@ export const LoginPage = () => {
             
             {/* Global Loading Overlay for Google Login */}
             {isGoogleLoading && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="flex flex-col items-center gap-6">
-                        <div className="w-16 h-16 border-4 border-client-primary border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-[1.8rem] font-bold text-slate-800 animate-pulse">Đang đăng nhập bằng Google...</p>
+                <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md animate-fadeIn transition-all duration-500">
+                    <div className="relative">
+                        <div className="w-24 h-24 border-4 border-slate-100 rounded-full"></div>
+                        <div className="absolute top-0 left-0 w-24 h-24 border-4 border-client-primary border-t-transparent rounded-full animate-spin"></div>
+                        <div className="absolute inset-4 bg-red-50 rounded-full flex items-center justify-center">
+                             <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" alt="Google" className="w-8 h-8 opacity-80" />
+                        </div>
+                    </div>
+                    <div className="mt-10 text-center">
+                        <h4 className="text-[2rem] font-black text-slate-800 tracking-tight animate-pulse">Xác thực tài khoản Google</h4>
+                        <p className="text-[1.4rem] text-slate-400 font-medium mt-2">Vui lòng chờ trong giây lát...</p>
                     </div>
                 </div>
             )}
@@ -154,34 +161,34 @@ export const LoginPage = () => {
                         <img src="https://i.imgur.com/LZKlu0w.jpeg" alt="" className="w-full h-full object-cover rounded-[12px] shadow-lg" />
                     </div>
                     <div className="w-full lg:w-[509px] lg:ml-[-150px] relative z-20">
-                        <div className="p-[30px] md:p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[20px]" >
+                        <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
                             <div className="text-center mb-[40px]">
-                                <h3 className="text-[3rem] font-bold text-[#333]">Chào bạn trở lại! 👋</h3>
-                                <p className="text-[1.4rem] text-[#666] mt-2 font-medium">Đăng nhập để tiếp tục chăm sóc thú cưng của bạn</p>
+                                <h3 className="text-[1.875rem] font-semibold text-[#333]">Chào bạn trở lại! 👋</h3>
+                                <p className="text-[0.875rem] text-[#666] mt-2">Đăng nhập để tiếp tục chăm sóc thú cưng</p>
                             </div>
 
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.3rem] font-bold text-client-secondary z-10">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary z-10">Email</label>
                                     <Input
                                         placeholder="your@email.com"
                                         {...register("usernameOrEmail")}
                                         error={errors.usernameOrEmail?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[12px] !border-[#eee] !px-[20px] !py-[15px] !text-[1.5rem] focus:!border-client-primary focus:!ring-4 focus:!ring-red-50 transition-all font-medium"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary transition-all"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.3rem] font-bold text-client-secondary z-10">Mật khẩu</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary z-10">Mật khẩu</label>
                                     <Input
                                         placeholder="********"
                                         type="password"
                                         {...register("password")}
                                         error={errors.password?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[12px] !border-[#eee] !px-[20px] !py-[15px] !text-[1.5rem] focus:!border-client-primary focus:!ring-4 focus:!ring-red-50 transition-all font-medium"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary transition-all"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
@@ -192,44 +199,40 @@ export const LoginPage = () => {
                                             type="checkbox"
                                             id="rememberPassword"
                                             {...register("rememberPassword")}
-                                            className="appearance-none w-[20px] h-[20px] border-2 border-[#eee] rounded-[6px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%224%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] group-hover:border-client-primary"
+                                            className="appearance-none w-[18px] h-[18px] border-2 border-[#eee] rounded-[4px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%224%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] "
                                         />
-                                        <label htmlFor="rememberPassword" className="text-[1.4rem] cursor-pointer select-none font-bold text-[#666] group-hover:text-client-primary transition-colors">Nhớ mật khẩu</label>
+                                        <label htmlFor="rememberPassword" className="text-[0.875rem] cursor-pointer select-none text-[#666]">Nhớ mật khẩu</label>
                                     </div>
-                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[1.4rem] font-bold">Quên mật khẩu?</Link>
+                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem]">Quên mật khẩu?</Link>
                                 </div>
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[10px] relative overflow-hidden group bg-client-primary rounded-[12px] py-[15px] font-bold text-[1.6rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50 shadow-xl shadow-red-100 hover:shadow-red-200"
+                                    className="w-full mt-[10px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-semibold text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
                                 >
-                                    <span className="relative z-10">{isSubmitting ? "Đang xác thực..." : "Đăng nhập ngay"}</span>
-                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[2.2rem] h-[2.2rem] transition-transform duration-300 group-hover:translate-x-1" />}
-                                    <div className="absolute top-0 left-0 w-full h-full bg-slate-800 transition-transform duration-500 ease-in-out transform translate-x-[-100%] group-hover:translate-x-0 origin-left"></div>
+                                    <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Đăng nhập"}</span>
+                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[1.25rem] h-[1.25rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
+                                    <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
                                 </button>
                             </form>
 
                             {showSupport && (
-                                <div className="animate-fadeIn mt-6 bg-red-50/50 p-6 rounded-[15px] border border-red-100">
+                                <div className="animate-fadeIn mt-6 bg-red-50 p-4 rounded-[8px] border border-red-100">
                                     <AuthSupportActions defaultEmail={usernameOrEmailValue} />
                                 </div>
                             )}
 
-                            <div className="text-center text-[#7d7b7b] mt-[30px] text-[1.4rem]">
+                            <div className="text-center text-[#7d7b7b] mt-[25px]">
                                 Bạn chưa có tài khoản?{" "}
                                 <Link
-                                    className="font-bold text-client-secondary hover:text-client-primary transition-all underline decoration-2 underline-offset-4"
+                                    className="font-bold text-client-secondary hover:text-client-primary transition-all"
                                     to={"/auth/register"}
                                 >
-                                    Tham gia ngay
+                                    Đăng ký ngay
                                 </Link>
                             </div>
 
-                            <div className="my-[30px] flex items-center gap-4">
-                                <div className="h-[1px] flex-1 bg-slate-100"></div>
-                                <span className="text-[1.3rem] font-bold text-slate-400 uppercase tracking-widest">Hoặc đăng nhập với</span>
-                                <div className="h-[1px] flex-1 bg-slate-100"></div>
-                            </div>
+                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[35%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[35%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0 text-[0.8rem]">HOẶC ĐĂNG NHẬP VỚI</p>
 
                             <div className="flex justify-center">
                                 <GoogleLogin
@@ -242,8 +245,6 @@ export const LoginPage = () => {
                                                     toast.success("Đăng nhập Google thành công!");
                                                     
                                                     const { token, refreshToken } = response.data;
-                                                    
-                                                    // BẮT BUỘC: Lưu token vào store/cookie TRƯỚC khi gọi getMe
                                                     loginStore(response.data as any, token, refreshToken);
                                                     
                                                     const { getMe } = await import("../../../api/auth.api");

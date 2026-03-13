@@ -16,7 +16,7 @@ export const AdminGuard = () => {
 
     const { data: meRes, isLoading, isError } = useQuery({
         queryKey: ["me-admin", tokenAdmin],
-        queryFn: getMe,
+        queryFn: () => getMe(),
         enabled: !!tokenAdmin,
         retry: false,
     });
@@ -54,6 +54,10 @@ export const AdminGuard = () => {
         toast.error("Bạn không có quyền truy cập trang quản trị. Chỉ tài khoản Admin hoặc Nhân viên mới được vào.");
         const to = forbidden ? "/admin/auth/login?forbidden=1" : "/admin/auth/login";
         return <Navigate to={to} replace />;
+    }
+
+    if (meRes.data.mustChangePassword) {
+        return <Navigate to="/admin/setup-password" replace />;
     }
 
     return <Outlet />;

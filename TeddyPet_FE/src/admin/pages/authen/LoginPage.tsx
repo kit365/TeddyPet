@@ -40,7 +40,7 @@ export const LoginPage = () => {
     })
 
     const { mutate: loginMutate, isPending } = useLogin()
-    const { mutate: googleLoginMutate } = useGoogleLogin()
+    const { mutate: googleLoginMutate, isPending: isGooglePending } = useGoogleLogin()
 
     const onSubmit = (data: LoginFormValues) => {
         loginMutate(data)
@@ -49,6 +49,59 @@ export const LoginPage = () => {
     return (
         <>
             <ToastContainer />
+
+            {/* Global Loading Overlay for Google Login */}
+            {isGooglePending && (
+                <Box
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 2000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        backdropFilter: 'blur(4px)',
+                        animation: 'fadeIn 0.3s ease-in-out',
+                        '@keyframes fadeIn': {
+                            from: { opacity: 0 },
+                            to: { opacity: 1 }
+                        }
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 64,
+                            height: 64,
+                            border: '4px solid #1C252E',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            mb: 3,
+                            '@keyframes spin': {
+                                from: { transform: 'rotate(0deg)' },
+                                to: { transform: 'rotate(360deg)' }
+                            }
+                        }}
+                    />
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            fontWeight: 700,
+                            color: '#1C252E',
+                            animation: 'pulse 1.5s infinite ease-in-out',
+                            '@keyframes pulse': {
+                                '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                                '50%': { opacity: 0.7, transform: 'scale(0.98)' }
+                            }
+                        }}
+                    >
+                        Đang xác thực quyền truy cập...
+                    </Typography>
+                </Box>
+            )}
+
             <ThemeProvider theme={adminTheme}>
                 <div className="min-h-screen flex">
                     <Container

@@ -57,6 +57,7 @@ export interface UserProfileResponse {
     dateOfBirth?: string;
     status?: string;
     role?: string;
+    mustChangePassword?: boolean;
 }
 
 export type MeResponse = ApiResponse<UserProfileResponse>;
