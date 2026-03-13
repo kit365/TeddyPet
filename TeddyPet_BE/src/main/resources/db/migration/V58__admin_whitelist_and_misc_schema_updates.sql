@@ -59,9 +59,6 @@ DROP COLUMN IF EXISTS has_password;
 ALTER TABLE users
 DROP COLUMN IF EXISTS is_guest;
 
-ALTER TABLE booking_deposits
-DROP COLUMN IF EXISTS refund_proof;
-
 ALTER TABLE staff_profiles
 DROP COLUMN IF EXISTS secondary_position_id;
 

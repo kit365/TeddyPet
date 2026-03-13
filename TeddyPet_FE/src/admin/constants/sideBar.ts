@@ -59,9 +59,9 @@ export const bookingManagementItem = {
         },
         {
             id: "refund-policies",
-            label: "Chính sách hoàn cọc",
+            label: "Chính sách hoàn tiền đặt lịch",
             path: `/${prefixAdmin}/booking/refund-policies`,
-            allowedRoles: ["ADMIN"],
+            allowedRoles: ["ADMIN", "SUPER_ADMIN"],
         },
     ],
 };
@@ -102,9 +102,9 @@ export const menuManagementData = [
             },
             {
                 id: "refund-policies",
-                label: "Chính sách hoàn cọc",
+                label: "Chính sách hoàn tiền đặt lịch",
                 path: `/${prefixAdmin}/booking/refund-policies`,
-                allowedRoles: ["ADMIN"],
+                allowedRoles: ["ADMIN", "SUPER_ADMIN"],
             },
         ]
     },
