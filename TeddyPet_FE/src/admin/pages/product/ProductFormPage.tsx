@@ -71,7 +71,7 @@ export const ProductFormPage = () => {
     const [expandedExtra, setExpandedExtra] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
-    
+
     const outerTheme = useTheme();
 
     const [selectedTags, setSelectedTags] = useState<any[]>([]);
@@ -314,14 +314,14 @@ export const ProductFormPage = () => {
                     data
                 });
                 if (res?.success === false) return toast.error(res?.message || "Lỗi cập nhật tag");
-                
+
                 toast.success("Đã cập nhật tag");
                 setEditingTag(null);
                 setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res?.data?.id || res?.data?.tagId || res?.id || res?.tagId) ? (res?.data || res) : t));
             } else {
                 const res = await createTagMutation.mutateAsync(data);
                 if (res?.success === false) return toast.error(res?.message || "Lỗi thêm tag");
-                
+
                 toast.success("Đã thêm tag mới");
                 setSelectedTags(prev => [...prev, res?.data || res]);
             }
@@ -523,7 +523,7 @@ export const ProductFormPage = () => {
                 styleOverrides: {
                     root: {
                         color: "#919EAB",
-                        fontSize: "1.5rem",
+                        fontSize: "0.875rem",
                         '&.Mui-focused': {
                             color: "#1C252E",
                             fontWeight: "600",
@@ -536,7 +536,7 @@ export const ProductFormPage = () => {
                     root: {
                         color: "#1C252E",
                         borderRadius: "12px",
-                        fontSize: "1.5rem",
+                        fontSize: "0.875rem",
                         '& .MuiOutlinedInput-notchedOutline': {
                             borderColor: "#919eab33",
                             transition: 'border-color 0.2s',
@@ -560,7 +560,7 @@ export const ProductFormPage = () => {
                         borderRadius: "10px",
                         textTransform: "none",
                         fontWeight: 700,
-                        fontSize: "1.5rem",
+                        fontSize: "0.875rem",
                     }
                 }
             }
@@ -603,16 +603,16 @@ export const ProductFormPage = () => {
             </div>
 
             <ThemeProvider theme={localTheme}>
-                <form 
-                    id="product-form" 
+                <form
+                    id="product-form"
                     onSubmit={handleSubmit}
                     key={mode === 'create' ? 'create' : (product?.id || 'loading')}
                 >
                     <Stack sx={{ margin: { xs: "0px 20px", lg: "0px 120px" }, gap: "40px", pb: 5 }}>
-                        
+
                         {/* 1. PRODUCT TYPE */}
                         {mode === 'create' && (
-                             <CollapsibleCard title="Loại sản phẩm" expanded={true} onToggle={() => { }}>
+                            <CollapsibleCard title="Loại sản phẩm" expanded={true} onToggle={() => { }}>
                                 <Stack p="24px">
                                     <FormControl fullWidth>
                                         <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
@@ -756,10 +756,10 @@ export const ProductFormPage = () => {
                                             ))}
                                         </Select>
                                     </FormControl>
-                                    <TextField 
-                                        label="Nguyên vật liệu" 
-                                        name="material" 
-                                        fullWidth 
+                                    <TextField
+                                        label="Nguyên vật liệu"
+                                        name="material"
+                                        fullWidth
                                         defaultValue={product?.material}
                                         InputProps={{ readOnly: isReadOnly }}
                                     />
@@ -770,7 +770,7 @@ export const ProductFormPage = () => {
                                     {!isReadOnly ? (
                                         <Tiptap value={description} onChange={setDescription} />
                                     ) : (
-                                        <Box 
+                                        <Box
                                             sx={{ p: 2, border: '1px solid #eee', borderRadius: '8px', minHeight: '100px' }}
                                             dangerouslySetInnerHTML={{ __html: description || "<i>Chưa có mô tả</i>" }}
                                         />
@@ -801,7 +801,7 @@ export const ProductFormPage = () => {
                                         value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimplePrice(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ 
+                                        InputProps={{
                                             readOnly: isReadOnly,
                                             onWheel: (e) => (e.target as HTMLElement).blur()
                                         }}
@@ -811,7 +811,7 @@ export const ProductFormPage = () => {
                                         value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleSalePrice(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ 
+                                        InputProps={{
                                             readOnly: isReadOnly,
                                             onWheel: (e) => (e.target as HTMLElement).blur()
                                         }}
@@ -823,7 +823,7 @@ export const ProductFormPage = () => {
                                         value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleStock(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ 
+                                        InputProps={{
                                             readOnly: isReadOnly,
                                             onWheel: (e) => (e.target as HTMLElement).blur()
                                         }}
@@ -833,7 +833,7 @@ export const ProductFormPage = () => {
                                         value={simpleWeight === 0 ? "" : simpleWeight.toLocaleString("vi-VN")}
                                         onChange={(e) => setSimpleWeight(Number(e.target.value.replace(/\D/g, "")))}
                                         sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ 
+                                        InputProps={{
                                             readOnly: isReadOnly,
                                             onWheel: (e) => (e.target as HTMLElement).blur(),
                                             endAdornment: <InputAdornment position="end">g</InputAdornment>
@@ -948,7 +948,7 @@ export const ProductFormPage = () => {
                         </CollapsibleCard>
 
                     </Stack>
-                    
+
                     {/* Bottom Actions Bar (Static) */}
                     {mode !== 'view' && (
                         <Box sx={{
@@ -959,70 +959,70 @@ export const ProductFormPage = () => {
                             justifyContent: 'flex-end',
                             gap: 2,
                         }}>
-                             <Button 
-                                variant="outlined" 
+                            <Button
+                                variant="outlined"
                                 color="inherit"
                                 onClick={() => navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`)}
-                                sx={{ 
-                                    px: 4, 
+                                sx={{
+                                    px: 4,
                                     py: 1.5,
                                     borderColor: 'rgba(145, 158, 171, 0.32)',
                                     color: '#637381',
-                                    '&:hover': { bgcolor: 'rgba(145, 158, 171, 0.08)', borderColor: '#1C252E', color: '#1C252E' } 
+                                    '&:hover': { bgcolor: 'rgba(145, 158, 171, 0.08)', borderColor: '#1C252E', color: '#1C252E' }
                                 }}
-                             >
+                            >
                                 {t('admin.common.cancel')}
-                             </Button>
-                             <Button 
+                            </Button>
+                            <Button
                                 type="submit"
-                                variant="contained" 
-                                startIcon={<Check size={22}/>}
-                                sx={{ 
-                                    px: 4, 
+                                variant="contained"
+                                startIcon={<Check size={22} />}
+                                sx={{
+                                    px: 4,
                                     py: 1.5,
-                                    bgcolor: '#1C252E', 
+                                    bgcolor: '#1C252E',
                                     minWidth: '180px',
-                                    fontSize: '1.6rem',
+                                    fontSize: '1rem',
                                     boxShadow: '0 8px 16px 0 rgba(28, 37, 46, 0.24)',
-                                    '&:hover': { bgcolor: '#454F5B' } 
+                                    '&:hover': { bgcolor: '#454F5B' }
                                 }}
-                             >
+                            >
                                 {mode === 'create' ? t('admin.common.create') : "Lưu thay đổi"}
-                             </Button>
+                            </Button>
                         </Box>
                     )}
                 </form>
 
-                <QuickCreateDialog 
-                    open={openQuickBrand} 
-                    onClose={() => setOpenQuickBrand(false)} 
-                    title="Thương hiệu mới" 
+                <QuickCreateDialog
+                    open={openQuickBrand}
+                    onClose={() => setOpenQuickBrand(false)}
+                    title="Thương hiệu mới"
                     fields={[
                         { key: 'name', label: 'Tên thương hiệu', required: true },
                         { key: 'description', label: 'Mô tả', type: 'multiline' }
                     ]}
-                    onSave={handleSaveBrand} 
+                    onSave={handleSaveBrand}
                 />
-                <QuickCreateDialog 
-                    open={openQuickCategory} 
-                    onClose={() => setOpenQuickCategory(false)} 
-                    title="Danh mục mới" 
+                <QuickCreateDialog
+                    open={openQuickCategory}
+                    onClose={() => setOpenQuickCategory(false)}
+                    title="Danh mục mới"
                     fields={[
                         { key: 'name', label: 'Tên danh mục', required: true },
                         { key: 'description', label: 'Mô tả', type: 'multiline' }
                     ]}
-                    onSave={handleSaveCategory} 
+                    onSave={handleSaveCategory}
                 />
-                <QuickCreateDialog 
-                    open={editingTag !== null || openQuickTag} 
-                    onClose={() => { setOpenQuickTag(false); setEditingTag(null); }} 
-                    title={editingTag ? "Chỉnh sửa Tag" : "Tag mới"} 
+                <QuickCreateDialog
+                    open={editingTag !== null || openQuickTag}
+                    onClose={() => { setOpenQuickTag(false); setEditingTag(null); }}
+                    title={editingTag ? "Chỉnh sửa Tag" : "Tag mới"}
                     fields={[
                         { key: 'name', label: 'Tên tag', required: true },
                         { key: 'color', label: 'Màu sắc', type: 'color' }
                     ]}
-                    onSave={handleSaveTag} 
-                    initialData={editingTag} 
+                    onSave={handleSaveTag}
+                    initialData={editingTag}
                 />
             </ThemeProvider>
         </>

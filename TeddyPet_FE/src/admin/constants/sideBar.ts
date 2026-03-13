@@ -11,14 +11,14 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ForumIcon from '@mui/icons-material/Forum';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SettingsIcon from '@mui/icons-material/Settings';
+import CreditScoreIcon from '@mui/icons-material/CreditScore';
 
 export const menuOverviewData = [
     {
-        id: "ecommerce",
-        Icon: ShoppingCartIcon,
-        label: "Bán hàng",
-        path: `/${prefixAdmin}/dashboard/ecommerce`,
+        id: "system",
+        Icon: CreditScoreIcon,
+        label: "Tổng quan",
+        path: `/${prefixAdmin}/dashboard/system`,
         allowedRoles: ["ADMIN"],
     },
     {
@@ -29,10 +29,10 @@ export const menuOverviewData = [
         allowedRoles: ["ADMIN"],
     },
     {
-        id: "system",
-        Icon: SettingsIcon,
-        label: "Hệ thống",
-        path: `/${prefixAdmin}/dashboard/system`,
+        id: "ecommerce",
+        Icon: ShoppingCartIcon,
+        label: "Bán hàng",
+        path: `/${prefixAdmin}/dashboard/ecommerce`,
         allowedRoles: ["ADMIN"],
     },
     {

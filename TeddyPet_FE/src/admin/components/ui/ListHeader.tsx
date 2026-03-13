@@ -55,7 +55,7 @@ export const ListHeader = ({
                                 backgroundColor: '#1C252E',
                                 minHeight: '40px',
                                 fontWeight: 700,
-                                fontSize: '1.4rem',
+                                fontSize: '0.875rem',
                                 px: 2.5,
                                 borderRadius: '10px',
                                 textTransform: 'none',

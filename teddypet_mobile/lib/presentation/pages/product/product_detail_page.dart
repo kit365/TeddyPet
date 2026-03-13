@@ -14,10 +14,15 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
+  static const Color _mutedPriceColor = Color(0xFF9B9B9B);
+  static const Color _promoTagBg = Color(0xFFFFF1F1);
+  static const Color _promoTagBorder = Color(0xFFFFD6D6);
+
   late ProductDetailResponse _product;
   final PageController _imageController = PageController();
   int _currentImageIndex = 0;
   int _quantity = 1;
+  bool _isFavorite = false;
   final Map<int, int> _selectedOptions = {}; // attributeId -> valueId
 
   final List<_MockReview> _reviews = const [
@@ -135,6 +140,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return text.replaceAllMapped(reg, (m) => '${m[1]}.') + 'đ';
   }
 
+  Widget _buildPriceRow({
+    required double price,
+    double? originalPrice,
+    required double priceFontSize,
+    required double originalFontSize,
+    double spacing = 8,
+    FontWeight priceWeight = FontWeight.w700,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          _formatCurrency(price),
+          style: TextStyle(
+            fontSize: priceFontSize,
+            fontWeight: priceWeight,
+            color: AppColors.primary,
+            height: 1,
+          ),
+        ),
+        if (originalPrice != null) ...[
+          SizedBox(width: spacing),
+          Text(
+            _formatCurrency(originalPrice),
+            style: const TextStyle(
+              fontSize: 14,
+              color: _mutedPriceColor,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: _mutedPriceColor,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ).copyWith(fontSize: originalFontSize),
+          ),
+        ],
+      ],
+    );
+  }
+
   List<ProductAttributeValueResponse> _valuesForAttribute(int attributeId) {
     final map = <int, ProductAttributeValueResponse>{};
     for (final v in _product.variants) {
@@ -166,6 +210,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              onPressed: _toggleFavorite,
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                child: Icon(
+                  _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  key: ValueKey(_isFavorite),
+                  color: _isFavorite ? AppColors.primary : AppColors.secondary,
+                ),
+              ),
+              tooltip: 'Yêu thích sản phẩm',
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -276,28 +338,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _formatCurrency(displayPrice),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              if (originalPrice != null)
-                Text(
-                  _formatCurrency(originalPrice),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-            ],
+          _buildPriceRow(
+            price: displayPrice,
+            originalPrice: originalPrice,
+            priceFontSize: 24,
+            originalFontSize: 15,
+            spacing: 10,
+            priceWeight: FontWeight.w800,
           ),
           const SizedBox(height: 12),
           _buildPriceTags(),
@@ -327,9 +374,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             (chip) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF1F1),
+                color: _promoTagBg,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFD6D6)),
+                border: Border.all(color: _promoTagBorder),
               ),
               child: Text(
                 chip,
@@ -465,51 +512,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(16),
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Đánh giá sản phẩm',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: AppColors.secondary,
+          InkWell(
+            onTap: _openReviewsPage,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Text(
+                    _product.averageRating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF222222),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.star, size: 24, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Đánh Giá Sản Phẩm (${_product.ratingCount})',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey[400]),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                _product.averageRating.toStringAsFixed(1),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              ...List.generate(5, (index) {
-                final active = index < _product.averageRating.round();
-                return Icon(
-                  Icons.star,
-                  size: 18,
-                  color: active ? Colors.amber : Colors.grey[300],
-                );
-              }),
-              const SizedBox(width: 8),
-              Text(
-                '(${_product.ratingCount} đánh giá)',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
-              ),
-            ],
-          ),
+          Divider(height: 1, color: Colors.grey.shade200),
           const SizedBox(height: 12),
           ..._reviews.map(
             (review) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFFF9FAFC),
                 borderRadius: BorderRadius.circular(10),
@@ -518,11 +562,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        review.author,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: const Color(0xFFEFF1F3),
+                        child: Text(
+                          review.author.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF68707A),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          review.author,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
                       ),
                       Text(
                         review.createdAt,
@@ -530,27 +587,66 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   Row(
                     children: List.generate(
                       5,
                       (i) => Icon(
                         Icons.star,
-                        size: 14,
+                        size: 16,
                         color: i < review.rating ? Colors.amber : Colors.grey[300],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   Text(
                     review.content,
-                    style: TextStyle(color: Colors.grey[800], fontSize: 13, height: 1.4),
+                    style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.45),
                   ),
                 ],
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _openReviewsPage,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: Color(0xFFFFCFC4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Xem tất cả đánh giá'),
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  void _openReviewsPage() {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.productReviews,
+      arguments: {
+        'rating': _product.averageRating,
+        'totalReviews': _product.ratingCount,
+        'productName': _product.name,
+      },
+    );
+  }
+
+  void _toggleFavorite() {
+    setState(() => _isFavorite = !_isFavorite);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isFavorite ? 'Đã thêm vào yêu thích.' : 'Đã bỏ khỏi yêu thích.',
+        ),
+        duration: const Duration(milliseconds: 1200),
       ),
     );
   }
@@ -817,47 +913,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        _formatCurrency(previewDisplayPrice),
-                                        style: const TextStyle(
-                                          fontSize: 42,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.primary,
-                                          height: 1,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      if (previewOriginalPrice != null)
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 3),
-                                          child: Text(
-                                            _formatCurrency(previewOriginalPrice),
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey[500],
-                                              decoration: TextDecoration.lineThrough,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
+                                  child: _buildPriceRow(
+                                    price: previewDisplayPrice,
+                                    originalPrice: previewOriginalPrice,
+                                    priceFontSize: 42,
+                                    originalFontSize: 16,
+                                    spacing: 8,
+                                    priceWeight: FontWeight.w800,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF2ED),
+                                    color: _promoTagBg,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFFFCBB8)),
+                                    border: Border.all(color: _promoTagBorder),
                                   ),
                                   child: const Text(
                                     'Giá tốt hôm nay',
                                     style: TextStyle(
-                                      color: Color(0xFFFF5A2A),
+                                      color: AppColors.primary,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                     ),

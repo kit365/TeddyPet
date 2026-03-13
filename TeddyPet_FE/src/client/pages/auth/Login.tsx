@@ -17,8 +17,7 @@ import { GoogleLogin } from "@react-oauth/google";
 const schema = z.object({
     usernameOrEmail: z
         .string()
-        .nonempty("Vui lòng nhập email!")
-    ,
+        .nonempty("Vui lòng nhập email!"),
     password: z
         .string()
         .nonempty("Vui lòng nhập mật khẩu!"),
@@ -52,7 +51,6 @@ export const LoginPage = () => {
     useEffect(() => {
         if (location.state?.verifyResult) {
             setNotification(location.state.verifyResult);
-            // Clear state so refresh doesn't show it again
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
@@ -72,18 +70,23 @@ export const LoginPage = () => {
 
                 const { token, refreshToken } = response.data;
 
-                // Call getMe to get full user profile
                 try {
-                    loginStore(response.data as any, token, refreshToken); // Optimistically set initial partial data + token
+                    loginStore(response.data as any, token, refreshToken);
 
                     const { getMe } = await import("../../../api/auth.api");
                     const userResponse = await getMe(token);
                     if (userResponse.success) {
-                         const fullUserData = {
+                        const fullUserData = {
                             ...userResponse.data,
                             mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
                         };
-                        loginStore(fullUserData, token, refreshToken); // Update with full profile
+                        loginStore(fullUserData, token, refreshToken);
+                        
+                        if (fullUserData.mustChangePassword) {
+                            toast.info("Vui lòng thiết lập mật khẩu của bạn.");
+                            setTimeout(() => navigate("/auth/setup-password"), 1500);
+                            return;
+                        }
                     }
                 } catch (error) {
                     console.error("Failed to fetch user profile", error);
@@ -107,7 +110,7 @@ export const LoginPage = () => {
     return (
         <>
             <Header />
-            
+
             {/* Global Loading Overlay for Google Login */}
             {isGoogleLoading && (
                 <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md animate-fadeIn transition-all duration-500">
@@ -138,16 +141,16 @@ export const LoginPage = () => {
                             )}
                         </div>
 
-                        <h3 className="text-[2.4rem] font-[700] text-[#333] mb-[10px]">
+                        <h3 className="text-[1.5rem] font-[700] text-[#333] mb-[10px]">
                             {notification.success ? "Thành công!" : "Thất bại!"}
                         </h3>
-                        <p className="text-[1.6rem] text-[#666] mb-[30px] leading-relaxed">
+                        <p className="text-[1rem] text-[#666] mb-[30px] leading-relaxed">
                             {notification.message}
                         </p>
 
                         <button
                             onClick={() => setNotification(null)}
-                            className={`w-full py-[12px] rounded-full text-[1.6rem] font-[600] text-white transition-all transform hover:-translate-y-1 shadow-md hover:shadow-lg ${notification.success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                            className={`w-full py-[12px] rounded-full text-[1rem] font-[600] text-white transition-all transform hover:-translate-y-1 shadow-md hover:shadow-lg ${notification.success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
                         >
                             Đã hiểu
                         </button>
@@ -157,10 +160,10 @@ export const LoginPage = () => {
 
             <div className="app-container my-[100px]">
                 <div className="flex items-center justify-center mx-auto max-w-[1200px]">
-                    <div className="w-[570px] h-[680px] relative z-10 hidden lg:block">
+                    <div className="w-[570px] h-[720px] relative z-10 hidden lg:block">
                         <img src="https://i.imgur.com/LZKlu0w.jpeg" alt="" className="w-full h-full object-cover rounded-[12px] shadow-lg" />
                     </div>
-                    <div className="w-full lg:w-[509px] lg:ml-[-150px] relative z-20">
+                    <div className="flex-1 max-w-[642px] lg:ml-[-150px] relative z-20">
                         <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
                             <div className="text-center mb-[40px]">
                                 <h3 className="text-[1.875rem] font-semibold text-[#333]">Chào bạn trở lại! 👋</h3>
@@ -203,7 +206,7 @@ export const LoginPage = () => {
                                         />
                                         <label htmlFor="rememberPassword" className="text-[0.875rem] cursor-pointer select-none text-[#666]">Nhớ mật khẩu</label>
                                     </div>
-                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem]">Quên mật khẩu?</Link>
+                                    <Link to="/auth/forgot-password" university-none className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem]">Quên mật khẩu?</Link>
                                 </div>
 
                                 <button
@@ -232,56 +235,65 @@ export const LoginPage = () => {
                                 </Link>
                             </div>
 
-                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[35%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[35%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0 text-[0.8rem]">HOẶC ĐĂNG NHẬP VỚI</p>
+                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[35%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[35%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0 text-[0.8rem]">HOẶC</p>
 
-                            <div className="flex justify-center">
-                                <GoogleLogin
-                                    onSuccess={async (credentialResponse) => {
-                                        if (credentialResponse.credential) {
-                                            setIsGoogleLoading(true);
-                                            try {
-                                                const response = await loginWithGoogle(credentialResponse.credential);
-                                                if (response.success) {
-                                                    toast.success("Đăng nhập Google thành công!");
-                                                    
-                                                    const { token, refreshToken } = response.data;
-                                                    loginStore(response.data as any, token, refreshToken);
-                                                    
-                                                    const { getMe } = await import("../../../api/auth.api");
-                                                    const userResponse = await getMe(token);
-                                                    
-                                                    if (userResponse.success) {
-                                                        const fullUserData = {
-                                                            ...userResponse.data,
-                                                            mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
-                                                        };
-                                                        loginStore(fullUserData, token, refreshToken);
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/auth/login-email")}
+                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[0.875rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
+                                >
+                                    Đăng nhập với email (không mật khẩu)
+                                </button>
+                                <div className="flex justify-center mt-2 w-full">
+                                    <GoogleLogin
+                                        onSuccess={async (credentialResponse) => {
+                                            if (credentialResponse.credential) {
+                                                setIsGoogleLoading(true);
+                                                try {
+                                                    const response = await loginWithGoogle(credentialResponse.credential);
+                                                    if (response.success) {
+                                                        toast.success("Đăng nhập Google thành công!");
                                                         
-                                                        if (fullUserData.mustChangePassword) {
-                                                            toast.info("Vui lòng thiết lập mật khẩu của bạn.");
-                                                            setTimeout(() => navigate("/auth/setup-password"), 1500);
-                                                            return;
+                                                        const { token, refreshToken } = response.data;
+                                                        loginStore(response.data as any, token, refreshToken);
+                                                        
+                                                        const { getMe } = await import("../../../api/auth.api");
+                                                        const userResponse = await getMe(token);
+                                                        
+                                                        if (userResponse.success) {
+                                                            const fullUserData = {
+                                                                ...userResponse.data,
+                                                                mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
+                                                            };
+                                                            loginStore(fullUserData, token, refreshToken);
+                                                            
+                                                            if (fullUserData.mustChangePassword) {
+                                                                toast.info("Vui lòng thiết lập mật khẩu của bạn.");
+                                                                setTimeout(() => navigate("/auth/setup-password"), 1500);
+                                                                return;
+                                                            }
+                                                            navigate("/dashboard/profile");
                                                         }
-                                                        navigate("/dashboard/profile");
                                                     }
+                                                } catch (error: any) {
+                                                    console.error("Google Login Error:", error);
+                                                    toast.error(error?.response?.data?.message || "Đăng nhập Google thất bại!");
+                                                } finally {
+                                                    setIsGoogleLoading(false);
                                                 }
-                                            } catch (error: any) {
-                                                console.error("Google Login Error:", error);
-                                                toast.error(error?.response?.data?.message || "Đăng nhập Google thất bại!");
-                                            } finally {
-                                                setIsGoogleLoading(false);
                                             }
-                                        }
-                                    }}
-                                    onError={() => {
-                                        toast.error("Đăng nhập Google thất bại!");
-                                    }}
-                                    useOneTap
-                                    shape="circle"
-                                    theme="outline"
-                                    text="signin_with"
-                                    width="100%"
-                                />
+                                        }}
+                                        onError={() => {
+                                            toast.error("Đăng nhập Google thất bại!");
+                                        }}
+                                        useOneTap
+                                        shape="circle"
+                                        theme="outline"
+                                        text="signin_with"
+                                        width="100%"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -45,11 +45,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthApplicationService implements AuthService {
+
+    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    private static final JsonFactory JSON_FACTORY = new GsonFactory();
 
     private final UserService userService;
     private final RoleService roleService;
@@ -75,16 +80,23 @@ public class AuthApplicationService implements AuthService {
 
     @PostConstruct
     public void init() {
-        this.googleVerifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+        this.googleVerifier = new GoogleIdTokenVerifier.Builder(HTTP_TRANSPORT, JSON_FACTORY)
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
     }
 
     private String formatName(String name) {
         if (name == null || name.isBlank()) return "";
-        name = name.trim();
-        if (name.length() <= 1) return name.toUpperCase();
-        return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+        String[] words = name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                sb.append(Character.toUpperCase(word.charAt(0)))
+                  .append(word.substring(1).toLowerCase())
+                  .append(" ");
+            }
+        }
+        return sb.toString().trim();
     }
 
     private AuthResponse generateAuthResponse(User user) {
@@ -380,12 +392,16 @@ public class AuthApplicationService implements AuthService {
     @Override
     @Transactional
     public TokenResponse loginWithGoogle(String idTokenString) {
-        log.info("[AuthService] Đang đăng nhập bằng Google (Id Token)...");
+        log.info("[AuthService] Đang xác thực Google Id Token...");
+        long startTime = System.currentTimeMillis();
         try {
             GoogleIdToken idToken = googleVerifier.verify(idTokenString);
+            long endTime = System.currentTimeMillis();
+            log.info("[AuthService] Xác thực Google hoàn tất trong {} ms", (endTime - startTime));
+            
             if (idToken == null) {
                 log.error("[AuthService] Google Id Token không hợp lệ");
-                throw new IllegalArgumentException("Google Id Token không hợp lệ");
+                throw new IllegalArgumentException("Google Id Token không hợp lệ hoặc đã hết hạn");
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
@@ -442,7 +458,8 @@ public class AuthApplicationService implements AuthService {
                 user.getDateOfBirth(),
                 user.getCreatedAt(),
                 user.getStatus(),
-                user.getRole().getName());
+                user.getRole().getName(),
+                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
     }
 
     @Override
