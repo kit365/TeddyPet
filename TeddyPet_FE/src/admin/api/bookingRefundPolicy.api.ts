@@ -18,6 +18,28 @@ export const getAdminBookingDepositRefundPolicies = async (): Promise<ApiRespons
     return response.data;
 };
 
+export type UpsertBookingDepositRefundPolicyPayload = Omit<BookingDepositRefundPolicy, "id" | "createdAt" | "updatedAt">;
+
+export const createAdminBookingDepositRefundPolicy = async (
+    payload: UpsertBookingDepositRefundPolicyPayload
+): Promise<ApiResponse<BookingDepositRefundPolicy>> => {
+    const response = await apiApp.post(POLICIES_URL, payload, withAuth());
+    return response.data;
+};
+
+export const updateAdminBookingDepositRefundPolicyById = async (
+    id: number,
+    payload: UpsertBookingDepositRefundPolicyPayload
+): Promise<ApiResponse<BookingDepositRefundPolicy>> => {
+    const response = await apiApp.put(`${POLICIES_URL}/${id}`, payload, withAuth());
+    return response.data;
+};
+
+export const deleteAdminBookingDepositRefundPolicy = async (id: number): Promise<ApiResponse<void>> => {
+    const response = await apiApp.delete(`${POLICIES_URL}/${id}`, withAuth());
+    return response.data;
+};
+
 export const updateAdminBookingDepositRefundPolicy = async (
     bookingId: string | number,
     refundPolicyId: number
