@@ -36,7 +36,6 @@ export interface IService {
     basePrice?: number;
     maxPetsPerSession?: number;
     advanceBookingHours?: number;
-    cancellationDeadlineHours?: number;
     imageURL?: string;
     galleryImages?: string[];
     requiredStaffCount?: number;
@@ -47,21 +46,10 @@ export interface IService {
     isAddon?: boolean;
     isAdditionalCharge?: boolean;
     isCritical?: boolean;
-    addonType?: string;
     metaTitle?: string;
     metaDescription?: string;
     isActive: boolean;
     isRequiredRoom?: boolean;
-    // Refund Policy
-    beforeDeadlineRefundPct?: number;
-    afterDeadlineRefundPct?: number;
-    noShowRefundPct?: number;
-    noShowPenalty?: number;
-    allowReschedule?: boolean;
-    rescheduleDeadlineHours?: number;
-    rescheduleLimit?: number;
-    allowForceMajeure?: boolean;
-    forceMajeureRefundPct?: number;
     isDeleted?: boolean;
     createdAt?: string;
     updatedAt?: string;

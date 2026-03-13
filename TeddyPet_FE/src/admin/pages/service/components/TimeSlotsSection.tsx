@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
     Box,
     Button,
@@ -154,10 +154,11 @@ export const TimeSlotsSection = ({ serviceId, expanded: expandedProp = true, onE
                     {onEnsureService && (
                         <Button
                             variant="contained"
+                            size="small"
                             startIcon={<AddIcon />}
                             onClick={handleEnsureAndAdd}
                             disabled={isEnsuring}
-                            sx={{ fontSize: '1.25rem' }}
+                            sx={{ fontSize: '0.9375rem', py: 1, px: 2 }}
                         >
                             {isEnsuring ? 'Đang tạo dịch vụ...' : 'Thêm khung giờ'}
                         </Button>
@@ -171,7 +172,7 @@ export const TimeSlotsSection = ({ serviceId, expanded: expandedProp = true, onE
         <CollapsibleCard title="Khung giờ" subheader="Các khung giờ có thể đặt cho dịch vụ" expanded={expanded} onToggle={() => setExpanded((p) => !p)}>
             <Stack p="24px" gap={2} sx={{ fontSize: '1.25rem' }}>
                 {!showForm ? (
-                    <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setShowForm(true)} size="medium" sx={{ fontSize: '1.25rem' }}>
+                    <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setShowForm(true)} size="small" sx={{ fontSize: '0.9375rem', py: 1, px: 2 }}>
                         Thêm khung giờ
                     </Button>
                 ) : (
@@ -203,30 +204,30 @@ export const TimeSlotsSection = ({ serviceId, expanded: expandedProp = true, onE
                     </Stack>
                 )}
 
-                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '1.25rem', py: 2 } }}>
+                <Table size="medium" sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', py: 1.25 } }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại ngày</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Giờ</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Số pet tối đa</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Loại slot</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }}>Ghi chú</TableCell>
-                            <TableCell width={100} sx={{ fontWeight: 700, fontSize: '1.375rem', py: 2 }} />
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }}>Loại ngày</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }}>Giờ</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }}>Số pet tối đa</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }}>Loại slot</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }}>Ghi chú</TableCell>
+                            <TableCell width={100} sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 1.25 }} />
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={6} sx={{ fontSize: '1.25rem' }}>Đang tải...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} sx={{ fontSize: '0.875rem' }}>Đang tải...</TableCell></TableRow>
                         ) : slots.length === 0 ? (
-                            <TableRow><TableCell colSpan={6} sx={{ color: 'text.secondary', fontSize: '1.25rem', py: 4 }}>Chưa có khung giờ nào</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} sx={{ color: 'text.secondary', fontSize: '0.875rem', py: 4 }}>Chưa có khung giờ nào</TableCell></TableRow>
                         ) : (
                             slots.map((s) => (
                                 <TableRow key={s.id}>
-                                    <TableCell sx={{ fontSize: '1.25rem' }}>{DAY_TYPES.find((t) => t.value === s.dayType)?.label ?? s.dayType}</TableCell>
-                                    <TableCell sx={{ fontSize: '1.25rem' }}>{toTimeStr(s.startTime)} - {toTimeStr(s.endTime)}</TableCell>
-                                    <TableCell sx={{ fontSize: '1.25rem' }}>{s.maxCapacity}</TableCell>
-                                    <TableCell sx={{ fontSize: '1.25rem' }}>{SLOT_TYPES.find((t) => t.value === s.slotType)?.label ?? s.slotType}</TableCell>
-                                    <TableCell sx={{ fontSize: '1.25rem' }}>{s.notes || '—'}</TableCell>
+                                    <TableCell>{DAY_TYPES.find((t) => t.value === s.dayType)?.label ?? s.dayType}</TableCell>
+                                    <TableCell>{toTimeStr(s.startTime)} - {toTimeStr(s.endTime)}</TableCell>
+                                    <TableCell>{s.maxCapacity}</TableCell>
+                                    <TableCell>{SLOT_TYPES.find((t) => t.value === s.slotType)?.label ?? s.slotType}</TableCell>
+                                    <TableCell>{s.notes || '—'}</TableCell>
                                     <TableCell>
                                         <IconButton size="medium" onClick={() => handleEdit(s)}><EditIcon fontSize="medium" /></IconButton>
                                         <IconButton size="medium" onClick={() => handleDelete(s.id)} color="error"><DeleteIcon fontSize="medium" /></IconButton>

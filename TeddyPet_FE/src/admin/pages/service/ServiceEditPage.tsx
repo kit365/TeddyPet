@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, MenuItem, IconButton, Select, InputLabel, FormControl, Checkbox, ListItemText, Typography, Switch, Chip, Card } from '@mui/material';
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, MenuItem, IconButton, Select, InputLabel, FormControl, Checkbox, ListItemText, Typography, Switch, Chip, Card } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState, useEffect, useRef } from 'react';
@@ -33,6 +33,7 @@ import TableRow from '@mui/material/TableRow';
 import { createDeletePricingHandler, createOnPricingSubmit } from './serviceEditHelpers';
 import dayjs from 'dayjs';
 import { TimeSlotsSection } from './components/TimeSlotsSection';
+import { Tiptap } from '../../components/layouts/titap/Tiptap';
 import { useRoomTypes } from '../room/hooks/useRoomType';
 import { updateRoomTypeServiceId } from '../../api/room.api';
 
@@ -41,6 +42,7 @@ export const ServiceEditPage = () => {
     const serviceId = id ? Number(id) : 0;
     const [expanded1, setExpanded1] = useState(true);
     const [expanded2, setExpanded2] = useState(true);
+    const [expandedMeta, setExpandedMeta] = useState(true);
     const [expandedPricing, setExpandedPricing] = useState(true);
     const [pricingModalOpen, setPricingModalOpen] = useState(false);
     const [editingPricing, setEditingPricing] = useState<IServicePricing | null>(null);
@@ -108,7 +110,6 @@ export const ServiceEditPage = () => {
                 bufferTime: d.bufferTime ?? undefined,
                 maxPetsPerSession: d.maxPetsPerSession ?? undefined,
                 advanceBookingHours: d.advanceBookingHours ?? undefined,
-                cancellationDeadlineHours: d.cancellationDeadlineHours ?? undefined,
                 imageURL: d.imageURL ?? '',
                 galleryImages: d.galleryImages ?? [],
                 requiredStaffCount: d.requiredStaffCount ?? undefined,
@@ -119,21 +120,10 @@ export const ServiceEditPage = () => {
                 isAddon: d.isAddon ?? undefined,
                 isAdditionalCharge: d.isAdditionalCharge ?? undefined,
                 isCritical: d.isCritical ?? undefined,
-                addonType: d.addonType ?? '',
                 metaTitle: d.metaTitle ?? '',
                 metaDescription: d.metaDescription ?? '',
                 isActive: d.isActive ?? true,
                 isRequiredRoom: d.isRequiredRoom ?? false,
-                // Refund Policy
-                beforeDeadlineRefundPct: d.beforeDeadlineRefundPct ?? undefined,
-                afterDeadlineRefundPct: d.afterDeadlineRefundPct ?? undefined,
-                noShowRefundPct: d.noShowRefundPct ?? undefined,
-                noShowPenalty: d.noShowPenalty ?? undefined,
-                allowReschedule: d.allowReschedule ?? true,
-                rescheduleDeadlineHours: d.rescheduleDeadlineHours ?? undefined,
-                rescheduleLimit: d.rescheduleLimit ?? undefined,
-                allowForceMajeure: d.allowForceMajeure ?? true,
-                forceMajeureRefundPct: d.forceMajeureRefundPct ?? undefined,
             });
         }
     }, [detailRes, reset]);
@@ -152,7 +142,6 @@ export const ServiceEditPage = () => {
             bufferTime: data.bufferTime ?? null,
             maxPetsPerSession: data.maxPetsPerSession ?? null,
             advanceBookingHours: data.advanceBookingHours ?? null,
-            cancellationDeadlineHours: data.cancellationDeadlineHours ?? null,
             imageURL: data.imageURL || null,
             galleryImages: data.galleryImages && data.galleryImages.length > 0 ? data.galleryImages : null,
             requiredStaffCount: data.requiredStaffCount ?? null,
@@ -163,7 +152,6 @@ export const ServiceEditPage = () => {
             isAddon: data.isAddon ?? null,
             isAdditionalCharge: data.isAdditionalCharge ?? null,
             isCritical: data.isCritical ?? null,
-            addonType: data.isAddon ? (data.addonType || null) : null,
             metaTitle: data.metaTitle || null,
             metaDescription: data.metaDescription || null,
             isActive: data.isActive,
@@ -326,10 +314,24 @@ export const ServiceEditPage = () => {
                                     control={control}
                                     render={({ field }) => <TextField {...field} label="Mô tả ngắn" multiline rows={2} fullWidth />}
                                 />
-                                <Controller name="description" control={control} render={({ field }) => <TextField {...field} label="Mô tả chi tiết" multiline rows={4} fullWidth />} />
+                                <Controller
+                                    name="description"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Box>
+                                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Mô tả chi tiết</Typography>
+                                            <Tiptap
+                                                value={field.value ?? ''}
+                                                onChange={field.onChange}
+                                                placeholder="Hãy viết điều gì đó tuyệt vời..."
+                                                hideLabel
+                                            />
+                                        </Box>
+                                    )}
+                                />
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                    <FormUploadSingleFile name="imageURL" control={control} compact />
-                                    <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
+                                    <FormUploadSingleFile name="imageURL" control={control} title="Ảnh chính" compact />
+                                    <FormUploadMultiFile name="galleryImages" control={control} title="Kho ảnh" compact />
                                 </Box>
 
                                 <Box sx={{ mt: 3 }}>
@@ -422,11 +424,6 @@ export const ServiceEditPage = () => {
                                     <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                     <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller
-                                        name="addonType"
-                                        control={control}
-                                        render={({ field }) => <TextField {...field} label="Addon type" fullWidth disabled={!isAddon} />}
-                                    />
                                 </Box>
 
                                 <Controller
@@ -436,11 +433,6 @@ export const ServiceEditPage = () => {
                                         <TextField {...field} label="Chứng chỉ yêu cầu (mỗi dòng 1 chứng chỉ)" multiline rows={3} fullWidth />
                                     )}
                                 />
-
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                    <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
-                                    <Controller name="metaDescription" control={control} render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />} />
-                                </Box>
 
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                                     <SwitchButton control={control} name="isActive" label="Hoạt động" />
@@ -452,21 +444,11 @@ export const ServiceEditPage = () => {
                                 </Box>
                             </Stack>
                         </CollapsibleCard>
-                        <CollapsibleCard title="Quy định hoàn tiền" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
+                        <CollapsibleCard title="Meta (SEO)" expanded={expandedMeta} onToggle={() => setExpandedMeta((p) => !p)}>
                             <Stack p="24px" gap="24px">
                                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                    <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                    <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '1.2rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                </Box>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                    <SwitchButton control={control} name="allowReschedule" label="Cho phép đổi lịch" />
-                                    <SwitchButton control={control} name="allowForceMajeure" label="Cho phép bất khả kháng" />
+                                    <Controller name="metaTitle" control={control} render={({ field }) => <TextField {...field} label="Meta title" fullWidth />} />
+                                    <Controller name="metaDescription" control={control} render={({ field }) => <TextField {...field} label="Meta description" multiline rows={2} fullWidth />} />
                                 </Box>
                             </Stack>
                         </CollapsibleCard>
@@ -476,10 +458,10 @@ export const ServiceEditPage = () => {
                                 disabled={isPending}
                                 sx={{
                                     background: '#1C252E',
-                                    minHeight: '4.8rem',
-                                    fontWeight: 700,
-                                    fontSize: '1.4rem',
-                                    padding: '8px 24px',
+                                    minHeight: '2.75rem',
+                                    fontWeight: 600,
+                                    fontSize: '0.9375rem',
+                                    padding: '6px 20px',
                                     borderRadius: '8px',
                                     textTransform: 'none',
                                     '&:hover': { background: '#454F5B' },
@@ -496,12 +478,12 @@ export const ServiceEditPage = () => {
                                     <Button
                                         startIcon={<AddIcon />}
                                         variant="outlined"
-                                        size="medium"
+                                        size="small"
                                         onClick={() => {
                                             setEditingPricing(null);
                                             setPricingModalOpen(true);
                                         }}
-                                        sx={{ fontSize: '1.125rem' }}
+                                        sx={{ fontSize: '0.9375rem', py: 1, px: 2 }}
                                     >
                                         Thêm quy tắc giá
                                     </Button>
@@ -510,12 +492,12 @@ export const ServiceEditPage = () => {
                                     size="medium"
                                     sx={{
                                         '& .MuiTableCell-root': {
-                                            fontSize: '1.35rem',
-                                            paddingTop: '10px',
-                                            paddingBottom: '10px',
+                                            fontSize: '0.875rem',
+                                            paddingTop: '8px',
+                                            paddingBottom: '8px',
                                         },
                                         '& .MuiTableHead-root .MuiTableCell-root': {
-                                            fontSize: '1.5rem',
+                                            fontSize: '0.9375rem',
                                             fontWeight: 700,
                                         },
                                     }}
@@ -536,7 +518,7 @@ export const ServiceEditPage = () => {
                                     <TableBody>
                                         {pricings.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={detailRes?.data?.isRequiredRoom ? 9 : 8} sx={{ color: '#637381', py: 3, fontSize: '1.35rem' }}>
+                                                <TableCell colSpan={detailRes?.data?.isRequiredRoom ? 9 : 8} sx={{ color: '#637381', py: 3, fontSize: '0.875rem' }}>
                                                     Chưa có quy tắc giá. Nhấn &quot;Thêm quy tắc giá&quot; để thêm.
                                                 </TableCell>
                                             </TableRow>

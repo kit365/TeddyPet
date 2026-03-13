@@ -27,7 +27,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Seeds service_categories, services, service_pricing, service_combo, and
@@ -75,6 +77,7 @@ public class ServiceDataInitializer implements CommandLineRunner {
         updateHotelServicesRequiresRoom();
         updateSuitablePetTypes();
         updatePricingSuitablePetTypes();
+        updateServiceDescriptions();
         initTimeSlots();
         initCombos();
     }
@@ -363,6 +366,103 @@ public class ServiceDataInitializer implements CommandLineRunner {
                 log.info("✅ Backfilled default suitablePetTypes=DOG,CAT for pricing rule {}", p.getPricingName());
             }
         });
+    }
+
+    /**
+     * Cập nhật mô tả ngắn và mô tả chi tiết (HTML) cho các dịch vụ hiện có nếu đang trống.
+     */
+    private void updateServiceDescriptions() {
+        Map<String, ServiceDescriptionUpdate> updates = getServiceDescriptionUpdates();
+        updates.forEach((code, update) -> {
+            serviceRepository.findByCode(code).ifPresent(svc -> {
+                boolean needShort = svc.getShortDescription() == null || svc.getShortDescription().isBlank();
+                boolean needDetail = svc.getDescription() == null || svc.getDescription().isBlank();
+                if (needShort || needDetail) {
+                    if (needShort)
+                        svc.setShortDescription(update.shortDescription());
+                    if (needDetail)
+                        svc.setDescription(update.descriptionHtml());
+                    serviceRepository.save(svc);
+                    log.info("✅ Updated descriptions for service: {} ({})", svc.getServiceName(), code);
+                }
+            });
+        });
+    }
+
+    private record ServiceDescriptionUpdate(String shortDescription, String descriptionHtml) {}
+
+    private Map<String, ServiceDescriptionUpdate> getServiceDescriptionUpdates() {
+        Map<String, ServiceDescriptionUpdate> m = new LinkedHashMap<>();
+        // --- Hotel ---
+        m.put("HOTEL-PHONG-CHUONG", new ServiceDescriptionUpdate(
+                "Phòng chuồng tiêu chuẩn, thoáng mát, phù hợp chó/mèo. Chăm sóc theo ngày với đầy đủ nước uống và vệ sinh.",
+                "<p>Phòng chuồng được thiết kế thoáng mát, vệ sinh sạch sẽ mỗi ngày. Thú cưng được cung cấp nước uống và thức ăn theo nhu cầu. Nhân viên kiểm tra sức khỏe và vệ sinh định kỳ.</p><p><strong>Bao gồm:</strong></p><ul><li>Chỗ ở sạch sẽ, an toàn</li><li>Nước uống và khay vệ sinh</li><li>Theo dõi sức khỏe cơ bản</li></ul>"
+        ));
+        m.put("HOTEL-PHONG-RIENG", new ServiceDescriptionUpdate(
+                "Phòng riêng rộng rãi, yên tĩnh cho chó. Có không gian vận động nhẹ và chăm sóc cá nhân hóa.",
+                "<p>Phòng riêng phù hợp với chó cần không gian thoải mái hơn. Có khu vực vệ sinh riêng và nhân viên chăm sóc trực tiếp.</p><p><strong>Bao gồm:</strong></p><ul><li>Phòng riêng biệt, không ồn ào</li><li>Nước uống, khay vệ sinh, nệm nằm</li><li>Chăm sóc và vệ sinh theo yêu cầu</li></ul>"
+        ));
+        m.put("HOTEL-MEO-RIENG", new ServiceDescriptionUpdate(
+                "Không gian riêng dành cho mèo: yên tĩnh, ấm áp, có chỗ leo trèo và vệ sinh cát riêng.",
+                "<p>Phòng mèo riêng được thiết kế phù hợp tập tính mèo: ít tiếp xúc với chó, có chỗ ẩn nấp và vệ sinh cát. Nhiệt độ và ánh sáng thoải mái.</p><p><strong>Bao gồm:</strong></p><ul><li>Phòng cách âm, ấm áp</li><li>Khay cát, nước, thức ăn</li><li>Chăm sóc nhẹ nhàng, không gây stress</li></ul>"
+        ));
+        // --- Spa chính ---
+        m.put("SPA-TAM-VE-SINH", new ServiceDescriptionUpdate(
+                "Tắm rửa cơ bản với sữa tắm chuyên dụng cho thú cưng. Làm sạch lông, da và mùi hôi.",
+                "<p>Dịch vụ tắm vệ sinh cơ bản giúp thú cưng sạch sẽ, thơm tho. Sử dụng sữa tắm phù hợp từng loại da/lông.</p><p><strong>Quy trình:</strong></p><ul><li>Kiểm tra da, lông trước khi tắm</li><li>Tắm với sữa tắm chuyên dụng</li><li>Sấy khô và chải lông nhẹ</li></ul><p>Phù hợp chó, mèo mọi kích cỡ. Thời lượng khoảng 60 phút tùy kích thước.</p>"
+        ));
+        m.put("SPA-CAO-LONG", new ServiceDescriptionUpdate(
+                "Cạo lông toàn thân chuyên nghiệp cho thú cưng. Máy cạo an toàn, không gây trầy xước da.",
+                "<p>Cạo lông toàn thân phù hợp chó lông dày, dễ rối hoặc cần vệ sinh sâu. Kỹ thuật viên sử dụng máy cạo chuyên dụng và dao cạo an toàn.</p><p><strong>Bao gồm:</strong></p><ul><li>Cạo sát, đều toàn thân</li><li>Vệ sinh vùng bụng, nách, bàn chân</li><li>Tắm nhẹ sau cạo (tùy gói)</li></ul><p>Thời lượng khoảng 90 phút. Nên đặt lịch trước.</p>"
+        ));
+        m.put("SPA-VE-SINH-TONG-QUAT", new ServiceDescriptionUpdate(
+                "Vệ sinh tai, cắt móng, cạo bàn chân, vệ sinh bụng và hậu môn. Không bao gồm tắm.",
+                "<p>Vệ sinh tổng quát tập trung vào các bộ phận dễ bám bẩn: tai, móng, kẽ bàn chân, bụng, hậu môn. Không tắm ướt, phù hợp thú cưng cần vệ sinh nhanh hoặc không thích tắm.</p><p><strong>Bao gồm:</strong></p><ul><li>Vệ sinh tai, lấy ráy tai</li><li>Cắt mài móng</li><li>Cạo lông bàn chân, bụng, hậu môn</li></ul><p>Thời lượng khoảng 45 phút.</p>"
+        ));
+        m.put("SPA-TAM-THAO-DUOC", new ServiceDescriptionUpdate(
+                "Ngâm bồn thảo dược giúp da khỏe, lông mượt, giảm ngứa và mùi. Phù hợp da nhạy cảm.",
+                "<p>Bồn tắm thảo dược với thành phần tự nhiên giúp làm dịu da, giảm ngứa và mùi hôi. Đặc biệt phù hợp thú cưng da nhạy cảm hoặc sau các dịch vụ cạo lông.</p><p><strong>Lợi ích:</strong></p><ul><li>Da khỏe, lông mượt</li><li>Giảm ngứa, viêm da nhẹ</li><li>Hương thơm tự nhiên, thư giãn</li></ul><p>Thời lượng khoảng 30 phút. Có thể kết hợp với tắm vệ sinh.</p>"
+        ));
+        // --- Add-on Spa ---
+        m.put("ADDON-GO-ROI-LONG", new ServiceDescriptionUpdate(
+                "Gỡ rối lông, chải tháo nút. Tính theo thời gian (khoảng 50–100k/30 phút).",
+                "<p>Dịch vụ gỡ rối lông dành cho thú cưng lông dài, dễ rối. Kỹ thuật viên dùng lược và sản phẩm dưỡng để gỡ từng phần mà không gây đau.</p><p><strong>Phù hợp:</strong> Chó/mèo lông dài, lông xoăn, lâu ngày không chải. Giá tính theo thời gian thực hiện (khoảng 50–100k/30 phút).</p>"
+        ));
+        m.put("ADDON-TRI-VE-RAN", new ServiceDescriptionUpdate(
+                "Trị ve rận, bọ chét: lao động 50–100k hoặc gói 150–300k tùy mức độ.",
+                "<p>Xử lý ve, rận, bọ chét bằng thuốc và quy trình an toàn. Có thể chọn gói lao động (theo thời gian) hoặc gói trọn gói theo mức độ nhiễm.</p><p><strong>Lưu ý:</strong> Thú cưng cần được kiểm tra da trước khi trị. Một số trường hợp nặng có thể cần tái khám hoặc kết hợp thuốc từ bác sĩ thú y.</p>"
+        ));
+        m.put("ADDON-DUONG-AM-DEM-CHAN", new ServiceDescriptionUpdate(
+                "Dưỡng ẩm đệm chân với sáp/kem chuyên dụng. Giảm nứt nẻ, bong tróc bàn chân.",
+                "<p>Đệm chân khô, nứt nẻ dễ gây đau và nhiễm trùng. Dịch vụ bôi dưỡng ẩm chuyên dụng giúp đệm chân mềm, khỏe hơn.</p><p><strong>Bao gồm:</strong> Vệ sinh nhẹ bàn chân, bôi sáp/kem dưỡng ẩm, massage nhẹ. Thời lượng khoảng 15 phút. Có thể kết hợp với vệ sinh tổng quát hoặc tắm.</p>"
+        ));
+        // --- Add-on Hotel ---
+        m.put("ADDON-HOTEL-BUA-AN-THEM", new ServiceDescriptionUpdate(
+                "Bữa ăn bổ sung trong ngày cho thú cưng lưu trú. Một bữa/đơn, giá cố định.",
+                "<p>Thú cưng lưu trú có thể đặt thêm bữa ăn (sáng/trưa/chiều) ngoài khẩu phần cơ bản. Thức ăn phù hợp theo độ tuổi và loại (khô/ướt) theo yêu cầu chủ nuôi.</p><p><strong>Lưu ý:</strong> Một đơn = một bữa. Cần báo trước loại thức ăn và dị ứng (nếu có).</p>"
+        ));
+        m.put("ADDON-HOTEL-CHAM-SOC-DAC-BIET", new ServiceDescriptionUpdate(
+                "Chăm sóc y tế/đặc biệt theo yêu cầu: băng bó, cho thuốc, theo dõi bệnh. Giá theo thỏa thuận.",
+                "<p>Áp dụng khi thú cưng cần cho thuốc định kỳ, băng bó vết thương, theo dõi bệnh lý đặc biệt trong thời gian lưu trú. Nhân viên được hướng dẫn cơ bản về thuốc và quy trình từ chủ nuôi hoặc bác sĩ.</p><p><strong>Lưu ý:</strong> Giá tính theo thời gian và độ phức tạp. Cần cung cấp thuốc và hướng dẫn rõ ràng khi gửi thú cưng.</p>"
+        ));
+        // --- Additional charge (phụ phí) ---
+        m.put("CHARGE-VE-SINH-DAC-BIET", new ServiceDescriptionUpdate(
+                "Phụ phí khi thú cưng cần vệ sinh đặc biệt: quá bẩn, lâu ngày không tắm, bám bùn/cỏ.",
+                "<p>Áp dụng khi tình trạng lông/da của thú cưng vượt mức vệ sinh thông thường (bẩn nặng, lâu ngày không tắm, dính bùn/cỏ, mùi khó xử lý). Nhân viên sẽ tốn thêm thời gian và vật tư để làm sạch an toàn.</p><p>Phụ phí được tính thêm vào hóa đơn dịch vụ tắm/grooming. Giá có thể thay đổi tùy mức độ.</p>"
+        ));
+        m.put("CHARGE-THUOC-VAT-TU", new ServiceDescriptionUpdate(
+                "Phụ phí thuốc hoặc vật tư phát sinh ngoài gói dịch vụ (thuốc trị ve, dầu gội đặc biệt, băng gạc...).",
+                "<p>Khi dịch vụ cần dùng thêm thuốc (trị ve, kháng sinh bôi...) hoặc vật tư đặc biệt (dầu gội trị viêm da, băng gạc, bỉm...) không nằm trong gói cơ bản, phụ phí sẽ được cộng vào hóa đơn theo giá thực tế hoặc bảng giá niêm yết.</p><p>Nhân viên sẽ thông báo và xác nhận với khách trước khi sử dụng.</p>"
+        ));
+        m.put("CHARGE-GIA-HAN", new ServiceDescriptionUpdate(
+                "Phụ phí khi khách gia hạn thêm ngày lưu trú so với ngày trả thú đã đăng ký ban đầu.",
+                "<p>Áp dụng khi khách hàng muốn đón thú cưng muộn hơn so với ngày kết thúc đã đặt. Phụ phí tính theo từng ngày gia hạn, theo bảng giá loại phòng đang sử dụng.</p><p><strong>Lưu ý:</strong> Cần thông báo gia hạn sớm để chúng tôi sắp xếp phòng và lịch. Giá có thể điều chỉnh theo mùa/ngày lễ.</p>"
+        ));
+        m.put("CHARGE-PHU-PHI-PHONG", new ServiceDescriptionUpdate(
+                "Phụ phí phát sinh liên quan phòng: làm bẩn nặng, hư hỏng nhẹ đồ đạc, dọn dẹp đặc biệt.",
+                "<p>Áp dụng khi sau khi trả phòng, phòng hoặc đồ dùng cần vệ sinh/ sửa chữa ngoài mức bình thường (ví dụ: làm bẩn nặng, gặm nát đồ, nôn mửa nhiều...). Phụ phí được tính theo chi phí thực tế hoặc bảng giá bồi thường nhẹ.</p><p>Nhân viên sẽ báo cáo và thông báo cho khách trước khi xuất hóa đơn.</p>"
+        ));
+        return m;
     }
 
     /**
