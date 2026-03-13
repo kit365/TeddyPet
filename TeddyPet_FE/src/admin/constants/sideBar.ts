@@ -57,6 +57,12 @@ export const bookingManagementItem = {
             path: `/${prefixAdmin}/booking/list`,
             allowedRoles: ["ADMIN", "STAFF"],
         },
+        {
+            id: "refund-policies",
+            label: "Chính sách hoàn cọc",
+            path: `/${prefixAdmin}/booking/refund-policies`,
+            allowedRoles: ["ADMIN"],
+        },
     ],
 };
 
@@ -93,6 +99,12 @@ export const menuManagementData = [
                 label: "Danh sách đặt lịch",
                 path: `/${prefixAdmin}/booking/list`,
                 allowedRoles: ["ADMIN", "STAFF"],
+            },
+            {
+                id: "refund-policies",
+                label: "Chính sách hoàn cọc",
+                path: `/${prefixAdmin}/booking/refund-policies`,
+                allowedRoles: ["ADMIN"],
             },
         ]
     },

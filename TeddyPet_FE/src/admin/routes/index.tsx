@@ -89,6 +89,7 @@ import { StaffSkillListPage } from "../pages/staff/staffSkill/StaffSkillListPage
 import { FeedbackListPage } from "../pages/feedback/FeedbackListPage";
 import { EmployeeDashboardPage } from "../pages/staff/dashboard/EmployeeDashboardPage";
 import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
+import { BookingRefundPolicyListPage } from "../pages/booking/BookingRefundPolicyListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
@@ -127,6 +128,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "order/manual", element: <ManualOrderPage /> },
     { path: "feedback/list", element: <FeedbackListPage /> },
     { path: "booking/list", element: <BookingListPage /> },
+    { path: "booking/refund-policies", element: <AdminOnlyGuard><BookingRefundPolicyListPage /></AdminOnlyGuard> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },
     { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },
     { path: "booking/detail/:id/pet/:petId/service/:serviceId", element: <BookingPetServiceDetailPage /> },

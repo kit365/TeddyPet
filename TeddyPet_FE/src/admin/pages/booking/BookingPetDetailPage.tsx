@@ -20,7 +20,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
 import { UploadSingleFile } from "../../components/upload/UploadSingleFile";
-import { getAdminBookingDetail } from "../../api/booking.api";
+import { getAdminBookingDetail, getAdminBookingPetDetail } from "../../api/booking.api";
 import type { BookingPetResponse } from "../../../types/booking.type";
 
 const formatCurrency = (v: number) =>
@@ -71,7 +71,8 @@ export const BookingPetDetailPage = () => {
           const res = await getAdminBookingDetail(id);
           const b = res.data ?? null;
           setBooking(b as any);
-          const p = b?.pets?.find((x) => String(x.id) === petId);
+          const petRes = await getAdminBookingPetDetail(id, petId);
+          const p = petRes.data ?? null;
           setPet(p ?? null);
           if (p) {
             setStaffFields({

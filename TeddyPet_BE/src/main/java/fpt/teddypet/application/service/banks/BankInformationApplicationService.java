@@ -130,10 +130,23 @@ public class BankInformationApplicationService implements BankInformationService
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy booking với mã: " + bookingCode));
 
-        return bankInformationRepository.findByBookingIdNotDeleted(booking.getId()).stream()
+        // Lấy bank info theo booking_id trước (nếu khách đã nhập)
+        var bankByBooking = bankInformationRepository.findByBookingIdNotDeleted(booking.getId()).stream()
                 .findFirst()
-                .map(this::toResponse)
-                .orElse(null);
+                .map(this::toResponse);
+        
+        if (bankByBooking.isPresent()) {
+            return bankByBooking.get();
+        }
+        
+        // Fallback: Lấy default bank info theo user_id (nếu booking có user)
+        if (booking.getUser() != null && booking.getUser().getId() != null) {
+            return bankInformationRepository.findDefaultByUserId(booking.getUser().getId())
+                    .map(this::toResponse)
+                    .orElse(null);
+        }
+        
+        return null;
     }
 
     @Override

@@ -9,13 +9,16 @@ import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItem
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminPetFoodBroughtResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
+import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.BookingPetServiceItem;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
@@ -26,12 +29,15 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class BookingAdminApplicationService implements BookingAdminService {
 
         private final BookingRepository bookingRepository;
         private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
         private final ServiceRepositoryPort serviceRepositoryPort;
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
+        private final TimeSlotBookingRepository timeSlotBookingRepository;
+        private final EmailServicePort emailServicePort;
         private final DashboardService dashboardService;
 
         public BookingAdminApplicationService(
@@ -39,11 +45,15 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         BookingPetServiceItemRepository bookingPetServiceItemRepository,
                         ServiceRepositoryPort serviceRepositoryPort,
                         fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
+                        TimeSlotBookingRepository timeSlotBookingRepository,
+                        EmailServicePort emailServicePort,
                         @Lazy DashboardService dashboardService) {
                 this.bookingRepository = bookingRepository;
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
                 this.serviceRepositoryPort = serviceRepositoryPort;
                 this.bookingDepositRepository = bookingDepositRepository;
+                this.timeSlotBookingRepository = timeSlotBookingRepository;
+                this.emailServicePort = emailServicePort;
                 this.dashboardService = dashboardService;
         }
 
@@ -173,14 +183,36 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         throw new IllegalStateException("Booking không có yêu cầu hủy đang chờ xử lý.");
                 }
 
+                // Only allow cancelling bookings that are still pending
+                if (!"PENDING".equalsIgnoreCase(booking.getStatus())) {
+                        throw new IllegalStateException("Chỉ có thể hủy đơn đang ở trạng thái PENDING.");
+                }
+
                 if (Boolean.TRUE.equals(request.approved())) {
                         booking.setStatus("CANCELLED");
                         booking.setCancelRequested(false);
-                        // Cancel all associated pet services
+                        // Optional: lưu ghi chú nội bộ từ staff khi duyệt hủy
+                        if (request.staffNotes() != null && !request.staffNotes().isBlank()) {
+                                booking.setInternalNotes(request.staffNotes().trim());
+                        }
+                        // Cancel all associated pet services and pets
                         for (var pet : booking.getPets()) {
+                                pet.setStatus("CANCELLED");
                                 for (var svc : pet.getServices()) {
                                         svc.setStatus("CANCELLED");
                                 }
+                        }
+                        // Nếu có refundProof từ nhân viên, lưu vào booking_deposits (bản ghi đã thanh toán gần nhất)
+                        if (request.refundProof() != null && !request.refundProof().isBlank()) {
+                                bookingDepositRepository.findByBookingId(booking.getId()).stream()
+                                                .filter(d -> Boolean.TRUE.equals(d.getDepositPaid()))
+                                                .sorted((a, b) -> b.getDepositPaidAt()
+                                                                .compareTo(a.getDepositPaidAt()))
+                                                .findFirst()
+                                                .ifPresent(d -> {
+                                                        d.setRefundProof(request.refundProof());
+                                                        bookingDepositRepository.save(d);
+                                                });
                         }
                         // Cancel pending deposits
                         bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
@@ -189,6 +221,22 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         bookingDepositRepository.save(deposit);
                                 }
                         });
+
+                        // Xóa TimeSlotBooking records
+                        timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+
+                        // Send refund approved email to customer
+                        if (booking.getRefundAmount() != null && booking.getRefundAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                            if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                                try {
+                                    String refundAmountFormatted = String.format("%,.0f VND", booking.getRefundAmount());
+                                    emailServicePort.sendBookingRefundApprovedEmail(
+                                            booking.getCustomerEmail(), booking.getBookingCode(), refundAmountFormatted);
+                                } catch (Exception emailEx) {
+                                        System.out.println("Failed to send refund-approved email for booking " + booking.getBookingCode() + ": " + emailEx);
+                                }
+                            }
+                        }
                 } else {
                         // Reject cancel request: revert to PENDING and clear cancel fields
                         booking.setStatus("PENDING");
@@ -200,6 +248,43 @@ public class BookingAdminApplicationService implements BookingAdminService {
 
                 bookingRepository.save(booking);
                 dashboardService.sendDashboardUpdate();
+                return toListItem(booking);
+        }
+
+        @Override
+        @Transactional
+        public AdminBookingListItemResponse confirmReadyToWork(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmBookingReadyRequest request) {
+                Booking booking = getBookingOrThrow(bookingId);
+
+                // Allow ONLY if booking is PENDING or CONFIRMED (adjust logic if needed, but it should be beforeREADY_TO_WORK)
+                // Let's assume as long as it's not CANCELLED or COMPLETED, we can set it to READY_TO_WORK
+                if ("CANCELLED".equalsIgnoreCase(booking.getStatus()) || "COMPLETED".equalsIgnoreCase(booking.getStatus())) {
+                        throw new IllegalStateException("Không thể cập nhật trạng thái READY cho đơn đã Cancelled hoặc Completed.");
+                }
+
+                // Update each pet's info
+                for (fpt.teddypet.application.dto.request.bookings.ConfirmBookingReadyRequest.PetConfirmInfo petInfo : request.pets()) {
+                        fpt.teddypet.domain.entity.BookingPet pet = booking.getPets().stream()
+                                        .filter(p -> p.getId().equals(petInfo.petId()))
+                                        .findFirst()
+                                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thú cưng với id: " + petInfo.petId() + " trong booking này."));
+
+                        pet.setPetType(petInfo.petType());
+                        pet.setWeightAtBooking(petInfo.weightAtBooking());
+                }
+
+                // Update booking status
+                booking.setStatus("READY");
+
+                // Also update all booking_pet_service statuses to READY
+                for (var pet : booking.getPets()) {
+                        for (var service : pet.getServices()) {
+                                service.setStatus("READY");
+                        }
+                }
+
+                bookingRepository.save(booking);
+
                 return toListItem(booking);
         }
 
@@ -234,9 +319,23 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 boolean depositPaid = false;
                 List<fpt.teddypet.domain.entity.BookingDeposit> deposits = bookingDepositRepository
                                 .findByBookingId(booking.getId());
+                java.math.BigDecimal depositAmount = java.math.BigDecimal.ZERO;
                 if (!deposits.isEmpty()) {
                         depositPaid = deposits.get(0).getDepositPaid() != null ? deposits.get(0).getDepositPaid()
                                         : false;
+                }
+                // Prefer latest PAID deposit amount; fallback to first row amount
+                if (!deposits.isEmpty()) {
+                        var paidLatest = deposits.stream()
+                                        .filter(d -> Boolean.TRUE.equals(d.getDepositPaid()))
+                                        .filter(d -> d.getDepositPaidAt() != null)
+                                        .max(Comparator.comparing(fpt.teddypet.domain.entity.BookingDeposit::getDepositPaidAt))
+                                        .orElse(null);
+                        if (paidLatest != null && paidLatest.getDepositAmount() != null) {
+                                depositAmount = paidLatest.getDepositAmount();
+                        } else if (deposits.get(0).getDepositAmount() != null) {
+                                depositAmount = deposits.get(0).getDepositAmount();
+                        }
                 }
 
                 boolean cancelRequested = Boolean.TRUE.equals(booking.getCancelRequested());
@@ -253,6 +352,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 booking.getTotalAmount(),
                                 booking.getPaidAmount(),
                                 booking.getRemainingAmount(),
+                                depositAmount,
                                 depositPaid,
                                 booking.getPaymentStatus(),
                                 booking.getPaymentMethod(),
@@ -262,6 +362,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 booking.getCancelledReason(),
                                 booking.getCancelledAt(),
                                 booking.getInternalNotes(),
+                                booking.getBookingStartDate(),
+                                booking.getBookingEndDate(),
                                 booking.getCreatedAt(),
                                 booking.getUpdatedAt());
         }
@@ -305,5 +407,36 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 return bookingRepository.findById(id)
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Không tìm thấy booking với id: " + id));
+        }
+
+        @Override
+        @Transactional
+        public AdminBookingListItemResponse confirmFullPayment(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmFullPaymentRequest request) {
+                if (request == null || request.paymentMethod() == null) {
+                        throw new IllegalArgumentException("paymentMethod là bắt buộc.");
+                }
+
+                Booking booking = getBookingOrThrow(bookingId);
+
+                // Only allow setting payment method when booking is COMPLETED and fully paid
+                if (!"COMPLETED".equalsIgnoreCase(booking.getStatus())) {
+                        throw new IllegalStateException("Chỉ có thể xác nhận thanh toán khi booking ở trạng thái COMPLETED.");
+                }
+
+                // Check if booking is fully paid (paidAmount >= totalAmount)
+                if (booking.getPaidAmount() == null || booking.getTotalAmount() == null ||
+                    booking.getPaidAmount().compareTo(booking.getTotalAmount()) < 0) {
+                        throw new IllegalStateException("Booking chưa được thanh toán đầy đủ. Không thể xác nhận thanh toán.");
+                }
+
+                // Set payment method
+                booking.setPaymentMethod(request.paymentMethod());
+                booking.setPaymentStatus("PAID");
+                if (request.notes() != null && !request.notes().isBlank()) {
+                        booking.setInternalNotes(request.notes().trim());
+                }
+
+                bookingRepository.save(booking);
+                return toListItem(booking);
         }
 }

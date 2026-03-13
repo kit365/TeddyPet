@@ -9,6 +9,7 @@ export const BOOKING_STATUS_OPTIONS: { label: string; value: BookingStatusFilter
   { label: "Tất cả", value: "ALL", color: "" },
   { label: "Chờ xác nhận", value: "PENDING", color: "#B76E00" },
   { label: "Đã xác nhận", value: "CONFIRMED", color: "#006C9C" },
+  { label: "Sẵn sàng", value: "READY", color: "#7c3aed" },
   { label: "Đang thực hiện", value: "IN_PROGRESS", color: "#229A16" },
   { label: "Hoàn thành", value: "COMPLETED", color: "#05A845" },
   { label: "Đã hủy", value: "CANCELLED", color: "#B71D18" },

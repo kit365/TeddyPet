@@ -40,7 +40,7 @@ import { toast } from "react-toastify";
 import "dayjs/locale/vi";
 import { buildCreateBookingPayload } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
-import { getBanks, getMyBankInformation } from "../../../api/bank.api";
+import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode } from "../../../api/bank.api";
 import type { BankOption, BankInformationPayload } from "../../../types/bank.type";
 import { useAuthStore } from "../../../stores/useAuthStore";
 
@@ -252,6 +252,9 @@ const MainServiceNonRoomFields = ({
 
     if (!pet.serviceId || !isNonRoom) return null;
 
+    const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
+    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
+
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = pet.addonServiceIds ?? [];
     const addonServices = addonIds
@@ -273,6 +276,7 @@ const MainServiceNonRoomFields = ({
                     onChange={(d: Dayjs | null) =>
                         updatePet(pet.id, { sessionDate: d ? d.format("YYYY-MM-DD") : "" })
                     }
+                    minDate={minSessionDate}
                     format="DD/MM/YYYY"
                     slotProps={{
                         textField: {
@@ -385,6 +389,9 @@ const AdditionalServiceNonRoomFields = ({
 
     if (!asvc.serviceId || !isNonRoom) return null;
 
+    const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
+    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
+
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = asvc.addonServiceIds ?? [];
     const addonServices = addonIds
@@ -406,6 +413,7 @@ const AdditionalServiceNonRoomFields = ({
                     onChange={(d: Dayjs | null) =>
                         updateAdditionalService(petId, asvc.id, { sessionDate: d ? d.format("YYYY-MM-DD") : "" })
                     }
+                    minDate={minSessionDate}
                     format="DD/MM/YYYY"
                     slotProps={{
                         textField: { size: "small", fullWidth: true, placeholder: "DD/MM/YYYY" },
@@ -1693,6 +1701,21 @@ export const BookingDetailPage = () => {
                 : payload;
             const res = await createBookingDepositIntent(finalPayload);
             if (res?.success && res?.data?.depositId && res?.data?.bookingCode) {
+                // Nếu có bank info (khách vãng lai hoặc thêm mới), lưu vào bank_information gắn với booking
+                if (bankPayload) {
+                    try {
+                        await createGuestBankInformationByBookingCode(res.data.bookingCode, {
+                            bankName: bankPayload.bankName,
+                            accountNumber: bankPayload.accountNumber,
+                            accountHolderName: bankPayload.accountHolderName,
+                            bankCode: bankPayload.bankCode,
+                            note: bankPayload.note,
+                        });
+                    } catch (e) {
+                        // Nếu lưu bank info thất bại, vẫn cho khách tiếp tục nhưng log/toast nhẹ
+                        console.error("Failed to create guest bank information", e);
+                    }
+                }
                 toast.success("Đơn đặt lịch của bạn đã được xác nhận, vui lòng thanh toán cọc để giữ chỗ.");
                 navigate(`/dat-lich/chi-tiet-don/${res.data.bookingCode}`, {
                     replace: true,
@@ -2972,7 +2995,7 @@ export const BookingDetailPage = () => {
                                 </button>
                             </div>
 
-                            <div className="space-y-16">
+                            <div className="space-y-6">
                                 <section>
                                     <h4 className="text-[1rem] font-[700] text-[#181818] mb-2">Thông tin chủ thú cưng</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-[6px] gap-x-[24px] text-[0.875rem]">
@@ -3099,6 +3122,9 @@ export const BookingDetailPage = () => {
                                                 serviceTotals.reduce((a, b) => a + b, 0) +
                                                 addonsTotals.reduce((a, b) => a + b, 0);
 
+                                            const showFoodDetails = pet.foodBrought;
+                                            const foodItems = pet.foodItems ?? [];
+
                                             return (
                                                 <div
                                                     key={pet.id}
@@ -3109,9 +3135,57 @@ export const BookingDetailPage = () => {
                                                             <div className="text-[0.9375rem] font-[700] text-[#181818]">
                                                                 Thú cưng {idx + 1}: {pet.petName || "Chưa đặt tên"}
                                                             </div>
-                                                            <div className="text-[0.8125rem] text-[#6b7280]">
-                                                                Loại: {pet.petType || "—"}{" "}
-                                                                {pet.weight ? `• Cân nặng: ${pet.weight}kg` : ""}
+                                                            <div className="space-y-[2px] text-[0.8125rem] text-[#6b7280]">
+                                                                <div>
+                                                                    Loại: {pet.petType || "—"}{" "}
+                                                                    {pet.weight ? `• Cân nặng: ${pet.weight}kg` : ""}
+                                                                </div>
+                                                                {(pet.emergencyContactName || pet.emergencyContactPhone) && (
+                                                                    <div>
+                                                                        Liên hệ khẩn cấp:{" "}
+                                                                        <span className="font-[500]">
+                                                                            {pet.emergencyContactName || "—"}
+                                                                        </span>
+                                                                        {pet.emergencyContactPhone && (
+                                                                            <>
+                                                                                {" "}
+                                                                                •{" "}
+                                                                                <span className="font-[500]">
+                                                                                    {pet.emergencyContactPhone}
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {pet.notes && (
+                                                                    <div>
+                                                                        Ghi chú tình trạng:{" "}
+                                                                        <span className="font-[500]">
+                                                                            {pet.notes}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {showFoodDetails && (
+                                                                    <div>
+                                                                        Thức ăn mang theo:{" "}
+                                                                        {foodItems.length === 0 ? (
+                                                                            <span className="font-[500]">Có</span>
+                                                                        ) : (
+                                                                            <ul className="list-disc list-inside mt-[1px] space-y-[1px]">
+                                                                                {foodItems.map((fi, fiIdx) => (
+                                                                                    <li key={fiIdx}>
+                                                                                        <span className="font-[500]">
+                                                                                            {fi.foodBroughtType || "Thức ăn"}
+                                                                                        </span>
+                                                                                        {fi.foodBrand && ` — ${fi.foodBrand}`}
+                                                                                        {fi.quantity != null && ` • SL: ${fi.quantity}`}
+                                                                                        {fi.feedingInstructions && ` • ${fi.feedingInstructions}`}
+                                                                                    </li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         {grandTotal > 0 && (
@@ -3183,6 +3257,12 @@ export const BookingDetailPage = () => {
                                                                                             Ngày sử dụng:{" "}
                                                                                             <span className="font-[500]">
                                                                                                 {pet.sessionDate || "—"}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            Khung giờ:{" "}
+                                                                                            <span className="font-[500]">
+                                                                                                {pet.sessionSlotLabel || pet.sessionSlot || "—"}
                                                                                             </span>
                                                                                         </div>
                                                                                     </>
@@ -3596,8 +3676,21 @@ export const BookingDetailPage = () => {
 
                             {/* No accounts yet for logged-in user */}
                             {isLoggedIn && myBankAccounts.length === 0 && bankFormMode === "select" && (
-                                <div className="text-[0.8438rem] text-[#9ca3af] text-center py-4">
-                                    Bạn chưa có tài khoản ngân hàng nào. Vui lòng thêm bên dưới.
+                                <div className="flex flex-col items-center gap-3 py-4">
+                                    <div className="text-[0.8438rem] text-[#9ca3af] text-center">
+                                        Bạn chưa có tài khoản ngân hàng nào.
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBankFormMode("add-new");
+                                            setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
+                                            setSelectedBankAccountId(null);
+                                        }}
+                                        className="flex items-center gap-2 rounded-[12px] border-2 border-[#ffbaa0] bg-[#fff7f3] px-5 py-2.5 text-[0.875rem] font-[700] text-[#c45a3a] hover:bg-[#ffbaa0] hover:text-[#181818] transition-colors"
+                                    >
+                                        <span className="text-[1.1rem]">+</span> Thêm mới
+                                    </button>
                                 </div>
                             )}
 

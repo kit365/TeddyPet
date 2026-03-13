@@ -33,6 +33,7 @@ export interface ServiceClient {
 export type BookingStatus =
   | "PENDING"
   | "CONFIRMED"
+  | "READY"
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED";

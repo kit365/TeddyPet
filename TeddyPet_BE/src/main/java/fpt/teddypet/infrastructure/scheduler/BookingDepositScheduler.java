@@ -5,13 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
-import fpt.teddypet.domain.entity.Booking;
-import fpt.teddypet.domain.entity.BookingDeposit;
-import fpt.teddypet.domain.entity.Room;
-import fpt.teddypet.domain.entity.TimeSlot;
+import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +28,7 @@ public class BookingDepositScheduler {
     private final BookingRepository bookingRepository;
     private final RoomRepositoryPort roomRepositoryPort;
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
+    private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
 
@@ -63,7 +62,27 @@ public class BookingDepositScheduler {
                         booking.setCancelledBy("SYSTEM");
                         booking.setCancelledReason("Deposit expired");
                         booking.setIsTemporary(false);
+                        // Set status CANCELLED for all associated pet services and pets
+                        for (BookingPet pet : booking.getPets()) {
+                            pet.setStatus("CANCELLED");
+                            for (BookingPetService svc : pet.getServices()) {
+                                svc.setStatus("CANCELLED");
+                            }
+                        }
                         bookingRepository.save(booking);
+
+                        // Xóa TimeSlotBooking records liên quan đến booking này
+                        timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+
+                        // Gửi email thông báo giữ chỗ hết hạn
+                        if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                            try {
+                                emailServicePort.sendBookingDepositExpiredEmail(
+                                        booking.getCustomerEmail(), booking.getBookingCode());
+                            } catch (Exception emailEx) {
+                                log.warn("Failed to send deposit-expired email for booking {}", booking.getBookingCode(), emailEx);
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -119,13 +138,12 @@ public class BookingDepositScheduler {
     }
 
     /**
-     * Chạy mỗi 60s để nhắc nhở những đơn đã giữ chỗ hơn 2 phút (tức là còn <= 3
-     * phút nữa là hết hạn)
+     * Chạy mỗi 60s để nhắc nhở những đơn có chưa quá 2 phút nữa hết hạn giữ chỗ (<=2 phút)
      */
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void sendDepositReminders() {
-        LocalDateTime threshold = LocalDateTime.now().plusMinutes(3); // <= 3 minutes left
+        LocalDateTime threshold = LocalDateTime.now().plusMinutes(2); // <= 2 minutes left
         List<BookingDeposit> deposits = bookingDepositRepository.findPendingReminders("PENDING", threshold);
         if (deposits.isEmpty())
             return;
@@ -141,6 +159,7 @@ public class BookingDepositScheduler {
                     }
                 }
                 d.setReminderSent(true);
+                d.setReminderSentAt(LocalDateTime.now());
                 bookingDepositRepository.save(d);
             } catch (Exception e) {
                 log.error("Failed to send deposit reminder for deposit {}", d.getId(), e);

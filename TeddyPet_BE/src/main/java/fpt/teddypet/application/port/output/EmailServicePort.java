@@ -18,6 +18,21 @@ public interface EmailServicePort {
 
     void sendBookingDepositSuccessEmail(String to, String bookingCode);
 
+    void sendBookingCancelledEmail(String to, String bookingCode);
+
+    void sendBookingRefundRequestedEmail(String to, String bookingCode, String refundAmount);
+
+    void sendBookingDepositExpiredEmail(String to, String bookingCode);
+
+    /**
+     * Send email when admin approves refund
+     * 
+     * @param to            recipient email
+     * @param bookingCode   the booking code
+     * @param refundAmount  the approved refund amount
+     */
+    void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount);
+
     /**
      * Send password reset email with reset link
      * 

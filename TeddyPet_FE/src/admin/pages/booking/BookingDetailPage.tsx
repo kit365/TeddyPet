@@ -18,7 +18,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
-import { getAdminBookingDetail } from "../../api/booking.api";
+import { getAdminBookingDetail, getAdminBookingPets } from "../../api/booking.api";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -69,7 +69,15 @@ export const BookingDetailPage = () => {
         setLoading(true);
         try {
           const res = await getAdminBookingDetail(id);
-          setBooking(res.data ?? null);
+          const basic = (res.data ?? null) as BookingResponse | null;
+          if (basic) {
+            const petsRes = await getAdminBookingPets(id);
+            const pets = (petsRes.data ?? []) as any[];
+            // merge pets/services into booking for rendering
+            setBooking({ ...basic, pets } as any);
+          } else {
+            setBooking(null);
+          }
         } catch (error) {
           console.error(error);
           setBooking(null);
@@ -196,7 +204,7 @@ export const BookingDetailPage = () => {
                 <InfoRow label="Tổng tiền" value={formatCurrency(booking.totalAmount)} />
                 <InfoRow label="Đã thanh toán" value={formatCurrency(booking.paidAmount)} />
                 <InfoRow label="Còn lại" value={formatCurrency(booking.remainingAmount)} />
-                <InfoRow label="Tiền cọc" value={formatCurrency(booking.deposit)} />
+                <InfoRow label="Tiền cọc" value={formatCurrency(booking.depositAmount ?? 0)} />
                 <InfoRow
                   label="Hình thức thanh toán"
                   value={getPaymentMethodLabel(booking.paymentMethod)}
@@ -363,6 +371,166 @@ export const BookingDetailPage = () => {
         </Stack>
       </Box>
 
+      {/* Confirm Pets Drawer or Inline Form */}
+      {booking.status === "PENDING" || booking.status === "CONFIRMED" ? (
+        <Box sx={{ px: { xs: 2, md: 5 }, mt: 4 }}>
+          <ConfirmReadySection
+            bookingId={id!}
+            pets={booking.pets ?? []}
+            onSuccess={() => {
+              // Refresh the entire page or fetch logic
+              window.location.reload();
+            }}
+          />
+        </Box>
+      ) : null}
+
     </Box>
+  );
+};
+
+// Component con để handle UI Confirm
+import { TextField, Grid, MenuItem } from "@mui/material";
+import { confirmAdminBookingReady } from "../../api/booking.api";
+import { usePetTypes } from "../../pages/service/hooks/useEnums";
+
+const ConfirmReadySection = ({
+  bookingId,
+  pets,
+  onSuccess,
+}: {
+  bookingId: string;
+  pets: any[];
+  onSuccess: () => void;
+}) => {
+  const { data: petTypes = [] } = usePetTypes();
+  const [loading, setLoading] = useState(false);
+  const [petData, setPetData] = useState<Record<string, { type: string; weight: string }>>({});
+
+  useEffect(() => {
+    // Initialize state when pets are loaded
+    const initialData: Record<string, { type: string; weight: string }> = {};
+    pets.forEach((p) => {
+      initialData[p.id] = { type: p.petType || "", weight: p.weightAtBooking?.toString() || "" };
+    });
+    setPetData(initialData);
+  }, [pets]);
+
+  const handleChange = (petId: string, field: "type" | "weight", value: string) => {
+    setPetData((prev) => ({
+      ...prev,
+      [petId]: {
+        ...prev[petId],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleConfirm = async () => {
+    try {
+      setLoading(true);
+      const payloadPets = Object.keys(petData).map((pId) => ({
+        petId: Number(pId),
+        petType: petData[pId].type,
+        weightAtBooking: Number(petData[pId].weight),
+      }));
+
+      // Validate simple
+      if (payloadPets.some((p) => !p.petType || !p.weightAtBooking || isNaN(p.weightAtBooking))) {
+        alert("Vui lòng nhập đầy đủ và hợp lệ loại thú cưng và số kg cho tất cả thú cưng.");
+        setLoading(false);
+        return;
+      }
+
+      await confirmAdminBookingReady(bookingId, { pets: payloadPets });
+      onSuccess();
+    } catch (error) {
+      console.error(error);
+      alert("Cập nhật trạng thái thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!pets || pets.length === 0) return null;
+
+  return (
+    <Card
+      sx={{
+        p: 4,
+        borderRadius: "24px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+        border: "1px solid #FFF",
+      }}
+    >
+      <Typography sx={{ fontWeight: 900, fontSize: "1.8rem", mb: 3, color: "#1C252E" }}>
+        Xác nhận thú cưng (Sẵn sàng phục vụ)
+      </Typography>
+      <Typography sx={{ mb: 3, color: "text.secondary" }}>
+        Vui lòng xác nhận lại loại thú cưng và số kg thực tế của khách mang đến trước khi bắt đầu làm dịch vụ.
+      </Typography>
+
+      <Stack spacing={3}>
+        {pets.map((pet) => (
+          <Box key={pet.id} sx={{ p: 2, border: "1px dashed #E5E8EB", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 700, mb: 2, fontSize: "1.4rem" }}>
+              Thú cưng: {pet.petName}
+            </Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+              <Box>
+                <TextField
+                  select
+                  fullWidth
+                  label="Loại thú cưng"
+                  value={petData[pet.id]?.type || ""}
+                  onChange={(e) => handleChange(pet.id, "type", e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <MenuItem value="" disabled>
+                    <em>Chọn loại thú cưng</em>
+                  </MenuItem>
+                  {petTypes.map((pt) => (
+                    <MenuItem key={pt} value={pt}>
+                      {pt}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+              <Box>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Cân nặng (kg)"
+                  value={petData[pet.id]?.weight || ""}
+                  onChange={(e) => handleChange(pet.id, "weight", e.target.value)}
+                  placeholder="VD: 5.5"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            </Box>
+          </Box>
+        ))}
+      </Stack>
+
+      <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          variant="contained"
+          onClick={handleConfirm}
+          disabled={loading}
+          sx={{
+            py: 1.5,
+            px: 4,
+            borderRadius: "12px",
+            bgcolor: "#00A76F",
+            "&:hover": { bgcolor: "#007867" },
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            textTransform: "none",
+          }}
+        >
+          {loading ? "Đang xử lý..." : "Xác nhận & Bắt đầu"}
+        </Button>
+      </Box>
+    </Card>
   );
 };

@@ -1,11 +1,10 @@
 ﻿import React from "react";
 import type { GridColDef } from "@mui/x-data-grid";
-import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, Badge } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
   getBookingStatusLabel,
@@ -23,11 +22,23 @@ const formatCurrency = (value: number) =>
 const formatDateTimeShort = (value?: string) =>
   value ? new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
+/** Định dạng cho cột Thời gian đặt lịch: dd/mm - hh/mm (PM/AM) */
+const formatBookingDateTime = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const period = date.getHours() >= 12 ? "PM" : "AM";
+  return `${day}/${month} - ${hours}:${minutes} (${period})`;
+};
+
 export const getBookingColumns = (
   onViewDetail: (row: BookingResponse) => void,
   onEdit?: (row: BookingResponse) => void,
-  onRequestRefund?: (row: BookingResponse) => void,
   onRequestCancel?: (row: BookingResponse) => void,
+  onCancelBooking?: (row: BookingResponse) => void,
   onDelete?: (row: BookingResponse) => void
 ): GridColDef[] => [
   {
@@ -73,17 +84,16 @@ export const getBookingColumns = (
 
   {
     field: "bookingStartDate",
-    headerName: "Thời gian",
+    headerName: "Thời gian đặt (năm hiện tại)",
     minWidth: 128,
     flex: 0.7,
     align: "center",
     headerAlign: "center",
     renderCell: (params) => {
       const start = params.value as string;
-      const end = (params.row as BookingResponse).bookingEndDate;
       return (
         <Typography sx={{ fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
-          {formatDateTimeShort(start)} → {formatDateTimeShort(end)}
+          {formatBookingDateTime(start)}
         </Typography>
       );
     },
@@ -245,7 +255,7 @@ export const getBookingColumns = (
   },
   {
     field: "actions",
-    headerName: "Thao tác nhé",
+    headerName: "Thao tác",
     minWidth: 80,
     flex: 0.3,
     align: "center",
@@ -274,11 +284,6 @@ export const getBookingColumns = (
         onEdit?.(params.row as BookingResponse);
       };
 
-      const handleRequestRefund = () => {
-        handleClose();
-        onRequestRefund?.(params.row as BookingResponse);
-      };
-
       const handleRequestCancel = () => {
         handleClose();
         onRequestCancel?.(params.row as BookingResponse);
@@ -291,17 +296,32 @@ export const getBookingColumns = (
 
       return (
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-          <IconButton
-            size="small"
-            onClick={handleClick}
-            sx={{
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.04)",
-              },
+          <Badge
+            badgeContent={
+              (params.row as BookingResponse).cancelRequested === true ? (
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
+              ) : (
+                0
+              )
+            }
+            overlap="circular"
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "right",
             }}
           >
-            <MoreVertIcon sx={{ fontSize: "1.125rem", color: "#637381" }} />
-          </IconButton>
+            <IconButton
+              size="small"
+              onClick={handleClick}
+              sx={{
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.04)",
+                },
+              }}
+            >
+              <MoreVertIcon sx={{ fontSize: "1.125rem", color: "#637381" }} />
+            </IconButton>
+          </Badge>
           <Menu
             anchorEl={anchorEl}
             open={open}
@@ -340,25 +360,9 @@ export const getBookingColumns = (
                 primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
               />
             </MenuItem>
-            <MenuItem onClick={handleRequestRefund}>
-              <ListItemIcon>
-                <RefreshIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box component="span">Yêu cầu hoàn tiền</Box>
-                    {(params.row as BookingResponse).cancelRequested === true && (
-                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
-                    )}
-                  </Box>
-                }
-                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
-              />
-            </MenuItem>
             <MenuItem onClick={handleRequestCancel}>
               <ListItemIcon>
-                <CancelOutlinedIcon sx={{ fontSize: "1rem", color: "#ef4444" }} />
+                <RefreshIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
               </ListItemIcon>
               <ListItemText
                 primary={

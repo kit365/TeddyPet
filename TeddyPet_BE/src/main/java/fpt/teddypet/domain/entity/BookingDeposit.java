@@ -68,6 +68,9 @@ public class BookingDeposit extends BaseEntity {
     @Column(name = "refund_reason", columnDefinition = "TEXT")
     private String refundReason;
 
+    @Column(name = "refund_proof", length = 500)
+    private String refundProof;
+
     @Column(name = "due_date")
     private LocalDateTime dueDate;
 

@@ -4,6 +4,7 @@ import type { ClientBookingDetailResponse } from "../../../../types/booking.type
 import { cancelBookingFromClient } from "../../../../api/booking.api";
 import { getActiveBookingDepositRefundPolicies } from "../../../../api/booking-deposit-refund-policy.api";
 import type { BookingDepositRefundPolicyResponse } from "../../../../api/booking-deposit-refund-policy.api";
+import { getBankInformationByBookingCode } from "../../../../api/bank.api";
 
 interface CancelBookingModalProps {
     booking: ClientBookingDetailResponse;
@@ -21,6 +22,8 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
     const [bankCode, setBankCode] = useState("");
     const [accountNumber, setAccountNumber] = useState("");
     const [accountHolderName, setAccountHolderName] = useState("");
+    const [isEditingBankInfo, setIsEditingBankInfo] = useState(false);
+    const [existingBankInfo, setExistingBankInfo] = useState<any>(null);
 
     const [policy, setPolicy] = useState<BookingDepositRefundPolicyResponse | null>(null);
 
@@ -29,7 +32,6 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
             getActiveBookingDepositRefundPolicies()
                 .then(res => {
                     if (res?.data && res.data.length > 0) {
-                        // Assuming the first one or default one is what we want
                         const defaultPolicy = res.data.find(p => p.isDefault) || res.data[0];
                         setPolicy(defaultPolicy);
                     }
@@ -37,8 +39,31 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
                 .catch(() => {
                     toast.error("Không thể tải chính sách hoàn cọc.");
                 });
+
+            // Load existing bank information
+            getBankInformationByBookingCode(booking.bookingCode)
+                .then(res => {
+                    // API trả về object | null, không phải array
+                    if (res?.data) {
+                        setExistingBankInfo(res.data);
+                        setBankName(res.data.bankName || "");
+                        setBankCode(res.data.bankCode || "");
+                        setAccountNumber(res.data.accountNumber || "");
+                        setAccountHolderName(res.data.accountHolderName || "");
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load bank information", err);
+                });
         }
-    }, [open, booking.depositPaid]);
+    }, [open, booking.depositPaid, booking.bookingCode]);
+
+    // Reset edit mode when modal closes
+    useEffect(() => {
+        if (!open) {
+            setIsEditingBankInfo(false);
+        }
+    }, [open]);
 
     // Calculate refund percentage
     const { refundPercentage, hoursDiff } = useMemo(() => {
@@ -84,6 +109,11 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
     const formatCurrency = (v: number) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 
+    const handleClose = () => {
+        setIsEditingBankInfo(false);
+        onClose();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -114,7 +144,7 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
                         : "Hủy đơn đặt lịch thành công."
                 );
                 onSuccess();
-                onClose();
+                handleClose();
             } else {
                 toast.error(res.message || "Không thể hủy đơn đặt lịch.");
             }
@@ -135,7 +165,7 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
                         {booking.depositPaid ? "Gửi yêu cầu hủy đơn" : "Xác nhận hủy đơn"}:{" "}
                         <span className="text-[#c45a3a]">{booking.bookingCode}</span>
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -249,53 +279,104 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
 
                         {booking.depositPaid && estimatedRefund > 0 && (
                             <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-                                <h4 className="text-[1.5rem] font-[600] text-gray-900">Thông tin nhận hoàn tiền</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Tên ngân hàng *</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={bankName}
-                                            onChange={(e) => setBankName(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
-                                            placeholder="VD: Vietcombank"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Mã ngân hàng (Tùy chọn)</label>
-                                        <input
-                                            type="text"
-                                            value={bankCode}
-                                            onChange={(e) => setBankCode(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
-                                            placeholder="VD: VCB"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Số tài khoản *</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={accountNumber}
-                                            onChange={(e) => setAccountNumber(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
-                                            placeholder="VD: 0123456789"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Tên chủ tài khoản *</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={accountHolderName}
-                                            onChange={(e) => setAccountHolderName(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem] uppercase"
-                                            placeholder="VD: NGUYEN VAN A"
-                                        />
-                                    </div>
+                                <div className="flex justify-between items-center">
+                                    <h4 className="text-[1.5rem] font-[600] text-gray-900">Thông tin nhận hoàn tiền</h4>
+                                    {!isEditingBankInfo && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditingBankInfo(true)}
+                                            className="text-[1.3rem] font-[500] text-orange-600 hover:text-orange-700 px-3 py-1 border border-orange-300 rounded-md hover:bg-orange-50 transition-colors"
+                                        >
+                                            Chỉnh sửa
+                                        </button>
+                                    )}
                                 </div>
+
+                                {!isEditingBankInfo ? (
+                                    // View mode - hiển thị giá trị cũ
+                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                        {existingBankInfo ? (
+                                            <div className="space-y-3 text-[1.3rem]">
+                                                <div className="flex justify-between">
+                                                    <span className="font-[500] text-gray-700">Tên ngân hàng:</span>
+                                                    <span className="text-gray-900">{bankName || "—"}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="font-[500] text-gray-700">Mã ngân hàng:</span>
+                                                    <span className="text-gray-900">{bankCode || "—"}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="font-[500] text-gray-700">Số tài khoản:</span>
+                                                    <span className="text-gray-900">{accountNumber || "—"}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="font-[500] text-gray-700">Tên chủ tài khoản:</span>
+                                                    <span className="text-gray-900">{accountHolderName || "—"}</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-[1.3rem] text-gray-600">Chưa có thông tin ngân hàng. Nhấn "Chỉnh sửa" để thêm.</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    // Edit mode - hiển thị input fields
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Tên ngân hàng *</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    value={bankName}
+                                                    onChange={(e) => setBankName(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
+                                                    placeholder="VD: Vietcombank"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Mã ngân hàng (Tùy chọn)</label>
+                                                <input
+                                                    type="text"
+                                                    value={bankCode}
+                                                    onChange={(e) => setBankCode(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
+                                                    placeholder="VD: VCB"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Số tài khoản *</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    value={accountNumber}
+                                                    onChange={(e) => setAccountNumber(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem]"
+                                                    placeholder="VD: 0123456789"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[1.3rem] font-[500] text-gray-700 mb-1">Tên chủ tài khoản *</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    value={accountHolderName}
+                                                    onChange={(e) => setAccountHolderName(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-[1.4rem] uppercase"
+                                                    placeholder="VD: NGUYEN VAN A"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingBankInfo(false)}
+                                                className="px-3 py-2 text-[1.3rem] font-[500] text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                                            >
+                                                Hủy
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </form>
@@ -304,7 +385,7 @@ export const CancelBookingModal = ({ booking, open, onClose, onSuccess }: Cancel
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 rounded-b-[12px]">
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={loading}
                         className="px-4 py-2 text-[1.4rem] font-[500] text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                     >

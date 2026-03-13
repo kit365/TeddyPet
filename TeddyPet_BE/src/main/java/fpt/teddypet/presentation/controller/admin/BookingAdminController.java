@@ -103,5 +103,25 @@ public class BookingAdminController {
         AdminBookingListItemResponse data = bookingAdminService.approveOrRejectCancelRequest(bookingId, request);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
+
+    @PatchMapping("/{bookingId}/confirm-ready")
+    @Operation(summary = "Xác nhận thú cưng và cập nhật trạng thái đơn thành READY")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> confirmReadyToWork(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody fpt.teddypet.application.dto.request.bookings.ConfirmBookingReadyRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.confirmReadyToWork(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PatchMapping("/{bookingId}/confirm-payment")
+    @Operation(summary = "Xác nhận thanh toán đầy đủ và set payment method (chỉ cho COMPLETED bookings)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> confirmFullPayment(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody fpt.teddypet.application.dto.request.bookings.ConfirmFullPaymentRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.confirmFullPayment(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
 }
 
