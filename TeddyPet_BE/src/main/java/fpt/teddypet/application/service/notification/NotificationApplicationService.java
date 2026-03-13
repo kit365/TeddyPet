@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class NotificationApplicationService implements NotificationService {
 
     private final NotificationRepositoryPort repositoryPort;
+    private final fpt.teddypet.application.port.output.NotificationPublisherPort publisherPort;
 
     @Override
     public List<NotificationResponse> getMyNotifications(int limit) {
@@ -63,6 +64,21 @@ public class NotificationApplicationService implements NotificationService {
             n.setRead(true);
             repositoryPort.save(n);
         });
+    }
+
+    @Override
+    public void sendToAll(NotificationResponse notification) {
+        publisherPort.sendToAll(notification);
+    }
+
+    @Override
+    public void sendToUser(String userIdentifier, NotificationResponse notification) {
+        publisherPort.sendToUser(userIdentifier, notification);
+    }
+
+    @Override
+    public void sendToTopic(String topic, NotificationResponse notification) {
+        publisherPort.sendToTopic(topic, notification);
     }
 
     private NotificationResponse mapToResponse(Notification n) {

@@ -40,20 +40,42 @@ public class ThymeleafPdfAdapter implements DocumentGeneratorPort {
             // Register Fonts for Vietnamese support (Fix for '#' symbols)
             // On Mac, we check common locations for Arial Unicode or Arial
             String[] commonFonts = {
+                    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
                     "/Library/Fonts/Arial Unicode.ttf",
                     "/System/Library/Fonts/Supplemental/Arial.ttf",
-                    "/Library/Fonts/Arial.ttf"
+                    "/Library/Fonts/Arial.ttf",
+                    "C:/Windows/Fonts/Arial.ttf",
+                    "C:/Windows/Fonts/ARIALUNI.TTF",
+                    "C:/Windows/Fonts/times.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
             };
 
             boolean fontFound = false;
+            String familyName = "Arial Unicode MS";
             for (String path : commonFonts) {
                 java.io.File fontFile = new java.io.File(path);
                 if (fontFile.exists()) {
-                    builder.useFont(fontFile, "Arial Unicode MS"); // We map all to this family name for simplicity in
-                                                                   // CSS
-                    log.info("Đã đăng ký font PDF: {}", path);
-                    fontFound = true;
-                    break;
+                    try {
+                        builder.useFont(fontFile, familyName);
+                        log.info("Đã đăng ký font PDF thành công: {} cho family: {}", path, familyName);
+                        fontFound = true;
+
+                        // Nếu tìm thấy Arial Unicode (bản full), ưu tiên lấy thêm các biến thể từ cùng thư mục
+                        String dir = fontFile.getParent();
+                        registerVariant(builder, dir, "Arial Bold.ttf", familyName, 700);
+                        registerVariant(builder, dir, "Arial Italic.ttf", familyName, 400);
+                        registerVariant(builder, dir, "Arial Bold Italic.ttf", familyName, 700);
+                        
+                        // Nếu là font Unicode bản lớn, có thể dừng lại sớm
+                        if (path.toLowerCase().contains("unicode") || path.toLowerCase().contains("arialuni")) {
+                            log.info("Sử dụng font Unicode chất lượng cao: {}", path);
+                            break;
+                        }
+                    } catch (Exception fontEx) {
+                        log.warn("Không thể load font {}: {}", path, fontEx.getMessage());
+                    }
                 }
             }
 
@@ -69,6 +91,13 @@ public class ThymeleafPdfAdapter implements DocumentGeneratorPort {
         } catch (Exception e) {
             log.error("Lỗi khi tạo file PDF: {}", e.getMessage(), e);
             throw new RuntimeException("Lỗi khi tạo file PDF: " + e.getMessage(), e);
+        }
+    }
+
+    private void registerVariant(PdfRendererBuilder builder, String dir, String fileName, String familyName, int weight) {
+        java.io.File file = new java.io.File(dir, fileName);
+        if (file.exists()) {
+            builder.useFont(file, familyName, weight, com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle.NORMAL, true);
         }
     }
 

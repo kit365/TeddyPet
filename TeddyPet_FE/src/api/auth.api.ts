@@ -10,7 +10,8 @@ import {
     ValidateResetTokenResponse,
     MeResponse,
     LogoutResponse,
-    ResetPasswordResponse
+    ResetPasswordResponse,
+    TokenResponse
 } from "../types/auth.type";
 
 const BASE_PATH = "/api/auth";
@@ -49,8 +50,9 @@ export const resendEmail = async (email: string): Promise<RegisterResponse> => {
     return response.data;
 };
 
-export const getMe = async (): Promise<MeResponse> => {
-    const response = await apiApp.get(`${BASE_PATH}/me`);
+export const getMe = async (customToken?: string): Promise<MeResponse> => {
+    const config = customToken ? { headers: { Authorization: `Bearer ${customToken}` } } : {};
+    const response = await apiApp.get(`${BASE_PATH}/me`, config);
     return response.data;
 };
 
@@ -71,5 +73,10 @@ export const resetPassword = async (data: ResetPasswordPayload): Promise<ResetPa
 
 export const changeUnverifiedEmail = async (data: ChangeUnverifiedEmailPayload): Promise<RegisterResponse> => {
     const response = await apiApp.post(`${BASE_PATH}/change-email`, data);
+    return response.data;
+};
+
+export const loginWithGoogle = async (idToken: string): Promise<{ success: boolean; data: TokenResponse; message?: string }> => {
+    const response = await apiApp.post(`${BASE_PATH}/google`, { idToken });
     return response.data;
 };

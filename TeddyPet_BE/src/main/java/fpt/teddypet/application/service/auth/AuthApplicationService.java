@@ -10,6 +10,13 @@ import fpt.teddypet.application.dto.response.AuthResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
 import fpt.teddypet.application.dto.response.TokenResponse;
 import fpt.teddypet.application.dto.response.UserProfileResponse;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import jakarta.annotation.PostConstruct;
+import java.util.Collections;
+import java.util.List;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.RoleService;
 import fpt.teddypet.application.port.input.UserService;
@@ -17,6 +24,7 @@ import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.JwtTokenProviderPort;
 import fpt.teddypet.application.port.output.VerificationTokenPort;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.domain.entity.Role;
 import fpt.teddypet.domain.enums.UserStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,11 +45,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthApplicationService implements AuthService {
+
+    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    private static final JsonFactory JSON_FACTORY = new GsonFactory();
 
     private final UserService userService;
     private final RoleService roleService;
@@ -56,6 +69,35 @@ public class AuthApplicationService implements AuthService {
 
     @Value("${app.verification.resend-cooldown-seconds:120}")
     private int resendCooldownSeconds;
+
+    @Value("${app.google.client-id:}")
+    private String googleClientId;
+
+    @Value("${app.google.allowed-admin-emails:}")
+    private String allowedAdminEmails;
+
+    private GoogleIdTokenVerifier googleVerifier;
+
+    @PostConstruct
+    public void init() {
+        this.googleVerifier = new GoogleIdTokenVerifier.Builder(HTTP_TRANSPORT, JSON_FACTORY)
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+    }
+
+    private String formatName(String name) {
+        if (name == null || name.isBlank()) return "";
+        String[] words = name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                sb.append(Character.toUpperCase(word.charAt(0)))
+                  .append(word.substring(1).toLowerCase())
+                  .append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
 
     private AuthResponse generateAuthResponse(User user) {
         String token = jwtTokenProviderPort.generateToken(user.getEmail());
@@ -230,7 +272,8 @@ public class AuthApplicationService implements AuthService {
         jwtTokenProviderPort.saveRefreshToken(user.getEmail(), refreshToken);
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        return new TokenResponse(token, refreshToken, expiresAt);
+        Boolean mustChange = user.getMustChangePassword() != null ? user.getMustChangePassword() : false;
+        return new TokenResponse(token, refreshToken, expiresAt, mustChange);
     }
 
     @Override
@@ -298,6 +341,82 @@ public class AuthApplicationService implements AuthService {
         return generateTokenResponse(user);
     }
 
+    public TokenResponse processGoogleUser(String email, String firstName, String lastName, String avatarUrl) {
+        log.info("[AuthService] Đang xử lý người dùng Google: {}", email);
+        
+        String fixedFirstName = formatName(firstName);
+        String fixedLastName = formatName(lastName);
+
+        // Kiểm tra xem email có thuộc danh sách Admin được cấu hình không
+        boolean isAdminEmail = false;
+        if (allowedAdminEmails != null && !allowedAdminEmails.isBlank()) {
+            List<String> allowedList = List.of(allowedAdminEmails.split(","));
+            isAdminEmail = allowedList.stream()
+                    .map(String::trim)
+                    .anyMatch(e -> e.equalsIgnoreCase(email));
+        }
+
+        User user;
+        if (userService.existsByEmail(email)) {
+            user = userService.getByEmail(email);
+            // Cập nhật tên nếu có thay đổi
+            user.setFirstName(fixedFirstName);
+            user.setLastName(fixedLastName);
+            user.setAvatarUrl(avatarUrl);
+            
+            if (isAdminEmail && !user.getRole().getName().equals("ADMIN")) {
+                user.setRole(roleService.findByName("ADMIN"));
+            }
+            userService.save(user);
+        } else {
+            log.info("[AuthService] Tạo người dùng mới từ Google: {}", email);
+            Role role = isAdminEmail ? roleService.findByName("ADMIN") : roleService.getDefaultRole();
+            
+            user = User.builder()
+                    .email(email)
+                    .username(email)
+                    .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                    .firstName(fixedFirstName)
+                    .lastName(fixedLastName)
+                    .avatarUrl(avatarUrl)
+                    .status(UserStatusEnum.ACTIVE)
+                    .role(role)
+                    .mustChangePassword(true)
+                    .build();
+            userService.save(user);
+        }
+
+        return generateTokenResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse loginWithGoogle(String idTokenString) {
+        log.info("[AuthService] Đang xác thực Google Id Token...");
+        long startTime = System.currentTimeMillis();
+        try {
+            GoogleIdToken idToken = googleVerifier.verify(idTokenString);
+            long endTime = System.currentTimeMillis();
+            log.info("[AuthService] Xác thực Google hoàn tất trong {} ms", (endTime - startTime));
+            
+            if (idToken == null) {
+                log.error("[AuthService] Google Id Token không hợp lệ");
+                throw new IllegalArgumentException("Google Id Token không hợp lệ hoặc đã hết hạn");
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String firstName = (String) payload.get("given_name");
+            String lastName = (String) payload.get("family_name");
+            String avatarUrl = (String) payload.get("picture");
+
+            return processGoogleUser(email, firstName, lastName, avatarUrl);
+        } catch (Exception e) {
+            log.error("[AuthService] Lỗi khi đăng nhập bằng Google: {}", e.getMessage());
+            throw new RuntimeException("Lỗi xác thực Google: " + e.getMessage());
+        }
+    }
+
     @Override
     @Transactional
     public TokenResponse verifyEmailForToken(String token) {
@@ -339,7 +458,8 @@ public class AuthApplicationService implements AuthService {
                 user.getDateOfBirth(),
                 user.getCreatedAt(),
                 user.getStatus(),
-                user.getRole().getName());
+                user.getRole().getName(),
+                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
     }
 
     @Override
@@ -651,5 +771,23 @@ public class AuthApplicationService implements AuthService {
                 AuthMessages.MESSAGE_EMAIL_CHANGE_SUCCESS,
                 resendCooldownSeconds,
                 LocalDateTime.now().plusSeconds(resendCooldownSeconds));
+    }
+
+    @Override
+    @Transactional
+    public void setupInitialPassword(fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request) {
+        User user = getCurrentUser();
+        
+        if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+            throw new IllegalStateException("Người dùng này không được yêu cầu đổi mật khẩu khởi tạo.");
+        }
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setMustChangePassword(false);
+        userService.save(user);
     }
 }

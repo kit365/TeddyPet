@@ -15,6 +15,8 @@ import 'package:teddypet_mobile/presentation/pages/cart/payment_method_page.dart
 import 'package:teddypet_mobile/presentation/pages/cart/order_success_page.dart';
 import 'package:teddypet_mobile/presentation/pages/order/my_purchases_page.dart';
 import 'package:teddypet_mobile/presentation/pages/order/order_detail_page.dart';
+import 'package:teddypet_mobile/presentation/pages/product/product_detail_page.dart';
+import 'package:teddypet_mobile/presentation/pages/product/product_reviews_page.dart';
 import 'package:teddypet_mobile/presentation/pages/wishlist/wishlist_page.dart';
 import '../../data/models/entities/order/order_entity.dart';
 
@@ -101,6 +103,20 @@ class AppRouter {
       case AppRoutes.wishlist:
         return MaterialPageRoute(
           builder: (_) => const WishlistPage(),
+        );
+      case AppRoutes.productDetail:
+        final slug = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => ProductDetailPage(slug: slug),
+        );
+      case AppRoutes.productReviews:
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        return MaterialPageRoute(
+          builder: (_) => ProductReviewsPage(
+            rating: (args['rating'] as num?)?.toDouble() ?? 0,
+            totalReviews: (args['totalReviews'] as num?)?.toInt() ?? 0,
+            productName: args['productName'] as String? ?? '',
+          ),
         );
       default:
         return MaterialPageRoute(

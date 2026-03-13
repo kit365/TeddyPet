@@ -16,5 +16,7 @@ public record DashboardStatsResponse(
         long cancelledOrders,
         long returnedOrders,
         long todayOrders,
-        BigDecimal todayRevenue) {
+        BigDecimal todayRevenue,
+        long lowStockCount,
+        long todayBookings) {
 }

@@ -30,6 +30,7 @@ export interface TokenResponse {
     token: string;
     refreshToken: string;
     expiresAt: string;
+    mustChangePassword?: boolean;
 }
 
 
@@ -56,6 +57,7 @@ export interface UserProfileResponse {
     dateOfBirth?: string;
     status?: string;
     role?: string;
+    mustChangePassword?: boolean;
 }
 
 export type MeResponse = ApiResponse<UserProfileResponse>;
@@ -77,6 +79,7 @@ export type UpdateProfileResponse = ApiResponse<UserProfileResponse>;
 
 export interface AuthUser extends UserProfileResponse {
     expiresAt?: string;
+    mustChangePassword?: boolean;
 }
 
 export interface AuthState {

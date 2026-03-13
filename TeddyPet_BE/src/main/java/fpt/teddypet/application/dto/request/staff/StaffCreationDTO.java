@@ -6,6 +6,7 @@ import fpt.teddypet.domain.enums.GenderEnum;
 import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -61,9 +62,14 @@ public record StaffCreationDTO(
         String bankName,
 
         @JsonProperty("positionId")
+        @NotNull(message = "Chức vụ không được để trống")
         Long positionId,
 
+        @JsonProperty("secondaryPositionId")
+        Long secondaryPositionId,
+
         @JsonProperty("employmentType")
+        @NotNull(message = "Loại hình công việc không được để trống")
         EmploymentTypeEnum employmentType
 ) {
 }

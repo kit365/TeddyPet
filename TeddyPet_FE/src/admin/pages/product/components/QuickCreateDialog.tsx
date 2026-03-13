@@ -86,10 +86,10 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
     };
 
     return (
-        <Dialog 
-            open={open} 
-            onClose={onClose} 
-            maxWidth="sm" 
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="sm"
             fullWidth
             PaperProps={{
                 sx: {
@@ -100,10 +100,10 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                 }
             }}
         >
-            <DialogTitle sx={{ 
-                fontSize: '2rem', 
-                fontWeight: 700, 
-                px: 0, 
+            <DialogTitle sx={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                px: 0,
                 pb: 3,
                 color: '#1C252E',
             }}>
@@ -112,7 +112,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
             <DialogContent sx={{ px: 0, py: 0 }}>
                 <Stack spacing={3}>
                     {errors.submit && (
-                        <Typography color="error" sx={{ fontSize: '1.4rem', textAlign: 'center', p: 1.5, bgcolor: 'rgba(255, 86, 48, 0.08)', borderRadius: '12px' }}>
+                        <Typography color="error" sx={{ fontSize: '0.875rem', textAlign: 'center', p: 1.5, bgcolor: 'rgba(255, 86, 48, 0.08)', borderRadius: '12px' }}>
                             {errors.submit}
                         </Typography>
                     )}
@@ -156,9 +156,9 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                                         helperText={errors[field.key]}
                                         disabled={loading}
                                         InputProps={{
-                                            sx: { borderRadius: '10px', fontSize: '1.4rem', height: '48px', fontFamily: 'monospace', fontWeight: 600 }
+                                            sx: { borderRadius: '10px', fontSize: '0.875rem', height: '48px', fontFamily: 'monospace', fontWeight: 600 }
                                         }}
-                                        InputLabelProps={{ sx: { fontSize: '1.4rem' } }}
+                                        InputLabelProps={{ sx: { fontSize: '0.875rem' } }}
                                     />
                                 </Box>
                             ) : (
@@ -174,18 +174,18 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                                     multiline={field.type === 'multiline'}
                                     rows={field.type === 'multiline' ? 4 : 1}
                                     InputProps={{
-                                        sx: { 
-                                            borderRadius: '10px', 
-                                            fontSize: '1.4rem',
+                                        sx: {
+                                            borderRadius: '10px',
+                                            fontSize: '0.875rem',
                                             padding: field.type === 'multiline' ? '12px 14px' : '0 14px',
                                             height: field.type === 'multiline' ? 'auto' : '48px'
                                         }
                                     }}
                                     InputLabelProps={{
-                                        sx: { fontSize: '1.4rem' }
+                                        sx: { fontSize: '0.875rem' }
                                     }}
                                     FormHelperTextProps={{
-                                        sx: { fontSize: '1.3rem' }
+                                        sx: { fontSize: '0.8125rem' }
                                     }}
                                 />
                             )}
@@ -194,11 +194,11 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-                <Button 
-                    onClick={onClose} 
-                    disabled={loading} 
-                    sx={{ 
-                        fontSize: '1.4rem',
+                <Button
+                    onClick={onClose}
+                    disabled={loading}
+                    sx={{
+                        fontSize: '0.875rem',
                         fontWeight: 600,
                         px: 3,
                         height: '40px',
@@ -215,7 +215,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                     variant="contained"
                     disabled={loading}
                     sx={{
-                        fontSize: '1.4rem',
+                        fontSize: '0.875rem',
                         fontWeight: 700,
                         px: 4,
                         height: '40px',
@@ -223,7 +223,7 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
                         textTransform: 'none',
                         bgcolor: '#1C252E',
                         boxShadow: 'none',
-                        '&:hover': { 
+                        '&:hover': {
                             bgcolor: '#454F5B',
                         },
                         '&.Mui-disabled': {

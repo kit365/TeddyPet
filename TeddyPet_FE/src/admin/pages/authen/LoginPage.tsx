@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton, Alert } from "@mui/material"
 import { Link, useSearchParams } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
@@ -8,7 +8,9 @@ import { SettingsIcon, EyeIcon, NoEyeIcon } from "../../assets/icons"
 import { adminTheme } from "../../config/theme"
 import { loginSchema, LoginFormValues } from "../../schemas/login.schema"
 import { useLogin } from "./hooks/use-login"
-import { ToastContainer } from "react-toastify"
+import { useGoogleLogin } from "./hooks/use-google-login"
+import { GoogleLogin } from "@react-oauth/google"
+import { toast, ToastContainer } from "react-toastify"
 
 const LOGOS = [
     "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-jwt.svg",
@@ -38,6 +40,7 @@ export const LoginPage = () => {
     })
 
     const { mutate: loginMutate, isPending } = useLogin()
+    const { mutate: googleLoginMutate, isPending: isGooglePending } = useGoogleLogin()
 
     const onSubmit = (data: LoginFormValues) => {
         loginMutate(data)
@@ -46,6 +49,59 @@ export const LoginPage = () => {
     return (
         <>
             <ToastContainer />
+
+            {/* Global Loading Overlay for Google Login */}
+            {isGooglePending && (
+                <Box
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 2000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        backdropFilter: 'blur(4px)',
+                        animation: 'fadeIn 0.3s ease-in-out',
+                        '@keyframes fadeIn': {
+                            from: { opacity: 0 },
+                            to: { opacity: 1 }
+                        }
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 64,
+                            height: 64,
+                            border: '4px solid #1C252E',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            mb: 3,
+                            '@keyframes spin': {
+                                from: { transform: 'rotate(0deg)' },
+                                to: { transform: 'rotate(360deg)' }
+                            }
+                        }}
+                    />
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            fontWeight: 700,
+                            color: '#1C252E',
+                            animation: 'pulse 1.5s infinite ease-in-out',
+                            '@keyframes pulse': {
+                                '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                                '50%': { opacity: 0.7, transform: 'scale(0.98)' }
+                            }
+                        }}
+                    >
+                        Đang xác thực quyền truy cập...
+                    </Typography>
+                </Box>
+            )}
+
             <ThemeProvider theme={adminTheme}>
                 <div className="min-h-screen flex">
                     <Container
@@ -194,6 +250,26 @@ export const LoginPage = () => {
                                             }}>
                                             {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
                                         </Button>
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                                            <Box sx={{ flex: 1, height: '1px', bgcolor: '#E5E8EB' }} />
+                                            <Typography sx={{ px: 2, color: '#637381', fontSize: '0.75rem', fontWeight: 700 }}>HOẶC</Typography>
+                                            <Box sx={{ flex: 1, height: '1px', bgcolor: '#E5E8EB' }} />
+                                        </Box>
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                            <GoogleLogin
+                                                onSuccess={credentialResponse => {
+                                                    if (credentialResponse.credential) {
+                                                        googleLoginMutate(credentialResponse.credential);
+                                                    }
+                                                }}
+                                                onError={() => {
+                                                    toast.error('Đăng nhập Google thất bại');
+                                                } }
+                                                useOneTap
+                                            />
+                                        </Box>
                                     </Box>
                                 </form>
                             </Box>

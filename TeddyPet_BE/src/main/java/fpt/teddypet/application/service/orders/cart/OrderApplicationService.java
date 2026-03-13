@@ -19,6 +19,7 @@ import fpt.teddypet.application.port.input.user.UserAddressService;
 import fpt.teddypet.application.port.input.promotions.PromotionService;
 import fpt.teddypet.application.port.input.promotions.PromotionUsageService;
 import fpt.teddypet.application.port.input.feedback.FeedbackService;
+import fpt.teddypet.application.port.input.notification.NotificationService;
 import fpt.teddypet.domain.entity.promotions.Promotion;
 import fpt.teddypet.application.port.output.orders.order.OrderRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
@@ -33,15 +34,16 @@ import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import fpt.teddypet.application.service.dashboard.DashboardService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -50,7 +52,6 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OrderApplicationService implements OrderService {
 
     private final OrderRepositoryPort orderRepositoryPort;
@@ -66,7 +67,41 @@ public class OrderApplicationService implements OrderService {
     private final PromotionService promotionService;
     private final PromotionUsageService promotionUsageService;
     private final FeedbackService feedbackService;
-    private final fpt.teddypet.application.port.output.NotificationPublisherPort notificationPublisherPort;
+    private final NotificationService notificationService;
+    private final DashboardService dashboardService;
+
+    public OrderApplicationService(
+            OrderRepositoryPort orderRepositoryPort,
+            OrderMapper orderMapper,
+            UserService userService,
+            OrderItemService orderItemService,
+            CartService cartService,
+            UserAddressService userAddressService,
+            OtpService otpService,
+            ProductVariantService productVariantService,
+            EmailServicePort emailServicePort,
+            AppSettingService appSettingService,
+            PromotionService promotionService,
+            PromotionUsageService promotionUsageService,
+            FeedbackService feedbackService,
+            NotificationService notificationService,
+            @Lazy DashboardService dashboardService) {
+        this.orderRepositoryPort = orderRepositoryPort;
+        this.orderMapper = orderMapper;
+        this.userService = userService;
+        this.orderItemService = orderItemService;
+        this.cartService = cartService;
+        this.userAddressService = userAddressService;
+        this.otpService = otpService;
+        this.productVariantService = productVariantService;
+        this.emailServicePort = emailServicePort;
+        this.appSettingService = appSettingService;
+        this.promotionService = promotionService;
+        this.promotionUsageService = promotionUsageService;
+        this.feedbackService = feedbackService;
+        this.notificationService = notificationService;
+        this.dashboardService = dashboardService;
+    }
 
     private BigDecimal calculateDiscount(Order order, Promotion promotion) {
         if (promotion == null || !promotion.isValid()) {
@@ -354,7 +389,7 @@ public class OrderApplicationService implements OrderService {
         // Send real-time notification to Customer
         if (order.getUser() != null && oldStatus != status) {
             String statusvn = getStatusInVietnamese(status);
-            notificationPublisherPort.sendToUser(order.getUser().getUsername(),
+            notificationService.sendToUser(order.getUser().getUsername(),
                     fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
                             .title("Cập nhật đơn hàng")
                             .message("Đơn hàng #" + order.getOrderCode() + " đã chuyển sang trạng thái: " + statusvn)
@@ -363,6 +398,9 @@ public class OrderApplicationService implements OrderService {
                             .timestamp(java.time.LocalDateTime.now())
                             .build());
         }
+
+        // Real-time Dashboard Update for Admin
+        dashboardService.sendDashboardUpdate();
 
         // Send email notification only if status changed
         if (oldStatus != status) {
@@ -518,6 +556,7 @@ public class OrderApplicationService implements OrderService {
 
         orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_CANCEL, orderId);
+        dashboardService.sendDashboardUpdate();
     }
 
     /**
@@ -616,7 +655,7 @@ public class OrderApplicationService implements OrderService {
         emailServicePort.sendOrderConfirmation(savedOrder);
 
         // Send real-time notification to Admin/Staff
-        notificationPublisherPort.sendToTopic("admin-orders",
+        notificationService.sendToTopic("admin-orders",
                 fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
                         .title("Đơn hàng mới")
                         .message("Bạn có đơn hàng mới. Mã đơn hàng: " + savedOrder.getOrderCode())
@@ -628,7 +667,7 @@ public class OrderApplicationService implements OrderService {
         // Send real-time notification to Customer
         if (!isGuest && userId != null) {
             User customer = userService.getById(userId);
-            notificationPublisherPort.sendToUser(customer.getUsername(),
+            notificationService.sendToUser(customer.getUsername(),
                     fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
                             .title("Đặt hàng thành công")
                             .message("Đơn hàng #" + savedOrder.getOrderCode() + " của bạn đã được tiếp nhận.")
@@ -637,6 +676,9 @@ public class OrderApplicationService implements OrderService {
                             .timestamp(java.time.LocalDateTime.now())
                             .build());
         }
+
+        // Real-time Dashboard Update for Admin
+        dashboardService.sendDashboardUpdate();
 
         return orderMapper.toResponse(savedOrder);
     }

@@ -190,10 +190,10 @@ export const MainHeader = () => {
 
                         {/* Notification Bell */}
                         {user && (
-                            <div className="group relative w-[2.1875rem] h-[2.1875rem] p-[5px] flex items-center justify-center text-[#102937] hover:text-client-primary transition-[color] duration-300 cursor-pointer">
-                                <Bell stroke="2" className="w-[1.5625rem] h-[1.5625rem]" />
+                            <div className="group relative w-[3.125rem] h-[3.125rem] rounded-full flex items-center justify-center text-[#102937] bg-[#1029370A] hover:text-client-primary hover:bg-white transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.16] hover:shadow-[0_10px_24px_rgba(16,41,55,0.22)]">
+                                <Bell stroke="2" className="w-[1.95rem] h-[1.95rem]" />
                                 {clientUnreadCount > 0 && (
-                                    <span className="absolute right-[-1px] top-[1px] w-[18px] h-[18px] text-[0.625rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white">{clientUnreadCount}</span>
+                                    <span className="absolute right-[0px] top-[2px] min-w-[22px] h-[22px] px-[4px] text-[0.6875rem] bg-client-secondary text-white rounded-full flex items-center justify-center border-2 border-white font-bold">{clientUnreadCount}</span>
                                 )}
 
                                 {/* Dropdown list with Super Bridge */}
@@ -201,19 +201,19 @@ export const MainHeader = () => {
                                     {/* Invisible Bridge - Larger to catch diagonal movements */}
                                     <div className="absolute top-[-30px] left-[-100px] w-[500px] h-[45px] bg-transparent"></div>
 
-                                    <div className="min-w-[320px] bg-white rounded-[10px] shadow-lg border border-[#f0f0f0] py-[10px] relative">
+                                    <div className="min-w-[420px] bg-white rounded-[14px] shadow-lg border border-[#f0f0f0] py-[12px] relative">
                                         <div className="px-[20px] py-[10px] border-b border-[#f0f0f0] flex justify-between items-center">
-                                            <span className="font-bold text-client-secondary">Thông báo ({clientUnreadCount})</span>
+                                            <span className="font-bold text-[1rem] text-client-secondary">Thông báo ({clientUnreadCount})</span>
                                             {clientUnreadCount > 0 && (
                                                 <button
                                                     onClick={handleMarkAllAsRead}
-                                                    className="text-[0.75rem] text-client-primary font-bold hover:underline py-1"
+                                                    className="text-[0.8125rem] text-client-primary font-bold hover:underline py-1"
                                                 >
                                                     Đánh dấu đã đọc
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="max-h-[400px] overflow-y-auto">
+                                        <div className="max-h-[460px] overflow-y-auto">
                                             {clientNotifications.length > 0 ? (
                                                 clientNotifications.map((n) => (
                                                     <div
@@ -222,20 +222,20 @@ export const MainHeader = () => {
                                                             markAsRead(n.id);
                                                             if (n.targetUrl) navigate(n.targetUrl);
                                                         }}
-                                                        className="px-[20px] py-[12px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
+                                                        className="px-[22px] py-[14px] hover:bg-gray-50 border-b border-[#f5f5f5] last:border-0 cursor-pointer bg-[#fcf9f9]"
                                                     >
-                                                        <p className="text-[0.8125rem] font-bold text-client-secondary mb-[2px]">{n.title}</p>
-                                                        <p className="text-[0.75rem] text-gray-500 line-clamp-2">{n.message}</p>
-                                                        <p className="text-[0.625rem] text-gray-400 mt-[4px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
+                                                        <p className="text-[0.875rem] font-bold text-client-secondary mb-[3px]">{n.title}</p>
+                                                        <p className="text-[0.8125rem] text-gray-500 line-clamp-2">{n.message}</p>
+                                                        <p className="text-[0.6875rem] text-gray-400 mt-[5px]">{new Date(n.timestamp).toLocaleString('vi-VN')}</p>
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="px-[20px] py-[30px] text-center text-gray-400 text-[0.875rem]">
+                                                <div className="px-[20px] py-[34px] text-center text-gray-400 text-[0.9375rem]">
                                                     Không có thông báo mới
                                                 </div>
                                             )}
                                         </div>
-                                        <Link to="/dashboard/orders" className="block text-center py-[10px] text-[0.75rem] text-client-primary font-bold hover:bg-gray-50">
+                                        <Link to="/dashboard/orders" className="block text-center py-[12px] text-[0.8125rem] text-client-primary font-bold hover:bg-gray-50">
                                             Xem tất cả đơn hàng
                                         </Link>
                                     </div>

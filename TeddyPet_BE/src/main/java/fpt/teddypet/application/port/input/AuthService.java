@@ -81,4 +81,13 @@ public interface AuthService {
      * Đổi email cho tài khoản chưa xác thực (nếu nhập sai email khi đăng ký)
      */
     RegisterResponse changeUnverifiedEmail(ChangeUnverifiedEmailRequest request);
+
+    /**
+     * Đăng nhập bằng Google Id Token
+     */
+    TokenResponse loginWithGoogle(String idToken);
+
+    TokenResponse processGoogleUser(String email, String firstName, String lastName, String avatarUrl);
+
+    void setupInitialPassword(fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request);
 }

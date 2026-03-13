@@ -18,8 +18,9 @@ import { BlogCreatePage } from "../pages/blog/BlogCreatePage";
 import { BlogDetailPage } from "../pages/blog/BlogDetailPage";
 import { BlogEditPage } from "../pages/blog/BlogEditPage";
 import { LoginPage } from "../pages/authen/LoginPage";
-import { DashboardPage } from "../pages/dashboard/DashboardPage";
+import { SetupPasswordPage } from "../pages/authen/SetupPasswordPage";
 import { AnalyticsPage } from "../pages/dashboard/AnalyticsPage";
+import { DashboardHome } from "../pages/dashboard/DashboardHome";
 import { SystemPage } from "../pages/dashboard/SystemPage";
 import { EcommercePage } from "../pages/dashboard/EcommercePage";
 import { ProductAttributeListPage } from "../pages/product-attribute/ProductAttributeListPage";
@@ -90,7 +91,7 @@ import { EmployeeDashboardPage } from "../pages/staff/dashboard/EmployeeDashboar
 import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
 
 export const AdminRoutes: RouteObject[] = [
-    { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard", element: <DashboardHome /> },
     { path: "dashboard/analytics", element: <AnalyticsPage /> },
     { path: "dashboard/system", element: <SystemPage /> },
     { path: "dashboard/ecommerce", element: <EcommercePage /> },
@@ -211,4 +212,5 @@ export const AdminRoutes: RouteObject[] = [
 
 export const AdminAuthRoutes: RouteObject[] = [
     { path: "auth/login", element: <LoginPage /> },
+    { path: "setup-password", element: <SetupPasswordPage /> },
 ];

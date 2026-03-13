@@ -1,4 +1,4 @@
-﻿import {
+import {
     User, MapPin, PawPrint, Package,
     LogOut, Camera, ShieldCheck
 } from 'lucide-react';

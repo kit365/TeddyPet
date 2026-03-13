@@ -42,7 +42,11 @@ export const MenuBar = () => {
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-5.png",
         },
         {
-            label: isAuthenticated ? "Đơn hàng của tôi" : "Tra cứu đơn hàng",
+            label: isAuthenticated ? (
+                <span className="whitespace-nowrap">Đơn hàng<span className="2xl:hidden"> của tôi</span></span>
+            ) : (
+                <span className="whitespace-nowrap">Tra cứu<span className="2xl:hidden"> đơn hàng</span></span>
+            ),
             to: isAuthenticated ? "/dashboard/orders" : "/tra-cuu-don-hang",
             img: "https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/05/Menu-img-3.png",
         },
@@ -61,7 +65,7 @@ export const MenuBar = () => {
                                 >
                                     <img
                                         src={item.img}
-                                        alt={item.label}
+                                        alt={typeof item.label === 'string' ? item.label : "Menu item"}
                                         width={25}
                                         height={25}
                                         loading="eager"

@@ -19,6 +19,8 @@ export interface DashboardStatsResponse {
     returnedOrders: number;
     todayOrders: number;
     todayRevenue: number;
+    lowStockCount: number;
+    todayBookings: number;
 }
 
 export interface RevenueChartItem {
@@ -29,6 +31,11 @@ export interface RevenueChartItem {
 
 export const getDashboardStats = async () => {
     const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/stats`);
+    return response.data;
+};
+
+export const getStaffStats = async () => {
+    const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/staff-stats`);
     return response.data;
 };
 
@@ -43,5 +50,30 @@ export const getRecentOrders = async (limit: number = 10) => {
     const response = await apiApp.get<ApiResponse<OrderResponse[]>>(`${BASE_PATH}/recent-orders`, {
         params: { limit }
     });
+    return response.data;
+};
+
+export const getSalesByCategory = async () => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/sales-by-category`);
+    return response.data;
+};
+
+export const getTopCustomers = async () => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/top-customers`);
+    return response.data;
+};
+
+export const getLatestProducts = async () => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/latest-products`);
+    return response.data;
+};
+
+export const getPetDistribution = async () => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/pet-distribution`);
+    return response.data;
+};
+
+export const getServiceStatistics = async () => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/service-statistics`);
     return response.data;
 };
