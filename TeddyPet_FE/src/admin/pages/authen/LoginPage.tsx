@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton, Alert } from "@mui/material"
 import { Link, useSearchParams } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
@@ -8,7 +8,9 @@ import { SettingsIcon, EyeIcon, NoEyeIcon } from "../../assets/icons"
 import { adminTheme } from "../../config/theme"
 import { loginSchema, LoginFormValues } from "../../schemas/login.schema"
 import { useLogin } from "./hooks/use-login"
-import { ToastContainer } from "react-toastify"
+import { useGoogleLogin } from "./hooks/use-google-login"
+import { GoogleLogin } from "@react-oauth/google"
+import { toast, ToastContainer } from "react-toastify"
 
 const LOGOS = [
     "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-jwt.svg",
@@ -38,6 +40,7 @@ export const LoginPage = () => {
     })
 
     const { mutate: loginMutate, isPending } = useLogin()
+    const { mutate: googleLoginMutate } = useGoogleLogin()
 
     const onSubmit = (data: LoginFormValues) => {
         loginMutate(data)
@@ -194,6 +197,26 @@ export const LoginPage = () => {
                                             }}>
                                             {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
                                         </Button>
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                                            <Box sx={{ flex: 1, height: '1px', bgcolor: '#E5E8EB' }} />
+                                            <Typography sx={{ px: 2, color: '#637381', fontSize: '0.75rem', fontWeight: 700 }}>HOẶC</Typography>
+                                            <Box sx={{ flex: 1, height: '1px', bgcolor: '#E5E8EB' }} />
+                                        </Box>
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                            <GoogleLogin
+                                                onSuccess={credentialResponse => {
+                                                    if (credentialResponse.credential) {
+                                                        googleLoginMutate(credentialResponse.credential);
+                                                    }
+                                                }}
+                                                onError={() => {
+                                                    toast.error('Đăng nhập Google thất bại');
+                                                } }
+                                                useOneTap
+                                            />
+                                        </Box>
                                     </Box>
                                 </form>
                             </Box>

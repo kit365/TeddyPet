@@ -39,16 +39,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String email;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader == null) {
+                logger.debug("Authorization header is missing for request: " + request.getRequestURI());
+            } else {
+                logger.debug("Authorization header does not start with Bearer: " + request.getRequestURI());
+            }
             filterChain.doFilter(request, response);
             return;
         }
 
         jwt = authHeader.substring(7);
+        logger.debug("JWT detected in request: " + request.getRequestURI());
         try {
             email = jwtTokenProviderAdapter.extractEmail(jwt);
+            logger.debug("Extracted email from JWT: " + email);
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
+                logger.debug("Loaded UserDetails for: " + email);
 
                 if (jwtTokenProviderAdapter.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -65,7 +73,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (ExpiredJwtException e) {
             logger.warn("JWT expired: " + e.getMessage());
         } catch (Exception e) {
-            // Token is invalid, continue without authentication
             logger.error("Cannot set user authentication: " + e.getMessage());
         }
 

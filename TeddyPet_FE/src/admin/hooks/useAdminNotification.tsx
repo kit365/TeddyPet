@@ -280,6 +280,22 @@ export const useAdminNotification = (autoConnect = true) => {
                         }
                     });
                     console.log(`✅ Subscribed to Admin orders topic`);
+
+                    // 3. Role-based Dashboard Topics
+                    const isAdmin = roleName === "ADMIN";
+                    const dashboardTopic = isAdmin ? '/topic/dashboard/stats' : '/topic/dashboard/staff-stats';
+                    const dashboardEvent = isAdmin ? 'DASHBOARD_STATS_UPDATED' : 'STAFF_DASHBOARD_STATS_UPDATED';
+
+                    client.subscribe(dashboardTopic, (message) => {
+                        try {
+                            const stats = JSON.parse(message.body);
+                            console.log(`📨 [Dashboard-Topic] Stats received from ${dashboardTopic}:`, stats);
+                            window.dispatchEvent(new CustomEvent(dashboardEvent, { detail: stats }));
+                        } catch (e) {
+                            console.error("Error parsing dashboard stats", e);
+                        }
+                    });
+                    console.log(`✅ Subscribed to Dashboard topic: ${dashboardTopic}`);
                 }
             },
             onStompError: (frame) => {

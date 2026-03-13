@@ -29,6 +29,7 @@
     "@mui/x-data-grid": "^8.22.0",
     "@mui/x-data-grid-generator": "^8.22.0",
     "@mui/x-date-pickers": "^8.27.0",
+    "@react-oauth/google": "^0.13.4",
     "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/react-query": "^5.90.16",

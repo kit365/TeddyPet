@@ -30,9 +30,10 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import fpt.teddypet.application.service.dashboard.DashboardService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -47,8 +48,6 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-@Transactional
 public class BookingClientApplicationService implements BookingClientService {
 
     private final BookingRepository bookingRepository;
@@ -61,6 +60,32 @@ public class BookingClientApplicationService implements BookingClientService {
     private final UserRepository userRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository;
+    private final DashboardService dashboardService;
+
+    public BookingClientApplicationService(
+            BookingRepository bookingRepository,
+            BookingPetServiceRepository bookingPetServiceRepository,
+            ServiceRepositoryPort serviceRepositoryPort,
+            ServicePricingRepositoryPort servicePricingRepositoryPort,
+            RoomRepositoryPort roomRepositoryPort,
+            TimeSlotRepositoryPort timeSlotRepositoryPort,
+            fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
+            UserRepository userRepository,
+            fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository,
+            fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository,
+            @Lazy DashboardService dashboardService) {
+        this.bookingRepository = bookingRepository;
+        this.bookingPetServiceRepository = bookingPetServiceRepository;
+        this.serviceRepositoryPort = serviceRepositoryPort;
+        this.servicePricingRepositoryPort = servicePricingRepositoryPort;
+        this.roomRepositoryPort = roomRepositoryPort;
+        this.timeSlotRepositoryPort = timeSlotRepositoryPort;
+        this.bookingDepositRepository = bookingDepositRepository;
+        this.userRepository = userRepository;
+        this.bankInformationRepository = bankInformationRepository;
+        this.bookingDepositRefundPolicyRepository = bookingDepositRefundPolicyRepository;
+        this.dashboardService = dashboardService;
+    }
 
     @Override
     public CreateBookingResponse createBooking(CreateBookingRequest request) {
@@ -326,7 +351,7 @@ public class BookingClientApplicationService implements BookingClientService {
         }
 
         bookingRepository.save(booking);
-
+        dashboardService.sendDashboardUpdate();
         return getClientBookingDetailByCode(bookingCode);
     }
 
@@ -416,6 +441,7 @@ public class BookingClientApplicationService implements BookingClientService {
             }
         }
 
+        dashboardService.sendDashboardUpdate();
         return new CreateBookingResponse(saved.getBookingCode());
     }
 

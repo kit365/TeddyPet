@@ -27,6 +27,12 @@ export const RoleRouteGuard = ({ allowedRoles, redirectTo, children }: RoleRoute
     }
 
     const role = meRes?.data?.role as Role | undefined;
+    const mustChangePassword = (meRes?.data as any)?.mustChangePassword;
+
+    if (mustChangePassword) {
+        return <Navigate to="/admin/setup-password" replace />;
+    }
+
     if (role && !allowedRoles.includes(role)) {
         return <Navigate to={redirectTo} replace />;
     }

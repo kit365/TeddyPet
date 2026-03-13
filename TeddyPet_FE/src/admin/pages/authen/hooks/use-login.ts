@@ -43,11 +43,27 @@ export const useLogin = () => {
 
                 if (meRes?.data) {
                     // Use adminLoginSync to avoid overwriting regular user cookies
-                    useAuthStore.getState().adminLoginSync(meRes.data as any, response.data.token);
+                    const fullUserData = {
+                        ...meRes.data,
+                        mustChangePassword: response.data.mustChangePassword ?? (meRes.data as any).mustChangePassword
+                    };
+                    useAuthStore.getState().adminLoginSync(fullUserData as any, response.data.token);
+
+                    if (fullUserData.mustChangePassword) {
+                        toast.info("Vui lòng thiết lập mật khẩu của bạn.");
+                        setTimeout(() => navigate("/admin/setup-password"), 500);
+                        return;
+                    }
                 }
 
                 toast.success(response.message);
-                setTimeout(() => navigate("/admin/dashboard"), 500);
+                if (role === "ADMIN") {
+                    setTimeout(() => navigate("/admin/dashboard/ecommerce"), 500);
+                } else if (role === "STAFF") {
+                    setTimeout(() => navigate("/admin/staff/dashboard"), 500);
+                } else {
+                    setTimeout(() => navigate("/admin/dashboard/analytics"), 500);
+                }
             } catch {
                 toast.error("Không thể xác thực quyền. Vui lòng thử lại.");
                 Cookies.remove("tokenAdmin");
