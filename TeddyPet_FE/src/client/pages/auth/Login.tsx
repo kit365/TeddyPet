@@ -117,16 +117,16 @@ export const LoginPage = () => {
                             )}
                         </div>
 
-                        <h3 className="text-[2.4rem] font-[700] text-[#333] mb-[10px]">
+                        <h3 className="text-[1.5rem] font-[700] text-[#333] mb-[10px]">
                             {notification.success ? "Thành công!" : "Thất bại!"}
                         </h3>
-                        <p className="text-[1.6rem] text-[#666] mb-[30px] leading-relaxed">
+                        <p className="text-[1rem] text-[#666] mb-[30px] leading-relaxed">
                             {notification.message}
                         </p>
 
                         <button
                             onClick={() => setNotification(null)}
-                            className={`w-full py-[12px] rounded-full text-[1.6rem] font-[600] text-white transition-all transform hover:-translate-y-1 shadow-md hover:shadow-lg ${notification.success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                            className={`w-full py-[12px] rounded-full text-[1rem] font-[600] text-white transition-all transform hover:-translate-y-1 shadow-md hover:shadow-lg ${notification.success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
                         >
                             Đã hiểu
                         </button>
@@ -141,29 +141,29 @@ export const LoginPage = () => {
                     </div>
                     <div className="w-[509px] ml-[-150px] relative z-20">
                         <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
-                            <h3 className="text-center text-[3rem] font-[600] mb-[50px] text-[#333]">Đăng nhập 👋</h3>
+                            <h3 className="text-center text-[1.875rem] font-[600] mb-[50px] text-[#333]">Đăng nhập 👋</h3>
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Email</label>
                                     <Input
                                         placeholder="Email"
                                         {...register("usernameOrEmail")}
                                         error={errors.usernameOrEmail?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[1.4rem] text-client-secondary">Mật khẩu</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Mật khẩu</label>
                                     <Input
                                         placeholder="********"
                                         type="password"
                                         {...register("password")}
                                         error={errors.password?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[1.4rem]"
+                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
@@ -176,14 +176,14 @@ export const LoginPage = () => {
                                             {...register("rememberPassword")}
                                             className="appearance-none w-[18px] h-[18px] border border-[#d1d5db] rounded-[4px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%223%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')]"
                                         />
-                                        <label htmlFor="rememberPassword" className="text-client-text text-[1.4rem] cursor-pointer select-none font-[400] text-[#555]">Nhớ mật khẩu</label>
+                                        <label htmlFor="rememberPassword" className="text-client-text text-[0.875rem] cursor-pointer select-none font-[400] text-[#555]">Nhớ mật khẩu</label>
                                     </div>
-                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[1.4rem] font-[500]">Quên mật khẩu?</Link>
+                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem] font-[500]">Quên mật khẩu?</Link>
                                 </div>
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[1.5rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
+                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
                                 >
                                     <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Đăng nhập"}</span>
                                     {!isSubmitting && <ArrowRight className="relative z-10 w-[2rem] h-[2rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
@@ -215,7 +215,7 @@ export const LoginPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => navigate("/auth/login-email")}
-                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[1.4rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
+                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[0.875rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
                                 >
                                     Đăng nhập với email (không cần mật khẩu)
                                 </button>
