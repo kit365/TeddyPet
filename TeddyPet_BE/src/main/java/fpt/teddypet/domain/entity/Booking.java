@@ -102,6 +102,12 @@ public class Booking extends BaseEntity {
     @Builder.Default
     private Boolean cancelRequested = false;
 
+    @Column(name = "booking_start_date")
+    private LocalDateTime bookingStartDate;
+
+    @Column(name = "booking_end_date")
+    private LocalDateTime bookingEndDate;
+
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BookingPet> pets = new ArrayList<>();

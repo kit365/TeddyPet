@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,7 +29,24 @@ import { getBookingColumns } from "../configs/column.config";
 import { BOOKING_STATUS_OPTIONS, type BookingStatusFilter } from "../constants";
 import { prefixAdmin } from "../../../constants/routes";
 import { approveOrRejectAdminCancelRequest, getAdminBookings } from "../../../api/booking.api";
+import { getBankInformationByBookingCode, type BookingBankInformationResponse } from "../../../../api/bank.api";
 import type { BookingResponse } from "../../../../types/booking.type";
+
+const getDepositStatusLabel = (status?: string) => {
+  if (!status) return "—";
+  switch (status.toUpperCase()) {
+    case "PENDING":
+      return "Chưa thanh toán cọc";
+    case "PAID":
+      return "Đã thanh toán cọc";
+    case "EXPIRED":
+      return "Cọc đã hết hạn";
+    case "CANCELLED":
+      return "Cọc đã huỷ";
+    default:
+      return status;
+  }
+};
 
 const CustomNoRowsOverlay = () => (
   <Stack height="100%" alignItems="center" justifyContent="center">
@@ -60,6 +77,7 @@ const normalizeBooking = (b: Record<string, unknown>): BookingResponse => ({
   totalAmount: Number(b.totalAmount ?? 0),
   paidAmount: Number(b.paidAmount ?? 0),
   remainingAmount: Number(b.remainingAmount ?? 0),
+  depositAmount: Number((b as any).depositAmount ?? 0),
   deposit: Number(b.deposit ?? 0),
   depositPaid: b.depositPaid != null ? Boolean(b.depositPaid) : undefined,
   depositId: b.depositId != null ? Number(b.depositId) : undefined,
@@ -87,14 +105,72 @@ export const BookingList = () => {
   const [status, setStatus] = useState<BookingStatusFilter>("ALL");
   const [keyword, setKeyword] = useState("");
 
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [selectedRefundBooking, setSelectedRefundBooking] = useState<BookingResponse | null>(null);
+
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedCancelBooking, setSelectedCancelBooking] = useState<BookingResponse | null>(null);
   const [cancelActionLoading, setCancelActionLoading] = useState(false);
   const [cancelActionError, setCancelActionError] = useState<string | null>(null);
+  const [cancelBankInfo, setCancelBankInfo] = useState<BookingBankInformationResponse["data"] | null>(null);
+  const [depositStatus, setDepositStatus] = useState<string | null>(null);
+  const [staffNotes, setStaffNotes] = useState("");
+  const [refundProof, setRefundProof] = useState<string | null>(null);
+  const [refundProofFileName, setRefundProofFileName] = useState("");
 
   const isCancelRequested = (row?: BookingResponse | null) => {
     if (!row) return false;
     return row.cancelRequested === true;
+  };
+
+  // Load bank information & reset fields when mở popup duyệt hủy đơn
+  useEffect(() => {
+    if (!cancelDialogOpen || !selectedCancelBooking) {
+      setCancelBankInfo(null);
+      setDepositStatus(null);
+      setStaffNotes("");
+      setRefundProof(null);
+      setRefundProofFileName("");
+      return;
+    }
+    
+    // Load bank information
+    getBankInformationByBookingCode(selectedCancelBooking.bookingCode)
+      .then((res) => {
+        setCancelBankInfo(res.data ?? null);
+      })
+      .catch(() => {
+        setCancelBankInfo(null);
+      });
+
+    // Determine deposit status based on booking info
+    if (selectedCancelBooking.depositPaid === true) {
+      setDepositStatus("PAID");
+    } else if (selectedCancelBooking.depositExpiresAt) {
+      const expiresAt = new Date(selectedCancelBooking.depositExpiresAt);
+      if (expiresAt < new Date()) {
+        setDepositStatus("EXPIRED");
+      } else {
+        setDepositStatus("PENDING");
+      }
+    } else {
+      setDepositStatus("PENDING");
+    }
+  }, [cancelDialogOpen, selectedCancelBooking?.bookingCode]);
+
+  const handleRefundProofFileChange = (file: File | null) => {
+    if (!file) {
+      setRefundProof(null);
+      setRefundProofFileName("");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = typeof reader.result === "string" ? reader.result : "";
+      setRefundProof(base64);
+      setRefundProofFileName(file.name);
+    };
+    reader.readAsDataURL(file);
   };
 
   const { data: apiData, isLoading } = useQuery({
@@ -136,10 +212,6 @@ export const BookingList = () => {
       getBookingColumns(
         (row) => navigate(`/${prefixAdmin}/booking/detail/${row.id}`),
         (row) => navigate(`/${prefixAdmin}/booking/edit/${row.id}`),
-        (row) => {
-          // TODO: Implement refund request functionality
-          console.log("Request refund for booking:", row.id);
-        },
         (row) => {
           setSelectedCancelBooking(row);
           setCancelDialogOpen(true);
@@ -306,6 +378,44 @@ export const BookingList = () => {
       </Card>
 
       <Dialog
+        open={refundDialogOpen}
+        onClose={() => {
+          setRefundDialogOpen(false);
+          setSelectedRefundBooking(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "1.6rem", fontWeight: 800 }}>
+          Yêu cầu hoàn tiền
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 1 }}>
+            Booking: <b>{selectedRefundBooking?.bookingCode ?? "—"}</b>
+          </Typography>
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 2 }}>
+            Khách hàng: <b>{selectedRefundBooking?.customerName ?? "—"}</b>
+          </Typography>
+
+          <Alert severity="info" sx={{ fontSize: "1.3rem" }}>
+            Hiện tại thao tác <b>yêu cầu hoàn tiền</b> chỉ mang tính chất hiển thị thông tin.
+            Nếu booking không ở trạng thái phù hợp, hệ thống sẽ không cho xác nhận tại đây.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setRefundDialogOpen(false);
+              setSelectedRefundBooking(null);
+            }}
+            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800 }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={cancelDialogOpen}
         onClose={() => {
           if (cancelActionLoading) return;
@@ -349,10 +459,80 @@ export const BookingList = () => {
             </Typography>
           </Box>
 
-          <Typography sx={{ fontSize: "1.25rem", color: "text.secondary" }}>
+          <Typography sx={{ fontSize: "1.25rem", color: "text.secondary", mb: 2 }}>
             Trạng thái hiện tại:{" "}
-            <b>{String(selectedCancelBooking?.status ?? "").toUpperCase() || "—"}</b>
+            <b>{getDepositStatusLabel(depositStatus)}</b>
           </Typography>
+
+          <Box sx={{ mt: 1 }}>
+            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
+              Thông tin ngân hàng khách cung cấp
+            </Typography>
+            {cancelBankInfo ? (
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "12px",
+                  mb: 2,
+                }}
+              >
+                <Typography sx={{ fontSize: "1.3rem", mb: 0.5 }}>
+                  Ngân hàng: <b>{cancelBankInfo.bankName}</b> ({cancelBankInfo.bankCode})
+                </Typography>
+                <Typography sx={{ fontSize: "1.3rem", mb: 0.5 }}>
+                  Số tài khoản: <b>{cancelBankInfo.accountNumber}</b>
+                </Typography>
+                <Typography sx={{ fontSize: "1.3rem" }}>
+                  Chủ TK: <b>{cancelBankInfo.accountHolderName}</b>
+                </Typography>
+              </Box>
+            ) : (
+              <Typography sx={{ fontSize: "1.25rem", color: "text.secondary", mb: 2 }}>
+                Không tìm thấy thông tin ngân hàng cho booking này.
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ mt: 1 }}>
+            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
+              Ghi chú nội bộ
+            </Typography>
+            <TextField
+              multiline
+              minRows={3}
+              fullWidth
+              value={staffNotes}
+              onChange={(e) => setStaffNotes(e.target.value)}
+              placeholder="Ghi chú cho việc hoàn tiền / hủy đơn (chỉ nội bộ nhìn thấy)..."
+              sx={{ "& .MuiInputBase-root": { fontSize: "1.35rem" } }}
+            />
+          </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
+              Bằng chứng hoàn tiền (ảnh chuyển khoản)
+            </Typography>
+            <Button
+              variant="outlined"
+              component="label"
+              sx={{ textTransform: "none", fontSize: "1.3rem" }}
+            >
+              Chọn ảnh
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={(e) => handleRefundProofFileChange(e.target.files?.[0] ?? null)}
+              />
+            </Button>
+            {refundProofFileName && (
+              <Typography sx={{ mt: 0.5, fontSize: "1.25rem", color: "text.secondary" }}>
+                Đã chọn: {refundProofFileName}
+              </Typography>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button
@@ -402,10 +582,18 @@ export const BookingList = () => {
             }
             onClick={async () => {
               if (!selectedCancelBooking) return;
+              if (selectedCancelBooking.status !== "PENDING") {
+                setCancelActionError("Chỉ có thể hủy đơn khi trạng thái là PENDING.");
+                return;
+              }
               setCancelActionLoading(true);
               setCancelActionError(null);
               try {
-                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, { approved: true });
+                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, {
+                  approved: true,
+                  staffNotes: staffNotes.trim() || undefined,
+                  refundProof: refundProof || undefined,
+                });
                 await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
                 setCancelDialogOpen(false);
                 setSelectedCancelBooking(null);

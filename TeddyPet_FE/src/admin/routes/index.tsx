@@ -95,7 +95,7 @@ import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
 import { AcceptInvitationPage } from "../pages/authen/AcceptInvitationPage";
 import { BankInformationVerifyPage } from "../pages/bank-information/BankInformationVerifyPage";
 import { CalendarPage } from "../pages/calendar/CalendarPage";
-
+import { BookingRefundPolicyListPage } from "../pages/booking/BookingRefundPolicyListPage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
@@ -137,6 +137,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "booking/list", element: <BookingListPage /> },
     { path: "booking/create", element: <BookingCreatePage /> },
     { path: "booking/create/detail", element: <BookingCreateDetailPage /> },
+    { path: "booking/refund-policies", element: <AdminOnlyGuard><BookingRefundPolicyListPage /></AdminOnlyGuard> },
     { path: "booking/detail/:id", element: <BookingDetailPage /> },
     { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },
     { path: "booking/detail/:id/pet/:petId/service/:serviceId", element: <BookingPetServiceDetailPage /> },

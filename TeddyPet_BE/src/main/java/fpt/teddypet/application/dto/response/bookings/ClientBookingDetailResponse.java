@@ -22,6 +22,8 @@ public record ClientBookingDetailResponse(
                 String internalNotes,
                 Long depositId,
                 LocalDateTime depositExpiresAt,
+                LocalDateTime bookingStartDate,
+                LocalDateTime bookingEndDate,
                 LocalDateTime createdAt,
                 List<ClientBookingPetDetailResponse> pets) {
 }

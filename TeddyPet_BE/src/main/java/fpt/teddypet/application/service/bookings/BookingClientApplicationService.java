@@ -11,6 +11,7 @@ import fpt.teddypet.application.dto.response.bookings.ClientBookingPetServiceDet
 import fpt.teddypet.application.dto.response.bookings.ClientBookingPetServiceItemDetailResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientPetFoodBroughtDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
+import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
@@ -23,6 +24,7 @@ import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
+import fpt.teddypet.domain.entity.TimeSlotBooking;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
@@ -31,6 +33,7 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
@@ -48,10 +51,12 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class BookingClientApplicationService implements BookingClientService {
 
     private final BookingRepository bookingRepository;
     private final BookingPetServiceRepository bookingPetServiceRepository;
+    private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository timeSlotBookingRepository;
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final ServicePricingRepositoryPort servicePricingRepositoryPort;
     private final RoomRepositoryPort roomRepositoryPort;
@@ -60,11 +65,13 @@ public class BookingClientApplicationService implements BookingClientService {
     private final UserRepository userRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository;
+    private final EmailServicePort emailServicePort;
     private final DashboardService dashboardService;
 
     public BookingClientApplicationService(
             BookingRepository bookingRepository,
             BookingPetServiceRepository bookingPetServiceRepository,
+            fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository timeSlotBookingRepository,
             ServiceRepositoryPort serviceRepositoryPort,
             ServicePricingRepositoryPort servicePricingRepositoryPort,
             RoomRepositoryPort roomRepositoryPort,
@@ -73,9 +80,11 @@ public class BookingClientApplicationService implements BookingClientService {
             UserRepository userRepository,
             fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository,
             fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository,
+            EmailServicePort emailServicePort,
             @Lazy DashboardService dashboardService) {
         this.bookingRepository = bookingRepository;
         this.bookingPetServiceRepository = bookingPetServiceRepository;
+        this.timeSlotBookingRepository = timeSlotBookingRepository;
         this.serviceRepositoryPort = serviceRepositoryPort;
         this.servicePricingRepositoryPort = servicePricingRepositoryPort;
         this.roomRepositoryPort = roomRepositoryPort;
@@ -84,6 +93,7 @@ public class BookingClientApplicationService implements BookingClientService {
         this.userRepository = userRepository;
         this.bankInformationRepository = bankInformationRepository;
         this.bookingDepositRefundPolicyRepository = bookingDepositRefundPolicyRepository;
+        this.emailServicePort = emailServicePort;
         this.dashboardService = dashboardService;
     }
 
@@ -126,6 +136,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 String roomName = null;
                 String displayTypeName = null;
                 String roomNumber = null;
+                String timeSlotName = null; // để lưu tên khung giờ
+
                 if (svc.getRoomId() != null) {
                     var room = roomRepositoryPort.findById(svc.getRoomId()).orElse(null);
                     if (room != null) {
@@ -134,6 +146,13 @@ public class BookingClientApplicationService implements BookingClientService {
                         if (room.getRoomType() != null) {
                             displayTypeName = room.getRoomType().getDisplayTypeName();
                         }
+                    }
+                } else {
+                    // Dịch vụ không yêu cầu phòng → fetch từ time_slot_bookings
+                    var timeSlotBooking = timeSlotBookingRepository.findByBookingPetService_Id(svc.getId()).orElse(null);
+                    if (timeSlotBooking != null && timeSlotBooking.getTimeSlot() != null) {
+                        var timeSlot = timeSlotBooking.getTimeSlot();
+                        timeSlotName = timeSlot.getStartTime() + " - " + timeSlot.getEndTime();
                     }
                 }
 
@@ -152,7 +171,7 @@ public class BookingClientApplicationService implements BookingClientService {
                         svc.getId(),
                         svc.getAssignedStaffId(),
                         svc.getService() != null ? svc.getService().getServiceName() : null,
-                        svc.getTimeSlotId() != null ? "Slot " + svc.getTimeSlotId() : null,
+                        timeSlotName,
                         svc.getEstimatedCheckInDate(),
                         svc.getEstimatedCheckOutDate(),
                         svc.getActualCheckInDate(),
@@ -219,6 +238,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getInternalNotes(),
                 depositId,
                 depositExpiresAt,
+                booking.getBookingStartDate(),
+                booking.getBookingEndDate(),
                 booking.getCreatedAt(),
                 petResponses);
     }
@@ -278,6 +299,8 @@ public class BookingClientApplicationService implements BookingClientService {
             fpt.teddypet.domain.entity.BookingDepositRefundPolicy policy = bookingDepositRefundPolicyRepository.findDefaultActivePolicy()
                     .orElse(null);
 
+            BigDecimal refundPercentage = BigDecimal.ZERO;
+
             if (policy != null) {
                 LocalDateTime earliestCheckIn = booking.getPets().stream()
                         .flatMap(pet -> pet.getServices().stream())
@@ -292,7 +315,6 @@ public class BookingClientApplicationService implements BookingClientService {
 
                 long hoursUntilCheckIn = ChronoUnit.HOURS.between(LocalDateTime.now(), earliestCheckIn);
 
-                BigDecimal refundPercentage = BigDecimal.ZERO;
                 if (hoursUntilCheckIn >= policy.getFullRefundHours()) {
                     refundPercentage = policy.getFullRefundPercentage();
                 } else if (hoursUntilCheckIn >= policy.getPartialRefundHours()) {
@@ -306,7 +328,7 @@ public class BookingClientApplicationService implements BookingClientService {
                 }
             }
 
-            if (request.bankInformation() != null) {
+            if (request.bankInformation() != null && refundAmount.compareTo(BigDecimal.ZERO) > 0) {
                 fpt.teddypet.domain.entity.BankInformation bankInfo = new fpt.teddypet.domain.entity.BankInformation();
                 bankInfo.setUserId(booking.getUser() != null ? booking.getUser().getId() : null);
                 bankInfo.setBookingId(booking.getId());
@@ -319,24 +341,51 @@ public class BookingClientApplicationService implements BookingClientService {
                 bankInformationRepository.save(bankInfo);
                 booking.setRefundMethod("BANK_TRANSFER");
             }
-        }
 
-        booking.setCancelledAt(LocalDateTime.now());
-        booking.setCancelledBy("CLIENT");
-        booking.setCancelledReason(request.reason());
-        booking.setRefundAmount(refundAmount);
+            booking.setRefundAmount(refundAmount);
 
-        // If deposit was paid, this is a "cancel request" that admin should review.
-        // Use status=CANCELLED and a separate cancelRequested flag (no CANCEL_REQUESTED status).
-        // If deposit not paid, cancel immediately (cancelRequested=false).
-        if (depositPaid) {
-            booking.setStatus("CANCELLED");
-            booking.setCancelRequested(true);
+            // Nếu có số tiền hoàn > 0 → đây là yêu cầu hủy cần nhân viên duyệt.
+            // Giữ status ở PENDING và set cờ cancelRequested=true để hiển thị trong admin.
+            if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+                booking.setCancelRequested(true);
+                // Yêu cầu hoàn cọc → thông báo khách hàng
+                if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                    String refundAmountFormatted = String.format("%,.0f VND", refundAmount);
+                    emailServicePort.sendBookingRefundRequestedEmail(
+                            booking.getCustomerEmail(), booking.getBookingCode(), refundAmountFormatted);
+                }
+            } else {
+                // Không hoàn cọc (0%) → hủy ngay lập tức giống như chưa thanh toán cọc
+                booking.setStatus("CANCELLED");
+                booking.setCancelRequested(false);
+                // Cancel all associated pet services and pets
+                for (fpt.teddypet.domain.entity.BookingPet pet : booking.getPets()) {
+                    pet.setStatus("CANCELLED");
+                    for (fpt.teddypet.domain.entity.BookingPetService svc : pet.getServices()) {
+                        svc.setStatus("CANCELLED");
+                    }
+                }
+                // Cancel pending deposits
+                bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
+                    if ("PENDING".equals(deposit.getStatus())) {
+                        deposit.setStatus("CANCELLED");
+                        bookingDepositRepository.save(deposit);
+                    }
+                });
+                // Xóa TimeSlotBooking records
+                timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+                // Hủy ngay (0% hoàn) → gửi email hủy
+                if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                    emailServicePort.sendBookingCancelledEmail(booking.getCustomerEmail(), booking.getBookingCode());
+                }
+            }
         } else {
+            // Không có cọc → hủy ngay
             booking.setStatus("CANCELLED");
             booking.setCancelRequested(false);
-            // Cancel all associated pet services
+            // Cancel all associated pet services and pets
             for (fpt.teddypet.domain.entity.BookingPet pet : booking.getPets()) {
+                pet.setStatus("CANCELLED");
                 for (fpt.teddypet.domain.entity.BookingPetService svc : pet.getServices()) {
                     svc.setStatus("CANCELLED");
                 }
@@ -348,7 +397,17 @@ public class BookingClientApplicationService implements BookingClientService {
                     bookingDepositRepository.save(deposit);
                 }
             });
+            // Xóa TimeSlotBooking records
+            timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+            // Hủy không có cọc → gửi email hủy
+            if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                emailServicePort.sendBookingCancelledEmail(booking.getCustomerEmail(), booking.getBookingCode());
+            }
         }
+
+        booking.setCancelledAt(LocalDateTime.now());
+        booking.setCancelledBy("CLIENT");
+        booking.setCancelledReason(request.reason());
 
         bookingRepository.save(booking);
         dashboardService.sendDashboardUpdate();
@@ -400,40 +459,61 @@ public class BookingClientApplicationService implements BookingClientService {
         Booking saved = bookingRepository.save(booking);
 
         if (increaseTimeSlotBookings) {
-            // Tăng currentBookings theo từng booking_pet_service (mỗi dòng dịch vụ chọn
-            // slot = +1).
-            // Nếu khung giờ đã đủ (currentBookings >= maxCapacity) hoặc xung đột version →
-            // throw với petIndex/serviceIndex để FE scroll.
+            // Tạo TimeSlotBooking records cho dịch vụ không yêu cầu phòng (session-based)
+            // và kiểm tra dung lượng khung giờ
             try {
                 int petIdx = 0;
                 for (BookingPet pet : saved.getPets()) {
                     int svcIdx = 0;
                     for (BookingPetService bps : pet.getServices()) {
-                        Long timeSlotId = bps.getTimeSlotId();
+                        boolean requiresRoom = Boolean.TRUE.equals(bps.getService().getIsRequiredRoom());
+                        if (requiresRoom) {
+                            // Phòng được quản lý riêng - skip
+                            svcIdx++;
+                            continue;
+                        }
+
+                        // Tìm timeSlotId từ request để tạo TimeSlotBooking
+                        CreateBookingPetRequest petReq = request.pets().get(petIdx);
+                        CreateBookingPetServiceRequest svcReq = petReq.services().get(svcIdx);
+                        Long timeSlotId = svcReq.timeSlotId();
+
                         if (timeSlotId == null) {
                             svcIdx++;
                             continue;
                         }
+
                         TimeSlot slot = timeSlotRepositoryPort.findById(timeSlotId)
-                                .orElseThrow(
-                                        () -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
+                                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + timeSlotId));
                         int maxCap = slot.getMaxCapacity() != null ? slot.getMaxCapacity() : 1;
-                        int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
-                        if (current >= maxCap) {
+
+                        // Kiểm tra dung lượng của TimeSlotBooking cho khung giờ này
+                        LocalDate bookingDate = bps.getEstimatedCheckInDate();
+                        long count = timeSlotBookingRepository.countByBookingDateAndTimeSlot(bookingDate, timeSlotId);
+                        if (count >= maxCap) {
                             throw new BookingValidationException(
                                     BookingValidationException.TIME_SLOT_FULL,
                                     "Khung giờ đã đủ chỗ. Vui lòng chọn khung giờ khác cho thú cưng này.",
                                     petIdx, svcIdx, svcIdx > 0, null);
                         }
-                        slot.setCurrentBookings(current + 1);
-                        timeSlotRepositoryPort.save(slot);
+
+                        // Tạo TimeSlotBooking record
+                        fpt.teddypet.domain.entity.TimeSlotBooking timeSlotBooking = new fpt.teddypet.domain.entity.TimeSlotBooking();
+                        timeSlotBooking.setTimeSlot(slot);
+                        timeSlotBooking.setService(bps.getService());
+                        timeSlotBooking.setBookingPetService(bps);
+                        timeSlotBooking.setBookingDate(bookingDate);
+                        timeSlotBooking.setStartTime(slot.getStartTime());
+                        timeSlotBooking.setEndTime(slot.getEndTime());
+                        timeSlotBooking.setMaxCapacity(slot.getMaxCapacity());
+                        timeSlotBooking.setStatus("ACTIVE");
+                        timeSlotBookingRepository.save(timeSlotBooking);
+
                         svcIdx++;
                     }
                     petIdx++;
                 }
             } catch (OptimisticLockException e) {
-                // Không biết chính xác pet/svc nào conflict → báo chung, FE có thể refetch và
-                // scroll đến form khung giờ
                 throw new BookingValidationException(
                         BookingValidationException.TIME_SLOT_FULL,
                         "Khung giờ vừa được đặt bởi khách khác. Vui lòng làm mới trang và chọn khung giờ khác.",
@@ -532,6 +612,7 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setPaymentMethod(BookingPaymentMethodEnum.CASH.name());
         booking.setCustomerPhone(request.customerPhone());
         booking.setCustomerEmail(request.customerEmail());
+        booking.setBookingStartDate(LocalDateTime.now());
 
         // Gắn user (guest hoặc customer) dựa trên thông tin liên hệ
         fpt.teddypet.domain.entity.User user = ensureUserForBooking(request);
@@ -618,9 +699,8 @@ public class BookingClientApplicationService implements BookingClientService {
                     }
                 }
             }
-            if (svcRequest.timeSlotId() != null) {
-                entity.setTimeSlotId(svcRequest.timeSlotId());
-            }
+            // Ghi chú: timeSlotId KHÔNG được set ở đây nữa.
+            // Thay vào đó, TimeSlotBooking record sẽ được tạo sau khi lưu BookingPetService
         }
 
         entity.setStatus("PENDING");
