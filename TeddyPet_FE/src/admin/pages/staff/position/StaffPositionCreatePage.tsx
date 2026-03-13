@@ -1,4 +1,5 @@
 import { Box, Button, Stack, TextField } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
 import { useCreateStaffPosition } from './hooks/useStaffPosition';
@@ -13,6 +14,7 @@ interface PositionFormValues {
 }
 
 export const StaffPositionCreatePage = () => {
+    const navigate = useNavigate();
     const { control, handleSubmit } = useForm<PositionFormValues>({
         defaultValues: { code: '', name: '', description: '' },
     });
@@ -25,7 +27,7 @@ export const StaffPositionCreatePage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo chức vụ thành công');
-                        window.location.href = `/${prefixAdmin}/staff/position/list`;
+                        navigate(`/${prefixAdmin}/staff/position/list`);
                     } else toast.error(res?.message ?? 'Có lỗi');
                 },
                 onError: (err: any) => {
@@ -118,7 +120,7 @@ export const StaffPositionCreatePage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/position/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/position/list`)}
                             >
                                 Hủy
                             </Button>

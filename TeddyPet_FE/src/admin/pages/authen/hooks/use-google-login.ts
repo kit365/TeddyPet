@@ -59,7 +59,8 @@ export const useGoogleLogin = () => {
 
             if (fullUserData.mustChangePassword) {
                 toast.info("Vui lòng thiết lập mật khẩu lần đầu.");
-                setTimeout(() => navigate("/admin/setup-password"), 100);
+                // Use a smaller timeout or navigate immediately to avoid being preempted
+                navigate("/admin/setup-password", { replace: true });
                 return;
             }
 

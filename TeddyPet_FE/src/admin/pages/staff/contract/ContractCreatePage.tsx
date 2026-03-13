@@ -1,4 +1,5 @@
 import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
 import { useCreateContract } from '../hooks/useContract';
@@ -24,6 +25,7 @@ const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string }[] = [
 ];
 
 export const ContractCreatePage = () => {
+    const navigate = useNavigate();
     const { data: profiles = [] } = useStaffProfiles();
     const { control, handleSubmit, watch, setValue } = useForm<FormValues>({
         defaultValues: {
@@ -78,7 +80,7 @@ export const ContractCreatePage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo hợp đồng thành công');
-                        window.location.href = `/${prefixAdmin}/staff/contract/list`;
+                        navigate(`/${prefixAdmin}/staff/contract/list`);
                     } else toast.error(res?.message ?? 'Có lỗi');
                 },
                 onError: (err: any) => {
@@ -231,7 +233,7 @@ export const ContractCreatePage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/contract/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
                             >
                                 Hủy
                             </Button>

@@ -23,7 +23,7 @@ export const removeFromGoogleWhitelist = async (email: string): Promise<{ succes
     return response.data;
 };
 
-export const verifyInvitation = async (token: string): Promise<{ success: boolean; message: string; data: GoogleWhitelist }> => {
+export const verifyInvitation = async (token: string): Promise<{ success: boolean; message: string; data: { token: string; refreshToken: string; mustChangePassword: boolean } }> => {
     const response = await apiApp.post(`/api/auth/google/whitelist/verify-invitation?token=${token}`);
     return response.data;
 };

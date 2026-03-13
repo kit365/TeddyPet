@@ -1,6 +1,7 @@
 package fpt.teddypet.presentation.controller;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.TokenResponse;
 import fpt.teddypet.application.port.output.AdminGoogleWhitelistPort;
 import fpt.teddypet.domain.entity.AdminGoogleWhitelist;
 import fpt.teddypet.domain.entity.User;
@@ -76,26 +77,10 @@ public class GoogleAuthWhitelistController {
     }
 
     @PostMapping("/verify-invitation")
-    @Operation(summary = "Xác nhận lời mời", description = "Dành cho người dùng nhận được email mời. Token sẽ hợp lệ trong 1 ngày.")
-    public ResponseEntity<ApiResponse<AdminGoogleWhitelist>> verifyInvitation(@RequestParam String token) {
-        AdminGoogleWhitelist whitelist = whitelistPort.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Mã mời không tồn tại hoặc đã bị hủy."));
-
-        if (whitelist.getTokenExpiredAt().isBefore(java.time.LocalDateTime.now())) {
-            whitelist.setStatus("EXPIRED");
-            whitelistPort.save(whitelist);
-            throw new IllegalArgumentException("Lời mời này đã quá hạn (24 giờ). Vui lòng yêu cầu Admin gửi lại.");
-        }
-
-        if ("ACCEPTED".equals(whitelist.getStatus())) {
-            return ResponseEntity.ok(ApiResponse.success("Lời mời này đã được chấp nhận trước đó.", whitelist));
-        }
-
-        whitelist.setStatus("ACCEPTED");
-        whitelist.setConfirmedAt(java.time.LocalDateTime.now());
-        whitelistPort.save(whitelist);
-
-        return ResponseEntity.ok(ApiResponse.success("Chấp nhận lời mời thành công!", whitelist));
+    @Operation(summary = "Xác nhận lời mời", description = "Dành cho người dùng nhận được email mời. Trả về Token để vào thẳng trang đổi mật khẩu.")
+    public ResponseEntity<ApiResponse<TokenResponse>> verifyInvitation(@RequestParam String token) {
+        TokenResponse response = authService.verifyInvitationForToken(token);
+        return ResponseEntity.ok(ApiResponse.success("Xác nhận mã mời thành công!", response));
     }
 
     @PostMapping("/resend-invitation")

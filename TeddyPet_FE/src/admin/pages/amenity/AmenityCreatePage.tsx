@@ -11,6 +11,7 @@ import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFi
 import { getServiceTheme } from '../service/configs/theme';
 import { prefixAdmin } from '../../constants/routes';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface FormValues {
     categoryId: number | '';
@@ -22,6 +23,7 @@ interface FormValues {
 }
 
 export const AmenityCreatePage = () => {
+    const navigate = useNavigate();
     const [expanded, setExpanded] = useState(true);
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
@@ -58,7 +60,7 @@ export const AmenityCreatePage = () => {
                 onSuccess: (res) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo tiện nghi thành công');
-                        window.location.href = `/${prefixAdmin}/amenity/list`;
+                        navigate(`/${prefixAdmin}/amenity/list`);
                     } else toast.error((res as { message?: string })?.message);
                 },
             }

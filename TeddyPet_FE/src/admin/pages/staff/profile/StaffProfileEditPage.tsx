@@ -1,5 +1,5 @@
-import { useParams } from 'react-router-dom';
-import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
 import { useStaffProfileById, useUpdateStaffProfile, useProvisionAccount } from '../hooks/useStaffProfile';
@@ -10,6 +10,10 @@ import { useEffect, useState } from 'react';
 import { useStaffPositions } from '../position/hooks/useStaffPosition';
 import type { IStaffProfileUpdateRequest, GenderEnum, EmploymentTypeEnum } from '../../../api/staffProfile.api';
 import type { IAccountProvisionRequest } from '../../../api/staffProfile.api';
+
+import { useQuery } from '@tanstack/react-query';
+import { getMe } from '../../../../api/auth.api';
+import { MeResponse } from '../../../../types/auth.type';
 
 const GENDER_OPTIONS: { value: GenderEnum; label: string }[] = [
     { value: 'MALE', label: 'Nam' },
@@ -26,6 +30,7 @@ type FormValues = IStaffProfileUpdateRequest;
 
 export const StaffProfileEditPage = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { data: res } = useStaffProfileById(id);
     const profile = (res as any)?.data;
     const [showAccountForm, setShowAccountForm] = useState(false);
@@ -75,6 +80,9 @@ export const StaffProfileEditPage = () => {
     const { data: positions = [] } = useStaffPositions();
     const { mutate: update, isPending } = useUpdateStaffProfile();
     const { mutate: provision, isPending: isProvisioning } = useProvisionAccount();
+
+    const { data: meRes } = useQuery<MeResponse>({ queryKey: ["me-admin"], queryFn: () => getMe() });
+    const isSuperAdmin = meRes?.data?.role === 'SUPER_ADMIN';
 
     const onSubmit = (data: FormValues) => {
         if (!id) return;
@@ -267,7 +275,7 @@ export const StaffProfileEditPage = () => {
                         )}
                     />
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
-                            <Button type="button" variant="outlined" onClick={() => (window.location.href = `/${prefixAdmin}/staff/profile/list`)}>
+                            <Button type="button" variant="outlined" onClick={() => navigate(`/${prefixAdmin}/staff/profile/list`)}>
                                 Hủy
                             </Button>
                             <Button type="submit" variant="contained" disabled={isPending}>

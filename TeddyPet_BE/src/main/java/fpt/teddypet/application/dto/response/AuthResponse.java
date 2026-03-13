@@ -11,6 +11,7 @@ public record AuthResponse(
         String firstName,
         String lastName,
         String role,
-        LocalDateTime expiresAt
+        LocalDateTime expiresAt,
+        Boolean mustChangePassword
 ) {
 }

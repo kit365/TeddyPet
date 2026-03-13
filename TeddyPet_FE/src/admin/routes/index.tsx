@@ -220,10 +220,10 @@ export const AdminRoutes: RouteObject[] = [
             </RoleRouteGuard>
         ),
     },
+    { path: "setup-password", element: <SetupPasswordPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [
     { path: "auth/login", element: <LoginPage /> },
     { path: "auth/accept-invitation", element: <AcceptInvitationPage /> },
-    { path: "setup-password", element: <SetupPasswordPage /> },
 ];
