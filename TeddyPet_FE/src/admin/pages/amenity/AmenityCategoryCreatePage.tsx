@@ -9,6 +9,7 @@ import { SwitchButton } from '../../components/ui/SwitchButton';
 import { getServiceTheme } from '../service/configs/theme';
 import { prefixAdmin } from '../../constants/routes';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface FormValues {
     categoryName: string;
@@ -19,6 +20,7 @@ interface FormValues {
 }
 
 export const AmenityCategoryCreatePage = () => {
+    const navigate = useNavigate();
     const [expanded, setExpanded] = useState(true);
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
@@ -48,7 +50,7 @@ export const AmenityCategoryCreatePage = () => {
                 onSuccess: (res) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo danh mục thành công');
-                        window.location.href = `/${prefixAdmin}/amenity-category/list`;
+                        navigate(`/${prefixAdmin}/amenity-category/list`);
                     } else toast.error((res as { message?: string })?.message);
                 },
             }

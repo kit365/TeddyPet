@@ -4,6 +4,9 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import { LogoAdmin } from "../../../assets/admin/logo";
 import { adminTheme } from "../../config/theme";
+import { getMe } from "../../../api/auth.api";
+import Cookies from "js-cookie";
+import { useAuthStore } from "../../../stores/useAuthStore";
 import { verifyInvitation } from "../../api/google-whitelist.api";
 
 export const AcceptInvitationPage = () => {
@@ -12,7 +15,6 @@ export const AcceptInvitationPage = () => {
     const token = searchParams.get("token");
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState("Đang xác thực mã mời của bạn...");
-
     useEffect(() => {
         const verify = async () => {
             if (!token) {
@@ -23,22 +25,39 @@ export const AcceptInvitationPage = () => {
 
             try {
                 const res = await verifyInvitation(token);
-                if (res.success) {
-                    setStatus('success');
-                    setMessage("Xác nhận lời mời thành công! Bây giờ bạn có thể đăng nhập bằng Google.");
-                    toast.success("Xác nhận thành công!");
+                if (res.success && res.data) {
+                    const { token: accessToken, refreshToken, mustChangePassword } = res.data;
+                    
+                    // 1. Get user details with the new token
+                    const meRes = await getMe(accessToken);
+                    if (meRes.success && meRes.data) {
+                        // 2. Clear old cookies and set new ones
+                        Cookies.set("tokenAdmin", accessToken, { expires: 1 });
+                        if (refreshToken) Cookies.set("refreshTokenAdmin", refreshToken, { expires: 7 });
+
+                        // 3. Sync to AuthStore
+                        const fullUserData = { ...meRes.data, mustChangePassword };
+                        useAuthStore.getState().adminLoginSync(fullUserData as any, accessToken);
+
+                        // 4. Redirect immediately to setup password
+                        toast.success("Xác thực thành công! Vui lòng thiết lập mật khẩu của bạn.");
+                        navigate("/admin/setup-password", { replace: true });
+                    } else {
+                        throw new Error("Không thể tải thông tin người dùng.");
+                    }
                 } else {
                     setStatus('error');
                     setMessage(res.message || "Xác thực mã mời thất bại.");
                 }
             } catch (error: any) {
+                console.error("Verification error:", error);
                 setStatus('error');
                 setMessage(error.message || "Đã xảy ra lỗi khi xác thực mã mời.");
             }
         };
 
         verify();
-    }, [token]);
+    }, [token, navigate]);
 
     return (
         <ThemeProvider theme={adminTheme}>
@@ -69,28 +88,7 @@ export const AcceptInvitationPage = () => {
                             </>
                         )}
 
-                        {status === 'success' && (
-                            <>
-                                <Box sx={{ mb: 4, fontSize: '64px' }}>🎉</Box>
-                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Chào mừng bạn!</Typography>
-                                <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-                                    Bạn đã chính thức trở thành một phần của đội ngũ quản trị TeddyPet.
-                                </Typography>
-                                <Button
-                                    variant="contained"
-                                    fullWidth
-                                    onClick={() => navigate("/admin/auth/login")}
-                                    sx={{
-                                        py: 1.5,
-                                        fontWeight: 700,
-                                        bgcolor: "#1C252E",
-                                        '&:hover': { bgcolor: "#454F5B" }
-                                    }}
-                                >
-                                    Đăng nhập ngay
-                                </Button>
-                            </>
-                        )}
+                        {status === 'success' && null}
 
                         {status === 'error' && (
                             <>

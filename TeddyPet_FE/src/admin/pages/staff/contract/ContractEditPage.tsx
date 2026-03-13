@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
@@ -26,6 +26,7 @@ interface FormValues {
 
 export const ContractEditPage = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { data: res } = useContractById(id ? Number(id) : null);
     const contract = (res as any)?.data;
     const { data: profiles = [] } = useStaffProfiles();
@@ -169,7 +170,7 @@ export const ContractEditPage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/contract/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
                             >
                                 Hủy
                             </Button>

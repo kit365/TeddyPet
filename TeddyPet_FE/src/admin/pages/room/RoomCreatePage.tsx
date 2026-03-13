@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState } from 'react';
@@ -14,8 +14,10 @@ import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFi
 import { getServiceTheme } from '../service/configs/theme';
 import { prefixAdmin } from '../../constants/routes';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 export const RoomCreatePage = () => {
+    const navigate = useNavigate();
     const [expandedBasic, setExpandedBasic] = useState(true);
     const [expandedAmenitiesNotes, setExpandedAmenitiesNotes] = useState(true);
     const theme = useTheme();
@@ -64,7 +66,7 @@ export const RoomCreatePage = () => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo phòng thành công');
                         const id = (res as any)?.data?.roomId;
-                        if (id) window.location.href = `/${prefixAdmin}/room/edit/${id}`;
+                        if (id) navigate(`/${prefixAdmin}/room/edit/${id}`);
                     } else toast.error((res as any)?.message);
                 },
             }

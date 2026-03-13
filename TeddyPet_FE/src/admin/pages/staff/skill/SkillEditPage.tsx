@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button, Stack, TextField } from '@mui/material';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
@@ -16,6 +16,7 @@ interface SkillFormValues {
 
 export const SkillEditPage = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { data: res } = useSkillById(id);
     const skillData = (res as { data?: { code?: string; name?: string; description?: string } })?.data;
 
@@ -124,7 +125,7 @@ export const SkillEditPage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/skill/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/skill/list`)}
                             >
                                 Hủy
                             </Button>

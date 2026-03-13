@@ -16,7 +16,7 @@ export const AdminGuard = () => {
 
     const { data: meRes, isLoading, isError } = useQuery({
         queryKey: ["me-admin", tokenAdmin],
-        queryFn: () => getMe(),
+        queryFn: () => getMe(tokenAdmin),
         enabled: !!tokenAdmin,
         retry: false,
     });
@@ -56,7 +56,9 @@ export const AdminGuard = () => {
         return <Navigate to={to} replace />;
     }
 
-    if (meRes.data.mustChangePassword) {
+    const isSetupPasswordPage = window.location.pathname.includes("/admin/setup-password");
+
+    if (meRes.data.mustChangePassword && !isSetupPasswordPage) {
         return <Navigate to="/admin/setup-password" replace />;
     }
 

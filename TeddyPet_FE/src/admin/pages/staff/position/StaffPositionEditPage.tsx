@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button, Stack, TextField } from '@mui/material';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
@@ -16,6 +16,7 @@ interface PositionFormValues {
 
 export const StaffPositionEditPage = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { data: res } = useStaffPositionById(id);
     const positionData = (res as { data?: { code?: string; name?: string; description?: string } })?.data;
 
@@ -146,7 +147,7 @@ export const StaffPositionEditPage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/position/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/position/list`)}
                             >
                                 Hủy
                             </Button>

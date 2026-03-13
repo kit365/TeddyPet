@@ -115,7 +115,8 @@ public class AuthApplicationService implements AuthService {
                 user.getFirstName(),
                 user.getLastName(),
                 roleName,
-                expiresAt);
+                expiresAt,
+                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
     }
 
     @Override
@@ -274,7 +275,10 @@ public class AuthApplicationService implements AuthService {
         jwtTokenProviderPort.saveRefreshToken(user.getEmail(), refreshToken);
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        Boolean mustChange = user.getMustChangePassword() != null ? user.getMustChangePassword() : false;
+        
+        // Ensure mustChangePassword is never null in our response
+        Boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
+        
         return new TokenResponse(token, refreshToken, expiresAt, mustChange);
     }
 
@@ -382,9 +386,15 @@ public class AuthApplicationService implements AuthService {
             user.setStatus(UserStatusEnum.ACTIVE);
             
             // Cập nhật role mới nhất từ whitelist
-            user.setRole(roleService.findByName(assignedRole));
+            Role newRole = roleService.findByName(assignedRole);
+            user.setRole(newRole);
             
-            userService.save(user);
+            // Respect user's wish: if already exists, don't force change unless already set
+            if (user.getMustChangePassword() == null) {
+                user.setMustChangePassword(false);
+            }
+            
+            user = userService.save(user);
         } else {
             log.info("[AuthService] Tạo người dùng mới từ Google: {} với quyền: {}", email, assignedRole);
             Role role = roleService.findByName(assignedRole);
@@ -398,9 +408,9 @@ public class AuthApplicationService implements AuthService {
                     .avatarUrl(avatarUrl)
                     .status(UserStatusEnum.ACTIVE)
                     .role(role)
-                    .mustChangePassword(true)
+                    .mustChangePassword(true) // Force setup for completely new accounts
                     .build();
-            userService.save(user);
+            user = userService.save(user);
         }
 
         return generateTokenResponse(user);
@@ -476,7 +486,7 @@ public class AuthApplicationService implements AuthService {
                 user.getCreatedAt(),
                 user.getStatus(),
                 user.getRole().getName(),
-                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
+                Boolean.TRUE.equals(user.getMustChangePassword()));
     }
 
     @Override
@@ -788,6 +798,61 @@ public class AuthApplicationService implements AuthService {
                 AuthMessages.MESSAGE_EMAIL_CHANGE_SUCCESS,
                 resendCooldownSeconds,
                 LocalDateTime.now().plusSeconds(resendCooldownSeconds));
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse verifyInvitationForToken(String token) {
+        log.info("[AuthService] Đang xác thực mã mời: {}", token);
+        
+        fpt.teddypet.domain.entity.AdminGoogleWhitelist whitelist = adminGoogleWhitelistPort.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Mã mời không tồn tại hoặc đã bị hủy."));
+
+        if (whitelist.getTokenExpiredAt().isBefore(LocalDateTime.now())) {
+            whitelist.setStatus("EXPIRED");
+            adminGoogleWhitelistPort.save(whitelist);
+            throw new IllegalArgumentException("Lời mời này đã quá hạn (24 giờ). Vui lòng yêu cầu Admin gửi lại.");
+        }
+
+        if ("ACCEPTED".equals(whitelist.getStatus())) {
+            // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
+            User existingUser = userService.getByEmail(whitelist.getEmail());
+            return generateTokenResponse(existingUser);
+        }
+
+        // Đánh dấu đã xác nhận
+        whitelist.setStatus("ACCEPTED");
+        whitelist.setConfirmedAt(LocalDateTime.now());
+        adminGoogleWhitelistPort.save(whitelist);
+
+        // Tìm hoặc tạo User tương ứng
+        User user;
+        if (userService.existsByEmail(whitelist.getEmail())) {
+            user = userService.getByEmail(whitelist.getEmail());
+            // Cập nhật role từ whitelist
+            user.setRole(roleService.findByName(whitelist.getRole()));
+        } else {
+            // Tạo User mới hoàn toàn
+            Role role = roleService.findByName(whitelist.getRole());
+            user = User.builder()
+                    .email(whitelist.getEmail())
+                    .username(whitelist.getEmail())
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .firstName(formatName(whitelist.getEmail().split("@")[0]))
+                    .lastName("Staff")
+                    .status(UserStatusEnum.ACTIVE)
+                    .role(role)
+                    .build();
+        }
+        
+        // Luôn ép đổi mật khẩu cho luồng mời qua Email này
+        user.setMustChangePassword(true);
+        user = userService.save(user);
+
+        log.info("[AuthService] Xác thực mã mời thành công cho: {}", whitelist.getEmail());
+        
+        // Trả về Token để tự động đăng nhập tạm thời
+        return generateTokenResponse(user);
     }
 
     @Override

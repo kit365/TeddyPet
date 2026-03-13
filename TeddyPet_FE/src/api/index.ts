@@ -28,8 +28,8 @@ apiApp.interceptors.request.use(
         const token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
 
 
-        // Only add authorization header if token exists and it's not a public API that should work without auth
-        if (token) {
+        // Only add authorization header if token exists and it's not already set
+        if (token && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

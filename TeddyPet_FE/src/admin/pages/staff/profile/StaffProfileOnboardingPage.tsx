@@ -5,11 +5,11 @@ import { useCreateStaffOnboarding } from '../hooks/useStaffProfile';
 import { useForm, Controller } from 'react-hook-form';
 import { prefixAdmin } from '../../../constants/routes';
 import { toast } from 'react-toastify';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useStaffPositions } from '../position/hooks/useStaffPosition';
 import type { IStaffOnboardingRequest, GenderEnum, EmploymentTypeEnum } from '../../../api/staffProfile.api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMe } from '../../../../api/auth.api';
 import { MeResponse } from '../../../../types/auth.type';
 
@@ -62,11 +62,13 @@ export const StaffProfileOnboardingPage = () => {
             }));
         }
     }, [prefilledEmail, prefilledFullName, prefilledPhone, reset]);
+
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { data: positions = [] } = useStaffPositions();
     const { mutate: create, isPending } = useCreateStaffOnboarding();
     const { data: meRes } = useQuery<MeResponse>({ queryKey: ["me-admin"], queryFn: () => getMe() });
     const isSuperAdmin = meRes?.data?.role === 'SUPER_ADMIN';
-    // const isAdmin = meRes?.data?.role === 'ADMIN'; 
 
     const onSubmit = (data: FormValues) => {
         create(
@@ -91,10 +93,20 @@ export const StaffProfileOnboardingPage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo hồ sơ thành công');
+                        
+                        // Invalidate both profiles and whitelist
+                        queryClient.invalidateQueries({ queryKey: ['staff-profiles'] });
+                        queryClient.invalidateQueries({ queryKey: ['google-whitelist'] });
+
                         const staffId = res?.data?.staffId;
-                        if (staffId) window.location.href = `/${prefixAdmin}/staff/profile/edit/${staffId}`;
-                        else window.location.href = `/${prefixAdmin}/staff/profile/list`;
-                    } else toast.error(res?.message ?? 'Có lỗi');
+                        if (staffId) {
+                            navigate(`/${prefixAdmin}/staff/profile/edit/${staffId}`);
+                        } else {
+                            navigate(`/${prefixAdmin}/staff/profile/list`);
+                        }
+                    } else {
+                        toast.error(res?.message ?? 'Có lỗi');
+                    }
                 },
                 onError: (err: any) => {
                     let msg = err?.response?.data?.message ?? err?.message ?? 'Có lỗi khi tạo hồ sơ.';
@@ -295,7 +307,7 @@ export const StaffProfileOnboardingPage = () => {
                         <Button
                             type="button"
                             variant="outlined"
-                            onClick={() => (window.location.href = `/${prefixAdmin}/staff/profile/list`)}
+                            onClick={() => navigate(`/${prefixAdmin}/staff/profile/list`)}
                         >
                             Hủy
                         </Button>
