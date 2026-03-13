@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.controller;
 import fpt.teddypet.application.constants.auth.AuthMessages;
 import fpt.teddypet.application.constants.auth.PasswordResetMessages;
 import fpt.teddypet.application.dto.request.auth.ForgotPasswordRequest;
+import fpt.teddypet.application.dto.request.auth.GoogleLoginRequest;
 import fpt.teddypet.application.dto.request.auth.LoginRequest;
 import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
@@ -155,6 +156,20 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> guestLoginWithOtp(@Valid @RequestBody VerifyOtpRequest request) {
         TokenResponse response = authService.loginWithOtpForEmail(request.email(), request.otpCode());
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập OTP thành công.", response));
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Đăng nhập bằng Google", description = "Xác thực Id Token từ Google và trả về access/refresh token.")
+    public ResponseEntity<ApiResponse<TokenResponse>> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        TokenResponse response = authService.loginWithGoogle(request.idToken());
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập Google thành công.", response));
+    }
+
+    @PostMapping("/setup-password")
+    @Operation(summary = "Thiết lập mật khẩu khởi tạo", description = "Thiết lập mật khẩu lần đầu cho các tài khoản đăng nhập qua mạng xã hội (buộc phải có cờ mustChangePassword = true).")
+    public ResponseEntity<ApiResponse<Void>> setupInitialPassword(@Valid @RequestBody fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request) {
+        authService.setupInitialPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Thiết lập mật khẩu thành công."));
     }
 
 }

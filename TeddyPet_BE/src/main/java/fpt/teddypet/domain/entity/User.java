@@ -75,6 +75,10 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
 
+    @Column(name = "must_change_password")
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     @ToString.Exclude

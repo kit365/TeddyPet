@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/response/wishlist/wishlist_response.dart';
 import '../../../presentation/providers/wishlist/wishlist_provider.dart';
@@ -204,21 +205,28 @@ class _WishlistPageState extends State<WishlistPage> {
   }
 
   Widget _buildWishlistCard(WishlistResponse item, WishlistProvider provider) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return InkWell(
+      onTap: () => Navigator.pushNamed(
+        context,
+        AppRoutes.productDetail,
+        arguments: item.product.slug,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Image
           Expanded(
             child: Container(
@@ -304,7 +312,8 @@ class _WishlistPageState extends State<WishlistPage> {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

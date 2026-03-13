@@ -5,10 +5,12 @@ import { StatusHeader } from "../../../components/staff/dashboard/StatusHeader";
 import { CareTaskList } from "../../../components/staff/dashboard/CareTaskList";
 import { SpaTaskList } from "../../../components/staff/dashboard/SpaTaskList";
 import type { EmployeeTask, EmployeeUser } from "../../../types/employeeDashboard";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../../api/staffProfile.api";
 import { CheckSquare, Plus } from "lucide-react";
 import { toast } from "react-toastify";
+import { getStaffStats } from "../../../api/dashboard.api";
+import { useEffect } from "react";
 
 const mockTasks: EmployeeTask[] = [
     {
@@ -94,6 +96,24 @@ export const EmployeeDashboardPage = () => {
         initialTasks: mockTasks,
     });
 
+    const queryClient = useQueryClient();
+
+    const { data: staffStatsRes } = useQuery({
+        queryKey: ["staff-dashboard-stats"],
+        queryFn: getStaffStats,
+    });
+    const staffStats = staffStatsRes?.data;
+
+    useEffect(() => {
+        const handleRealtimeUpdate = (event: any) => {
+            console.log("🔥 Staff dashboard real-time update triggered!", event.detail);
+            queryClient.setQueryData(["staff-dashboard-stats"], { success: true, data: event.detail });
+        };
+
+        window.addEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
+        return () => window.removeEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
+    }, [queryClient]);
+
     const activeTasks = [...pendingTasks, ...inProgressTasks];
     const careTasks = activeTasks.filter((t) => t.type === "CARE");
     const spaTasks = activeTasks.filter((t) => t.type === "SPA");
@@ -161,35 +181,35 @@ export const EmployeeDashboardPage = () => {
                 <section className="grid gap-4 md:grid-cols-4 mt-6">
                     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
                             <div>
-                                <p className="text-sm font-medium text-slate-500">Tổng nhiệm vụ</p>
+                                <p className="text-sm font-medium text-slate-500">Đơn cần đóng gói</p>
                                 <p className="mt-1 text-2xl font-bold text-slate-900">
-                                    {pendingTasks.length + inProgressTasks.length}
+                                    {(staffStats?.confirmedOrders ?? 0) + (staffStats?.pendingOrders ?? 0)}
                                 </p>
                             </div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-lg font-bold text-sky-600">
-                                T
+                                📦
                             </div>
                         </div>
                     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
                             <div>
-                                <p className="text-sm font-medium text-slate-500">Đang làm</p>
+                                <p className="text-sm font-medium text-slate-500">Lịch Spa hôm nay</p>
                                 <p className="mt-1 text-2xl font-bold text-emerald-700">
-                                    {inProgressTasks.length}
+                                    {staffStats?.todayBookings ?? 0}
                                 </p>
                             </div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 text-xl font-bold">
-                                ✓
+                                ✂️
                             </div>
                         </div>
                     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
                             <div>
-                                <p className="text-sm font-medium text-slate-500">Chờ xử lý</p>
-                                <p className="mt-1 text-2xl font-bold text-sky-700">
-                                    {pendingTasks.length}
+                                <p className="text-sm font-medium text-slate-500">Sản phẩm sắp hết</p>
+                                <p className="mt-1 text-2xl font-bold text-red-600">
+                                    {staffStats?.lowStockCount ?? 0}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 text-xl font-bold">
-                                ⏱
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 text-xl font-bold">
+                                ⚠️
                             </div>
                         </div>
                     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">

@@ -12,6 +12,7 @@ import { BookingPage } from "../pages/booking/Booking";
 import { BookingDetailPage } from "../pages/booking/BookingDetail";
 import { RoomDetailPage } from "../pages/booking/RoomDetailPage";
 import { BookingPaymentPlaceholderPage } from "../pages/booking/BookingPaymentPlaceholderPage";
+import { SetupPasswordPage } from "../pages/auth/SetupPassword";
 import { BookingClientDetailPage } from "../pages/booking/BookingClientDetailPage";
 import { BookingClientEditPage } from "../pages/booking/BookingClientEditPage";
 import { ServicePage } from "../pages/service/Service";
@@ -43,6 +44,7 @@ import { ForgotPasswordSuccessPage } from "../pages/auth/ForgotPasswordSuccess";
 import { RegisterSuccessPage } from "../pages/auth/RegisterSuccess";
 import { ResetPasswordEntryPage } from "../pages/auth/ResetPasswordEntry";
 import { ResetPasswordFormPage } from "../pages/auth/ResetPasswordForm";
+import { AuthCallback } from "../pages/auth/AuthCallback";
 
 export const ClientAuthRoutes: RouteObject[] = [
     { path: "/auth/register", element: <RegisterPage /> },
@@ -54,6 +56,8 @@ export const ClientAuthRoutes: RouteObject[] = [
     { path: "/verify-email", element: <VerifyEmailPage /> },
     { path: "/reset-password", element: <ResetPasswordEntryPage /> },
     { path: "/auth/reset-password-form", element: <ResetPasswordFormPage /> },
+    { path: "/auth/setup-password", element: <SetupPasswordPage /> },
+    { path: "/auth/callback", element: <AuthCallback /> },
 ];
 
 export const ClientRoutes: RouteObject[] = [

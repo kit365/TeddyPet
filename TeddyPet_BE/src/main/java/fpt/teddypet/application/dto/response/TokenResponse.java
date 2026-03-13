@@ -9,5 +9,6 @@ import java.time.LocalDateTime;
 public record TokenResponse(
                 String token,
                 String refreshToken,
-                LocalDateTime expiresAt) {
+                LocalDateTime expiresAt,
+                Boolean mustChangePassword) {
 }

@@ -18,5 +18,9 @@ export const AuthGuard = () => {
         return <Navigate to="/auth/login" replace />;
     }
 
+    if (user.mustChangePassword) {
+        return <Navigate to="/auth/setup-password" replace />;
+    }
+
     return <Outlet />;
 };

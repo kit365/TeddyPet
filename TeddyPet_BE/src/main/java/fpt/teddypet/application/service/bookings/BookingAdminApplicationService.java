@@ -15,9 +15,10 @@ import fpt.teddypet.domain.entity.BookingPetServiceItem;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import fpt.teddypet.application.service.dashboard.DashboardService;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -25,14 +26,26 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class BookingAdminApplicationService implements BookingAdminService {
 
         private final BookingRepository bookingRepository;
         private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
         private final ServiceRepositoryPort serviceRepositoryPort;
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
+        private final DashboardService dashboardService;
+
+        public BookingAdminApplicationService(
+                        BookingRepository bookingRepository,
+                        BookingPetServiceItemRepository bookingPetServiceItemRepository,
+                        ServiceRepositoryPort serviceRepositoryPort,
+                        fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
+                        @Lazy DashboardService dashboardService) {
+                this.bookingRepository = bookingRepository;
+                this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
+                this.serviceRepositoryPort = serviceRepositoryPort;
+                this.bookingDepositRepository = bookingDepositRepository;
+                this.dashboardService = dashboardService;
+        }
 
         @Override
         public List<AdminBookingListItemResponse> getAll() {
@@ -186,6 +199,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 }
 
                 bookingRepository.save(booking);
+                dashboardService.sendDashboardUpdate();
                 return toListItem(booking);
         }
 

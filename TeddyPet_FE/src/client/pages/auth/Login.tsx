@@ -5,13 +5,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useAuthStore } from "../../../stores/useAuthStore";
-import { login as loginApi } from "../../../api/auth.api";
+import { login as loginApi, loginWithGoogle } from "../../../api/auth.api";
 import { Header } from "../../components/layouts/Header";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { ArrowRight, CheckCircle, XmarkCircle } from "iconoir-react";
 import { useEffect, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { AuthSupportActions } from "../register-login/sections/AuthSupportActions";
+import { GoogleLogin } from "@react-oauth/google";
 
 const schema = z.object({
     usernameOrEmail: z
@@ -32,6 +33,7 @@ export const LoginPage = () => {
     const loginStore = useAuthStore((state) => state.login);
     const [notification, setNotification] = useState<{ success: boolean; message: string } | null>(null);
     const [showSupport, setShowSupport] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
     const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
         defaultValues: {
@@ -68,18 +70,20 @@ export const LoginPage = () => {
                 toast.success(response.message || "Đăng nhập thành công!");
                 setShowSupport(false);
 
-                const { token } = response.data;
+                const { token, refreshToken } = response.data;
 
                 // Call getMe to get full user profile
                 try {
-                    // Temporarily store token for the getMe call (if needed by interceptors, though usually handled by authStore later)
-                    // Better approach: Since we have the token, we can manually set it or ensure our API client uses it.
-                    // Cast to any to bypass initial missing field errors while we wait for getMe()
-                    loginStore(response.data as any, token); // Optimistically set initial partial data + token
+                    loginStore(response.data as any, token, refreshToken); // Optimistically set initial partial data + token
 
-                    const userResponse = await import("../../../api/auth.api").then(m => m.getMe());
+                    const { getMe } = await import("../../../api/auth.api");
+                    const userResponse = await getMe(token);
                     if (userResponse.success) {
-                        loginStore(userResponse.data, token); // Update with full profile
+                        const fullUserData = {
+                            ...userResponse.data,
+                            mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
+                        };
+                        loginStore(fullUserData, token, refreshToken); // Update with full profile
                     }
                 } catch (error) {
                     console.error("Failed to fetch user profile", error);
@@ -94,7 +98,6 @@ export const LoginPage = () => {
             const message = error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau!";
             toast.error(message);
 
-            // Chỉ hiện phần hỗ trợ nếu lỗi là do chưa xác thực email
             if (message.includes("chưa được xác thực email")) {
                 setShowSupport(true);
             }
@@ -104,6 +107,17 @@ export const LoginPage = () => {
     return (
         <>
             <Header />
+
+            {/* Global Loading Overlay for Google Login */}
+            {isGoogleLoading && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-sm animate-fadeIn">
+                    <div className="flex flex-col items-center gap-6">
+                        <div className="w-16 h-16 border-4 border-client-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-[1.8rem] font-bold text-slate-800 animate-pulse">Đang đăng nhập bằng Google...</p>
+                    </div>
+                </div>
+            )}
+
             {notification && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-fadeIn">
                     <div className="bg-white rounded-[20px] shadow-[0_10px_40px_rgba(0,0,0,0.2)] p-[40px] text-center w-[450px] relative overflow-hidden animate-slideUp">
@@ -136,98 +150,145 @@ export const LoginPage = () => {
 
             <div className="app-container my-[100px]">
                 <div className="flex items-center justify-center mx-auto max-w-[1200px]">
-                    <div className="w-[570px] h-[680px] relative z-10">
+                    <div className="w-[570px] h-[680px] relative z-10 hidden lg:block">
                         <img src="https://i.imgur.com/LZKlu0w.jpeg" alt="" className="w-full h-full object-cover rounded-[12px] shadow-lg" />
                     </div>
-                    <div className="w-[509px] ml-[-150px] relative z-20">
-                        <div className="p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[12px]" >
-                            <h3 className="text-center text-[1.875rem] font-[600] mb-[50px] text-[#333]">Đăng nhập 👋</h3>
+                    <div className="w-full lg:w-[509px] lg:ml-[-150px] relative z-20">
+                        <div className="p-[30px] md:p-[50px] bg-white shadow-[0_10px_50px_rgba(0,0,0,0.15)] rounded-[20px]" >
+                            <div className="text-center mb-[40px]">
+                                <h3 className="text-[1.875rem] font-bold text-[#333]">Chào bạn trở lại! 👋</h3>
+                                <p className="text-[0.875rem] text-[#666] mt-2 font-medium">Đăng nhập để tiếp tục chăm sóc thú cưng của bạn</p>
+                            </div>
+
                             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[20px]">
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Email</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] font-bold text-client-secondary z-10">Email</label>
                                     <Input
-                                        placeholder="Email"
+                                        placeholder="your@email.com"
                                         {...register("usernameOrEmail")}
                                         error={errors.usernameOrEmail?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
+                                        className="!rounded-[12px] !border-[#eee] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary focus:!ring-4 focus:!ring-red-50 transition-all font-medium"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
                                 <div className="relative">
-                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] text-client-secondary">Mật khẩu</label>
+                                    <label className="absolute top-[-10px] left-[15px] bg-white px-[5px] text-[0.875rem] font-bold text-client-secondary z-10">Mật khẩu</label>
                                     <Input
                                         placeholder="********"
                                         type="password"
                                         {...register("password")}
                                         error={errors.password?.message}
                                         errorColor="text-red-500"
-                                        className="!rounded-[8px] !border-[#ddd] !px-[20px] !py-[15px] !text-[0.875rem]"
+                                        className="!rounded-[12px] !border-[#eee] !px-[20px] !py-[15px] !text-[0.875rem] focus:!border-client-primary focus:!ring-4 focus:!ring-red-50 transition-all font-medium"
                                         containerClassName="!mb-0"
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-[10px]">
+                                <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center gap-[10px] group cursor-pointer">
                                         <input
                                             type="checkbox"
                                             id="rememberPassword"
                                             {...register("rememberPassword")}
-                                            className="appearance-none w-[18px] h-[18px] border border-[#d1d5db] rounded-[4px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%223%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')]"
+                                            className="appearance-none w-[20px] h-[20px] border-2 border-[#eee] rounded-[6px] bg-white checked:bg-client-primary checked:border-client-primary cursor-pointer transition-all bg-center bg-no-repeat checked:bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20strokeWidth%3D%224%22%20strokeLinecap%3D%22round%22%20strokeLinejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2220%206%209%2017%204%2012%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] group-hover:border-client-primary"
                                         />
-                                        <label htmlFor="rememberPassword" className="text-client-text text-[0.875rem] cursor-pointer select-none font-[400] text-[#555]">Nhớ mật khẩu</label>
+                                        <label htmlFor="rememberPassword" className="text-[0.875rem] cursor-pointer select-none font-bold text-[#666] group-hover:text-client-primary transition-colors">Nhớ mật khẩu</label>
                                     </div>
-                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem] font-[500]">Quên mật khẩu?</Link>
+                                    <Link to="/auth/forgot-password" className="text-client-secondary hover:text-client-primary transition-all text-[0.875rem] font-bold">Quên mật khẩu?</Link>
                                 </div>
 
                                 <button
                                     disabled={isSubmitting}
-                                    className="w-full mt-[15px] relative overflow-hidden group bg-client-primary rounded-[8px] py-[12px] font-[600] text-[0.9375rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50"
+                                    className="w-full mt-[10px] relative overflow-hidden group bg-client-primary rounded-[12px] py-[15px] font-bold text-[1rem] text-white cursor-pointer flex items-center justify-center gap-[10px] transition-all disabled:opacity-50 shadow-xl shadow-red-100 hover:shadow-red-200"
                                 >
-                                    <span className="relative z-10">{isSubmitting ? "Đang xử lý..." : "Đăng nhập"}</span>
-                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[2rem] h-[2rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />}
-                                    <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
+                                    <span className="relative z-10">{isSubmitting ? "Đang xác thực..." : "Đăng nhập ngay"}</span>
+                                    {!isSubmitting && <ArrowRight className="relative z-10 w-[1.375rem] h-[1.375rem] transition-transform duration-300 group-hover:translate-x-1" />}
+                                    <div className="absolute top-0 left-0 w-full h-full bg-slate-800 transition-transform duration-500 ease-in-out transform translate-x-[-100%] group-hover:translate-x-0 origin-left"></div>
                                 </button>
                             </form>
 
                             {showSupport && (
-                                <div className="animate-fadeIn">
+                                <div className="animate-fadeIn mt-6 bg-red-50/50 p-6 rounded-[15px] border border-red-100">
                                     <AuthSupportActions defaultEmail={usernameOrEmailValue} />
                                 </div>
                             )}
 
-                            <p className="text-center text-[#7d7b7b] mt-[25px]">
+                            <div className="text-center text-[#7d7b7b] mt-[30px] text-[0.875rem]">
                                 Bạn chưa có tài khoản?{" "}
                                 <Link
-                                    className="font-bold text-client-secondary hover:text-client-primary transition-all duration-300 ease-linear"
+                                    className="font-bold text-client-secondary hover:text-client-primary transition-all underline decoration-2 underline-offset-4"
                                     to={"/auth/register"}
                                 >
-                                    Đăng ký ngay
+                                    Tham gia ngay
                                 </Link>
-                            </p>
+                            </div>
 
-                            <p className="text-center text-client-secondary my-[20px] relative before:absolute before:content-[''] before:w-[42%] before:h-[1px] before:bg-[#eee] before:top-[12px] before:left-0 after:absolute after:content-[''] after:w-[42%] after:h-[1px] after:bg-[#eee] after:top-[12px] after:right-0">
-                                HOẶC
-                            </p>
+                            <div className="my-[30px] flex items-center gap-4">
+                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                <span className="text-[0.875rem] font-bold text-slate-400 uppercase tracking-widest">Hoặc đăng nhập với</span>
+                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                            </div>
 
                             <div className="flex flex-col gap-3">
                                 <button
                                     type="button"
                                     onClick={() => navigate("/auth/login-email")}
-                                    className="w-full py-[10px] rounded-[8px] border border-[#ddd] text-[0.875rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
+                                    className="w-full py-[10px] rounded-[12px] border border-[#ddd] text-[0.875rem] font-[600] text-client-secondary hover:bg-[#f9fafb] transition-colors"
                                 >
                                     Đăng nhập với email (không cần mật khẩu)
                                 </button>
+                                <div className="flex justify-center mt-2 w-full">
+                                    <GoogleLogin
+                                        onSuccess={async (credentialResponse) => {
+                                            if (credentialResponse.credential) {
+                                                setIsGoogleLoading(true);
+                                                try {
+                                                    const response = await loginWithGoogle(credentialResponse.credential);
+                                                    if (response.success) {
+                                                        toast.success("Đăng nhập Google thành công!");
 
-                                <div className="flex justify-center">
-                                    <Link
-                                        to={"#"}
-                                        className="flex items-center justify-center w-[40px] h-[40px] rounded-full border border-[#eee] hover:bg-[#f9f9f9] transition-all"
-                                        title="Đăng nhập bằng Google"
-                                    >
-                                        <img src="https://i.imgur.com/Z8EmTcv.png" alt="" className="w-[18px] h-[18px] object-cover" />
-                                    </Link>
+                                                        const { token, refreshToken } = response.data;
+
+                                                        // BẮT BUỘC: Lưu token vào store/cookie TRƯỚC khi gọi getMe
+                                                        loginStore(response.data as any, token, refreshToken);
+
+                                                        const { getMe } = await import("../../../api/auth.api");
+                                                        const userResponse = await getMe(token);
+
+                                                        if (userResponse.success) {
+                                                            const fullUserData = {
+                                                                ...userResponse.data,
+                                                                mustChangePassword: response.data.mustChangePassword ?? (userResponse.data as any).mustChangePassword
+                                                            };
+                                                            loginStore(fullUserData, token, refreshToken);
+
+                                                            if (fullUserData.mustChangePassword) {
+                                                                toast.info("Vui lòng thiết lập mật khẩu của bạn.");
+                                                                setTimeout(() => navigate("/auth/setup-password"), 1500);
+                                                                return;
+                                                            }
+                                                            navigate("/dashboard/profile");
+                                                        }
+                                                    }
+                                                } catch (error: any) {
+                                                    console.error("Google Login Error:", error);
+                                                    toast.error(error?.response?.data?.message || "Đăng nhập Google thất bại!");
+                                                } finally {
+                                                    setIsGoogleLoading(false);
+                                                }
+                                            }
+                                        }}
+                                        onError={() => {
+                                            toast.error("Đăng nhập Google thất bại!");
+                                        }}
+                                        useOneTap
+                                        shape="circle"
+                                        theme="outline"
+                                        text="signin_with"
+                                        width="100%"
+                                    />
                                 </div>
                             </div>
                         </div>
