@@ -31,7 +31,7 @@ import { WishlistPage } from "../pages/dashboard/Wishlist";
 import { ChangePasswordPage } from "../pages/dashboard/ChangePassword";
 import { ReviewPage } from "../pages/dashboard/Review";
 import { OrderDetailPage } from "../pages/dashboard/OrderDetail";
-import { OrderHistoryRefactored } from "../pages/dashboard/OrderHistoryRefactored";
+import { OrderHistoryPage } from "../pages/dashboard/OrderHistory";
 import { OrderInvoicePage } from "../pages/dashboard/OrderInvoice";
 import { PetsPage } from "../pages/dashboard/Pets";
 import { PetCreatePage } from "../pages/dashboard/PetCreate";
@@ -96,10 +96,10 @@ export const ClientRoutes: RouteObject[] = [
             { path: "change-password", element: <ChangePasswordPage /> },
             { path: "review", element: <ReviewPage /> },
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },
-            { path: "orders/:id", element: <OrderDetailPage /> },
+            {path: "orders/:id", element: <OrderDetailPage /> },
             { path: "order/detail/:id", element: <OrderDetailPage /> }, // Alias
-            { path: "orders", element: <OrderHistoryRefactored /> },
-            { path: "order", element: <OrderHistoryRefactored /> }, // Alias
+            { path: "orders", element: <OrderHistoryPage /> },
+            { path: "order", element: <OrderHistoryPage /> }, // Alias
             { path: "pets", element: <PetsPage /> },
             { path: "pets/create", element: <PetCreatePage /> },
             { path: "pets/edit/:id", element: <PetCreatePage /> },

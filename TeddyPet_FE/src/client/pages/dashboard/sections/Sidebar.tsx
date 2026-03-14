@@ -101,7 +101,7 @@ export const Sidebar = () => {
                         to="/dashboard/orders"
                         icon={Package}
                         label="Lịch sử đơn hàng"
-                        active={pathname.startsWith("/dashboard/order")}
+                        active={pathname === "/dashboard/orders" || (pathname.startsWith("/dashboard/order/") && !pathname.includes("v2"))}
                     />
                 </div>
 

@@ -7,11 +7,10 @@ import { toast } from "react-toastify";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { Plus, MapPin as MapPinIcon, BadgeCheck, Phone as PhoneIcon, User, MoreVertical } from "lucide-react";
-import { useState as useStateImport } from "react";
 
 // ListGroup Components
 const ListGroup = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-visible">
         {children}
     </div>
 );
@@ -148,7 +147,7 @@ export const AddressListPage = () => {
                         </ListGroupItem>
                     </ListGroup>
                 ) : (
-                    <div className="space-y-3 relative">
+                    <div className="space-y-3 pb-24">
                         {addresses.map((item) => (
                             <ListGroup key={item.id}>
                                 <ListGroupItem>
@@ -181,18 +180,17 @@ export const AddressListPage = () => {
                                         </div>
 
                                         {/* RIGHT: Actions Menu */}
-                                        <div className={`relative shrink-0 ${openMenuId === item.id ? 'z-[300]' : 'z-10'}`}>
+                                        <div className={`relative shrink-0 ${openMenuId === item.id ? 'z-[310]' : 'z-10'}`}>
                                             <button
                                                 onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-                                                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${openMenuId === item.id ? 'bg-white text-slate-700 shadow-md ring-1 ring-slate-200' : 'text-slate-600 hover:bg-slate-100'}`}
+                                                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${openMenuId === item.id ? 'bg-slate-100 text-client-primary shadow-inner' : 'text-slate-600 hover:bg-slate-100'}`}
                                             >
                                                 <MoreVertical size={16} />
                                             </button>
 
                                             {/* Dropdown Menu */}
                                             {openMenuId === item.id && (
-                                                <div className="absolute right-0 top-0 z-[310] min-w-[168px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-                                                    <div className="h-11 bg-white"></div>
+                                                <div className="absolute right-0 top-full mt-2 z-[320] min-w-[170px] rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                                     {!item.isDefault && (
                                                         <button
                                                             onClick={() => {
