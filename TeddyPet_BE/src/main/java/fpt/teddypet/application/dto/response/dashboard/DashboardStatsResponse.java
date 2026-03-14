@@ -7,6 +7,7 @@ public record DashboardStatsResponse(
         long totalOrders,
         long totalCustomers,
         long totalProducts,
+        long totalAdminAccounts,
         long pendingOrders,
         long confirmedOrders,
         long processingOrders,

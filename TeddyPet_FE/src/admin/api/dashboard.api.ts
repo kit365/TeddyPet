@@ -9,6 +9,7 @@ export interface DashboardStatsResponse {
     totalOrders: number;
     totalCustomers: number;
     totalProducts: number;
+    totalAdminAccounts: number;
     pendingOrders: number;
     confirmedOrders: number;
     processingOrders: number;
@@ -73,7 +74,82 @@ export const getPetDistribution = async () => {
     return response.data;
 };
 
-export const getServiceStatistics = async () => {
-    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/service-statistics`);
+export interface ServiceStatisticsWithComparisonResponse {
+    months: Array<{ month: string; serviceCounts: Record<string, number> }>;
+    totalThisYear: number;
+    totalLastYear: number;
+    percentChange: number;
+}
+
+export const getServiceStatistics = async (year?: number) => {
+    const response = await apiApp.get<ApiResponse<ServiceStatisticsWithComparisonResponse>>(`${BASE_PATH}/service-statistics`, {
+        params: year != null ? { year } : undefined
+    });
     return response.data;
 };
+
+export interface VisitsByRegionResponse {
+    north: number;
+    central: number;
+    south: number;
+    regions: Array<{ label: string; count: number }>;
+}
+
+export const getVisitsByRegion = async () => {
+    const response = await apiApp.get<ApiResponse<VisitsByRegionResponse>>(`${BASE_PATH}/visits-by-region`);
+    return response.data;
+};
+
+export interface CustomerGrowthResponse {
+    thisYearMonthly: number[];
+    lastYearMonthly: number[];
+    monthLabels: string[];
+}
+
+export const getCustomerGrowth = async () => {
+    const response = await apiApp.get<ApiResponse<CustomerGrowthResponse>>(`${BASE_PATH}/customer-growth`);
+    return response.data;
+};
+
+export interface TopSellingProductItem {
+    product: {
+        productId: number;
+        name: string;
+        minPrice?: number;
+        maxPrice?: number;
+        images?: Array<{ url?: string }>;
+        slug?: string;
+    };
+    quantitySold: number;
+}
+
+export const getTopSellingProducts = async (days?: number | null) => {
+    const response = await apiApp.get<ApiResponse<TopSellingProductItem[]>>(`${BASE_PATH}/top-selling-products`, {
+        params: days != null ? { days } : undefined
+    });
+    return response.data;
+};
+
+export interface RatingSummaryResponse {
+    averageScore: number;
+    totalCount: number;
+}
+
+export const getRatingSummary = async () => {
+    const response = await apiApp.get<ApiResponse<RatingSummaryResponse>>(`${BASE_PATH}/rating-summary`);
+    return response.data;
+};
+
+export interface TopStaffResponse {
+    staffId: number;
+    name: string;
+    avatarUrl?: string;
+    positionName: string;
+    completedTasksCount: number;
+}
+
+export const getTopStaff = async () => {
+    const response = await apiApp.get<ApiResponse<TopStaffResponse[]>>(`${BASE_PATH}/top-staff`);
+    return response.data;
+};
+

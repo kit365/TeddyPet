@@ -55,8 +55,13 @@ export const EcommercePage = () => {
         queryFn: () => getRevenueChart(7)
     });
 
-    const stats = statsRes?.data;
-    const chartData = chartRes?.data || [];
+    // API trả về ApiResponse<T> = { success, data: T } — unwrap để có todayRevenue, todayOrders, todayBookings
+    const stats = (statsRes != null && typeof statsRes === 'object' && 'data' in statsRes && (statsRes as { data?: unknown }).data != null)
+        ? (statsRes as { data: typeof statsRes }).data
+        : statsRes;
+    const chartData = Array.isArray((chartRes as { data?: unknown })?.data)
+        ? (chartRes as { data: unknown[] }).data
+        : (Array.isArray(chartRes) ? chartRes : []);
 
     return (
         <Box sx={{ p: 1 }}>

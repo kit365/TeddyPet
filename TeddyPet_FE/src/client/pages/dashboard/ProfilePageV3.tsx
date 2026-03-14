@@ -140,7 +140,7 @@ export const ProfilePageV3 = () => {
     }
 
     return (
-        <DashboardLayout pageTitle="Thông tin cá nhân" breadcrumbs={breadcrumbs}>
+        <DashboardLayout pageTitle="Thông tin cá nhân" breadcrumbs={breadcrumbs} isEditingProfile={editing}>
             <div className="max-w-[50rem]">
                 {/* HEADER */}
                 <div className="flex items-center justify-between gap-4 mb-[2rem]">

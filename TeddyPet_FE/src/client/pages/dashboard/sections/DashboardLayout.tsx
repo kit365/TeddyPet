@@ -6,9 +6,10 @@ interface DashboardLayoutProps {
     pageTitle: string;
     breadcrumbs: { label: string; to: string }[];
     children: React.ReactNode;
+    isEditingProfile?: boolean;
 }
 
-export const DashboardLayout = ({ pageTitle, breadcrumbs, children }: DashboardLayoutProps) => {
+export const DashboardLayout = ({ pageTitle, breadcrumbs, children, isEditingProfile }: DashboardLayoutProps) => {
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-['Be_Vietnam_Pro',sans-serif] text-slate-800 pb-20">
             <ProductBanner
@@ -20,7 +21,7 @@ export const DashboardLayout = ({ pageTitle, breadcrumbs, children }: DashboardL
 
             <div className="mb-[60px] max-w-[1400px] w-full mx-auto flex gap-8 items-start relative z-10 px-6 mt-[-110px]">
                 <div className="w-[280px] shrink-0">
-                    <Sidebar />
+                    <Sidebar isEditingProfile={isEditingProfile} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="bg-white min-h-[500px] rounded-[1.5rem] shadow-xl shadow-slate-300/10 border border-white p-6 sm:p-7 md:p-9 animate-in fade-in slide-in-from-bottom-4 duration-500">

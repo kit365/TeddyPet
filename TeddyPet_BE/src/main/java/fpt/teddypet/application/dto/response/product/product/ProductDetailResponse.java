@@ -9,6 +9,7 @@ import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
 import fpt.teddypet.application.dto.response.product.variant.ProductVariantResponse;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.domain.enums.ProductTypeEnum;
+import fpt.teddypet.domain.enums.StockStatusEnum;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -42,6 +43,7 @@ public record ProductDetailResponse(
                 String material,
                 ProductStatusEnum status,
                 ProductTypeEnum productType,
+                StockStatusEnum stockStatus,
                 boolean isActive,
                 boolean isDeleted,
                 LocalDateTime createdAt) {
