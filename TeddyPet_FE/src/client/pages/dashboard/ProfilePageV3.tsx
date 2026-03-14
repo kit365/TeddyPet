@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-    Calendar, Mail, Phone, User, VenusAndMars, Edit2, Check, X, Loader, Plus, ChevronDown
+    Calendar, Mail, Phone, User, VenusAndMars, Edit2, Check, X, Loader, Plus
 } from "lucide-react";
 
 import { DashboardLayout } from "./sections/DashboardLayout";
@@ -35,14 +35,12 @@ const showDate = (value?: string) => {
     });
 };
 
-export const ProfilePage = () => {
+export const ProfilePageV3 = () => {
     const { user, set } = useAuthStore();
 
     const [loading, setLoading] = useState(!user);
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
-    const [editButtonHovered, setEditButtonHovered] = useState(false);
-    const dateInputRef = useRef<HTMLInputElement | null>(null);
 
     const [form, setForm] = useState({
         firstName: "",
@@ -151,14 +149,7 @@ export const ProfilePage = () => {
                     {!editing ? (
                         <button
                             onClick={() => setEditing(true)}
-                            onMouseEnter={() => setEditButtonHovered(true)}
-                            onMouseLeave={() => setEditButtonHovered(false)}
                             className="inline-flex items-center gap-[0.5rem] px-[1.25rem] py-[0.7rem] bg-slate-100 text-slate-700 rounded-[0.85rem] font-semibold text-[0.9rem] hover:bg-slate-900 hover:text-white transition-all duration-200 active:scale-95"
-                            style={{
-                                backgroundColor: editButtonHovered ? "#102937" : "#FF6262",
-                                color: "#ffffff",
-                                boxShadow: editButtonHovered ? "0 10px 24px rgba(16, 41, 55, 0.25)" : "0 10px 24px rgba(255, 98, 98, 0.25)",
-                            }}
                         >
                             <Edit2 size={16} />
                             Chỉnh sửa
@@ -211,51 +202,37 @@ export const ProfilePage = () => {
                     <div className="space-y-[1.5rem]">
                         {/* NAME SECTION */}
                         <ListGroup>
-                            {editing ? (
-                                <>
-                                    <ListGroupItem>
-                                        <Field
-                                            icon={<User size={18} />}
-                                            label="Họ"
-                                            value={form.lastName}
-                                            editing={editing}
-                                            onChange={(v) => setForm(p => ({ ...p, lastName: v }))}
-                                        />
-                                    </ListGroupItem>
-                                    <ListGroupItem border>
-                                        <Field
-                                            icon={<User size={18} />}
-                                            label="Tên"
-                                            value={form.firstName}
-                                            editing={editing}
-                                            onChange={(v) => setForm(p => ({ ...p, firstName: v }))}
-                                        />
-                                    </ListGroupItem>
-                                </>
-                            ) : (
-                                <ListGroupItem>
-                                    <Field
-                                        icon={<User size={18} />}
-                                        label="Họ và tên"
-                                        value={`${form.lastName} ${form.firstName}`.trim()}
-                                        editing={false}
-                                        onChange={() => {}}
-                                    />
-                                </ListGroupItem>
-                            )}
+                            <ListGroupItem>
+                                <Field
+                                    icon={<User size={18} />}
+                                    label="Họ"
+                                    value={form.lastName}
+                                    editing={editing}
+                                    onChange={(v) => setForm(p => ({ ...p, lastName: v }))}
+                                />
+                            </ListGroupItem>
+                            <ListGroupItem border>
+                                <Field
+                                    icon={<User size={18} />}
+                                    label="Tên"
+                                    value={form.firstName}
+                                    editing={editing}
+                                    onChange={(v) => setForm(p => ({ ...p, firstName: v }))}
+                                />
+                            </ListGroupItem>
                         </ListGroup>
 
                         {/* CONTACT SECTION */}
                         <ListGroup>
                             <ListGroupItem>
-                                <div className="grid grid-cols-[auto_1fr] items-center gap-4">
-                                    <div className="flex items-center gap-[0.7rem] flex-shrink-0">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-[0.7rem]">
                                         <Mail size={16} className="text-slate-400" />
-                                        <span className="text-[0.75rem] font-bold uppercase text-slate-500 tracking-wider whitespace-nowrap">Email chính</span>
+                                        <span className="text-[0.75rem] font-bold uppercase text-slate-500 tracking-wider">Email chính</span>
                                     </div>
-                                    <div className="flex items-center gap-2 justify-end w-full max-w-[260px] min-w-[260px] ml-auto">
-                                        <span className="font-medium text-slate-800 text-[0.95rem] flex-1 text-right">{user?.email || "---"}</span>
-                                        <div className="px-[0.6rem] py-[0.3rem] bg-emerald-50 border border-emerald-200 rounded-full flex items-center gap-[0.3rem] whitespace-nowrap flex-shrink-0">
+                                    <div className="flex items-center gap-[0.6rem] text-right">
+                                        <div className="font-medium text-slate-800 text-[0.95rem]">{user?.email || "---"}</div>
+                                    <div className="px-[0.6rem] py-[0.3rem] bg-emerald-50 border border-emerald-200 rounded-full flex items-center gap-[0.3rem] whitespace-nowrap">
                                             <div className="w-[0.4rem] h-[0.4rem] bg-emerald-500 rounded-full" />
                                             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Xác minh</span>
                                         </div>
@@ -274,10 +251,10 @@ export const ProfilePage = () => {
                                             value={form.phoneNumber}
                                             onChange={(e) => setForm(p => ({ ...p, phoneNumber: e.target.value }))}
                                             placeholder="0123456789"
-                                            className="w-full max-w-[260px] min-w-[260px] ml-auto text-right outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 placeholder:font-light"
+                                            className="text-center outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full max-w-[260px] ml-auto placeholder:text-slate-300 placeholder:font-light"
                                         />
                                     ) : (
-                                        <span className={`block w-full max-w-[260px] min-w-[260px] ml-auto text-right font-medium text-slate-800 text-[0.95rem] ${form.phoneNumber ? "text-slate-800" : "text-slate-400 italic"}`}>
+                                        <span className={`text-right font-medium text-slate-800 text-[0.95rem] ${form.phoneNumber ? "text-slate-800" : "text-slate-400 italic"}`}>
                                             {form.phoneNumber || "Chưa cập nhật"}
                                         </span>
                                     )}
@@ -288,61 +265,43 @@ export const ProfilePage = () => {
                         {/* PERSONAL INFO SECTION */}
                         <ListGroup>
                             <ListGroupItem>
-                                <div className="grid grid-cols-[auto_1fr] items-stretch gap-4">
+                                <div className="grid grid-cols-[auto_1fr] items-center gap-4">
                                     <div className="flex items-center gap-[0.7rem] flex-shrink-0">
                                         <Calendar size={16} className="text-slate-400" />
                                         <span className="text-[0.75rem] font-bold uppercase text-slate-500 tracking-wider whitespace-nowrap">Ngày sinh</span>
                                     </div>
                                     {editing ? (
-                                        <div className="relative w-full max-w-[260px] min-w-[260px] ml-auto">
-                                            <input
-                                                ref={dateInputRef}
-                                                type="date"
-                                                value={form.dateOfBirth}
-                                                onChange={(e) => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
-                                                className="w-full text-right outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg pl-3 pr-10 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all [appearance:textfield] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    dateInputRef.current?.showPicker?.();
-                                                    dateInputRef.current?.focus();
-                                                }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors pointer-events-auto"
-                                            >
-                                                <Calendar size={16} />
-                                            </button>
-                                        </div>
+                                        <input
+                                            type="date"
+                                            value={form.dateOfBirth}
+                                            onChange={(e) => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                                            className="text-center outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full max-w-[260px] ml-auto"
+                                        />
                                     ) : (
-                                        <span className={`block w-full max-w-[260px] min-w-[260px] ml-auto text-right font-medium text-[0.95rem] ${form.dateOfBirth ? "text-slate-800" : "text-slate-400 italic"}`}>
+                                        <span className={`text-right font-medium text-[0.95rem] ${form.dateOfBirth ? "text-slate-800" : "text-slate-400 italic"}`}>
                                             {form.dateOfBirth ? showDate(form.dateOfBirth) : "Chưa cập nhật"}
                                         </span>
                                     )}
                                 </div>
                             </ListGroupItem>
                             <ListGroupItem border>
-                                <div className="grid grid-cols-[auto_1fr] items-stretch gap-4">
+                                <div className="grid grid-cols-[auto_1fr] items-center gap-4">
                                     <div className="flex items-center gap-[0.7rem] flex-shrink-0">
                                         <VenusAndMars size={16} className="text-slate-400" />
                                         <span className="text-[0.75rem] font-bold uppercase text-slate-500 tracking-wider whitespace-nowrap">Giới tính</span>
                                     </div>
                                     {editing ? (
-                                        <div className="relative w-full max-w-[260px] min-w-[260px] ml-auto">
-                                            <select
-                                                value={form.gender}
-                                                onChange={(e) => setForm(p => ({ ...p, gender: e.target.value as GenderValue }))}
-                                                className="w-full text-right outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg pl-3 pr-10 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer appearance-none"
-                                            >
-                                                {GENDER_OPTIONS.map((o) => (
-                                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center h-full">
-                                                <ChevronDown size={16} strokeWidth={2.5} />
-                                            </div>
-                                        </div>
+                                        <select
+                                            value={form.gender}
+                                            onChange={(e) => setForm(p => ({ ...p, gender: e.target.value as GenderValue }))}
+                                            className="text-center outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer w-full max-w-[260px] ml-auto"
+                                        >
+                                            {GENDER_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>{o.label}</option>
+                                            ))}
+                                        </select>
                                     ) : (
-                                        <span className="block w-full max-w-[260px] min-w-[260px] ml-auto text-right font-medium text-slate-800 text-[0.95rem]">
+                                        <span className="text-right font-medium text-slate-800 text-[0.95rem]">
                                             {GENDER_OPTIONS.find((x) => x.value === form.gender)?.label || "---"}
                                         </span>
                                     )}
@@ -358,7 +317,7 @@ export const ProfilePage = () => {
                                         <Calendar size={16} className="text-slate-400" />
                                         <span className="text-[0.75rem] font-bold uppercase text-slate-500 tracking-wider whitespace-nowrap">Ngày tham gia</span>
                                     </div>
-                                    <span className="block w-full max-w-[260px] min-w-[260px] ml-auto text-right font-medium text-slate-800 text-[0.95rem]">{showDate(joinedAtRaw)}</span>
+                                    <span className="text-right font-medium text-slate-800 text-[0.95rem]">{showDate(joinedAtRaw)}</span>
                                 </div>
                             </ListGroupItem>
                             <ListGroupItem border>
@@ -373,10 +332,10 @@ export const ProfilePage = () => {
                                             value={form.optionalEmail}
                                             onChange={(e) => setForm(p => ({ ...p, optionalEmail: e.target.value }))}
                                             placeholder="email.khac@gmail.com"
-                                            className="w-full max-w-[260px] min-w-[260px] ml-auto text-right outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 placeholder:font-light"
+                                            className="text-center outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full max-w-[260px] ml-auto placeholder:text-slate-300 placeholder:font-light"
                                         />
                                     ) : (
-                                        <div className="flex w-full max-w-[260px] min-w-[260px] ml-auto items-center gap-[0.5rem] text-right justify-end">
+                                        <div className="flex items-center gap-[0.5rem] text-right justify-end">
                                             <span className={`font-medium text-[0.95rem] ${form.optionalEmail ? "text-slate-800" : "text-slate-400 italic"}`}>
                                                 {form.optionalEmail || "Chưa cập nhật"}
                                             </span>
@@ -402,8 +361,7 @@ export const ProfilePage = () => {
     );
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
+// List Group Components
 const ListGroup = ({ children }: { children: React.ReactNode }) => (
     <div className="bg-white rounded-[1.25rem] border border-slate-100 shadow-sm overflow-hidden">
         {children}
@@ -411,11 +369,12 @@ const ListGroup = ({ children }: { children: React.ReactNode }) => (
 );
 
 const ListGroupItem = ({ border, children }: { border?: boolean; children: React.ReactNode }) => (
-    <div className={`px-[1rem] py-[0.8rem] ${border ? "border-t border-slate-100" : ""}`}>
+    <div className={`px-[1rem] py-[0.8rem] ${border ? "border-b border-slate-50" : ""}`}>
         {children}
     </div>
 );
 
+// Field Component (không dùng nữa nhưng giữ lại để reference)
 const Field = ({
     icon,
     label,
@@ -444,10 +403,10 @@ const Field = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full max-w-[260px] min-w-[260px] ml-auto text-right outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 placeholder:font-light"
+                className="text-center outline-none font-normal text-sm text-slate-800 bg-slate-50 border border-transparent rounded-lg px-3 py-2 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full max-w-[260px] ml-auto placeholder:text-slate-300 placeholder:font-light"
             />
         ) : (
-            <span className={`block w-full max-w-[260px] min-w-[260px] ml-auto text-right font-medium text-[0.95rem] ${value ? "text-slate-800" : "text-slate-400 italic"}`}>
+            <span className={`text-right font-medium text-[0.95rem] ${value ? "text-slate-800" : "text-slate-400 italic"}`}>
                 {value || "Chưa cập nhật"}
             </span>
         )}

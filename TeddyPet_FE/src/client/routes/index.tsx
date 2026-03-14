@@ -22,8 +22,6 @@ import { CheckoutPage } from "../pages/checkout/Checkout";
 import { CheckSuccessPage } from "../pages/checkout/CheckoutSuccess";
 import { OrderTrackingPage } from "../pages/checkout/OrderTracking";
 import { ProfilePage } from "../pages/dashboard/Profile";
-import { ProfileFreshPage } from "../pages/dashboard/ProfileFresh";
-import { AccountSettingsPage } from "../pages/dashboard/AccountSettings";
 import { OverviewPage } from "../pages/dashboard/Overview";
 import { ProfileEditPage } from "../pages/dashboard/ProfileEdit";
 import { AddressListPage } from "../pages/dashboard/AddressList";
@@ -33,9 +31,10 @@ import { WishlistPage } from "../pages/dashboard/Wishlist";
 import { ChangePasswordPage } from "../pages/dashboard/ChangePassword";
 import { ReviewPage } from "../pages/dashboard/Review";
 import { OrderDetailPage } from "../pages/dashboard/OrderDetail";
-import { OrderHistoryPage } from "../pages/dashboard/OrderHistory";
+import { OrderHistoryRefactored } from "../pages/dashboard/OrderHistoryRefactored";
 import { OrderInvoicePage } from "../pages/dashboard/OrderInvoice";
 import { PetsPage } from "../pages/dashboard/Pets";
+import { PetCreatePage } from "../pages/dashboard/PetCreate";
 import { AuthGuard } from "../components/guards/AuthGuard";
 
 import { ForgotPasswordPage } from "../pages/auth/ForgotPassword";
@@ -89,8 +88,6 @@ export const ClientRoutes: RouteObject[] = [
         element: <AuthGuard />,
         children: [
             { path: "profile", element: <ProfilePage /> },
-            { path: "profile-fresh", element: <ProfileFreshPage /> },
-            { path: "account-settings", element: <AccountSettingsPage /> },
             { path: "overview", element: <OverviewPage /> },
             { path: "profile/edit", element: <ProfileEditPage /> },
             { path: "address", element: <AddressListPage /> },
@@ -101,9 +98,11 @@ export const ClientRoutes: RouteObject[] = [
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },
             { path: "orders/:id", element: <OrderDetailPage /> },
             { path: "order/detail/:id", element: <OrderDetailPage /> }, // Alias
-            { path: "orders", element: <OrderHistoryPage /> },
-            { path: "order", element: <OrderHistoryPage /> }, // Alias
+            { path: "orders", element: <OrderHistoryRefactored /> },
+            { path: "order", element: <OrderHistoryRefactored /> }, // Alias
             { path: "pets", element: <PetsPage /> },
+            { path: "pets/create", element: <PetCreatePage /> },
+            { path: "pets/edit/:id", element: <PetCreatePage /> },
         ]
     },
 ];

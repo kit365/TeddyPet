@@ -507,7 +507,8 @@ public class AuthApplicationService implements AuthService {
                 user.getCreatedAt(),
                 user.getStatus(),
                 user.getRole().getName(),
-                Boolean.TRUE.equals(user.getMustChangePassword()));
+                Boolean.TRUE.equals(user.getMustChangePassword()),
+                user.getBackupEmail());
     }
 
     @Override

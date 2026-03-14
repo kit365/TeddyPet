@@ -19,6 +19,22 @@ export const getMyOrders = async () => {
     return response.data;
 };
 
+export const getMyOrdersPaginated = async (page: number = 0, size: number = 10, status?: string) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    if (status) params.append('status', status);
+    
+    const response = await apiApp.get<ApiResponse<{
+        content: OrderResponse[];
+        totalElements: number;
+        totalPages: number;
+        currentPage: number;
+        pageSize: number;
+    }>>(`${BASE_PATH}/my-orders?${params.toString()}`);
+    return response.data;
+};
+
 export const getMyOrderById = async (id: string) => {
     const response = await apiApp.get<ApiResponse<OrderResponse>>(`${BASE_PATH}/my-orders/${id}`);
     return response.data;

@@ -20,7 +20,7 @@ import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/or
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
 import { getShippingEstimation } from "../../api/shipping.api";
-import { CheckCircle2, ShieldCheck, Mail, Key } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -705,12 +705,12 @@ export const CheckoutPage = () => {
                                         <div
                                             key={addr.id}
                                             onClick={() => setSelectedAddressId(addr.id.toString())}
-                                            className={`relative border rounded-[20px] px-[25px] py-[18px] cursor-pointer transition-all duration-300 flex items-center gap-[20px] ${selectedAddressId === addr.id.toString()
+                                            className={`relative border rounded-[20px] px-[25px] py-[18px] cursor-pointer transition-all duration-300 flex items-start gap-[20px] ${selectedAddressId === addr.id.toString()
                                                 ? 'border-client-primary bg-client-primary/[0.03] ring-1 ring-client-primary/10 shadow-sm'
                                                 : 'border-[#eee] hover:border-gray-300 bg-white'
                                                 }`}
                                         >
-                                            <div className="shrink-0 flex items-center">
+                                            <div className="shrink-0 flex items-center pt-1">
                                                 <input
                                                     type="radio"
                                                     checked={selectedAddressId === addr.id.toString()}
@@ -718,19 +718,24 @@ export const CheckoutPage = () => {
                                                     className="appearance-none w-[20px] h-[20px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
                                                 />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-[12px] text-[1.063rem] font-bold text-client-secondary">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-[12px] text-[1.063rem] font-bold text-client-secondary mb-2">
                                                     <span className="line-clamp-1">{addr.fullName}</span>
-                                                    {addr.isDefault && <span className="shrink-0 bg-client-primary/10 text-client-primary text-[1.0rem] px-[10px] py-[3px] rounded-full font-bold uppercase tracking-tighter">Mặc định</span>}
+                                                    {addr.isDefault && (
+                                                        <div className="px-2.5 py-1 bg-emerald-500 rounded-full flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm shadow-emerald-500/20">
+                                                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Mặc định</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-[25px] mt-[6px]">
+                                                <div className="flex flex-col gap-[10px]">
                                                     <div className="flex items-center gap-[8px] text-[1.063rem] text-gray-500 font-medium">
-                                                        <Phone className="w-[1.5rem] h-[1.5rem] text-gray-400" />
+                                                        <Phone className="w-[1.5rem] h-[1.5rem] text-gray-400 shrink-0" />
                                                         {addr.phone}
                                                     </div>
-                                                    <div className="flex items-center gap-[8px] text-[1.063rem] text-gray-500 truncate flex-1">
-                                                        <MapPin className="w-[1.5rem] h-[1.5rem] text-gray-400 shrink-0" />
-                                                        <span className="truncate">{addr.address}</span>
+                                                    <div className="flex items-start gap-[8px] text-[0.95rem] text-gray-600">
+                                                        <MapPin className="w-[1.5rem] h-[1.5rem] text-gray-400 shrink-0 mt-0.5" />
+                                                        <span className="line-clamp-2 leading-normal">{addr.address}</span>
                                                     </div>
                                                 </div>
                                             </div>

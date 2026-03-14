@@ -16,6 +16,14 @@ export const FooterSub = () => {
     const [agreeNewsletter, setAgreeNewsletter] = useState(false);
     const [submittingNewsletter, setSubmittingNewsletter] = useState(false);
 
+    const [shopAddress, setShopAddress] = useState("");
+    const [shopPhone, setShopPhone] = useState("");
+    const [shopEmail, setShopEmail] = useState("");
+    const [facebookUrl, setFacebookUrl] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
+    const [appleStoreUrl, setAppleStoreUrl] = useState("");
+    const [playStoreUrl, setPlayStoreUrl] = useState("");
+
     useEffect(() => {
         const fetchShopSettings = async () => {
             try {

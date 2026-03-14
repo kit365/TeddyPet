@@ -38,10 +38,10 @@ export const StatusHeader = ({ user, onCheckIn, onCheckOut, isCheckingIn }: Prop
             : "Nhân viên Spa";
 
     return (
-        <section className="mb-6 rounded-2xl bg-emerald-50 px-5 py-4 shadow-sm md:px-7 md:py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="mb-6 rounded-2xl bg-emerald-50/50 border border-emerald-100/50 px-5 py-4 shadow-sm md:px-6 md:py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-                <div className="relative rounded-full bg-white/60 p-[3px] shadow-sm">
-                    <div className="h-12 w-12 overflow-hidden rounded-full bg-emerald-500 text-white flex items-center justify-center text-base font-semibold">
+                <div className="relative rounded-full bg-white p-[2px] shadow-sm border border-emerald-100">
+                    <div className="h-11 w-11 overflow-hidden rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">
                         {user.avatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -56,21 +56,20 @@ export const StatusHeader = ({ user, onCheckIn, onCheckOut, isCheckingIn }: Prop
                     <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-emerald-50 ${status.dotClass}`} />
                 </div>
                 <div>
-                    <p className="text-xs font-medium text-slate-500">Xin chào,</p>
-                    <p className="text-lg font-semibold text-slate-900">{user.fullName}</p>
-                    <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                        {roleLabel} •{" "}
-                        {user.employmentType === "FULL_TIME" ? "Toàn thời gian" : "Bán thời gian"}
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Nhân viên trực</p>
+                    <p className="text-base font-bold text-slate-900 leading-tight">{user.fullName}</p>
+                    <p className="mt-0.5 text-[10px] font-medium text-slate-500 uppercase tracking-tighter">
+                        {roleLabel} • {user.employmentType === "FULL_TIME" ? "Toàn thời gian" : "Bán thời gian"}
                     </p>
                 </div>
             </div>
 
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <div
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold ${status.badgeClass}`}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border ${status.badgeClass}`}
                 >
-                    <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
-                    <span>Trạng thái: {status.label}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
+                    <span>{status.label}</span>
                 </div>
 
                 <div className="flex gap-2">
@@ -79,25 +78,25 @@ export const StatusHeader = ({ user, onCheckIn, onCheckOut, isCheckingIn }: Prop
                             type="button"
                             onClick={onCheckIn}
                             disabled={isCheckingIn}
-                            className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+                            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition-colors"
                         >
-                            Check-in
+                            Điểm danh
                         </button>
                     ) : (
                         <>
                             <button
                                 type="button"
                                 disabled
-                                className="inline-flex items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                                className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-100/50 px-4 py-1.5 text-xs font-bold text-emerald-700"
                             >
-                                Đã check-in
+                                Đã điểm danh
                             </button>
                             <button
                                 type="button"
                                 onClick={onCheckOut}
-                                className="inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-white/70"
+                                className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-white hover:text-red-600 border border-transparent hover:border-red-100 transition-all"
                             >
-                                Check-out
+                                Ra ca
                             </button>
                         </>
                     )}

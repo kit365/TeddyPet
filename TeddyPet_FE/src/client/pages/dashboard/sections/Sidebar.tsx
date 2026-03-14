@@ -16,14 +16,14 @@ interface SidebarItemProps {
 const SidebarItem = ({ to, icon: Icon, label, active }: SidebarItemProps) => (
     <Link
         to={to}
-        className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[0.875rem] transition-all ${active
-            ? `bg-client-primary text-white shadow-lg shadow-red-100 translate-x-2`
+        className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-[0.75rem] transition-all ${active
+            ? `bg-client-primary text-white shadow-lg shadow-red-100/50`
             : `text-slate-500 hover:bg-slate-50 hover:text-client-primary`
             }`}
     >
-        <Icon size={20} />
-        <span className="flex-1 text-left">{label}</span>
-        {active && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>}
+        <Icon size={16} />
+        <span className="flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis leading-none">{label}</span>
+        {active && <div className="w-1 h-1 bg-white rounded-full animate-pulse flex-shrink-0"></div>}
     </Link>
 );
 
@@ -48,37 +48,37 @@ export const Sidebar = () => {
     if (!user) return null;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-2.5">
             {/* User Brief Card */}
-            <div className="bg-white rounded-[1.5625rem] shadow-xl shadow-slate-200/60 border border-white p-8 text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-client-primary to-orange-400"></div>
+            <div className="bg-white rounded-2xl shadow-lg shadow-slate-300/30 border border-slate-100 p-4 text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-client-primary to-orange-400"></div>
 
-                <div className="relative inline-block mb-6">
+                <div className="relative inline-block mb-2.5">
                     <img
                         src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                        className="w-28 h-28 rounded-[1.25rem] border-4 border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
+                        className="w-14 h-14 rounded-xl border-[3px] border-slate-50 shadow-inner bg-slate-50 p-1 object-cover"
                         alt="avatar"
                     />
-                    <label htmlFor="profile_photo" className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg hover:scale-110 transition-transform border-4 border-white cursor-pointer">
-                        <Camera size={18} />
+                    <label htmlFor="profile_photo" className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-md shadow-md hover:scale-110 transition-transform border-2 border-white cursor-pointer">
+                        <Camera size={10} />
                     </label>
                     <input type="file" id="profile_photo" hidden />
                 </div>
 
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
+                <h2 className="text-[1rem] font-black text-slate-800 tracking-tight leading-tight truncate px-2">
                     {user.lastName} {user.firstName}
                 </h2>
-                <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-widest mt-2">
+                <p className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate px-2">
                     {user.email}
                 </p>
             </div>
 
             {/* Navigation Menu */}
-            <div className="bg-white p-3 rounded-[1.5625rem] shadow-lg shadow-slate-200/40 border border-slate-100">
-                <div className="px-5 py-3">
-                    <p className="text-[0.625rem] font-black text-slate-300 uppercase tracking-[0.2em]">Tổng quan tài khoản</p>
+            <div className="bg-white p-2 rounded-2xl shadow-lg shadow-slate-300/30 border border-slate-100">
+                <div className="px-4 pt-3 pb-2">
+                    <p className="text-[0.5625rem] font-black text-slate-400/70 uppercase tracking-[0.1em] leading-tight">Tổng quan tài khoản</p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     <SidebarItem
                         to="/dashboard/profile"
                         icon={User}
@@ -95,7 +95,7 @@ export const Sidebar = () => {
                         to="/dashboard/pets"
                         icon={PawPrint}
                         label="Hồ sơ thú cưng"
-                        active={pathname === "/dashboard/pets"}
+                        active={pathname.startsWith("/dashboard/pets")}
                     />
                     <SidebarItem
                         to="/dashboard/orders"
@@ -105,12 +105,12 @@ export const Sidebar = () => {
                     />
                 </div>
 
-                <div className="h-px bg-slate-50 my-3 mx-5"></div>
+                <div className="h-px bg-slate-50 my-2 mx-4"></div>
 
-                <div className="px-5 py-3">
-                    <p className="text-[0.625rem] font-black text-slate-300 uppercase tracking-[0.2em]">Cài đặt & Bảo mật</p>
+                <div className="px-4 pt-1 pb-2">
+                    <p className="text-[0.5625rem] font-black text-slate-400/70 uppercase tracking-[0.1em] leading-tight">Tài khoản</p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     <SidebarItem
                         to="/dashboard/change-password"
                         icon={ShieldCheck}
@@ -119,10 +119,10 @@ export const Sidebar = () => {
                     />
                     <button
                         onClick={handleLogout}
-                        className="w-[94%] mx-auto flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-[0.875rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
+                        className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-[0.75rem] text-rose-500 hover:bg-rose-50 transition-all border-none cursor-pointer"
                     >
-                        <LogOut size={20} />
-                        <span className="flex-1 text-left">Đăng xuất</span>
+                        <LogOut size={16} />
+                        <span className="flex-1 text-left whitespace-nowrap">Đăng xuất</span>
                     </button>
                 </div>
             </div>

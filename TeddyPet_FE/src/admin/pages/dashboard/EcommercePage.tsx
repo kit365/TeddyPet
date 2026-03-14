@@ -248,24 +248,25 @@ export const EcommercePage = () => {
                     <CurrentBalance stats={stats} isLoading={isLoadingStats} />
                 </Grid>
 
-                {/* Top Customers & Staff Section (Cái mà bạn khen đẹp) */}
+                {/* Charts Section */}
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <TopCustomers />
+                    <PetDistribution />
                 </Grid>
 
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <TopStaff />
+                    <ServiceStatistics />
                 </Grid>
+
 
                 {/* Products Section */}
                 <Grid
@@ -286,24 +287,25 @@ export const EcommercePage = () => {
                     <TopSellingProducts />
                 </Grid>
 
-                {/* New components added at the end */}
+                {/* Top Customers & Staff Section */}
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <PetDistribution />
+                    <TopCustomers />
                 </Grid>
 
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <ServiceStatistics />
+                    <TopStaff />
                 </Grid>
+
             </Grid>
         </Box>
     );

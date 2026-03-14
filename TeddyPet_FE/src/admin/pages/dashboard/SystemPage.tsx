@@ -1,12 +1,16 @@
-﻿import { Grid, Box, Typography, Button, Divider, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Stack, Avatar, Tabs, Tab } from "@mui/material"
+import { Grid, Box, Typography, Button, Divider, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Stack, Avatar, Tabs, Tab } from "@mui/material"
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import Chart from 'react-apexcharts';
 import { Icon } from '@iconify/react';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardStats, getRevenueChart } from "../../api/dashboard.api";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import SummaryWidget from "../../components/dashboard/SummaryWidget";
 import WelcomeWidget from "../../components/dashboard/WelcomeWidget";
+import { SalesOverview } from "../../components/dashboard/ecommerce/SalesOverview";
+import { CurrentBalance } from "../../components/dashboard/ecommerce/CurrentBalance";
 
 
 const CupIcon = ({ size = 20, sx }: { size?: number, sx?: any }) => (
@@ -17,10 +21,180 @@ const CupIcon = ({ size = 20, sx }: { size?: number, sx?: any }) => (
         viewBox="0 0 24 24"
         sx={{ ...sx }}
     >
-        <path fill="currentColor" d="M22 8.162v.073c0 .86 0 1.291-.207 1.643s-.584.561-1.336.98l-.793.44c.546-1.848.729-3.834.796-5.532l.01-.221l.002-.052c.651.226 1.017.395 1.245.711c.283.393.283.915.283 1.958m-20 0v.073c0 .86 0 1.291.207 1.643s.584.561 1.336.98l.794.44c-.547-1.848-.73-3.834-.797-5.532l-.01-.221l-.001-.052c-.652.226-1.018.395-1.246.711C2 6.597 2 7.12 2 8.162" />
-        <path fill="currentColor" fillRule="evenodd" d="M12 2c1.784 0 3.253.157 4.377.347c1.139.192 1.708.288 2.184.874s.45 1.219.4 2.485c-.172 4.349-1.11 9.78-6.211 10.26V19.5h1.43a1 1 0 0 1 .98.804l.19.946H18a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1 0-1.5h2.65l.19-.946a1 1 0 0 1 .98-.804h1.43v-3.534c-5.1-.48-6.038-5.912-6.21-10.26c-.051-1.266-.076-1.9.4-2.485c.475-.586 1.044-.682 2.183-.874A26.4 26.4 0 0 1 12 2m.952 4.199l-.098-.176C12.474 5.34 12.284 5 12 5s-.474.34-.854 1.023l-.098.176c-.108.194-.162.29-.246.354c-.085.064-.19.088-.4.135l-.19.044c-.738.167-1.107.25-1.195.532s.164.577.667 1.165l.13.152c.143.167.215.25.247.354s.021.215 0 .438l-.02.203c-.076.785-.114 1.178.115 1.352c.23.174.576.015 1.267-.303l.178-.082c.197-.09.295-.135.399-.135s.202.045.399.135l.178.082c.691.319 1.037.477 1.267.303s.191-.567.115-1.352l-.02-.203c-.021-.223-.032-.334 0-.438s.104-.187.247-.354l.13-.152c.503-.588.755-.882.667-1.165c-.088-.282-.457-.365-1.195-.532l-.19-.044c-.21-.047-.315-.07-.4-.135c-.084-.064-.138-.16-.246-.354" clipRule="evenodd" />
+        <path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v6a7.99 7.99 0 0 0 6.941 7.923C9.746 19.347 11.233 20 13 20c1.867 0 3.5-.7 4.316-1.792A8.001 8.001 0 0 0 22 10V4a2 2 0 0 0-2-2m0 8a6 6 0 0 1-5.228 5.952c-.52.03-1.045.048-1.572.048s-1.052-.018-1.572-.048A6.001 6.001 0 0 1 4 10V4h16zM3.5 12h17a.5.5 0 0 1 .5.5v1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1a.5.5 0 0 1 .5-.5" />
     </Box>
 );
+
+const CurrentVisitsChart = () => {
+    const chartOptions: any = {
+        chart: { type: 'pie' },
+        labels: ['America', 'Asia', 'Europe', 'Africa'],
+        legend: {
+            position: 'bottom',
+            horizontalAlign: 'center',
+            fontSize: '13px',
+            fontWeight: 500,
+            itemMargin: { horizontal: 10, vertical: 5 },
+            markers: { radius: 12 }
+        },
+        stroke: { show: false },
+        dataLabels: {
+            enabled: true,
+            dropShadow: { enabled: false }
+        },
+        tooltip: {
+            fillSeriesColor: false,
+            y: {
+                formatter: (value: number) => `${value.toLocaleString()} visits`
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '90%',
+                    labels: {
+                        show: false
+                    }
+                }
+            }
+        },
+        colors: ['#00a76f', '#ffab00', '#004b50', '#ff5630']
+    };
+
+    const series = [18.8, 31.2, 43.7, 6.3].map(v => Math.round(v * 1000));
+
+    return (
+        <DashboardCard sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem', mb: 4 }}>
+                Current visits
+            </Typography>
+            <Box sx={{ height: 340, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Chart options={chartOptions} series={series} type="pie" width="100%" height={340} />
+            </Box>
+        </DashboardCard>
+    );
+};
+
+const WebsiteVisitsChart = () => {
+    const chartOptions: any = {
+        chart: { 
+            type: 'bar', 
+            toolbar: { show: false },
+            zoom: { enabled: false }
+        },
+        plotOptions: {
+            bar: {
+                columnWidth: '45%',
+                borderRadius: 4
+            }
+        },
+        xaxis: {
+            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: 'var(--palette-text-secondary)' }
+            }
+        },
+        grid: {
+            strokeDashArray: 3,
+            borderColor: 'var(--palette-divider)',
+            xaxis: { lines: { show: false } }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            markers: { radius: 12 }
+        },
+        colors: ['#007867', '#FFAB00'],
+        dataLabels: { enabled: false },
+        tooltip: {
+            y: {
+                formatter: (value: number) => `${value} visits`
+            }
+        }
+    };
+
+    const series = [
+        { name: 'Team A', data: [44, 33, 22, 38, 67, 68, 37, 24, 55] },
+        { name: 'Team B', data: [51, 70, 47, 67, 40, 37, 24, 70, 26] }
+    ];
+
+    return (
+        <DashboardCard sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Website visits</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--palette-success-main)' }}>(+43%)</span> than last year
+                </Typography>
+            </Box>
+            <Box sx={{ height: 320 }}>
+                <Chart options={chartOptions} series={series} type="bar" height={320} />
+            </Box>
+        </DashboardCard>
+    );
+};
+
+const CustomerGrowthChart = () => {
+    const chartOptions: any = {
+        chart: { 
+            type: 'line', 
+            toolbar: { show: false },
+            dropShadow: {
+                enabled: true,
+                color: '#000',
+                top: 18,
+                left: 7,
+                blur: 10,
+                opacity: 0.2
+            }
+        },
+        colors: ['#00a76f', '#ffab00'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 3 },
+        grid: {
+            borderColor: 'var(--palette-divider)',
+            row: { colors: ['transparent', 'transparent'], opacity: 0.5 },
+        },
+        markers: { size: 1 },
+        xaxis: {
+            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: 'var(--palette-text-secondary)' }
+            }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            offsetY: -20
+        }
+    };
+
+    const series = [
+        { name: "Tháng này", data: [28, 29, 33, 36, 32, 32, 33, 35, 40, 42, 45, 50] },
+        { name: "Tháng trước", data: [12, 11, 14, 18, 17, 13, 13, 15, 20, 22, 25, 30] }
+    ];
+
+    return (
+        <DashboardCard sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Tăng trưởng thành viên</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    So sánh lượng đăng ký mới tháng này vs tháng trước
+                </Typography>
+            </Box>
+            <Box sx={{ height: 320 }}>
+                <Chart options={chartOptions} series={series} type="line" height={320} />
+            </Box>
+        </DashboardCard>
+    );
+};
 
 const CAROUSEL_DATA = [
     {
@@ -649,14 +823,14 @@ const ServiceUsageChart = () => {
     );
 };
 
-const SystemStats = () => {
+const SystemStats = ({ stats, chartData }: any) => {
     const statsData = [
         {
             title: "Tổng người dùng",
-            total: "18,765",
+            total: stats?.totalCustomers?.toLocaleString() || "18,765",
             percent: 2.6,
             color: "#00a76f",
-            chartData: [25, 66, 41, 89, 63, 25, 44, 12]
+            chartData: chartData?.length > 0 ? chartData.map((d: any) => d.orders) : [25, 66, 41, 89, 63, 25, 44, 12]
         },
         {
             title: "Tổng tài khoản quản trị",
@@ -667,7 +841,7 @@ const SystemStats = () => {
         },
         {
             title: "Tổng thú cưng (Pets)",
-            total: "678",
+            total: stats?.totalProducts?.toLocaleString() || "678",
             percent: -0.1,
             color: "#ff5630",
             chartData: [56, 44, 32, 45, 32, 15, 25, 12]
@@ -702,6 +876,27 @@ export const SystemPage = () => {
     const { user } = useAuthStore();
     const [activeIndex, setActiveIndex] = useState(0);
 
+    const { data: statsRes } = useQuery({
+        queryKey: ["dashboard-stats"],
+        queryFn: getDashboardStats
+    });
+
+    const { data: chartRes } = useQuery({
+        queryKey: ["revenue-chart", 7],
+        queryFn: () => getRevenueChart(7)
+    });
+
+    const stats = statsRes?.data;
+    const chartData = chartRes?.data || [];
+
+    // Auto-scroll carousel
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
+
     const handleNext = () => setActiveIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
     const handlePrev = () => setActiveIndex((prev) => (prev - 1 + CAROUSEL_DATA.length) % CAROUSEL_DATA.length);
 
@@ -732,7 +927,7 @@ export const SystemPage = () => {
                 }}
             >
                 <WelcomeWidget
-                    title={`Chào mừng trở lại 👋 \n ${user?.fullName || 'Quản trị viên'}`}
+                    title={`Chào mừng trở lại 👋 \n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
                     description="Chào mừng bạn đến với hệ thống quản trị. Hãy bắt đầu quản lý các dịch vụ và đơn hàng của bạn ngay hôm nay."
                     img="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/illustrations/characters/character-present.webp"
                     bgImg="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/background/background-5.webp"
@@ -871,8 +1066,98 @@ export const SystemPage = () => {
                 </DashboardCard>
             </Grid>
 
+            {/* Ecommerce Stats Cards */}
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Sản phẩm đã bán"
+                    total={stats?.totalProducts?.toString() || "0"}
+                    percent={2.6}
+                    color="#00a76f"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Đơn hàng đặt lẻ (Bookings)"
+                    total={stats?.todayBookings?.toString() || "0"}
+                    percent={-0.1}
+                    color="#ffab00"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Tổng số đơn hàng"
+                    total={stats?.totalOrders?.toString() || "0"}
+                    percent={0.6}
+                    color="#00b8d9"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+
             {/* Stats Cards */}
-            <SystemStats />
+            <SystemStats stats={stats} chartData={chartData} />
+
+            {/* Sales & Balance Section */}
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SalesOverview stats={stats} isLoading={!stats} hideCosts />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CurrentBalance stats={stats} isLoading={!stats} hideWithdraw hideLowStock />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <WebsiteVisitsChart />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CustomerGrowthChart />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CurrentVisitsChart />
+            </Grid>
 
             {/* Advanced Charts Section */}
             <Grid
@@ -945,20 +1230,19 @@ export const SystemPage = () => {
             >
                 <Stack spacing={3}>
                     <ProgressCard
-                        title="Conversion"
-                        total="38,566"
-                        percent={48}
+                        title="Độ hài lòng (Rating)"
+                        total="4.8 / 5.0"
+                        percent={96}
                         color="#007867"
                         bgIcon={
                             <svg width="120" height="120" viewBox="0 0 24 24">
-                                <circle cx="12" cy="6" r="4" fill="currentColor"></circle>
-                                <ellipse cx="12" cy="17" fill="currentColor" rx="7" ry="4"></ellipse>
+                                <path fill="currentColor" d="m12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72l3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41l-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08z"/>
                             </svg>
                         }
                     />
                     <ProgressCard
-                        title="Applications"
-                        total="55,566"
+                        title="Tương tác người dùng"
+                        total="1,245 reviews"
                         percent={75}
                         color="var(--palette-info-dark)"
                         bgIcon={

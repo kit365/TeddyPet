@@ -25,5 +25,6 @@ public record UserProfileResponse(
         LocalDateTime createdAt,
         UserStatusEnum status,
         String role,
-        Boolean mustChangePassword) {
+        Boolean mustChangePassword,
+        String optionalEmail) {
 }
