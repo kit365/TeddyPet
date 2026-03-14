@@ -453,17 +453,17 @@ export const ProductDetailPage = () => {
                                 </div>
                                 <button
                                     onClick={handleAddToCart}
-                                    className={`bg-client-secondary flex-1 h-full rounded-[2.5rem] text-white text-[1rem] font-secondary transition-default flex items-center justify-center
-                                        ${canAddToCart && !isAddingToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary' : 'opacity-60 cursor-not-allowed'}`}
+                                    className={`bg-client-secondary flex-1 h-full rounded-[2.5rem] text-white text-[0.875rem] font-bold transition-all flex items-center justify-center
+                                        ${canAddToCart && !isAddingToCart ? 'opacity-100 cursor-pointer hover:bg-client-primary active:scale-95' : 'opacity-60 cursor-not-allowed'}`}
                                     disabled={!canAddToCart || isAddingToCart}
                                 >
                                     {isAddingToCart ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            Đang thêm...
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            ĐANG THÊM...
                                         </div>
                                     ) : (
-                                        outOfStock ? "Hết hàng" : "Thêm vào giỏ hàng"
+                                        outOfStock ? "HẾT HÀNG" : "THÊM VÀO GIỎ HÀNG"
                                     )}
                                 </button>
                                 <div
@@ -503,15 +503,15 @@ export const ProductDetailPage = () => {
                                     navigate("/checkout");
                                 }}
                                 disabled={!canAddToCart || isAddingToCart}
-                                className={`w-full text-center font-secondary h-[56px] rounded-[50px] py-[16px] block px-[30px] text-[1.25rem] text-white transition-default ${canAddToCart && !isAddingToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
+                                className={`w-full mt-[10px] text-center font-bold h-[50px] rounded-[50px] flex items-center justify-center px-[30px] text-[0.875rem] text-white transition-all ${canAddToCart && !isAddingToCart ? 'bg-client-primary hover:bg-client-secondary cursor-pointer active:scale-95' : 'bg-client-primary opacity-60 cursor-not-allowed'}`}
                             >
                                 {isAddingToCart ? (
                                     <div className="flex items-center justify-center gap-2">
-                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        Đang chuyển hướng...
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ĐANG CHUYỂN HƯỚNG...
                                     </div>
                                 ) : (
-                                    outOfStock ? "Hết hàng" : "Mua ngay"
+                                    outOfStock ? "HẾT HÀNG" : "MUA NGAY"
                                 )}
                             </button>
 

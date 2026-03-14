@@ -1,6 +1,5 @@
-﻿import { ArrowRight, MapPin, Search, Navigation } from "lucide-react";
+import { MapPin, Search, Navigation, BadgeCheck, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sidebar } from "./sections/Sidebar";
 import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,7 +7,7 @@ import L from "leaflet";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createAddress } from "../../../api/address.api";
-import { ProductBanner } from "../product/sections/ProductBanner";
+import { DashboardLayout } from "./sections/DashboardLayout";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -302,183 +301,170 @@ export const AddressCreatePage = () => {
     const breadcrumbs = [
         { label: "Trang chủ", to: "/" },
         { label: "Tài khoản", to: "/dashboard/profile" },
-        { label: "Danh sách địa chỉ", to: "/dashboard/address" },
+        { label: "Sổ địa chỉ", to: "/dashboard/address" },
         { label: "Thêm địa chỉ mới", to: `/dashboard/address/create` },
     ];
 
     return (
-        <>
-            <ProductBanner
-                pageTitle="Thêm địa chỉ mới"
-                breadcrumbs={breadcrumbs}
-                url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-shop-details.jpg"
-                className="bg-top"
-            />
-
-            <div className="mt-[-150px] mb-[100px] w-[1600px] mx-auto flex items-stretch">
-                <div className="w-[25%] px-[12px] flex">
-                    <Sidebar />
-                </div>
-                <div className="w-[75%] px-[12px]">
-                    <div className="mt-[100px] p-[35px] bg-white shadow-[0px_8px_24px_#959da533] rounded-[12px]">
-                        <h3 className="text-[1.5rem] font-[600] text-client-secondary mb-[25px] flex items-center justify-between">
+        <DashboardLayout pageTitle="Thêm địa chỉ mới" breadcrumbs={breadcrumbs}>
+            <div className="max-w-[56rem] space-y-4 animate-in fade-in duration-500">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-[1.5rem] font-bold text-slate-800 flex items-center gap-2.5">
+                            <MapPin className="text-client-primary" size={24} />
                             Thêm địa chỉ mới
-                            <Link className="relative overflow-hidden group bg-[#ffa500] rounded-[8px] px-[25px] py-[12px] font-[500] text-[0.875rem] text-white" to={"/dashboard/address"}>
-                                <span className="relative z-10">Hủy</span>
-                                <div className="absolute top-0 left-0 w-full h-full bg-[#cc8400] transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
-                            </Link>
-                        </h3>
-                        <div className="p-[25px] border border-[#eee] rounded-[10px]">
-                            <form className="space-y-[20px]" onSubmit={onSubmit}>
-                                <div className="grid grid-cols-2 gap-[25px]">
-                                    <div className="flex flex-col gap-[10px]">
-                                        <label className="text-[0.9375rem] font-[600] text-client-secondary">Họ tên người nhận</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
-                                            placeholder="Nhập họ tên"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-[10px]">
-                                        <label className="text-[0.9375rem] font-[600] text-client-secondary">Số điện thoại</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            className="border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] hover:bg-white"
-                                            placeholder="Nhập số điện thoại"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-[10px]">
-                                    <label className="text-[0.9375rem] font-[600] text-client-secondary">Địa chỉ chi tiết</label>
-                                    <div className="relative group">
-                                        <textarea
-                                            name="address"
-                                            rows={2}
-                                            className="w-full border border-[#eee] rounded-[10px] px-[20px] py-[15px] text-[0.9375rem] focus:outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-[#fcfcfc] group-hover:bg-white resize-none outline-none"
-                                            placeholder="Gõ địa chỉ hoặc chọn trên bản đồ..."
-                                            value={address}
-                                            onChange={(e) => {
-                                                isManualChange.current = true;
-                                                setAddress(e.target.value);
-                                                if (isNotFound) setIsNotFound(false);
-                                            }}
-                                        />
-                                        <div className="absolute right-[12px] top-[12px]">
-                                            <MapPin className="w-[1.125rem] h-[1.125rem] text-client-primary" />
-                                        </div>
-                                    </div>
-                                    {isNotFound && (
-                                        <p className="text-[0.8125rem] text-red-500 font-[500] mt-[10px] flex items-center gap-[6px]">
-                                            <span className="text-[1rem]">⚠️</span>
-                                            Không tìm thấy vị trí này trên bản đồ. Vui lòng kiểm tra lại địa chỉ hoặc chọn trực tiếp từ bản đồ bên dưới.
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="relative h-[450px] border border-[#eee] rounded-[16px] overflow-hidden shadow-inner group/map">
-                                    <div className="absolute top-[20px] left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[500px]">
-                                        <div className="relative flex items-center bg-white/90 backdrop-blur-md shadow-[0px_10px_30px_rgba(0,0,0,0.1)] rounded-[8px] border border-white/50 p-[5px]">
-                                            <div className="pl-[15px]">
-                                                <Search className="w-[1.125rem] h-[1.125rem] text-gray-400" />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                className="flex-1 border-none bg-transparent rounded-[8px] px-[12px] py-[10px] text-[0.875rem] focus:outline-none placeholder:text-gray-400"
-                                                placeholder="Tìm kiếm địa điểm..."
-                                                value={searchKeyword}
-                                                onChange={(e) => setSearchKeyword(e.target.value)}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleCurrentLocation}
-                                                className="p-[8px] mr-[5px] text-client-primary hover:bg-gray-100 rounded-full transition-colors"
-                                                title="Vị trí hiện tại"
-                                            >
-                                                <Navigation className="w-[1.125rem] h-[1.125rem]" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    geocodeFromAddress(searchKeyword, true);
-                                                }}
-                                                className="bg-client-secondary text-white px-[18px] py-[8px] rounded-[8px] text-[0.875rem] font-[500] hover:bg-client-primary transition-all active:scale-95"
-                                            >
-                                                Tìm kiếm
-                                            </button>
-                                        </div>
-
-                                        {showSuggestions && suggestions.length > 0 && (
-                                            <div className="absolute top-[calc(100%+10px)] left-0 w-full bg-white/95 backdrop-blur-lg border border-[#eee] rounded-[12px] shadow-[0px_15px_35px_rgba(0,0,0,0.15)] overflow-hidden">
-                                                {suggestions.map((item, index) => (
-                                                    <div
-                                                        key={index}
-                                                        onClick={() => handleSelectSuggestion(item)}
-                                                        className="px-[20px] py-[15px] hover:bg-client-primary/5 cursor-pointer border-b border-[#f5f5f5] last:border-none flex items-start gap-[12px] transition-colors"
-                                                    >
-                                                        <MapPin className="w-[1rem] h-[1rem] text-client-secondary shrink-0 mt-[2px]" />
-                                                        <div className="flex flex-col gap-[2px]">
-                                                            <span className="text-[0.875rem] font-[500] text-[#333] line-clamp-1">{item.display_name.split(',')[0]}</span>
-                                                            <span className="text-[0.75rem] text-gray-500 line-clamp-1">{item.display_name}</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <MapContainer
-                                        center={mapCenter}
-                                        zoom={15}
-                                        scrollWheelZoom={true}
-                                        style={{ height: '100%', width: '100%' }}
-                                    >
-                                        <TileLayer
-                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-                                        <LocationMarker position={position} setPosition={setPosition} onLocationSelect={fetchAddressFromCoords} />
-                                        <MapController center={mapCenter} />
-                                    </MapContainer>
-
-                                    <div className="absolute inset-0 pointer-events-none shadow-[inset_0px_0px_50px_rgba(0,0,0,0.02)] rounded-[16px]"></div>
-                                </div>
-
-                                <div className="checkbox checkbox-cart mt-[10px]">
-                                    <input
-                                        type="checkbox"
-                                        id="default_address_checkbox"
-                                        hidden
-                                        checked={isDefault}
-                                        onChange={() => setIsDefault(!isDefault)}
-                                    />
-                                    <label htmlFor="default_address_checkbox" className="text-[0.875rem] font-[500] text-[#555] cursor-pointer select-none">
-                                        Đặt làm địa chỉ mặc định
-                                    </label>
-                                </div>
-
-                                <div className="flex items-center gap-[10px] pt-[10px]">
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="relative overflow-hidden group bg-client-primary rounded-[8px] px-[30px] py-[12px] font-[500] text-[0.875rem] text-white cursor-pointer flex items-center gap-[8px] disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <span className="relative z-10">{submitting ? "Đang thêm..." : "Thêm mới địa chỉ"}</span>
-                                        <ArrowRight className="relative z-10 w-[1.125rem] h-[1.125rem] transition-transform duration-300 rotate-[-45deg] group-hover:rotate-0" />
-                                        <div className="absolute top-0 left-0 w-full h-full bg-client-secondary transition-transform duration-500 ease-in-out transform scale-x-0 origin-left group-hover:scale-x-100"></div>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                        </h1>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Thiết lập nơi nhận hàng của bạn</p>
                     </div>
                 </div>
+
+                <form className="space-y-5" onSubmit={onSubmit}>
+                    {/* Form Row 1: Name & Phone */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Họ tên người nhận</label>
+                            <input
+                                type="text"
+                                required
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="w-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                                placeholder="Ví dụ: Nguyễn Văn A"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại</label>
+                            <input
+                                type="text"
+                                required
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className="w-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                                placeholder="Ví dụ: 0912345678"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Address Textarea */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Địa chỉ chi tiết</label>
+                        <div className="relative">
+                            <textarea
+                                name="address"
+                                rows={2}
+                                className="w-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400 break-words"
+                                placeholder="Gõ địa chỉ hoặc chọn trên bản đồ..."
+                                value={address}
+                                onChange={(e) => {
+                                    isManualChange.current = true;
+                                    setAddress(e.target.value);
+                                    if (isNotFound) setIsNotFound(false);
+                                }}
+                            />
+                            <MapPin className="absolute right-3 top-3 w-4 h-4 text-slate-300 pointer-events-none" />
+                        </div>
+                        {isNotFound && (
+                            <p className="text-[10px] text-rose-600 font-bold mt-1">
+                                ⚠️ Không tìm thấy vị trí. Vui lòng chọn trên bản đồ.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Map Section */}
+                    <div className="relative min-h-[280px] h-[280px] border border-slate-200 rounded-2xl overflow-hidden bg-white shrink-0">
+                        {/* Search Bar */}
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-[92%]">
+                            <div className="relative flex items-center gap-1.5 bg-white shadow-lg rounded-xl border border-slate-200 p-1.5">
+                                <Search size={14} className="text-slate-400 ml-1" />
+                                <input
+                                    type="text"
+                                    className="flex-1 border-none bg-transparent px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none placeholder:text-slate-400"
+                                    placeholder="Tìm kiếm..."
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCurrentLocation}
+                                    className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+                                    title="Vị trí hiện tại"
+                                >
+                                    <Navigation size={14} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); geocodeFromAddress(searchKeyword, true); }}
+                                    className="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-client-primary transition-all active:scale-95"
+                                >
+                                    Tìm
+                                </button>
+                            </div>
+
+                            {showSuggestions && suggestions.length > 0 && (
+                                <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white/98 border border-slate-100 rounded-xl shadow-xl overflow-y-auto max-h-[220px]">
+                                    {suggestions.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            onClick={() => handleSelectSuggestion(item)}
+                                            className="px-3 py-2 hover:bg-client-primary/5 cursor-pointer border-b border-slate-50 last:border-none flex items-start gap-2.5 transition-colors"
+                                        >
+                                            <MapPin size={14} className="text-client-secondary shrink-0 mt-0.5" />
+                                            <div className="flex flex-col gap-0.5 min-w-0">
+                                                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.display_name.split(',')[0]}</span>
+                                                <span className="text-[11px] text-slate-400 line-clamp-1">{item.display_name}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <MapContainer center={mapCenter} zoom={15} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+                            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <LocationMarker position={position} setPosition={setPosition} onLocationSelect={fetchAddressFromCoords} />
+                            <MapController center={mapCenter} />
+                        </MapContainer>
+                    </div>
+
+                    {/* Default Address Checkbox */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                        <label className="flex items-center gap-2.5 cursor-pointer group">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={isDefault}
+                                    onChange={() => setIsDefault(!isDefault)}
+                                />
+                                <div className="w-4 h-4 bg-white border-2 border-slate-300 rounded-md transition-all peer-checked:bg-client-primary peer-checked:border-client-primary group-hover:border-client-primary/50"></div>
+                                <div className="absolute inset-0 flex items-center justify-center text-white scale-0 transition-transform peer-checked:scale-100">
+                                    <BadgeCheck size={12} />
+                                </div>
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Đặt làm địa chỉ mặc định</span>
+                        </label>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-client-primary transition-all shadow-sm disabled:opacity-60"
+                        >
+                            {submitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Plus size={14} />}
+                            {submitting ? "Đang lưu..." : "Thêm địa chỉ"}
+                        </button>
+                        <Link 
+                            to="/dashboard/address" 
+                            className="flex items-center justify-center px-6 py-2.5 border border-slate-200 bg-white text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+                        >
+                            Hủy
+                        </Link>
+                    </div>
+                </form>
             </div>
-        </>
+        </DashboardLayout>
     );
 };

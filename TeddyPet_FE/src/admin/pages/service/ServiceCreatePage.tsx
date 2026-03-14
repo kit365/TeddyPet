@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, InputLabel, FormControl, Checkbox, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState, useEffect } from 'react';
@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { createOrUpdateServicePricing } from '../../api/service-pricing.api';
 import { TimeSlotsSection } from './components/TimeSlotsSection';
+import { Tiptap } from '../../components/layouts/titap/Tiptap';
 import { useQuery } from '@tanstack/react-query';
 import { getTimeSlotsByService } from '../../api/time-slot.api';
 import { getPetTypeLabel } from './configs/constants';
@@ -94,7 +95,6 @@ export const ServiceCreatePage = () => {
             requiresVaccination: false,
             bufferTime: 15,
             advanceBookingHours: 24,
-            cancellationDeadlineHours: 12,
             maxPetsPerSession: 1,
             requiredStaffCount: 1,
         },
@@ -102,7 +102,6 @@ export const ServiceCreatePage = () => {
 
     const isAddon = useWatch({ control, name: 'isAddon' });
     const isAdditionalCharge = useWatch({ control, name: 'isAdditionalCharge' });
-    const addonType = useWatch({ control, name: 'addonType' });
     const isRequiredRoom = useWatch({ control, name: 'isRequiredRoom' });
 
     const slugify = (input: string) => {
@@ -141,7 +140,6 @@ export const ServiceCreatePage = () => {
         bufferTime: data.bufferTime ?? null,
         maxPetsPerSession: data.maxPetsPerSession ?? null,
         advanceBookingHours: data.advanceBookingHours ?? null,
-        cancellationDeadlineHours: data.cancellationDeadlineHours ?? null,
         imageURL: data.imageURL || null,
         galleryImages: data.galleryImages && data.galleryImages.length > 0 ? data.galleryImages : null,
         requiredStaffCount: data.requiredStaffCount ?? null,
@@ -151,7 +149,6 @@ export const ServiceCreatePage = () => {
         isPopular: data.isPopular ?? null,
         isAddon: data.isAddon ?? null,
         isCritical: data.isCritical ?? null,
-        addonType: data.isAddon ? (data.addonType || null) : null,
         metaTitle: data.metaTitle || null,
         metaDescription: data.metaDescription || null,
         isActive: data.isActive,
@@ -481,9 +478,7 @@ export const ServiceCreatePage = () => {
                                                         field.onChange(nextName);
 
                                                         if (!slugManuallyEdited) {
-                                                            const base = slugify(nextName);
-                                                            const suffix = isAddon && (addonType ?? '').trim() ? `-${slugify(addonType ?? '')}` : '';
-                                                            const nextSlug = `${base}${suffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+                                                            const nextSlug = slugify(nextName);
                                                             setValue('slug', nextSlug, { shouldDirty: true });
                                                         }
                                                     }}
@@ -498,7 +493,7 @@ export const ServiceCreatePage = () => {
                                                     {...field}
                                                     label="Slug"
                                                     fullWidth
-                                                    helperText="Tự động tạo từ Tên dịch vụ (và Addon type nếu bật). Bạn vẫn có thể chỉnh sửa."
+                                                    helperText="Tự động tạo từ Tên dịch vụ. Bạn vẫn có thể chỉnh sửa."
                                                     onChange={(e) => {
                                                         setSlugManuallyEdited(true);
                                                         field.onChange(e.target.value);
@@ -555,10 +550,24 @@ export const ServiceCreatePage = () => {
                                         control={control}
                                         render={({ field }) => <TextField {...field} label="Mô tả ngắn" multiline rows={2} fullWidth />}
                                     />
-                                    <Controller name="description" control={control} render={({ field }) => <TextField {...field} label="Mô tả chi tiết" multiline rows={4} fullWidth />} />
+                                    <Controller
+                                        name="description"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Box>
+                                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Mô tả chi tiết</Typography>
+                                                <Tiptap
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder="Hãy viết điều gì đó tuyệt vời..."
+                                                    hideLabel
+                                                />
+                                            </Box>
+                                        )}
+                                    />
                                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                        <FormUploadSingleFile name="imageURL" control={control} compact />
-                                        <FormUploadMultiFile name="galleryImages" control={control} title="Gallery" compact />
+                                        <FormUploadSingleFile name="imageURL" control={control} title="Ảnh chính" compact />
+                                        <FormUploadMultiFile name="galleryImages" control={control} title="Kho ảnh" compact />
                                     </Box>
 
                                     <Box sx={{ mt: 3 }}>
@@ -610,28 +619,6 @@ export const ServiceCreatePage = () => {
                                         <Controller name="maxPetsPerSession" control={control} render={({ field }) => <TextField {...field} type="number" label="Số thú cưng tham gia cho mỗi phiên" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="requiredStaffCount" control={control} render={({ field }) => <TextField {...field} type="number" label="Số nhân viên yêu cầu" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
                                         <Controller name="displayOrder" control={control} render={({ field }) => <TextField {...field} type="number" label="Thứ tự hiển thị" fullWidth onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller
-                                            name="addonType"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <TextField
-                                                    {...field}
-                                                    label="Addon type"
-                                                    fullWidth
-                                                    disabled={!isAddon}
-                                                    onChange={(e) => {
-                                                        field.onChange(e.target.value);
-                                                        if (!slugManuallyEdited) {
-                                                            const name = getValues('serviceName') ?? '';
-                                                            const base = slugify(name);
-                                                            const suffix = isAddon && (e.target.value ?? '').trim() ? `-${slugify(e.target.value)}` : '';
-                                                            const nextSlug = `${base}${suffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-                                                            setValue('slug', nextSlug, { shouldDirty: true });
-                                                        }
-                                                    }}
-                                                />
-                                            )}
-                                        />
                                     </Box>
 
                                     <Controller
@@ -649,25 +636,6 @@ export const ServiceCreatePage = () => {
                                         <SwitchButton control={control} name="isAdditionalCharge" label="Additional charge (nhân viên thêm)" />
                                         <SwitchButton control={control} name="isCritical" label="Quan trọng" />
                                         <SwitchButton control={control} name="requiresVaccination" label="Yêu cầu tiêm vaccine" />
-                                    </Box>
-                                </Stack>
-                            </CollapsibleCard>
-
-                            <CollapsibleCard title="Quy định hoàn tiền" expanded={expanded2} onToggle={() => setExpanded2((p) => !p)}>
-                                <Stack p="24px" gap="24px">
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
-                                        <Controller name="cancellationDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Hạn hủy trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value) || undefined)} />} />
-                                        <Controller name="beforeDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn trước hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="afterDeadlineRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn sau hạn hủy" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="noShowRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn khi No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="noShowPenalty" control={control} render={({ field }) => <TextField {...field} type="number" label="Phí phạt No-show" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>VNĐ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="rescheduleDeadlineHours" control={control} render={({ field }) => <TextField {...field} type="number" label="Đổi lịch trước (giờ)" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>giờ</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="rescheduleLimit" control={control} render={({ field }) => <TextField {...field} type="number" label="Số lần đổi lịch tối đa" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>lần</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                        <Controller name="forceMajeureRefundPct" control={control} render={({ field }) => <TextField {...field} type="number" label="% hoàn bất khả kháng" fullWidth InputProps={{ endAdornment: <span style={{ color: '#888', fontSize: '0.75rem' }}>%</span> }} onChange={(e) => field.onChange(Number((e.target as HTMLInputElement).value))} />} />
-                                    </Box>
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                        <SwitchButton control={control} name="allowReschedule" label="Cho phép đổi lịch" />
-                                        <SwitchButton control={control} name="allowForceMajeure" label="Cho phép bất khả kháng" />
                                     </Box>
                                 </Stack>
                             </CollapsibleCard>

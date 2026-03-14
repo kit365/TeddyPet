@@ -94,7 +94,7 @@ export const StaffProfileOnboardingPage = () => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo hồ sơ thành công');
                         
-                        // Invalidate both profiles and whitelist
+                        // Invalidate in background, don't await to avoid unmount issues
                         queryClient.invalidateQueries({ queryKey: ['staff-profiles'] });
                         queryClient.invalidateQueries({ queryKey: ['google-whitelist'] });
 

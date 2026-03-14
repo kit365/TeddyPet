@@ -1,18 +1,17 @@
-﻿import { Box, Typography } from "@mui/material";
-import { Icon } from '@iconify/react';
+import { Box, Typography } from "@mui/material";
 import Chart from 'react-apexcharts';
 import DashboardCard from "./DashboardCard";
 
 interface SummaryWidgetProps {
     title: string;
     total: string;
-    percent: number;
+    percent?: number;
     color?: string;
-    chartData: number[];
+    chartData?: number[];
+    showChart?: boolean;
 }
 
-const SummaryWidget = ({ title, total, percent, color = '#00a76f', chartData }: SummaryWidgetProps) => {
-    const isLoss = percent < 0;
+const SummaryWidget = ({ title, total, color = '#00a76f', chartData, showChart = true }: SummaryWidgetProps) => {
 
     const chartOptions: any = {
         chart: {
@@ -39,45 +38,21 @@ const SummaryWidget = ({ title, total, percent, color = '#00a76f', chartData }: 
     };
 
     return (
-        <DashboardCard sx={{ display: 'flex', alignItems: 'center', p: 'calc(3 * var(--spacing))' }}>
+        <DashboardCard sx={{ display: 'flex', alignItems: 'center', p: 'calc(2.5 * var(--spacing))' }}>
             <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
                     {title}
                 </Typography>
-                <Typography sx={{ mt: 1.5, mb: 1, fontSize: '2rem', fontWeight: 600, fontFamily: 'Barlow, sans-serif' }}>
+                <Typography sx={{ mt: 1, fontSize: '2.4rem', fontWeight: 800, fontFamily: 'Public Sans, sans-serif', color: 'text.primary', lineHeight: 1 }}>
                     {total}
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                        sx={{
-                            width: 24,
-                            height: 24,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '50%',
-                            bgcolor: isLoss ? 'rgba(255, 86, 48, 0.16)' : 'rgba(34, 197, 94, 0.16)',
-                            color: isLoss ? '#ff5630' : '#22c55e'
-                        }}
-                    >
-                        <Icon
-                            icon={isLoss ? "eva:trending-down-fill" : "eva:trending-up-fill"}
-                            width={16}
-                            height={16}
-                        />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {percent > 0 ? `+${percent}` : percent}%
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'var(--palette-text-secondary)', fontWeight: 400 }}>
-                        7 ngày qua
-                    </Typography>
-                </Box>
             </Box>
 
-            <Box sx={{ width: 100, height: 66 }}>
-                <Chart type="line" series={[{ data: chartData }]} options={chartOptions} width={100} height={66} />
-            </Box>
+            {showChart && chartData && (
+                <Box sx={{ width: 100, height: 66, mt: 1 }}>
+                    <Chart type="line" series={[{ data: chartData }]} options={chartOptions} width={100} height={66} />
+                </Box>
+            )}
         </DashboardCard>
     );
 };

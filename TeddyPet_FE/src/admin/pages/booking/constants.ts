@@ -9,6 +9,7 @@ export const BOOKING_STATUS_OPTIONS: { label: string; value: BookingStatusFilter
   { label: "Tất cả", value: "ALL", color: "" },
   { label: "Chờ xác nhận", value: "PENDING", color: "#B76E00" },
   { label: "Đã xác nhận", value: "CONFIRMED", color: "#006C9C" },
+  { label: "Sẵn sàng", value: "READY", color: "#7c3aed" },
   { label: "Đang thực hiện", value: "IN_PROGRESS", color: "#229A16" },
   { label: "Hoàn thành", value: "COMPLETED", color: "#05A845" },
   { label: "Đã hủy", value: "CANCELLED", color: "#B71D18" },
@@ -73,8 +74,9 @@ export const getPaymentStatusColor = (status: PaymentStatus): string => {
 export const getBookingTypeLabel = (type: string): string =>
   BOOKING_SERVICE_LABELS[type] ?? type;
 
+/** Chỉ hỗ trợ Tiền mặt và Chuyển khoản; giá trị khác hiển thị "—". */
 export const getPaymentMethodLabel = (method?: string): string =>
-  method ? (PAYMENT_METHOD_LABELS[method] ?? method) : "—";
+  method ? (PAYMENT_METHOD_LABELS[method] ?? "—") : "—";
 
 export const getPaymentMethodColor = (method?: string): string =>
   method ? (PAYMENT_METHOD_COLORS[method] ?? "#637381") : "#637381";

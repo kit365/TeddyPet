@@ -12,9 +12,11 @@ const formatCurrency = (value: number) => {
 interface CurrentBalanceProps {
     stats: any;
     isLoading: boolean;
+    hideWithdraw?: boolean;
+    hideLowStock?: boolean;
 }
 
-export const CurrentBalance = ({ stats, isLoading }: CurrentBalanceProps) => {
+export const CurrentBalance = ({ stats, isLoading, hideWithdraw, hideLowStock }: CurrentBalanceProps) => {
     return (
         <DashboardCard sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.875rem', mb: 1, color: 'text.secondary' }}>
@@ -33,28 +35,32 @@ export const CurrentBalance = ({ stats, isLoading }: CurrentBalanceProps) => {
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>Lịch đặt hôm nay</Typography>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{stats?.todayBookings || 0} lượt</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Sắp hết hàng</Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>{stats?.lowStockCount || 0} SP</Typography>
-                </Box>
+                {!hideLowStock && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Sắp hết hàng</Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>{stats?.lowStockCount || 0} SP</Typography>
+                    </Box>
+                )}
             </Stack>
 
             <Stack direction="row" spacing={2}>
-                <Button
-                    fullWidth
-                    variant="contained"
-                    sx={{
-                        bgcolor: '#ffab00',
-                        color: '#fff',
-                        boxShadow: 'none',
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        borderRadius: '8px',
-                        '&:hover': { bgcolor: '#e69a00', boxShadow: 'none' }
-                    }}
-                >
-                    Rút tiền
-                </Button>
+                {!hideWithdraw && (
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        sx={{
+                            bgcolor: '#ffab00',
+                            color: '#fff',
+                            boxShadow: 'none',
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            borderRadius: '8px',
+                            '&:hover': { bgcolor: '#e69a00', boxShadow: 'none' }
+                        }}
+                    >
+                        Rút tiền
+                    </Button>
+                )}
                 <Button
                     fullWidth
                     variant="contained"

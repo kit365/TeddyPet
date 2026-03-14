@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Đơn đặt lịch #' + ${bookingCode} + ' đã bị hủy'"></title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #e53935; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: #e53935; border-bottom: 2px solid #eee; padding-bottom: 10px;">Đơn đặt lịch đã bị hủy</h2>
+    <p style="color: #555; line-height: 1.6;">Xin chào,</p>
+    <p style="color: #555; line-height: 1.6;">Đơn đặt lịch của bạn với mã <strong><span th:text="${bookingCode}"></span></strong> tại <strong><span th:text="${appName}">TeddyPet</span></strong> đã được hủy thành công.</p>
+    <p style="color: #555; line-height: 1.6;">Nếu bạn không thực hiện yêu cầu hủy này hoặc cần hỗ trợ, vui lòng liên hệ với chúng tôi.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a th:href="${detailUrl}" style="background-color: #607d8b; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Xem chi tiết đơn đặt lịch</a>
+    </div>
+
+    <div style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+      <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
+      <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
+    </div>
+  </div>
+</body>
+</html>

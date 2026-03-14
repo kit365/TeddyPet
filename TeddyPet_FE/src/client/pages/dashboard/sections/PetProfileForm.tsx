@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Upload, ImageIcon } from "lucide-react";
 import type { PetProfileResponse, PetProfileRequest } from "../../../../types/petProfile.type";
 import { uploadImage } from "../../../../api/upload.api";
@@ -137,22 +137,23 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                 className="bg-white rounded-[1.25rem] shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex justify-between items-center border-b border-slate-100 px-8 py-6">
-                    <h3 className="text-[1.125rem] font-black text-slate-800">
-                        {initial ? "Chỉnh sửa thú cưng" : "Đăng ký bé mới"}
+                <div className="flex justify-between items-center border-b border-slate-100 px-6 py-5">
+                    <h3 className="text-[1.0625rem] font-bold text-slate-800">
+                        {initial ? "Chỉnh sửa thú cưng" : "Thêm thú cưng mới"}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center"
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {/* Tên thú cưng (Full width) */}
                     <div>
-                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Tên thú cưng *
                         </label>
                         <input
@@ -161,20 +162,21 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             onChange={(e) => setName(e.target.value)}
                             required
                             maxLength={100}
-                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
                             placeholder="Ví dụ: Misa, Lu"
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Loại & Giới tính (2 columns) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                 Loại *
                             </label>
                             <select
                                 value={petType}
                                 onChange={(e) => setPetType(e.target.value as PetTypeEnum)}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
                             >
                                 {PET_TYPES.map((o) => (
                                     <option key={o.value} value={o.value}>
@@ -184,29 +186,13 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Giống
-                            </label>
-                            <input
-                                type="text"
-                                value={breed}
-                                onChange={(e) => setBreed(e.target.value)}
-                                maxLength={100}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                                placeholder="Ví dụ: Poodle, British Shorthair"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                 Giới tính
                             </label>
                             <select
                                 value={gender}
                                 onChange={(e) => setGender((e.target.value || "") as GenderEnum | "")}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
                             >
                                 <option value="">— Chọn —</option>
                                 {GENDERS.map((o) => (
@@ -216,22 +202,38 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                                 ))}
                             </select>
                         </div>
+                    </div>
+
+                    {/* Giống (Full width) */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Giống
+                        </label>
+                        <input
+                            type="text"
+                            value={breed}
+                            onChange={(e) => setBreed(e.target.value)}
+                            maxLength={100}
+                            className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
+                            placeholder="Ví dụ: Poodle, British Shorthair"
+                        />
+                    </div>
+
+                    {/* Ngày sinh & Cân nặng (2 columns) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                 Ngày sinh
                             </label>
                             <input
                                 type="date"
                                 value={birthDate}
                                 onChange={(e) => setBirthDate(e.target.value)}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
                             />
                         </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                 Cân nặng (kg)
                             </label>
                             <input
@@ -240,25 +242,27 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                                 min="0"
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value)}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all"
                                 placeholder="Ví dụ: 4.5"
                             />
                         </div>
-                        <div className="flex items-end pb-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={isNeutered}
-                                    onChange={(e) => setIsNeutered(e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                                <span className="text-[0.5938rem] font-bold text-slate-600">Đã triệt sản</span>
-                            </label>
-                        </div>
+                    </div>
+
+                    {/* Đã triệt sản */}
+                    <div className="flex items-center">
+                        <label className="flex items-center gap-2.5 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isNeutered}
+                                onChange={(e) => setIsNeutered(e.target.checked)}
+                                className="w-4 h-4 rounded border-2 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-xs font-bold text-slate-600">Đã triệt sản</span>
+                        </label>
                     </div>
 
                     <div>
-                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Ảnh đại diện
                         </label>
                         <input
@@ -269,7 +273,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             className="hidden"
                         />
                         <div className="flex items-center gap-4 flex-wrap">
-                            <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+                            <div className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
                                 {(avatarUrl || avatarPreview) ? (
                                     <img
                                         src={avatarPreview || avatarUrl}
@@ -277,7 +281,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <ImageIcon className="w-10 h-10 text-slate-300" />
+                                    <ImageIcon className="w-8 h-8 text-slate-300" />
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
@@ -285,50 +289,50 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={uploadingAvatar}
-                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-100 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 disabled:opacity-50 transition-colors"
                                 >
-                                    <Upload size={16} />
-                                    {uploadingAvatar ? "Đang tải lên..." : "Chọn ảnh từ thiết bị"}
+                                    <Upload size={14} />
+                                    {uploadingAvatar ? "Đang tải lên..." : "Chọn ảnh"}
                                 </button>
                                 {(avatarUrl || avatarPreview) && (
                                     <button
                                         type="button"
                                         onClick={clearAvatar}
-                                        className="text-slate-500 text-sm hover:text-red-600"
+                                        className="text-slate-500 text-xs hover:text-red-600 transition-colors"
                                     >
                                         Xóa ảnh
                                     </button>
                                 )}
                             </div>
                         </div>
-                        <p className="text-slate-400 text-xs mt-1">JPG, PNG hoặc WebP, tối đa 10MB</p>
+                        <p className="text-slate-400 text-xs mt-2">JPG, PNG hoặc WebP, tối đa 10MB</p>
                     </div>
 
                     <div>
-                        <label className="block text-[0.5938rem] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Ghi chú sức khỏe
                         </label>
                         <textarea
                             value={healthNote}
                             onChange={(e) => setHealthNote(e.target.value)}
                             rows={3}
-                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                            className="w-full px-4 py-2.5 text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/10 outline-none transition-all resize-none"
                             placeholder="Dị ứng, bệnh nền, thuốc đang dùng..."
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-3 pt-4">
+                    <div className="flex flex-wrap gap-3 pt-3">
                         <button
                             type="submit"
                             disabled={submitting || !name.trim()}
-                            className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2.5 bg-slate-900 text-white font-bold text-sm rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            {submitting ? "Đang xử lý..." : initial ? "Cập nhật" : "Đăng ký"}
+                            {submitting ? "Đang xử lý..." : initial ? "Cập nhật hồ sơ" : "Thêm thú cưng"}
                         </button>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200"
+                            className="px-6 py-2.5 bg-slate-50 text-slate-600 font-bold text-sm rounded-lg hover:bg-slate-100 border border-slate-200 transition-colors"
                         >
                             Hủy
                         </button>
@@ -336,7 +340,7 @@ export function PetProfileForm({ initial, onSubmit, onClose, submitting, onDelet
                             <button
                                 type="button"
                                 onClick={handleDelete}
-                                className="px-8 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 ml-auto"
+                                className="px-6 py-2.5 bg-red-50 text-red-600 font-bold text-sm rounded-lg hover:bg-red-100 ml-auto transition-colors"
                             >
                                 Xóa hồ sơ
                             </button>

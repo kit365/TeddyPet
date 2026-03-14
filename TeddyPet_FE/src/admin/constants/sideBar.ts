@@ -36,6 +36,13 @@ export const menuOverviewData = [
         allowedRoles: ["ADMIN", "SUPER_ADMIN"],
     },
     {
+        id: "staff-dashboard",
+        Icon: BadgeIcon,
+        label: "Bảng điều khiển",
+        path: `/${prefixAdmin}/staff/dashboard`,
+        allowedRoles: ["STAFF", "SUPER_ADMIN"],
+    },
+    {
         id: "booking",
         Icon: ScheduleSendIcon,
         label: "Đặt lịch",
@@ -56,6 +63,12 @@ export const bookingManagementItem = {
             label: "Danh sách đặt lịch",
             path: `/${prefixAdmin}/booking/list`,
             allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"],
+        },
+        {
+            id: "refund-policies",
+            label: "Chính sách hoàn tiền đặt lịch",
+            path: `/${prefixAdmin}/booking/refund-policies`,
+            allowedRoles: ["ADMIN", "SUPER_ADMIN"],
         },
     ],
 };
@@ -93,6 +106,12 @@ export const menuManagementData = [
                 label: "Danh sách đặt lịch",
                 path: `/${prefixAdmin}/booking/list`,
                 allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"],
+            },
+            {
+                id: "refund-policies",
+                label: "Chính sách hoàn tiền đặt lịch",
+                path: `/${prefixAdmin}/booking/refund-policies`,
+                allowedRoles: ["ADMIN", "SUPER_ADMIN"],
             },
         ]
     },

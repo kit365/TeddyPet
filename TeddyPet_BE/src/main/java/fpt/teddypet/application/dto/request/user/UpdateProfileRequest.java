@@ -15,5 +15,7 @@ public record UpdateProfileRequest(
 
         @Past(message = "Ngày sinh phải là một ngày trong quá khứ") LocalDate dateOfBirth,
 
-        GenderEnum gender) {
+        GenderEnum gender,
+        
+        String optionalEmail) {
 }

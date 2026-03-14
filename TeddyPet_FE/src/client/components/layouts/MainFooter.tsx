@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { SocialIconCircle } from "../ui/SocialIconsCircle";
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
@@ -7,6 +7,8 @@ import LanguageIcon from '@mui/icons-material/Language';
 import { useState, useEffect } from "react";
 import { getAllSettings } from "../../../admin/api/setting.api";
 import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
+import { subscribeNewsletter } from "../../../api/newsletter.api";
+import { toast } from "react-toastify";
 
 
 export const MainFooter = () => {
@@ -16,6 +18,10 @@ export const MainFooter = () => {
     const [shopWebsite, setShopWebsite] = useState<string>('teddypet.fpt.edu.vn');
     const [facebookUrl, setFacebookUrl] = useState<string>('#');
     const [instagramUrl, setInstagramUrl] = useState<string>('#');
+
+    const [newsletterEmail, setNewsletterEmail] = useState("");
+    const [agreeNewsletter, setAgreeNewsletter] = useState(false);
+    const [submittingNewsletter, setSubmittingNewsletter] = useState(false);
 
     useEffect(() => {
         const fetchShopSettings = async () => {
@@ -44,6 +50,39 @@ export const MainFooter = () => {
 
         fetchShopSettings();
     }, []);
+
+    const handleNewsletterSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!newsletterEmail) {
+            toast.warn("Vui lòng nhập email của bạn.");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newsletterEmail)) {
+            toast.error("Email không hợp lệ.");
+            return;
+        }
+
+        if (!agreeNewsletter) {
+            toast.warn("Vui lòng đồng ý để nhận ưu đãi.");
+            return;
+        }
+
+        setSubmittingNewsletter(true);
+        try {
+            const res = await subscribeNewsletter(newsletterEmail);
+            if (res.success) {
+                toast.success(res.message || "Đăng ký nhận tin thành công!");
+                setNewsletterEmail("");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại.");
+        } finally {
+            setSubmittingNewsletter(false);
+        }
+    };
 
     return (
         <>
@@ -142,14 +181,34 @@ export const MainFooter = () => {
                                 <h3 className="text-client-secondary mb-[20px] font-secondary text-[1.5rem] capitalize">Nhận thông tin mới nhất</h3>
                                 <div className="flex flex-col gap-[35px]">
                                     <p className="text-client-text text-[1.0625rem] pr-[5%]">Cập nhật tin tức sản phẩm, bí quyết chăm sóc và làm đẹp độc quyền dành cho thú cưng.</p>
-                                    <form className="">
+                                    <form onSubmit={handleNewsletterSubmit}>
                                         <div className="flex items-center relative mb-[12px]">
-                                            <input type="email" placeholder="Nhập Email của bạn tại đây" name="email" className="py-[16px] px-[32px] rounded-[35px] w-full text-client-text text-[0.875rem] bg-white border border-[#d7d7d7] focus:border-client-secondary transition-default outline-none" />
-                                            <button className="absolute right-0 top-[50%] translate-y-[-50%] rounded-r-[40px] px-[32px] py-[16px] bg-client-secondary hover:bg-[#FFF3E2] text-white hover:text-client-secondary text-[0.875rem] font-secondary transition-colors duration-[350ms] ease-in-out cursor-pointer">Đăng ký</button>
+                                            <input 
+                                                type="email" 
+                                                placeholder="Nhập Email của bạn tại đây" 
+                                                className="py-[16px] px-[32px] rounded-[35px] w-full text-client-text text-[0.875rem] bg-white border border-[#d7d7d7] focus:border-client-secondary transition-default outline-none" 
+                                                value={newsletterEmail}
+                                                onChange={(e) => setNewsletterEmail(e.target.value)}
+                                            />
+                                            <button 
+                                                type="submit"
+                                                disabled={submittingNewsletter}
+                                                className="absolute right-0 top-[50%] translate-y-[-50%] rounded-r-[40px] px-[32px] py-[16px] bg-client-secondary hover:bg-[#FFF3E2] text-white hover:text-client-secondary text-[0.875rem] font-secondary transition-colors duration-[350ms] ease-in-out cursor-pointer disabled:opacity-50"
+                                            >
+                                                {submittingNewsletter ? "..." : "Đăng ký"}
+                                            </button>
                                         </div>
-                                        <div className="flex items-center mb-[30px] checkbox checkbox-footer-register">
-                                            <input type="checkbox" name="" id="check" hidden />
-                                            <label htmlFor="check" className="pl-[12px] ml-[-12px] text-[0.9375rem] font-[500] text-client-text">Đăng ký ngay để nhận ưu đãi đặc biệt!</label>
+                                        <div className="flex items-center mb-[30px] checkbox checkbox-footer-register group cursor-pointer" onClick={() => setAgreeNewsletter(!agreeNewsletter)}>
+                                            <div className={`w-[20px] h-[20px] rounded-[4px] border-2 flex items-center justify-center transition-all ${agreeNewsletter ? 'bg-client-secondary border-client-secondary' : 'border-[#D7D7D7] bg-white'}`}>
+                                                {agreeNewsletter && (
+                                                    <svg className="w-[12px] h-[12px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <label className="pl-[12px] text-[0.9375rem] font-[500] text-client-text select-none group-hover:text-client-secondary transition-colors cursor-pointer">
+                                                Đăng ký ngay để nhận ưu đãi đặc biệt!
+                                            </label>
                                         </div>
                                     </form>
                                 </div>

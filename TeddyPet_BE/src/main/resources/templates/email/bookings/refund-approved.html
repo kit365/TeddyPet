@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Yêu cầu hoàn cọc đơn đặt lịch #' + ${bookingCode} + ' đã được phê duyệt'"></title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #4CAF50; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: #4CAF50; border-bottom: 2px solid #eee; padding-bottom: 10px;">Yêu cầu hoàn cọc đã được phê duyệt</h2>
+    <p style="color: #555; line-height: 1.6;">Xin chào,</p>
+    <p style="color: #555; line-height: 1.6;">Yêu cầu hủy đặt lịch và hoàn tiền cọc cho đơn <strong><span th:text="${bookingCode}"></span></strong> tại <strong><span th:text="${appName}">TeddyPet</span></strong> đã được phê duyệt.</p>
+
+    <div th:if="${refundAmount != null}" style="background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <p style="margin: 0; color: #1b5e20; line-height: 1.6;">Số tiền hoàn cọc: <strong style="color: #2e7d32; font-size: 1.1em;" th:text="${refundAmount}"></strong></p>
+      <p style="margin: 8px 0 0; font-size: 0.85em; color: #558b2f;">Số tiền này sẽ được chuyển vào tài khoản ngân hàng của bạn trong 3-5 ngày làm việc.</p>
+    </div>
+
+    <p style="color: #555; line-height: 1.6;">Cảm ơn bạn đã sử dụng dịch vụ của <strong><span th:text="${appName}">TeddyPet</span></strong>. Chúng tôi rất mong được phục vụ bạn trong những lần tiếp theo.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a th:href="${detailUrl}" style="background-color: #4CAF50; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Xem chi tiết đơn đặt lịch</a>
+    </div>
+
+    <p style="color: #555; line-height: 1.6;">Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ hotline để được hỗ trợ.</p>
+
+    <div style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+      <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
+      <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
+    </div>
+  </div>
+</body>
+</html>

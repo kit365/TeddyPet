@@ -1,12 +1,18 @@
-﻿import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ListServicesIcon } from "../../components/layouts/ListServicesIcon";
 import { ProductBanner } from "../product/sections/ProductBanner"
 import { SocialIcon } from "../../components/ui/SocialIcon";
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPublicBlogBySlug, getPublicBlogs } from "../../../api/blog.api";
+import { getBlogComments, createBlogComment } from "../../../api/blogComment.api";
 import SearchIcon from "@mui/icons-material/Search";
 import { ProductAsideTitle } from "../product/sections/ProductAsideTitle";
+import { useAuthStore } from "../../../stores/useAuthStore";
+import { useState } from "react";
+import { toast } from "react-toastify";
+import dayjs from "dayjs";
+import 'dayjs/locale/vi';
 
 const filterTags = [
     {
@@ -81,6 +87,53 @@ export const BlogDetailPage = () => {
         queryFn: getPublicBlogs
     });
 
+    const blog = detailRes?.data;
+    const queryClient = useQueryClient();
+    const { user } = useAuthStore();
+    
+    const [commentData, setCommentData] = useState({
+        content: "",
+        guestName: "",
+        guestEmail: ""
+    });
+
+    const { data: commentsRes } = useQuery({
+        queryKey: ['blog-comments', blog?.id],
+        queryFn: () => getBlogComments(blog!.id),
+        enabled: !!blog?.id
+    });
+
+    const createMutation = useMutation({
+        mutationFn: (data: any) => createBlogComment(data),
+        onSuccess: () => {
+            toast.success("Đã gửi bình luận thành công!");
+            setCommentData({ content: "", guestName: "", guestEmail: "" });
+            queryClient.invalidateQueries({ queryKey: ['blog-comments', blog?.id] });
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Gửi bình luận thất bại.");
+        }
+    });
+
+    const handleSubmitComment = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!commentData.content.trim()) {
+            toast.warn("Vui lòng nhập nội dung bình luận.");
+            return;
+        }
+        if (!user && (!commentData.guestName.trim() || !commentData.guestEmail.trim())) {
+            toast.warn("Vui lòng nhập tên và email của bạn.");
+            return;
+        }
+
+        createMutation.mutate({
+            blogPostId: blog!.id,
+            content: commentData.content,
+            guestName: user ? undefined : commentData.guestName,
+            guestEmail: user ? undefined : commentData.guestEmail
+        });
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
@@ -88,8 +141,6 @@ export const BlogDetailPage = () => {
             </div>
         );
     }
-
-    const blog = detailRes?.data;
 
     // Process recent blogs
     let recentBlogs: any[] = [];
@@ -219,41 +270,106 @@ export const BlogDetailPage = () => {
 
                             {/* Comments */}
                             <div className="mt-[100px]">
-                                <h3 className="mb-[35px] font-secondary text-[1.875rem] font-bold">Bình luận (0)</h3>
+                                <h3 className="mb-[35px] font-secondary text-[1.875rem] font-bold">
+                                    Bình luận ({commentsRes?.data?.length || 0})
+                                </h3>
                                 <ul className="mb-[24px]">
-                                    <li className="flex gap-[20px] pb-[35px] mb-[30px] border-b border-[#d7d7d7]">
-                                        <img className="p-[2px] border border-[#d7d7d7] w-[60px] h-[60px] object-cover rounded-[10px]" src="https://secure.gravatar.com/avatar/4b4d70c085ba692974261304da0860f360cb1f3a616203402e9e19f2d3bda5f8?s=50&d=mm&r=g" alt="" />
-                                        <div>
-                                            <div className="text-[1.125rem] text-client-secondary font-[700] mb-[8px]">developer</div>
-                                            <p className="text-client-text text-[0.8125rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
-                                            <p className="text-client-text text-[1rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
-                                        </div>
-                                        <span className="absolute right-0 text-white text-[0.875rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
-                                    </li>
-                                    <li className="flex gap-[20px] pb-[35px] mb-[30px] border-b border-[#d7d7d7]">
-                                        <img className="p-[2px] border border-[#d7d7d7] w-[60px] h-[60px] object-cover rounded-[10px]" src="https://secure.gravatar.com/avatar/4b4d70c085ba692974261304da0860f360cb1f3a616203402e9e19f2d3bda5f8?s=50&d=mm&r=g" alt="" />
-                                        <div>
-                                            <div className="text-[1.125rem] text-client-secondary font-[700] mb-[8px]">developer</div>
-                                            <p className="text-client-text text-[0.8125rem] hover:text-client-primary transition-default mb-[20px]">21 Jun at 3:56 am</p>
-                                            <p className="text-client-text text-[1rem]">Nulla molestie mattis scelerisque maximus eget fermentum odio. Mauris pharetra vestibulum fusce dictum risus blandit quis. Ante condimentum neque at luctus nibh finibus facilisis.</p>
-                                        </div>
-                                        <span className="absolute right-0 text-white text-[0.875rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hổi</span>
-                                    </li>
+                                    {commentsRes?.data && commentsRes.data.length > 0 ? (
+                                        commentsRes.data.map((comment) => (
+                                            <li key={comment.id} className="relative flex gap-[20px] pb-[35px] mb-[30px] border-b border-[#d7d7d7]">
+                                                <img 
+                                                    className="p-[2px] border border-[#d7d7d7] w-[60px] h-[60px] object-cover rounded-[10px]" 
+                                                    src={`https://ui-avatars.com/api/?name=${comment.userName || comment.guestName || 'G'}&background=random`} 
+                                                    alt="" 
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="text-[1.125rem] text-client-secondary font-[700] mb-[8px]">
+                                                        {comment.userName || comment.guestName || "Người dùng"}
+                                                    </div>
+                                                    <p className="text-client-text text-[0.8125rem] hover:text-client-primary transition-default mb-[20px]">
+                                                        {dayjs(comment.createdAt).locale('vi').format('DD [Tháng] MM [lúc] HH:mm')}
+                                                    </p>
+                                                    <p className="text-client-text text-[1rem]">
+                                                        {comment.content}
+                                                    </p>
+                                                    
+                                                    {/* Replies */}
+                                                    {comment.replies && comment.replies.length > 0 && (
+                                                        <div className="mt-6 ml-10 space-y-6">
+                                                            {comment.replies.map(reply => (
+                                                                <div key={reply.id} className="flex gap-4">
+                                                                    <img 
+                                                                        className="p-[1px] border border-[#eee] w-[40px] h-[40px] object-cover rounded-[8px]" 
+                                                                        src={`https://ui-avatars.com/api/?name=${reply.userName || reply.guestName || 'G'}&background=random`} 
+                                                                        alt="" 
+                                                                    />
+                                                                    <div className="flex-1">
+                                                                        <div className="text-[1rem] text-client-secondary font-[700] mb-1">
+                                                                            {reply.userName || reply.guestName || "Người dùng"}
+                                                                        </div>
+                                                                        <p className="text-client-text text-[0.75rem] mb-2">
+                                                                            {dayjs(reply.createdAt).locale('vi').format('DD/MM/YYYY')}
+                                                                        </p>
+                                                                        <p className="text-client-text text-[0.9375rem]">
+                                                                            {reply.content}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="absolute right-0 text-white text-[0.875rem] cursor-pointer hover:text-client-secondary transition-default bg-client-primary py-[8px] px-[15px] rounded-[35px]">Phản hồi</span>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 italic mb-[30px]">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                                    )}
                                 </ul>
                                 <div className="p-[45px] bg-[#fdfdfd] border-2 border-[#f8f8f8] rounded-[35px] shadow-sm">
                                     <h3 className="mb-[15px] font-secondary text-[1.625rem] font-bold">Để lại lời nhắn</h3>
-                                    <p className="text-client-text font-[500] mb-[35px] opacity-70">Địa chỉ email của bạn sẽ không được công khai. Các trường bắt buộc được đánh dấu *</p>
-                                    <form action="" className="flex flex-col gap-[25px]">
-                                        <textarea placeholder="Nội dung bình luận *" className="resize-none rounded-[20px] text-[1rem] py-[20px] px-[30px] border border-[#eee] h-[150px] w-full outline-none focus:border-client-primary transition-all bg-white" />
-                                        <div className="flex gap-[25px]">
-                                            <input placeholder="Họ và tên *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" type="text" />
-                                            <input placeholder="Email của bạn *" className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" type="email" />
-                                        </div>
+                                    <p className="text-client-text font-[500] mb-[35px] opacity-70">
+                                        Địa chỉ email của bạn sẽ không được công khai. Các trường bắt buộc được đánh dấu *
+                                    </p>
+                                    <form onSubmit={handleSubmitComment} className="flex flex-col gap-[25px]">
+                                        <textarea 
+                                            placeholder="Nội dung bình luận *" 
+                                            className="resize-none rounded-[20px] text-[1rem] py-[20px] px-[30px] border border-[#eee] h-[150px] w-full outline-none focus:border-client-primary transition-all bg-white" 
+                                            value={commentData.content}
+                                            onChange={(e) => setCommentData({...commentData, content: e.target.value})}
+                                            required
+                                        />
+                                        {!user && (
+                                            <div className="flex gap-[25px]">
+                                                <input 
+                                                    placeholder="Họ và tên *" 
+                                                    className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" 
+                                                    type="text" 
+                                                    value={commentData.guestName}
+                                                    onChange={(e) => setCommentData({...commentData, guestName: e.target.value})}
+                                                    required
+                                                />
+                                                <input 
+                                                    placeholder="Email của bạn *" 
+                                                    className="flex-1 py-[18px] px-[30px] border border-[#eee] rounded-[50px] outline-none focus:border-client-primary transition-all bg-white text-[0.9375rem]" 
+                                                    type="email" 
+                                                    value={commentData.guestEmail}
+                                                    onChange={(e) => setCommentData({...commentData, guestEmail: e.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                        )}
                                         <div className="flex items-center checkbox cursor-pointer">
                                             <input type="checkbox" id="check" hidden />
                                             <label htmlFor="check" className="pl-[12px] font-[500] text-client-text text-[0.875rem] cursor-pointer hover:text-client-primary transition-all">Lưu thông tin cho lần bình luận tiếp theo.</label>
                                         </div>
-                                        <button type="submit" className="mt-[10px] w-max cursor-pointer bg-client-primary hover:bg-client-secondary transition-all text-white font-secondary px-[45px] py-[20px] rounded-[60px] text-[1.0625rem] font-bold shadow-lg">Gửi bình luận ngay</button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={createMutation.isPending}
+                                            className="mt-[10px] w-max cursor-pointer bg-client-primary hover:bg-client-secondary transition-all text-white font-secondary px-[45px] py-[20px] rounded-[60px] text-[1.0625rem] font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {createMutation.isPending ? "Đang gửi..." : "Gửi bình luận ngay"}
+                                        </button>
                                     </form>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -18,7 +18,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
-import { getAdminBookingDetail } from "../../api/booking.api";
+import { getAdminBookingDetail, getAdminBookingPets, checkInBooking, checkOutBooking } from "../../api/booking.api";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -62,26 +62,33 @@ export const BookingDetailPage = () => {
   const navigate = useNavigate();
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchBooking = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await getAdminBookingDetail(id);
+      const basic = (res.data ?? null) as BookingResponse | null;
+      if (basic) {
+        const petsRes = await getAdminBookingPets(id);
+        const pets = (petsRes.data ?? []) as any[];
+        setBooking({ ...basic, pets } as any);
+      } else {
+        setBooking(null);
+      }
+    } catch (error) {
+      console.error(error);
+      setBooking(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    const fetchBooking = async () => {
-      if (id) {
-        setLoading(true);
-        try {
-          const res = await getAdminBookingDetail(id);
-          setBooking(res.data ?? null);
-        } catch (error) {
-          console.error(error);
-          setBooking(null);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
-    };
-    fetchBooking();
-  }, [id]);
+    if (id) fetchBooking();
+    else setLoading(false);
+  }, [id, fetchBooking]);
 
   if (loading) {
     return (
@@ -189,14 +196,14 @@ export const BookingDetailPage = () => {
                 <InfoRow label="Số điện thoại" value={booking.customerPhone} />
                 <InfoRow label="Địa chỉ" value={booking.customerAddress} />
                 <InfoRow label="Loại dịch vụ" value={getBookingTypeLabel(booking.bookingType)} />
-                <InfoRow label="Bắt đầu" value={formatDateTime(booking.bookingStartDate)} />
-                <InfoRow label="Kết thúc" value={formatDateTime(booking.bookingEndDate)} />
+                <InfoRow label="Check-in" value={formatDateTime(booking.bookingCheckInDate)} />
+                <InfoRow label="Check-out" value={formatDateTime(booking.bookingCheckOutDate)} />
               </Box>
               <Box>
                 <InfoRow label="Tổng tiền" value={formatCurrency(booking.totalAmount)} />
                 <InfoRow label="Đã thanh toán" value={formatCurrency(booking.paidAmount)} />
                 <InfoRow label="Còn lại" value={formatCurrency(booking.remainingAmount)} />
-                <InfoRow label="Tiền cọc" value={formatCurrency(booking.deposit)} />
+                <InfoRow label="Tiền cọc" value={formatCurrency(booking.depositAmount ?? 0)} />
                 <InfoRow
                   label="Hình thức thanh toán"
                   value={getPaymentMethodLabel(booking.paymentMethod)}
@@ -215,6 +222,50 @@ export const BookingDetailPage = () => {
               </Box>
             </Box>
           </Card>
+
+          {/* Actions: Check-in / Check-out — ghi nhận thời gian vào/ra (bookingCheckInDate, bookingCheckOutDate) */}
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              disabled={actionLoading}
+              sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
+              onClick={async () => {
+                if (!id) return;
+                setActionLoading(true);
+                try {
+                  await checkInBooking(id);
+                  await fetchBooking();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+            >
+              {actionLoading ? "Đang xử lý..." : "Check-in"}
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              disabled={actionLoading}
+              sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
+              onClick={async () => {
+                if (!id) return;
+                setActionLoading(true);
+                try {
+                  await checkOutBooking(id);
+                  await fetchBooking();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+            >
+              {actionLoading ? "Đang xử lý..." : "Check-out"}
+            </Button>
+          </Box>
 
           {/* Card 2: Danh sách Booking_Pets */}
           <Card

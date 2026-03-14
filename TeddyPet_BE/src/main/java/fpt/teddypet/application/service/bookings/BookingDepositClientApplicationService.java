@@ -130,9 +130,6 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             booking.setPaidAmount(depositAmount);
             booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
             booking.setIsTemporary(false);
-            if (paymentMethod != null && !paymentMethod.isBlank()) {
-                booking.setPaymentMethod(paymentMethod);
-            }
             bookingRepository.save(booking);
 
             deposit.setStatus("PAID");

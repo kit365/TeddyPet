@@ -93,6 +93,8 @@ export const approveAdminChargeItem = async (
 
 export interface ApproveCancelRequest {
     approved: boolean;
+    staffNotes?: string;
+    refundProof?: string;
 }
 
 export const approveOrRejectAdminCancelRequest = async (
@@ -103,4 +105,62 @@ export const approveOrRejectAdminCancelRequest = async (
     return response.data;
 };
 
+export interface ConfirmBookingReadyPet {
+    petId: number;
+    petType: string;
+    weightAtBooking: number;
+}
 
+export interface ConfirmBookingReadyRequest {
+    pets: ConfirmBookingReadyPet[];
+}
+
+export const confirmAdminBookingReady = async (
+    bookingId: string | number,
+    body: ConfirmBookingReadyRequest
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/confirm-ready`, body, withAuth());
+    return response.data;
+};
+
+export const deleteAdminBooking = async (
+    bookingId: string | number
+): Promise<ApiResponse<any>> => {
+    const response = await apiApp.delete(`${BASE_URL}/${bookingId}`, withAuth());
+    return response.data;
+};
+
+export interface CancelAdminBookingRequest {
+    reason?: string;
+}
+
+export const cancelAdminBooking = async (
+    bookingId: string | number,
+    body?: CancelAdminBookingRequest
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/cancel`, body || {}, withAuth());
+    return response.data;
+};
+
+export interface ConfirmFullPaymentRequest {
+    paymentMethod: string;
+    notes?: string;
+}
+
+export const confirmFullPayment = async (
+    bookingId: string | number,
+    body: ConfirmFullPaymentRequest
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/confirm-payment`, body, withAuth());
+    return response.data;
+};
+
+export const checkInBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-in`, {}, withAuth());
+    return response.data;
+};
+
+export const checkOutBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-out`, {}, withAuth());
+    return response.data;
+};

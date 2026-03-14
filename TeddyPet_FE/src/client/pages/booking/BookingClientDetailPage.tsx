@@ -133,6 +133,14 @@ export const BookingClientDetailPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookingCode]);
 
+    // Auto-switch to detail view if booking is already paid or has wrong status for payment view
+    useEffect(() => {
+        if (booking && (booking.depositPaid || booking.status !== "PENDING" || !booking.depositId)) {
+            setActiveView("detail");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [booking]);
+
     // Initialize + tick countdown whenever booking data changes
     useEffect(() => {
         if (!expiresAt) {
@@ -523,7 +531,7 @@ export const BookingClientDetailPage = () => {
                                                 Thanh toán cọc ngay
                                             </button>
                                         )}
-                                        {booking && booking.status !== "CANCELLED" && (!showDepositTimer || !isExpired) && (
+                                        {booking && booking.status !== "CANCELLED" && !isExpired && (
                                             <button
                                                 type="button"
                                                 disabled={!canEdit}
@@ -541,7 +549,7 @@ export const BookingClientDetailPage = () => {
                                                 Chỉnh sửa thông tin
                                             </button>
                                         )}
-                                        {booking && booking.status === "PENDING" && (
+                                        {booking && booking.status === "PENDING" && !isExpired && (
                                             <button
                                                 type="button"
                                                 onClick={() => setIsCancelModalOpen(true)}
@@ -664,7 +672,7 @@ export const BookingClientDetailPage = () => {
                                             >
                                                 Quay lại chi tiết
                                             </button>
-                                            {booking.status === "PENDING" && (
+                                            {booking.status === "PENDING" && !isExpired && (
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsCancelModalOpen(true)}
@@ -673,19 +681,17 @@ export const BookingClientDetailPage = () => {
                                                     Hủy đơn đặt lịch
                                                 </button>
                                             )}
-                                            <button
-                                                type="button"
-                                                disabled={!booking.depositId || isConfirming || isExpired}
-                                                onClick={handleConfirmPayment}
-                                                className="py-[10px] px-[20px] rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] hover:bg-[#45a049] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                                                title="Mô phỏng thanh toán thành công"
-                                            >
-                                                {isExpired
-                                                    ? "Giữ chỗ đã hết hạn"
-                                                    : isConfirming
-                                                        ? "Đang xử lý..."
-                                                        : "Xác nhận đã thanh toán"}
-                                            </button>
+                                            {!isExpired && (
+                                                <button
+                                                    type="button"
+                                                    disabled={!booking.depositId || isConfirming}
+                                                    onClick={handleConfirmPayment}
+                                                    className="py-[10px] px-[20px] rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] hover:bg-[#45a049] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                                                    title="Mô phỏng thanh toán thành công"
+                                                >
+                                                    {isConfirming ? "Đang xử lý..." : "Xác nhận đã thanh toán"}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

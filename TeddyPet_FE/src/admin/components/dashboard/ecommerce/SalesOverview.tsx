@@ -12,14 +12,19 @@ const formatCurrency = (value: number) => {
 interface SalesOverviewProps {
     stats: any;
     isLoading: boolean;
+    hideCosts?: boolean;
 }
 
-export const SalesOverview = ({ stats, isLoading }: SalesOverviewProps) => {
-    const data = [
+export const SalesOverview = ({ stats, isLoading, hideCosts }: SalesOverviewProps) => {
+    let data = [
         { label: 'Tổng doanh thu', value: stats?.totalRevenue || 0, percent: 100, color: '#00a76f' },
         { label: 'Doanh thu trung bình', value: stats?.totalOrders > 0 ? (stats?.totalRevenue / stats?.totalOrders) : 0, percent: 75, color: '#00b8d9' },
         { label: 'Chi phí ước tính', value: (stats?.totalRevenue || 0) * 0.4, percent: 40, color: '#ffab00' },
     ];
+
+    if (hideCosts) {
+        data = data.filter(item => item.label !== 'Chi phí ước tính');
+    }
 
     return (
         <DashboardCard sx={{ p: 3, pb: 4, height: '100%' }}>

@@ -90,7 +90,8 @@ public class UserApplicationService implements UserService {
                 u.getCreatedAt(),
                 u.getStatus(),
                 u.getRole() != null ? u.getRole().getName() : null,
-                u.getMustChangePassword() != null ? u.getMustChangePassword() : false);
+                u.getMustChangePassword() != null ? u.getMustChangePassword() : false,
+                u.getBackupEmail());
     }
 
     @Override
@@ -155,6 +156,7 @@ public class UserApplicationService implements UserService {
         user.setPhoneNumber(request.phoneNumber());
         user.setDateOfBirth(request.dateOfBirth());
         user.setGender(request.gender());
+        user.setBackupEmail(request.optionalEmail());
 
         User savedUser = userRepositoryPort.save(user);
         log.info("Profile updated successfully for user: {}", savedUser.getUsername());
@@ -173,6 +175,7 @@ public class UserApplicationService implements UserService {
                 savedUser.getCreatedAt(),
                 savedUser.getStatus(),
                 savedUser.getRole().getName(),
-                savedUser.getMustChangePassword() != null ? savedUser.getMustChangePassword() : false);
+                savedUser.getMustChangePassword() != null ? savedUser.getMustChangePassword() : false,
+                savedUser.getBackupEmail());
     }
 }

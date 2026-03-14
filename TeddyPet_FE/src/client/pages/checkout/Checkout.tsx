@@ -20,7 +20,7 @@ import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/or
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
 import { getShippingEstimation } from "../../api/shipping.api";
-import { CheckCircle2, ShieldCheck, Mail, Key } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -66,16 +66,22 @@ function MapResizeHandler({ active }: { active: boolean }) {
 
     useEffect(() => {
         if (!active) return;
-        const raf = requestAnimationFrame(() => {
+
+        // Use ResizeObserver to detect any change in the map container size
+        const container = map.getContainer();
+        const resizeObserver = new ResizeObserver(() => {
             map.invalidateSize();
         });
 
+        resizeObserver.observe(container);
+
+        // Still keep the timeout as a fallback for the initial animation
         const timer = setTimeout(() => {
             map.invalidateSize();
-        }, 320);
+        }, 500);
 
         return () => {
-            cancelAnimationFrame(raf);
+            resizeObserver.disconnect();
             clearTimeout(timer);
         };
     }, [active, map]);
@@ -169,7 +175,7 @@ export const CheckoutPage = () => {
         if (otp) {
             setValue("otpCode", otp);
             toast.info("Đã tự động điền mã xác thực từ email.");
-            
+
             // Auto trigger verification if both are present
             if (email && otp) {
                 handleVerifyOtpAction(email, otp);
@@ -369,16 +375,16 @@ export const CheckoutPage = () => {
                 setValue("latitude", lat);
                 setValue("longitude", lon);
                 setMapCenter([lat, lon]);
-                
+
                 const p = feature.properties;
                 const houseNum = p.housenumber ? `${p.housenumber} ` : "";
                 const street = p.street || "";
                 const name = (p.name && p.name !== p.street) ? p.name : "";
-                
+
                 const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
                 const parts = [mainPart, p.district, p.city, p.country];
                 const displayName = parts.filter(Boolean).join(", ");
-                
+
                 if (isFromSearch || !isManualChange.current) {
                     setValue("address", displayName);
                 }
@@ -399,17 +405,17 @@ export const CheckoutPage = () => {
                     const lon = newPos?.lng || 106.7164031;
                     const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchKeyword)}&limit=10&lat=${lat}&lon=${lon}&location_bias_scale=0.5`);
                     const data = await res.json();
-                    
+
                     const photonSuggestions = data.features.map((f: any) => {
                         const p = f.properties;
                         const houseNum = p.housenumber ? `${p.housenumber} ` : "";
                         const street = p.street || "";
                         const name = (p.name && p.name !== p.street) ? p.name : "";
-                        
+
                         const mainPart = name ? (street ? `${name}, ${houseNum}${street}` : `${houseNum}${name}`) : `${houseNum}${street}`;
                         const parts = [mainPart, p.district, p.city, p.country];
                         const displayName = parts.filter(Boolean).join(", ");
-                        
+
                         return {
                             display_name: displayName,
                             lat: f.geometry.coordinates[1],
@@ -417,7 +423,7 @@ export const CheckoutPage = () => {
                             type: p.osm_value
                         };
                     });
-                    
+
                     setSuggestions(photonSuggestions);
                     setShowSuggestions(true);
                 } catch (error) {
@@ -479,7 +485,7 @@ export const CheckoutPage = () => {
                         longitude: data.longitude,
                         isDefault: addresses.length === 0
                     });
-                    toast.info("Đã lưu địa chỉ mới vào sổ địa chỉ");
+                    // toast.info("Đã lưu địa chỉ mới vào sổ địa chỉ");
                 } catch (error) {
                     console.error("Lỗi khi lưu địa chỉ:", error);
                 }
@@ -584,122 +590,111 @@ export const CheckoutPage = () => {
             `}} />
             {checkoutItems.length > 0 ? (
                 <div className="app-container flex pb-[150px] 2xl:pb-[100px] relative">
-                    <div className="w-[60%] py-[50px] scale-90 origin-top-left">
+                    <div className="w-[60%] py-[50px]  origin-top-left">
                         <form onSubmit={handleSubmit(handlePlaceOrder)}>
                             {/* Account Header */}
                             {user && (
                                 <div className="mb-[28px] p-[16px] bg-[#fcfcfc] border border-dashed border-gray-200 rounded-[14px] flex items-center justify-between">
-                                    <div className="flex items-center gap-[10px] text-[1.3rem] text-client-secondary font-medium">
+                                    <div className="flex items-center gap-[10px] text-[1.063rem] text-client-secondary font-medium">
                                         <div className="w-[34px] h-[34px] rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm">
-                                            <User className="w-[1.7rem] h-[1.7rem] text-client-primary" />
+                                            <User className="w-[1.5rem] h-[1.5rem] text-client-primary" />
                                         </div>
                                         <span>Tài khoản: <span className="font-bold">{user ? `${user.firstName} ${user.lastName}` : 'Khách'}</span></span>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={handleLogout}
-                                        className="px-[12px] py-[6px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[6px] text-[1.15rem] font-semibold"
+                                        className="px-[12px] py-[6px] rounded-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center gap-[6px] text-[1.0rem] font-semibold"
                                     >
-                                        <LogOut className="w-[1.4rem] h-[1.4rem]" />
+                                        <LogOut className="w-[1.063rem] h-[1.063rem]" />
                                         <span>Đăng xuất</span>
                                     </button>
                                 </div>
                             )}
 
-                            <h2 className="text-[1.8rem] font-secondary mt-[8px] mb-[18px] font-bold">Thông tin nhận hàng</h2>
+                            <h2 className="text-[1.25rem] font-secondary mt-[8px] mb-[18px] font-bold">Thông tin nhận hàng</h2>
 
                             {/* Guest Verification Section */}
                             {!user && (
-                                <div className="scale-[0.92] origin-top-left -mb-[8px]">
-                                <div className="space-y-[12px] mb-[16px] bg-client-primary/5 p-[15px] rounded-[22px] border border-dashed border-client-primary/20 shadow-inner relative overflow-hidden">
-                                    {isGuestVerified && (
-                                        <div className="absolute top-[10px] right-[15px] animate-scaleUp">
-                                            <div className="flex items-center gap-[4px] bg-emerald-500 text-white px-[10px] py-[3px] rounded-full text-[0.8rem] font-bold shadow-lg shadow-emerald-500/20">
-                                                <ShieldCheck className="w-[1rem] h-[1rem]" />
-                                                Đã xác thực
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    <div className="flex items-center justify-between mb-[13px]">
-                                        <div className="flex items-center gap-[14px]">
-                                            <div className="w-[40px] h-[40px] rounded-full bg-client-primary/10 flex items-center justify-center">
-                                                <EmailOutlinedIcon className="text-client-primary w-[2.2rem] h-[2.2rem]" />
-                                            </div>
-                                            <h3 className="text-[1.2rem] font-black text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
-                                        </div>
+                                <div className=" origin-top-left -mb-[8px]">
+                                    <div className="space-y-[12px] mb-[16px] bg-client-primary/5 p-[15px] rounded-[22px] border border-dashed border-client-primary/20 shadow-inner relative overflow-hidden">
                                         {isGuestVerified && (
-                                            <div className="flex items-center gap-[4px] px-[12px] py-[6px] bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 animate-scaleIn border border-white/20">
-                                                <CheckCircle2 className="w-[1.2rem] h-[1.2rem]" />
-                                                <span className="text-[0.85rem] font-black uppercase tracking-wider">Đã xác thực</span>
+                                            <div className="absolute top-[10px] right-[15px] animate-scaleUp">
+                                                <div className="flex items-center gap-[4px] bg-emerald-500 text-white px-[10px] py-[3px] rounded-full text-[0.469rem] font-bold shadow-lg shadow-emerald-500/20">
+                                                    <ShieldCheck className="w-[0.547rem] h-[0.547rem]" />
+                                                    Đã xác thực
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
 
-                                    <div className="grid grid-cols-1 gap-[13px]">
-                                        <div className="flex gap-[12px]">
-                                            <div className="flex-1 relative">
-                                                <div className="absolute left-[20px] top-1/2 -translate-y-1/2">
-                                                    <Mail className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                        <div className="flex items-center justify-between mb-[13px]">
+                                            <div className="flex items-center gap-[14px]">
+                                                <div className="w-[40px] h-[40px] rounded-full bg-client-primary/10 flex items-center justify-center">
+                                                    <EmailOutlinedIcon className="text-client-primary w-[1.5rem] h-[1.5rem]" />
                                                 </div>
-                                                <input
-                                                    type="email"
-                                                    placeholder="Địa chỉ Email (Để nhận mã xác thực) *"
-                                                    disabled={isGuestVerified}
-                                                    {...register("guestEmail")}
-                                                    className={`w-full rounded-[35px] border border-[#eee] text-client-secondary py-[14px] pl-[45px] pr-[20px] text-[1.2rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
-                                                />
+                                                <h3 className="text-[1.0rem] font-black text-client-secondary uppercase tracking-tight">Xác thực khách hàng</h3>
                                             </div>
-                                            {!isGuestVerified && (
-                                                <button
-                                                    type="button"
-                                                    disabled={otpCooldown > 0 || isSendingOtp}
-                                                    onClick={handleSendOtp}
-                                                    className={`px-[20px] rounded-[35px] font-black text-[1.1rem] transition-all uppercase tracking-wider min-w-[120px] ${otpCooldown > 0 || isSendingOtp
-                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-client-secondary text-white hover:bg-client-primary shadow-xl shadow-client-secondary/20 active:scale-95'}`}
-                                                >
-                                                    {isSendingOtp ? '...' : otpCooldown > 0 ? `LẠI SAU (${otpCooldown}S)` : 'GỬI MÃ'}
-                                                </button>
+                                            {isGuestVerified && (
+                                                <div className="flex items-center gap-[4px] px-[12px] py-[6px] bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 animate-scaleIn border border-white/20">
+                                                    <CheckCircle2 className="w-[1.0rem] h-[1.0rem]" />
+                                                    <span className="text-[0.469rem] font-black uppercase tracking-wider">Đã xác thực</span>
+                                                </div>
                                             )}
                                         </div>
 
-                                        <div className="flex gap-[12px]">
-                                            <div className="flex-1 relative">
-                                                <div className="absolute left-[20px] top-1/2 -translate-y-1/2">
-                                                    <Key className="w-[1.8rem] h-[1.8rem] text-gray-400" />
+                                        <div className="grid grid-cols-1 gap-[13px]">
+                                            <div className="flex gap-[12px]">
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        type="email"
+                                                        placeholder="Địa chỉ Email (Để nhận mã xác thực) *"
+                                                        disabled={isGuestVerified}
+                                                        {...register("guestEmail")}
+                                                        className={`w-full rounded-[35px] border border-[#eee] text-client-secondary py-[14px] pl-[45px] pr-[20px] text-[1.0rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Mã xác thực 6 số *"
-                                                    disabled={isGuestVerified}
-                                                    {...register("otpCode")}
-                                                    className={`w-full rounded-[35px] border border-[#eee] text-client-secondary py-[14px] pl-[45px] pr-[20px] text-[1.2rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
-                                                />
+                                                {!isGuestVerified && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={otpCooldown > 0 || isSendingOtp}
+                                                        onClick={handleSendOtp}
+                                                        className={`px-[18px] rounded-[30px] font-bold text-[0.875rem] transition-all uppercase tracking-wider ${otpCooldown > 0 || isSendingOtp
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-client-secondary text-white hover:bg-client-primary shadow-lg shadow-client-secondary/10 active:scale-95'}`}
+                                                    >
+                                                        {isSendingOtp ? '...' : otpCooldown > 0 ? `LẠI SAU (${otpCooldown}S)` : 'GỬI MÃ'}
+                                                    </button>
+                                                )}
                                             </div>
-                                            {!isGuestVerified && (
-                                                <button
-                                                    type="button"
-                                                    disabled={isVerifyingOtp || !watchOtpCode}
-                                                    onClick={onManualVerify}
-                                                    className={`px-[20px] rounded-[33px] font-extrabold text-[1rem] transition-all uppercase tracking-widest border-2 min-w-[130px] py-[8px] ${isVerifyingOtp || !watchOtpCode
-                                                        ? 'border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed'
-                                                        : 'border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white active:scale-95 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20'}`}
-                                                >
-                                                    {isVerifyingOtp ? '...' : 'XÁC THỰC NGAY'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-[10px] mt-[13px] pl-[10px]">
-                                        <div className="w-[7px] h-[7px] bg-client-primary rounded-full animate-pulse"></div>
-                                        <p className="text-[1rem] text-gray-400 italic font-bold">
-                                            Chúng tôi sẽ dùng Email này để gửi hóa đơn và thông tin tra cứu đơn hàng.
-                                        </p>
+                                            <div className="flex gap-[12px]">
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Mã xác thực 6 số *"
+                                                        disabled={isGuestVerified}
+                                                        {...register("otpCode")}
+                                                        className={`w-full rounded-[35px] border border-[#eee] text-client-secondary py-[14px] pl-[45px] pr-[20px] text-[1.0rem] font-medium outline-none focus:border-client-primary focus:ring-4 focus:ring-client-primary/10 transition-all bg-white hover:border-gray-300 ${isGuestVerified ? 'opacity-60 bg-gray-50 cursor-not-allowed' : ''}`}
+                                                    />
+                                                </div>
+                                                {!isGuestVerified && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={isVerifyingOtp || !watchOtpCode}
+                                                        onClick={onManualVerify}
+                                                        className={`px-[18px] rounded-[30px] font-bold text-[0.875rem] transition-all uppercase tracking-wider border-2 ${isVerifyingOtp || !watchOtpCode
+                                                            ? 'border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed'
+                                                            : 'border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white active:scale-95 shadow-md shadow-emerald-500/5'}`}
+                                                    >
+                                                        {isVerifyingOtp ? '...' : 'XÁC THỰC NGAY'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+
+
                                     </div>
-                                    
-                                </div>
                                 </div>
                             )}
 
@@ -710,12 +705,12 @@ export const CheckoutPage = () => {
                                         <div
                                             key={addr.id}
                                             onClick={() => setSelectedAddressId(addr.id.toString())}
-                                            className={`relative border rounded-[20px] px-[25px] py-[18px] cursor-pointer transition-all duration-300 flex items-center gap-[20px] ${selectedAddressId === addr.id.toString()
+                                            className={`relative border rounded-[20px] px-[25px] py-[18px] cursor-pointer transition-all duration-300 flex items-start gap-[20px] ${selectedAddressId === addr.id.toString()
                                                 ? 'border-client-primary bg-client-primary/[0.03] ring-1 ring-client-primary/10 shadow-sm'
                                                 : 'border-[#eee] hover:border-gray-300 bg-white'
                                                 }`}
                                         >
-                                            <div className="shrink-0 flex items-center">
+                                            <div className="shrink-0 flex items-center pt-1">
                                                 <input
                                                     type="radio"
                                                     checked={selectedAddressId === addr.id.toString()}
@@ -723,19 +718,24 @@ export const CheckoutPage = () => {
                                                     className="appearance-none w-[20px] h-[20px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
                                                 />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-[12px] text-[1.5rem] font-bold text-client-secondary">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-[12px] text-[1.063rem] font-bold text-client-secondary mb-2">
                                                     <span className="line-clamp-1">{addr.fullName}</span>
-                                                    {addr.isDefault && <span className="shrink-0 bg-client-primary/10 text-client-primary text-[1.1rem] px-[10px] py-[3px] rounded-full font-bold uppercase tracking-tighter">Mặc định</span>}
+                                                    {addr.isDefault && (
+                                                        <div className="px-2.5 py-1 bg-emerald-500 rounded-full flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm shadow-emerald-500/20">
+                                                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Mặc định</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-[25px] mt-[6px]">
-                                                    <div className="flex items-center gap-[8px] text-[1.4rem] text-gray-500 font-medium">
-                                                        <Phone className="w-[1.6rem] h-[1.6rem] text-gray-400" />
+                                                <div className="flex flex-col gap-[10px]">
+                                                    <div className="flex items-center gap-[8px] text-[1.063rem] text-gray-500 font-medium">
+                                                        <Phone className="w-[1.5rem] h-[1.5rem] text-gray-400 shrink-0" />
                                                         {addr.phone}
                                                     </div>
-                                                    <div className="flex items-center gap-[8px] text-[1.4rem] text-gray-500 truncate flex-1">
-                                                        <MapPin className="w-[1.6rem] h-[1.6rem] text-gray-400 shrink-0" />
-                                                        <span className="truncate">{addr.address}</span>
+                                                    <div className="flex items-start gap-[8px] text-[0.95rem] text-gray-600">
+                                                        <MapPin className="w-[1.5rem] h-[1.5rem] text-gray-400 shrink-0 mt-0.5" />
+                                                        <span className="line-clamp-2 leading-normal">{addr.address}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -762,7 +762,7 @@ export const CheckoutPage = () => {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <div className={`text-[1.3rem] font-semibold transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-500'}`}>
+                                        <div className={`text-[1.063rem] font-semibold transition-all ${selectedAddressId === "new" ? 'text-client-primary' : 'text-gray-500'}`}>
                                             Thêm địa chỉ giao hàng mới
                                         </div>
                                     </div>
@@ -770,7 +770,7 @@ export const CheckoutPage = () => {
                             )}
 
                             {/* New Address Form & Map */}
-                            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${selectedAddressId === "new" ? "max-h-[1500px] opacity-100 scale-100" : "max-h-0 opacity-0 scale-95 invisible"}`}>
+                            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${selectedAddressId === "new" ? "max-h-[1500px] opacity-100 " : "max-h-0 opacity-0 scale-95 invisible"}`}>
                                 <div className="pt-[20px] space-y-[25px] mb-[40px]">
                                     <div className="grid grid-cols-2 gap-[20px]">
                                         <input
@@ -811,11 +811,11 @@ export const CheckoutPage = () => {
                                             <div className="absolute top-[10px] left-[10px] right-[10px] z-[1000] flex gap-[8px]">
                                                 <div className="flex-1 relative">
                                                     <div className="absolute left-[12px] top-1/2 -translate-y-1/2">
-                                                        <Search className="w-[1.4rem] h-[1.4rem] text-gray-400" />
+                                                        <Search className="w-[1.063rem] h-[1.063rem] text-gray-400" />
                                                     </div>
                                                     <input
                                                         type="text"
-                                                        className="w-full h-full border-none bg-white rounded-[10px] pl-[36px] pr-[44px] py-[10px] text-[1.15rem] font-medium focus:outline-none shadow-md placeholder:text-gray-400"
+                                                        className="w-full h-full border-none bg-white rounded-[10px] pl-[36px] pr-[44px] py-[10px] text-[1.0rem] font-medium focus:outline-none shadow-md placeholder:text-gray-400"
                                                         placeholder="Tìm kiếm vị trí trên bản đồ..."
                                                         value={searchKeyword}
                                                         onChange={(e) => setSearchKeyword(e.target.value)}
@@ -834,7 +834,7 @@ export const CheckoutPage = () => {
                                                         className="absolute right-[8px] top-1/2 -translate-y-1/2 p-[6px] text-client-primary hover:bg-gray-100 rounded-full transition-colors z-10"
                                                         title="Vị trí hiện tại"
                                                     >
-                                                        <Navigation className="w-[1.4rem] h-[1.4rem]" />
+                                                        <Navigation className="w-[1.063rem] h-[1.063rem]" />
                                                     </button>
                                                     {showSuggestions && suggestions.length > 0 && (
                                                         <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-white rounded-[10px] shadow-xl overflow-y-auto max-h-[140px] border border-[#eee]">
@@ -844,10 +844,10 @@ export const CheckoutPage = () => {
                                                                     onClick={() => handleSelectSuggestion(item)}
                                                                     className="px-[12px] py-[8px] hover:bg-gray-50 cursor-pointer border-b border-[#f5f5f5] last:border-none flex items-start gap-[8px]"
                                                                 >
-                                                                    <MapPin className="w-[1.2rem] h-[1.2rem] text-client-primary shrink-0 mt-[2px]" />
+                                                                    <MapPin className="w-[1.0rem] h-[1.0rem] text-client-primary shrink-0 mt-[2px]" />
                                                                     <div className="flex flex-col">
-                                                                        <span className="text-[1.05rem] font-semibold text-client-secondary line-clamp-1">{item.display_name.split(',')[0]}</span>
-                                                                        <span className="text-[0.95rem] text-gray-500 line-clamp-1">{item.display_name}</span>
+                                                                        <span className="text-[0.547rem] font-semibold text-client-secondary line-clamp-1">{item.display_name.split(',')[0]}</span>
+                                                                        <span className="text-[0.547rem] text-gray-500 line-clamp-1">{item.display_name}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -875,7 +875,7 @@ export const CheckoutPage = () => {
                                                     {...register("saveAddress")}
                                                     className="w-[18px] h-[18px] accent-client-primary cursor-pointer"
                                                 />
-                                                <span className="text-[1.4rem] text-gray-500 group-hover:text-client-secondary transition-default font-medium">
+                                                <span className="text-[1.063rem] text-gray-500 group-hover:text-client-secondary transition-default font-medium">
                                                     Lưu địa chỉ này vào sổ địa chỉ để dùng cho lần sau
                                                 </span>
                                             </label>
@@ -886,7 +886,7 @@ export const CheckoutPage = () => {
 
                             <div className="mt-[22px] mb-[35px] cursor-pointer">
                                 <input type="checkbox" id="orderNotesCheckbox" checked={showOrderNotes} onChange={() => setShowOrderNotes(!showOrderNotes)} className="hidden" />
-                                <label htmlFor="orderNotesCheckbox" className="text-client-text pl-[0px] text-[1.3rem] font-medium select-none flex items-center gap-[12px]">
+                                <label htmlFor="orderNotesCheckbox" className="text-client-text pl-[0px] text-[1.063rem] font-medium select-none flex items-center gap-[12px]">
                                     <div className={`w-[20px] h-[20px] border-2 rounded-[4px] flex items-center justify-center transition-all ${showOrderNotes ? 'bg-client-primary border-client-primary' : 'border-[#ddd]'}`}>
                                         {showOrderNotes && <div className="w-[10px] h-[6px] border-l-2 border-b-2 border-white -rotate-45 mb-[2px]"></div>}
                                     </div>
@@ -898,7 +898,7 @@ export const CheckoutPage = () => {
                                             placeholder="Ghi chú về đơn hàng, ví dụ: thời gian giao hàng mong muốn..."
                                             {...register("note")}
                                             rows={2}
-                                            className="rounded-[20px] border border-[#eee] text-client-secondary py-[12px] px-[28px] w-full outline-none focus:border-client-primary transition-default resize-none bg-white hover:border-gray-300 text-[1.4rem]"
+                                            className="rounded-[20px] border border-[#eee] text-client-secondary py-[12px] px-[28px] w-full outline-none focus:border-client-primary transition-default resize-none bg-white hover:border-gray-300 text-[1.063rem]"
                                         />
                                     </div>
                                 )}
@@ -906,17 +906,17 @@ export const CheckoutPage = () => {
 
                             <div className="pt-[35px] border-t border-[#eee] flex items-center justify-between">
                                 <Link to="/cart" className="flex items-center text-client-secondary font-secondary hover:text-client-primary transition-default group">
-                                    <ArrowLeft className="text-[1.6rem] mr-[10px] transition-transform group-hover:-translate-x-1" />
-                                    <span className="text-[1.4rem] font-secondary font-medium">Trở lại giỏ hàng</span>
+                                    <ArrowLeft className="text-[1.25rem] mr-[10px] transition-transform group-hover:-translate-x-1" />
+                                    <span className="text-[1.063rem] font-secondary font-medium">Trở lại giỏ hàng</span>
                                 </Link>
                             </div>
                         </form>
                     </div>
 
                     {/* Order Summary Sidebar */}
-                    <div className="w-[40%] ml-[35px] py-[40px] scale-90 origin-top-right">
+                    <div className="w-[40%] ml-[35px] py-[40px]  origin-top-right">
                         <div className="sticky top-[20px] bg-white rounded-[25px] border border-[#eee] overflow-hidden">
-                            <h2 className="py-[14px] px-[22px] text-[1.2rem] font-bold text-client-secondary border-b border-[#eee]">Tóm tắt đơn hàng</h2>
+                            <h2 className="py-[14px] px-[22px] text-[1.0rem] font-bold text-client-secondary border-b border-[#eee]">Tóm tắt đơn hàng</h2>
 
                             <div className="px-[22px] pb-[20px] pt-[10px]">
                                 {/* Product List */}
@@ -927,25 +927,25 @@ export const CheckoutPage = () => {
                                                 <div className="w-[55px] h-[55px] rounded-[12px] overflow-hidden border border-[#eee] bg-gray-50">
                                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                                                 </div>
-                                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 shadow-md aspect-square bg-client-primary w-[20px] rounded-full flex items-center justify-center text-white text-[0.9rem] font-bold border-2 border-white z-10">
+                                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 shadow-md aspect-square bg-client-primary w-[20px] rounded-full flex items-center justify-center text-white text-[0.547rem] font-bold border-2 border-white z-10">
                                                     {item.quantity}
                                                 </div>
                                             </div>
                                             <div className="pl-[12px] pr-[8px] flex-1">
-                                                <div className="text-[1.1rem] font-bold text-client-secondary mb-[2px] line-clamp-1">{item.title}</div>
+                                                <div className="text-[1.0rem] font-bold text-client-secondary mb-[2px] line-clamp-1">{item.title}</div>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[#FF6262] font-bold text-[1rem]">{item.option.price.toLocaleString()}đ</p>
+                                                    <p className="text-[#FF6262] font-bold text-[0.547rem]">{item.option.price.toLocaleString()}đ</p>
                                                     {item.option.originalPrice && (
-                                                        <p className="text-[#999] line-through text-[0.85rem]">{item.option.originalPrice.toLocaleString()}đ</p>
+                                                        <p className="text-[#999] line-through text-[0.469rem]">{item.option.originalPrice.toLocaleString()}đ</p>
                                                     )}
                                                 </div>
                                                 {item.option.size && (
-                                                    <div className="text-[#999] text-[0.85rem] mt-[2px] italic">
+                                                    <div className="text-[#999] text-[0.469rem] mt-[2px] italic">
                                                         {item.option.size}
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="text-client-secondary ml-auto font-bold text-[1.1rem] self-center">
+                                            <div className="text-client-secondary ml-auto font-bold text-[1.0rem] self-center">
                                                 {(item.option.price * item.quantity).toLocaleString()}đ
                                             </div>
                                         </li>
@@ -954,7 +954,7 @@ export const CheckoutPage = () => {
 
                                 {/* Payment Methods */}
                                 <div className="mb-[25px] pt-[18px] border-t border-[#eee]">
-                                    <h3 className="text-[1.1rem] font-bold text-client-secondary mb-[10px] tracking-tight">
+                                    <h3 className="text-[1.0rem] font-bold text-client-secondary mb-[10px] tracking-tight">
                                         Phương thức thanh toán
                                     </h3>
                                     <div className="space-y-[8px]">
@@ -970,7 +970,7 @@ export const CheckoutPage = () => {
                                                     onChange={() => setPaymentMethod(method.id)}
                                                     className="appearance-none w-[16px] h-[16px] border-[2px] border-[#ddd] rounded-full checked:border-client-primary checked:border-[5px] bg-white transition-all cursor-pointer"
                                                 />
-                                                <span className={`text-[1.2rem] font-medium transition-colors ${paymentMethod === method.id ? 'text-client-secondary font-bold' : 'text-gray-600'}`}>
+                                                <span className={`text-[1.0rem] font-medium transition-colors ${paymentMethod === method.id ? 'text-client-secondary font-bold' : 'text-gray-600'}`}>
                                                     {method.label}
                                                 </span>
                                             </label>
@@ -980,12 +980,12 @@ export const CheckoutPage = () => {
 
                                 {/* Pricing Breakdown */}
                                 <div className="space-y-[10px] pt-[14px] border-t border-[#eee]">
-                                    <div className="flex justify-between text-[#666] text-[1.1rem]">
+                                    <div className="flex justify-between text-[#666] text-[1.0rem]">
                                         <span className="font-medium">Tạm tính</span>
                                         <span className="font-bold text-client-secondary">{checkoutTotalAmount.toLocaleString()}đ</span>
                                     </div>
 
-                                    <div className="flex justify-between text-[#666] text-[1.1rem]">
+                                    <div className="flex justify-between text-[#666] text-[1.0rem]">
                                         <span className="font-medium">Phí vận chuyển</span>
                                         <span className="font-bold text-client-secondary">
                                             {calculatingFee ? "Đang tính..." : (shippingFee !== null && shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
@@ -993,16 +993,16 @@ export const CheckoutPage = () => {
                                     </div>
 
                                     <div className="pt-[10px] border-t border-[#eee] flex justify-between items-center">
-                                        <span className="text-[1.1rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[1.6rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
+                                        <span className="text-[1.0rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
+                                        <div className="text-[1.375rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
                                     </div>
 
                                     <button
                                         onClick={handleSubmit(handlePlaceOrder)}
                                         disabled={isPlacingOrder}
-                                        className={`w-full mt-[6px] py-[11px] px-[16px] rounded-[14px] text-white font-semibold transition-all text-[1.05rem] flex items-center justify-center gap-2 ${isPlacingOrder
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-client-primary hover:bg-client-secondary cursor-pointer active:scale-95'
+                                        className={`w-full mt-[16px] h-[48px] rounded-[10px] text-white font-bold transition-all text-[0.875rem] flex items-center justify-center gap-2 shadow-md shadow-client-primary/15 bg-client-primary hover:bg-client-secondary active:scale-[0.98] ${isPlacingOrder
+                                            ? 'opacity-50 cursor-not-allowed'
+                                            : 'cursor-pointer'
                                             }`}
                                     >
                                         {isPlacingOrder ? (
@@ -1029,13 +1029,13 @@ export const CheckoutPage = () => {
                 <div className="app-container p-[80px] text-center pb-[150px]">
                     <div className="w-[160px] h-[160px] bg-white rounded-full flex items-center justify-center mx-auto mb-[40px] border-4 border-dashed border-gray-100 shadow-xl">
                         <ShoppingCartOutlinedIcon style={{
-                            fontSize: "7rem",
+                            fontSize: "3.938rem",
                             color: "#eee"
                         }} />
                     </div>
-                    <div className="text-client-secondary text-[3.2rem] font-black font-secondary mb-[20px] uppercase tracking-tighter">Giỏ hàng trống trơn!</div>
-                    <p className="max-w-[600px] mx-auto mb-[50px] text-client-text text-[1.8rem] leading-relaxed opacity-60">Bạn chưa chọn được món nào ưng ý sao? Hãy cùng khám phá thêm hàng ngàn sản phẩm tuyệt vời khác từ chúng tôi nhé!</p>
-                    <Link to="/shop" className="px-[60px] py-[22px] inline-flex bg-client-primary hover:bg-client-secondary transition-all text-white rounded-[9999px] font-black font-secondary text-[1.8rem] shadow-2xl shadow-client-primary/30 active:scale-95 uppercase tracking-[0.3em] italic">
+                    <div className="text-client-secondary text-[1.75rem] font-black font-secondary mb-[20px] uppercase tracking-tighter">Giỏ hàng trống trơn!</div>
+                    <p className="max-w-[600px] mx-auto mb-[50px] text-client-text text-[1.25rem] leading-relaxed opacity-60">Bạn chưa chọn được món nào ưng ý sao? Hãy cùng khám phá thêm hàng ngàn sản phẩm tuyệt vời khác từ chúng tôi nhé!</p>
+                    <Link to="/shop" className="px-[60px] py-[22px] inline-flex bg-client-primary hover:bg-client-secondary transition-all text-white rounded-[9999px] font-black font-secondary text-[1.25rem] shadow-2xl shadow-client-primary/30 active:scale-95 uppercase tracking-[0.3em] italic">
                         Tiếp tục mua hàng
                     </Link>
                 </div>

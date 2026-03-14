@@ -110,6 +110,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/confirm").permitAll()
                         // Banks: cho phép khách xem danh sách ngân hàng để nhập thông tin hoàn cọc
                         .requestMatchers(HttpMethod.GET, "/api/banks", "/api/banks/**").permitAll()
+                        // Bank information cho booking (guest có thể nhập thông tin nhận hoàn tiền theo bookingCode)
+                        .requestMatchers(HttpMethod.GET, "/api/bank-information/booking/code/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/bank-information/booking/code/*").permitAll()
                         // Guest Cart Sync
                         .requestMatchers(HttpMethod.POST, "/api/carts/guest/**", "/api/cart/guest/**").permitAll()
                         .anyRequest().authenticated())

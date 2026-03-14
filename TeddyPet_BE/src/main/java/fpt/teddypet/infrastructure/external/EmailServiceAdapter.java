@@ -176,6 +176,68 @@ public class EmailServiceAdapter implements EmailServicePort {
         self.sendHtmlEmail(to, subject, htmlBody);
     }
 
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingCancelledEmail(String to, String bookingCode) {
+        log.info("Sending booking cancelled email to {}", to);
+        String subject = String.format("[%s] Đơn đặt lịch #%s đã bị hủy", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/booking-cancelled", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingRefundRequestedEmail(String to, String bookingCode, String refundAmount) {
+        log.info("Sending booking refund-requested email to {}", to);
+        String subject = String.format("[%s] Yêu cầu hoàn cọc đơn đặt lịch #%s đã được ghi nhận", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("refundAmount", refundAmount);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/refund-requested", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingDepositExpiredEmail(String to, String bookingCode) {
+        log.info("Sending booking deposit expired email to {}", to);
+        String subject = String.format("[%s] Đơn đặt lịch #%s đã hết thời gian giữ chỗ", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("rebookUrl", frontendUrl + "/dat-lich");
+
+        String htmlBody = templateEngine.process("email/bookings/deposit-expired", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount) {
+        log.info("Sending booking refund approved email to {}", to);
+        String subject = String.format("[%s] Yêu cầu hoàn cọc đơn đặt lịch #%s đã được phê duyệt", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("refundAmount", refundAmount);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/refund-approved", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
     @Override
     public void sendPasswordResetEmail(String to, String resetToken, String resetLink) {
         log.info(EmailConstants.LOG_SEND_PASSWORD_RESET, to);

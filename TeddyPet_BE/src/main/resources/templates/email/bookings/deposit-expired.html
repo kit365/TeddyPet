@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Đơn đặt lịch #' + ${bookingCode} + ' đã hết thời gian giữ chỗ'"></title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #9e9e9e; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: #616161; border-bottom: 2px solid #eee; padding-bottom: 10px;">Đặt lịch đã hết thời gian giữ chỗ</h2>
+    <p style="color: #555; line-height: 1.6;">Xin chào,</p>
+    <p style="color: #555; line-height: 1.6;">Đơn đặt lịch của bạn với mã <strong><span th:text="${bookingCode}"></span></strong> tại <strong><span th:text="${appName}">TeddyPet</span></strong> đã hết thời gian giữ chỗ do chưa nhận được thanh toán cọc.</p>
+    <p style="color: #d32f2f; line-height: 1.6; font-weight: bold;">Đơn đặt lịch đã bị hủy tự động.</p>
+    <p style="color: #555; line-height: 1.6;">Nếu bạn vẫn muốn đặt lịch, vui lòng truy cập website và thực hiện lại quá trình đặt lịch. Chúng tôi rất mong được phục vụ bạn!</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a th:href="${rebookUrl}" style="background-color: #ffbaa0; color: #181818; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Đặt lịch lại ngay</a>
+    </div>
+
+    <div style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+      <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
+      <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
+    </div>
+  </div>
+</body>
+</html>

@@ -7,7 +7,10 @@ import { adminTheme } from "../../config/theme"
 import { setupInitialPassword } from "../../api/auth.api"
 import { toast, ToastContainer } from "react-toastify"
 import { useAuthStore } from "../../../stores/useAuthStore"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getMe } from "../../../api/auth.api"
+import Cookies from "js-cookie"
+import { useEffect } from "react"
 
 export const SetupPasswordPage = () => {
     const navigate = useNavigate();
@@ -17,6 +20,27 @@ export const SetupPasswordPage = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch fresh user data to ensure we are not on a stale state
+    const tokenAdmin = Cookies.get("tokenAdmin");
+    const { data: meRes } = useQuery({
+        queryKey: ["me-admin", tokenAdmin],
+        queryFn: () => getMe(tokenAdmin),
+        enabled: !!tokenAdmin,
+        retry: false,
+        staleTime: 0, // Always fresh
+    });
+
+    useEffect(() => {
+        // If the query returns and says mustChangePassword is false, redirect immediately
+        if (meRes?.data && meRes.data.mustChangePassword === false) {
+            const role = meRes.data.role;
+            let target = "/admin/dashboard/analytics";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            else if (role === "STAFF") target = "/admin/staff/dashboard";
+            navigate(target, { replace: true });
+        }
+    }, [meRes, navigate]);
 
     const handleTogglePasswordVisibility = () => {
         setShowPassword(prev => !prev)
@@ -37,9 +61,6 @@ export const SetupPasswordPage = () => {
         try {
             await setupInitialPassword({ newPassword, confirmPassword });
             
-            // Critical: Invalidate the 'me' query so AdminGuard sees mustChangePassword is false
-            await queryClient.invalidateQueries({ queryKey: ["me-admin"] });
-            
             toast.success("Thiết lập mật khẩu thành công!");
             
             // Update local store state immediately
@@ -47,15 +68,15 @@ export const SetupPasswordPage = () => {
                 set({ user: { ...user, mustChangePassword: false } });
             }
 
-            // Small delay to allow toast to be seen
-            setTimeout(() => {
-                const role = user?.role;
-                let target = "/admin/dashboard/analytics";
-                if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
-                else if (role === "STAFF") target = "/admin/staff/dashboard";
-                
-                navigate(target, { replace: true });
-            }, 1000);
+            // Invalidate in background, don't await to avoid unmount issues
+            queryClient.invalidateQueries({ queryKey: ["me-admin"] });
+            
+            const role = user?.role;
+            let target = "/admin/dashboard/analytics";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            else if (role === "STAFF") target = "/admin/staff/dashboard";
+            
+            navigate(target, { replace: true });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Thiết lập mật khẩu thất bại!");
         } finally {

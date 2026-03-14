@@ -26,5 +26,13 @@ public interface BookingAdminService {
     AdminBookingPetServiceItemResponse approveChargeItem(Long bookingId, Long petId, Long bookingPetServiceId, Long itemId, ApproveChargeItemRequest request);
 
     AdminBookingListItemResponse approveOrRejectCancelRequest(Long bookingId, fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest request);
+
+    AdminBookingListItemResponse confirmReadyToWork(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmBookingReadyRequest request);
+
+    AdminBookingListItemResponse confirmFullPayment(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmFullPaymentRequest request);
+
+    AdminBookingListItemResponse checkIn(Long bookingId);
+
+    AdminBookingListItemResponse checkOut(Long bookingId);
 }
 

@@ -1,4 +1,4 @@
-﻿import { Stack, Typography, Box, Divider } from "@mui/material"
+import { Stack, Typography, Box, Divider } from "@mui/material"
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { useTranslation } from "react-i18next";
 import { memo, useEffect, useState, useCallback, useRef } from "react";
@@ -26,10 +26,18 @@ VerticalDivider.displayName = 'VerticalDivider';
 interface TiptapProps {
     value?: string;
     onChange?: (content: string) => void;
+    /** Placeholder khi editor trống. Mặc định dùng i18n. */
+    placeholder?: string;
+    /** Nhãn hiển thị phía trên editor. Mặc định dùng i18n. */
+    contentLabel?: string;
+    /** Ẩn nhãn phía trên (dùng khi form tự render label). */
+    hideLabel?: boolean;
 }
 
-export const Tiptap = memo(({ value = '', onChange }: TiptapProps) => {
+export const Tiptap = memo(({ value = '', onChange, placeholder: placeholderProp, contentLabel: contentLabelProp, hideLabel = false }: TiptapProps) => {
     const { t } = useTranslation();
+    const placeholder = placeholderProp ?? t("admin.tiptap.placeholder");
+    const contentLabel = contentLabelProp ?? t("admin.tiptap.content_label");
     const [isFullscreen, setIsFullscreen] = useState(false);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -43,7 +51,7 @@ export const Tiptap = memo(({ value = '', onChange }: TiptapProps) => {
     }, [onChange]);
 
     const editor = useEditor({
-        extensions: getExtensions(t("admin.tiptap.placeholder")),
+        extensions: getExtensions(placeholder),
         content: value,
         immediatelyRender: true,
         shouldRerenderOnTransaction: false,
@@ -130,7 +138,9 @@ export const Tiptap = memo(({ value = '', onChange }: TiptapProps) => {
         <Stack gap="12px" sx={{
             backgroundColor: isFullscreen ? "#1c252e7a" : "#fff"
         }}>
-            <Typography variant="h6" sx={{ fontSize: "0.875rem", fontWeight: "600" }}> {t("admin.tiptap.content_label")} </Typography>
+            {!hideLabel && (
+                <Typography variant="h6" sx={{ fontSize: "0.875rem", fontWeight: "600" }}> {contentLabel} </Typography>
+            )}
             {isFullscreen && (
                 <Box
                     onClick={toggleFullscreen}

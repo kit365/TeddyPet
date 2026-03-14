@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
     )
 );
 
-if (import.meta.env.DEV) {
+if ((import.meta as any).env.DEV) {
     useAuthStore.subscribe((state) => {
         console.log("Auth Store updated:", state);
     });
