@@ -1,12 +1,40 @@
-﻿import { Grid, Box, Typography, Button, Divider, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Stack, Avatar, Tabs, Tab } from "@mui/material"
-import { Link } from "react-router-dom";
+import { Grid, Box, Typography, Button, Divider, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Stack, Avatar, Tabs, Tab, IconButton } from "@mui/material"
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../stores/useAuthStore";
+import { prefixAdmin } from "../../constants/routes";
 import Chart from 'react-apexcharts';
 import { Icon } from '@iconify/react';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    getDashboardStats,
+    getRevenueChart,
+    getTopCustomers,
+    getLatestProducts,
+    getPetDistribution,
+    getServiceStatistics,
+    getVisitsByRegion,
+    getCustomerGrowth,
+    getTopSellingProducts,
+    getRatingSummary,
+    getTopStaff,
+} from "../../api/dashboard.api";
+import type {
+    DashboardStatsResponse,
+    RevenueChartItem,
+    VisitsByRegionResponse,
+    CustomerGrowthResponse,
+    ServiceStatisticsWithComparisonResponse,
+    RatingSummaryResponse,
+    TopSellingProductItem,
+    TopStaffResponse,
+} from "../../api/dashboard.api";
+import type { ApiResponse } from "../../../types/common.type";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import SummaryWidget from "../../components/dashboard/SummaryWidget";
 import WelcomeWidget from "../../components/dashboard/WelcomeWidget";
+import { SalesOverview } from "../../components/dashboard/ecommerce/SalesOverview";
+import { CurrentBalance } from "../../components/dashboard/ecommerce/CurrentBalance";
 
 
 const CupIcon = ({ size = 20, sx }: { size?: number, sx?: any }) => (
@@ -17,10 +45,79 @@ const CupIcon = ({ size = 20, sx }: { size?: number, sx?: any }) => (
         viewBox="0 0 24 24"
         sx={{ ...sx }}
     >
-        <path fill="currentColor" d="M22 8.162v.073c0 .86 0 1.291-.207 1.643s-.584.561-1.336.98l-.793.44c.546-1.848.729-3.834.796-5.532l.01-.221l.002-.052c.651.226 1.017.395 1.245.711c.283.393.283.915.283 1.958m-20 0v.073c0 .86 0 1.291.207 1.643s.584.561 1.336.98l.794.44c-.547-1.848-.73-3.834-.797-5.532l-.01-.221l-.001-.052c-.652.226-1.018.395-1.246.711C2 6.597 2 7.12 2 8.162" />
-        <path fill="currentColor" fillRule="evenodd" d="M12 2c1.784 0 3.253.157 4.377.347c1.139.192 1.708.288 2.184.874s.45 1.219.4 2.485c-.172 4.349-1.11 9.78-6.211 10.26V19.5h1.43a1 1 0 0 1 .98.804l.19.946H18a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1 0-1.5h2.65l.19-.946a1 1 0 0 1 .98-.804h1.43v-3.534c-5.1-.48-6.038-5.912-6.21-10.26c-.051-1.266-.076-1.9.4-2.485c.475-.586 1.044-.682 2.183-.874A26.4 26.4 0 0 1 12 2m.952 4.199l-.098-.176C12.474 5.34 12.284 5 12 5s-.474.34-.854 1.023l-.098.176c-.108.194-.162.29-.246.354c-.085.064-.19.088-.4.135l-.19.044c-.738.167-1.107.25-1.195.532s.164.577.667 1.165l.13.152c.143.167.215.25.247.354s.021.215 0 .438l-.02.203c-.076.785-.114 1.178.115 1.352c.23.174.576.015 1.267-.303l.178-.082c.197-.09.295-.135.399-.135s.202.045.399.135l.178.082c.691.319 1.037.477 1.267.303s.191-.567.115-1.352l-.02-.203c-.021-.223-.032-.334 0-.438s.104-.187.247-.354l.13-.152c.503-.588.755-.882.667-1.165c-.088-.282-.457-.365-1.195-.532l-.19-.044c-.21-.047-.315-.07-.4-.135c-.084-.064-.138-.16-.246-.354" clipRule="evenodd" />
+        <path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v6a7.99 7.99 0 0 0 6.941 7.923C9.746 19.347 11.233 20 13 20c1.867 0 3.5-.7 4.316-1.792A8.001 8.001 0 0 0 22 10V4a2 2 0 0 0-2-2m0 8a6 6 0 0 1-5.228 5.952c-.52.03-1.045.048-1.572.048s-1.052-.018-1.572-.048A6.001 6.001 0 0 1 4 10V4h16zM3.5 12h17a.5.5 0 0 1 .5.5v1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1a.5.5 0 0 1 .5-.5" />
     </Box>
 );
+
+/** Pie chart: lượt truy cập theo vùng (Bắc, Trung, Nam) — data từ API/Redis khi có tracking. */
+const CurrentVisitsChart = ({ data }: { data?: { north: number; central: number; south: number; regions?: Array<{ label: string; count: number }> } }) => {
+    const regions = data?.regions?.length ? data.regions : [
+        { label: 'Miền Bắc', count: data?.north ?? 0 },
+        { label: 'Miền Trung', count: data?.central ?? 0 },
+        { label: 'Miền Nam', count: data?.south ?? 0 },
+    ];
+    const labels = regions.map((r) => r.label);
+    const series = regions.map((r) => r.count);
+    const total = series.reduce((a, b) => a + b, 0);
+    const chartOptions: any = {
+        chart: { type: 'pie' },
+        labels,
+        legend: { position: 'bottom', horizontalAlign: 'center', fontSize: '13px', fontWeight: 500, itemMargin: { horizontal: 10, vertical: 5 }, markers: { radius: 12 } },
+        stroke: { show: false },
+        dataLabels: { enabled: true, dropShadow: { enabled: false } },
+        tooltip: { fillSeriesColor: false, y: { formatter: (v: number) => `${v.toLocaleString()} lượt truy cập` } },
+        plotOptions: { pie: { donut: { size: '90%', labels: { show: false } } } },
+        colors: ['#00a76f', '#ffab00', '#004b50']
+    };
+    return (
+        <DashboardCard sx={{ p: 3, height: '100%', position: 'relative' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Lượt truy cập theo vùng</Typography>
+                <IconButton size="small" sx={{ color: 'text.disabled' }}><Icon icon="eva:maximize-fill" /></IconButton>
+            </Stack>
+            <Box sx={{ height: 340, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {total > 0 ? (
+                    <Chart options={chartOptions} series={series} type="pie" width="100%" height={340} />
+                ) : (
+                    <Typography variant="body2" color="text.secondary">Chưa có dữ liệu (sẽ có khi bật tracking Cookie/IP)</Typography>
+                )}
+            </Box>
+        </DashboardCard>
+    );
+};
+
+/** Line chart: tăng trưởng thành viên theo tháng — năm nay vs năm trước (từ API). */
+const CustomerGrowthChart = ({ data }: { data?: { thisYearMonthly: number[]; lastYearMonthly: number[]; monthLabels: string[] } }) => {
+    const labels = data?.monthLabels ?? ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+    const thisYear = data?.thisYearMonthly ?? labels.map(() => 0);
+    const lastYear = data?.lastYearMonthly ?? labels.map(() => 0);
+    const chartOptions: any = {
+        chart: { type: 'line', toolbar: { show: false }, dropShadow: { enabled: true, color: '#000', top: 18, left: 7, blur: 10, opacity: 0.2 } },
+        colors: ['#00a76f', '#ffab00'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 3 },
+        grid: { borderColor: 'var(--palette-divider)', row: { colors: ['transparent', 'transparent'], opacity: 0.5 } },
+        markers: { size: 1 },
+        xaxis: { categories: labels, axisBorder: { show: false }, axisTicks: { show: false } },
+        yaxis: { labels: { style: { colors: 'var(--palette-text-secondary)' } } },
+        legend: { position: 'top', horizontalAlign: 'right', offsetY: -20 }
+    };
+    const series = [
+        { name: 'Năm nay', data: thisYear },
+        { name: 'Năm trước', data: lastYear }
+    ];
+    return (
+        <DashboardCard sx={{ p: 3, minHeight: 380, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ mb: 3, flexShrink: 0 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Tăng trưởng thành viên</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>So sánh đăng ký mới theo tháng (năm nay vs năm trước)</Typography>
+            </Box>
+            <Box sx={{ height: 320, flexShrink: 0 }}>
+                <Chart options={chartOptions} series={series} type="line" height={320} />
+            </Box>
+        </DashboardCard>
+    );
+};
 
 const CAROUSEL_DATA = [
     {
@@ -41,10 +138,15 @@ const CAROUSEL_DATA = [
 ];
 
 
-const PetDistributionChart = () => {
+const PetDistributionChart = ({ data }: { data?: Array<{ label: string; count: number; color: string }> }) => {
+    const list = data ?? [];
+    const labels = list.map((d) => d.label);
+    const series = list.map((d) => d.count);
+    const colors = list.length ? list.map((d) => d.color) : ['#007867', '#5BE49B', '#004B50'];
+    const total = series.reduce((a, b) => a + b, 0);
     const chartOptions: any = {
         chart: { type: 'donut' },
-        labels: ['Mèo', 'Chó', 'Khác'],
+        labels,
         legend: { show: false },
         stroke: { show: false },
         dataLabels: { enabled: false },
@@ -57,56 +159,36 @@ const PetDistributionChart = () => {
                         total: {
                             show: true,
                             label: 'Tổng',
-                            formatter: () => '188,245',
+                            formatter: () => total.toLocaleString(),
                             color: 'var(--palette-text-secondary)',
                             fontSize: '0.875rem',
                             fontWeight: 600,
                         },
-                        value: {
-                            show: true,
-                            fontSize: '1.25rem',
-                            fontWeight: 600,
-                            color: 'var(--palette-text-primary)'
-                        }
+                        value: { show: true, fontSize: '1.25rem', fontWeight: 600, color: 'var(--palette-text-primary)' }
                     }
                 }
             }
         },
-        colors: ['#007867', '#5BE49B', '#004B50']
+        colors
     };
-
-    const series = [44313, 53345, 78343];
-
     return (
         <DashboardCard>
             <Box sx={{ p: 3, pb: 0 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Phân bổ thú cưng</Typography>
                 <Typography variant="body2" sx={{ color: 'var(--palette-text-secondary)', mt: 0.5 }}>Thống kê theo chủng loại</Typography>
             </Box>
-
-            <Box
-                sx={{
-                    height: 320,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    borderRadius: '12px',
-                    mt: 'calc(2 * var(--spacing))',
-                    mb: 'calc(2 * var(--spacing))',
-                    ml: 'auto',
-                    mr: 'auto'
-                }}
-            >
-                <Chart options={chartOptions} series={series} type="donut" width={260} height={260} />
+            <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2, mb: 2 }}>
+                {series.length > 0 ? (
+                    <Chart options={chartOptions} series={series} type="donut" width={260} height={260} />
+                ) : (
+                    <Typography variant="body2" color="text.secondary">Chưa có dữ liệu</Typography>
+                )}
             </Box>
-
             <Divider sx={{ borderStyle: 'dashed' }} />
-
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-                {chartOptions.labels.map((label: string, index: number) => (
+                {labels.map((label: string, index: number) => (
                     <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: chartOptions.colors[index] }} />
+                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: colors[index] }} />
                         <Typography sx={{ fontSize: '0.813rem', fontWeight: 600 }}>{label}</Typography>
                     </Box>
                 ))}
@@ -115,15 +197,20 @@ const PetDistributionChart = () => {
     );
 };
 
-const NewProductsTable = () => {
-    const products = [
-        { id: '1', name: 'Thức ăn hạt Royal Canin', category: 'Thức ăn', price: '450.000đ', status: 'Còn hàng', color: '#00a76f' },
-        { id: '2', name: 'Vòng cổ thời trang LED', category: 'Phụ kiện', price: '120.000đ', status: 'Hết hàng', color: '#ff5630' },
-        { id: '3', name: 'Pate mèo Snappy Tom', category: 'Thức ăn', price: '35.000đ', status: 'Còn hàng', color: '#00a76f' },
-        { id: '4', name: 'Cát đậu nành hữu cơ', category: 'Vệ sinh', price: '185.000đ', status: 'Còn hàng', color: '#00a76f' },
-        { id: '5', name: 'Sữa tắm Joyful Paw', category: 'Dịch vụ', price: '250.000đ', status: 'Đang nhập', color: '#ffab00' },
-    ];
-
+const stockStatusMap: Record<string, { label: string; color: string }> = {
+    IN_STOCK: { label: 'Còn hàng', color: '#00a76f' },
+    LOW_STOCK: { label: 'Sắp hết', color: '#ffab00' },
+    OUT_OF_STOCK: { label: 'Hết hàng', color: '#ff5630' },
+};
+const productStatusMap: Record<string, { label: string; color: string }> = {
+    ACTIVE: { label: 'Đang bán', color: '#00a76f' },
+    HIDDEN: { label: 'Ẩn', color: '#637381' },
+    DRAFT: { label: 'Nháp', color: '#ffab00' },
+};
+const NewProductsTable = ({ data }: { data?: Array<{ productId: number; name: string; minPrice?: number; maxPrice?: number; categories?: Array<{ name?: string }>; stockStatus?: string; status?: string }> }) => {
+    const list = data ?? [];
+    const navigate = useNavigate();
+    const formatMoney = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
     return (
         <DashboardCard>
             <Box sx={{ p: 3 }}>
@@ -136,267 +223,185 @@ const NewProductsTable = () => {
                             <TableCell sx={{ color: 'var(--palette-text-secondary)', fontWeight: 600, borderBottom: 'none' }}>Tên sản phẩm</TableCell>
                             <TableCell sx={{ color: 'var(--palette-text-secondary)', fontWeight: 600, borderBottom: 'none' }}>Danh mục</TableCell>
                             <TableCell sx={{ color: 'var(--palette-text-secondary)', fontWeight: 600, borderBottom: 'none' }}>Giá</TableCell>
+                            <TableCell sx={{ color: 'var(--palette-text-secondary)', fontWeight: 600, borderBottom: 'none' }}>Kho</TableCell>
                             <TableCell sx={{ color: 'var(--palette-text-secondary)', fontWeight: 600, borderBottom: 'none' }}>Trạng thái</TableCell>
                             <TableCell sx={{ borderBottom: 'none' }} />
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {products.map((row) => (
-                            <TableRow key={row.id} sx={{ height: '68.4px' }}>
-                                <TableCell sx={{
-                                    fontFamily: '"Public Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-                                    fontWeight: 600,
-                                    fontSize: '0.875rem',
-                                    lineHeight: 1.57143,
-                                    color: 'var(--palette-text-primary)',
-                                    borderBottom: '1px dashed var(--palette-divider)',
-                                    padding: '16px',
-                                }}>
-                                    {row.name}
-                                </TableCell>
-                                <TableCell sx={{
-                                    fontFamily: '"Public Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-                                    fontWeight: 400,
-                                    fontSize: '0.875rem',
-                                    lineHeight: 1.57143,
-                                    color: 'var(--palette-text-primary)',
-                                    borderBottom: '1px dashed var(--palette-divider)',
-                                    padding: '16px',
-                                }}>
-                                    {row.category}
-                                </TableCell>
-                                <TableCell sx={{
-                                    fontFamily: '"Public Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-                                    fontWeight: 400,
-                                    fontSize: '0.875rem',
-                                    lineHeight: 1.57143,
-                                    color: 'var(--palette-text-primary)',
-                                    borderBottom: '1px dashed var(--palette-divider)',
-                                    padding: '16px',
-                                }}>
-                                    {row.price}
-                                </TableCell>
-                                <TableCell sx={{
-                                    borderBottom: '1px dashed var(--palette-divider)',
-                                    padding: '16px',
-                                }}>
-                                    <Box
-                                        sx={{
-                                            height: 24,
-                                            minWidth: 22,
-                                            lineHeight: 0,
-                                            borderRadius: '6px',
-                                            cursor: 'default',
-                                            alignItems: 'center',
-                                            whiteSpace: 'nowrap',
-                                            display: 'inline-flex',
-                                            justifyContent: 'center',
-                                            padding: '0px 6px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 700,
-                                            bgcolor: `${row.color}14`,
-                                            color: row.color,
-                                        }}
-                                    >
-                                        {row.status}
-                                    </Box>
-                                </TableCell>
-                                <TableCell align="right" sx={{
-                                    borderBottom: '1px dashed var(--palette-divider)',
-                                    padding: '16px',
-                                }}>
-                                    <Icon icon="eva:more-vertical-fill" width={20} height={20} style={{ color: 'var(--palette-text-disabled)' }} />
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {list.map((row) => {
+                            const price = row.minPrice != null ? (row.maxPrice != null && row.maxPrice !== row.minPrice ? `${formatMoney(row.minPrice)} - ${formatMoney(row.maxPrice)}` : formatMoney(row.minPrice)) : '-';
+                            const stock = stockStatusMap[row.stockStatus ?? ''] ?? { label: row.stockStatus ?? '-', color: '#637381' };
+                            const pStatus = productStatusMap[row.status ?? ''] ?? { label: row.status ?? '-', color: '#637381' };
+                            return (
+                                <TableRow
+                                    key={row.productId}
+                                    sx={{ height: '68.4px', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                                    onClick={() => navigate(`/${prefixAdmin}/product/detail/${row.productId}`)}
+                                >
+                                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--palette-text-primary)', borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }}>{row.name}</TableCell>
+                                    <TableCell sx={{ fontSize: '0.875rem', color: 'var(--palette-text-primary)', borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }}>{row.categories?.[0]?.name ?? '-'}</TableCell>
+                                    <TableCell sx={{ fontSize: '0.875rem', color: 'var(--palette-text-primary)', borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }}>{price}</TableCell>
+                                    <TableCell sx={{ borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }}>
+                                        <Box sx={{ height: 24, minWidth: 22, lineHeight: 0, borderRadius: '6px', alignItems: 'center', whiteSpace: 'nowrap', display: 'inline-flex', justifyContent: 'center', padding: '0px 6px', fontSize: '0.75rem', fontWeight: 700, bgcolor: `${stock.color}14`, color: stock.color }}>{stock.label}</Box>
+                                    </TableCell>
+                                    <TableCell sx={{ borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }}>
+                                        <Box sx={{ height: 24, minWidth: 22, lineHeight: 0, borderRadius: '6px', alignItems: 'center', whiteSpace: 'nowrap', display: 'inline-flex', justifyContent: 'center', padding: '0px 6px', fontSize: '0.75rem', fontWeight: 700, bgcolor: `${pStatus.color}14`, color: pStatus.color }}>{pStatus.label}</Box>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ borderBottom: '1px dashed var(--palette-divider)', padding: '16px' }} onClick={(e) => e.stopPropagation()}>
+                                        <Icon icon="eva:more-vertical-fill" width={20} height={20} style={{ color: 'var(--palette-text-disabled)' }} />
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </TableContainer>
             <Divider sx={{ borderStyle: 'dashed' }} />
             <Box sx={{ p: 2, textAlign: 'right' }}>
-                <Button
-                    component={Link}
-                    to="/admin/dashboard/products"
-                    size="small"
-                    color="inherit"
-                    endIcon={<Icon icon="eva:arrow-ios-forward-fill" />}
-                    sx={{
-                        p: '4px',
-                        borderRadius: '8px',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        '&:hover': {
-                            bgcolor: 'var(--palette-action-hover)',
-                        }
-                    }}
-                >
-                    Xem tất cả
-                </Button>
+                <Button component={Link} to={`/${prefixAdmin}/product/list`} size="small" color="inherit" endIcon={<Icon icon="eva:arrow-ios-forward-fill" />} sx={{ p: '4px', borderRadius: '8px', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: 'var(--palette-action-hover)' } }}>Xem tất cả</Button>
             </Box>
         </DashboardCard>
     );
 };
 
-const TopSellingProducts = () => {
-    const [tab, setTab] = useState(0);
-
-    const products = [
-        { name: 'Pate mèo Whiskas', category: 'Thức ăn', sales: '9.91k', rating: '9.91k', price: 'Free', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/cover/cover-1.webp' },
-        { name: 'Cát vệ sinh Crystal', category: 'Vệ sinh', sales: '1.95k', rating: '1.95k', price: 'Free', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/cover/cover-2.webp' },
-        { name: 'Sữa tắm chó Joy', category: 'Dịch vụ', sales: '9.12k', rating: '9.12k', price: '$68.71', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/cover/cover-3.webp', color: '#00a76f' },
-        { name: 'Xương gặm bò', category: 'Đồ chơi', sales: '6.98k', rating: '6.98k', price: 'Free', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/cover/cover-4.webp' },
-        { name: 'Bát ăn đôi Inox', category: 'Phụ kiện', sales: '8.49k', rating: '8.49k', price: '$52.17', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/cover/cover-5.webp', color: '#00a76f' },
-    ];
-
+const TopSellingProducts = ({ data, days, onDaysChange }: { data?: Array<{ product: { productId: number; name: string; minPrice?: number; maxPrice?: number; images?: Array<{ url?: string }> }; quantitySold: number }>; days: number | null; onDaysChange: (d: number | null) => void }) => {
+    const tab = days === 7 ? 0 : days === 30 ? 1 : 2;
+    const list = data ?? [];
+    const formatMoney = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v);
     return (
         <DashboardCard sx={{ p: 0 }}>
             <Box sx={{ p: 3, pb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Sản phẩm bán chạy</Typography>
             </Box>
-
             <Box sx={{ px: 2, mb: 2 }}>
-                <Box sx={{
-                    bgcolor: 'var(--palette-background-neutral)',
-                    borderRadius: '8px',
-                    px: '8px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                }}>
+                <Box sx={{ bgcolor: 'var(--palette-background-neutral)', borderRadius: '8px', px: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
                     <Tabs
                         value={tab}
-                        onChange={(_, v) => setTab(v)}
+                        onChange={(_, v) => onDaysChange(v === 0 ? 7 : v === 1 ? 30 : null)}
                         variant="fullWidth"
                         sx={{
-                            width: '100%',
-                            minHeight: 48,
-                            '& .MuiTabs-indicator': {
-                                height: 'calc(100% - 8px)',
-                                borderRadius: '8px',
-                                bgcolor: 'var(--palette-common-white)',
-                                boxShadow: 'var(--customShadows-z1, 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12))',
-                                zIndex: 0,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                            }
+                            width: '100%', minHeight: 48,
+                            '& .MuiTabs-indicator': { height: 'calc(100% - 8px)', borderRadius: '8px', bgcolor: 'var(--palette-common-white)', boxShadow: 'var(--customShadows-z1)', zIndex: 0, top: '50%', transform: 'translateY(-50%)' }
                         }}
                     >
                         {['7 ngày qua', '30 ngày qua', 'Tất cả'].map((label, i) => (
-                            <Tab
-                                key={label}
-                                label={label}
-                                sx={{
-                                    zIndex: 1,
-                                    minHeight: 52,
-                                    fontSize: '0.875rem',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    py: '0px',
-                                    color: tab === i ? 'var(--palette-text-primary) !important' : 'var(--palette-text-secondary)',
-                                    opacity: 1,
-                                    transition: 'color 300ms',
-                                }}
-                            />
+                            <Tab key={label} label={label} sx={{ zIndex: 1, minHeight: 52, fontSize: '0.875rem', textTransform: 'none', fontWeight: 600, py: '0px', color: tab === i ? 'var(--palette-text-primary) !important' : 'var(--palette-text-secondary)', opacity: 1 }} />
                         ))}
                     </Tabs>
                 </Box>
             </Box>
-
             <Stack spacing={3} sx={{ p: 3, pt: 0 }}>
-                {products.map((item) => (
-                    <Stack key={item.name} direction="row" alignItems="center" spacing={2}>
-                        <Avatar variant="rounded" src={item.image} sx={{ width: 48, height: 48, bgcolor: 'var(--palette-background-neutral)' }} />
+                {list.map((item) => (
+                    <Stack key={item.product.productId} direction="row" alignItems="center" spacing={2} component={Link} to={`/${prefixAdmin}/product/detail/${item.product.productId}`} sx={{ textDecoration: 'none', color: 'inherit', borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
+                        <Avatar variant="rounded" src={item.product.images?.[0]?.url} sx={{ width: 48, height: 48, bgcolor: 'var(--palette-background-neutral)' }} />
                         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                             <Stack direction="row" alignItems="center" spacing={1}>
-                                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>{item.name}</Typography>
-                                <Box sx={{ px: 0.5, borderRadius: '4px', bgcolor: 'var(--palette-background-neutral)', fontSize: '0.75rem', color: 'var(--palette-text-secondary)' }}>
-                                    {item.price === 'Free' ? 'Miễn phí' : item.price}
-                                </Box>
+                                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>{item.product.name}</Typography>
+                                {item.product.minPrice != null && (
+                                    <Box sx={{ px: 0.8, py: 0.2, borderRadius: '6px', bgcolor: 'var(--palette-background-neutral)', fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', lineHeight: 1 }}>
+                                        {formatMoney(item.product.minPrice)}
+                                    </Box>
+                                )}
                             </Stack>
                             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 0.5, color: 'var(--palette-text-disabled)' }}>
-                                <Stack direction="row" alignItems="center" spacing={0.5}>
-                                    <Icon icon="solar:download-bold" width={16} />
-                                    <Typography variant="caption">{item.sales}</Typography>
-                                </Stack>
-                                <Stack direction="row" alignItems="center" spacing={0.5}>
-                                    <Icon icon="solar:star-bold" width={16} style={{ color: '#ffab00' }} />
-                                    <Typography variant="caption">{item.rating}</Typography>
-                                </Stack>
+                                <Icon icon="solar:cart-large-2-bold" width={16} />
+                                <Typography variant="caption">Đã bán: {item.quantitySold.toLocaleString()}</Typography>
                             </Stack>
                         </Box>
-                        <Icon icon="eva:more-vertical-fill" width={20} style={{ color: 'var(--palette-text-disabled)' }} />
+                        <IconButton size="small" component={Link} to={`/${prefixAdmin}/product/list`} onClick={(e) => e.stopPropagation()} sx={{ flexShrink: 0 }}>
+                            <Icon icon="eva:chevron-right-fill" width={20} style={{ color: 'var(--palette-text-disabled)' }} />
+                        </IconButton>
                     </Stack>
                 ))}
+                {list.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>Chưa có dữ liệu</Typography>}
             </Stack>
+            <Box sx={{ p: 2, textAlign: 'right' }}>
+                <Button component={Link} to={`/${prefixAdmin}/product/list`} size="small" color="inherit" endIcon={<Icon icon="eva:arrow-ios-forward-fill" />} sx={{ textTransform: 'none', fontWeight: 600 }}>Xem tất cả</Button>
+            </Box>
         </DashboardCard>
     );
 };
 
-const TopCustomers = () => {
-    const customers = [
-        { name: 'Nguyễn Văn A', total: '15.2M', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-4.webp', color: '#ffab00' },
-        { name: 'Trần Thị B', total: '12.8M', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-5.webp', color: '#00b8d9' },
-        { name: 'Lê Văn C', total: '10.5M', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-6.webp', color: '#8e33ff' },
-    ];
-
+const COLORS = ['#ffab00', '#00b8d9', '#8e33ff', '#00a76f', '#ff5630'];
+const TopCustomers = ({ data }: { data?: Array<{ name: string; totalSpent: number; orderCount: number; avatarUrl?: string }> }) => {
+    const list = data ?? [];
+    const formatMoney = (v: number) => new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(v) + 'đ';
     return (
         <DashboardCard sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem', mb: 3 }}>Khách hàng tiêu biểu</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Khách hàng tiêu biểu</Typography>
+                <IconButton size="small" component={Link} to={`/${prefixAdmin}/user/list`}>
+                    <Icon icon="eva:chevron-right-fill" width={20} />
+                </IconButton>
+            </Stack>
             <Stack spacing={3}>
-                {customers.map((customer) => (
-                    <Stack key={customer.name} direction="row" alignItems="center" spacing={2}>
-                        <Avatar src={customer.image} sx={{ width: 40, height: 40 }} />
+                {list.map((customer, i) => (
+                    <Stack key={customer.name + i} direction="row" alignItems="center" spacing={2}>
+                        <Avatar src={customer.avatarUrl} sx={{ width: 40, height: 40, bgcolor: COLORS[i % COLORS.length] + '20' }} />
                         <Box sx={{ flexGrow: 1 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{customer.name}</Typography>
                             <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'var(--palette-text-disabled)' }}>
                                 <Icon icon="solar:cart-bold" width={16} />
-                                <Typography variant="caption">{customer.total}</Typography>
+                                <Typography variant="caption">{formatMoney(customer.totalSpent)} ({customer.orderCount} đơn)</Typography>
                             </Stack>
                         </Box>
                         <Box sx={{
                             width: 32, height: 32, borderRadius: '50%',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            bgcolor: `${customer.color}14`, color: customer.color
+                            bgcolor: `${COLORS[i % COLORS.length]}14`, color: COLORS[i % COLORS.length]
                         }}>
                             <Icon icon="solar:medal-star-bold" width={20} />
                         </Box>
                     </Stack>
                 ))}
+                {list.length === 0 && <Typography variant="body2" color="text.secondary">Chưa có dữ liệu</Typography>}
             </Stack>
         </DashboardCard>
     );
 };
 
-const TopAuthors = () => {
-    const authors = [
-        { name: 'Jayvion Simon', likes: '9.91k', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-1.webp', color: '#00a76f' },
-        { name: 'Deja Brady', likes: '9.12k', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-2.webp', color: '#00b8d9' },
-        { name: 'Lucian Obrien', likes: '1.95k', image: 'https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-3.webp', color: '#ff5630' },
-    ];
+const STAFF_COLORS = ['#00a76f', '#00b8d9', '#ff5630'];
 
+const TopStaff = ({ data }: { data?: Array<{ staffId: number; name: string; avatarUrl?: string; positionName: string; completedTasksCount: number }> }) => {
+    const list = data ?? [];
     return (
         <DashboardCard sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem', mb: 3 }}>Nhân viên tiêu biểu</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Nhân viên tiêu biểu</Typography>
+                <IconButton size="small" component={Link} to={`/${prefixAdmin}/staff/profile/list`}>
+                    <Icon icon="eva:chevron-right-fill" width={20} />
+                </IconButton>
+            </Stack>
             <Stack spacing={3}>
-                {authors.map((author) => (
-                    <Stack key={author.name} direction="row" alignItems="center" spacing={2}>
-                        <Avatar src={author.image} sx={{ width: 40, height: 40 }} />
-                        <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{author.name}</Typography>
+                {list.map((staff, i) => (
+                    <Stack
+                        key={staff.staffId}
+                        component={Link}
+                        to={`/${prefixAdmin}/staff/profile/detail/${staff.staffId}`}
+                        direction="row"
+                        alignItems="center"
+                        spacing={2}
+                        sx={{ textDecoration: 'none', color: 'inherit', borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
+                    >
+                        <Avatar src={staff.avatarUrl} sx={{ width: 40, height: 40, bgcolor: STAFF_COLORS[i % STAFF_COLORS.length] + '20' }} />
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{staff.name}</Typography>
                             <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'var(--palette-text-disabled)' }}>
-                                <Icon icon="solar:heart-bold" width={16} />
-                                <Typography variant="caption">{author.likes}</Typography>
+                                <CupIcon size={16} />
+                                <Typography variant="caption">{staff.completedTasksCount} công việc hoàn thành</Typography>
                             </Stack>
                         </Box>
                         <Box sx={{
                             width: 32, height: 32, borderRadius: '50%',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            bgcolor: `${author.color}14`, color: author.color
+                            bgcolor: `${STAFF_COLORS[i % STAFF_COLORS.length]}14`, color: STAFF_COLORS[i % STAFF_COLORS.length]
                         }}>
                             <CupIcon />
                         </Box>
                     </Stack>
                 ))}
+                {list.length === 0 && <Typography variant="body2" color="text.secondary">Chưa có dữ liệu</Typography>}
             </Stack>
         </DashboardCard>
     );
@@ -404,8 +409,7 @@ const TopAuthors = () => {
 
 const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
     const isConversion = title === "Conversion";
-    const chartColor = isConversion ? "#00a76f" : "#00b8d9";
-    const chartGradient = isConversion ? "#5be49b" : "#4cf5e1";
+    const chartColor = isConversion ? "#00a76f" : color || "#00b8d9";
 
     const chartOptions: any = {
         chart: { sparkline: { enabled: true } },
@@ -415,7 +419,7 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
             radialBar: {
                 hollow: { size: '62%' },
                 track: {
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'rgba(145, 158, 171, 0.08)',
                     strokeWidth: '100%',
                     margin: 0
                 },
@@ -423,7 +427,7 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
                     name: { show: false },
                     value: {
                         offsetY: 6,
-                        color: '#fff',
+                        color: 'var(--palette-text-primary)',
                         fontSize: '0.875rem',
                         fontWeight: 700,
                         formatter: (val: number) => `${val}%`,
@@ -432,15 +436,9 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
             },
         },
         fill: {
-            type: 'gradient',
-            gradient: {
-                shade: 'dark',
-                type: 'vertical',
-                gradientToColors: [chartGradient],
-                stops: [0, 100]
-            }
+            type: 'solid',
+            colors: [chartColor]
         },
-        colors: [chartColor]
     };
 
     return (
@@ -452,8 +450,9 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
             overflow: 'hidden',
             position: 'relative',
             alignItems: 'center',
-            color: 'var(--palette-common-white)',
-            bgcolor: color,
+            bgcolor: 'var(--palette-common-white)',
+            border: '1px solid var(--palette-divider)',
+            boxShadow: '0 8px 16px -4px rgba(145, 158, 171, 0.04)',
             height: 120,
         }}>
             <Box sx={{
@@ -461,7 +460,8 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
                 height: 120,
                 position: 'absolute',
                 right: -40,
-                opacity: 0.08,
+                opacity: 0.1,
+                color: chartColor,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -477,12 +477,6 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
                 flexShrink: 0,
                 position: 'relative',
                 zIndex: 1,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-                backgroundSize: '6px 6px',
             }}>
                 <Chart
                     type="radialBar"
@@ -494,12 +488,12 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
             </Box>
 
             <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1 }}>{total}</Typography>
+                <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, color: 'var(--palette-text-primary)' }}>{total}</Typography>
                 <Typography sx={{
                     fontWeight: 600,
                     fontSize: '0.875rem',
                     lineHeight: 1.57143,
-                    opacity: 0.64,
+                    color: 'var(--palette-text-secondary)',
                     mt: 0.5
                 }}>
                     {title}
@@ -509,39 +503,51 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
     );
 };
 
-const ServiceUsageChart = () => {
+const ServiceUsageChart = ({
+    data,
+    year: selectedYearNum,
+    onYearChange,
+    percentChange
+}: {
+    data?: Array<{ month: string; serviceCounts: Record<string, number> }>;
+    year: number;
+    onYearChange: (y: number) => void;
+    percentChange?: number;
+}) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [selectedYear, setSelectedYear] = useState('2024');
-
+    const selectedYear = String(selectedYearNum);
     const open = Boolean(anchorEl);
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
     const handleClose = (year?: string) => {
-        if (year && typeof year === 'string') setSelectedYear(year);
+        if (year != null) {
+            const y = parseInt(year, 10);
+            if (!Number.isNaN(y)) onYearChange(y);
+        }
         setAnchorEl(null);
     };
-
+    const currentYear = new Date().getFullYear();
+    const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 4 + i).reverse();
+    const dataList = Array.isArray(data) ? data : [];
+    const categories = dataList.map((d) => d.month);
+    const fallbackCats = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const categoriesFinal = categories.length ? categories : fallbackCats;
+    const seriesNames = ['Cắt tỉa', 'Khám bệnh', 'Huấn luyện'];
+    const series = seriesNames.map((name) => ({
+        name,
+        data: dataList.map((d) => d.serviceCounts?.[name] ?? 0)
+    }));
     const chartOptions: any = {
         chart: { type: 'bar', stacked: true, toolbar: { show: false } },
         plotOptions: { bar: { columnWidth: '22.4px', borderRadius: 4 } },
-        xaxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            axisBorder: { show: false },
-            axisTicks: { show: false }
-        },
+        xaxis: { categories: categoriesFinal, axisBorder: { show: false }, axisTicks: { show: false } },
         yaxis: { labels: { show: true } },
         grid: { strokeDashArray: 3, borderColor: 'var(--palette-divider)' },
         legend: { show: false },
         colors: ['#007867', '#FFAB00', '#00B8D9'],
         dataLabels: { enabled: false }
     };
-
-    const series = [
-        { name: 'Cắt tỉa', data: [10, 18, 14, 9, 20, 10, 22, 19, 8, 22, 8, 17] },
-        { name: 'Khám bệnh', data: [5, 12, 10, 7, 10, 13, 15, 12, 6, 15, 7, 13] },
-        { name: 'Huấn luyện', data: [2, 13, 12, 6, 18, 5, 17, 16, 5, 16, 6, 14] }
-    ];
+    const pct = percentChange != null ? percentChange : 0;
+    const pctText = pct >= 0 ? `(+${pct.toFixed(1)}%)` : `(${pct.toFixed(1)}%)`;
 
     return (
         <DashboardCard sx={{ p: 3, pb: '20px' }}>
@@ -549,7 +555,7 @@ const ServiceUsageChart = () => {
                 <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem' }}>Thống kê dịch vụ</Typography>
                     <Typography variant="body2" sx={{ color: 'var(--palette-text-secondary)', mt: 0.5 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--palette-success-main)' }}>(+43%)</span> so với năm ngoái
+                        <span style={{ fontWeight: 600, color: pct >= 0 ? 'var(--palette-success-main)' : 'var(--palette-error-main)' }}>{pctText}</span> so với năm ngoái
                     </Typography>
                 </Box>
                 <Button
@@ -587,46 +593,33 @@ const ServiceUsageChart = () => {
                     anchorEl={anchorEl}
                     open={open}
                     onClose={() => handleClose()}
-                    anchorOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'right',
-                    }}
-                    transformOrigin={{
-                        vertical: 'top',
-                        horizontal: 'right',
-                    }}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     PaperProps={{
-                        sx: {
-                            mt: 1,
-                            borderRadius: '12px',
-                            boxShadow: 'var(--customShadows-z20, 0 0 2px 0 rgba(145, 158, 171, 0.24), -20px 20px 40px -4px rgba(145, 158, 171, 0.24))',
-                            border: 'solid 1px rgba(145, 158, 171, 0.08)',
-                            minWidth: 100,
-                            p: 0.5
-                        }
+                        sx: { mt: 1, borderRadius: '12px', boxShadow: 'var(--customShadows-z20)', border: 'solid 1px rgba(145, 158, 171, 0.08)', minWidth: 100, p: 0.5 }
                     }}
                 >
-                    {['2022', '2023', '2024'].map((year) => (
+                    {yearOptions.map((y) => {
+                        const yearStr = String(y);
+                        return (
                         <MenuItem
-                            key={year}
-                            selected={year === selectedYear}
-                            onClick={() => handleClose(year)}
+                            key={yearStr}
+                            selected={yearStr === selectedYear}
+                            onClick={() => handleClose(yearStr)}
                             sx={{
                                 borderRadius: '8px',
                                 typography: 'body2',
-                                fontWeight: year === selectedYear ? 600 : 400,
+                                fontWeight: yearStr === selectedYear ? 600 : 400,
                                 mb: 0.5,
                                 '&.Mui-selected': {
                                     bgcolor: 'rgba(var(--palette-grey-500Channel) / 8%)',
-                                    '&:hover': {
-                                        bgcolor: 'rgba(var(--palette-grey-500Channel) / 12%)',
-                                    }
+                                    '&:hover': { bgcolor: 'rgba(var(--palette-grey-500Channel) / 12%)' }
                                 }
                             }}
                         >
-                            {year}
+                            {yearStr}
                         </MenuItem>
-                    ))}
+                    );})}
                 </Menu>
             </Box>
 
@@ -638,7 +631,7 @@ const ServiceUsageChart = () => {
                             <Typography sx={{ fontSize: '0.813rem', fontWeight: 500 }}>{item.name}</Typography>
                         </Box>
                         <Typography sx={{ mt: 'var(--spacing)', fontWeight: 600, fontSize: '1.125rem' }}>
-                            {index === 0 ? '1.23k' : index === 1 ? '6.79k' : '1.01k'}
+                            {item.data.reduce((a, b) => a + b, 0).toLocaleString()}
                         </Typography>
                     </Box>
                 ))}
@@ -649,25 +642,25 @@ const ServiceUsageChart = () => {
     );
 };
 
-const SystemStats = () => {
+const SystemStats = ({ stats, chartData }: any) => {
     const statsData = [
         {
             title: "Tổng người dùng",
-            total: "18,765",
+            total: stats?.totalCustomers?.toLocaleString() ?? "0",
             percent: 2.6,
             color: "#00a76f",
-            chartData: [25, 66, 41, 89, 63, 25, 44, 12]
+            chartData: chartData?.length > 0 ? chartData.map((d: any) => d.orders) : [25, 66, 41, 89, 63, 25, 44, 12]
         },
         {
             title: "Tổng tài khoản quản trị",
-            total: "4,876",
+            total: stats?.totalAdminAccounts != null ? stats.totalAdminAccounts.toLocaleString() : "0",
             percent: 0.2,
             color: "#00b8d9",
             chartData: [15, 32, 45, 32, 56, 32, 44, 55]
         },
         {
             title: "Tổng thú cưng (Pets)",
-            total: "678",
+            total: stats?.totalProducts?.toLocaleString() ?? "0",
             percent: -0.1,
             color: "#ff5630",
             chartData: [56, 44, 32, 45, 32, 15, 25, 12]
@@ -698,9 +691,197 @@ const SystemStats = () => {
     );
 };
 
+const TIME_RANGE_OPTIONS = ['7 ngày qua', '30 ngày qua', 'Tháng này', 'Tháng trước', 'Năm nay'] as const;
+export type TimeRangeLabel = typeof TIME_RANGE_OPTIONS[number];
+
+/** Số ngày dùng cho revenue chart theo lựa chọn thời gian báo cáo (giãn time). */
+export function getDaysFromTimeRange(range: TimeRangeLabel): number {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    switch (range) {
+        case '7 ngày qua': return 7;
+        case '30 ngày qua': return 30;
+        case 'Tháng này': {
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            return Math.ceil((today.getTime() - first.getTime()) / (24 * 60 * 60 * 1000)) || 1;
+        }
+        case 'Tháng trước': {
+            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+            const lastDay = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0);
+            return lastDay.getDate();
+        }
+        case 'Năm nay': {
+            const first = new Date(now.getFullYear(), 0, 1);
+            return Math.ceil((today.getTime() - first.getTime()) / (24 * 60 * 60 * 1000)) || 1;
+        }
+        default: return 30;
+    }
+}
+
+const GlobalFilter = ({ range, onRangeChange }: { range: TimeRangeLabel; onRangeChange: (r: TimeRangeLabel) => void }) => {
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(e.currentTarget);
+    const handleClose = (preset?: string) => {
+        if (preset && TIME_RANGE_OPTIONS.includes(preset as TimeRangeLabel)) onRangeChange(preset as TimeRangeLabel);
+        setAnchorEl(null);
+    };
+
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+            <Box sx={{ flexGrow: 1 }} />
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Thời gian báo cáo:</Typography>
+            <Button
+                variant="outlined"
+                onClick={handleClick}
+                endIcon={<Icon icon="eva:chevron-down-fill" />}
+                sx={{
+                    borderRadius: '12px',
+                    borderColor: 'var(--palette-divider)',
+                    color: 'text.primary',
+                    fontWeight: 700,
+                    px: 2,
+                    height: 40,
+                    textTransform: 'none',
+                    bgcolor: 'white',
+                    '&:hover': { bgcolor: 'var(--palette-background-neutral)', borderColor: 'text.primary' }
+                }}
+            >
+                {range}
+            </Button>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => handleClose()} PaperProps={{ sx: { mt: 1, borderRadius: '12px', minWidth: 180 } }}>
+                {TIME_RANGE_OPTIONS.map((p) => (
+                    <MenuItem key={p} onClick={() => handleClose(p)} selected={p === range} sx={{ typography: 'body2', fontWeight: p === range ? 700 : 400, borderRadius: '8px', mx: 0.5 }}>
+                        {p}
+                    </MenuItem>
+                ))}
+            </Menu>
+        </Box>
+    );
+};
+
+
 export const SystemPage = () => {
     const { user } = useAuthStore();
     const [activeIndex, setActiveIndex] = useState(0);
+    const [timeRange, setTimeRange] = useState<TimeRangeLabel>('30 ngày qua');
+    const [serviceStatisticsYear, setServiceStatisticsYear] = useState(new Date().getFullYear());
+
+    const queryClient = useQueryClient();
+    const daysForChart = getDaysFromTimeRange(timeRange);
+
+    const { data: statsRes, refetch: refetchStats } = useQuery({
+        queryKey: ["dashboard-stats"],
+        queryFn: getDashboardStats
+    });
+    const { data: chartRes, refetch: refetchChart } = useQuery({
+        queryKey: ["revenue-chart", daysForChart],
+        queryFn: () => getRevenueChart(daysForChart)
+    });
+    const { data: topCustomersRes } = useQuery({
+        queryKey: ["dashboard-top-customers"],
+        queryFn: getTopCustomers
+    });
+    const { data: latestProductsRes } = useQuery({
+        queryKey: ["dashboard-latest-products"],
+        queryFn: getLatestProducts
+    });
+    const { data: petDistRes } = useQuery({
+        queryKey: ["dashboard-pet-distribution"],
+        queryFn: getPetDistribution
+    });
+    const { data: serviceStatsRes } = useQuery({
+        queryKey: ["dashboard-service-statistics", serviceStatisticsYear],
+        queryFn: () => getServiceStatistics(serviceStatisticsYear)
+    });
+    const { data: visitsByRegionRes } = useQuery({
+        queryKey: ["dashboard-visits-by-region"],
+        queryFn: getVisitsByRegion
+    });
+    const { data: customerGrowthRes } = useQuery({
+        queryKey: ["dashboard-customer-growth"],
+        queryFn: getCustomerGrowth
+    });
+    const [topSellingDays, setTopSellingDays] = useState<number | null>(7);
+    const { data: topSellingRes } = useQuery({
+        queryKey: ["dashboard-top-selling-products", topSellingDays],
+        queryFn: () => getTopSellingProducts(topSellingDays)
+    });
+    const { data: ratingSummaryRes } = useQuery({
+        queryKey: ["dashboard-rating-summary"],
+        queryFn: getRatingSummary
+    });
+    const { data: topStaffRes } = useQuery({
+        queryKey: ["dashboard-top-staff"],
+        queryFn: getTopStaff
+    });
+
+    // API trả về ApiResponse<T> = { success, data: T } — lấy payload từ .data để tránh data.map is not a function
+    const payload = <T,>(res: ApiResponse<T> | T | undefined): T | undefined =>
+        res != null && typeof res === 'object' && 'data' in res
+            ? (res as ApiResponse<T>).data
+            : (res as T | undefined);
+    const stats: DashboardStatsResponse | undefined = payload(statsRes?.data as unknown as ApiResponse<DashboardStatsResponse>) ?? (statsRes?.data as DashboardStatsResponse);
+    const chartData: RevenueChartItem[] = (() => {
+        const d = payload(chartRes?.data as unknown as ApiResponse<RevenueChartItem[]>);
+        return Array.isArray(d) ? d : (Array.isArray(chartRes?.data) ? (chartRes!.data as RevenueChartItem[]) : []);
+    })();
+    const topCustomers = ((): Array<{ name: string; totalSpent: number; orderCount: number; avatarUrl?: string }> => {
+        const d = payload(topCustomersRes?.data as unknown as ApiResponse<unknown[]>);
+        return Array.isArray(d) ? (d as Array<{ name: string; totalSpent: number; orderCount: number; avatarUrl?: string }>) : (Array.isArray(topCustomersRes?.data) ? topCustomersRes.data as Array<{ name: string; totalSpent: number; orderCount: number; avatarUrl?: string }> : []);
+    })();
+    const latestProducts = ((): Array<{ productId: number; name: string; minPrice?: number; maxPrice?: number; categories?: Array<{ name?: string }>; stockStatus?: string; status?: string }> => {
+        const d = payload(latestProductsRes?.data as unknown as ApiResponse<unknown[]>);
+        return Array.isArray(d) ? d as Array<{ productId: number; name: string; minPrice?: number; maxPrice?: number; categories?: Array<{ name?: string }>; stockStatus?: string; status?: string }> : (Array.isArray(latestProductsRes?.data) ? latestProductsRes.data : []);
+    })();
+    const petDistribution = ((): Array<{ label: string; count: number; color: string }> => {
+        const d = payload(petDistRes?.data as unknown as ApiResponse<unknown[]>);
+        const arr = Array.isArray(d) ? d : (Array.isArray(petDistRes?.data) ? petDistRes.data : []);
+        return arr.map((x: { label?: string; count?: number; color?: string }) => ({ label: x?.label ?? '', count: x?.count ?? 0, color: x?.color ?? '#637381' }));
+    })();
+    const serviceStatistics: ServiceStatisticsWithComparisonResponse | undefined = payload(serviceStatsRes?.data as unknown as ApiResponse<ServiceStatisticsWithComparisonResponse>) ?? (serviceStatsRes?.data as ServiceStatisticsWithComparisonResponse);
+    const visitsByRegion: VisitsByRegionResponse | undefined = payload(visitsByRegionRes?.data as unknown as ApiResponse<VisitsByRegionResponse>) ?? (visitsByRegionRes?.data as VisitsByRegionResponse);
+    const customerGrowth: CustomerGrowthResponse | undefined = payload(customerGrowthRes?.data as unknown as ApiResponse<CustomerGrowthResponse>) ?? (customerGrowthRes?.data as CustomerGrowthResponse);
+    const topSellingProducts: TopSellingProductItem[] = (() => {
+        const d = payload(topSellingRes?.data as unknown as ApiResponse<TopSellingProductItem[]>);
+        return Array.isArray(d) ? d : (Array.isArray(topSellingRes?.data) ? topSellingRes.data : []);
+    })();
+    const ratingSummary: RatingSummaryResponse | undefined = payload(ratingSummaryRes?.data as unknown as ApiResponse<RatingSummaryResponse>) ?? (ratingSummaryRes?.data as RatingSummaryResponse);
+    const topStaff: TopStaffResponse[] = (() => {
+        const d = payload(topStaffRes?.data as unknown as ApiResponse<TopStaffResponse[]>);
+        return Array.isArray(d) ? d : (Array.isArray(topStaffRes?.data) ? topStaffRes.data : []);
+    })();
+
+    // Mỗi section 1 listener riêng: 1 socket/topic die không ảnh hưởng section khác
+    useEffect(() => {
+        const handlers: Array<[string, (e: any) => void]> = [
+            ["DASHBOARD_SECTION_STATS", (e) => queryClient.setQueryData(["dashboard-stats"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_REVENUE_CHART", (e) => queryClient.setQueryData(["revenue-chart", daysForChart], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_TOP_CUSTOMERS", (e) => queryClient.setQueryData(["dashboard-top-customers"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_LATEST_PRODUCTS", (e) => queryClient.setQueryData(["dashboard-latest-products"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_PET_DISTRIBUTION", (e) => queryClient.setQueryData(["dashboard-pet-distribution"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_SERVICE_STATISTICS", (e) => queryClient.setQueryData(["dashboard-service-statistics"], { success: true, data: e.detail })],
+            ["DASHBOARD_STATS_UPDATED", (e) => queryClient.setQueryData(["dashboard-stats"], { success: true, data: e.detail })],
+        ];
+        handlers.forEach(([name, fn]) => window.addEventListener(name, fn));
+        return () => handlers.forEach(([name, fn]) => window.removeEventListener(name, fn));
+    }, [queryClient, daysForChart]);
+
+    useEffect(() => {
+        const onOrdersRefresh = () => {
+            refetchStats();
+            refetchChart();
+        };
+        window.addEventListener("REFRESH_ADMIN_ORDERS", onOrdersRefresh);
+        return () => window.removeEventListener("REFRESH_ADMIN_ORDERS", onOrdersRefresh);
+    }, [refetchStats, refetchChart]);
+
+    // Auto-scroll carousel
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
 
     const handleNext = () => setActiveIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
     const handlePrev = () => setActiveIndex((prev) => (prev - 1 + CAROUSEL_DATA.length) % CAROUSEL_DATA.length);
@@ -724,6 +905,11 @@ export const SystemPage = () => {
                 }
             }}
         >
+            <Grid sx={{ width: '100%' }}>
+                <GlobalFilter range={timeRange} onRangeChange={setTimeRange} />
+            </Grid>
+
+
             <Grid
                 sx={{
                     flexGrow: 0,
@@ -732,7 +918,7 @@ export const SystemPage = () => {
                 }}
             >
                 <WelcomeWidget
-                    title={`Chào mừng trở lại 👋 \n ${user?.fullName || 'Quản trị viên'}`}
+                    title={`Chào mừng trở lại 👋 \n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
                     description="Chào mừng bạn đến với hệ thống quản trị. Hãy bắt đầu quản lý các dịch vụ và đơn hàng của bạn ngay hôm nay."
                     img="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/illustrations/characters/character-present.webp"
                     bgImg="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/background/background-5.webp"
@@ -871,20 +1057,99 @@ export const SystemPage = () => {
                 </DashboardCard>
             </Grid>
 
+            {/* Ecommerce Stats Cards */}
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Sản phẩm đã bán"
+                    total={stats?.totalProducts?.toString() || "0"}
+                    percent={2.6}
+                    color="#00a76f"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Đơn hàng đặt lẻ (Bookings)"
+                    total={stats?.todayBookings?.toString() || "0"}
+                    percent={-0.1}
+                    color="#ffab00"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SummaryWidget
+                    title="Tổng số đơn hàng"
+                    total={stats?.totalOrders?.toString() || "0"}
+                    percent={0.6}
+                    color="#00b8d9"
+                    chartData={chartData.map(d => d.orders)}
+                />
+            </Grid>
+
             {/* Stats Cards */}
-            <SystemStats />
+            <SystemStats stats={stats} chartData={chartData} />
 
-            {/* Advanced Charts Section */}
+            {/* Sales & Balance Section */}
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <SalesOverview stats={stats} isLoading={!stats} hideCosts />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, 
+                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CurrentBalance stats={stats} isLoading={!stats} hideWithdraw hideLowStock />
+            </Grid>
+
+            {/* Ngay sau Doanh số tổng quan: Phân bổ thú cưng (trái) + Thống kê dịch vụ (phải) */}
             <Grid
                 sx={{
                     flexGrow: 0,
                     flexBasis: 'auto',
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                 }}
             >
-                <PetDistributionChart />
+                <PetDistributionChart data={petDistribution} />
             </Grid>
 
+            <Grid
+                sx={{
+                    flexGrow: 0,
+                    flexBasis: 'auto',
+                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <ServiceUsageChart
+                    data={serviceStatistics?.months}
+                    year={serviceStatisticsYear}
+                    onYearChange={setServiceStatisticsYear}
+                    percentChange={serviceStatistics?.percentChange}
+                />
+            </Grid>
+
+            {/* Sản phẩm mới (đẩy lên trước) + Top bán chạy */}
             <Grid
                 sx={{
                     flexGrow: 0,
@@ -892,17 +1157,7 @@ export const SystemPage = () => {
                     width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                 }}
             >
-                <ServiceUsageChart />
-            </Grid>
-
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
-                <NewProductsTable />
+                <NewProductsTable data={latestProducts} />
             </Grid>
 
             <Grid
@@ -912,7 +1167,26 @@ export const SystemPage = () => {
                     width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                 }}
             >
-                <TopSellingProducts />
+                <TopSellingProducts data={topSellingProducts} days={topSellingDays} onDaysChange={setTopSellingDays} />
+            </Grid>
+
+            {/* Tăng trưởng thành viên (trái) + Lượt truy cập theo vùng (phải) */}
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, alignSelf: 'flex-start',
+                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CustomerGrowthChart data={customerGrowth} />
+            </Grid>
+
+            <Grid
+                sx={{
+                    flexBasis: 'auto', flexGrow: 0, alignSelf: 'flex-start',
+                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                }}
+            >
+                <CurrentVisitsChart data={visitsByRegion} />
             </Grid>
 
             {/* Bottom Section */}
@@ -923,7 +1197,7 @@ export const SystemPage = () => {
                     width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                 }}
             >
-                <TopCustomers />
+                <TopCustomers data={topCustomers} />
             </Grid>
 
             <Grid
@@ -933,7 +1207,7 @@ export const SystemPage = () => {
                     width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                 }}
             >
-                <TopAuthors />
+                <TopStaff data={topStaff} />
             </Grid>
 
             <Grid
@@ -945,21 +1219,20 @@ export const SystemPage = () => {
             >
                 <Stack spacing={3}>
                     <ProgressCard
-                        title="Conversion"
-                        total="38,566"
-                        percent={48}
+                        title="Độ hài lòng (Rating)"
+                        total={ratingSummary != null ? `${Number(ratingSummary.averageScore).toFixed(1)} / 5.0` : '— / 5.0'}
+                        percent={ratingSummary != null ? Math.round((ratingSummary.averageScore / 5) * 100) : 0}
                         color="#007867"
                         bgIcon={
                             <svg width="120" height="120" viewBox="0 0 24 24">
-                                <circle cx="12" cy="6" r="4" fill="currentColor"></circle>
-                                <ellipse cx="12" cy="17" fill="currentColor" rx="7" ry="4"></ellipse>
+                                <path fill="currentColor" d="m12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72l3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41l-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08z"/>
                             </svg>
                         }
                     />
                     <ProgressCard
-                        title="Applications"
-                        total="55,566"
-                        percent={75}
+                        title="Tương tác người dùng"
+                        total={ratingSummary != null ? `${ratingSummary.totalCount.toLocaleString()} reviews` : '0 reviews'}
+                        percent={ratingSummary != null && ratingSummary.totalCount > 0 ? Math.min(100, Math.round(ratingSummary.totalCount / 50)) : 0}
                         color="var(--palette-info-dark)"
                         bgIcon={
                             <svg width="120" height="120" viewBox="0 0 24 24">

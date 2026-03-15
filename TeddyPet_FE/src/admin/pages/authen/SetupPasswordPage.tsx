@@ -7,14 +7,40 @@ import { adminTheme } from "../../config/theme"
 import { setupInitialPassword } from "../../api/auth.api"
 import { toast, ToastContainer } from "react-toastify"
 import { useAuthStore } from "../../../stores/useAuthStore"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getMe } from "../../../api/auth.api"
+import Cookies from "js-cookie"
+import { useEffect } from "react"
 
 export const SetupPasswordPage = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { user, set } = useAuthStore();
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch fresh user data to ensure we are not on a stale state
+    const tokenAdmin = Cookies.get("tokenAdmin");
+    const { data: meRes } = useQuery({
+        queryKey: ["me-admin", tokenAdmin],
+        queryFn: () => getMe(tokenAdmin),
+        enabled: !!tokenAdmin,
+        retry: false,
+        staleTime: 0, // Always fresh
+    });
+
+    useEffect(() => {
+        // If the query returns and says mustChangePassword is false, redirect immediately
+        if (meRes?.data && meRes.data.mustChangePassword === false) {
+            const role = meRes.data.role;
+            let target = "/admin/dashboard/analytics";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            else if (role === "STAFF") target = "/admin/staff/dashboard";
+            navigate(target, { replace: true });
+        }
+    }, [meRes, navigate]);
 
     const handleTogglePasswordVisibility = () => {
         setShowPassword(prev => !prev)
@@ -34,22 +60,23 @@ export const SetupPasswordPage = () => {
         setIsSubmitting(true);
         try {
             await setupInitialPassword({ newPassword, confirmPassword });
+            
             toast.success("Thiết lập mật khẩu thành công!");
             
-            // Update local state to clear the flag
+            // Update local store state immediately
             if (user) {
                 set({ user: { ...user, mustChangePassword: false } });
             }
 
-            // Redirect based on role
+            // Invalidate in background, don't await to avoid unmount issues
+            queryClient.invalidateQueries({ queryKey: ["me-admin"] });
+            
             const role = user?.role;
-            if (role === "ADMIN" || role === "SUPER_ADMIN") {
-                setTimeout(() => navigate("/admin/dashboard/ecommerce"), 1500);
-            } else if (role === "STAFF") {
-                setTimeout(() => navigate("/admin/staff/dashboard"), 1500);
-            } else {
-                setTimeout(() => navigate("/admin/dashboard/analytics"), 1500);
-            }
+            let target = "/admin/dashboard/analytics";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            else if (role === "STAFF") target = "/admin/staff/dashboard";
+            
+            navigate(target, { replace: true });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Thiết lập mật khẩu thất bại!");
         } finally {

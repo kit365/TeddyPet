@@ -1,4 +1,4 @@
-﻿import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from "@mui/material";
+import { Box, ButtonBase, FormHelperText, Stack, Typography, CircularProgress } from "@mui/material";
 import { UploadFileIcon, UploadIcon } from "../../assets/icons";
 import { useDropzone } from "react-dropzone";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -18,10 +18,12 @@ interface UploadSingleFileProps {
     title?: string;
     /** Chế độ nhỏ gọn: nút/ô nhỏ thay vì vùng kéo thả lớn */
     compact?: boolean;
+    /** Folder trên Cloudinary */
+    folder?: string;
 }
 
 export const UploadSingleFile = memo(
-    ({ value, onChange, disabled, error, title = "Hình ảnh", compact = false }: UploadSingleFileProps) => {
+    ({ value, onChange, disabled, error, title = "Hình ảnh", compact = false, folder = 'teddypet' }: UploadSingleFileProps) => {
         const [localFile, setLocalFile] = useState<CustomFile | null>(null);
         const [isUploading, setIsUploading] = useState(false);
 
@@ -31,6 +33,21 @@ export const UploadSingleFile = memo(
             fileRef.current = localFile;
         }, [localFile]);
 
+        const handleUpload = async (file: File) => {
+            try {
+                setIsUploading(true);
+                const [url] = await uploadImagesToCloudinary([file], folder);
+                onChange(url);
+                setLocalFile(null);
+                toast.success("Tải ảnh lên thành công!");
+            } catch (err: any) {
+                toast.error(err.message || "Tải ảnh lên thất bại!");
+                setLocalFile(null);
+            } finally {
+                setIsUploading(false);
+            }
+        };
+
         const onDrop = useCallback((acceptedFiles: File[]) => {
             if (!acceptedFiles.length) return;
 
@@ -38,13 +55,15 @@ export const UploadSingleFile = memo(
             file.preview = URL.createObjectURL(file);
 
             setLocalFile(file);
-        }, []);
+            // Automatic upload right after dropping
+            handleUpload(file);
+        }, [folder, onChange]);
 
         const { getRootProps, getInputProps, isDragActive } = useDropzone({
             accept: { "image/*": [] },
             multiple: false,
             onDrop,
-            disabled,
+            disabled: disabled || isUploading,
         });
 
         const handleRemove = useCallback(() => {
@@ -54,22 +73,6 @@ export const UploadSingleFile = memo(
             setLocalFile(null);
             onChange("");
         }, [localFile, onChange]);
-
-        const handleUpload = async () => {
-            if (!localFile) return;
-
-            try {
-                setIsUploading(true);
-                const [url] = await uploadImagesToCloudinary([localFile]);
-                onChange(url);
-                setLocalFile(null);
-                toast.success("Tải ảnh lên thành công!");
-            } catch {
-                toast.error("Tải ảnh lên thất bại!");
-            } finally {
-                setIsUploading(false);
-            }
-        };
 
         useEffect(() => {
             return () => {
@@ -97,31 +100,45 @@ export const UploadSingleFile = memo(
                         <Box
                             component="img"
                             src={src}
-                            sx={{ width: 1, height: 1, objectFit: "cover", borderRadius: "10px" }}
+                            sx={{ 
+                                width: 1, 
+                                height: 1, 
+                                objectFit: "cover", 
+                                borderRadius: "10px",
+                                opacity: isUploading ? 0.4 : 1 
+                            }}
                         />
 
-                        <ButtonBase
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemove();
-                            }}
-                            sx={{
-                                position: "absolute",
-                                top: 4,
-                                right: 4,
-                                color: "#fff",
-                                bgcolor: "#141a217a",
-                                borderRadius: "50%",
-                                padding: "4px",
-                                "&:hover": { bgcolor: "#FF5630" },
-                            }}
-                        >
-                            <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
-                                <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
-                            </svg>
-                        </ButtonBase>
+                        {isUploading && (
+                            <Box sx={{ position: 'absolute', display: 'flex' }}>
+                                <CircularProgress size={24} sx={{ color: '#1C252E' }} />
+                            </Box>
+                        )}
 
-                        {isUploaded && (
+                        {!isUploading && (
+                            <ButtonBase
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemove();
+                                }}
+                                sx={{
+                                    position: "absolute",
+                                    top: 4,
+                                    right: 4,
+                                    color: "#fff",
+                                    bgcolor: "#141a217a",
+                                    borderRadius: "50%",
+                                    padding: "4px",
+                                    "&:hover": { bgcolor: "#FF5630" },
+                                }}
+                            >
+                                <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z" />
+                                </svg>
+                            </ButtonBase>
+                        )}
+
+                        {isUploaded && !isUploading && (
                             <Box sx={{
                                 position: 'absolute', bottom: 2, right: 2,
                                 bgcolor: '#00A76F', borderRadius: '50%',
@@ -138,15 +155,10 @@ export const UploadSingleFile = memo(
             );
         };
 
-        const getErrorMessage = () => {
-            if (localFile && !value) return "Bạn chưa nhấn 'Tải lên' để hoàn tất chọn ảnh";
-            return error;
-        };
-
         const dropzoneContent = compact ? (
             <div
                 {...getRootProps()}
-                className={`w-[72px] h-[72px] border-2 border-dashed border-[#919eab52] bg-[#919eab0d] flex items-center justify-center cursor-pointer rounded-[8px] hover:border-[#00A76F] hover:bg-[#00a76f0d] transition-colors ${isDragActive ? "border-[#00A76F] bg-[#00a76f14]" : ""}`}
+                className={`w-[72px] h-[72px] border-2 border-dashed border-[#919eab52] bg-[#919eab0d] flex items-center justify-center cursor-pointer rounded-[8px] hover:border-[#00A76F] hover:bg-[#00a76f0d] transition-colors ${isDragActive ? "border-[#00A76F] bg-[#00a76f14]" : ""} ${(disabled || isUploading) ? "opacity-50 cursor-not-allowed" : ""}`}
             >
                 <input {...getInputProps()} />
                 <UploadIcon sx={{ fontSize: 28, color: "#637381" }} />
@@ -154,7 +166,7 @@ export const UploadSingleFile = memo(
         ) : (
             <div
                 {...getRootProps()}
-                className={`min-h-[280px] border border-[#919eab33] bg-[#919eab14] flex items-center justify-center cursor-pointer relative outline-none overflow-hidden p-[24px] rounded-[8px] hover:opacity-[0.72] transition-opacity duration-300 ease-linear ${isDragActive && "opacity-[0.72]"}`}
+                className={`min-h-[280px] border border-[#919eab33] bg-[#919eab14] flex items-center justify-center cursor-pointer relative outline-none overflow-hidden p-[24px] rounded-[8px] hover:opacity-[0.72] transition-opacity duration-300 ease-linear ${isDragActive && "opacity-[0.72]"} ${(disabled || isUploading) ? "opacity-50 cursor-not-allowed" : ""}`}
             >
                 <input {...getInputProps()} />
                 <div className="w-full flex items-center justify-center flex-col">
@@ -181,33 +193,10 @@ export const UploadSingleFile = memo(
                         {(localFile || value) && (
                             <Stack direction="row" alignItems="center" spacing={1.5}>
                                 <ul className="flex gap-[12px] flex-wrap list-none p-0 m-0">{renderThumb()}</ul>
-                                {localFile && (
-                                    <Stack direction="row" spacing={1}>
-                                        <Button
-                                            size="small"
-                                            onClick={handleRemove}
-                                            sx={{
-                                                p: "0px 8px", minHeight: "30px", fontSize: "0.75rem", fontWeight: 700,
-                                                textTransform: "none", border: "1px solid #919eab52", borderRadius: "8px",
-                                                color: "#1C252E", "&:hover": { bgcolor: "#919eab14" },
-                                            }}
-                                        >
-                                            Xóa
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            onClick={handleUpload}
-                                            startIcon={<UploadIcon />}
-                                            disabled={isUploading}
-                                            sx={{
-                                                p: "4px 8px", minHeight: "30px", fontSize: "0.75rem", fontWeight: 700,
-                                                textTransform: "none", color: "#fff", bgcolor: "#1C252E",
-                                                "&:hover": { bgcolor: "#454F5B" },
-                                            }}
-                                        >
-                                            {isUploading ? "Đang tải..." : "Tải lên"}
-                                        </Button>
-                                    </Stack>
+                                {isUploading && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                        Đang tải lên...
+                                    </Typography>
                                 )}
                             </Stack>
                         )}
@@ -216,45 +205,20 @@ export const UploadSingleFile = memo(
                     <>
                         {dropzoneContent}
                         {(localFile || value) && (
-                            <>
-                                <Box sx={{ my: 3 }}>
-                                    <ul className="flex gap-[12px] flex-wrap">{renderThumb()}</ul>
-                                </Box>
-                                {localFile && (
-                                    <Box sx={{ gap: "12px", display: "flex", justifyContent: "flex-end" }}>
-                                        <Button
-                                            size="small"
-                                            onClick={handleRemove}
-                                            sx={{
-                                                p: "0px 8px", minHeight: "30px", minWidth: "64px", fontSize: "0.75rem",
-                                                fontWeight: 700, textTransform: "none", border: "1px solid #919eab52",
-                                                borderRadius: "8px", color: "#1C252E",
-                                                "&:hover": { bgcolor: "#919eab14", borderColor: "currentColor" },
-                                            }}
-                                        >
-                                            Xóa tất cả
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            onClick={handleUpload}
-                                            startIcon={<UploadIcon />}
-                                            sx={{
-                                                p: "4px 8px", minHeight: "30px", minWidth: "64px", fontSize: "0.75rem",
-                                                fontWeight: 700, textTransform: "none", color: "#fff", bgcolor: "#1C252E",
-                                                "&:hover": { bgcolor: "#454F5B", boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)" },
-                                            }}
-                                        >
-                                            {isUploading ? "Đang tải..." : "Tải lên"}
-                                        </Button>
-                                    </Box>
+                            <Box sx={{ my: 3 }}>
+                                <ul className="flex gap-[12px] flex-wrap list-none p-0 m-0">{renderThumb()}</ul>
+                                {isUploading && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mt: 1, display: 'block' }}>
+                                        Hệ thống đang tải ảnh lên Cloudinary, vui lòng chờ...
+                                    </Typography>
                                 )}
-                            </>
+                            </Box>
                         )}
                     </>
                 )}
 
-                {(error || (localFile && !value)) && (
-                    <FormHelperText error>{getErrorMessage()}</FormHelperText>
+                {error && (
+                    <FormHelperText error>{error}</FormHelperText>
                 )}
             </Stack>
         );

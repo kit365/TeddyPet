@@ -54,6 +54,9 @@ public final class ApiConstants {
     // Blog Tag API base path
     public static final String API_BLOG_TAGS = BASE_API + "/blog-tags";
 
+    // Blog Comment API base path
+    public static final String API_BLOG_COMMENTS = BASE_API + "/blog-comments";
+
     public static final String API_CART = BASE_API + "/carts";
 
     public static final String API_ORDER = BASE_API + "/orders";
@@ -120,5 +123,7 @@ public final class ApiConstants {
     // Bank API base path
     public static final String API_BANKS = BASE_API + "/banks";
     public static final String API_BANK_INFORMATION = BASE_API + "/bank-information";
+
+    public static final String API_NEWSLETTER = BASE_API + "/newsletter";
 
 }

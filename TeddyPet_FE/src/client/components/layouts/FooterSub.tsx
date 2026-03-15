@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Swiper, SwiperSlide } from 'swiper/react';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -8,15 +8,21 @@ import { SocialIconCircle } from "../ui/SocialIconsCircle";
 import { useState, useEffect } from "react";
 import { getAllSettings } from "../../../admin/api/setting.api";
 import { APP_SETTING_KEYS } from "../../../admin/constants/settings";
+import { subscribeNewsletter } from "../../../api/newsletter.api";
+import { toast } from "react-toastify";
 
 export const FooterSub = () => {
-    const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
-    const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
-    const [shopEmail, setShopEmail] = useState<string>('teddypet@gmail.com');
-    const [facebookUrl, setFacebookUrl] = useState<string>('#');
-    const [instagramUrl, setInstagramUrl] = useState<string>('#');
-    const [appleStoreUrl, setAppleStoreUrl] = useState<string>('#');
-    const [playStoreUrl, setPlayStoreUrl] = useState<string>('#');
+    const [newsletterEmail, setNewsletterEmail] = useState("");
+    const [agreeNewsletter, setAgreeNewsletter] = useState(false);
+    const [submittingNewsletter, setSubmittingNewsletter] = useState(false);
+
+    const [shopAddress, setShopAddress] = useState("");
+    const [shopPhone, setShopPhone] = useState("");
+    const [shopEmail, setShopEmail] = useState("");
+    const [facebookUrl, setFacebookUrl] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
+    const [appleStoreUrl, setAppleStoreUrl] = useState("");
+    const [playStoreUrl, setPlayStoreUrl] = useState("");
 
     useEffect(() => {
         const fetchShopSettings = async () => {
@@ -48,6 +54,39 @@ export const FooterSub = () => {
         fetchShopSettings();
     }, []);
 
+    const handleNewsletterSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!newsletterEmail) {
+            toast.warn("Vui lòng nhập email của bạn.");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newsletterEmail)) {
+            toast.error("Email không hợp lệ.");
+            return;
+        }
+
+        if (!agreeNewsletter) {
+            toast.warn("Vui lòng đồng ý để nhận ưu đãi.");
+            return;
+        }
+
+        setSubmittingNewsletter(true);
+        try {
+            const res = await subscribeNewsletter(newsletterEmail);
+            if (res.success) {
+                toast.success(res.message || "Đăng ký nhận tin thành công!");
+                setNewsletterEmail("");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại.");
+        } finally {
+            setSubmittingNewsletter(false);
+        }
+    };
+
     return (
         <footer className="w-full p-[20px]">
             <div className="bg-[#FFF0F0] rounded-[20px]">
@@ -59,12 +98,35 @@ export const FooterSub = () => {
                             Đăng ký Bản tin để nhận Cập nhật và Ưu đãi mới nhất
                             <div className="w-[80px] h-[80px] text-[#225378] absolute top-0 right-0"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 85 70"><g>	<path d="M3,13.2C2.5,14,2,14.9,1.6,15.7C1,16.8,0.5,18,0.2,19.2C0,20.1-0.1,21.1,0.1,22c0.3,1.4,1.5,2.5,2.9,2.9  c1.5,0.4,3-0.1,4.1-1.1c0.5-0.5,1-1,1.4-1.6c0.6-0.9,1.1-1.9,1.5-3c0.1-0.2,0.2-0.5,0.3-0.7c0.1-0.2,0.2-0.4,0.3-0.6  c0.2-0.4,0.4-0.8,0.5-1.3c0.3-0.8,0.1-1.5,0-2.3c-0.1-0.3-0.3-0.6-0.4-0.9c-0.4-0.6-0.8-1.1-1.4-1.4c-0.5-0.3-1-0.5-1.6-0.5  c-0.4-0.1-0.9-0.2-1.3-0.2C5,11.2,3.7,11.9,3,13.2z"></path>	<path d="M25,1.8c-0.3,0.5-0.5,1.1-0.8,1.6l-0.3,0.1c-0.3,0.2-0.5,0.4-0.8,0.6c-0.5,0.5-0.8,1.1-1,1.7c-0.3,0.8-0.7,1.6-1,2.5  c-0.4,0.9-0.8,1.8-0.9,2.8c-0.2,0.7-0.2,1.4,0,2c0.3,1,0.9,1.8,1.8,2.3c0.6,0.3,1.2,0.5,1.9,0.5c1,0,2.1-0.4,2.7-1.1  c0.4-0.4,0.7-0.8,1-1.3c0.1-0.2,0.2-0.4,0.3-0.7l0.1-0.1c0.8-0.3,1.5-0.9,1.9-1.6c0.6-1,0.9-2.4,1.3-3.5C31.5,6.4,32,5.1,32,3.8  c0-1.7-1.1-3.2-2.8-3.6C28.9,0,28.6,0,28.2,0C26.9,0,25.6,0.7,25,1.8L25,1.8z"></path>	<path d="M5.5,36.4c-0.4,1.5-0.8,3.1-1.2,4.6l0,0.1l-0.1,0.2c-0.2,0.3-0.4,0.6-0.5,1c-0.3,0.5-0.5,1-0.7,1.5c-0.4,1-0.5,2.2-0.2,3.3  c0.2,0.7,0.6,1.3,1.1,1.8c0.5,0.8,1.3,1.3,2.3,1.6c2.1,0.6,4.5-0.7,5-2.8c0.9-3,1.6-6,2.4-9c0.6-2.2-0.7-4.5-2.9-5.1  c-0.3-0.1-0.7-0.2-1.1-0.2C7.7,33.3,6,34.5,5.5,36.4L5.5,36.4z"></path>	<path d="M26,32c-0.2,0.1-0.4,0.3-0.6,0.5c-0.2,0.2-0.4,0.4-0.6,0.7l-0.2,0.4c-0.1,0.2-0.2,0.4-0.3,0.7c-0.2,0.5-0.4,0.9-0.6,1.4  c-0.3,0.8-0.7,1.6-1,2.4c-0.4,1-0.6,2-0.5,3l-0.1,0.3c-0.2,0.6-0.1,1.4,0.3,2c0.3,0.6,0.9,1,1.5,1.2c0.7,0.2,1.4,0.1,2-0.3l0.1,0  c0.3,0,0.7,0,1-0.1c0.8,0.1,1.7,0,2.4-0.5c0.9-0.5,1.4-1.3,1.7-2.2c0.2-0.6,0.5-1.2,0.7-1.9c0.1-0.3,0.2-0.6,0.2-1  c0.2-0.9,0.3-1.9,0.1-2.8c-0.2-0.8-0.6-1.6-1.3-2.1l-0.5-0.3l-0.1-0.1c-0.3-0.6-0.6-0.8-1.2-1.2c-0.5-0.3-1-0.4-1.6-0.4  S26.5,31.8,26,32z"></path>	<path d="M53.9,32.8c0.4,0,0.8,0,1.1,0.2c1.1,0.3,2,1,2.6,2c0.5,0.9,0.8,2.3,0.4,3.3c-0.1,0.3-0.2,0.5-0.3,0.8c0,0.5,0,1-0.1,1.5  c-0.2,1.2-0.7,2.3-1.1,3.4c-0.3,0.8-0.6,1.7-0.9,2.5v0v0l0,0.1c-0.2,0.7-0.5,1.3-1.1,1.8c-0.3,0.2-0.6,0.4-0.8,0.6  c-0.9,0.6-2.1,0.7-3.2,0.4c-1.5-0.4-2.6-1.7-2.9-3.2c-0.7-1-0.9-2.3-0.5-3.5c0.4-1.2,0.9-2.4,1.4-3.5c0.4-1.1,0.9-2.1,1.3-3.2  c0.2-0.7,0.6-1.4,1.1-1.9c0.3-0.2,0.6-0.4,0.9-0.7C52.3,33,53.1,32.8,53.9,32.8z"></path>	<path d="M25.9,56c-0.7,0.4-1.5,1.2-1.6,2l-0.1,0.2c-0.4,0.5-0.7,1.1-0.9,1.7c0,0.2-0.1,0.4-0.1,0.6c-0.1,0.4-0.3,0.9-0.4,1.3  c-0.1,0.3-0.2,0.5-0.2,0.7c-0.3,0.7-0.5,1.3-0.7,2c-0.6,1.8,0.4,3.9,2,4.8c1.6,0.9,3.9,0.7,5.2-0.7c0.4-0.5,0.8-0.9,1.1-1.5  c0.2-0.5,0.5-1,0.6-1.5l0.2-0.4c0.3-0.4,0.5-0.8,0.6-1.3c0.2-0.6,0.4-1.1,0.5-1.7c0.1-0.4,0.1-0.8,0.2-1.2c0-0.8-0.2-1.5-0.6-2.2  c-0.1-1.5-1.2-2.9-2.6-3.3c-0.3-0.1-0.6-0.1-1-0.1C27.1,55.5,26.5,55.7,25.9,56L25.9,56z"></path>	<path d="M64.3,9c-0.8,0.2-1.4,0.6-2,1.2c-0.6,0.5-1.1,1.3-1.5,1.9c-0.2,0.3-0.4,0.6-0.6,0.9c-0.3,0.6-0.5,1.2-0.8,1.8  c-0.3,0.7-0.3,1.5-0.4,2.3c-0.1,1,0.1,2,0.6,2.9c0.4,0.9,1.1,1.7,1.9,2.2c1.7,1,3.9,0.7,5.3-0.5c0.4-0.2,0.7-0.5,1-0.9  c0.4-0.6,0.8-1.1,1.2-1.7c0.4-0.7,0.8-1.5,0.9-2.3c0.2-0.9,0.2-1.7,0-2.6L70,14.1c0.1-0.6,0.1-1.3-0.1-1.9  c-0.2-0.4-0.3-0.7-0.5-1.1c-0.4-0.7-0.9-1.2-1.6-1.6l-0.1-0.1c-0.7-0.4-1.5-0.6-2.3-0.6C65.1,8.9,64.7,9,64.3,9L64.3,9z"></path>	<path d="M77.2,26.7c-0.8,0.4-1.4,1.2-1.6,2.1c-0.4,1.1-0.7,2.3-1,3.5c-0.3,1.1-0.6,2.3-0.9,3.4l-0.1,0.4c-0.2,1-0.2,1.7,0,2.7  c0.2,0.8,0.7,1.7,1.3,2.3c0.5,0.5,1.2,0.9,1.9,1.1c0.4,0.1,0.9,0.1,1.3,0.2c0.8,0.1,1.8-0.3,2.4-0.7c0.4-0.2,0.8-0.5,1.1-0.9  c0.3-0.3,0.6-0.7,0.8-1c0.2-0.3,0.3-0.6,0.5-0.9c0.5-1.1,0.9-2.2,1.5-3.3c0.8-1.4,0.8-3.2,0-4.6c-0.4-0.7-1-1.3-1.7-1.6l-0.2-0.5  c-0.2-0.6-0.5-1.2-0.9-1.6c-0.2-0.2-0.5-0.4-0.7-0.6c-0.6-0.3-1.2-0.5-1.8-0.5h0C78.4,26.2,77.8,26.4,77.2,26.7L77.2,26.7z"></path>	<path d="M60.7,57.6c-1.3,0.3-2.3,1.3-3,2.4c-0.4,0.6-0.6,1.2-0.9,1.9c-0.1,0.3-0.2,0.5-0.3,0.8c-0.1,0.5-0.2,1.1-0.2,1.6  c-0.1,0.9,0.2,2,0.7,2.8c0.4,0.7,0.9,1.2,1.6,1.6c1,0.6,2.3,0.8,3.4,0.4c1.8-0.5,3.2-2.2,3.2-4c0.1-0.3,0.2-0.6,0.2-0.9  c0.1-0.3,0.1-0.5,0.2-0.8l0.1-0.4c0.1-0.5,0.2-0.9,0.2-1.3c0-0.4,0-0.9-0.1-1.3c-0.3-1-1-1.9-1.9-2.4c-0.6-0.4-1.3-0.5-2-0.5  C61.5,57.5,61.1,57.5,60.7,57.6L60.7,57.6z"></path>	<path d="M45.8,1.9c-0.3,0.3-0.7,0.5-1,0.8c-0.6,0.6-1,1.3-1.3,2.2c-0.3,0.7-0.5,1.5-0.8,2.3c-0.2,0.5-0.4,0.9-0.5,1.4  c-0.4,1.1-0.9,2.2-1.1,3.3C41,12.4,41,13,41,13.7c-0.1,0.5-0.2,1-0.4,1.5c-0.7,2.6,0.8,5.3,3.4,6c2.5,0.7,5.3-0.8,6-3.4  c0.3-1.3,0.7-2.6,1-3.9c0.3-0.6,0.5-1.2,0.9-1.8h0c0.2-0.3,0.3-0.7,0.5-1.1c0.2-0.4,0.1-0.9,0.2-1.4c0-0.2,0-0.4,0-0.6l0.1-0.4  c0.1-0.2,0.2-0.5,0.3-0.7c0.4-1,0.3-2.1,0-3.1c-0.5-2.1-2.6-3.6-4.7-3.6C47.4,1.2,46.6,1.5,45.8,1.9L45.8,1.9z"></path></g></svg></div>
                         </h2>
-                        <form className="flex-1">
-                            <div className="flex items-center relative">
-                                <input type="email" placeholder="Nhập Email của bạn tại đây" name="email" className="py-[16px] px-[32px] rounded-[35px] w-full text-client-text text-[0.875rem] bg-white border border-[#d7d7d7] outline-none" />
-                                <button className="absolute right-0 top-[50%] translate-y-[-50%] rounded-r-[40px] px-[32px] py-[16px] bg-client-secondary hover:bg-[#FFF3E2] text-white hover:text-client-secondary text-[0.9375rem] font-secondary transition-colors duration-[350ms] ease-in-out cursor-pointer">Đăng ký</button>
+                        <form onSubmit={handleNewsletterSubmit} className="flex-1">
+                            <div className="flex items-center relative gap-[10px]">
+                                <input 
+                                    type="email" 
+                                    placeholder="Nhập Email của bạn tại đây" 
+                                    className="py-[16px] px-[32px] rounded-[35px] w-full text-client-text text-[0.875rem] bg-white border border-[#d7d7d7] outline-none focus:border-client-secondary" 
+                                    value={newsletterEmail}
+                                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                                />
+                                <button 
+                                    type="submit"
+                                    disabled={submittingNewsletter}
+                                    className="absolute right-0 top-[50%] translate-y-[-50%] rounded-r-[40px] px-[32px] py-[16px] bg-client-secondary hover:bg-[#FFF3E2] text-white hover:text-client-secondary text-[0.9375rem] font-secondary transition-colors duration-[350ms] ease-in-out cursor-pointer disabled:opacity-50"
+                                >
+                                    {submittingNewsletter ? "..." : "Đăng ký"}
+                                </button>
                             </div>
-                            <p className="text-white text-center mt-[13px]">*Áp dụng một số ngoại lệ. Vui lòng Xem <Link to="#" className="underline transition-default hover:text-client-secondary">Điều khoản & Điều kiện</Link></p>
+                            <div className="flex items-center mt-[12px] group cursor-pointer justify-center" onClick={() => setAgreeNewsletter(!agreeNewsletter)}>
+                                <div className={`w-[18px] h-[18px] rounded-[4px] border border-white/50 flex items-center justify-center transition-all ${agreeNewsletter ? 'bg-client-secondary border-client-secondary' : 'bg-transparent'}`}>
+                                    {agreeNewsletter && (
+                                        <svg className="w-[10px] h-[10px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <span className="pl-[8px] text-white text-[0.875rem] font-[500] select-none group-hover:text-client-secondary transition-colors">
+                                    Đăng ký ngay để nhận ưu đãi đặc biệt!
+                                </span>
+                            </div>
                         </form>
                     </div>
                 </div>

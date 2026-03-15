@@ -1,30 +1,40 @@
-﻿import { ArrowRight, User, Bell, Phone, Calendar } from "lucide-react";
+import { ArrowRight, User, Bell, Phone, Calendar, Camera } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { DashboardLayout } from "./sections/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { updateProfile } from "../../../api/user.api";
+import { uploadImagesToCloudinary } from "../../../api/uploadCloudinary.api";
 
 export const ProfileEditPage = () => {
-    const { user } = useAuthStore();
+    const { user, set } = useAuthStore();
     const navigate = useNavigate();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
         phoneNumber: "",
-        dateOfBirth: ""
+        dateOfBirth: "",
+        avatarUrl: "" as string
     });
+    const [initialAvatarUrl, setInitialAvatarUrl] = useState("");
+    const [uploading, setUploading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (user) {
+            const url = user.avatarUrl || "";
+            setInitialAvatarUrl(url);
             setFormData({
                 firstName: user.firstName || "",
                 lastName: user.lastName || "",
                 email: user.email || "",
                 phoneNumber: user.phoneNumber || "",
-                dateOfBirth: user.dateOfBirth || ""
+                dateOfBirth: user.dateOfBirth || "",
+                avatarUrl: url
             });
         }
     }, [user]);
@@ -35,12 +45,48 @@ export const ProfileEditPage = () => {
         { label: "Chỉnh sửa thông tin", to: `/dashboard/profile/edit` },
     ];
 
-    const onSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Logic call API cập nhật ở đây
-        toast.success("Cập nhật thông tin thành công!");
-        navigate("/dashboard/profile");
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        setUploading(true);
+        try {
+            const [url] = await uploadImagesToCloudinary([file], "user-avatars");
+            setFormData((prev) => ({ ...prev, avatarUrl: url }));
+            toast.success("Tải ảnh lên thành công. Nhấn Lưu thay đổi để cập nhật.");
+        } catch (err: any) {
+            toast.error(err?.message || "Tải ảnh lên thất bại");
+        } finally {
+            setUploading(false);
+            e.target.value = "";
+        }
     };
+
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const res = await updateProfile({
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                phoneNumber: formData.phoneNumber.trim() || undefined,
+                dateOfBirth: formData.dateOfBirth || undefined,
+                avatarUrl: formData.avatarUrl || undefined,
+            });
+            if (res.success && res.data) {
+                set({ user: res.data });
+                toast.success("Cập nhật thông tin thành công!");
+                navigate("/dashboard/profile");
+            } else {
+                toast.error(res.message || "Cập nhật thất bại");
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Cập nhật thất bại");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const avatarSrc = formData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "user"}`;
 
     if (!user) return null;
 
@@ -57,6 +103,55 @@ export const ProfileEditPage = () => {
                 </div>
 
                 <form onSubmit={onSubmit} className="space-y-10">
+                    {/* Avatar upload - cloud giống product */}
+                    <div className="flex flex-col gap-4">
+                        <label className="text-[0.6875rem] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Camera size={14} className="text-slate-300" /> Ảnh đại diện
+                        </label>
+                        <div className="flex items-center gap-6">
+                            <div className="relative">
+                                <img
+                                    src={avatarSrc}
+                                    alt="Avatar"
+                                    className="w-24 h-24 rounded-full object-cover border-2 border-slate-100 shadow-sm"
+                                />
+                                {uploading && (
+                                    <div className="absolute inset-0 rounded-full bg-slate-900/40 flex items-center justify-center">
+                                        <span className="text-white text-xs font-semibold">Đang tải...</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleAvatarChange}
+                                    disabled={uploading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploading}
+                                    className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl font-bold text-[0.8125rem] hover:bg-slate-50 hover:border-client-primary transition-all disabled:opacity-50"
+                                >
+                                    {uploading ? "Đang tải lên..." : "Chọn ảnh mới"}
+                                </button>
+                                {initialAvatarUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData((prev) => ({ ...prev, avatarUrl: initialAvatarUrl }))}
+                                        className="text-slate-500 hover:text-client-primary text-[0.8125rem] font-semibold"
+                                    >
+                                        Chọn lại ảnh cũ
+                                    </button>
+                                )}
+                                <p className="text-[0.75rem] text-slate-400">Định dạng: JPG, PNG. Ảnh sẽ lưu lên cloud.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-10">
                         {/* HỌ */}
                         <div className="flex flex-col gap-4">
@@ -134,9 +229,10 @@ export const ProfileEditPage = () => {
                     <div className="flex items-center gap-4 pt-10 border-t border-slate-50">
                         <button
                             type="submit"
-                            className="flex items-center gap-3 bg-client-primary text-white px-12 py-5 rounded-3xl font-black text-[0.875rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20 active:scale-95"
+                            disabled={saving}
+                            className="flex items-center gap-3 bg-client-primary text-white px-12 py-5 rounded-3xl font-black text-[0.875rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20 active:scale-95 disabled:opacity-60"
                         >
-                            Lưu thay đổi <ArrowRight size={20} />
+                            {saving ? "Đang lưu..." : "Lưu thay đổi"} <ArrowRight size={20} />
                         </button>
                         <Link
                             to="/dashboard/profile"

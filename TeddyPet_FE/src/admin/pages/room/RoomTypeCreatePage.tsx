@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem } from '@mui/material';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Title } from '../../components/ui/Title';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ import { getPetTypeLabel } from '../service/configs/constants';
 import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFile';
 import { AmenityMultiSelect } from '../../components/ui/AmenityMultiSelect';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const parseCommaList = (s: string | undefined | null): string[] | null => {
     if (s == null || String(s).trim() === '') return null;
@@ -27,6 +28,7 @@ const parseCommaList = (s: string | undefined | null): string[] | null => {
 };
 
 export const RoomTypeCreatePage = () => {
+    const navigate = useNavigate();
     const [expanded, setExpanded] = useState(true);
     const [expandedExtra, setExpandedExtra] = useState(true);
     const [expandedSeo, setExpandedSeo] = useState(false);
@@ -112,7 +114,7 @@ export const RoomTypeCreatePage = () => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo loại phòng thành công');
                         const id = (res as any)?.data?.roomTypeId;
-                        if (id) window.location.href = `/${prefixAdmin}/room-type/edit/${id}`;
+                        if (id) navigate(`/${prefixAdmin}/room-type/edit/${id}`);
                     } else toast.error((res as any)?.message);
                 },
             }

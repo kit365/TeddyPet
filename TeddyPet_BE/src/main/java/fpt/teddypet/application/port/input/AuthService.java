@@ -89,5 +89,7 @@ public interface AuthService {
 
     TokenResponse processGoogleUser(String email, String firstName, String lastName, String avatarUrl);
 
+    TokenResponse verifyInvitationForToken(String token);
+
     void setupInitialPassword(fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request);
 }

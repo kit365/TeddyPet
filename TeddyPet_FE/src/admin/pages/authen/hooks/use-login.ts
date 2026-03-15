@@ -32,7 +32,7 @@ export const useLogin = () => {
                 });
             }
             try {
-                const meRes = await getMe();
+                const meRes = await getMe(response.data.token);
                 const role = meRes?.data?.role;
                 if (role && !ALLOWED_ADMIN_ROLES.includes(role)) {
                     Cookies.remove("tokenAdmin");
@@ -51,7 +51,7 @@ export const useLogin = () => {
 
                     if (fullUserData.mustChangePassword) {
                         toast.info("Vui lòng thiết lập mật khẩu của bạn.");
-                        setTimeout(() => navigate("/admin/setup-password"), 100);
+                        navigate("/admin/setup-password", { replace: true });
                         return;
                     }
                 }

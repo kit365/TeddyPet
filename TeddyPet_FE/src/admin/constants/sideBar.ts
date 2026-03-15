@@ -36,6 +36,13 @@ export const menuOverviewData = [
         allowedRoles: ["ADMIN", "SUPER_ADMIN"],
     },
     {
+        id: "staff-dashboard",
+        Icon: BadgeIcon,
+        label: "Bảng điều khiển",
+        path: `/${prefixAdmin}/staff/dashboard`,
+        allowedRoles: ["STAFF", "SUPER_ADMIN"],
+    },
+    {
         id: "booking",
         Icon: ScheduleSendIcon,
         label: "Đặt lịch",

@@ -115,7 +115,8 @@ public class AuthApplicationService implements AuthService {
                 user.getFirstName(),
                 user.getLastName(),
                 roleName,
-                expiresAt);
+                expiresAt,
+                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
     }
 
     @Override
@@ -274,7 +275,10 @@ public class AuthApplicationService implements AuthService {
         jwtTokenProviderPort.saveRefreshToken(user.getEmail(), refreshToken);
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(1);
-        Boolean mustChange = user.getMustChangePassword() != null ? user.getMustChangePassword() : false;
+        
+        // Ensure mustChangePassword is never null in our response
+        Boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
+        
         return new TokenResponse(token, refreshToken, expiresAt, mustChange);
     }
 
@@ -367,24 +371,51 @@ public class AuthApplicationService implements AuthService {
             assignedRole = whitelistOpt.get().getRole();
         }
 
-        if (!isDefaultAdmin && !isWhitelistedInDb) {
-            log.warn("[AuthService] Từ chối đăng nhập Google cho tài khoản không nằm trong whitelist: {}", email);
-            throw new IllegalArgumentException("Tài khoản chưa được cấp quyền truy cập vào hệ thống.");
-        }
+        // Remove strict whitelist blocking to allow normal users to login via Google
+        // They will default to assignedRole = RoleEnum.USER.name()
 
         User user;
         if (userService.existsByEmail(email)) {
             user = userService.getByEmail(email);
-            // Cập nhật thông tin profile
+            
+            String dbRoleName = user.getRole().getName();
+            // Robust check for staff/admin roles (handling potential ROLE_ prefix)
+            boolean isStaffInDb = !dbRoleName.equalsIgnoreCase(RoleEnum.USER.name()) && 
+                                  !dbRoleName.equalsIgnoreCase("ROLE_" + RoleEnum.USER.name());
+            boolean isWhitelistedForGoogle = !assignedRole.equals(RoleEnum.USER.name());
+
+            // Case: Invited Staff/Admin (Pending). 
+            // They MUST verify via the original invitation link (token) first.
+            // This is because the token acts as an "Approval/Acceptance" of the invitation.
+            // Even if whitelisted for Google, a pending invitation must still be accepted manually via the token link.
+            if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION && isStaffInDb) {
+                log.warn("[AuthService] Một tài khoản nhân viên chưa kích hoạt ({}) cố tình dùng Google để bỏ qua bước xác thực lời mời.", email);
+                throw new IllegalArgumentException("Tài khoản này đang trong trạng thái chờ kích hoạt (Lời mời nhân viên). Vui lòng xác thực qua liên kết trong email mời của bạn để chính thức 'Chấp thuận tham gia hệ thống' trước khi sử dụng Google Login.");
+            }
+
+            // Auto-verify ONLY for normal users (Customers/USER role) or already active staff.
+            user.setStatus(UserStatusEnum.ACTIVE);
+            
+            // Update profile info
             user.setFirstName(fixedFirstName);
             user.setLastName(fixedLastName);
             user.setAvatarUrl(avatarUrl);
-            user.setStatus(UserStatusEnum.ACTIVE);
             
-            // Cập nhật role mới nhất từ whitelist
-            user.setRole(roleService.findByName(assignedRole));
+            // Role assignment logic:
+            // 1. If whitelisted for Google -> Upgrade/Assign to that privileged role
+            // 2. If currently a plain USER -> Can be assigned/updated to USER (default)
+            // 3. Otherwise (is a Staff not in Google Whitelist) -> DO NOT downgrade role to USER
+            if (isWhitelistedForGoogle || user.getRole().getName().equals(RoleEnum.USER.name())) {
+                Role newRole = roleService.findByName(assignedRole);
+                user.setRole(newRole);
+            }
             
-            userService.save(user);
+            // Respect user's wish: if already exists, don't force change unless already set
+            if (user.getMustChangePassword() == null) {
+                user.setMustChangePassword(false);
+            }
+            
+            user = userService.save(user);
         } else {
             log.info("[AuthService] Tạo người dùng mới từ Google: {} với quyền: {}", email, assignedRole);
             Role role = roleService.findByName(assignedRole);
@@ -398,9 +429,9 @@ public class AuthApplicationService implements AuthService {
                     .avatarUrl(avatarUrl)
                     .status(UserStatusEnum.ACTIVE)
                     .role(role)
-                    .mustChangePassword(true)
+                    .mustChangePassword(true) // Force setup for completely new accounts
                     .build();
-            userService.save(user);
+            user = userService.save(user);
         }
 
         return generateTokenResponse(user);
@@ -476,7 +507,8 @@ public class AuthApplicationService implements AuthService {
                 user.getCreatedAt(),
                 user.getStatus(),
                 user.getRole().getName(),
-                user.getMustChangePassword() != null ? user.getMustChangePassword() : false);
+                Boolean.TRUE.equals(user.getMustChangePassword()),
+                user.getBackupEmail());
     }
 
     @Override
@@ -792,10 +824,82 @@ public class AuthApplicationService implements AuthService {
 
     @Override
     @Transactional
+    public TokenResponse verifyInvitationForToken(String token) {
+        log.info("[AuthService] Đang xác thực mã mời: {}", token);
+        
+        fpt.teddypet.domain.entity.AdminGoogleWhitelist whitelist = adminGoogleWhitelistPort.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Mã mời không tồn tại hoặc đã bị hủy."));
+
+        if (whitelist.getTokenExpiredAt().isBefore(LocalDateTime.now())) {
+            whitelist.setStatus("EXPIRED");
+            adminGoogleWhitelistPort.save(whitelist);
+            throw new IllegalArgumentException("Lời mời này đã quá hạn (24 giờ). Vui lòng yêu cầu Admin gửi lại.");
+        }
+
+        if ("COMPLETED".equals(whitelist.getStatus())) {
+            throw new IllegalArgumentException("Mã mời này đã được sử dụng và hoàn thiện thiết lập. Vui lòng đăng nhập bình thường.");
+        }
+
+        if ("ACCEPTED".equals(whitelist.getStatus())) {
+            // Kiểm tra xem User thực sự đã đổi pass chưa (phòng trường hợp status chưa sync)
+            User existingUser = userService.getByEmail(whitelist.getEmail());
+            if (!Boolean.TRUE.equals(existingUser.getMustChangePassword())) {
+                whitelist.setStatus("COMPLETED");
+                adminGoogleWhitelistPort.save(whitelist);
+                throw new IllegalArgumentException("Mã mời này đã được hoàn thiện. Vui lòng đăng nhập bằng mật khẩu của bạn.");
+            }
+            // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
+            return generateTokenResponse(existingUser);
+        }
+
+        // Đánh dấu đã xác nhận
+        whitelist.setStatus("ACCEPTED");
+        whitelist.setConfirmedAt(LocalDateTime.now());
+        adminGoogleWhitelistPort.save(whitelist);
+
+        // Tìm hoặc tạo User tương ứng
+        User user;
+        if (userService.existsByEmail(whitelist.getEmail())) {
+            user = userService.getByEmail(whitelist.getEmail());
+            // Cập nhật role từ whitelist
+            user.setRole(roleService.findByName(whitelist.getRole()));
+        } else {
+            // Tạo User mới hoàn toàn
+            Role role = roleService.findByName(whitelist.getRole());
+            user = User.builder()
+                    .email(whitelist.getEmail())
+                    .username(whitelist.getEmail())
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .firstName(formatName(whitelist.getEmail().split("@")[0]))
+                    .lastName("Staff")
+                    .status(UserStatusEnum.ACTIVE)
+                    .role(role)
+                    .build();
+        }
+        
+        // Luôn ép đổi mật khẩu cho luồng mời qua Email này
+        user.setMustChangePassword(true);
+        user = userService.save(user);
+
+        log.info("[AuthService] Xác thực mã mời thành công cho: {}", whitelist.getEmail());
+        
+        // Trả về Token để tự động đăng nhập tạm thời
+        return generateTokenResponse(user);
+    }
+
+    @Override
+    @Transactional
     public void setupInitialPassword(fpt.teddypet.application.dto.request.auth.SetupPasswordRequest request) {
-        User user = getCurrentUser();
+        User currentUser = getCurrentUser();
+        // Load fresh from DB to avoid stale object from SecurityContext
+        User user = userService.getByEmail(currentUser.getEmail());
         
         if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+            // Check if user already has a password set. If yes, consider it a success/already done.
+            if (user.getPassword() != null && !user.getPassword().isBlank()) {
+                log.info("[AuthService] setupInitialPassword called for user {} who already has a password.", user.getUsername());
+                return;
+            }
             throw new IllegalStateException("Người dùng này không được yêu cầu đổi mật khẩu khởi tạo.");
         }
 
@@ -806,5 +910,12 @@ public class AuthApplicationService implements AuthService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         userService.save(user);
+
+        // Đánh dấu mã mời đã hoàn tất để vô hiệu hóa link trong Email
+        adminGoogleWhitelistPort.findByEmail(user.getEmail().toLowerCase().trim())
+                .ifPresent(w -> {
+                    w.setStatus("COMPLETED");
+                    adminGoogleWhitelistPort.save(w);
+                });
     }
 }

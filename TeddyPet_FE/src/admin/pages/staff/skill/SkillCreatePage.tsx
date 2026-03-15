@@ -1,4 +1,5 @@
 import { Box, Button, Stack, TextField } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { Title } from '../../../components/ui/Title';
 import { useCreateSkill } from '../hooks/useSkill';
@@ -13,6 +14,7 @@ interface SkillFormValues {
 }
 
 export const SkillCreatePage = () => {
+    const navigate = useNavigate();
     const { control, handleSubmit } = useForm<SkillFormValues>({
         defaultValues: { code: '', name: '', description: '' },
     });
@@ -25,7 +27,7 @@ export const SkillCreatePage = () => {
                 onSuccess: (res: any) => {
                     if (res?.success) {
                         toast.success(res.message ?? 'Tạo kỹ năng thành công');
-                        window.location.href = `/${prefixAdmin}/staff/skill/list`;
+                        navigate(`/${prefixAdmin}/staff/skill/list`);
                     } else toast.error(res?.message ?? 'Có lỗi');
                 },
                 onError: (err: any) => {
@@ -103,7 +105,7 @@ export const SkillCreatePage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => (window.location.href = `/${prefixAdmin}/staff/skill/list`)}
+                                onClick={() => navigate(`/${prefixAdmin}/staff/skill/list`)}
                             >
                                 Hủy
                             </Button>

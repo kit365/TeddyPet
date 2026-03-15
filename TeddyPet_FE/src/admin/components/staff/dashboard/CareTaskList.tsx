@@ -1,7 +1,7 @@
 import type { CareTask } from "../../../types/employeeDashboard";
 import { TaskEmptyState } from "./TaskEmptyState";
 import { TaskSkeletonList } from "./TaskSkeletonList";
-import { CalendarDays, Clock, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface Props {
@@ -47,14 +47,14 @@ export const CareTaskList = ({ tasks, loading, onStart, onFinish, onEdit, onDele
                 return (
                     <div
                         key={task.id}
-                        className={`group w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-md hover:border-blue-300 transition-all duration-200 border-l-4 ${priorityClass} ${
+                        className={`group w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-md hover:border-emerald-300 transition-all duration-200 border-l-4 ${priorityClass} ${
                             isCompleted ? "bg-gray-50 opacity-60" : ""
                         }`}
                     >
                         {/* Left: Task info */}
                         <div className="flex-1">
                             <div
-                                className={`text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors ${
+                                className={`text-lg font-bold text-gray-900 leading-tight group-hover:text-emerald-600 transition-colors ${
                                     isCompleted ? "line-through text-gray-400 group-hover:text-gray-400" : ""
                                 }`}
                             >
@@ -106,11 +106,11 @@ export const CareTaskList = ({ tasks, loading, onStart, onFinish, onEdit, onDele
                         </div>
 
                         {/* Right: Actions */}
-                        <div className="flex items-center gap-3 lg:justify-end">
+                        <div className="flex items-center gap-2 lg:justify-end">
                             {isPending && (
                                 <button
                                     onClick={() => onStart(task.id)}
-                                    className="px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition-all"
+                                    className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm transition-all"
                                 >
                                     Bắt đầu
                                 </button>
@@ -118,28 +118,28 @@ export const CareTaskList = ({ tasks, loading, onStart, onFinish, onEdit, onDele
                             {isInProgress && (
                                 <button
                                     onClick={() => onFinish(task.id)}
-                                    className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                                    className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 transition-colors"
                                 >
                                     Hoàn thành
                                 </button>
                             )}
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 ml-1">
                                 <button
                                     type="button"
                                     onClick={() => (onEdit ? onEdit(task.id) : toast.info("Chức năng sửa sẽ tích hợp sau."))}
-                                    className="p-3 rounded-xl transition-all text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                    className="p-2 rounded-lg transition-all text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
                                     aria-label="Sửa nhiệm vụ"
                                 >
-                                    <Pencil className="w-5 h-5" />
+                                    <Pencil className="w-4 h-4" />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => (onDelete ? onDelete(task.id) : toast.info("Chức năng xóa sẽ tích hợp sau."))}
-                                    className="p-3 rounded-xl transition-all text-red-600 bg-red-50 hover:bg-red-100 opacity-100 lg:opacity-0 group-hover:opacity-100"
+                                    className="p-2 rounded-lg transition-all text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-100 lg:opacity-0 group-hover:opacity-100"
                                     aria-label="Xóa nhiệm vụ"
                                 >
-                                    <Trash2 className="w-5 h-5" />
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>

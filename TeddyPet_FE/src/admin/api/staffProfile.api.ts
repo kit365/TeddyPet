@@ -33,6 +33,7 @@ export interface IStaffProfile {
     employmentType?: EmploymentTypeEnum | null;
     backupEmail?: string | null;
     googleWhitelistStatus?: string | null;
+    roleName?: string | null; // Added to support role display and editing
     active: boolean;
 }
 
@@ -115,5 +116,10 @@ export const deactivateStaff = async (staffId: number): Promise<ApiResponse<unkn
 
 export const reactivateStaff = async (staffId: number): Promise<ApiResponse<IStaffProfile>> => {
     const res = await apiApp.put(`${BASE}/${staffId}/reactivate`, {}, withAuth());
+    return res.data;
+};
+
+export const updateStaffRole = async (staffId: number, roleName: string): Promise<ApiResponse<IStaffProfile>> => {
+    const res = await apiApp.put(`${BASE}/${staffId}/role`, { roleName }, withAuth());
     return res.data;
 };

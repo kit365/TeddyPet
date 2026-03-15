@@ -3,6 +3,8 @@ package fpt.teddypet.application.port.input;
 import fpt.teddypet.application.dto.response.UserProfileResponse;
 import fpt.teddypet.domain.entity.User;
 
+import fpt.teddypet.application.dto.response.user.UserAvatarItemResponse;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,4 +37,7 @@ public interface UserService {
 
     fpt.teddypet.application.dto.response.UserProfileResponse updateProfile(User user,
             fpt.teddypet.application.dto.request.user.UpdateProfileRequest request);
+
+    /** Danh sách ảnh đại diện đã dùng của user (để "Chọn ảnh cũ"). */
+    List<UserAvatarItemResponse> getMyAvatarImages(User user);
 }

@@ -2,7 +2,7 @@ import axios from "axios"
 import Cookies from "js-cookie"
 import { useAuthStore } from "../stores/useAuthStore"
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080"
+const BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8080"
 
 let isRefreshing = false
 const failedQueue: { resolve: (value: string | null) => void; reject: (err?: unknown) => void }[] = []
@@ -28,8 +28,8 @@ apiApp.interceptors.request.use(
         const token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
 
 
-        // Only add authorization header if token exists and it's not a public API that should work without auth
-        if (token) {
+        // Only add authorization header if token exists and it's not already set
+        if (token && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

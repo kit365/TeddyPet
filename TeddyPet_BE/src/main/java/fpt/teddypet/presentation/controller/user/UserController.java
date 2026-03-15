@@ -5,6 +5,7 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.auth.ChangePasswordRequest;
 import fpt.teddypet.application.dto.request.user.UpdateProfileRequest;
 import fpt.teddypet.application.dto.response.UserProfileResponse;
+import fpt.teddypet.application.dto.response.user.UserAvatarItemResponse;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.input.auth.OtpService;
@@ -45,6 +46,14 @@ public class UserController {
         User currentUser = authService.getCurrentUser();
         UserProfileResponse response = userService.updateProfile(currentUser, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", response));
+    }
+
+    @GetMapping("/profile/avatars")
+    @Operation(summary = "Danh sách ảnh đại diện đã dùng", description = "Lấy danh sách ảnh đại diện từng dùng (để chọn ảnh cũ).")
+    public ResponseEntity<ApiResponse<List<UserAvatarItemResponse>>> getMyAvatarImages() {
+        User currentUser = authService.getCurrentUser();
+        List<UserAvatarItemResponse> list = userService.getMyAvatarImages(currentUser);
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @PostMapping("/change-password/send-otp")

@@ -55,8 +55,13 @@ export const EcommercePage = () => {
         queryFn: () => getRevenueChart(7)
     });
 
-    const stats = statsRes?.data;
-    const chartData = chartRes?.data || [];
+    // API trả về ApiResponse<T> = { success, data: T } — unwrap để có todayRevenue, todayOrders, todayBookings
+    const stats = (statsRes != null && typeof statsRes === 'object' && 'data' in statsRes && (statsRes as { data?: unknown }).data != null)
+        ? (statsRes as { data: typeof statsRes }).data
+        : statsRes;
+    const chartData = Array.isArray((chartRes as { data?: unknown })?.data)
+        ? (chartRes as { data: unknown[] }).data
+        : (Array.isArray(chartRes) ? chartRes : []);
 
     return (
         <Box sx={{ p: 1 }}>
@@ -248,24 +253,25 @@ export const EcommercePage = () => {
                     <CurrentBalance stats={stats} isLoading={isLoadingStats} />
                 </Grid>
 
-                {/* Top Customers & Staff Section (Cái mà bạn khen đẹp) */}
+                {/* Charts Section */}
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <TopCustomers />
+                    <PetDistribution />
                 </Grid>
 
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <TopStaff />
+                    <ServiceStatistics />
                 </Grid>
+
 
                 {/* Products Section */}
                 <Grid
@@ -286,24 +292,25 @@ export const EcommercePage = () => {
                     <TopSellingProducts />
                 </Grid>
 
-                {/* New components added at the end */}
+                {/* Top Customers & Staff Section */}
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <PetDistribution />
+                    <TopCustomers />
                 </Grid>
 
                 <Grid
                     sx={{
                         flexBasis: 'auto', flexGrow: 0, 
-                        width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
+                        width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
                     }}
                 >
-                    <ServiceStatistics />
+                    <TopStaff />
                 </Grid>
+
             </Grid>
         </Box>
     );

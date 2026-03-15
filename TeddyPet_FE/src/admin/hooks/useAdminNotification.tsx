@@ -1,13 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import { toast } from "react-toastify";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore, NotificationDTO } from '../../stores/useNotificationStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 // GLOBAL STATE - Persists across all component mounts/unmounts
 let globalStompClient: Client | null = null;
 let connectedUsername: string | null = null;
+let isCurrentlyAdminConnection = false;
 const processedMessageIds = new Set<string>();
 const recentFingerprints = new Map<string, number>(); // fingerprint -> timestamp
 
@@ -19,6 +20,8 @@ const globalRefs = {
 
 export const useAdminNotification = (autoConnect = true) => {
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const isAdminPath = pathname.startsWith('/admin');
     const { addNotification, setNotifications } = useNotificationStore();
     const { user } = useAuthStore();
 
@@ -78,8 +81,12 @@ export const useAdminNotification = (autoConnect = true) => {
             }
         } catch (e) { }
 
-        // 4. Identify type for styling
-        const isClientType = notification.type?.includes('CUSTOMER') ||
+        // 4. Identify if we should use Client or Admin styling
+        // If we are on the client side, we always use the client (red) theme
+        // If on admin side, we check the notification type
+        const isClientSidebar = !isAdminPath;
+        const isClientType = isClientSidebar || 
+            notification.type?.includes('CUSTOMER') ||
             notification.type?.includes('REPLIED') ||
             notification.type?.includes('STATUS');
 
@@ -87,51 +94,57 @@ export const useAdminNotification = (autoConnect = true) => {
 
         // Use basic toast() with icon: false to avoid "i" Info icon or other defaults
         toast(
-            <div className="flex flex-col gap-4 p-2 pointer-events-auto min-w-[320px] relative font-sans">
-                <div className="flex items-start gap-4">
-                    {/* Icon Section */}
+            <div className="flex flex-col w-full pointer-events-auto relative group">
+                <div className="flex items-center gap-5 p-5">
+                    {/* Icon Section - Glassmorphism style */}
                     <div className="flex-shrink-0 relative">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-500 hover:scale-110 ${isClientType
-                            ? 'bg-gradient-to-br from-[#ff9a9a] to-[#ff6262]'
-                            : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                        <div className={`w-16 h-16 rounded-[22px] flex items-center justify-center text-white shadow-2xl shadow-indigo-200 transition-all duration-700 group-hover:rotate-6 group-hover:scale-110 ${isClientType
+                            ? 'bg-gradient-to-br from-[#ff9a9a] to-client-primary'
+                            : 'bg-gradient-to-br from-indigo-500 to-violet-700'
                             }`}>
                             {isClientType ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
+                                <div className="relative">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-400"></span>
+                                    </span>
+                                </div>
                             )}
                         </div>
-                        {/* Admin Badge */}
-                        {!isClientType && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full border-2 border-white animate-bounce shadow-sm" />
-                        )}
                     </div>
 
                     {/* Content Section */}
-                    <div className="flex-1">
-                        <div className="flex items-start justify-between mb-1">
-                            <h4 className="text-[16px] font-extrabold text-gray-900 tracking-tight leading-none">
-                                {notification.title}
-                            </h4>
+                    <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                            <span className={`text-[0.6875rem] font-black uppercase tracking-[0.15em] ${isClientType ? 'text-client-primary' : 'text-indigo-600'}`}>
+                                {isClientSidebar ? 'TeddyPet' : (isClientType ? 'Khách hàng' : 'Hệ thống Admin')}
+                            </span>
+                            <span className="text-[0.625rem] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">Vừa xong</span>
                         </div>
-                        <p className="text-[13px] text-gray-500 leading-snug font-medium pr-2">
+                        <h4 className="text-[1.125rem] font-black text-slate-800 tracking-tight leading-none italic">
+                            {notification.title}
+                        </h4>
+                        <p className="text-[0.875rem] text-slate-500 leading-relaxed font-medium line-clamp-2">
                             {notification.message}
                         </p>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-2 mt-1 pt-3 border-t border-gray-50">
+                {/* Bottom Actions - More discrete and premium */}
+                <div className="flex items-center gap-0 border-t border-slate-50 overflow-hidden rounded-b-2xl">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             toast.dismiss();
                         }}
-                        className="px-4 py-2 text-[12px] font-bold text-gray-400 hover:text-gray-700 transition-colors"
+                        className="flex-1 py-4 text-[0.8125rem] font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all border-r border-slate-50 uppercase tracking-widest"
                     >
                         {isClientType ? 'Đã hiểu' : 'Bỏ qua'}
                     </button>
@@ -143,12 +156,13 @@ export const useAdminNotification = (autoConnect = true) => {
                             }
                             toast.dismiss();
                         }}
-                        className={`px-6 py-2.5 text-white text-[12px] font-extrabold rounded-2xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 ${isClientType
-                            ? 'bg-[#ff6262] hover:bg-[#ff4d4d] shadow-red-100'
-                            : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                        className={`flex-[1.5] py-4 text-white text-[0.8125rem] font-black transition-all uppercase tracking-widest relative overflow-hidden group/btn ${isClientType
+                            ? 'bg-client-primary hover:bg-client-secondary'
+                            : 'bg-indigo-600 hover:bg-indigo-700'
                             }`}
                     >
-                        {isClientType ? 'Xem ngay' : 'Kiểm tra'}
+                        <span className="relative z-10">{isClientType ? 'Xem chi tiết' : 'Kiểm tra ngay'}</span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
                     </button>
                 </div>
 
@@ -156,28 +170,35 @@ export const useAdminNotification = (autoConnect = true) => {
                     __html: `
                     .Toastify__toast-container {
                         z-index: 10000 !important;
-                        width: 420px !important;
+                        width: 440px !important;
                         padding: 0 !important;
                     }
                     .Toastify__toast-premium {
-                        border-radius: 16px !important;
+                        border-radius: 24px !important;
                         padding: 0 !important;
-                        background: #ffffff !important;
-                        border: 1px solid rgba(145, 158, 171, 0.12) !important;
-                        box-shadow: 0 12px 24px -4px rgba(145, 158, 171, 0.12), 0 0 2px 0 rgba(145, 158, 171, 0.2) !important;
+                        background: rgba(255, 255, 255, 0.95) !important;
+                        backdrop-filter: blur(12px) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1) !important;
                         overflow: visible !important;
-                        margin-bottom: 12px !important;
+                        margin-bottom: 20px !important;
+                        animation: toast-slide-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+                    @keyframes toast-slide-in {
+                        from { transform: translateX(100%) scale(0.9); opacity: 0; }
+                        to { transform: translateX(0) scale(1); opacity: 1; }
                     }
                     .Toastify__toast-body {
                         padding: 0 !important;
                         margin: 0 !important;
+                        font-family: 'Lora', serif !important;
                     }
                     .Toastify__close-button {
                         display: none !important;
                     }
                     .Toastify__toast-container--top-right {
-                        top: 80px !important;
-                        right: 24px !important;
+                        top: 40px !important;
+                        right: 40px !important;
                     }
                 `}} />
             </div>,
@@ -197,8 +218,8 @@ export const useAdminNotification = (autoConnect = true) => {
     }, []);
 
     const connect = useCallback(() => {
-        // If client is already connected to the CORRECT user, do nothing
-        if (globalStompClient?.connected && connectedUsername === user?.username) {
+        // If client is already connected to the CORRECT user AND correct path mode, do nothing
+        if (globalStompClient?.connected && connectedUsername === user?.username && isCurrentlyAdminConnection === isAdminPath) {
             return;
         }
 
@@ -208,6 +229,7 @@ export const useAdminNotification = (autoConnect = true) => {
             globalStompClient.deactivate();
             globalStompClient = null;
             connectedUsername = null;
+            isCurrentlyAdminConnection = false;
         }
 
         if (!user?.username) return;
@@ -220,8 +242,9 @@ export const useAdminNotification = (autoConnect = true) => {
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             onConnect: () => {
-                console.log(`✅ WebSocket Connected for: ${user.username}`);
+                console.log(`✅ WebSocket Connected for: ${user.username} (AdminMode: ${isAdminPath})`);
                 connectedUsername = user.username;
+                isCurrentlyAdminConnection = isAdminPath;
 
                 const roleObj = user.role;
                 const roleName = (typeof roleObj === 'object' && roleObj !== null && 'name' in roleObj)
@@ -252,8 +275,8 @@ export const useAdminNotification = (autoConnect = true) => {
                 });
                 console.log(`✅ Subscribed to private queue: ${privateQueue}`);
 
-                // 2. Admin Topic (only for staff)
-                if (isStaff) {
+                // 2. Admin Topic (only for staff AND only when on Admin side)
+                if (isStaff && isAdminPath) {
                     client.subscribe('/topic/admin-orders', (message) => {
                         try {
                             const notification: NotificationDTO = JSON.parse(message.body);
@@ -281,21 +304,43 @@ export const useAdminNotification = (autoConnect = true) => {
                     });
                     console.log(`✅ Subscribed to Admin orders topic`);
 
-                    // 3. Role-based Dashboard Topics
+                    // 3. Role-based Dashboard: mỗi section 1 subscription riêng (1 die không ảnh hưởng section khác)
                     const isAdmin = roleName === "ADMIN";
-                    const dashboardTopic = isAdmin ? '/topic/dashboard/stats' : '/topic/dashboard/staff-stats';
-                    const dashboardEvent = isAdmin ? 'DASHBOARD_STATS_UPDATED' : 'STAFF_DASHBOARD_STATS_UPDATED';
+                    const subscribeSection = (topic: string, eventName: string) => {
+                        client.subscribe(topic, (message) => {
+                            try {
+                                const payload = JSON.parse(message.body);
+                                window.dispatchEvent(new CustomEvent(eventName, { detail: payload }));
+                            } catch (e) {
+                                console.warn(`[Dashboard] Parse error for ${topic}`, e);
+                            }
+                        });
+                    };
 
-                    client.subscribe(dashboardTopic, (message) => {
-                        try {
-                            const stats = JSON.parse(message.body);
-                            console.log(`📨 [Dashboard-Topic] Stats received from ${dashboardTopic}:`, stats);
-                            window.dispatchEvent(new CustomEvent(dashboardEvent, { detail: stats }));
-                        } catch (e) {
-                            console.error("Error parsing dashboard stats", e);
-                        }
-                    });
-                    console.log(`✅ Subscribed to Dashboard topic: ${dashboardTopic}`);
+                    const subscribeStats = () => {
+                        client.subscribe('/topic/dashboard/stats', (message) => {
+                            try {
+                                const payload = JSON.parse(message.body);
+                                window.dispatchEvent(new CustomEvent('DASHBOARD_SECTION_STATS', { detail: payload }));
+                                window.dispatchEvent(new CustomEvent('DASHBOARD_STATS_UPDATED', { detail: payload }));
+                            } catch (e) {
+                                console.warn('[Dashboard] Parse error for stats', e);
+                            }
+                        });
+                    };
+                    if (isAdmin) {
+                        subscribeStats();
+                        subscribeSection('/topic/dashboard/revenue-chart', 'DASHBOARD_SECTION_REVENUE_CHART');
+                        subscribeSection('/topic/dashboard/sales-by-category', 'DASHBOARD_SECTION_SALES_BY_CATEGORY');
+                        subscribeSection('/topic/dashboard/top-customers', 'DASHBOARD_SECTION_TOP_CUSTOMERS');
+                        subscribeSection('/topic/dashboard/latest-products', 'DASHBOARD_SECTION_LATEST_PRODUCTS');
+                        subscribeSection('/topic/dashboard/pet-distribution', 'DASHBOARD_SECTION_PET_DISTRIBUTION');
+                        subscribeSection('/topic/dashboard/service-statistics', 'DASHBOARD_SECTION_SERVICE_STATISTICS');
+                        console.log('✅ Subscribed to 7 dashboard section topics (admin)');
+                    } else {
+                        subscribeStats();
+                    }
+                    subscribeSection('/topic/dashboard/staff-stats', 'STAFF_DASHBOARD_STATS_UPDATED');
                 }
             },
             onStompError: (frame) => {
@@ -303,10 +348,9 @@ export const useAdminNotification = (autoConnect = true) => {
                 console.error('Additional details: ' + frame.body);
             },
         });
-
         client.activate();
         globalStompClient = client;
-    }, [user, showPremiumToast]); // Added showPremiumToast to dependencies
+    }, [user, showPremiumToast, isAdminPath]); // Added isAdminPath to dependencies
 
     useEffect(() => {
         if (!autoConnect) return;

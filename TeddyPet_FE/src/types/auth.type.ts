@@ -58,6 +58,7 @@ export interface UserProfileResponse {
     status?: string;
     role?: string;
     mustChangePassword?: boolean;
+    optionalEmail?: string;
 }
 
 export type MeResponse = ApiResponse<UserProfileResponse>;
@@ -73,6 +74,9 @@ export interface UpdateProfilePayload {
     phoneNumber?: string;
     dateOfBirth?: string;
     gender?: string;
+    optionalEmail?: string;
+    avatarUrl?: string;
+    altImage?: string;
 }
 
 export type UpdateProfileResponse = ApiResponse<UserProfileResponse>;

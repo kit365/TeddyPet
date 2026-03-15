@@ -1,9 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'api_response.dart';
-
 
 class ApiClient {
   late final Dio _dio;
@@ -18,50 +16,28 @@ class ApiClient {
       ),
     );
 
-
     _dio.interceptors.add(
       InterceptorsWrapper(
-        // 1. TRƯỚC KHI GỬI ĐI (Tự động gắn Token)
         onRequest: (options, handler) async {
           final prefs = await SharedPreferences.getInstance();
-          final token = prefs.getString('access_token'); //luu token vao
+          final token = prefs.getString('access_token');
 
           if (token != null && token.isNotEmpty) {
-            // Tự động gắn Bearer Token vào header
             options.headers['Authorization'] = 'Bearer $token';
           }
           
-          print('🚀 SENDING [${options.method}] => ${options.path}');
           return handler.next(options);
         },
-
-        // 2. KHI NHẬN ĐƯỢC PHẢN HỒI (Xử lý dữ liệu thô)
         onResponse: (response, handler) {
-          print('✅ SUCCESS [${response.statusCode}] => ${response.requestOptions.path}');
           return handler.next(response);
         },
-
         onError: (DioException e, handler) {
           final statusCode = e.response?.statusCode;
-          final errorMessage = e.response?.data?['message'] ?? 'Lỗi không xác định';
-
-          print('❌ ERROR [$statusCode] => ${e.requestOptions.path}');
-
-          switch (statusCode) {
-            case 401:
-              print('� LỖI: Token hết hạn/Chưa login.');
-              break;
-            case 500:
-              print('💣 LỖI: Backend đang có sự cố (Server Error).');
-              break;
-          }
-          
           return handler.next(e);
         },
       ),
     );
   }
-
 
   Future<ApiResponse<T>> get<T>(
     String path, {

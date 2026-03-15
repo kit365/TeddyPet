@@ -1,3 +1,4 @@
+import { Grid, Box, Typography, Button, Container, Stack } from "@mui/material";
 import { ListHeader } from "../../../components/ui/ListHeader";
 import { prefixAdmin } from "../../../constants/routes";
 import { useEmployeeDashboard } from "../../../hooks/useEmployeeDashboard";
@@ -7,10 +8,16 @@ import { SpaTaskList } from "../../../components/staff/dashboard/SpaTaskList";
 import type { EmployeeTask, EmployeeUser } from "../../../types/employeeDashboard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../../api/staffProfile.api";
-import { CheckSquare, Plus } from "lucide-react";
+// removed unused CheckSquare, Plus
 import { toast } from "react-toastify";
 import { getStaffStats } from "../../../api/dashboard.api";
 import { useEffect } from "react";
+import WelcomeWidget from "../../../components/dashboard/WelcomeWidget";
+import SummaryWidget from "../../../components/dashboard/SummaryWidget";
+import DashboardCard from "../../../components/dashboard/DashboardCard";
+import SystemAlerts from "../../../components/dashboard/SystemAlerts";
+
+// removed StaffPerformanceChart
 
 const mockTasks: EmployeeTask[] = [
     {
@@ -98,7 +105,7 @@ export const EmployeeDashboardPage = () => {
 
     const queryClient = useQueryClient();
 
-    const { data: staffStatsRes } = useQuery({
+    const { data: staffStatsRes, refetch: refetchStaffStats } = useQuery({
         queryKey: ["staff-dashboard-stats"],
         queryFn: getStaffStats,
     });
@@ -110,9 +117,19 @@ export const EmployeeDashboardPage = () => {
             queryClient.setQueryData(["staff-dashboard-stats"], { success: true, data: event.detail });
         };
 
+        const handleOrdersRefresh = () => {
+            console.log("🔄 Staff dashboard: Refreshing stats due to order update");
+            refetchStaffStats();
+        };
+
         window.addEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
-        return () => window.removeEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
-    }, [queryClient]);
+        window.addEventListener('REFRESH_ADMIN_ORDERS', handleOrdersRefresh);
+
+        return () => {
+            window.removeEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
+            window.removeEventListener('REFRESH_ADMIN_ORDERS', handleOrdersRefresh);
+        };
+    }, [queryClient, refetchStaffStats]);
 
     const activeTasks = [...pendingTasks, ...inProgressTasks];
     const careTasks = activeTasks.filter((t) => t.type === "CARE");
@@ -130,7 +147,7 @@ export const EmployeeDashboardPage = () => {
                     breadcrumbItems={[
                         { label: "Trang chủ", to: "/" },
                         { label: "Nhân sự", to: `/${prefixAdmin}/staff/profile/list` },
-                        { label: "Nhiệm vụ" },
+                        { label: "Tổng quan" },
                     ]}
                 />
                 <div className="w-full min-h-screen bg-gray-50/50 p-6 sm:p-10">
@@ -143,143 +160,237 @@ export const EmployeeDashboardPage = () => {
     }
 
     return (
-        <>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
             <ListHeader
-                title="Nhiệm vụ"
+                title="Tổng quan nhân viên"
                 breadcrumbItems={[
                     { label: "Trang chủ", to: "/" },
                     { label: "Nhân sự", to: `/${prefixAdmin}/staff/profile/list` },
-                    { label: "Nhiệm vụ" },
+                    { label: "Tổng quan" },
                 ]}
             />
-            <div className="w-full min-h-screen bg-gray-50/50 p-6 sm:p-10">
-                {/* Page header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <CheckSquare className="w-8 h-8 text-blue-600" />
-                        Nhiệm vụ của nhân viên
-                    </h1>
-                    <button
-                        type="button"
-                        onClick={handleAddTask}
-                        className="px-6 py-3 text-base font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+
+            <Grid 
+                container
+                sx={{
+                    '--Grid-columns': 12,
+                    '--Grid-columnSpacing': 'calc(3 * var(--spacing))',
+                    '--Grid-rowSpacing': 'calc(3 * var(--spacing))',
+                    flexFlow: 'wrap',
+                    display: 'flex',
+                    gap: 'var(--Grid-rowSpacing) var(--Grid-columnSpacing)',
+                }}
+            >
+                {/* System Alerts Row */}
+                <Grid sx={{ width: '100%', mb: 1 }}>
+                    <SystemAlerts />
+                </Grid>
+
+                {/* Welcome & Status Column */}
+                <Grid 
+                    sx={{
+                        flexBasis: 'auto', flexGrow: 0, 
+                        width: 'calc(100% * 8 / 12 - (12 - 8) * (var(--Grid-columnSpacing) / 12))',
+                    }}
+                >
+                    <WelcomeWidget
+                        title={`Chào mừng trở lại,\n${user.fullName}! 👋`}
+                        description="Hôm nay bạn có những nhiệm vụ mới cần hoàn thành. Hãy bắt đầu ngày làm việc tuyệt vời nhé!"
+                        img="https://pub-c2ee032483864a75a76e7372a8019fb0.r2.dev/person-pet.webp"
+                        bgImg="https://pub-c2ee032483864a75a76e7372a8019fb0.r2.dev/glass-bg.webp"
+                        action={
+                            <Stack direction="row" spacing={1.5}>
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={handleAddTask}
+                                    sx={{
+                                        bgcolor: 'rgba(34, 197, 94, 0.95)',
+                                        color: 'white',
+                                        px: 2,
+                                        py: 0.6,
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        '&:hover': { bgcolor: 'rgb(22, 163, 74)' }
+                                    }}
+                                >
+                                    Thêm nhiệm vụ
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    color="inherit"
+                                    size="small"
+                                    sx={{ 
+                                        borderColor: 'rgba(255,255,255,0.4)', 
+                                        color: 'white',
+                                        px: 2,
+                                        py: 0.6,
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                                    }}
+                                >
+                                    Xem lịch trực
+                                </Button>
+                            </Stack>
+                        }
+                    />
+                </Grid>
+
+                {/* Status Column */}
+                <Grid 
+                    sx={{
+                        flexBasis: 'auto', flexGrow: 0, 
+                        width: 'calc(100% * 4 / 12 - (12 - 4) * (var(--Grid-columnSpacing) / 12))',
+                    }}
+                >
+                    <Stack spacing={3} sx={{ height: '100%' }}>
+                        <StatusHeader
+                            user={user}
+                            onCheckIn={checkIn}
+                            onCheckOut={checkOut}
+                            isCheckingIn={isCheckingIn}
+                        />
+                        <DashboardCard sx={{ p: 'calc(2.5 * var(--spacing))', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800, mb: 2, display: 'block', fontSize: '10px', letterSpacing: '0.1em' }}>
+                                CA TRỰC HIỆN TẠI
+                            </Typography>
+                            <Stack spacing={2}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed var(--palette-divider)' }}>
+                                    <Typography variant="body2" color="text.secondary">Vai trò</Typography>
+                                    <Typography variant="subtitle2" fontWeight={700}>
+                                        {user.role === "CARE" ? "Chăm sóc" : "Spa & Grooming"}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed var(--palette-divider)' }}>
+                                    <Typography variant="body2" color="text.secondary">Loại hình</Typography>
+                                    <Typography variant="subtitle2" fontWeight={700}>
+                                        {user.employmentType === "FULL_TIME" ? "T.Thời gian" : "B.Thời gian"}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Typography variant="body2" color="text.secondary">Trạng thái</Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: user.todayCheckedIn ? 'success.main' : 'error.main' }} />
+                                        <Typography variant="subtitle2" fontWeight={700} color={user.todayCheckedIn ? "success.main" : "error.main"}>
+                                            {user.todayCheckedIn ? "Đã điểm danh" : "Chưa điểm danh"}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Stack>
+                        </DashboardCard>
+                    </Stack>
+                </Grid>
+
+                {/* Metrics Row */}
+                {[
+                    { title: "Đơn hàng", total: (staffStats?.confirmedOrders ?? 0 + (staffStats?.pendingOrders ?? 0)).toString(), color: "#22c55e" },
+                    { title: "Lịch Spa", total: (staffStats?.todayBookings ?? 0).toString(), color: "#ffab00" },
+                    { title: "Kho hàng", total: (staffStats?.lowStockCount ?? 0).toString(), color: "#ff5630" },
+                    { title: "Nhiệm vụ", total: activeTasks.length.toString(), color: "#00b8d9" }
+                ].map((stat, idx) => (
+                    <Grid 
+                        key={idx}
+                        sx={{
+                            flexBasis: 'auto', flexGrow: 0, 
+                            width: 'calc(100% * 3 / 12 - (12 - 3) * (var(--Grid-columnSpacing) / 12))',
+                        }}
                     >
-                        <Plus className="w-5 h-5" />
-                        Thêm nhiệm vụ
-                    </button>
-                </div>
+                        <SummaryWidget
+                            title={stat.title}
+                            total={stat.total}
+                            color={stat.color}
+                            showChart={false}
+                        />
+                    </Grid>
+                ))}
 
-                {/* Hero banner + status */}
-                <StatusHeader
-                    user={user}
-                    onCheckIn={checkIn}
-                    onCheckOut={checkOut}
-                    isCheckingIn={isCheckingIn}
-                />
+                {/* Task Tables Section */}
+                <Grid 
+                    sx={{
+                        flexBasis: 'auto', flexGrow: 0, 
+                        width: 'calc(100% * 8 / 12 - (12 - 8) * (var(--Grid-columnSpacing) / 12))',
+                    }}
+                >
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Công việc hiện tại</Typography>
+                        <Typography variant="body2" color="text.secondary">Bắt đầu hoàn thành các nhiệm vụ được giao trong ngày</Typography>
+                    </Box>
+                    
+                    {user.role === "CARE" ? (
+                        <CareTaskList
+                            tasks={careTasks as any}
+                            onStart={startTask}
+                            onFinish={finishTask}
+                        />
+                    ) : (
+                        <SpaTaskList
+                            tasks={spaTasks as any}
+                            onStart={startTask}
+                            onFinish={finishTask}
+                        />
+                    )}
+                </Grid>
 
-                {/* Summary cards */}
-                <section className="grid gap-4 md:grid-cols-4 mt-6">
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Đơn cần đóng gói</p>
-                                <p className="mt-1 text-2xl font-bold text-slate-900">
-                                    {(staffStats?.confirmedOrders ?? 0) + (staffStats?.pendingOrders ?? 0)}
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-lg font-bold text-sky-600">
-                                📦
-                            </div>
-                        </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Lịch Spa hôm nay</p>
-                                <p className="mt-1 text-2xl font-bold text-emerald-700">
-                                    {staffStats?.todayBookings ?? 0}
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 text-xl font-bold">
-                                ✂️
-                            </div>
-                        </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Sản phẩm sắp hết</p>
-                                <p className="mt-1 text-2xl font-bold text-red-600">
-                                    {staffStats?.lowStockCount ?? 0}
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 text-xl font-bold">
-                                ⚠️
-                            </div>
-                        </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Trạng thái</p>
-                                <p className="mt-1 text-base font-bold text-slate-900">
-                                    {user.globalStatus === "READY"
-                                        ? "Sẵn sàng"
-                                        : user.globalStatus === "BUSY"
-                                        ? "Đang làm việc"
-                                        : "Nghỉ"}
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-500 text-xl font-bold">
-                                ●
-                            </div>
-                        </div>
-                </section>
-
-                {/* Main content: task list */}
-                <section className="grid gap-6 mt-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                    <div>
-                        <h2 className="mb-4 text-xl font-bold text-slate-900">
-                            Nhiệm vụ hôm nay
-                        </h2>
-                        {user.role === "CARE" ? (
-                            <CareTaskList
-                                tasks={careTasks as any}
-                                onStart={startTask}
-                                onFinish={finishTask}
-                            />
-                        ) : (
-                            <SpaTaskList
-                                tasks={spaTasks as any}
-                                onStart={startTask}
-                                onFinish={finishTask}
-                            />
-                        )}
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 text-lg font-bold text-slate-900">
-                            Tóm tắt nhanh
-                        </h3>
-                        <div className="space-y-4 text-sm text-slate-600">
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                                <span>Role</span>
-                                <span className="font-bold text-slate-900">
-                                    {user.role === "CARE" ? "Nhân viên chăm sóc" : "Nhân viên Spa"}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                                <span>Loại nhân viên</span>
-                                <span className="font-bold text-slate-900">
-                                    {user.employmentType === "FULL_TIME"
-                                        ? "Toàn thời gian"
-                                        : "Bán thời gian"}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                                <span>Đã check-in hôm nay</span>
-                                <span className="font-bold text-slate-900">
-                                    {user.todayCheckedIn ? "Có" : "Chưa"}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </>
+                {/* Side Section: Quick Stats or Feed */}
+                <Grid 
+                    sx={{
+                        flexBasis: 'auto', flexGrow: 0, 
+                        width: 'calc(100% * 4 / 12 - (12 - 4) * (var(--Grid-columnSpacing) / 12))',
+                    }}
+                >
+                    <Stack spacing={3}>
+                        <DashboardCard sx={{ p: 'calc(2.5 * var(--spacing))', bgcolor: 'rgba(34, 197, 94, 0.04)', border: '1px solid rgba(34, 197, 94, 0.1)' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Trạng thái hệ thống</Typography>
+                            <Stack spacing={2}>
+                                <Box sx={{ 
+                                    p: 2, 
+                                    borderRadius: 1.5, 
+                                    bgcolor: user.globalStatus === "READY" ? 'success.lighter' : 'warning.lighter',
+                                    border: '1px solid',
+                                    borderColor: user.globalStatus === "READY" ? 'success.light' : 'warning.light'
+                                }}>
+                                    <Typography variant="caption" sx={{ color: user.globalStatus === "READY" ? 'success.dark' : 'warning.dark', fontWeight: 700, textTransform: 'uppercase' }}>
+                                        Ghi nhận:
+                                    </Typography>
+                                    <Typography variant="h6" sx={{ mt: 0.5, fontWeight: 800 }}>
+                                        {user.globalStatus === "READY" ? "Sẵn sàng nhận việc" : "Đang bận công tác"}
+                                    </Typography>
+                                </Box>
+                                
+                                <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1.5, border: '1px solid var(--palette-divider)' }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>HIỆU SUẤT TRỰC TUẦN</Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                                        <Typography variant="h4" fontWeight={800}>92%</Typography>
+                                    </Box>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Bạn đã hoàn thành 24/26 nhiệm vụ được giao tuần này.</Typography>
+                                </Box>
+                            </Stack>
+                        </DashboardCard>
+                        
+                        <Button 
+                            fullWidth 
+                            variant="outlined" 
+                            color="success"
+                            size="medium"
+                            sx={{ 
+                                py: 1.5, 
+                                borderRadius: 1.2, 
+                                fontWeight: 700, 
+                                borderStyle: 'dashed',
+                                bgcolor: 'rgba(34, 197, 94, 0.02)',
+                                '&:hover': {
+                                    bgcolor: 'rgba(34, 197, 94, 0.08)',
+                                    borderColor: 'success.main'
+                                }
+                            }}
+                        >
+                            Hướng dẫn quy trình Care/Spa
+                        </Button>
+                    </Stack>
+                </Grid>
+            </Grid>
+        </Container>
     );
 };
 
