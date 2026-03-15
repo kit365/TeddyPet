@@ -41,4 +41,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findByBarcodeAndIsActiveTrueAndIsDeletedFalse(String barcode);
 
     Optional<Product> findBySlug(String slug);
+
+    long countByIsDeletedFalse();
+
+    long countByStockStatusAndIsDeletedFalse(fpt.teddypet.domain.enums.StockStatusEnum stockStatus);
 }

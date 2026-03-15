@@ -41,7 +41,7 @@ export const ProfilePage = () => {
     const [loading, setLoading] = useState(!user);
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
-    const [editButtonHovered, setEditButtonHovered] = useState(false);
+
     const dateInputRef = useRef<HTMLInputElement | null>(null);
 
     const [form, setForm] = useState({
@@ -142,7 +142,7 @@ export const ProfilePage = () => {
     }
 
     return (
-        <DashboardLayout pageTitle="Thông tin cá nhân" breadcrumbs={breadcrumbs} isEditingProfile={editing}>
+        <DashboardLayout pageTitle="Thông tin cá nhân" breadcrumbs={breadcrumbs}>
             <div className="max-w-[50rem]">
                 {/* HEADER */}
                 <div className="flex items-center justify-between gap-4 mb-[2rem]">
@@ -151,14 +151,7 @@ export const ProfilePage = () => {
                     {!editing ? (
                         <button
                             onClick={() => setEditing(true)}
-                            onMouseEnter={() => setEditButtonHovered(true)}
-                            onMouseLeave={() => setEditButtonHovered(false)}
-                            className="inline-flex items-center gap-[0.5rem] px-[1.25rem] py-[0.7rem] bg-slate-100 text-slate-700 rounded-[0.85rem] font-semibold text-[0.9rem] hover:bg-slate-900 hover:text-white transition-all duration-200 active:scale-95"
-                            style={{
-                                backgroundColor: editButtonHovered ? "#102937" : "#FF6262",
-                                color: "#ffffff",
-                                boxShadow: editButtonHovered ? "0 10px 24px rgba(16, 41, 55, 0.25)" : "0 10px 24px rgba(255, 98, 98, 0.25)",
-                            }}
+                            className="inline-flex items-center gap-[0.5rem] px-[1.25rem] py-[0.7rem] bg-client-primary text-white rounded-[0.85rem] font-semibold text-[0.9rem] hover:bg-[#102937] hover:shadow-[0_10px_24px_rgba(16,41,55,0.25)] transition-all duration-200 shadow-[0_10px_24px_rgba(255,98,98,0.25)] active:scale-95"
                         >
                             <Edit2 size={16} />
                             Chỉnh sửa

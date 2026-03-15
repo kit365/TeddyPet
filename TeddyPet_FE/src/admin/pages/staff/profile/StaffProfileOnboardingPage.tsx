@@ -399,7 +399,7 @@ export const StaffProfileOnboardingPage = () => {
                                                     }}
                                                 >
                                                     <MenuItem value="STAFF">Staff (Nhân viên)</MenuItem>
-                                                    {isSuperAdmin && <MenuItem value="ADMIN">Admin (Quản trị viên)</MenuItem>}
+                                                    {(isSuperAdmin || isAdmin) && <MenuItem value="ADMIN">Admin (Quản trị viên)</MenuItem>}
                                                     <MenuItem value="USER">User (Khách hàng)</MenuItem>
                                                 </TextField>
                                             )}
