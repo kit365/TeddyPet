@@ -24,7 +24,20 @@ private Integer age;
 2. Tạo 1 file mới với phiên bản **lớn hơn** phiên bản hiện tại. Mẫu File: `V{Version}__{Mô_tả_bằng_tiếng_Anh_viết_thường}.sql` (Ví dụ: `V3__add_age_to_pets.sql`)
 3. Viết câu lệnh DDL SQL bên trong:
 ```sql
-ALTER TABLE pets ADD COLUMN age INT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS age INT;
+```
+**👉 QUY TẮC BẮT BUỘC (IDEMPOTENT):** Tuyệt đối không viết câu lệnh suông. Luôn phải có `IF NOT EXISTS` hoặc bọc trong khối `DO $$`.
+*   **Thêm cột:** `ALTER TABLE table_name ADD COLUMN IF NOT EXISTS column_name ...;`
+*   **Tạo bảng:** `CREATE TABLE IF NOT EXISTS table_name (...);`
+*   **Tạo Index:** `CREATE INDEX IF NOT EXISTS index_name ON ...;`
+*   **Đổi tên cột (Nâng cao):** 
+```sql
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='table_name' AND column_name='old_name') THEN
+        ALTER TABLE table_name RENAME COLUMN old_name TO new_name;
+    END IF;
+END $$;
 ```
 **👉 Kết quả:** Khi chạy lại Spring Boot, Flyway sẽ tự đọc file `V3...` và thêm cột vào DB, lúc nay Hibernate check lại tính hợp lệ (`validate`) sẽ báo PASS! Cả team cùng Pull file SQL này về nó cũng sẽ tự Alter DB cho mọi người.
 
@@ -72,10 +85,20 @@ Lưu ý: Không lạm dụng bước 3 liên tục, nó sẽ làm phình to cụ
 2.  **KHÔNG BAO GIỜ** chỉnh sửa nội dung bên trong file Flyway cũ một khi file đó đã được Push lên nhánh Chung. Flyway dùng cơ chế Checksum, bồ sửa 1 dấu phẩy là nó báo lỗi "Migration checksum mismatch" ngay.
 3.  **BASELINE LÀ DUY NHẤT:** File `V1__baseline.sql` chỉ nên được "xây lại" (Re-baseline) khi team thống nhất tổng lực (thường là sau khi merge một Feature lớn). Khi đã chốt xong, tuyệt đối đóng băng nó.
 4.  **KHÔNG LÉN ĐỔI:** Giữ nguyên `ddl-auto: validate`. Nếu bồ đổi sang `update`, bồ sẽ không biết DB của mình đang lệch với team như thế nào cho đến khi lên Prod và... BÙM!
+5.  **FLYWAY GUARDIAN (GÁC CỔNG):** Trước khi Push code, **BẮT BUỘC** chạy lệnh sau để check lỗi migration:
+    `mvn test -Dtest=FlywayMigrationTest -Dspring.profiles.active=ci`
+    Lệnh này sẽ giả lập môi trường Server để chạy thử toàn bộ database từ số 0. Nếu nó FAIL, tuyệt đối không được Push.
 
 ---
 
 ## 🛠 XỬ LÝ LỖI THƯỜNG GẶP
 *   **Lỗi "Missing column [xyz]":** Do code Java có field `xyz` nhưng DB chưa có cột. -> Tạo file migration mới để `ADD COLUMN`.
-*   **Lỗi "Migration checksum mismatch":** Do bồ lỡ tay sửa file SQL cũ. -> Dùng lệnh `mvn flyway:repair` (nếu có cài plugin) hoặc nhờ Lead check lại.
-*   **Lỗi "Relation [abc] already exists":** Do bồ chạy lệnh `CREATE TABLE` mà bảng đó đã có rồi. -> Hãy thêm `IF NOT EXISTS` vào câu lệnh.
+*   **Lỗi "Migration checksum mismatch":** Do bồ lỡ tay sửa nội dung file SQL cũ. 
+    *   **Cách xử lý:** 
+        1.  **TUYỆT ĐỐI KHÔNG** sửa nội dung file cũ nếu đã Push.
+        2.  Nếu đã lỡ sửa và bị lỗi, hãy Revert file về trạng thái cũ.
+        3.  Nếu bắt buộc phải sửa (ví dụ sửa lỗi typo làm sập App), sau khi sửa bồ **PHẢI** chạy lệnh này để cập nhật lại checksum:
+            `mvn flyway:repair`
+*   **Lỗi "Relation [abc] already exists":** Do bồ chạy lệnh `CREATE TABLE` mà bảng đó đã có rồi. 
+    *   **Quy tắc:** Mọi script từ nay về sau **PHẢI** dùng `IF NOT EXISTS`.
+    *   Nếu gặp lỗi này ở file CŨ (V1-V73), hãy dùng lệnh `mvn flyway:repair` để Flyway bỏ qua các bước đã lỗi.
