@@ -12,6 +12,9 @@ import fpt.teddypet.application.dto.response.product.product.ProductResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductDetailResponse;
 import fpt.teddypet.application.dto.response.product.product.ProductSuggestionResponse;
 import fpt.teddypet.application.mapper.products.ProductMapper;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import fpt.teddypet.application.dto.request.products.variant.ProductVariantSaveRequest;
 import fpt.teddypet.application.port.input.products.ProductAgeRangeService;
 import fpt.teddypet.application.port.input.products.ProductAttributeService;
@@ -28,7 +31,10 @@ import fpt.teddypet.application.util.HtmlUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductAgeRange;
+import fpt.teddypet.domain.entity.ProductVariant;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
+import fpt.teddypet.domain.enums.StockStatusEnum;
+import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.specification.ProductSpecification;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -42,14 +48,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import fpt.teddypet.application.dto.request.products.image.ProductImageSaveRequest;
-import fpt.teddypet.domain.entity.ProductVariant;
 import fpt.teddypet.domain.enums.ProductTypeEnum;
-import fpt.teddypet.domain.enums.StockStatusEnum;
 import fpt.teddypet.domain.enums.UnitEnum;
 import fpt.teddypet.application.util.SkuUtil;
 
