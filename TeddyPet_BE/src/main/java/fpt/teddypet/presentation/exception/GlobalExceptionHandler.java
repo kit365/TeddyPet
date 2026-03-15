@@ -16,11 +16,16 @@ import jakarta.persistence.EntityNotFoundException;
 
 import fpt.teddypet.domain.exception.BookingValidationException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BookingValidationException.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleBookingValidationException(BookingValidationException ex) {
@@ -126,6 +131,8 @@ public class GlobalExceptionHandler {
         if (ex instanceof ResponseStatusException rse) {
             return handleResponseStatusException(rse);
         }
+        // Log full stack trace để dễ debug 500 (xem console backend)
+        log.error("RuntimeException -> 500: {}", ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Runtime error: " + ex.getMessage(),

@@ -40,7 +40,9 @@ public class PaymentController {
     }
 
     /**
-     * Webhook PayOS - Nhận thông báo từ PayOS khi thanh toán hoàn tất
+     * Webhook PayOS - Nhận thông báo từ PayOS khi thanh toán hoàn tất hoặc hủy.
+     * PayOS gửi POST JSON (body = Webhook: data + signature). Service verify chữ ký, cập nhật Payment/Order,
+     * và lưu gateway_response_code + gateway_raw_payload vào bảng payments. Xem docs/PAYOS_WEBHOOK_FLOW.md.
      */
     @PostMapping("/payos/webhook")
     @Operation(summary = "PayOS Webhook", description = "Nhận thông báo tự động từ PayOS")
@@ -51,7 +53,6 @@ public class PaymentController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Routing to our service
         paymentService.processPaymentCallback(
                 PaymentGatewayEnum.PAYOS,
                 webhook,

@@ -55,5 +55,11 @@ public interface BankInformationRepository extends JpaRepository<BankInformation
             where b.userId = :userId and b.isDeleted = false and b.isDefault = true and b.id <> :keepId
             """)
     int unsetOtherDefaults(@Param("userId") UUID userId, @Param("keepId") Long keepId);
+
+    @Query("""
+            select b from BankInformation b
+            where b.isDeleted = false and b.accountType = :accountType
+            """)
+    Optional<BankInformation> findByAccountTypeAndIsDeletedFalse(@Param("accountType") String accountType);
 }
 

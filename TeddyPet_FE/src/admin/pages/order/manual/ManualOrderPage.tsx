@@ -30,7 +30,7 @@ import { getBrands } from "../../../api/brand.api";
 import { createOrder } from "../../../../api/order.api";
 import { getUsers } from "../../../api/user.api";
 import { toast } from "react-toastify";
-import { PaymentMethod } from "../../../../types/order.type";
+import { PaymentMethod, OrderType } from "../../../../types/order.type";
 import { CartItem } from "./types";
 
 // Premium Theme Colors from Home Page
@@ -61,8 +61,11 @@ export const ManualOrderPage = () => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [customerType, setCustomerType] = useState<"GUEST" | "MEMBER">("GUEST");
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
-    const [guestName, setGuestName] = useState("Khách vãng lai");
+    const [guestName, setGuestName] = useState("");
     const [guestPhone, setGuestPhone] = useState("");
+    const [guestPhoneError, setGuestPhoneError] = useState<string | null>(null);
+    const [orderType, setOrderType] = useState<OrderType>("OFFLINE");
+    const [shippingAddressOnline, setShippingAddressOnline] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
     const [note, setNote] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -248,9 +251,29 @@ export const ManualOrderPage = () => {
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    /** Định dạng SĐT Việt Nam (giống backend): 0 hoặc +84, tiếp theo đầu số 3x, 5x, 7x, 8x, 9x và đủ 8 chữ số. */
+    const isValidVietnamesePhone = (phone: string): boolean => {
+        const trimmed = phone.trim();
+        if (!trimmed) return true;
+        const normalized = trimmed.replace(/[\s.]/g, "");
+        const regex = /^(0|\+84)((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\d{3})(\d{3})$/;
+        return regex.test(normalized);
+    };
+
     const handlePlaceOrder = async () => {
         if (cart.length === 0) {
             toast.error("Vui lòng chọn sản phẩm");
+            return;
+        }
+
+        if (customerType === "GUEST" && guestPhone.trim() && !isValidVietnamesePhone(guestPhone)) {
+            setGuestPhoneError("Số điện thoại không đúng định dạng Việt Nam");
+            return;
+        }
+        setGuestPhoneError(null);
+
+        if (orderType === "ONLINE" && (!shippingAddressOnline || !shippingAddressOnline.trim())) {
+            toast.error("Vui lòng nhập địa chỉ giao hàng cho đơn đặt online");
             return;
         }
 
@@ -258,22 +281,23 @@ export const ManualOrderPage = () => {
             setIsSubmitting(true);
             const orderRequest: any = {
                 paymentMethod,
+                orderType,
                 items: cart.map(item => ({
                     variantId: item.variantId,
                     quantity: item.quantity
                 })),
-                note: note || "Đơn hàng tại quầy",
-                shippingAddress: "Mua trực tiếp tại quầy",
+                note: orderType === "OFFLINE" ? (note || "Đơn hàng tại quầy") : (note || ""),
+                shippingAddress: orderType === "OFFLINE" ? "mua tại quầy" : shippingAddressOnline.trim(),
                 latitude: 10.7410688,
                 longitude: 106.7164031
             };
 
             if (customerType === "MEMBER" && selectedUser) {
-                orderRequest.receiverName = selectedUser.fullName || `${selectedUser.firstName} ${selectedUser.lastName}`;
-                orderRequest.receiverPhone = selectedUser.phoneNumber || "0000000000";
+                orderRequest.receiverName = selectedUser.fullName || `${selectedUser.firstName} ${selectedUser.lastName}`.trim() || undefined;
+                orderRequest.receiverPhone = selectedUser.phoneNumber || undefined;
             } else {
-                orderRequest.receiverName = guestName;
-                orderRequest.receiverPhone = guestPhone || "0000000000";
+                orderRequest.receiverName = guestName.trim() || undefined;
+                orderRequest.receiverPhone = guestPhone.trim() || undefined;
             }
 
             const res = await createOrder(orderRequest);
@@ -323,15 +347,15 @@ export const ManualOrderPage = () => {
                             <StoreIcon size={40} />
                         </Box>
                         <Box>
-                            <Typography variant="h2" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800, fontSize: { xs: "2rem", md: "3rem" } }}>
+                            <Typography variant="h4" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800, fontSize: { xs: "1.35rem", md: "1.6rem" } }}>
                                 {t("admin.order.manual_order")}
                             </Typography>
                             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ opacity: 0.9, mt: 1 }}>
-                                <Typography variant="h6" sx={{ fontSize: "1.4rem" }}>Dashboard</Typography>
-                                <ChevronRightIcon size={18} />
-                                <Typography variant="h6" sx={{ fontSize: "1.4rem" }}>Đơn hàng</Typography>
-                                <ChevronRightIcon size={18} />
-                                <Typography variant="h6" sx={{ fontWeight: 800, fontSize: "1.4rem" }}>Tạo đơn mới</Typography>
+                                <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>Dashboard</Typography>
+                                <ChevronRightIcon size={14} />
+                                <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>Đơn hàng</Typography>
+                                <ChevronRightIcon size={14} />
+                                <Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.875rem" }}>Tạo đơn mới</Typography>
                             </Stack>
                         </Box>
                     </Stack>
@@ -358,9 +382,9 @@ export const ManualOrderPage = () => {
                     <Paper 
                         elevation={0}
                         sx={{ 
-                            p: 3, 
-                            mb: 4, 
-                            borderRadius: "20px", 
+                            p: 2, 
+                            mb: 3, 
+                            borderRadius: "14px", 
                             border: "1px solid #E5E7EB",
                             boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
                         }}
@@ -368,21 +392,21 @@ export const ManualOrderPage = () => {
                         <Stack spacing={2}>
                             <TextField
                                 fullWidth
+                                size="small"
                                 placeholder="Tìm kiếm theo tên hoặc SKU..."
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                                 InputProps={{
                                     startAdornment: (
                                         <InputAdornment position="start">
-                                            <SearchIcon size={24} color="#9CA3AF" />
+                                            <SearchIcon size={20} color="#9CA3AF" />
                                         </InputAdornment>
                                     ),
                                     sx: { 
-                                        borderRadius: "15px", 
+                                        borderRadius: "12px", 
                                         bgcolor: "#F3F4F6", 
                                         "& fieldset": { border: "none" },
-                                        height: "64px",
-                                        fontSize: "1.8rem",
+                                        fontSize: "0.9375rem",
                                         fontWeight: 500
                                     }
                                 }}
@@ -403,18 +427,22 @@ export const ManualOrderPage = () => {
                                     renderInput={(params) => (
                                         <TextField 
                                             {...params} 
-                                            label={<Box sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: "1.6rem" }}><FilterIcon size={20} /> Lọc theo Danh mục</Box>}
+                                            size="small"
+                                            label="Lọc theo Danh mục"
+                                            InputProps={{
+                                                ...params.InputProps,
+                                                startAdornment: <><FilterIcon size={16} style={{ marginRight: 6, color: "#6B7280" }} />{params.InputProps.startAdornment}</>
+                                            }}
                                             sx={{ 
                                                 "& .MuiOutlinedInput-root": { 
-                                                    borderRadius: "14px", 
-                                                    minHeight: "64px",
-                                                    fontSize: "1.6rem"
+                                                    borderRadius: "12px", 
+                                                    fontSize: "0.875rem"
                                                 },
-                                                "& .MuiInputLabel-root": { fontSize: "1.7rem", fontWeight: 600 },
+                                                "& .MuiInputLabel-root": { fontSize: "0.875rem", fontWeight: 600 },
                                                 "& .MuiAutocomplete-tag": { 
-                                                    fontSize: "1.4rem", 
-                                                    fontWeight: 700, 
-                                                    borderRadius: "8px",
+                                                    fontSize: "0.75rem", 
+                                                    fontWeight: 600, 
+                                                    borderRadius: "6px",
                                                     bgcolor: "#FFE4E4",
                                                     color: CLIENT_PRIMARY
                                                 }
@@ -422,7 +450,7 @@ export const ManualOrderPage = () => {
                                         />
                                     )}
                                     ListboxProps={{
-                                        sx: { "& .MuiAutocomplete-option": { fontSize: "1.6rem", py: 1.5 } }
+                                        sx: { "& .MuiAutocomplete-option": { fontSize: "0.875rem", py: 1 } }
                                     }}
                                 />
 
@@ -440,18 +468,18 @@ export const ManualOrderPage = () => {
                                     renderInput={(params) => (
                                         <TextField 
                                             {...params} 
-                                            label={<Box sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: "1.6rem" }}>Lọc theo Thương hiệu</Box>}
+                                            size="small"
+                                            label="Lọc theo Thương hiệu"
                                             sx={{ 
                                                 "& .MuiOutlinedInput-root": { 
-                                                    borderRadius: "14px", 
-                                                    minHeight: "64px",
-                                                    fontSize: "1.6rem"
+                                                    borderRadius: "12px", 
+                                                    fontSize: "0.875rem"
                                                 },
-                                                "& .MuiInputLabel-root": { fontSize: "1.7rem", fontWeight: 600 },
+                                                "& .MuiInputLabel-root": { fontSize: "0.875rem", fontWeight: 600 },
                                                 "& .MuiAutocomplete-tag": { 
-                                                    fontSize: "1.4rem", 
-                                                    fontWeight: 700, 
-                                                    borderRadius: "8px",
+                                                    fontSize: "0.75rem", 
+                                                    fontWeight: 600, 
+                                                    borderRadius: "6px",
                                                     bgcolor: "#E3F2FD",
                                                     color: "#1976D2"
                                                 }
@@ -459,17 +487,18 @@ export const ManualOrderPage = () => {
                                         />
                                     )}
                                     ListboxProps={{
-                                        sx: { "& .MuiAutocomplete-option": { fontSize: "1.6rem", py: 1.5 } }
+                                        sx: { "& .MuiAutocomplete-option": { fontSize: "0.875rem", py: 1 } }
                                     }}
                                 />
 
                                 <Button 
+                                    size="small"
                                     sx={{ 
-                                        minWidth: "150px", 
-                                        borderRadius: "14px", 
+                                        minWidth: "100px", 
+                                        borderRadius: "10px", 
                                         color: CLIENT_PRIMARY,
-                                        fontWeight: 800,
-                                        fontSize: "1.6rem",
+                                        fontWeight: 700,
+                                        fontSize: "0.8125rem",
                                         "&:hover": { bgcolor: "rgba(255, 98, 98, 0.08)" }
                                     }}
                                     onClick={() => { 
@@ -494,9 +523,9 @@ export const ManualOrderPage = () => {
                         {loadingProducts ? (
                             <Box sx={{ gridColumn: "1/-1", py: 20, display: "flex", justifyContent: "center" }}><CircularProgress color="error" thickness={5} size={60} /></Box>
                         ) : paginatedProducts.length === 0 ? (
-                            <Box sx={{ gridColumn: "1/-1", py: 10, textAlign: "center" }}>
-                                <PackageIcon size={80} color="#eee" style={{ margin: "0 auto 20px" }} />
-                                <Typography variant="h5" color="text.secondary">Không tìm thấy sản phẩm</Typography>
+                            <Box sx={{ gridColumn: "1/-1", py: 6, textAlign: "center" }}>
+                                <PackageIcon size={48} color="#eee" style={{ margin: "0 auto 12px" }} />
+                                <Typography variant="body1" color="text.secondary" sx={{ fontSize: "0.9375rem" }}>Không tìm thấy sản phẩm</Typography>
                             </Box>
                         ) : paginatedProducts.map((product) => (
                             <Card 
@@ -519,7 +548,7 @@ export const ManualOrderPage = () => {
                                     bgcolor: "white"
                                 }}
                             >
-                                <Box sx={{ position: "relative", height: 220 }}>
+                                <Box sx={{ position: "relative", height: 160 }}>
                                     <Avatar 
                                         src={product.images?.[0]?.imageUrl || product.featuredImageUrl} 
                                         variant="square" 
@@ -550,13 +579,13 @@ export const ManualOrderPage = () => {
                                     )}
                                 </Box>
                                 
-                                <CardContent sx={{ p: 2.5 }}>
-                                    <Stack spacing={1}>
-                                        <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", fontFamily: FONT_SECONDARY, color: CLIENT_SECONDARY }} className="line-clamp-1">
+                                <CardContent sx={{ p: 1.5 }}>
+                                    <Stack spacing={0.75}>
+                                        <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", fontFamily: FONT_SECONDARY, color: CLIENT_SECONDARY }} className="line-clamp-1">
                                             {product.name}
                                         </Typography>
                                         <Stack direction="row" alignItems="center" spacing={1}>
-                                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.75rem" }}>
                                                 {product.brand?.name || "TeddyPet Store"}
                                             </Typography>
                                         </Stack>
@@ -564,7 +593,7 @@ export const ManualOrderPage = () => {
                                         <Divider sx={{ my: 0.5, borderStyle: "dashed" }} />
                                         
                                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Typography sx={{ fontWeight: 900, fontSize: "1.8rem", color: CLIENT_PRIMARY }}>
+                                            <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: CLIENT_PRIMARY }}>
                                                 {product.minPrice === product.maxPrice 
                                                     ? `${new Intl.NumberFormat('vi-VN').format(product.minPrice)}đ` 
                                                     : `${new Intl.NumberFormat('vi-VN').format(product.minPrice)}đ - ${new Intl.NumberFormat('vi-VN').format(product.maxPrice)}đ`
@@ -573,7 +602,7 @@ export const ManualOrderPage = () => {
                                             <Box sx={{ 
                                                 bgcolor: "rgba(16, 185, 129, 0.1)",
                                                 color: "#10B981",
-                                                px: 1.5, py: 0.5, borderRadius: "30px", fontSize: "1.2rem", fontWeight: 800
+                                                px: 1, py: 0.25, borderRadius: "20px", fontSize: "0.7rem", fontWeight: 700
                                             }}>
                                                 POS
                                             </Box>
@@ -612,36 +641,37 @@ export const ManualOrderPage = () => {
                             boxShadow: "0 20px 40px -10px rgba(0,0,0,0.08)"
                         }}
                     >
-                        <Box sx={{ p: 3, bgcolor: CLIENT_SECONDARY, color: "white" }}>
-                            <Stack direction="row" alignItems="center" spacing={2}>
-                                <Box sx={{ bgcolor: "rgba(255,255,255,0.1)", p: 1, borderRadius: "10px" }}>
-                                    <ShoppingCartIcon size={24} />
+                        <Box sx={{ p: 2, bgcolor: CLIENT_SECONDARY, color: "white" }}>
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                                <Box sx={{ bgcolor: "rgba(255,255,255,0.1)", p: 0.75, borderRadius: "8px" }}>
+                                    <ShoppingCartIcon size={20} />
                                 </Box>
-                                <Typography variant="h5" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800 }}>
+                                <Typography variant="subtitle1" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800, fontSize: "1rem" }}>
                                     Thanh toán
                                 </Typography>
                                 <Chip 
+                                    size="small"
                                     label={`${cart.length} món`} 
-                                    sx={{ ml: "auto", fontWeight: 900, bgcolor: CLIENT_PRIMARY, color: "white" }} 
+                                    sx={{ ml: "auto", fontWeight: 700, fontSize: "0.75rem", bgcolor: CLIENT_PRIMARY, color: "white" }} 
                                 />
                             </Stack>
                         </Box>
                         
-                        <CardContent sx={{ p: 3, maxHeight: "calc(100vh - 500px)", overflowY: "auto" }}>
+                        <CardContent sx={{ p: 2, maxHeight: "calc(100vh - 420px)", overflowY: "auto" }}>
                             {cart.length === 0 ? (
-                                <Box py={8} textAlign="center">
-                                    <Box sx={{ color: "#E5E7EB", mb: 2 }}><ShoppingCartIcon size={80} /></Box>
-                                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>Giỏ hàng đang trống</Typography>
+                                <Box py={5} textAlign="center">
+                                    <Box sx={{ color: "#E5E7EB", mb: 1.5 }}><ShoppingCartIcon size={48} /></Box>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: "0.875rem" }}>Giỏ hàng đang trống</Typography>
                                 </Box>
                             ) : (
                                 <List disablePadding>
                                     {cart.map((item) => (
-                                        <ListItem key={item.variantId} disableGutters sx={{ py: 2.5, borderBottom: "1px dashed #E5E7EB" }}>
-                                            <ListItemAvatar sx={{ mr: 2.5 }}>
-                                                <Avatar src={item.image} variant="rounded" sx={{ width: 70, height: 70, borderRadius: "16px", border: "1px solid #eee" }} />
+                                        <ListItem key={item.variantId} disableGutters sx={{ py: 1.5, borderBottom: "1px dashed #E5E7EB" }}>
+                                            <ListItemAvatar sx={{ mr: 1.5 }}>
+                                                <Avatar src={item.image} variant="rounded" sx={{ width: 52, height: 52, borderRadius: "10px", border: "1px solid #eee" }} />
                                             </ListItemAvatar>
                                             <ListItemText
-                                                primary={<Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: CLIENT_SECONDARY, mb: 0.5 }}>{item.name}</Typography>}
+                                                primary={<Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: CLIENT_SECONDARY, mb: 0.25 }}>{item.name}</Typography>}
                                                 secondary={
                                                     <Box>
                                                         {item.allVariants && item.allVariants.length > 1 ? (
@@ -653,38 +683,38 @@ export const ManualOrderPage = () => {
                                                                     if (v) handleSwitchVariant(item.variantId, v);
                                                                 }}
                                                                 sx={{ 
-                                                                    height: 24, 
-                                                                    fontSize: "1.2rem", 
-                                                                    fontWeight: 700,
-                                                                    "& .MuiSelect-select": { py: 0, px: 1 },
+                                                                    height: 22, 
+                                                                    fontSize: "0.75rem", 
+                                                                    fontWeight: 600,
+                                                                    "& .MuiSelect-select": { py: 0, px: 0.75 },
                                                                     bgcolor: "#F3F4F6",
                                                                     borderRadius: "4px"
                                                                 }}
                                                             >
                                                                 {item.allVariants.map((v: any) => (
-                                                                    <MenuItem key={v.variantId || v.id} value={v.variantId || v.id} sx={{ fontSize: "1.3rem" }}>
+                                                                    <MenuItem key={v.variantId || v.id} value={v.variantId || v.id} sx={{ fontSize: "0.8125rem" }}>
                                                                         {v.name || v.sku} - {new Intl.NumberFormat('vi-VN').format(v.salePrice || v.price)}đ
                                                                     </MenuItem>
                                                                 ))}
                                                             </Select>
                                                         ) : (
-                                                            <Typography sx={{ color: "text.secondary", fontSize: "1.2rem", fontWeight: 600 }}>
+                                                            <Typography sx={{ color: "text.secondary", fontSize: "0.75rem", fontWeight: 600 }}>
                                                                 {item.variantName} • {new Intl.NumberFormat('vi-VN').format(item.price)}đ
                                                             </Typography>
                                                         )}
                                                     </Box>
                                                 }
                                             />
-                                            <Stack alignItems="flex-end" spacing={1.5}>
+                                            <Stack alignItems="flex-end" spacing={1}>
                                                 <Box sx={{ 
                                                     display: "flex", alignItems: "center", bgcolor: "#F3F4F6", 
-                                                    borderRadius: "40px", p: 0.5, border: "1px solid #E5E7EB" 
+                                                    borderRadius: "20px", p: 0.25, border: "1px solid #E5E7EB" 
                                                 }}>
-                                                    <IconButton size="small" onClick={() => updateQuantity(item.variantId, -1)} sx={{ color: CLIENT_SECONDARY }}><MinusIcon size={18} /></IconButton>
-                                                    <Typography sx={{ fontWeight: 900, minWidth: 35, textAlign: "center", fontSize: "1.5rem" }}>{item.quantity}</Typography>
-                                                    <IconButton size="small" onClick={() => updateQuantity(item.variantId, 1)} sx={{ color: CLIENT_PRIMARY }}><PlusIcon size={18} /></IconButton>
+                                                    <IconButton size="small" onClick={() => updateQuantity(item.variantId, -1)} sx={{ color: CLIENT_SECONDARY, p: 0.25 }}><MinusIcon size={14} /></IconButton>
+                                                    <Typography sx={{ fontWeight: 800, minWidth: 26, textAlign: "center", fontSize: "0.8125rem" }}>{item.quantity}</Typography>
+                                                    <IconButton size="small" onClick={() => updateQuantity(item.variantId, 1)} sx={{ color: CLIENT_PRIMARY, p: 0.25 }}><PlusIcon size={14} /></IconButton>
                                                 </Box>
-                                                <Typography sx={{ fontWeight: 900, fontSize: "1.6rem", color: CLIENT_PRIMARY }}>
+                                                <Typography sx={{ fontWeight: 800, fontSize: "0.9375rem", color: CLIENT_PRIMARY }}>
                                                     {new Intl.NumberFormat('vi-VN').format(item.price * item.quantity)}đ
                                                 </Typography>
                                             </Stack>
@@ -700,17 +730,17 @@ export const ManualOrderPage = () => {
                             )}
                         </CardContent>
 
-                        <Box sx={{ p: 4, bgcolor: "#FDFDFD", borderTop: "1px solid #E5E7EB" }}>
-                            <Box sx={{ bgcolor: "rgba(255, 98, 98, 0.04)", p: 3, borderRadius: "24px", border: "1px solid rgba(255, 98, 98, 0.1)" }}>
-                                <Stack spacing={2}>
+                        <Box sx={{ p: 2, bgcolor: "#FDFDFD", borderTop: "1px solid #E5E7EB" }}>
+                            <Box sx={{ bgcolor: "rgba(255, 98, 98, 0.04)", p: 2, borderRadius: "12px", border: "1px solid rgba(255, 98, 98, 0.1)" }}>
+                                <Stack spacing={1.5}>
                                     <Stack direction="row" justifyContent="space-between">
-                                        <Typography sx={{ fontWeight: 600, color: "text.secondary", fontSize: "1.5rem" }}>Tạm tính</Typography>
-                                        <Typography sx={{ fontWeight: 700, fontSize: "1.5rem" }}>{new Intl.NumberFormat('vi-VN').format(subtotal)}đ</Typography>
+                                        <Typography sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.875rem" }}>Tạm tính</Typography>
+                                        <Typography sx={{ fontWeight: 700, fontSize: "0.875rem" }}>{new Intl.NumberFormat('vi-VN').format(subtotal)}đ</Typography>
                                     </Stack>
                                     <Divider sx={{ borderStyle: "dashed" }} />
                                     <Stack direction="row" justifyContent="space-between">
-                                        <Typography sx={{ fontWeight: 800, fontFamily: FONT_SECONDARY, color: CLIENT_SECONDARY, fontSize: "1.8rem" }}>Tổng cộng</Typography>
-                                        <Typography sx={{ fontWeight: 900, fontSize: "2.4rem", color: CLIENT_PRIMARY }}>
+                                        <Typography sx={{ fontWeight: 800, fontFamily: FONT_SECONDARY, color: CLIENT_SECONDARY, fontSize: "1rem" }}>Tổng cộng</Typography>
+                                        <Typography sx={{ fontWeight: 900, fontSize: "1.25rem", color: CLIENT_PRIMARY }}>
                                             {new Intl.NumberFormat('vi-VN').format(subtotal)}đ
                                         </Typography>
                                     </Stack>
@@ -723,53 +753,115 @@ export const ManualOrderPage = () => {
                     <Paper 
                         elevation={0}
                         sx={{ 
-                            p: 4, 
-                            borderRadius: "28px", 
+                            p: 2.5, 
+                            borderRadius: "16px", 
                             border: "1px solid #E5E7EB",
                             boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)"
                         }}
                     >
-                        <Typography variant="h6" sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5, color: CLIENT_SECONDARY, fontWeight: 800, fontFamily: FONT_SECONDARY }}>
-                            <UserIcon size={22} color={CLIENT_PRIMARY} /> Thông tin khách hàng
+                        <Typography variant="subtitle1" sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: CLIENT_SECONDARY, fontWeight: 800, fontFamily: FONT_SECONDARY, fontSize: "0.9375rem" }}>
+                            <UserIcon size={18} color={CLIENT_PRIMARY} /> Thông tin khách hàng
                         </Typography>
 
-                        <RadioGroup 
-                            row 
-                            value={customerType} 
-                            onChange={(e) => setCustomerType(e.target.value as any)}
-                            sx={{ mb: 3 }}
-                        >
-                            <FormControlLabel 
-                                value="GUEST" 
-                                control={<Radio color="error" />} 
-                                label={<Typography sx={{ fontSize: "1.5rem", fontWeight: 700 }}>Khách vãng lai</Typography>} 
-                                sx={{ flex: 1, bgcolor: customerType === "GUEST" ? "#FFF1F1" : "transparent", borderRadius: "12px", m: 0, p: 1 }}
-                            />
-                            <FormControlLabel 
-                                value="MEMBER" 
-                                control={<Radio color="error" />} 
-                                label={<Typography sx={{ fontSize: "1.5rem", fontWeight: 700 }}>Thành viên</Typography>} 
-                                sx={{ flex: 1, bgcolor: customerType === "MEMBER" ? "#FFF1F1" : "transparent", borderRadius: "12px", m: 0, p: 1, ml: 1 }}
-                            />
-                        </RadioGroup>
+                        {/* Loại đơn - tách riêng */}
+                        <Box sx={{ mb: 2.5 }}>
+                            <Typography sx={{ fontSize: "0.8125rem", fontWeight: 700, color: CLIENT_SECONDARY, mb: 1.5 }}>Loại đơn</Typography>
+                            <RadioGroup
+                                row
+                                value={orderType}
+                                onChange={(e) => setOrderType(e.target.value as OrderType)}
+                            >
+                                <FormControlLabel
+                                    value="OFFLINE"
+                                    control={<Radio size="small" sx={{ color: "#1976d2", "&.Mui-checked": { color: "#1976d2" } }} />}
+                                    label={<Typography sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>Tại quầy</Typography>}
+                                    sx={{
+                                        flex: 1,
+                                        m: 0,
+                                        p: 0.75,
+                                        borderRadius: "10px",
+                                        bgcolor: orderType === "OFFLINE" ? "#E3F2FD" : "transparent",
+                                        border: "1px solid",
+                                        borderColor: orderType === "OFFLINE" ? "#90CAF9" : "transparent",
+                                    }}
+                                />
+                                <FormControlLabel
+                                    value="ONLINE"
+                                    control={<Radio size="small" sx={{ color: "#2e7d32", "&.Mui-checked": { color: "#2e7d32" } }} />}
+                                    label={<Typography sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>Đặt online</Typography>}
+                                    sx={{
+                                        flex: 1,
+                                        m: 0,
+                                        ml: 1,
+                                        p: 0.75,
+                                        borderRadius: "10px",
+                                        bgcolor: orderType === "ONLINE" ? "#E8F5E9" : "transparent",
+                                        border: "1px solid",
+                                        borderColor: orderType === "ONLINE" ? "#A5D6A7" : "transparent",
+                                    }}
+                                />
+                            </RadioGroup>
+                        </Box>
+
+                        <Divider sx={{ my: 2, borderStyle: "dashed" }} />
+
+                        {/* Loại khách - tách riêng */}
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: "0.8125rem", fontWeight: 700, color: CLIENT_SECONDARY, mb: 1.5 }}>Loại khách</Typography>
+                            <RadioGroup
+                                row
+                                value={customerType}
+                                onChange={(e) => setCustomerType(e.target.value as any)}
+                            >
+                                <FormControlLabel
+                                    value="GUEST"
+                                    control={<Radio size="small" color="error" />}
+                                    label={<Typography sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>Khách vãng lai</Typography>}
+                                    sx={{ flex: 1, bgcolor: customerType === "GUEST" ? "#FFF1F1" : "transparent", borderRadius: "10px", m: 0, p: 0.75 }}
+                                />
+                                <FormControlLabel
+                                    value="MEMBER"
+                                    control={<Radio size="small" color="error" />}
+                                    label={<Typography sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>Thành viên</Typography>}
+                                    sx={{ flex: 1, bgcolor: customerType === "MEMBER" ? "#FFF1F1" : "transparent", borderRadius: "10px", m: 0, p: 0.75, ml: 1 }}
+                                />
+                            </RadioGroup>
+                        </Box>
 
                         {customerType === "GUEST" ? (
-                            <Stack spacing={2.5}>
+                            <Stack spacing={1.5}>
                                 <TextField 
                                     fullWidth 
+                                    size="small"
                                     label="Họ tên khách hàng" 
                                     value={guestName} 
                                     placeholder="Nhập tên khách..."
                                     onChange={(e) => setGuestName(e.target.value)} 
-                                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
+                                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
                                 />
                                 <TextField 
                                     fullWidth 
+                                    size="small"
                                     label="Số điện thoại" 
                                     value={guestPhone} 
-                                    placeholder="Nhập SĐT..."
-                                    onChange={(e) => setGuestPhone(e.target.value)} 
-                                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
+                                    placeholder="Ví dụ: 0901234567"
+                                    error={!!guestPhoneError}
+                                    helperText={guestPhoneError}
+                                    onChange={(e) => {
+                                        setGuestPhone(e.target.value);
+                                        if (guestPhoneError) setGuestPhoneError(null);
+                                    }}
+                                    onBlur={() => {
+                                        if (guestPhone.trim() && !isValidVietnamesePhone(guestPhone)) {
+                                            setGuestPhoneError("Số điện thoại không đúng định dạng Việt Nam");
+                                        } else {
+                                            setGuestPhoneError(null);
+                                        }
+                                    }}
+                                    sx={{ 
+                                        "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" },
+                                        "& .MuiFormHelperText-root": { color: "#d32f2f", fontSize: "0.75rem", marginLeft: 1 }
+                                    }}
                                 />
                             </Stack>
                         ) : (
@@ -789,8 +881,9 @@ export const ManualOrderPage = () => {
                                 renderInput={(params) => (
                                     <TextField 
                                         {...params} 
+                                        size="small"
                                         label="Tìm kiếm theo Tên, SĐT hoặc Email..." 
-                                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
+                                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
                                         InputProps={{
                                             ...params.InputProps,
                                             startAdornment: (
@@ -810,20 +903,33 @@ export const ManualOrderPage = () => {
                             />
                         )}
 
-                        <Divider sx={{ my: 4 }} />
+                        {orderType === "ONLINE" && (
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Địa chỉ giao hàng"
+                                required
+                                placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành..."
+                                value={shippingAddressOnline}
+                                onChange={(e) => setShippingAddressOnline(e.target.value)}
+                                sx={{ mt: 2, "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
+                            />
+                        )}
 
-                        <Typography variant="h6" sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5, color: CLIENT_SECONDARY, fontWeight: 800, fontFamily: FONT_SECONDARY }}>
-                            <PaymentIcon size={22} color={CLIENT_PRIMARY} /> Thanh toán
+                        <Divider sx={{ my: 2.5 }} />
+
+                        <Typography variant="subtitle1" sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: CLIENT_SECONDARY, fontWeight: 800, fontFamily: FONT_SECONDARY, fontSize: "0.9375rem" }}>
+                            <PaymentIcon size={18} color={CLIENT_PRIMARY} /> Thanh toán
                         </Typography>
 
-                        <Stack spacing={3}>
-                            <FormControl fullWidth>
+                        <Stack spacing={2}>
+                            <FormControl fullWidth size="small">
                                 <InputLabel>Phương thức thanh toán</InputLabel>
                                 <Select 
                                     value={paymentMethod} 
                                     label="Phương thức thanh toán"
                                     onChange={(e) => setPaymentMethod(e.target.value as any)}
-                                    sx={{ borderRadius: "14px" }}
+                                    sx={{ borderRadius: "10px", fontSize: "0.875rem" }}
                                 >
                                     <MenuItem value="CASH">Tiền mặt (Tại quầy)</MenuItem>
                                     <MenuItem value="BANK_TRANSFER">Chuyển khoản (PayOS QR)</MenuItem>
@@ -832,36 +938,38 @@ export const ManualOrderPage = () => {
 
                             <TextField
                                 fullWidth
+                                size="small"
                                 multiline
                                 rows={2}
                                 label="Ghi chú đơn hàng"
                                 placeholder="Ghi chú về phục vụ, yêu cầu thêm..."
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
-                                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
+                                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
                             />
 
                             <Button
                                 fullWidth
                                 variant="contained"
+                                size="medium"
                                 disabled={isSubmitting || cart.length === 0}
                                 onClick={handlePlaceOrder}
                                 sx={{ 
-                                    py: 2.5, 
-                                    borderRadius: "50px", 
+                                    py: 1.25, 
+                                    borderRadius: "12px", 
                                     background: GRADIENT_PRIMARY,
                                     color: "white",
-                                    fontWeight: 900,
-                                    fontSize: "1.8rem",
+                                    fontWeight: 800,
+                                    fontSize: "0.9375rem",
                                     fontFamily: FONT_SECONDARY,
                                     textTransform: "none",
-                                    boxShadow: "0 15px 30px -5px rgba(255, 98, 98, 0.45)",
+                                    boxShadow: "0 4px 14px rgba(255, 98, 98, 0.4)",
                                     "&:hover": { 
-                                        boxShadow: "0 20px 35px -5px rgba(255, 98, 98, 0.6)",
+                                        boxShadow: "0 6px 20px rgba(255, 98, 98, 0.5)",
                                         transform: "scale(1.01)"
                                     },
                                     "&:disabled": { opacity: 0.6 },
-                                    transition: "all 0.3s ease"
+                                    transition: "all 0.2s ease"
                                 }}
                             >
                                 {isSubmitting ? "Đang tạo đơn..." : "XÁC NHẬN VÀ LÊN ĐƠN"}
@@ -952,20 +1060,20 @@ export const ManualOrderPage = () => {
                 onClose={() => setVariantDialogOpen(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: "24px" } }}
+                PaperProps={{ sx: { borderRadius: "14px", maxHeight: "85vh" } }}
             >
-                <DialogTitle sx={{ p: 3, pb: 2 }}>
+                <DialogTitle sx={{ p: 2, pb: 1 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Box>
-                            <Typography variant="h5" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800, color: CLIENT_SECONDARY }}>
+                            <Typography variant="subtitle1" sx={{ fontFamily: FONT_SECONDARY, fontWeight: 800, color: CLIENT_SECONDARY, fontSize: "1rem" }}>
                                 Chọn phân loại
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: "0.8125rem", mt: 0.25 }}>
                                 {selectedProductForVariants?.name}
                             </Typography>
                         </Box>
-                        <IconButton onClick={() => setVariantDialogOpen(false)} sx={{ bgcolor: "#F3F4F6" }}>
-                            <CloseIcon size={20} />
+                        <IconButton size="small" onClick={() => setVariantDialogOpen(false)} sx={{ bgcolor: "#F3F4F6" }}>
+                            <CloseIcon size={18} />
                         </IconButton>
                     </Stack>
                 </DialogTitle>
@@ -975,8 +1083,8 @@ export const ManualOrderPage = () => {
                             <ListItem 
                                 key={v.variantId || index}
                                 sx={{ 
-                                    py: 2, 
-                                    px: 3, 
+                                    py: 1.25, 
+                                    px: 2, 
                                     borderBottom: "1px solid #F3F4F6",
                                     cursor: v.stockQuantity > 0 ? "pointer" : "default",
                                     opacity: v.stockQuantity > 0 ? 1 : 0.6,
@@ -985,31 +1093,32 @@ export const ManualOrderPage = () => {
                                 }}
                                 onClick={() => v.stockQuantity > 0 && addToCart(v, selectedProductForVariants)}
                             >
-                                <ListItemAvatar sx={{ mr: 2 }}>
+                                <ListItemAvatar sx={{ mr: 1.5, minWidth: 44 }}>
                                     <Avatar 
                                         src={v.featuredImageUrl || selectedProductForVariants?.images?.[0]?.imageUrl} 
                                         variant="rounded" 
-                                        sx={{ width: 60, height: 60, borderRadius: "12px", border: "1px solid #eee" }}
+                                        sx={{ width: 44, height: 44, borderRadius: "8px", border: "1px solid #eee" }}
                                     />
                                 </ListItemAvatar>
                                 <ListItemText 
                                     primary={
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: CLIENT_SECONDARY }}>
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={0.5}>
+                                            <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: CLIENT_SECONDARY }}>
                                                 {v.name || v.sku || "Phân loại " + (index+1)}
                                             </Typography>
-                                            <Typography sx={{ fontWeight: 900, fontSize: "1.6rem", color: CLIENT_PRIMARY }}>
+                                            <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: CLIENT_PRIMARY }}>
                                                 {new Intl.NumberFormat('vi-VN').format(v.salePrice || v.price)}đ
                                             </Typography>
                                         </Stack>
                                     } 
                                     secondary={
-                                        <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                                        <Stack direction="row" spacing={1.5} sx={{ mt: 0.25 }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
                                                 SKU: {v.sku}
                                             </Typography>
                                             <Typography variant="caption" sx={{ 
-                                                fontWeight: 800, 
+                                                fontWeight: 700, 
+                                                fontSize: "0.75rem",
                                                 color: v.stockQuantity > 5 ? "#10B981" : "#EF4444" 
                                             }}>
                                                 Kho: {v.stockQuantity}
@@ -1018,21 +1127,22 @@ export const ManualOrderPage = () => {
                                     } 
                                 />
                                 {v.stockQuantity > 0 ? (
-                                    <IconButton size="small" sx={{ ml: 2, bgcolor: CLIENT_PRIMARY, color: "white", "&:hover": { bgcolor: "#E64A19" } }}>
-                                        <PlusIcon size={18} />
+                                    <IconButton size="small" sx={{ ml: 1, bgcolor: CLIENT_PRIMARY, color: "white", "&:hover": { bgcolor: "#E64A19" } }}>
+                                        <PlusIcon size={16} />
                                     </IconButton>
                                 ) : (
-                                    <Chip label="Hết hàng" size="small" color="error" sx={{ ml: 2, fontWeight: 700 }} />
+                                    <Chip label="Hết hàng" size="small" color="error" sx={{ ml: 1, fontWeight: 600, fontSize: "0.7rem", height: 22 }} />
                                 )}
                             </ListItem>
                         ))}
                     </List>
                 </DialogContent>
-                <Box sx={{ p: 2.5, bgcolor: "#F9FAFB", borderBottomLeftRadius: "24px", borderBottomRightRadius: "24px" }}>
+                <Box sx={{ p: 1.5, bgcolor: "#F9FAFB", borderBottomLeftRadius: "14px", borderBottomRightRadius: "14px" }}>
                     <Button 
                         fullWidth 
+                        size="small"
                         onClick={() => setVariantDialogOpen(false)}
-                        sx={{ color: "text.secondary", fontWeight: 700, textTransform: "none", fontSize: "1.5rem" }}
+                        sx={{ color: "text.secondary", fontWeight: 600, textTransform: "none", fontSize: "0.875rem" }}
                     >
                         Quay lại
                     </Button>

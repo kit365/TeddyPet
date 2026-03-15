@@ -2,8 +2,11 @@ package fpt.teddypet.presentation.controller.settings;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.settings.AppSettingUpsertRequest;
+import fpt.teddypet.application.dto.request.banks.UpsertBankInformationRequest;
 import fpt.teddypet.application.dto.response.settings.AppSettingResponse;
+import fpt.teddypet.application.dto.response.banks.BankInformationResponse;
 import fpt.teddypet.application.port.input.AppSettingService;
+import fpt.teddypet.application.port.input.SystemReceivingAccountService;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppSettingRepository;
 import fpt.teddypet.domain.enums.settings.AppSettingEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
@@ -11,8 +14,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +31,7 @@ public class AppSettingController {
 
     private final AppSettingService appSettingService;
     private final AppSettingRepository appSettingRepository;
+    private final SystemReceivingAccountService systemReceivingAccountService;
 
     @GetMapping
     @Operation(summary = "Lấy tất cả cài đặt")
@@ -55,5 +61,22 @@ public class AppSettingController {
             @RequestBody AppSettingUpsertRequest request) {
         appSettingService.saveSetting(key, request.settingValue(), request.description());
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @GetMapping("/receiving-account")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Lấy thông tin tài khoản nhận tiền (thanh toán online PayOS)")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> getReceivingAccount() {
+        BankInformationResponse data = systemReceivingAccountService.getReceivingAccount();
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PutMapping("/receiving-account")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Lưu/cập nhật tài khoản nhận tiền")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> saveReceivingAccount(
+            @Valid @RequestBody UpsertBankInformationRequest request) {
+        BankInformationResponse data = systemReceivingAccountService.saveReceivingAccount(request);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 }

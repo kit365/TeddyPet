@@ -101,6 +101,7 @@ type PetFieldErrors = {
 };
 
 const FoodBrandSelect = ({ petTypeEnum, foodType, items, itemIndex, value, onChange }: FoodBrandSelectProps) => {
+    const [isOpen, setIsOpen] = useState(false);
     const { data: brandOptionsData, isFetching } = useQuery({
         queryKey: ["food-brand-options", petTypeEnum],
         queryFn: () => getFoodBrandOptions(petTypeEnum),
@@ -120,36 +121,28 @@ const FoodBrandSelect = ({ petTypeEnum, foodType, items, itemIndex, value, onCha
     }, [allBrands, usedBrandKeys]);
 
     const canSelect = !!petTypeEnum && !!foodType;
-    const selectValue = value == null ? OTHER_BRAND_VALUE : value ?? "";
     const canShowOther = !usedBrandKeys.has(OTHER_BRAND_VALUE);
 
+    const options = useMemo(() => {
+        const opts = availableBrands.map((b) => ({ value: (b.name ?? "").trim(), label: b.name ?? "" }));
+        if (canShowOther) opts.push({ value: OTHER_BRAND_VALUE, label: "Khác" });
+        return opts;
+    }, [availableBrands, canShowOther]);
+
+    const placeholder = !petTypeEnum ? "Vui lòng chọn loại thú cưng" : !foodType ? "Chọn loại thức ăn trước" : isFetching ? "Đang tải nhãn hiệu..." : "Chọn nhãn hiệu";
+
     return (
-        <select
-            value={selectValue}
-            disabled={!canSelect || isFetching}
-            onChange={(e) => {
-                const v = e.target.value;
-                if (v === OTHER_BRAND_VALUE) onChange(null);
-                else onChange(v);
+        <GenericDropdown
+            isOpen={isOpen}
+            value={value == null ? OTHER_BRAND_VALUE : value ?? ""}
+            onToggle={() => setIsOpen(!isOpen)}
+            onChange={(val) => {
+                if (val === OTHER_BRAND_VALUE) onChange(null);
+                else onChange(val);
             }}
-            className="input-booking w-full py-[10px] px-[14px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] outline-none text-[0.875rem] bg-white disabled:bg-[#f5f5f5] disabled:text-[#999]"
-        >
-            <option value="">
-                {!petTypeEnum
-                    ? "Vui lòng chọn loại thú cưng"
-                    : !foodType
-                        ? "Chọn loại thức ăn trước"
-                        : isFetching
-                            ? "Đang tải nhãn hiệu..."
-                            : "Chọn nhãn hiệu"}
-            </option>
-            {availableBrands.map((b) => (
-                <option key={b.id} value={b.name}>
-                    {b.name}
-                </option>
-            ))}
-            {canShowOther ? <option value={OTHER_BRAND_VALUE}>Khác</option> : null}
-        </select>
+            options={options}
+            placeholder={placeholder}
+        />
     );
 };
 
@@ -168,15 +161,17 @@ const PetTypeDropdown = ({ isOpen, value, options, onToggle, onChange, renderLab
             <button
                 type="button"
                 onClick={onToggle}
-                className="w-full flex items-center justify-between py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[#181818] hover:border-[#ffbaa0]/60 transition-colors text-[0.9375rem]"
+                className="w-full flex items-center justify-between py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[#181818] hover:border-[#ffbaa0]/60 transition-all text-[0.9375rem] focus:outline-none focus:ring-2 focus:ring-[#ffbaa0]/20 active:scale-[0.985]"
             >
                 <span className="truncate">{renderLabel(value) || "— Chọn loại —"}</span>
-                <span className="ml-3 text-[#999] text-[0.8125rem]">{isOpen ? "▲" : "▼"}</span>
+                <span className={`ml-3 text-[#ffbaa0] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 right-0 mt-[6px] z-30 bg-white border border-[#e5e7eb] rounded-[14px] shadow-[0_12px_30px_rgba(15,23,42,0.18)] max-h-[260px] overflow-y-auto">
-                    <div className="py-[8px]">
+                <div className="absolute left-0 right-0 mt-[8px] z-50 bg-white border border-[#ffe0ce]/60 rounded-[16px] shadow-[0_20px_40px_rgba(255,186,160,0.15),0_10px_20px_rgba(0,0,0,0.05)] max-h-[260px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-[8px] space-y-[4px]">
                         {options.map((opt) => {
                             const isSelected = opt === value;
                             return (
@@ -184,15 +179,122 @@ const PetTypeDropdown = ({ isOpen, value, options, onToggle, onChange, renderLab
                                     key={opt}
                                     type="button"
                                     onClick={() => onChange(opt)}
-                                    className={`w-full text-left rounded-[10px] mx-[8px] px-[10px] py-[10px] border transition-colors ${isSelected
-                                        ? "border-[#ffbaa0] bg-[#fff7f3]"
-                                        : "border-transparent hover:border-[#ffe0ce] hover:bg-[#fff7f3]"
+                                    className={`w-full text-left rounded-[12px] px-[14px] py-[12px] transition-all flex items-center justify-between ${isSelected
+                                        ? "bg-[#fff7f3] text-[#c45a3a]"
+                                        : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
                                         }`}
                                 >
-                                    <span className="text-[0.9062rem] font-[600] text-[#181818]">{renderLabel(opt)}</span>
+                                    <span className={`text-[0.9375rem] ${isSelected ? "font-[700]" : "font-[500]"}`}>{renderLabel(opt)}</span>
+                                    {isSelected && (
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#ffbaa0]"><path d="M20 6L9 17l-5-5"/></svg>
+                                    )}
                                 </button>
                             );
                         })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+type GenericDropdownOption = { value: string; label: string };
+
+type GenericDropdownGroup = {
+    groupLabel: string;
+    options: GenericDropdownOption[];
+};
+
+type GenericDropdownProps = {
+    isOpen: boolean;
+    value: string;
+    onToggle: () => void;
+    onChange: (val: string, label: string) => void;
+    options?: GenericDropdownOption[];
+    groups?: GenericDropdownGroup[];
+    placeholder?: string;
+    label?: string;
+    required?: boolean;
+};
+
+const GenericDropdown = ({ isOpen, value, onToggle, onChange, options, groups, placeholder, label, required }: GenericDropdownProps) => {
+    const allOptions = useMemo(() => {
+        if (groups) return groups.flatMap((g) => g.options);
+        return options ?? [];
+    }, [options, groups]);
+
+    const selectedOption = allOptions.find((o) => o.value === value);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && isOpen) {
+                onToggle();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen, onToggle]);
+
+    const renderOption = (opt: GenericDropdownOption) => {
+        const isSelected = opt.value === value;
+        return (
+            <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                    onChange(opt.value, opt.label);
+                    onToggle();
+                }}
+                className={`w-full text-left rounded-[12px] px-[14px] py-[11px] transition-all flex items-center justify-between ${isSelected
+                    ? "bg-[#fff7f3] text-[#c45a3a]"
+                    : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
+                    }`}
+            >
+                <span className={`text-[0.9062rem] ${isSelected ? "font-[700]" : "font-[500]"}`}>{opt.label}</span>
+                {isSelected && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#ffbaa0]"><path d="M20 6L9 17l-5-5"/></svg>
+                )}
+            </button>
+        );
+    };
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            {label && <label className="block mb-[6px] text-[0.875rem] font-[600] text-[#181818]">{label} {required && "*"}</label>}
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`w-full flex items-center justify-between py-[12px] px-[16px] rounded-[10px] border bg-white text-[0.9375rem] transition-all outline-none ${
+                    isOpen ? "border-[#ffbaa0] ring-2 ring-[#ffbaa0]/20" : "border-[#ddd] hover:border-[#ffbaa0]/60"
+                } ${selectedOption ? "text-[#181818] font-[500]" : "text-[#9ca3af]"}`}
+            >
+                <span className="truncate">{selectedOption?.label || placeholder || "— Chọn —"}</span>
+                <span className={`transition-transform duration-300 ${isOpen ? "rotate-180" : ""} text-[#ffbaa0]`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
+            </button>
+
+            {isOpen && (
+                <div className="absolute left-0 right-0 mt-[8px] z-50 bg-white border border-[#ffe0ce]/60 rounded-[16px] shadow-[0_20px_40px_rgba(255,186,160,0.15),0_10px_40px_rgba(0,0,0,0.08)] max-h-[320px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-[8px] space-y-[2px]">
+                        {groups ? (
+                            groups.map((group, gIdx) => (
+                                <div key={gIdx} className="mb-2 last:mb-0">
+                                    <div className="px-[14px] py-[6px] text-[0.75rem] font-[700] text-[#9ca3af] uppercase tracking-wider bg-[#fafafa]/50 rounded-[8px] mb-[4px]">
+                                        {group.groupLabel}
+                                    </div>
+                                    <div className="space-y-[2px]">
+                                        {group.options.map((opt) => renderOption(opt))}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            options?.map((opt) => renderOption(opt))
+                        )}
+                        {allOptions.length === 0 && (
+                            <div className="py-8 px-4 text-center text-[0.875rem] text-[#9ca3af]">Không có tùy chọn khả dụng</div>
+                        )}
                     </div>
                 </div>
             )}
@@ -227,6 +329,7 @@ const MainServiceNonRoomFields = ({
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
 }: MainServiceNonRoomFieldsProps) => {
+    const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = pet.serviceId ? services.find((s) => s.serviceId === pet.serviceId) : undefined;
     const isNonRoom = selectedSvc?.isRequiredRoom === false;
 
@@ -238,16 +341,31 @@ const MainServiceNonRoomFields = ({
     });
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
-    const slotOptions = useMemo(() => {
-        return timeSlots
+    const slotGroups = useMemo(() => {
+        const am: GenericDropdownOption[] = [];
+        const pm: GenericDropdownOption[] = [];
+
+        timeSlots
             .filter((ts) => ts.status !== "INACTIVE")
             .filter((ts) => (ts.currentBookings ?? 0) < (ts.maxCapacity ?? 1))
-            .map((ts) => {
+            .forEach((ts) => {
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                return { value: String(ts.id), label };
+                const option = { value: String(ts.id), label };
+
+                // Determine AM or PM based on start time (HH:mm)
+                if (start && start >= "12:00") {
+                    pm.push(option);
+                } else {
+                    am.push(option);
+                }
             });
+
+        const groups: GenericDropdownGroup[] = [];
+        if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
+        if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
+        return groups;
     }, [timeSlots]);
 
     if (!pet.serviceId || !isNonRoom) return null;
@@ -290,28 +408,22 @@ const MainServiceNonRoomFields = ({
                 />
             </div>
             <div>
-                <label className="block mb-[6px] text-[0.875rem] font-[600] text-[#181818]">Khung giờ *</label>
-                <select
+                <GenericDropdown
+                    label="Khung giờ"
+                    required
+                    isOpen={isSlotDropdownOpen}
                     value={pet.sessionTimeSlotId != null ? String(pet.sessionTimeSlotId) : ""}
-                    onChange={(e) => {
-                        const id = Number(e.target.value);
-                        const opt = slotOptions.find((o) => o.value === e.target.value);
+                    onToggle={() => setIsSlotDropdownOpen(!isSlotDropdownOpen)}
+                    onChange={(val, label) => {
                         updatePet(pet.id, {
-                            sessionTimeSlotId: id || undefined,
-                            sessionSlotLabel: opt?.label,
-                            sessionSlot: opt?.label?.split(" - ")[0] ?? "",
+                            sessionTimeSlotId: Number(val) || undefined,
+                            sessionSlotLabel: label,
+                            sessionSlot: label.split(" - ")[0] ?? "",
                         });
                     }}
-                    required
-                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[0.9375rem] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none"
-                >
-                    <option value="">— Chọn khung giờ —</option>
-                    {slotOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                    groups={slotGroups}
+                    placeholder="— Chọn khung giờ —"
+                />
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -363,6 +475,7 @@ const AdditionalServiceNonRoomFields = ({
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
 }: AdditionalServiceNonRoomFieldsProps) => {
+    const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = asvc.serviceId ? services.find((s) => s.serviceId === asvc.serviceId) : undefined;
     const isNonRoom = selectedSvc?.isRequiredRoom === false;
 
@@ -375,16 +488,30 @@ const AdditionalServiceNonRoomFields = ({
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
 
-    const slotOptions = useMemo(() => {
-        return timeSlots
+    const slotGroups = useMemo(() => {
+        const am: GenericDropdownOption[] = [];
+        const pm: GenericDropdownOption[] = [];
+
+        timeSlots
             .filter((ts) => ts.status !== "INACTIVE")
             .filter((ts) => (ts.currentBookings ?? 0) < (ts.maxCapacity ?? 1))
-            .map((ts) => {
+            .forEach((ts) => {
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                return { value: String(ts.id), label };
+                const option = { value: String(ts.id), label };
+
+                if (start && start >= "12:00") {
+                    pm.push(option);
+                } else {
+                    am.push(option);
+                }
             });
+
+        const groups: GenericDropdownGroup[] = [];
+        if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
+        if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
+        return groups;
     }, [timeSlots]);
 
     if (!asvc.serviceId || !isNonRoom) return null;
@@ -416,33 +543,33 @@ const AdditionalServiceNonRoomFields = ({
                     minDate={minSessionDate}
                     format="DD/MM/YYYY"
                     slotProps={{
-                        textField: { size: "small", fullWidth: true, placeholder: "DD/MM/YYYY" },
+                        textField: { 
+                            size: "small", 
+                            fullWidth: true, 
+                            placeholder: "DD/MM/YYYY",
+                            sx: bookingDatePickerTextFieldSx 
+                        },
                         popper: { sx: bookingDatePickerPopperSx },
                     }}
                 />
             </div>
             <div>
-                <label className="block mb-[6px] text-[0.875rem] font-[600] text-[#181818]">Khung giờ *</label>
-                <select
+                <GenericDropdown
+                    label="Khung giờ"
+                    required
+                    isOpen={isSlotDropdownOpen}
                     value={asvc.sessionTimeSlotId != null ? String(asvc.sessionTimeSlotId) : ""}
-                    onChange={(e) => {
-                        const id = Number(e.target.value);
-                        const opt = slotOptions.find((o) => o.value === e.target.value);
+                    onToggle={() => setIsSlotDropdownOpen(!isSlotDropdownOpen)}
+                    onChange={(val, label) => {
                         updateAdditionalService(petId, asvc.id, {
-                            sessionTimeSlotId: id || undefined,
-                            sessionSlotLabel: opt?.label,
-                            sessionSlot: opt?.label?.split(" - ")[0] ?? "",
+                            sessionTimeSlotId: Number(val) || undefined,
+                            sessionSlotLabel: label,
+                            sessionSlot: label.split(" - ")[0] ?? "",
                         });
                     }}
-                    className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[0.9375rem] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none"
-                >
-                    <option value="">— Chọn khung giờ —</option>
-                    {slotOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                    groups={slotGroups}
+                    placeholder="— Chọn khung giờ —"
+                />
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -961,13 +1088,15 @@ const bookingDatePickerTextFieldSx = {
         borderRadius: "10px",
         minHeight: 48,
         backgroundColor: "#fff !important",
-        transition: "box-shadow 150ms ease, border-color 150ms ease",
+        transition: "all 200ms ease",
         "& .MuiOutlinedInput-notchedOutline": {
             borderColor: "#ddd !important",
             borderWidth: "1px",
+            transition: "all 200ms ease",
         },
         "&:hover .MuiOutlinedInput-notchedOutline": {
-            borderColor: "rgba(255, 186, 160, 0.7) !important",
+            borderColor: "rgba(255, 186, 160, 0.8) !important",
+            borderWidth: "1px",
         },
         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: "#ffbaa0 !important",
@@ -1007,17 +1136,23 @@ const bookingDatePickerTextFieldSx = {
 
 const bookingDatePickerPopperSx = {
     "& .MuiPaper-root": {
-        borderRadius: "14px",
+        borderRadius: "16px",
         minWidth: 340,
-        padding: "14px",
-        boxShadow: "0 18px 48px rgba(15, 23, 42, 0.18)",
-        border: "1px solid rgba(0,0,0,0.06)",
+        padding: "16px",
+        boxShadow: "0 20px 60px rgba(15, 23, 42, 0.15)",
+        border: "1px solid rgba(255, 186, 160, 0.2)",
     },
     "& .MuiPickersDay-root": {
         fontSize: "0.9062rem",
-        width: 40,
-        height: 40,
-        borderRadius: "10px",
+        width: 38,
+        height: 38,
+        borderRadius: "11px",
+        transition: "all 150ms ease",
+        margin: "1px",
+        "&:hover": {
+            backgroundColor: "#fff7f3",
+            color: "#c45a3a",
+        },
     },
     "& .MuiPickersDay-root.Mui-selected": {
         backgroundColor: "#ffbaa0",

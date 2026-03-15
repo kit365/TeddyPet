@@ -44,11 +44,11 @@ public class BankInformationApplicationService implements BankInformationService
         BankInformation entity = BankInformation.builder()
                 .userId(userId)
                 .bookingId(null)
+                .accountType("USER")
                 .accountNumber(request.accountNumber().trim())
                 .accountHolderName(request.accountHolderName().trim())
                 .bankCode(bank.getBankCode())
                 .bankName(bank.getBankName())
-                // user-created needs staff verify later
                 .isVerify(false)
                 .isDefault(false)
                 .note(request.note())
@@ -105,11 +105,11 @@ public class BankInformationApplicationService implements BankInformationService
         BankInformation entity = BankInformation.builder()
                 .userId(null)
                 .bookingId(booking.getId())
+                .accountType("BOOKING_REFUND")
                 .accountNumber(request.accountNumber().trim())
                 .accountHolderName(request.accountHolderName().trim())
                 .bankCode(bank.getBankCode())
                 .bankName(bank.getBankName())
-                // guest booking: no verify/default requirement
                 .isVerify(false)
                 .isDefault(false)
                 .note(request.note())
@@ -173,6 +173,7 @@ public class BankInformationApplicationService implements BankInformationService
                 b.getNote(),
                 b.getBookingId(),
                 b.getUserId() != null ? b.getUserId().toString() : null,
+                b.getVietqrImageUrl(),
                 b.getCreatedAt(),
                 b.getUpdatedAt());
     }
