@@ -123,34 +123,34 @@ public class PaymentApplicationService implements PaymentService {
     }
 
     private void updatePaymentAndOrder(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
-        Payment payment = paymentRepositoryPort.findByTransactionId(result.transactionId())
-                .orElseThrow(() -> new PaymentException.PaymentNotFoundException(result.transactionId()));
+        paymentRepositoryPort.findByTransactionId(result.transactionId())
+                .ifPresentOrElse(payment -> {
+                    // Idempotency check (domain logic)
+                    if (payment.isAlreadyCompleted()) {
+                        log.warn(PaymentConstants.Messages.LOG_DUPLICATE_CALLBACK,
+                                result.transactionId(), payment.getStatus());
+                        return;
+                    }
 
-        // Idempotency check (domain logic)
-        if (payment.isAlreadyCompleted()) {
-            log.warn(PaymentConstants.Messages.LOG_DUPLICATE_CALLBACK,
-                    result.transactionId(), payment.getStatus());
-            return;
-        }
+                    try {
+                        payment.complete(gateway.getDisplayName());
+                        payment.setGatewayResponseCode(result.gatewayResponseCode());
+                        payment.setGatewayRawPayload(result.rawPayload());
+                        paymentRepositoryPort.save(payment);
 
-        try {
-            payment.complete(gateway.getDisplayName());
-            payment.setGatewayResponseCode(result.gatewayResponseCode());
-            payment.setGatewayRawPayload(result.rawPayload());
-            paymentRepositoryPort.save(payment);
+                        Order order = payment.getOrder();
+                        orderService.updateOrderStatus(order.getId(), OrderStatusEnum.PROCESSING);
 
-            Order order = payment.getOrder();
-            orderService.updateOrderStatus(order.getId(), OrderStatusEnum.PROCESSING);
-
-            log.info(PaymentConstants.Messages.PAYMENT_COMPLETED,
-                    gateway, result.transactionId(), order.getId());
-        } catch (PaymentDomainException e) {
-            log.error("Domain violation: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to update payment/order for txnId: {}", result.transactionId(), e);
-            throw new PaymentException("Failed to update payment: " + e.getMessage(), e);
-        }
+                        log.info(PaymentConstants.Messages.PAYMENT_COMPLETED,
+                                gateway, result.transactionId(), order.getId());
+                    } catch (PaymentDomainException e) {
+                        log.error("Domain violation: {}", e.getMessage());
+                        throw e;
+                    } catch (Exception e) {
+                        log.error("Failed to update payment/order for txnId: {}", result.transactionId(), e);
+                        throw new PaymentException("Failed to update payment: " + e.getMessage(), e);
+                    }
+                }, () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
     }
 
     private void markPaymentFailed(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
