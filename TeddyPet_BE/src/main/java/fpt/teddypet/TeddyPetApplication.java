@@ -13,6 +13,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication(exclude = { RedisRepositoriesAutoConfiguration.class })
 public class TeddyPetApplication {
+    @jakarta.annotation.PostConstruct
+    void init() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+    }
 
     public static void main(String[] args) {
         // Load .env file before Spring Boot starts
