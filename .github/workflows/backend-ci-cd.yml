@@ -21,6 +21,29 @@ jobs:
   compile-and-test:
     name: 🏗️ Compile & Unit Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: teddypet
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,9 +59,16 @@ jobs:
         run: mvn clean compile
         working-directory: ${{ env.WORKING_DIRECTORY }}
 
-      - name: 🧪 Run Unit Tests (Bypassed to force Docker push)
-        run: echo "Skipped tests to ensure deploy"
+      - name: 🧪 Run Unit Tests (Block build if Flyway/Tests fail)
+        run: mvn test -Dspring.profiles.active=ci
         working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/teddypet
+          SPRING_DATASOURCE_USERNAME: myuser
+          SPRING_DATASOURCE_PASSWORD: mypassword
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/teddypet_test
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
 
       - name: 📦 Package Artifact
         run: mvn package -DskipTests
