@@ -54,6 +54,50 @@ export type PaymentStatus =
 /** Admin/API: payment method (booking: chỉ CASH và BANK_TRANSFER) */
 export type PaymentMethod = "CASH" | "BANK_TRANSFER";
 
+/** Giao dịch thanh toán hóa đơn (từng lần thu tiền) */
+export interface BookingPaymentTransactionResponse {
+  id: number;
+  bookingId: number;
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string | null;
+  paidBy?: string | null;
+  paidByName?: string | null;
+  paidAt: string;
+  receivedBy?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+/** Request thêm một giao dịch thanh toán */
+export interface CreateBookingPaymentTransactionRequest {
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string | null;
+  paidBy?: string | null;
+  paidByName?: string | null;
+  paidAt: string; // ISO datetime
+  receivedBy?: string | null;
+  status?: string;
+  note?: string | null;
+}
+
+/** Một dòng trong danh sách giao dịch chi tiết (cọc + thanh toán hóa đơn) */
+export interface BookingTransactionItemResponse {
+  transactionType: "DEPOSIT" | "INVOICE_PAYMENT";
+  id: number;
+  amount: number;
+  paymentMethod: string;
+  paidAt: string;
+  status: string;
+  label: string;
+  transactionReference?: string | null;
+  paidByName?: string | null;
+  note?: string | null;
+}
+
 /** One item of pet food brought (pet_food_brought table) */
 export interface PetFoodBroughtItemResponse {
   id?: number;
@@ -162,6 +206,7 @@ export interface BookingResponse {
   cancelRequested?: boolean;
   cancelledReason?: string | null;
   internalNotes?: string;
+  depositAmount?: number;
   bookingCheckInDate?: string; // ISO datetime, set by Check-in button
   bookingCheckOutDate?: string; // set by Check-out button
   cancelledAt?: string;

@@ -4,10 +4,13 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
+import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
+import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -135,6 +138,40 @@ public class BookingAdminController {
     @Operation(summary = "Check-out: ghi nhận thời gian ra (booking_check_out_date)")
     public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> checkOut(@PathVariable Long bookingId) {
         AdminBookingListItemResponse data = bookingAdminService.checkOut(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/{bookingId}/payment-transactions")
+    @Operation(summary = "Danh sách giao dịch thanh toán hóa đơn theo booking")
+    public ResponseEntity<ApiResponse<List<BookingPaymentTransactionResponse>>> getPaymentTransactions(@PathVariable Long bookingId) {
+        List<BookingPaymentTransactionResponse> data = bookingAdminService.getPaymentTransactions(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/{bookingId}/transactions")
+    @Operation(summary = "Danh sách giao dịch chi tiết: cọc + thanh toán hóa đơn, sắp xếp theo thời gian")
+    public ResponseEntity<ApiResponse<List<BookingTransactionItemResponse>>> getBookingTransactions(@PathVariable Long bookingId) {
+        List<BookingTransactionItemResponse> data = bookingAdminService.getBookingTransactions(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{bookingId}/payment-transactions")
+    @Operation(summary = "Thêm một giao dịch thanh toán (tiền mặt / chuyển khoản / VietQR). Khi status=COMPLETED sẽ cập nhật paid_amount, remaining_amount và payment_status của booking.")
+    public ResponseEntity<ApiResponse<BookingPaymentTransactionResponse>> addPaymentTransaction(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody CreateBookingPaymentTransactionRequest request
+    ) {
+        BookingPaymentTransactionResponse data = bookingAdminService.addPaymentTransaction(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PatchMapping("/{bookingId}/internal-notes")
+    @Operation(summary = "Cập nhật ghi chú nội bộ của booking (admin)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> updateInternalNotes(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody fpt.teddypet.application.dto.request.bookings.UpdateBookingInternalNotesRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.updateInternalNotes(bookingId, request);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 }

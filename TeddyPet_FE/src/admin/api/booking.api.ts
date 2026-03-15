@@ -6,6 +6,9 @@ import type {
     BookingPetResponse,
     BookingPetServiceResponse,
     BookingPetServiceItemResponse,
+    BookingPaymentTransactionResponse,
+    CreateBookingPaymentTransactionRequest,
+    BookingTransactionItemResponse,
 } from '../../types/booking.type';
 
 const BASE_URL = '/api/admin/bookings';
@@ -162,5 +165,36 @@ export const checkInBooking = async (bookingId: string | number): Promise<ApiRes
 
 export const checkOutBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
     const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-out`, {}, withAuth());
+    return response.data;
+};
+
+export const updateAdminBookingInternalNotes = async (
+    bookingId: string | number,
+    internalNotes: string | null
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/internal-notes`, { internalNotes }, withAuth());
+    return response.data;
+};
+
+export const getBookingPaymentTransactions = async (
+    bookingId: string | number
+): Promise<ApiResponse<BookingPaymentTransactionResponse[]>> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/payment-transactions`, withAuth());
+    return response.data;
+};
+
+/** Danh sách giao dịch chi tiết: cọc + thanh toán hóa đơn, sắp xếp theo thời gian */
+export const getBookingTransactions = async (
+    bookingId: string | number
+): Promise<ApiResponse<BookingTransactionItemResponse[]>> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/transactions`, withAuth());
+    return response.data;
+};
+
+export const addBookingPaymentTransaction = async (
+    bookingId: string | number,
+    body: CreateBookingPaymentTransactionRequest
+): Promise<ApiResponse<BookingPaymentTransactionResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-transactions`, body, withAuth());
     return response.data;
 };

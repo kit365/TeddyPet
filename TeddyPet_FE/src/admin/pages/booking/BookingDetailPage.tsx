@@ -14,11 +14,17 @@ import {
   TableRow,
   IconButton,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
 import { prefixAdmin } from "../../constants/routes";
-import { getAdminBookingDetail, getAdminBookingPets, checkInBooking, checkOutBooking } from "../../api/booking.api";
+import { getAdminBookingDetail, getAdminBookingPets, checkInBooking, checkOutBooking, updateAdminBookingInternalNotes } from "../../api/booking.api";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -26,7 +32,6 @@ import {
   getPaymentStatusColor,
   getBookingTypeLabel,
   getPaymentMethodLabel,
-  getPaymentMethodColor,
 } from "./constants";
 import type { BookingResponse } from "../../../types/booking.type";
 
@@ -63,6 +68,9 @@ export const BookingDetailPage = () => {
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [tempNote, setTempNote] = useState("");
+  const [saveLoading, setSaveLoading] = useState(false);
 
   const fetchBooking = useCallback(async () => {
     if (!id) return;
@@ -208,7 +216,39 @@ export const BookingDetailPage = () => {
                   label="Hình thức thanh toán"
                   value={getPaymentMethodLabel(booking.paymentMethod)}
                 />
-                <InfoRow label="Ghi chú nội bộ" value={booking.internalNotes} />
+                <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2.5 }}>
+                  <Typography sx={{ color: "text.secondary", minWidth: 180, fontWeight: 600, fontSize: "0.9062rem" }}>
+                    Ghi chú nội bộ
+                  </Typography>
+                  <Box sx={{ flex: 1, display: "flex", alignItems: "flex-start", gap: 1 }}>
+                    <Typography 
+                      sx={{ 
+                        fontSize: "1rem", 
+                        color: "text.primary", 
+                        fontWeight: 500,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word"
+                      }}
+                    >
+                      {booking.internalNotes || "—"}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setTempNote(booking.internalNotes || "");
+                        setIsEditingNote(true);
+                      }}
+                      sx={{ 
+                        color: "primary.main",
+                        p: 0.5,
+                        mt: -0.5,
+                        "&:hover": { bgcolor: "primary.lighter" }
+                      }}
+                    >
+                      <EditIcon sx={{ fontSize: "1.125rem" }} />
+                    </IconButton>
+                  </Box>
+                </Stack>
                 {booking.status === "CANCELLED" && (
                   <>
                     <InfoRow label="Hủy lúc" value={formatDateTime(booking.cancelledAt)} />
@@ -414,6 +454,75 @@ export const BookingDetailPage = () => {
         </Stack>
       </Box>
 
+      {/* Modal chỉnh sửa ghi chú nội bộ */}
+      <Dialog
+        open={isEditingNote}
+        onClose={() => !saveLoading && setIsEditingNote(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: "16px", p: 1 }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, fontSize: "1.25rem", pb: 1 }}>
+          Cập nhật ghi chú nội bộ
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <TextField
+            fullWidth
+            multiline
+            rows={5}
+            placeholder="Nhập ghi chú nội bộ cho booking này..."
+            value={tempNote}
+            onChange={(e) => setTempNote(e.target.value)}
+            variant="outlined"
+            autoFocus
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "12px",
+                fontSize: "1rem"
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 1, gap: 1.5 }}>
+          <Button
+            onClick={() => setIsEditingNote(false)}
+            disabled={saveLoading}
+            sx={{ fontWeight: 600, textTransform: "none", color: "text.secondary" }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={saveLoading}
+            onClick={async () => {
+              if (!id) return;
+              setSaveLoading(true);
+              try {
+                await updateAdminBookingInternalNotes(id, tempNote);
+                await fetchBooking();
+                setIsEditingNote(false);
+              } catch (error) {
+                console.error("Failed to update internal notes:", error);
+              } finally {
+                setSaveLoading(false);
+              }
+            }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: "10px",
+              px: 3,
+              boxShadow: "none",
+              "&:hover": { boxShadow: "none" }
+            }}
+          >
+            {saveLoading ? <CircularProgress size={20} color="inherit" /> : "Lưu thay đổi"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

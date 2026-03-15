@@ -54,8 +54,8 @@ public class Booking extends BaseEntity {
     @Column(name = "payment_status", length = 50)
     private String paymentStatus;
 
-    @Column(name = "payment_method", length = 50)
-    private String paymentMethod;
+    @Column(name = "payment_method", columnDefinition = "TEXT")
+    private String paymentMethod; // JSON array of methods, e.g. ["CASH","BANK_TRANSFER"]
 
     @Column(name = "status", length = 50)
     private String status;

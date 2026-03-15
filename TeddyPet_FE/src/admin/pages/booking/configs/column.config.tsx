@@ -1,12 +1,25 @@
 import React from "react";
 import type { GridColDef } from "@mui/x-data-grid";
-import { Typography, Chip, Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, Badge } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditIcon from "@mui/icons-material/Edit";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PaymentsIcon from "@mui/icons-material/Payments";
+import {
+  Typography,
+  Chip,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Badge,
+} from "@mui/material";
+import {
+  VisibilityTwoTone,
+  EditTwoTone,
+  CancelTwoTone,
+  PaidTwoTone,
+  HistoryTwoTone,
+  DeleteTwoTone,
+  MoreVert as MoreVertIcon,
+} from "@mui/icons-material";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
@@ -36,6 +49,7 @@ export const getBookingColumns = (
   onEdit?: (row: BookingResponse) => void,
   onRequestCancel?: (row: BookingResponse) => void,
   onPayment?: (row: BookingResponse) => void,
+  onViewTransactionHistory?: (row: BookingResponse) => void,
   onDelete?: (row: BookingResponse) => void
 ): GridColDef[] => [
   {
@@ -307,6 +321,11 @@ export const getBookingColumns = (
         onPayment?.(params.row as BookingResponse);
       };
 
+      const handleTransactionHistory = () => {
+        handleClose();
+        onViewTransactionHistory?.(params.row as BookingResponse);
+      };
+
       const handleDelete = () => {
         handleClose();
         onDelete?.(params.row as BookingResponse);
@@ -362,25 +381,25 @@ export const getBookingColumns = (
           >
             <MenuItem onClick={handleViewDetail}>
               <ListItemIcon>
-                <VisibilityIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
+                <VisibilityTwoTone sx={{ fontSize: "1.1rem", color: "#00B8D9" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Xem chi tiết" 
-                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
             <MenuItem onClick={handleEdit}>
               <ListItemIcon>
-                <EditIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
+                <EditTwoTone sx={{ fontSize: "1.1rem", color: "#FFAB00" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Chỉnh sửa" 
-                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
             <MenuItem onClick={handleRequestCancel}>
               <ListItemIcon>
-                <RefreshIcon sx={{ fontSize: "1rem", color: "#1C252E" }} />
+                <CancelTwoTone sx={{ fontSize: "1.1rem", color: "#FF5630" }} />
               </ListItemIcon>
               <ListItemText
                 primary={
@@ -391,28 +410,40 @@ export const getBookingColumns = (
                     )}
                   </Box>
                 }
-                primaryTypographyProps={{ fontSize: "0.875rem", color: "#1C252E" }}
+                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
+            
             {["PENDING", "CONFIRMED", "READY", "COMPLETED"].includes((params.row as BookingResponse).status?.toUpperCase()) && 
              (params.row as BookingResponse).paymentStatus !== "PAID" && (
               <MenuItem onClick={handlePayment}>
                 <ListItemIcon>
-                  <PaymentsIcon sx={{ fontSize: "1rem", color: "#00A76F" }} />
+                  <PaidTwoTone sx={{ fontSize: "1.1rem", color: "#22C55E" }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Thanh toán"
-                  primaryTypographyProps={{ fontSize: "0.875rem", color: "#00A76F", fontWeight: 700 }}
+                  primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
                 />
               </MenuItem>
             )}
+
+            <MenuItem onClick={handleTransactionHistory}>
+              <ListItemIcon>
+                <HistoryTwoTone sx={{ fontSize: "1.1rem", color: "#6366F1" }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Lịch sử giao dịch" 
+                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
+              />
+            </MenuItem>
+
             <MenuItem onClick={handleDelete}>
               <ListItemIcon>
-                <DeleteIcon sx={{ fontSize: "1rem", color: "#dc2626" }} />
+                <DeleteTwoTone sx={{ fontSize: "1.1rem", color: "#B71D18" }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Xóa" 
-                primaryTypographyProps={{ fontSize: "0.875rem", color: "#dc2626" }}
+                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
           </Menu>

@@ -1,5 +1,6 @@
 package fpt.teddypet.application.dto.request.orders.order;
 
+import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -7,6 +8,9 @@ import java.util.List;
 
 public record OrderRequest(
         @NotNull(message = "Phương thức thanh toán là bắt buộc") PaymentMethodEnum paymentMethod,
+
+        /** Loại đơn: ONLINE = đặt online (cần địa chỉ, phí ship), OFFLINE = tại quầy (không cần địa chỉ giao hàng, không phí ship) */
+        OrderTypeEnum orderType,
 
         // Optional: nếu có thì lấy từ địa chỉ đã lưu, không cần nhập thủ công
         Long userAddressId,

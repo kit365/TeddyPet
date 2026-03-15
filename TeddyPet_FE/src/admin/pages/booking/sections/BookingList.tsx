@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Badge from "@mui/material/Badge";
@@ -44,6 +45,11 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import {
   dataGridCardStyles,
   dataGridContainerStyles,
@@ -51,16 +57,23 @@ import {
 } from "../../product/configs/styles.config";
 import { useDataGridLocale } from "../../../hooks/useDataGridLocale";
 import { getBookingColumns } from "../configs/column.config";
-import { BOOKING_STATUS_OPTIONS, getBookingSourceLabel, type BookingStatusFilter } from "../constants";
+import { BOOKING_STATUS_OPTIONS, getBookingSourceLabel, getPaymentMethodLabel, type BookingStatusFilter } from "../constants";
 import { prefixAdmin } from "../../../constants/routes";
 import { 
   approveOrRejectAdminCancelRequest, 
   getAdminBookings, 
+  getAdminBookingDetail,
   confirmFullPayment,
-  getAdminBookingPets 
+  getAdminBookingPets,
+  getBookingTransactions,
+  addBookingPaymentTransaction,
 } from "../../../api/booking.api";
 import { getBankInformationByBookingCode, type BookingBankInformationResponse } from "../../../../api/bank.api";
-import type { BookingResponse, BookingPetResponse } from "../../../../types/booking.type";
+import type { 
+  BookingResponse, 
+  BookingPetResponse, 
+  BookingTransactionItemResponse,
+} from "../../../../types/booking.type";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
@@ -74,6 +87,21 @@ const formatDateTimeFull = (value?: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+/** Định dạng thời gian cho cột giao dịch: "11.32 AM - 13/03/2026" */
+const formatTransactionDateTime = (value?: string) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const h12 = hours % 12 || 12;
+  const timeStr = `${h12}.${String(minutes).padStart(2, "0")} ${ampm}`;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${timeStr} - ${day}/${month}/${year}`;
 };
 
 const getDepositStatusLabel = (status?: string) => {
@@ -221,6 +249,18 @@ export const BookingList = () => {
   const [detailedPets, setDetailedPets] = useState<BookingPetResponse[]>([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedBookingForHistory, setSelectedBookingForHistory] = useState<BookingResponse | null>(null);
+
+  const [addTxAmount, setAddTxAmount] = useState("");
+  const [addTxPaymentMethod, setAddTxPaymentMethod] = useState("CASH");
+  const [addTxPaidByName, setAddTxPaidByName] = useState("");
+  const [addTxReference, setAddTxReference] = useState("");
+  const [addTxNote, setAddTxNote] = useState("");
+  const [addTxLoading, setAddTxLoading] = useState(false);
+  const [addTxError, setAddTxError] = useState<string | null>(null);
+  const [confirmAddPaymentOpen, setConfirmAddPaymentOpen] = useState(false);
+
   const isCancelRequested = (row?: BookingResponse | null) => {
     if (!row) return false;
     return row.cancelRequested === true;
@@ -264,6 +304,74 @@ export const BookingList = () => {
       setDetailedPets([]);
     }
   }, [paymentDialogOpen, selectedPaymentBooking?.id]);
+
+  const bookingIdForHistory = selectedBookingForHistory?.id;
+
+  const { data: bookingDetailForHistory } = useQuery({
+    queryKey: ["admin-booking-detail", bookingIdForHistory],
+    queryFn: () => getAdminBookingDetail(bookingIdForHistory!).then((r) => r.data ?? null),
+    enabled: historyDialogOpen && !!bookingIdForHistory,
+  });
+
+  const { data: bookingTransactions = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ["admin-booking-transactions", bookingIdForHistory],
+    queryFn: () => getBookingTransactions(bookingIdForHistory!).then((r) => r.data ?? []),
+    enabled: historyDialogOpen && !!bookingIdForHistory,
+  });
+
+  const historyBooking = bookingDetailForHistory ?? selectedBookingForHistory;
+
+  const getAddPaymentAmount = (): number => {
+    if (addTxPaymentMethod === "CASH") {
+      const numStr = addTxAmount.replace(/\s/g, "").replace(/\./g, "").replace(/,/g, "");
+      return numStr === "" ? NaN : Number(numStr);
+    }
+    return Number(historyBooking?.remainingAmount ?? 0);
+  };
+
+  const handleOpenConfirmAddPayment = () => {
+    if (!selectedBookingForHistory) return;
+    const amount = getAddPaymentAmount();
+    if (isNaN(amount) || amount <= 0) {
+      setAddTxError(addTxPaymentMethod === "CASH" ? "Nhập số tiền hợp lệ." : "Số tiền còn lại không hợp lệ.");
+      return;
+    }
+    setAddTxError(null);
+    setConfirmAddPaymentOpen(true);
+  };
+
+  const handleConfirmAddPayment = async () => {
+    if (!selectedBookingForHistory) return;
+    const amount = getAddPaymentAmount();
+    if (isNaN(amount) || amount <= 0) return;
+    setAddTxLoading(true);
+    setAddTxError(null);
+    try {
+      await addBookingPaymentTransaction(selectedBookingForHistory.id, {
+        transactionType: "FINAL_PAYMENT",
+        amount,
+        paymentMethod: addTxPaymentMethod,
+        paidByName: addTxPaidByName.trim() || undefined,
+        transactionReference: addTxReference.trim() || undefined,
+        paidAt: new Date().toISOString(),
+        status: "COMPLETED",
+        note: addTxNote.trim() || undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-booking-detail", selectedBookingForHistory.id] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-booking-transactions", selectedBookingForHistory.id] });
+      setAddTxAmount("");
+      setAddTxReference("");
+      setAddTxNote("");
+      setConfirmAddPaymentOpen(false);
+    } catch (e: unknown) {
+      console.error(e);
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setAddTxError(msg || "Không thể ghi nhận thu tiền.");
+    } finally {
+      setAddTxLoading(false);
+    }
+  };
 
   // Load bank information & reset fields when mở popup duyệt hủy đơn
   useEffect(() => {
@@ -365,6 +473,16 @@ export const BookingList = () => {
           setPaymentActionError(null);
           setPaymentMethod("CASH");
           setPaymentNotes("");
+        },
+        (row) => {
+          console.log("Opening history for booking:", row.bookingCode);
+          setSelectedBookingForHistory(row);
+          setHistoryDialogOpen(true);
+          setAddTxAmount("");
+          setAddTxPaymentMethod("CASH");
+          setAddTxPaidByName(row.customerName ?? "");
+          setAddTxReference("");
+          setAddTxError(null);
         },
         (row) => {
           // TODO: Implement delete functionality with confirmation
@@ -828,23 +946,55 @@ export const BookingList = () => {
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       SelectProps={{
-                        native: true,
-                        sx: { "& .MuiSelect-select": { py: 1.5 } },
+                        displayEmpty: false,
+                        renderValue: (v) => (v === "CASH" ? "Tiền mặt (Cash)" : "Chuyển khoản (Bank)"),
+                        MenuProps: {
+                          PaperProps: {
+                            sx: {
+                              mt: 1.5,
+                              borderRadius: "12px",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                              border: "1px solid #E0E0E0",
+                              "& .MuiMenuItem-root": {
+                                fontSize: "0.9375rem",
+                                fontWeight: 500,
+                                py: 1.5,
+                                px: 2,
+                              },
+                              "& .MuiMenuItem-root.Mui-selected": {
+                                bgcolor: "rgba(0, 167, 111, 0.12)",
+                                fontWeight: 600,
+                              },
+                              "& .MuiMenuItem-root.Mui-selected:hover": {
+                                bgcolor: "rgba(0, 167, 111, 0.2)",
+                              },
+                              "& .MuiMenuItem-root:hover": {
+                                bgcolor: "#F5F5F5",
+                              },
+                            },
+                          },
+                          anchorOrigin: { vertical: "bottom", horizontal: "left" },
+                          transformOrigin: { vertical: "top", horizontal: "left" },
+                        },
+                        sx: {
+                          "& .MuiSelect-select": { py: 1.5 },
+                          "& .MuiSvgIcon-root": { color: "#637381" },
+                        },
                       }}
                       sx={{
                         "& .MuiOutlinedInput-root": {
-                          borderRadius: "10px",
-                          bgcolor: "#F9FAFB",
+                          borderRadius: "12px",
+                          bgcolor: "#FAFAFA",
                           fontSize: "0.9375rem",
                           fontWeight: 500,
-                          "& fieldset": { borderColor: "#E0E0E0" },
-                          "&:hover fieldset": { borderColor: "#919EAB" },
-                          "&.Mui-focused fieldset": { borderWidth: "1px", borderColor: "primary.main" },
+                          "& fieldset": { borderColor: "#E5E7EB", borderWidth: "1px" },
+                          "&:hover fieldset": { borderColor: "#919EAB", bgcolor: "#fff" },
+                          "&.Mui-focused fieldset": { borderWidth: "2px", borderColor: "primary.main", bgcolor: "#fff" },
                         },
                       }}
                     >
-                      <option value="CASH">Tiền mặt (Cash)</option>
-                      <option value="BANK_TRANSFER">Chuyển khoản (Bank)</option>
+                      <MenuItem value="CASH">Tiền mặt (Cash)</MenuItem>
+                      <MenuItem value="BANK_TRANSFER">Chuyển khoản (Bank)</MenuItem>
                     </TextField>
                   </Box>
 
@@ -900,7 +1050,6 @@ export const BookingList = () => {
               px: 5, 
               py: 1.5, 
               borderRadius: "14px", 
-              textTransform: "none", 
               fontWeight: 900,
               fontSize: "1rem",
               bgcolor: "#00A76F",
@@ -909,6 +1058,347 @@ export const BookingList = () => {
             }}
           >
             {paymentActionLoading ? "Đang xử lý..." : "Xác nhận và Hoàn tất"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: Lịch sử giao dịch */}
+      <Dialog
+        open={historyDialogOpen}
+        onClose={() => {
+          setHistoryDialogOpen(false);
+          setSelectedBookingForHistory(null);
+        }}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ 
+          sx: { 
+            borderRadius: "32px", 
+            boxShadow: "0 24px 72px -12px rgba(0, 0, 0, 0.24)",
+            overflow: "hidden",
+            maxWidth: "1400px",
+            width: "95%"
+          } 
+        }}
+      >
+        <DialogTitle sx={{ 
+          py: 3, 
+          px: 4, 
+          bgcolor: "#F8F9FA", 
+          borderBottom: "1px solid #E1F0FF", 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center" 
+        }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box sx={{ 
+              p: 1.5, 
+              bgcolor: "#00A76F", 
+              borderRadius: "14px", 
+              display: "flex", 
+              boxShadow: "0 8px 16px rgba(0, 167, 111, 0.24)" 
+            }}>
+              <ReceiptLongIcon sx={{ color: "white", fontSize: "1.8rem" }} />
+            </Box>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: "#1C252E", letterSpacing: -0.5 }}>
+                Lịch sử giao dịch
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="body2" color="text.secondary">Booking:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: "#00A76F" }}>
+                  {selectedBookingForHistory?.bookingCode ?? "—"}
+                </Typography>
+              </Stack>
+            </Box>
+          </Stack>
+          
+          <Button 
+            onClick={() => setHistoryDialogOpen(false)}
+            variant="outlined"
+            size="small"
+            sx={{ borderRadius: "10px", textTransform: "none", fontWeight: 700, color: "#637381", borderColor: "#DFE3E8" }}
+          >
+            Đóng
+          </Button>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0, bgcolor: "#fcfcfd" }}>
+          <Grid container sx={{ minHeight: "600px" }}>
+            {/* Left Column: Transaction List (md: 9 units) - PRIMARY */}
+            <Grid size={{ xs: 12, md: 9 }} sx={{ p: 4.5, borderRight: "1px solid #F1F3F4" }}>
+              {historyBooking && (
+                <Stack spacing={4}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1C252E", mb: 2.5, display: "flex", alignItems: "center", gap: 1 }}>
+                      DANH SÁCH GIAO DỊCH CHI TIẾT
+                      <Chip 
+                        label={bookingTransactions.length} 
+                        size="small" 
+                        sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700, bgcolor: "#F4F6F8" }} 
+                      />
+                    </Typography>
+                    
+                    {transactionsLoading ? (
+                      <Box sx={{ py: 15, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        <CircularProgress size={48} thickness={5} sx={{ color: "#00A76F" }} />
+                        <Typography variant="body2" sx={{ color: "#637381", fontWeight: 700 }}>Đang truy xuất dữ liệu...</Typography>
+                      </Box>
+                    ) : bookingTransactions.length === 0 ? (
+                      <Box sx={{ 
+                        py: 12, 
+                        display: "flex", 
+                        flexDirection: "column", 
+                        alignItems: "center", 
+                        justifyContent: "center", 
+                        gap: 2, 
+                        bgcolor: "#F9FAFB",
+                        borderRadius: "24px",
+                        border: "2px dashed #ECEFF1"
+                      }}>
+                        <ReceiptLongIcon sx={{ fontSize: "4rem", color: "#CFD8DC" }} />
+                        <Typography variant="h6" sx={{ color: "#607D8B", fontWeight: 700 }}>Chưa có giao dịch nào</Typography>
+                        <Typography variant="body2" sx={{ color: "#90A4AE", maxWidth: "300px", textAlign: "center" }}>
+                          Mọi giao dịch thanh toán hoặc đặt cọc sẽ được hiển thị chi tiết tại đây.
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Table size="medium" sx={{ 
+                        border: "1px solid #F1F3F4", 
+                        borderRadius: "18px", 
+                        overflow: "hidden",
+                        bgcolor: "white",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                        "& .MuiTableCell-root": { py: 2.5 } 
+                      }}>
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: "#F9FAFB" }}>
+                            <TableCell sx={{ fontWeight: 800, color: "#637381", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5 }}>Thời gian</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: "#637381", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5 }}>Nội dung</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: "#637381", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5 }}>Số tiền</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: "#637381", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5 }}>Hình thức</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: "#637381", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.5, textAlign: "center" }}>Trạng thái</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {(bookingTransactions as BookingTransactionItemResponse[]).map((tx) => (
+                            <TableRow key={`${tx.transactionType}-${tx.id}`} sx={{ "&:last-child .MuiTableCell-root": { borderBottom: 0 }, "&:hover": { bgcolor: "#F9FAFB" }, transition: "background 0.2s" }}>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: "#1C252E" }}>{formatTransactionDateTime(tx.paidAt)}</Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: "#637381" }}>
+                                  {tx.transactionType === "DEPOSIT" ? "📦 " : "💳 "}{tx.label}
+                                </Typography>
+                                {tx.transactionReference && (
+                                  <Typography variant="caption" sx={{ color: "#919EAB", display: "block", mt: 0.5 }}>Ref: {tx.transactionReference}</Typography>
+                                )}
+                                {tx.paidByName && (
+                                  <Typography variant="caption" sx={{ color: "#919EAB", display: "block", mt: 0.25 }}>Người trả: {tx.paidByName}</Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body1" sx={{ fontWeight: 900, color: "#00A76F" }}>+{formatCurrency(tx.amount)}</Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Box sx={{ 
+                                    width: 32, height: 32, borderRadius: "10px", 
+                                    bgcolor: tx.paymentMethod === "BANK_TRANSFER" ? "#E1F0FF" : tx.paymentMethod === "VIETQR" ? "#FFF3E0" : "#E1FFED",
+                                    display: "flex", alignItems: "center", justifyContent: "center"
+                                  }}>
+                                    <PaymentsIcon sx={{ 
+                                      fontSize: "1rem", 
+                                      color: tx.paymentMethod === "BANK_TRANSFER" ? "#006C9C" : tx.paymentMethod === "VIETQR" ? "#E65100" : "#00A76F" 
+                                    }} />
+                                  </Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#1C252E" }}>
+                                    {getPaymentMethodLabel(tx.paymentMethod)}
+                                  </Typography>
+                                </Stack>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip 
+                                  label={tx.status === "COMPLETED" || tx.status === "PAID" ? "Thành công" : tx.status === "PENDING" ? "Chờ xử lý" : tx.status} 
+                                  size="small" 
+                                  sx={{ 
+                                    height: 28,
+                                    px: 1,
+                                    fontWeight: 800,
+                                    fontSize: "0.75rem",
+                                    bgcolor: (tx.status === "COMPLETED" || tx.status === "PAID") ? "#E8F5E9" : "#FFF5F5",
+                                    color: (tx.status === "COMPLETED" || tx.status === "PAID") ? "#22C55E" : "#FF5630",
+                                    borderRadius: "10px"
+                                  }} 
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </Box>
+                </Stack>
+              )}
+            </Grid>
+
+            {/* Right Column: Summary & Add (md: 3 units) - SECONDARY */}
+            <Grid size={{ xs: 12, md: 3 }} sx={{ p: 4, bgcolor: "white" }}>
+              {historyBooking && (
+                <Stack spacing={4}>
+                  {/* Summary Cards Section (Secondary) */}
+                  <Box sx={{ 
+                    p: 2.5, 
+                    bgcolor: "#F8F9FA", 
+                    borderRadius: "20px", 
+                    border: "1px solid #ECEFF1"
+                  }}>
+                    <Typography variant="caption" sx={{ mb: 2, color: "#637381", fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, display: "block" }}>
+                      TÓM TẮT THANH TOÁN
+                    </Typography>
+                    
+                    <Stack spacing={1.5}>
+                      <SummaryRow label="Tổng đơn" value={formatCurrency(historyBooking.totalAmount ?? 0)} fontSize="0.85rem" />
+                      <SummaryRow 
+                        label="Đã thu" 
+                        value={formatCurrency(historyBooking.paidAmount ?? 0)} 
+                        color="#00A76F" 
+                        fontSize="0.85rem"
+                      />
+                      
+                      <Divider sx={{ borderStyle: "solid", my: 0.5, borderColor: "#ECEFF1" }} />
+
+                      <Box>
+                        <Typography variant="caption" color={(historyBooking.remainingAmount ?? 0) > 0 ? "error.main" : "success.main"} fontWeight={800} sx={{ fontSize: "0.7rem" }}>
+                          {(historyBooking.remainingAmount ?? 0) > 0 ? "CÒN LẠI" : "TRẠNG THÁI"}
+                        </Typography>
+                        <Typography variant="h5" color={(historyBooking.remainingAmount ?? 0) > 0 ? "error.main" : "success.main"} sx={{ fontWeight: 900, mt: 0.2 }}>
+                          {(historyBooking.remainingAmount ?? 0) > 0 ? formatCurrency(historyBooking.remainingAmount ?? 0) : "HOÀN TẤT"}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+
+                  {/* Add Transaction Section (Secondary) */}
+                  {((historyBooking.remainingAmount ?? 0) > 0) && (
+                    <Box sx={{ 
+                      p: 3, 
+                      borderRadius: "20px", 
+                      bgcolor: "#F0FDF4", 
+                      border: "1px solid #DCFCE7"
+                    }}>
+                      <Typography variant="caption" sx={{ fontWeight: 900, color: "#166534", mb: 2.5, display: "flex", alignItems: "center", gap: 1, textTransform: "uppercase", letterSpacing: 1 }}>
+                        <PaymentsIcon sx={{ fontSize: "0.9rem" }} />
+                        GHI NHẬN THU TIỀN
+                      </Typography>
+                      
+                      {addTxError && (
+                        <Alert severity="error" sx={{ mb: 2, borderRadius: "10px", py: 0, "& .MuiAlert-message": { fontSize: "0.75rem", fontWeight: 600 } }}>
+                          {addTxError}
+                        </Alert>
+                      )}
+                      
+                      <Stack spacing={2}>
+                        <TextField
+                          select
+                          fullWidth
+                          label="Phương thức"
+                          value={addTxPaymentMethod}
+                          onChange={(e) => setAddTxPaymentMethod(e.target.value)}
+                          size="small"
+                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "white" } }}
+                        >
+                          <MenuItem value="CASH">Tiền mặt</MenuItem>
+                          <MenuItem value="BANK_TRANSFER">Chuyển khoản</MenuItem>
+                          <MenuItem value="VIETQR">PR (VietQR)</MenuItem>
+                        </TextField>
+
+                        {addTxPaymentMethod === "CASH" && (
+                          <TextField
+                            fullWidth
+                            label="Số tiền thu"
+                            value={addTxAmount}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setAddTxAmount(val ? Number(val).toLocaleString("vi-VN") : "");
+                            }}
+                            size="small"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start"><Typography sx={{ fontWeight: 800, color: "#00A76F", fontSize: "0.8rem" }}>₫</Typography></InputAdornment>,
+                            }}
+                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "white", fontWeight: 700 } }}
+                          />
+                        )}
+
+                        <TextField
+                          label="Người nộp"
+                          fullWidth
+                          size="small"
+                          value={addTxPaidByName}
+                          onChange={(e) => setAddTxPaidByName(e.target.value)}
+                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "white" } }}
+                        />
+
+                        <TextField
+                          label="Ghi chú"
+                          fullWidth
+                          size="small"
+                          placeholder="Ghi chú cho giao dịch (tùy chọn)"
+                          value={addTxNote}
+                          onChange={(e) => setAddTxNote(e.target.value)}
+                          multiline
+                          minRows={2}
+                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "white" } }}
+                        />
+
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          onClick={handleOpenConfirmAddPayment}
+                          disabled={addTxLoading || (addTxPaymentMethod === "CASH" ? !addTxAmount : (historyBooking?.remainingAmount ?? 0) <= 0)}
+                          sx={{ 
+                            height: 44, 
+                            borderRadius: "12px", 
+                            bgcolor: "#00A76F", 
+                            "&:hover": { bgcolor: "#007B55" },
+                            boxShadow: "0 4px 12px rgba(0, 167, 111, 0.2)",
+                            textTransform: "none",
+                            fontWeight: 800,
+                            fontSize: "0.875rem"
+                          }}
+                        >
+                          {addTxLoading ? "..." : "Xác nhận thu"}
+                        </Button>
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              )}
+            </Grid>
+          </Grid>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmAddPaymentOpen}
+        onClose={() => !addTxLoading && setConfirmAddPaymentOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xác nhận ghi nhận thu tiền</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ pt: 0.5 }}>
+            Bạn có chắc muốn ghi nhận thu{" "}
+            <strong>{formatCurrency(addTxPaymentMethod === "CASH" ? Number(addTxAmount.replace(/\s/g, "").replace(/\./g, "").replace(/,/g, "") || 0) : (historyBooking?.remainingAmount ?? 0))}</strong>{" "}
+            bằng <strong>{getPaymentMethodLabel(addTxPaymentMethod)}</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={() => setConfirmAddPaymentOpen(false)} disabled={addTxLoading}>
+            Hủy
+          </Button>
+          <Button variant="contained" onClick={handleConfirmAddPayment} disabled={addTxLoading} sx={{ bgcolor: "#00A76F", "&:hover": { bgcolor: "#007B55" } }}>
+            {addTxLoading ? "Đang xử lý..." : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>

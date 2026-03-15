@@ -60,6 +60,13 @@ public class Payment extends BaseEntity {
     @Column(name = "failed_at")
     private Instant failedAt;
 
+    /** Mã trả về từ cổng (PayOS: 00=thành công, 07=đã hủy, ...) */
+    @Column(name = "gateway_response_code", length = 20)
+    private String gatewayResponseCode;
+
+    /** JSON payload webhook đã verify, lưu để đối soát và debug */
+    @Column(name = "gateway_raw_payload", columnDefinition = "TEXT")
+    private String gatewayRawPayload;
 
     public boolean isAlreadyCompleted() {
         return this.status == PaymentStatusEnum.COMPLETED;

@@ -135,6 +135,8 @@ public class PaymentApplicationService implements PaymentService {
 
         try {
             payment.complete(gateway.getDisplayName());
+            payment.setGatewayResponseCode(result.gatewayResponseCode());
+            payment.setGatewayRawPayload(result.rawPayload());
             paymentRepositoryPort.save(payment);
 
             Order order = payment.getOrder();
@@ -157,6 +159,8 @@ public class PaymentApplicationService implements PaymentService {
                         payment -> {
                             try {
                                 payment.fail(result.message());
+                                payment.setGatewayResponseCode(result.gatewayResponseCode());
+                                payment.setGatewayRawPayload(result.rawPayload());
                                 paymentRepositoryPort.save(payment);
                                 log.warn(PaymentConstants.Messages.LOG_PAYMENT_FAILED_WARN,
                                         gateway, result.transactionId());
