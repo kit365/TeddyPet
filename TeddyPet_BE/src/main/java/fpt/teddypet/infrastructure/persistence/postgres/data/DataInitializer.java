@@ -34,8 +34,15 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${data.init.user.password:1}")
     private String userPassword;
 
+    @Value("${data.init.enabled:true}")
+    private boolean isDataInitEnabled;
+
     @Override
     public void run(String... args) {
+        if (!isDataInitEnabled) {
+            log.info("⏭️ Data initialization is disabled.");
+            return;
+        }
         initializeRoles();
         initializeUsers();
     }

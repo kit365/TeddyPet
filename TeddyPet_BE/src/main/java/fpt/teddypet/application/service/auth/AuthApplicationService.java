@@ -447,6 +447,7 @@ public class AuthApplicationService implements AuthService {
                     "public_id", "google_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12),
                     "overwrite", true
             ));
+            log.info("[AuthService] Tải ảnh đại diện thành công. URL: {}", uploadResult.get("secure_url"));
             return (String) uploadResult.get("secure_url");
         } catch (Exception e) {
             log.error("[AuthService] Lỗi khi tải ảnh đại diện lên Cloudinary: {}", e.getMessage());

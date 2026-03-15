@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS time_slot_bookings (
 );
 
 -- Create index for faster lookups
-CREATE INDEX idx_time_slot_bookings_booking_date ON time_slot_bookings(booking_date);
-CREATE INDEX idx_time_slot_bookings_time_slot_id ON time_slot_bookings(time_slot_id);
-CREATE INDEX idx_time_slot_bookings_service_id ON time_slot_bookings(service_id);
-CREATE INDEX idx_time_slot_bookings_booking_pet_service_id ON time_slot_bookings(booking_pet_service_id);
+CREATE INDEX IF NOT EXISTS idx_time_slot_bookings_booking_date ON time_slot_bookings(booking_date);
+CREATE INDEX IF NOT EXISTS idx_time_slot_bookings_time_slot_id ON time_slot_bookings(time_slot_id);
+CREATE INDEX IF NOT EXISTS idx_time_slot_bookings_service_id ON time_slot_bookings(service_id);
+CREATE INDEX IF NOT EXISTS idx_time_slot_bookings_booking_pet_service_id ON time_slot_bookings(booking_pet_service_id);

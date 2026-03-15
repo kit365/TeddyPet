@@ -51,7 +51,7 @@ BEGIN
     END IF;
 END $$;
 
-DROP TABLE staff_profiles_hire_date_backup CASCADE;
+DROP TABLE IF EXISTS staff_profiles_hire_date_backup CASCADE;
 
 ALTER TABLE users
 DROP COLUMN IF EXISTS has_password;

@@ -19,6 +19,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     @EntityGraph(attributePaths = { "orderItems", "user", "payments" })
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     List<Order> findAllForExcelExport();
+    
+    @EntityGraph(attributePaths = { "orderItems", "user", "payments" })
+    @Query("SELECT o FROM Order o WHERE o.id = :id")
+    Optional<Order> findByIdWithDetails(UUID id);
 
     Optional<Order> findByOrderCode(String orderCode);
 
