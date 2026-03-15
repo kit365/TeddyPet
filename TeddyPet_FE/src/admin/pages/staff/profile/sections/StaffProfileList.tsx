@@ -226,6 +226,42 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
         ),
     },
     {
+        field: 'roleName',
+        headerName: 'Quyền hạn',
+        minWidth: 120,
+        flex: 0.8,
+        renderCell: (params) => {
+            const role = params.value as string;
+            if (!role) return <span style={{ fontSize: '0.875rem', color: '#919EAB' }}>—</span>;
+
+            const getRoleStyles = (r: string) => {
+                if (r === 'SUPER_ADMIN') return { bg: 'rgba(255, 86, 48, 0.16)', color: '#B71D18' };
+                if (r === 'ADMIN') return { bg: 'rgba(0, 184, 217, 0.16)', color: '#006C9C' };
+                if (r === 'STAFF') return { bg: 'rgba(34, 197, 94, 0.16)', color: '#118D57' };
+                return { bg: 'rgba(145, 158, 171, 0.16)', color: '#637381' };
+            };
+
+            const styles = getRoleStyles(role);
+
+            return (
+                <Box
+                    sx={{
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        bgcolor: styles.bg,
+                        color: styles.color,
+                        display: 'inline-flex',
+                    }}
+                >
+                    {role}
+                </Box>
+            );
+        },
+    },
+    {
         field: 'employmentType',
         headerName: 'Loại hình',
         minWidth: 150,

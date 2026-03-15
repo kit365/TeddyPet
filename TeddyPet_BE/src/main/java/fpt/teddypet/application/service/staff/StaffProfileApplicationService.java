@@ -441,6 +441,37 @@ public class StaffProfileApplicationService implements StaffProfileService {
     }
 
     @Override
+    @Transactional
+    public StaffProfileResponse updateRole(Long staffId, String roleName) {
+        StaffProfile staff = getActiveById(staffId);
+        if (staff.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nhân viên chưa có tài khoản để cập nhật quyền.");
+        }
+
+        Role role = roleService.findByName(roleName);
+        
+        // Security check
+        if (RoleEnum.ADMIN.name().equals(role.getName()) || RoleEnum.SUPER_ADMIN.name().equals(role.getName())) {
+            User currentUser = authService.getCurrentUser();
+            if (!RoleEnum.SUPER_ADMIN.name().equals(currentUser.getRole().getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ Super Admin mới được phép cấp quyền Admin.");
+            }
+        }
+
+        User user = staff.getUser();
+        user.setRole(role);
+        userRepositoryPort.save(user);
+
+        // Update whitelist if exists
+        adminGoogleWhitelistPort.findByEmail(staff.getEmail().toLowerCase().trim()).ifPresent(w -> {
+            w.setRole(roleName);
+            adminGoogleWhitelistPort.save(w);
+        });
+
+        return toResponse(staff);
+    }
+
+    @Override
     public List<StaffProfileResponse> getAllActive() {
         return staffProfileRepositoryPort.findAllActive()
                 .stream()
@@ -508,6 +539,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 staff.getEmploymentType(),
                 staff.getBackupEmail(),
                 whitelistStatus,
+                user != null && user.getRole() != null ? user.getRole().getName() : null,
                 staff.isActive());
     }
 

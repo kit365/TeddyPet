@@ -409,7 +409,7 @@ public class ProductApplicationService implements ProductService {
             ProductResponse r = productMapper.toResponse(p);
             StockStatusEnum computed = computeStockStatus(p.getId());
             return new ProductResponse(r.productId(), r.slug(), r.name(), r.minPrice(), r.maxPrice(),
-                    r.status(), r.productType(), computed, r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
+                    r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
         });
 
         log.info("Found {} products (page {} of {})",

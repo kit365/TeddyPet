@@ -22,7 +22,7 @@ export const DashboardHome = () => {
     const role = (meRes as any)?.data?.role;
 
     if (role === "ADMIN" || role === "SUPER_ADMIN") {
-        return <Navigate to={`/${prefixAdmin}/dashboard/ecommerce`} replace />;
+        return <Navigate to={`/${prefixAdmin}/dashboard/system`} replace />;
     }
 
     if (role === "STAFF") {

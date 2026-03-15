@@ -125,14 +125,15 @@ public class DashboardService {
         public DashboardStatsResponse getStats() {
                 var allOrders = orderRepository.findAll();
                 BigDecimal orderRevenue = allOrders.stream()
-                                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
-                                                || o.getStatus() == OrderStatusEnum.DELIVERED)
-                                .map(o -> o.getFinalAmount() != null ? o.getFinalAmount() : BigDecimal.ZERO)
+                                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
+                                                && o.getStatus() != OrderStatusEnum.RETURNED
+                                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
+                                .map(o -> resolveOrderAmount(o))
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 var allBookings = bookingRepository.findAll();
                 BigDecimal bookingRevenue = allBookings.stream()
-                                .filter(b -> "COMPLETED".equalsIgnoreCase(b.getStatus()) || "FINISHED".equalsIgnoreCase(b.getStatus()))
+                                .filter(b -> !"CANCELLED".equalsIgnoreCase(b.getStatus()))
                                 .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -142,9 +143,11 @@ public class DashboardService {
                 long totalCustomers = userRepository.count();
                 long totalAdminAccounts = userRepository.countByRole_NameIn(List.of("ADMIN", "STAFF", "SUPER_ADMIN"));
 
-                // Sold products count - only from completed/delivered orders
+                // Sold products count - include all orders that are not cancelled or returned
                 long totalProductsSold = allOrders.stream()
-                                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED || o.getStatus() == OrderStatusEnum.DELIVERED)
+                                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
+                                                && o.getStatus() != OrderStatusEnum.RETURNED
+                                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
                                 .flatMap(o -> o.getOrderItems().stream())
                                 .mapToLong(OrderItem::getQuantity)
                                 .sum();
@@ -185,15 +188,13 @@ public class DashboardService {
 
                 BigDecimal todayRevenue = todayOrderRevenue.add(todayBookingRevenue);
 
-                // Low stock products
-                long lowStockCount = productRepository.findAll().stream()
-                                .filter(p -> p.getStockStatus() == fpt.teddypet.domain.enums.StockStatusEnum.LOW_STOCK
-                                                || p.getStockStatus() == fpt.teddypet.domain.enums.StockStatusEnum.OUT_OF_STOCK)
-                                .count();
+                // Low stock products - optimized
+                long lowStockCount = productRepository.countByStockStatusAndIsDeletedFalse(fpt.teddypet.domain.enums.StockStatusEnum.LOW_STOCK)
+                                + productRepository.countByStockStatusAndIsDeletedFalse(fpt.teddypet.domain.enums.StockStatusEnum.OUT_OF_STOCK);
 
                 // Today's bookings
-                long todayBookings = bookingPetServiceRepository.findAll().stream()
-                                .filter(bps -> isInToday(bps.getScheduledStartTime(), startOfDay, endOfDay, serverZone))
+                long todayBookings = allBookings.stream()
+                                .filter(b -> isInToday(b.getCreatedAt(), startOfDay, endOfDay, serverZone))
                                 .count();
 
                 return new DashboardStatsResponse(
@@ -343,7 +344,7 @@ public class DashboardService {
                                         ProductResponse r = productMapper.toResponse(p);
                                         StockStatusEnum computed = productApplicationService.computeStockStatus(p.getId());
                                         return new ProductResponse(r.productId(), r.slug(), r.name(), r.minPrice(), r.maxPrice(),
-                                                        r.status(), r.productType(), computed, r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
+                                                        r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
                                 })
                                 .toList();
         }

@@ -22,7 +22,6 @@ import { SetupPasswordPage } from "../pages/authen/SetupPasswordPage";
 import { AnalyticsPage } from "../pages/dashboard/AnalyticsPage";
 import { DashboardHome } from "../pages/dashboard/DashboardHome";
 import { SystemPage } from "../pages/dashboard/SystemPage";
-import { EcommercePage } from "../pages/dashboard/EcommercePage";
 import { ProductAttributeListPage } from "../pages/product-attribute/ProductAttributeListPage";
 import { ProductAttributeCreatePage } from "../pages/product-attribute/ProductAttributeCreatePage";
 import { ProductAttributeEditPage } from "../pages/product-attribute/ProductAttributeEditPage";
@@ -101,7 +100,6 @@ export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
     { path: "dashboard/analytics", element: <AnalyticsPage /> },
     { path: "dashboard/system", element: <SystemPage /> },
-    { path: "dashboard/ecommerce", element: <EcommercePage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "calendar", element: <AdminOnlyGuard><CalendarPage /></AdminOnlyGuard> },
     { path: "product/list", element: <AdminOnlyGuard><ProductListPage /></AdminOnlyGuard> },

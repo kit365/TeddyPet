@@ -41,6 +41,7 @@ public record ProductDetailResponse(
                 String metaDescription,
                 String origin,
                 String material,
+                List<fpt.teddypet.domain.enums.PetTypeEnum> petTypes,
                 ProductStatusEnum status,
                 ProductTypeEnum productType,
                 StockStatusEnum stockStatus,
