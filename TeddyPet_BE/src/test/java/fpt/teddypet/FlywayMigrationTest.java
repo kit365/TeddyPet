@@ -12,6 +12,13 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest
 @ActiveProfiles("ci")
+@TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=MONTH",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 class FlywayMigrationTest {
 
     @Test
