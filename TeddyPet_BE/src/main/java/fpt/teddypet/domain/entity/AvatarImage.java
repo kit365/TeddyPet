@@ -24,7 +24,11 @@ public class AvatarImage extends BaseEntity {
     private String altText;
 
     @Column(length = 100)
-    private String category; // "USER", "PET"
+    private String category; // "USER", "PET", "STAFF"
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user; // Non-null for category USER: avatar history of this user
 
     @Column(nullable = false)
     @Builder.Default

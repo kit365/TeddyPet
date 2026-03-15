@@ -239,6 +239,31 @@ public class ProductApplicationService implements ProductService {
                 productId, product.getMinPrice(), product.getMaxPrice(), product.getStockStatus());
     }
 
+    /**
+     * Tính trạng thái kho từ biến thể (không ghi DB).
+     * Dùng khi trả API để đảm bảo stockStatus khớp với tổng tồn thực tế.
+     */
+    @Transactional(readOnly = true)
+    public StockStatusEnum computeStockStatus(Long productId) {
+        List<ProductVariant> variants = productVariantRepositoryPort.findByProductId(productId);
+        if (variants == null || variants.isEmpty()) {
+            return StockStatusEnum.OUT_OF_STOCK;
+        }
+        List<ProductVariant> activeVariants = variants.stream()
+                .filter(v -> !v.isDeleted() && v.isActive() && ProductStatusEnum.ACTIVE.equals(v.getStatus()))
+                .toList();
+        int totalStock = activeVariants.stream()
+                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity().getValue() : 0)
+                .sum();
+        if (totalStock <= 0) {
+            return StockStatusEnum.OUT_OF_STOCK;
+        }
+        if (totalStock <= 10) {
+            return StockStatusEnum.LOW_STOCK;
+        }
+        return StockStatusEnum.IN_STOCK;
+    }
+
     private void createDefaultVariant(Product product) {
         log.info("Creating default variant for simple product: {}", product.getName());
         productVariantService.saveVariants(new ProductVariantSaveRequest(
@@ -310,6 +335,7 @@ public class ProductApplicationService implements ProductService {
                 .images(productImageService.toInfos(product.getImages(), false, false))
                 .variants(productVariantService.getByProductId(product.getId(), false, false))
                 .brand(productBrandService.toInfo(product.getBrand(), false, false))
+                .stockStatus(computeStockStatus(product.getId()))
                 .build();
     }
 
@@ -379,7 +405,12 @@ public class ProductApplicationService implements ProductService {
 
         Page<Product> productPage = productRepositoryPort.findAll(combinedSpec, pageable);
 
-        Page<ProductResponse> productResponsePage = productPage.map(productMapper::toResponse);
+        Page<ProductResponse> productResponsePage = productPage.map(p -> {
+            ProductResponse r = productMapper.toResponse(p);
+            StockStatusEnum computed = computeStockStatus(p.getId());
+            return new ProductResponse(r.productId(), r.slug(), r.name(), r.minPrice(), r.maxPrice(),
+                    r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
+        });
 
         log.info("Found {} products (page {} of {})",
                 productPage.getTotalElements(), request.page(), productPage.getTotalPages());

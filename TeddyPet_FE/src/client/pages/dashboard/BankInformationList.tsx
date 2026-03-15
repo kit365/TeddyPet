@@ -141,11 +141,10 @@ export const BankInformationListPage = () => {
                       {item.bankName} ({item.bankCode})
                     </div>
                     <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[1.1rem] font-black uppercase tracking-widest border ${
-                        item.isVerify
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                          : "bg-amber-50 text-amber-700 border-amber-100"
-                      }`}
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[1.1rem] font-black uppercase tracking-widest border ${item.isVerify
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-amber-50 text-amber-700 border-amber-100"
+                        }`}
                     >
                       {item.isVerify ? <BadgeCheck size={16} /> : <BadgeX size={16} />}
                       {item.isVerify ? "Đã xác thực" : "Chưa xác thực"}

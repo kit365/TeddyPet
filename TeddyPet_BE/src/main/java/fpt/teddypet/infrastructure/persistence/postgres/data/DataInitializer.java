@@ -13,6 +13,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Slf4j
 @Component
 @Order(1) // Run first
@@ -81,8 +83,6 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializeUsers() {
-        // Use repository directly here since we're in infrastructure layer
-        // In application layer, use RoleService.getByName() instead
         Role adminRole = roleRepository.findByName(RoleEnum.ADMIN.name())
                 .orElseThrow(() -> new RuntimeException("ADMIN role not found. Please initialize roles first."));
 
@@ -92,8 +92,19 @@ public class DataInitializer implements CommandLineRunner {
         Role staffRole = roleRepository.findByName(RoleEnum.STAFF.name())
                 .orElseThrow(() -> new RuntimeException("STAFF role not found. Please initialize roles first."));
 
-        // Create admin user if not exists
-        if (!userService.existsByEmail("admin@gmail.com")) {
+        Role superAdminRole = roleRepository.findByName(RoleEnum.SUPER_ADMIN.name())
+                .orElseThrow(() -> new RuntimeException("SUPER_ADMIN role not found. Please initialize roles first."));
+
+        // Manage admin@gmail.com - Ensure it exists and has SUPER_ADMIN role
+        Optional<User> adminOpt = userService.findByEmail("admin@gmail.com");
+        if (adminOpt.isPresent()) {
+            User existingAdmin = adminOpt.get();
+            if (!existingAdmin.getRole().getName().equals(RoleEnum.SUPER_ADMIN.name())) {
+                existingAdmin.setRole(superAdminRole);
+                userService.save(existingAdmin);
+                log.info("✅ Updated admin user to SUPER_ADMIN (email: admin@gmail.com)");
+            }
+        } else {
             User adminUser = User.builder()
                     .username("admin")
                     .email("admin@gmail.com")
@@ -103,10 +114,10 @@ public class DataInitializer implements CommandLineRunner {
                     .phoneNumber("0123456789")
                     .gender(fpt.teddypet.domain.enums.GenderEnum.MALE)
                     .dateOfBirth(java.time.LocalDate.of(1990, 1, 1))
-                    .role(adminRole)
+                    .role(superAdminRole)
                     .build();
             userService.save(adminUser);
-            log.info("✅ Created admin user (email: admin@gmail.com)");
+            log.info("✅ Created admin user (email: admin@gmail.com) with SUPER_ADMIN role");
         }
 
         // Create regular user if not exists

@@ -27,6 +27,7 @@ public record StaffProfileResponse(
         EmploymentTypeEnum employmentType,
         String backupEmail,
         String googleWhitelistStatus, // PENDING, ACCEPTED, EXPIRED, null
+        String roleName,           // Vai trò hệ thống
         boolean active
 ) {
 }

@@ -8,6 +8,8 @@ interface FormUploadSingleFileProps {
     compact?: boolean;
     /** Nhãn hiển thị phía trên (mặc định: "Hình ảnh") */
     title?: string;
+    /** Thư mục trên Cloudinary */
+    folder?: string;
 }
 
 export const FormUploadSingleFile = ({
@@ -16,6 +18,7 @@ export const FormUploadSingleFile = ({
     disabled,
     compact = false,
     title = 'Hình ảnh',
+    folder = 'teddypet'
 }: FormUploadSingleFileProps) => {
     return (
         <Controller
@@ -29,6 +32,7 @@ export const FormUploadSingleFile = ({
                     error={fieldState.error?.message}
                     compact={compact}
                     title={title}
+                    folder={folder}
                 />
             )}
         />

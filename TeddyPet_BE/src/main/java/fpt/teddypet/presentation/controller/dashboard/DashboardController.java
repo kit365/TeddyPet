@@ -88,9 +88,46 @@ public class DashboardController {
     }
 
     @GetMapping("/service-statistics")
-    public ResponseEntity<ApiResponse<List<ServiceStatisticsResponse>>> getServiceStatistics() {
+    public ResponseEntity<ApiResponse<ServiceStatisticsWithComparisonResponse>> getServiceStatistics(
+            @RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Service statistics retrieved successfully",
-                dashboardService.getServiceStatistics()));
+                dashboardService.getServiceStatistics(year)));
+    }
+
+    @GetMapping("/visits-by-region")
+    public ResponseEntity<ApiResponse<VisitsByRegionResponse>> getVisitsByRegion() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Visits by region retrieved successfully",
+                dashboardService.getVisitsByRegion()));
+    }
+
+    @GetMapping("/customer-growth")
+    public ResponseEntity<ApiResponse<CustomerGrowthResponse>> getCustomerGrowth() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Customer growth retrieved successfully",
+                dashboardService.getCustomerGrowth()));
+    }
+
+    @GetMapping("/top-selling-products")
+    public ResponseEntity<ApiResponse<List<TopSellingProductResponse>>> getTopSellingProducts(
+            @RequestParam(required = false) Integer days) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Top selling products retrieved successfully",
+                dashboardService.getTopSellingProducts(days)));
+    }
+
+    @GetMapping("/rating-summary")
+    public ResponseEntity<ApiResponse<RatingSummaryResponse>> getRatingSummary() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Rating summary retrieved successfully",
+                dashboardService.getRatingSummary()));
+    }
+
+    @GetMapping("/top-staff")
+    public ResponseEntity<ApiResponse<List<TopStaffResponse>>> getTopStaff() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Top staff retrieved successfully",
+                dashboardService.getTopStaff()));
     }
 }

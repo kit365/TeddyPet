@@ -7,6 +7,7 @@ import {
     updateStaffProfile,
     deactivateStaff,
     reactivateStaff,
+    updateStaffRole,
     type IStaffOnboardingRequest,
     type IStaffProfileUpdateRequest,
     type IAccountProvisionRequest,
@@ -84,5 +85,17 @@ export const useReactivateStaff = () => {
 export const useResendGoogleInvitation = () => {
     return useMutation({
         mutationFn: (email: string) => resendGoogleInvitation(email),
+    });
+};
+
+export const useUpdateStaffRole = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ staffId, roleName }: { staffId: number; roleName: string }) =>
+            updateStaffRole(staffId, roleName),
+        onSuccess: (_, { staffId }) => {
+            qc.invalidateQueries({ queryKey: ['staff-profiles'] });
+            qc.invalidateQueries({ queryKey: ['staff-profile', staffId] });
+        },
     });
 };

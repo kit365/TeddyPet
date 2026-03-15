@@ -14,6 +14,8 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import fpt.teddypet.application.port.output.AdminGoogleWhitelistPort;
 import jakarta.annotation.PostConstruct;
 import java.util.Collections;
@@ -65,6 +67,7 @@ public class AuthApplicationService implements AuthService {
     private final VerificationTokenPort verificationTokenPort;
     private final EmailServicePort emailServicePort;
     private final AdminGoogleWhitelistPort adminGoogleWhitelistPort;
+    private final Cloudinary cloudinary;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -385,9 +388,6 @@ public class AuthApplicationService implements AuthService {
             boolean isWhitelistedForGoogle = !assignedRole.equals(RoleEnum.USER.name());
 
             // Case: Invited Staff/Admin (Pending). 
-            // They MUST verify via the original invitation link (token) first.
-            // This is because the token acts as an "Approval/Acceptance" of the invitation.
-            // Even if whitelisted for Google, a pending invitation must still be accepted manually via the token link.
             if (user.getStatus() == UserStatusEnum.PENDING_VERIFICATION && isStaffInDb) {
                 log.warn("[AuthService] Một tài khoản nhân viên chưa kích hoạt ({}) cố tình dùng Google để bỏ qua bước xác thực lời mời.", email);
                 throw new IllegalArgumentException("Tài khoản này đang trong trạng thái chờ kích hoạt (Lời mời nhân viên). Vui lòng xác thực qua liên kết trong email mời của bạn để chính thức 'Chấp thuận tham gia hệ thống' trước khi sử dụng Google Login.");
@@ -399,18 +399,17 @@ public class AuthApplicationService implements AuthService {
             // Update profile info
             user.setFirstName(fixedFirstName);
             user.setLastName(fixedLastName);
-            user.setAvatarUrl(avatarUrl);
+            // Only upload if the avatar has changed or wasn't uploaded before
+            if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
+                user.setAvatarUrl(uploadAvatarToCloudinary(avatarUrl));
+            }
             
-            // Role assignment logic:
-            // 1. If whitelisted for Google -> Upgrade/Assign to that privileged role
-            // 2. If currently a plain USER -> Can be assigned/updated to USER (default)
-            // 3. Otherwise (is a Staff not in Google Whitelist) -> DO NOT downgrade role to USER
+            // Role assignment logic
             if (isWhitelistedForGoogle || user.getRole().getName().equals(RoleEnum.USER.name())) {
                 Role newRole = roleService.findByName(assignedRole);
                 user.setRole(newRole);
             }
             
-            // Respect user's wish: if already exists, don't force change unless already set
             if (user.getMustChangePassword() == null) {
                 user.setMustChangePassword(false);
             }
@@ -426,7 +425,7 @@ public class AuthApplicationService implements AuthService {
                     .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
                     .firstName(fixedFirstName)
                     .lastName(fixedLastName)
-                    .avatarUrl(avatarUrl)
+                    .avatarUrl(uploadAvatarToCloudinary(avatarUrl))
                     .status(UserStatusEnum.ACTIVE)
                     .role(role)
                     .mustChangePassword(true) // Force setup for completely new accounts
@@ -435,6 +434,25 @@ public class AuthApplicationService implements AuthService {
         }
 
         return generateTokenResponse(user);
+    }
+
+    private String uploadAvatarToCloudinary(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return null;
+        }
+        try {
+            log.info("[AuthService] Đang tải ảnh đại diện lên Cloudinary từ URL: {}", avatarUrl);
+            java.util.Map uploadResult = cloudinary.uploader().upload(avatarUrl, ObjectUtils.asMap(
+                    "folder", "user-avatars",
+                    "public_id", "google_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12),
+                    "overwrite", true
+            ));
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            log.error("[AuthService] Lỗi khi tải ảnh đại diện lên Cloudinary: {}", e.getMessage());
+            // Return original URL if upload fails
+            return avatarUrl;
+        }
     }
 
     @Override

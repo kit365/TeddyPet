@@ -22,7 +22,6 @@ import { SetupPasswordPage } from "../pages/authen/SetupPasswordPage";
 import { AnalyticsPage } from "../pages/dashboard/AnalyticsPage";
 import { DashboardHome } from "../pages/dashboard/DashboardHome";
 import { SystemPage } from "../pages/dashboard/SystemPage";
-import { EcommercePage } from "../pages/dashboard/EcommercePage";
 import { ProductAttributeListPage } from "../pages/product-attribute/ProductAttributeListPage";
 import { ProductAttributeCreatePage } from "../pages/product-attribute/ProductAttributeCreatePage";
 import { ProductAttributeEditPage } from "../pages/product-attribute/ProductAttributeEditPage";
@@ -75,6 +74,7 @@ import { StaffPositionEditPage } from "../pages/staff/position/StaffPositionEdit
 import { StaffProfileListPage } from "../pages/staff/profile/StaffProfileListPage";
 import { StaffProfileOnboardingPage } from "../pages/staff/profile/StaffProfileOnboardingPage";
 import { StaffProfileEditPage } from "../pages/staff/profile/StaffProfileEditPage";
+import { StaffProfileDetailPage } from "../pages/staff/profile/StaffProfileDetailPage";
 import { ContractListPage } from "../pages/staff/contract/ContractListPage";
 import { ContractCreatePage } from "../pages/staff/contract/ContractCreatePage";
 import { ContractEditPage } from "../pages/staff/contract/ContractEditPage";
@@ -100,7 +100,6 @@ export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
     { path: "dashboard/analytics", element: <AnalyticsPage /> },
     { path: "dashboard/system", element: <SystemPage /> },
-    { path: "dashboard/ecommerce", element: <EcommercePage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "calendar", element: <AdminOnlyGuard><CalendarPage /></AdminOnlyGuard> },
     { path: "product/list", element: <AdminOnlyGuard><ProductListPage /></AdminOnlyGuard> },
@@ -171,6 +170,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "amenity-category/create", element: <AdminOnlyGuard><AmenityCategoryCreatePage /></AdminOnlyGuard> },
     { path: "amenity-category/edit/:id", element: <AdminOnlyGuard><AmenityCategoryEditPage /></AdminOnlyGuard> },
     { path: "staff/profile/list", element: <AdminOnlyGuard><StaffProfileListPage /></AdminOnlyGuard> },
+    { path: "staff/profile/detail/:id", element: <AdminOnlyGuard><StaffProfileDetailPage /></AdminOnlyGuard> },
     { path: "staff/profile/onboarding", element: <AdminOnlyGuard><StaffProfileOnboardingPage /></AdminOnlyGuard> },
     { path: "staff/profile/edit/:id", element: <AdminOnlyGuard><StaffProfileEditPage /></AdminOnlyGuard> },
     { path: "staff/position/list", element: <AdminOnlyGuard><StaffPositionListPage /></AdminOnlyGuard> },

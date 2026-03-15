@@ -36,7 +36,7 @@ export const SetupPasswordPage = () => {
         if (meRes?.data && meRes.data.mustChangePassword === false) {
             const role = meRes.data.role;
             let target = "/admin/dashboard/analytics";
-            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/system";
             else if (role === "STAFF") target = "/admin/staff/dashboard";
             navigate(target, { replace: true });
         }
@@ -73,7 +73,7 @@ export const SetupPasswordPage = () => {
             
             const role = user?.role;
             let target = "/admin/dashboard/analytics";
-            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/ecommerce";
+            if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/system";
             else if (role === "STAFF") target = "/admin/staff/dashboard";
             
             navigate(target, { replace: true });

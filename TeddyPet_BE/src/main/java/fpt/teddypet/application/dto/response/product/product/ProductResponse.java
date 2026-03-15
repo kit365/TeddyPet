@@ -21,6 +21,7 @@ public record ProductResponse(
         ProductStatusEnum status,
         ProductTypeEnum productType,
         StockStatusEnum stockStatus,
+        List<fpt.teddypet.domain.enums.PetTypeEnum> petTypes,
         List<ProductCategoryInfo> categories,
         List<ProductTagInfo> tags,
         ProductBrandInfo brand,

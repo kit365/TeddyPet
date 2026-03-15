@@ -304,21 +304,43 @@ export const useAdminNotification = (autoConnect = true) => {
                     });
                     console.log(`✅ Subscribed to Admin orders topic`);
 
-                    // 3. Role-based Dashboard Topics
+                    // 3. Role-based Dashboard: mỗi section 1 subscription riêng (1 die không ảnh hưởng section khác)
                     const isAdmin = roleName === "ADMIN";
-                    const dashboardTopic = isAdmin ? '/topic/dashboard/stats' : '/topic/dashboard/staff-stats';
-                    const dashboardEvent = isAdmin ? 'DASHBOARD_STATS_UPDATED' : 'STAFF_DASHBOARD_STATS_UPDATED';
+                    const subscribeSection = (topic: string, eventName: string) => {
+                        client.subscribe(topic, (message) => {
+                            try {
+                                const payload = JSON.parse(message.body);
+                                window.dispatchEvent(new CustomEvent(eventName, { detail: payload }));
+                            } catch (e) {
+                                console.warn(`[Dashboard] Parse error for ${topic}`, e);
+                            }
+                        });
+                    };
 
-                    client.subscribe(dashboardTopic, (message) => {
-                        try {
-                            const stats = JSON.parse(message.body);
-                            console.log(`📨 [Dashboard-Topic] Stats received from ${dashboardTopic}:`, stats);
-                            window.dispatchEvent(new CustomEvent(dashboardEvent, { detail: stats }));
-                        } catch (e) {
-                            console.error("Error parsing dashboard stats", e);
-                        }
-                    });
-                    console.log(`✅ Subscribed to Dashboard topic: ${dashboardTopic}`);
+                    const subscribeStats = () => {
+                        client.subscribe('/topic/dashboard/stats', (message) => {
+                            try {
+                                const payload = JSON.parse(message.body);
+                                window.dispatchEvent(new CustomEvent('DASHBOARD_SECTION_STATS', { detail: payload }));
+                                window.dispatchEvent(new CustomEvent('DASHBOARD_STATS_UPDATED', { detail: payload }));
+                            } catch (e) {
+                                console.warn('[Dashboard] Parse error for stats', e);
+                            }
+                        });
+                    };
+                    if (isAdmin) {
+                        subscribeStats();
+                        subscribeSection('/topic/dashboard/revenue-chart', 'DASHBOARD_SECTION_REVENUE_CHART');
+                        subscribeSection('/topic/dashboard/sales-by-category', 'DASHBOARD_SECTION_SALES_BY_CATEGORY');
+                        subscribeSection('/topic/dashboard/top-customers', 'DASHBOARD_SECTION_TOP_CUSTOMERS');
+                        subscribeSection('/topic/dashboard/latest-products', 'DASHBOARD_SECTION_LATEST_PRODUCTS');
+                        subscribeSection('/topic/dashboard/pet-distribution', 'DASHBOARD_SECTION_PET_DISTRIBUTION');
+                        subscribeSection('/topic/dashboard/service-statistics', 'DASHBOARD_SECTION_SERVICE_STATISTICS');
+                        console.log('✅ Subscribed to 7 dashboard section topics (admin)');
+                    } else {
+                        subscribeStats();
+                    }
+                    subscribeSection('/topic/dashboard/staff-stats', 'STAFF_DASHBOARD_STATS_UPDATED');
                 }
             },
             onStompError: (frame) => {

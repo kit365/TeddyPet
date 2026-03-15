@@ -75,6 +75,8 @@ export interface UpdateProfilePayload {
     dateOfBirth?: string;
     gender?: string;
     optionalEmail?: string;
+    avatarUrl?: string;
+    altImage?: string;
 }
 
 export type UpdateProfileResponse = ApiResponse<UserProfileResponse>;

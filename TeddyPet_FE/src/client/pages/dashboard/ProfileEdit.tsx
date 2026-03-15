@@ -1,21 +1,25 @@
-﻿import { ArrowRight, User, Bell, Phone, Calendar } from "lucide-react";
+import { ArrowRight, User, Bell, Phone, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { useState, useEffect } from "react";
+import { updateProfile } from "../../../api/user.api";
+
 
 export const ProfileEditPage = () => {
-    const { user } = useAuthStore();
+    const { user, set } = useAuthStore();
     const navigate = useNavigate();
+
 
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
         phoneNumber: "",
-        dateOfBirth: ""
+        dateOfBirth: "",
     });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -24,7 +28,7 @@ export const ProfileEditPage = () => {
                 lastName: user.lastName || "",
                 email: user.email || "",
                 phoneNumber: user.phoneNumber || "",
-                dateOfBirth: user.dateOfBirth || ""
+                dateOfBirth: user.dateOfBirth || "",
             });
         }
     }, [user]);
@@ -35,12 +39,33 @@ export const ProfileEditPage = () => {
         { label: "Chỉnh sửa thông tin", to: `/dashboard/profile/edit` },
     ];
 
-    const onSubmit = (e: React.FormEvent) => {
+
+
+    const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Logic call API cập nhật ở đây
-        toast.success("Cập nhật thông tin thành công!");
-        navigate("/dashboard/profile");
+        setSaving(true);
+        try {
+            const res = await updateProfile({
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                phoneNumber: formData.phoneNumber.trim() || undefined,
+                dateOfBirth: formData.dateOfBirth || undefined,
+            });
+            if (res.success && res.data) {
+                set({ user: res.data });
+                toast.success("Cập nhật thông tin thành công!");
+                navigate("/dashboard/profile");
+            } else {
+                toast.error(res.message || "Cập nhật thất bại");
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Cập nhật thất bại");
+        } finally {
+            setSaving(false);
+        }
     };
+
+
 
     if (!user) return null;
 
@@ -57,6 +82,8 @@ export const ProfileEditPage = () => {
                 </div>
 
                 <form onSubmit={onSubmit} className="space-y-10">
+
+
                     <div className="grid grid-cols-2 gap-10">
                         {/* HỌ */}
                         <div className="flex flex-col gap-4">
@@ -134,9 +161,10 @@ export const ProfileEditPage = () => {
                     <div className="flex items-center gap-4 pt-10 border-t border-slate-50">
                         <button
                             type="submit"
-                            className="flex items-center gap-3 bg-client-primary text-white px-12 py-5 rounded-3xl font-black text-[0.875rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20 active:scale-95"
+                            disabled={saving}
+                            className="flex items-center gap-3 bg-client-primary text-white px-12 py-5 rounded-3xl font-black text-[0.875rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20 active:scale-95 disabled:opacity-60"
                         >
-                            Lưu thay đổi <ArrowRight size={20} />
+                            {saving ? "Đang lưu..." : "Lưu thay đổi"} <ArrowRight size={20} />
                         </button>
                         <Link
                             to="/dashboard/profile"

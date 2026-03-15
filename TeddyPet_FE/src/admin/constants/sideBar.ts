@@ -29,13 +29,6 @@ export const menuOverviewData = [
         allowedRoles: ["ADMIN", "SUPER_ADMIN"],
     },
     {
-        id: "ecommerce",
-        Icon: ShoppingCartIcon,
-        label: "Bán hàng",
-        path: `/${prefixAdmin}/dashboard/ecommerce`,
-        allowedRoles: ["ADMIN", "SUPER_ADMIN"],
-    },
-    {
         id: "staff-dashboard",
         Icon: BadgeIcon,
         label: "Bảng điều khiển",

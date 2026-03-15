@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import WelcomeWidget from "../../../components/dashboard/WelcomeWidget";
 import SummaryWidget from "../../../components/dashboard/SummaryWidget";
 import DashboardCard from "../../../components/dashboard/DashboardCard";
+import SystemAlerts from "../../../components/dashboard/SystemAlerts";
 
 // removed StaffPerformanceChart
 
@@ -104,7 +105,7 @@ export const EmployeeDashboardPage = () => {
 
     const queryClient = useQueryClient();
 
-    const { data: staffStatsRes } = useQuery({
+    const { data: staffStatsRes, refetch: refetchStaffStats } = useQuery({
         queryKey: ["staff-dashboard-stats"],
         queryFn: getStaffStats,
     });
@@ -116,9 +117,19 @@ export const EmployeeDashboardPage = () => {
             queryClient.setQueryData(["staff-dashboard-stats"], { success: true, data: event.detail });
         };
 
+        const handleOrdersRefresh = () => {
+            console.log("🔄 Staff dashboard: Refreshing stats due to order update");
+            refetchStaffStats();
+        };
+
         window.addEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
-        return () => window.removeEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
-    }, [queryClient]);
+        window.addEventListener('REFRESH_ADMIN_ORDERS', handleOrdersRefresh);
+
+        return () => {
+            window.removeEventListener('STAFF_DASHBOARD_STATS_UPDATED', handleRealtimeUpdate);
+            window.removeEventListener('REFRESH_ADMIN_ORDERS', handleOrdersRefresh);
+        };
+    }, [queryClient, refetchStaffStats]);
 
     const activeTasks = [...pendingTasks, ...inProgressTasks];
     const careTasks = activeTasks.filter((t) => t.type === "CARE");
@@ -170,6 +181,11 @@ export const EmployeeDashboardPage = () => {
                     gap: 'var(--Grid-rowSpacing) var(--Grid-columnSpacing)',
                 }}
             >
+                {/* System Alerts Row */}
+                <Grid sx={{ width: '100%', mb: 1 }}>
+                    <SystemAlerts />
+                </Grid>
+
                 {/* Welcome & Status Column */}
                 <Grid 
                     sx={{

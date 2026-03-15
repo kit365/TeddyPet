@@ -2,9 +2,12 @@ package fpt.teddypet.application.service.auth;
 
 import fpt.teddypet.application.constants.auth.AuthConstants;
 import fpt.teddypet.application.constants.user.UserLogMessages;
+import fpt.teddypet.application.dto.response.user.UserAvatarItemResponse;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.output.UserRepositoryPort;
+import fpt.teddypet.domain.entity.AvatarImage;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.AvatarImageRepository;
 import fpt.teddypet.domain.enums.RoleEnum;
 import fpt.teddypet.domain.enums.UserStatusEnum;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserApplicationService implements UserService {
     private final UserRepositoryPort userRepositoryPort;
+    private final AvatarImageRepository avatarImageRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -157,8 +161,23 @@ public class UserApplicationService implements UserService {
         user.setDateOfBirth(request.dateOfBirth());
         user.setGender(request.gender());
         user.setBackupEmail(request.optionalEmail());
+        if (request.avatarUrl() != null) {
+            user.setAvatarUrl(request.avatarUrl());
+        }
 
         User savedUser = userRepositoryPort.save(user);
+
+        if (request.avatarUrl() != null && !request.avatarUrl().isBlank()) {
+            AvatarImage avatar = AvatarImage.builder()
+                    .imageUrl(request.avatarUrl().trim())
+                    .altText(savedUser.getFirstName() != null ? "Avatar " + savedUser.getFirstName() : "User avatar")
+                    .category("USER")
+                    .user(savedUser)
+                    .isPredefined(false)
+                    .build();
+            avatarImageRepository.save(avatar);
+        }
+
         log.info("Profile updated successfully for user: {}", savedUser.getUsername());
 
         return new fpt.teddypet.application.dto.response.UserProfileResponse(
@@ -177,5 +196,16 @@ public class UserApplicationService implements UserService {
                 savedUser.getRole().getName(),
                 savedUser.getMustChangePassword() != null ? savedUser.getMustChangePassword() : false,
                 savedUser.getBackupEmail());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserAvatarItemResponse> getMyAvatarImages(User user) {
+        if (user == null || user.getId() == null) {
+            return List.of();
+        }
+        return avatarImageRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(a -> new UserAvatarItemResponse(a.getId(), a.getImageUrl()))
+                .toList();
     }
 }

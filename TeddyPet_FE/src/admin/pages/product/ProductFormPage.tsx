@@ -131,6 +131,8 @@ export const ProductFormPage = () => {
     const [simpleSku, setSimpleSku] = useState<string>("");
     const [simpleWeight, setSimpleWeight] = useState<number>(0);
     const [simpleUnit, setSimpleUnit] = useState<string>("PIECE");
+    const [name, setName] = useState<string>("");
+    const [material, setMaterial] = useState<string>("");
     const [barcode, setBarcode] = useState<string>("");
 
     // SEO States
@@ -170,6 +172,8 @@ export const ProductFormPage = () => {
         setSimpleUnit("PIECE");
         setBarcode("");
         setDescription("");
+        setName("");
+        setMaterial("");
     }, []);
 
     const populateForm = useCallback((p: any) => {
@@ -195,12 +199,14 @@ export const ProductFormPage = () => {
         setSelectedAgeIds(p.ageRanges?.map((a: any) => a.id || a.ageRangeId) || []);
         setDescription(p.description || "");
         setPetTypes(p.petTypes || ["DOG"]);
+        setName(p.name || "");
+        setMaterial(p.material || "");
         setMetaTitle(p.metaTitle || "");
         setMetaDescription(p.metaDescription || "");
 
         const productImages = p.images?.map((img: any) => ({
             id: img.id || img.imageId,
-            name: img.altText || "image",
+            name: img.alt || img.altText || "image",
             preview: img.imageUrl,
             size: 0,
             type: "image/jpeg"
@@ -246,8 +252,8 @@ export const ProductFormPage = () => {
             if (mode === 'create' && isInitializedRef.current !== 'create') {
                 isInitializedRef.current = 'create';
                 resetFormStates();
-            } else if (mode === 'edit' && product && isInitializedRef.current !== `edit-${id}`) {
-                isInitializedRef.current = `edit-${id}`;
+            } else if ((mode === 'edit' || mode === 'view') && product && isInitializedRef.current !== `${mode}-${id}`) {
+                isInitializedRef.current = `${mode}-${id}`;
                 populateForm(product);
             }
         }
@@ -649,7 +655,8 @@ export const ProductFormPage = () => {
                                         fullWidth
                                         required
                                         sx={{ flex: 2 }}
-                                        defaultValue={product?.name}
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
                                         InputProps={{ readOnly: isReadOnly }}
                                     />
                                     <Stack direction="row" gap={2} alignItems="center" sx={{ flex: 2 }}>
@@ -760,7 +767,8 @@ export const ProductFormPage = () => {
                                         label="Nguyên vật liệu"
                                         name="material"
                                         fullWidth
-                                        defaultValue={product?.material}
+                                        value={material}
+                                        onChange={(e) => setMaterial(e.target.value)}
                                         InputProps={{ readOnly: isReadOnly }}
                                     />
                                 </Stack>
@@ -827,6 +835,13 @@ export const ProductFormPage = () => {
                                             readOnly: isReadOnly,
                                             onWheel: (e) => (e.target as HTMLElement).blur()
                                         }}
+                                    />
+                                    <TextField
+                                        label="Mã SKU"
+                                        value={simpleSku}
+                                        onChange={(e) => setSimpleSku(e.target.value)}
+                                        sx={{ flex: 1, minWidth: '200px' }}
+                                        InputProps={{ readOnly: isReadOnly }}
                                     />
                                     <TextField
                                         label="Trọng lượng (gram)"

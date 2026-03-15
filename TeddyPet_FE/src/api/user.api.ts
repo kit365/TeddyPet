@@ -3,6 +3,16 @@ import { UpdateProfilePayload, UpdateProfileResponse, ChangePasswordPayload } fr
 
 const BASE_PATH = "/api/users";
 
+export interface UserAvatarItem {
+    id: number;
+    imageUrl: string;
+}
+
+export const getMyAvatarImages = async (): Promise<{ success: boolean; data?: UserAvatarItem[]; message?: string }> => {
+    const response = await apiApp.get<{ success: boolean; data?: UserAvatarItem[]; message?: string }>(`${BASE_PATH}/profile/avatars`);
+    return response.data;
+};
+
 export const updateProfile = async (data: UpdateProfilePayload): Promise<UpdateProfileResponse> => {
     const response = await apiApp.put(`${BASE_PATH}/profile`, data);
     return response.data;

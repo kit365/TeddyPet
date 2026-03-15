@@ -54,7 +54,7 @@ public class PaymentController {
         // Routing to our service
         paymentService.processPaymentCallback(
                 PaymentGatewayEnum.PAYOS,
-                webhook.getData(),
+                webhook,
                 request);
 
         return ResponseEntity.ok().build();

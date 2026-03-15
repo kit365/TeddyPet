@@ -12,16 +12,18 @@ export const ServiceStatistics = () => {
         queryFn: getServiceStatistics
     });
 
-    const data = res?.data || [];
+    // API trả về ApiResponse<ServiceStatisticsWithComparisonResponse> → payload.data hoặc payload.months
+    const payload = res != null && typeof res === 'object' && 'data' in res ? (res as { data: { months?: unknown[] } }).data : res as { months?: unknown[] } | undefined;
+    const data = Array.isArray(payload?.months) ? payload.months : [];
     const months = data.map((d: any) => d.month);
-    
+
     // Service categories
     const categories = ["Cắt tỉa", "Khám bệnh", "Huấn luyện"];
     const colors = ['#00a76f', '#ffab00', '#00b8d9'];
 
     const series = categories.map(cat => ({
         name: cat,
-        data: data.map((d: any) => d.serviceCounts[cat] || 0)
+        data: data.map((d: any) => d.serviceCounts?.[cat] ?? 0)
     }));
 
     const chartOptions: any = {

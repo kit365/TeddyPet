@@ -28,5 +28,7 @@ public interface StaffProfileService {
     StaffProfileResponse getByUserId(UUID userId);
 
     List<StaffProfileResponse> getAllActive();
+
+    StaffProfileResponse updateRole(Long staffId, String roleName);
 }
 
