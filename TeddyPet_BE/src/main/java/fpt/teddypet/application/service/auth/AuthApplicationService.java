@@ -854,11 +854,6 @@ public class AuthApplicationService implements AuthService {
             throw new IllegalArgumentException("Lời mời này đã quá hạn (24 giờ). Vui lòng yêu cầu Admin gửi lại.");
         }
 
-<<<<<<< HEAD
-        if ("ACCEPTED".equals(whitelist.getStatus())) {
-            // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
-            User existingUser = userService.getByEmail(whitelist.getEmail());
-=======
         if ("COMPLETED".equals(whitelist.getStatus())) {
             throw new IllegalArgumentException("Mã mời này đã được sử dụng và hoàn thiện thiết lập. Vui lòng đăng nhập bình thường.");
         }
@@ -872,7 +867,6 @@ public class AuthApplicationService implements AuthService {
                 throw new IllegalArgumentException("Mã mời này đã được hoàn thiện. Vui lòng đăng nhập bằng mật khẩu của bạn.");
             }
             // Vẫn cho phép lấy token nếu đã confirm nhưng chưa set pass (phòng trường hợp refresh trang)
->>>>>>> develop
             return generateTokenResponse(existingUser);
         }
 
