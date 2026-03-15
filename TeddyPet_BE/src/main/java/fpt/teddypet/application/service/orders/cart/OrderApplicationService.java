@@ -69,6 +69,7 @@ public class OrderApplicationService implements OrderService {
     private final FeedbackService feedbackService;
     private final NotificationService notificationService;
     private final DashboardService dashboardService;
+    private final OrderPostCreateNotifier orderPostCreateNotifier;
 
     public OrderApplicationService(
             OrderRepositoryPort orderRepositoryPort,
@@ -85,7 +86,8 @@ public class OrderApplicationService implements OrderService {
             PromotionUsageService promotionUsageService,
             FeedbackService feedbackService,
             NotificationService notificationService,
-            @Lazy DashboardService dashboardService) {
+            @Lazy DashboardService dashboardService,
+            OrderPostCreateNotifier orderPostCreateNotifier) {
         this.orderRepositoryPort = orderRepositoryPort;
         this.orderMapper = orderMapper;
         this.userService = userService;
@@ -101,6 +103,7 @@ public class OrderApplicationService implements OrderService {
         this.feedbackService = feedbackService;
         this.notificationService = notificationService;
         this.dashboardService = dashboardService;
+        this.orderPostCreateNotifier = orderPostCreateNotifier;
     }
 
     private BigDecimal calculateDiscount(Order order, Promotion promotion) {
@@ -255,65 +258,77 @@ public class OrderApplicationService implements OrderService {
             throw new IllegalStateException(OrderMessages.MESSAGE_USER_NOT_VERIFIED);
         }
 
+        OrderTypeEnum orderType = request.orderType() != null ? request.orderType() : OrderTypeEnum.ONLINE;
+        boolean isOffline = orderType == OrderTypeEnum.OFFLINE;
+
         // Biến để lưu thông tin shipping
         String finalReceiverName;
         String finalReceiverPhone;
         String finalShippingAddress;
         UserAddress userAddress = null;
 
-        // Nếu có userAddressId -> lấy từ địa chỉ đã lưu
-        if (request.userAddressId() != null) {
-            userAddress = userAddressService.getEntityById(request.userAddressId(), userId);
-            finalReceiverName = userAddress.getFullName();
-            finalReceiverPhone = userAddress.getPhone();
-            finalShippingAddress = userAddress.getAddress();
-            log.info("Sử dụng địa chỉ đã lưu: id={}, address={}", userAddress.getId(), finalShippingAddress);
-        } else {
-            // Nếu không có userAddressId -> lấy từ request (nhập thủ công)
-            finalReceiverName = request.receiverName();
-            finalReceiverPhone = request.receiverPhone();
-            finalShippingAddress = request.shippingAddress();
-
-            // Validate khi nhập thủ công
-            if (finalShippingAddress == null || finalShippingAddress.isBlank()) {
-                throw new IllegalArgumentException(OrderMessages.MESSAGE_ADDRESS_REQUIRED);
-            }
-        }
-
-        // Fallback cho tên người nhận nếu rỗng
-        if (finalReceiverName == null || finalReceiverName.isBlank()) {
-            finalReceiverName = (user.getFirstName() != null ? user.getFirstName() : "") +
-                    (user.getLastName() != null ? " " + user.getLastName() : "");
-            if (finalReceiverName.trim().isEmpty()) {
-                finalReceiverName = user.getUsername();
-            }
-        }
-
-        // Fallback cho số điện thoại nếu rỗng
-        if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
-            finalReceiverPhone = user.getPhoneNumber();
+        if (isOffline) {
+            // Đơn tại quầy: không cần địa chỉ giao hàng
+            finalReceiverName = request.receiverName() != null && !request.receiverName().isBlank()
+                    ? request.receiverName() : "Khách tại quầy";
+            finalReceiverPhone = request.receiverPhone() != null && !request.receiverPhone().isBlank()
+                    ? request.receiverPhone() : user.getPhoneNumber();
             if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
                 throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_PHONE_REQUIRED);
+            }
+            finalShippingAddress = "mua tại quầy";
+        } else {
+            // Đơn online: lấy địa chỉ từ userAddressId hoặc request
+            if (request.userAddressId() != null) {
+                userAddress = userAddressService.getEntityById(request.userAddressId(), userId);
+                finalReceiverName = userAddress.getFullName();
+                finalReceiverPhone = userAddress.getPhone();
+                finalShippingAddress = userAddress.getAddress();
+                log.info("Sử dụng địa chỉ đã lưu: id={}, address={}", userAddress.getId(), finalShippingAddress);
+            } else {
+                finalReceiverName = request.receiverName();
+                finalReceiverPhone = request.receiverPhone();
+                finalShippingAddress = request.shippingAddress();
+                if (finalShippingAddress == null || finalShippingAddress.isBlank()) {
+                    throw new IllegalArgumentException(OrderMessages.MESSAGE_ADDRESS_REQUIRED);
+                }
+            }
+
+            // Fallback cho tên người nhận nếu rỗng (DB: shipping_name NOT NULL)
+            if (finalReceiverName == null || finalReceiverName.isBlank()) {
+                finalReceiverName = (user.getFirstName() != null ? user.getFirstName() : "") +
+                        (user.getLastName() != null ? " " + user.getLastName() : "");
+                if (finalReceiverName.trim().isEmpty() && user.getUsername() != null) {
+                    finalReceiverName = user.getUsername();
+                }
+                if (finalReceiverName == null || finalReceiverName.isBlank()) {
+                    finalReceiverName = "Khách tại quầy";
+                }
+            }
+
+            // Fallback cho số điện thoại nếu rỗng (DB: shipping_phone NOT NULL)
+            if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
+                finalReceiverPhone = user.getPhoneNumber();
+                if (finalReceiverPhone == null || finalReceiverPhone.isBlank()) {
+                    throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_PHONE_REQUIRED);
+                }
             }
         }
 
         // Build Order
         Order order = Order.builder()
                 .user(user)
-                .userAddress(userAddress) // Lưu reference đến địa chỉ đã lưu (có thể null)
+                .userAddress(userAddress)
                 .status(OrderStatusEnum.PENDING)
-                .orderType(OrderTypeEnum.ONLINE)
-
-                // SNAPSHOT - luôn lưu dù dùng địa chỉ đã lưu hay nhập tay
+                .orderType(orderType)
                 .shippingName(finalReceiverName)
                 .shippingPhone(finalReceiverPhone)
                 .shippingAddress(finalShippingAddress)
                 .latitude(request.latitude())
                 .longitude(request.longitude())
                 .guestEmail(user.getEmail())
-
                 .notes(request.note())
-                .shippingFee(BigDecimal.ZERO)
+                .shippingFee(isOffline ? BigDecimal.ZERO : BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .build();
 
@@ -642,43 +657,21 @@ public class OrderApplicationService implements OrderService {
             }
         }
 
-        // Clear cart only for logged-in users
+        // Clear cart only for logged-in users (non-blocking; đơn tại quầy có thể không dùng giỏ backend)
         if (!isGuest) {
-            cartService.clearCart();
-            log.info(OrderLogMessages.LOG_ORDER_CART_CLEARED, userId);
+            try {
+                cartService.clearCart();
+                log.info(OrderLogMessages.LOG_ORDER_CART_CLEARED, userId);
+            } catch (Exception cartEx) {
+                log.warn("Failed to clear cart after order creation (order {}): {}", savedOrder.getOrderCode(), cartEx.getMessage());
+            }
         }
 
         log.info("Order created successfully: id={}, code={}, isGuest={}",
                 savedOrder.getId(), savedOrder.getOrderCode(), isGuest);
 
-        // Send order confirmation email
-        emailServicePort.sendOrderConfirmation(savedOrder);
-
-        // Send real-time notification to Admin/Staff
-        notificationService.sendToTopic("admin-orders",
-                fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
-                        .title("Đơn hàng mới")
-                        .message("Bạn có đơn hàng mới. Mã đơn hàng: " + savedOrder.getOrderCode())
-                        .type("ORDER_CREATED")
-                        .targetUrl("/admin/order/detail/" + savedOrder.getId())
-                        .timestamp(java.time.LocalDateTime.now())
-                        .build());
-
-        // Send real-time notification to Customer
-        if (!isGuest && userId != null) {
-            User customer = userService.getById(userId);
-            notificationService.sendToUser(customer.getUsername(),
-                    fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
-                            .title("Đặt hàng thành công")
-                            .message("Đơn hàng #" + savedOrder.getOrderCode() + " của bạn đã được tiếp nhận.")
-                            .type("ORDER_CREATED_CUSTOMER")
-                            .targetUrl("/dashboard/orders/" + savedOrder.getId())
-                            .timestamp(java.time.LocalDateTime.now())
-                            .build());
-        }
-
-        // Real-time Dashboard Update for Admin
-        dashboardService.sendDashboardUpdate();
+        // Email + notification + dashboard chạy NGOÀI transaction để lỗi MongoDB không rollback đơn hàng
+        orderPostCreateNotifier.runAfterOrderCreated(savedOrder, isGuest, userId);
 
         return orderMapper.toResponse(savedOrder);
     }
@@ -693,7 +686,8 @@ public class OrderApplicationService implements OrderService {
         if (request.receiverPhone() == null || request.receiverPhone().isBlank()) {
             throw new IllegalArgumentException(OrderMessages.MESSAGE_RECEIVER_PHONE_REQUIRED);
         }
-        if (request.shippingAddress() == null || request.shippingAddress().isBlank()) {
+        boolean isOffline = request.orderType() == OrderTypeEnum.OFFLINE;
+        if (!isOffline && (request.shippingAddress() == null || request.shippingAddress().isBlank())) {
             throw new IllegalArgumentException(OrderMessages.MESSAGE_SHIPPING_ADDRESS_REQUIRED);
         }
 
@@ -707,19 +701,26 @@ public class OrderApplicationService implements OrderService {
     }
 
     private Order buildGuestOrder(OrderRequest request) {
+        OrderTypeEnum orderType = request.orderType() != null ? request.orderType() : OrderTypeEnum.ONLINE;
+        boolean isOffline = orderType == OrderTypeEnum.OFFLINE;
+        String shippingAddress = isOffline
+                ? (request.shippingAddress() != null && !request.shippingAddress().isBlank()
+                        ? request.shippingAddress() : "mua tại quầy")
+                : request.shippingAddress();
+
         Order order = Order.builder()
                 .user(null) // Guest order không có user
                 .userAddress(null) // Guest không có địa chỉ đã lưu
                 .status(OrderStatusEnum.PENDING)
-                .orderType(OrderTypeEnum.ONLINE)
+                .orderType(orderType)
                 .shippingName(request.receiverName())
                 .shippingPhone(request.receiverPhone())
-                .shippingAddress(request.shippingAddress())
+                .shippingAddress(shippingAddress)
                 .latitude(request.latitude())
                 .longitude(request.longitude())
                 .guestEmail(request.guestEmail())
                 .notes(request.note())
-                .shippingFee(BigDecimal.ZERO)
+                .shippingFee(isOffline ? BigDecimal.ZERO : BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .build();
 

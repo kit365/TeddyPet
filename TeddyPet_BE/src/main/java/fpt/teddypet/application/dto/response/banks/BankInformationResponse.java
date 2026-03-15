@@ -13,6 +13,7 @@ public record BankInformationResponse(
         String note,
         Long bookingId,
         String userId,
+        String vietqrImageUrl,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

@@ -138,6 +138,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             if (paymentMethod != null && !paymentMethod.isBlank()) {
                 deposit.setPaymentMethod(paymentMethod);
             }
+            String depositNote = "Thanh toán cọc - " + getPaymentMethodLabel(paymentMethod);
+            deposit.setNotes(depositNote);
             deposit.setDepositAmount(depositAmount);
             deposit.setBookingCode(booking.getBookingCode());
             bookingDepositRepository.save(deposit);
@@ -257,5 +259,15 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             }
         }
         return payload;
+    }
+
+    private static String getPaymentMethodLabel(String method) {
+        if (method == null || method.isBlank()) return "N/A";
+        return switch (method.trim().toUpperCase()) {
+            case "CASH" -> "Tiền mặt";
+            case "BANK_TRANSFER" -> "Chuyển khoản";
+            case "VIETQR" -> "VietQR";
+            default -> method;
+        };
     }
 }

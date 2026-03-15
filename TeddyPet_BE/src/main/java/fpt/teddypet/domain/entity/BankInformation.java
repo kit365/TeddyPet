@@ -47,5 +47,14 @@ public class BankInformation extends BaseEntity {
 
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
+
+    /** USER = ngân hàng khách, BOOKING_REFUND = tk hoàn tiền đặt lịch, SYSTEM_RECEIVING = tài khoản nhận tiền thanh toán online (PayOS) */
+    @Column(name = "account_type", length = 50, nullable = false)
+    @Builder.Default
+    private String accountType = "USER";
+
+    /** URL ảnh mã QR VietQR (img.vietqr.io) - lưu để lần sau lấy lên dùng, chủ yếu cho SYSTEM_RECEIVING */
+    @Column(name = "vietqr_image_url", columnDefinition = "TEXT")
+    private String vietqrImageUrl;
 }
 

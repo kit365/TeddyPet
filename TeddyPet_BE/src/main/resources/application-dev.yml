@@ -31,7 +31,8 @@ spring:
   
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://admin:admin123@localhost:27017/teddypet}
+      # MongoDB không auth (local). Restart backend sau khi sửa. Nếu vẫn lỗi "Authentication failed": xóa biến môi trường SPRING_DATA_MONGODB_URI hoặc set = mongodb://localhost:27017/teddypet
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/teddypet}
     
     redis:
       host: ${REDIS_HOST:localhost}

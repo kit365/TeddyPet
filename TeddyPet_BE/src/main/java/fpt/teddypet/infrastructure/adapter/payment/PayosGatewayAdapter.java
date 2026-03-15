@@ -1,5 +1,6 @@
 package fpt.teddypet.infrastructure.adapter.payment;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.application.exception.PaymentException;
 import fpt.teddypet.application.port.output.payment.PaymentGatewayPort;
@@ -22,6 +23,7 @@ import vn.payos.model.webhooks.WebhookData;
 public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
 
     private final PayOS payOS;
+    private final ObjectMapper objectMapper;
 
     @Override
     public PaymentGatewayEnum getGateway() {
@@ -67,12 +69,18 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     @Override
     public GatewayCallbackResult handleCallback(Webhook webhook, HttpServletRequest request) {
         try {
-            // SDK 2.x method to verify webhook using the full Webhook object (contains data
-            // and signature)
-            // It parses and validates the signature, then returns the verified data part.
+            // Bước 1: PayOS gửi POST JSON tới /api/payment/payos/webhook. SDK verify chữ ký và trả về WebhookData.
             WebhookData verifiedData = payOS.webhooks().verify(webhook);
 
             boolean success = "00".equals(verifiedData.getCode());
+
+            // Bước 2: Serialize toàn bộ payload đã verify thành JSON để lưu vào payments.gateway_raw_payload (đối soát sau này).
+            String rawPayloadJson = null;
+            try {
+                rawPayloadJson = objectMapper.writeValueAsString(verifiedData);
+            } catch (Exception e) {
+                log.warn("Could not serialize PayOS WebhookData to JSON: {}", e.getMessage());
+            }
 
             return GatewayCallbackResult.builder()
                     .success(success)
@@ -82,6 +90,7 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
                     .amount(java.math.BigDecimal.valueOf(verifiedData.getAmount()))
                     .orderCode(String.valueOf(verifiedData.getOrderCode()))
                     .gatewayResponseCode(verifiedData.getCode())
+                    .rawPayload(rawPayloadJson)
                     .build();
 
         } catch (Exception e) {

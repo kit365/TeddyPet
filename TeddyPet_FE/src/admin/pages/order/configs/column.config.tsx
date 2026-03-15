@@ -1,4 +1,4 @@
-﻿import { GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 import { Stack, Typography, IconButton, Tooltip, Box } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -53,6 +53,29 @@ export const getOrderColumns = (
                     </Typography>
                 </Box>
             )
+        },
+        {
+            field: 'orderType',
+            headerName: 'Loại đơn',
+            width: 100,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => {
+                const type = params.value as string | undefined;
+                const isOffline = type === 'OFFLINE';
+                return (
+                    <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Typography sx={{
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            color: isOffline ? '#6366F1' : '#0EA5E9',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {isOffline ? 'Tại quầy' : 'Đặt online'}
+                        </Typography>
+                    </Box>
+                );
+            }
         },
         {
             field: 'createdAt',
@@ -274,9 +297,9 @@ export const getOrderColumns = (
                         </Tooltip>
                     )}
 
-                    {/* Nút hủy đơn - chỉ hiện khi PENDING, CONFIRMED */}
-                    {['PENDING', 'CONFIRMED'].includes(params.row.status) && (
-                        <Tooltip title="Hủy đơn hàng">
+                    {/* Nút xóa / hủy đơn (set CANCELLED) - hiện khi PENDING, CONFIRMED, PROCESSING; có email thì backend gửi mail thông báo */}
+                    {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(params.row.status) && (
+                        <Tooltip title="Xóa / Hủy đơn hàng">
                             <IconButton
                                 size="small"
                                 onClick={() => onCancelOrder?.(params.row.id)}

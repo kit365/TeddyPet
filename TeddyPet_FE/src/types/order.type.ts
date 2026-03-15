@@ -1,5 +1,8 @@
 export type PaymentMethod = "BANK_TRANSFER" | "CASH" | "CREDIT_CARD" | "E_WALLET";
 
+/** ONLINE = đặt online (cần địa chỉ, phí ship); OFFLINE = tại quầy */
+export type OrderType = "ONLINE" | "OFFLINE";
+
 export interface OrderItemRequest {
     variantId: number;
     quantity: number;
@@ -7,6 +10,8 @@ export interface OrderItemRequest {
 
 export interface OrderRequest {
     paymentMethod: PaymentMethod;
+    /** Loại đơn: ONLINE (mặc định) hoặc OFFLINE (tại quầy) */
+    orderType?: OrderType;
     userAddressId?: number;
     receiverName?: string;
     receiverPhone?: string;
@@ -54,6 +59,7 @@ export interface OrderResponse {
     shippingFee: number;
     discountAmount: number;
     finalAmount: number;
+    orderType?: OrderType;
     status: string;
     shippingAddress: string;
     shippingPhone: string;

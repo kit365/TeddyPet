@@ -1,26 +1,33 @@
 package fpt.teddypet.application.service.bookings;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminPetFoodBroughtResponse;
+import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
+import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.BookingPaymentTransaction;
 import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPaymentTransactionRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffProfileRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import org.springframework.context.annotation.Lazy;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
@@ -29,16 +36,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
 public class BookingAdminApplicationService implements BookingAdminService {
 
+        private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
         private final BookingRepository bookingRepository;
         private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
         private final ServiceRepositoryPort serviceRepositoryPort;
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
+        private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
         private final TimeSlotBookingRepository timeSlotBookingRepository;
         private final StaffProfileRepository staffProfileRepository;
         private final EmailServicePort emailServicePort;
@@ -49,6 +62,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         BookingPetServiceItemRepository bookingPetServiceItemRepository,
                         ServiceRepositoryPort serviceRepositoryPort,
                         fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
+                        BookingPaymentTransactionRepository bookingPaymentTransactionRepository,
                         TimeSlotBookingRepository timeSlotBookingRepository,
                         StaffProfileRepository staffProfileRepository,
                         EmailServicePort emailServicePort,
@@ -57,6 +71,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
                 this.serviceRepositoryPort = serviceRepositoryPort;
                 this.bookingDepositRepository = bookingDepositRepository;
+                this.bookingPaymentTransactionRepository = bookingPaymentTransactionRepository;
                 this.timeSlotBookingRepository = timeSlotBookingRepository;
                 this.staffProfileRepository = staffProfileRepository;
                 this.emailServicePort = emailServicePort;
@@ -361,7 +376,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 depositAmount,
                                 depositPaid,
                                 booking.getPaymentStatus(),
-                                booking.getPaymentMethod(),
+                                formatPaymentMethodForDisplay(booking.getPaymentMethod()),
                                 booking.getStatus(),
                                 cancelRequested,
                                 booking.getCancelledBy(),
@@ -425,6 +440,16 @@ public class BookingAdminApplicationService implements BookingAdminService {
 
         @Override
         @Transactional
+        public AdminBookingListItemResponse updateInternalNotes(Long bookingId, fpt.teddypet.application.dto.request.bookings.UpdateBookingInternalNotesRequest request) {
+                Booking booking = getBookingOrThrow(bookingId);
+                String notes = request.getInternalNotes();
+                booking.setInternalNotes(notes != null ? notes.trim() : null);
+                booking = bookingRepository.save(booking);
+                return toListItem(booking);
+        }
+
+        @Override
+        @Transactional
         public AdminBookingListItemResponse confirmFullPayment(Long bookingId, fpt.teddypet.application.dto.request.bookings.ConfirmFullPaymentRequest request) {
                 if (request == null || request.paymentMethod() == null || request.paymentMethod().isBlank()) {
                         throw new IllegalArgumentException("paymentMethod là bắt buộc.");
@@ -438,28 +463,38 @@ public class BookingAdminApplicationService implements BookingAdminService {
 
                 Booking booking = getBookingOrThrow(bookingId);
 
-                // Allow setting payment method when booking is CONFIRMED, READY or COMPLETED
                 List<String> allowedStatuses = List.of("CONFIRMED", "READY", "COMPLETED");
                 if (!allowedStatuses.contains(booking.getStatus().toUpperCase())) {
                         throw new IllegalStateException("Chỉ có thể xác nhận thanh toán khi booking ở trạng thái CONFIRMED, READY hoặc COMPLETED.");
                 }
 
-                // Check if booking is fully paid (paidAmount >= totalAmount)
-                // In some cases, admins might want to confirm payment even if totals haven't been manually adjusted yet,
-                // but let's stick to the logic for now or update it to set paidAmount = totalAmount.
-                BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
-                booking.setPaidAmount(total);
-                booking.setRemainingAmount(BigDecimal.ZERO);
-
-                // Set payment method
-                booking.setPaymentMethod(method);
-                booking.setPaymentStatus("PAID");
-                if (request.notes() != null && !request.notes().isBlank()) {
-                        booking.setInternalNotes(request.notes().trim());
+                BigDecimal remaining = booking.getRemainingAmount() != null ? booking.getRemainingAmount() : BigDecimal.ZERO;
+                if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                        booking.setPaymentStatus("PAID");
+                        bookingRepository.save(booking);
+                        return toListItem(booking);
                 }
 
-                bookingRepository.save(booking);
-                return toListItem(booking);
+                // Tạo một giao dịch thanh toán phần còn lại, sau đó recompute booking
+                CreateBookingPaymentTransactionRequest txRequest = new CreateBookingPaymentTransactionRequest(
+                                "FINAL_PAYMENT",
+                                remaining,
+                                method,
+                                null,
+                                null,
+                                booking.getCustomerName(),
+                                LocalDateTime.now(),
+                                null,
+                                "COMPLETED",
+                                null
+                );
+                addPaymentTransaction(bookingId, txRequest);
+                if (request.notes() != null && !request.notes().isBlank()) {
+                        Booking b = getBookingOrThrow(bookingId);
+                        b.setInternalNotes(request.notes().trim());
+                        bookingRepository.save(b);
+                }
+                return toListItem(getBookingOrThrow(bookingId));
         }
 
         @Override
@@ -478,5 +513,173 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 booking.setBookingCheckOutDate(LocalDateTime.now());
                 bookingRepository.save(booking);
                 return toListItem(booking);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public List<BookingPaymentTransactionResponse> getPaymentTransactions(Long bookingId) {
+                return bookingPaymentTransactionRepository.findByBookingIdOrderByPaidAtAsc(bookingId).stream()
+                                .map(this::toTransactionResponse)
+                                .toList();
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public List<BookingTransactionItemResponse> getBookingTransactions(Long bookingId) {
+                List<BookingTransactionItemResponse> list = new ArrayList<>();
+                for (fpt.teddypet.domain.entity.BookingDeposit d : bookingDepositRepository.findByBookingId(bookingId)) {
+                        if (Boolean.TRUE.equals(d.getDepositPaid()) && d.getDepositPaidAt() != null && d.getDepositAmount() != null) {
+                                list.add(new BookingTransactionItemResponse(
+                                                "DEPOSIT",
+                                                d.getId(),
+                                                d.getDepositAmount(),
+                                                d.getPaymentMethod(),
+                                                d.getDepositPaidAt(),
+                                                "PAID",
+                                                "Thanh toán cọc",
+                                                null,
+                                                null,
+                                                d.getNotes()
+                                ));
+                        }
+                }
+                for (BookingPaymentTransaction t : bookingPaymentTransactionRepository.findByBookingIdOrderByPaidAtAsc(bookingId)) {
+                        list.add(new BookingTransactionItemResponse(
+                                        "INVOICE_PAYMENT",
+                                        t.getId(),
+                                        t.getAmount(),
+                                        t.getPaymentMethod(),
+                                        t.getPaidAt(),
+                                        t.getStatus(),
+                                        "Thanh toán hóa đơn",
+                                        t.getTransactionReference(),
+                                        t.getPaidByName(),
+                                        t.getNote()
+                        ));
+                }
+                list.sort(Comparator.comparing(BookingTransactionItemResponse::paidAt, Comparator.nullsLast(Comparator.naturalOrder())));
+                return list;
+        }
+
+        @Override
+        @Transactional
+        public BookingPaymentTransactionResponse addPaymentTransaction(Long bookingId, CreateBookingPaymentTransactionRequest request) {
+                Booking booking = getBookingOrThrow(bookingId);
+                List<String> allowedStatuses = List.of("PENDING", "CONFIRMED", "READY", "COMPLETED");
+                if (!allowedStatuses.contains(booking.getStatus().toUpperCase())) {
+                        throw new IllegalStateException("Chỉ có thể thêm giao dịch thanh toán khi booking ở trạng thái PENDING, CONFIRMED, READY hoặc COMPLETED.");
+                }
+
+                String method = request.paymentMethod().trim().toUpperCase();
+                if (!List.of("CASH", "BANK_TRANSFER", "VIETQR").contains(method)) {
+                        throw new IllegalArgumentException("paymentMethod chỉ được phép: CASH, BANK_TRANSFER, VIETQR.");
+                }
+                String txStatus = (request.status() != null && !request.status().isBlank()) ? request.status().trim().toUpperCase() : "PENDING";
+                if (!List.of("PENDING", "COMPLETED", "FAILED", "CANCELLED").contains(txStatus)) {
+                        txStatus = "PENDING";
+                }
+
+                String noteValue = request.note() != null && !request.note().isBlank() ? request.note().trim() : null;
+                BookingPaymentTransaction tx = BookingPaymentTransaction.builder()
+                                .bookingId(bookingId)
+                                .transactionType(request.transactionType().trim().toUpperCase())
+                                .amount(request.amount())
+                                .paymentMethod(method)
+                                .transactionReference(request.transactionReference())
+                                .paidBy(request.paidBy())
+                                .paidByName(request.paidByName())
+                                .paidAt(request.paidAt())
+                                .receivedBy(request.receivedBy())
+                                .status(txStatus)
+                                .note(noteValue)
+                                .build();
+                tx = bookingPaymentTransactionRepository.save(tx);
+
+                if ("COMPLETED".equals(txStatus)) {
+                        recomputeBookingFromTransactions(bookingId);
+                }
+                return toTransactionResponse(tx);
+        }
+
+        /** Cập nhật booking: paid_amount = tổng COMPLETED transactions (+ deposit đã trả), remaining_amount, payment_method = JSON array, payment_status = PAID khi remaining = 0. */
+        private void recomputeBookingFromTransactions(Long bookingId) {
+                Booking booking = getBookingOrThrow(bookingId);
+                BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+
+                // Đã thanh toán từ cọc (deposit) — lấy tổng cọc đã trả
+                BigDecimal depositPaidAmount = BigDecimal.ZERO;
+                for (fpt.teddypet.domain.entity.BookingDeposit d : bookingDepositRepository.findByBookingId(bookingId)) {
+                        if (Boolean.TRUE.equals(d.getDepositPaid()) && d.getDepositAmount() != null) {
+                                depositPaidAmount = depositPaidAmount.add(d.getDepositAmount());
+                        }
+                }
+
+                List<BookingPaymentTransaction> completed = bookingPaymentTransactionRepository.findByBookingIdOrderByPaidAtAsc(bookingId).stream()
+                                .filter(t -> "COMPLETED".equals(t.getStatus()))
+                                .toList();
+                BigDecimal sumTransactions = completed.stream()
+                                .map(BookingPaymentTransaction::getAmount)
+                                .filter(java.util.Objects::nonNull)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal paidAmount = depositPaidAmount.add(sumTransactions);
+                BigDecimal remaining = total.subtract(paidAmount).max(BigDecimal.ZERO);
+
+                Set<String> methods = new LinkedHashSet<>();
+                completed.stream()
+                                .map(BookingPaymentTransaction::getPaymentMethod)
+                                .filter(m -> m != null && !m.isBlank())
+                                .forEach(methods::add);
+                String paymentMethodJson = null;
+                if (!methods.isEmpty()) {
+                        try {
+                                paymentMethodJson = OBJECT_MAPPER.writeValueAsString(List.copyOf(methods));
+                        } catch (JsonProcessingException e) {
+                                paymentMethodJson = String.join(", ", methods);
+                        }
+                }
+
+                booking.setPaidAmount(paidAmount);
+                booking.setRemainingAmount(remaining);
+                if (paymentMethodJson != null) {
+                        booking.setPaymentMethod(paymentMethodJson);
+                }
+                if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                        booking.setPaymentStatus("PAID");
+                        booking.setPaidAmount(total);
+                        booking.setRemainingAmount(BigDecimal.ZERO);
+                }
+                bookingRepository.save(booking);
+        }
+
+        private BookingPaymentTransactionResponse toTransactionResponse(BookingPaymentTransaction t) {
+                return new BookingPaymentTransactionResponse(
+                                t.getId(),
+                                t.getBookingId(),
+                                t.getTransactionType(),
+                                t.getAmount(),
+                                t.getPaymentMethod(),
+                                t.getTransactionReference(),
+                                t.getPaidBy(),
+                                t.getPaidByName(),
+                                t.getPaidAt(),
+                                t.getReceivedBy(),
+                                t.getStatus(),
+                                t.getCreatedAt(),
+                                t.getNote()
+                );
+        }
+
+        /** Trả về payment_method để hiển thị: nếu là JSON array thì parse và join ", "; không thì trả về nguyên. */
+        private String formatPaymentMethodForDisplay(String paymentMethod) {
+                if (paymentMethod == null || paymentMethod.isBlank()) return paymentMethod;
+                String s = paymentMethod.trim();
+                if (!s.startsWith("[")) return s;
+                try {
+                        List<String> list = OBJECT_MAPPER.readValue(s, new TypeReference<>() {});
+                        return list != null ? String.join(", ", list) : s;
+                } catch (JsonProcessingException e) {
+                        return s;
+                }
         }
 }
