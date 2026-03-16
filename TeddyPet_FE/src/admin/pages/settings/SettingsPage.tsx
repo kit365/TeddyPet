@@ -8,16 +8,10 @@ import {
     Stack,
     InputAdornment,
     CircularProgress,
-    alpha,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    Select
+    alpha
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
@@ -25,10 +19,8 @@ import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { getAllSettings, updateSetting, getReceivingAccount, updateReceivingAccount } from '../../api/setting.api';
+import { getAllSettings, updateSetting } from '../../api/setting.api';
 import { APP_SETTING_KEYS } from '../../constants/settings';
-import { getBanks } from '../../../api/bank.api';
-import type { BankOption } from '../../../types/bank.type';
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -41,18 +33,6 @@ const DefaultIcon = L.icon({
     iconAnchor: [12, 41],
 });
 L.Marker.prototype.options.icon = DefaultIcon;
-
-/** Số tài khoản: chỉ số, 6-19 ký tự (theo chuẩn VietQR/Napas) */
-const RECEIVING_ACCOUNT_NUMBER_REGEX = /^[0-9]{6,19}$/;
-
-/** Mã ngân hàng VietQR (8 chữ số) theo chuẩn Napas - dùng cho API ảnh img.vietqr.io */
-const BANK_CODE_TO_VIETQR_ID: Record<string, string> = {
-    VCB: '970436', BIDV: '970418', CTG: '970415', ACB: '970416', TCB: '970407', MBB: '970422',
-    VPB: '970432', TPB: '970423', SHB: '970443', STB: '970403', VIB: '970441', HDB: '970437',
-    EIB: '970431', OCB: '970448', MSB: '970426', SCB: '970429', SGB: '970400', BVB: '970438',
-    KLB: '970452', ABB: '970425', SEAB: '970440', PGB: '970430', NCB: '970419', IVB: '970434',
-    VRB: '970427', UOB: '970458', HSBC: '970442', SCVN: '970410',
-};
 
 function MapController({ center }: { center: L.LatLngExpression }) {
     const map = useMap();
@@ -99,16 +79,6 @@ export const SettingsPage = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [originalSettings, setOriginalSettings] = useState<any>(null);
 
-    // Thông tin tài khoản nhận tiền (PayOS)
-    const [banks, setBanks] = useState<BankOption[]>([]);
-    const [receivingBankCode, setReceivingBankCode] = useState('');
-    const [receivingAccountNumber, setReceivingAccountNumber] = useState('');
-    const [receivingAccountHolderName, setReceivingAccountHolderName] = useState('');
-    const [receivingNote, setReceivingNote] = useState('');
-    const [downloadingQr, setDownloadingQr] = useState(false);
-    const [receivingAccountNumberError, setReceivingAccountNumberError] = useState<string>('');
-    const [receivingAccountHolderNameError, setReceivingAccountHolderNameError] = useState<string>('');
-
     // Map States
     const [pos, setPos] = useState<L.LatLng | null>(null);
     const [mapCenter, setMapCenter] = useState<L.LatLngExpression>([10.7410, 106.7145]);
@@ -120,35 +90,9 @@ export const SettingsPage = () => {
         fetchSettings();
     }, []);
 
-    useEffect(() => {
-        const loadBanks = async () => {
-            try {
-                const res = await getBanks();
-                if (res.success && Array.isArray(res.data)) setBanks(res.data);
-            } catch (e) {
-                console.error('Load banks', e);
-            }
-        };
-        loadBanks();
-    }, []);
-
     const fetchSettings = async () => {
         try {
-            const [response, receivingRes] = await Promise.all([
-                getAllSettings(),
-                getReceivingAccount()
-            ]);
-            if (receivingRes.success && receivingRes.data) {
-                setReceivingBankCode(receivingRes.data.bankCode || '');
-                setReceivingAccountNumber(receivingRes.data.accountNumber || '');
-                setReceivingAccountHolderName(receivingRes.data.accountHolderName || '');
-                setReceivingNote(receivingRes.data.note || '');
-            } else {
-                setReceivingBankCode('');
-                setReceivingAccountNumber('');
-                setReceivingAccountHolderName('');
-                setReceivingNote('');
-            }
+            const response = await getAllSettings();
             if (response.success && response.data) {
                 const settings = response.data;
                 const address = settings.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue || '';
@@ -174,11 +118,7 @@ export const SettingsPage = () => {
                 setPlayStoreUrl(play);
 
                 setOriginalSettings({
-                    address, lat, lng, phone, email, website, facebook, instagram, apple, play,
-                    receivingBankCode: receivingRes.success && receivingRes.data ? receivingRes.data.bankCode : '',
-                    receivingAccountNumber: receivingRes.success && receivingRes.data ? receivingRes.data.accountNumber : '',
-                    receivingAccountHolderName: receivingRes.success && receivingRes.data ? receivingRes.data.accountHolderName : '',
-                    receivingNote: receivingRes.success && receivingRes.data ? (receivingRes.data.note || '') : ''
+                    address, lat, lng, phone, email, website, facebook, instagram, apple, play
                 });
 
                 const latitude = parseFloat(lat);
@@ -264,40 +204,6 @@ export const SettingsPage = () => {
                 updateSetting(APP_SETTING_KEYS.SOCIAL_APPLE_STORE, appleStoreUrl, 'Apple Store URL'),
                 updateSetting(APP_SETTING_KEYS.SOCIAL_PLAY_STORE, playStoreUrl, 'Play Store URL')
             ]);
-            // Validate thông tin tài khoản nhận tiền nếu có nhập
-            const hasReceiving = receivingBankCode.trim() || receivingAccountNumber.trim() || receivingAccountHolderName.trim();
-            if (hasReceiving) {
-                setReceivingAccountNumberError('');
-                setReceivingAccountHolderNameError('');
-                const accNum = receivingAccountNumber.trim();
-                const accName = receivingAccountHolderName.trim();
-                let valid = true;
-                if (!receivingBankCode.trim()) {
-                    toast.error('Vui lòng chọn Ngân hàng.');
-                    valid = false;
-                }
-                if (!accNum) {
-                    setReceivingAccountNumberError('Số tài khoản là bắt buộc.');
-                    valid = false;
-                } else if (!RECEIVING_ACCOUNT_NUMBER_REGEX.test(accNum)) {
-                    setReceivingAccountNumberError('Số tài khoản chỉ được chứa chữ số, từ 6 đến 19 ký tự.');
-                    valid = false;
-                }
-                if (!accName) {
-                    setReceivingAccountHolderNameError('Chủ tài khoản là bắt buộc.');
-                    valid = false;
-                }
-                if (!valid) {
-                    setSaving(false);
-                    return;
-                }
-                await updateReceivingAccount({
-                    bankCode: receivingBankCode.trim(),
-                    accountNumber: accNum,
-                    accountHolderName: accName,
-                    note: receivingNote.trim() || undefined
-                });
-            }
             setOriginalSettings({
                 address: shopAddress,
                 lat: shopLat,
@@ -332,12 +238,6 @@ export const SettingsPage = () => {
             setInstagramUrl(originalSettings.instagram);
             setAppleStoreUrl(originalSettings.apple);
             setPlayStoreUrl(originalSettings.play);
-            setReceivingBankCode(originalSettings.receivingBankCode ?? '');
-            setReceivingAccountNumber(originalSettings.receivingAccountNumber ?? '');
-            setReceivingAccountHolderName(originalSettings.receivingAccountHolderName ?? '');
-            setReceivingNote(originalSettings.receivingNote ?? '');
-            setReceivingAccountNumberError('');
-            setReceivingAccountHolderNameError('');
 
             const latitude = parseFloat(originalSettings.lat);
             const longitude = parseFloat(originalSettings.lng);
@@ -689,207 +589,6 @@ export const SettingsPage = () => {
                             InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
                         />
                     </Box>
-                </Card>
-
-                {/* Thông tin tài khoản nhận tiền (PayOS) */}
-                <Card sx={{ p: 4, borderRadius: '32px', border: '1px solid #F4F6F8', boxShadow: '0 8px 32px rgba(145, 158, 171, 0.05)' }}>
-                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
-                        <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#2196F3', 0.1), color: '#2196F3', display: 'flex' }}>
-                            <AccountBalanceIcon sx={{ fontSize: '1.5rem' }} />
-                        </Box>
-                        <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 900, color: '#1C252E' }}>Thông tin tài khoản nhận tiền</Typography>
-                            <Typography variant="body2" sx={{ color: '#637381' }}>Tài khoản ngân hàng nhận tiền khi khách thanh toán online (PayOS). Cấu hình một tài khoản duy nhất cho hệ thống.</Typography>
-                        </Box>
-                    </Stack>
-                    {(() => {
-                        const bankId = receivingBankCode ? BANK_CODE_TO_VIETQR_ID[receivingBankCode.trim().toUpperCase()] : null;
-                        const accountNo = receivingAccountNumber.trim();
-                        const accountName = receivingAccountHolderName.trim();
-                        const accountNoValid = RECEIVING_ACCOUNT_NUMBER_REGEX.test(accountNo);
-                        const hasAll = bankId && accountNo && accountName && accountNoValid;
-                        const qrImageUrl = hasAll
-                            ? `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.jpg?accountName=${encodeURIComponent(accountName)}`
-                            : null;
-                        return (
-                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems={{ xs: 'stretch', md: 'flex-start' }}>
-                                {/* Cột trái: các ô nhập */}
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3.5 }}>
-                                        <FormControl fullWidth variant="outlined" disabled={!isEditing} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}>
-                                            <InputLabel>Ngân hàng</InputLabel>
-                                            <Select
-                                                value={receivingBankCode}
-                                                onChange={(e) => setReceivingBankCode(e.target.value)}
-                                                label="Ngân hàng"
-                                            >
-                                                <MenuItem value="">— Chọn ngân hàng —</MenuItem>
-                                                {banks.map((b) => (
-                                                    <MenuItem key={b.bankCode} value={b.bankCode}>{b.bankName} ({b.bankCode})</MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                        <TextField
-                                            fullWidth
-                                            required
-                                            label="Số tài khoản"
-                                            value={receivingAccountNumber}
-                                            onChange={(e) => {
-                                                const v = e.target.value.replace(/\D/g, '');
-                                                if (v.length <= 19) {
-                                                    setReceivingAccountNumber(v);
-                                                    setReceivingAccountNumberError('');
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                const v = receivingAccountNumber.trim();
-                                                if (!v) {
-                                                    setReceivingAccountNumberError('');
-                                                    return;
-                                                }
-                                                if (!RECEIVING_ACCOUNT_NUMBER_REGEX.test(v)) {
-                                                    setReceivingAccountNumberError('Số tài khoản chỉ được chứa chữ số, từ 6 đến 19 ký tự.');
-                                                } else {
-                                                    setReceivingAccountNumberError('');
-                                                }
-                                            }}
-                                            error={!!receivingAccountNumberError}
-                                            helperText={receivingAccountNumberError}
-                                            variant="outlined"
-                                            disabled={!isEditing}
-                                            placeholder="Chỉ số, 6-19 chữ số"
-                                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
-                                        />
-                                        <TextField
-                                            fullWidth
-                                            required
-                                            label="Chủ tài khoản"
-                                            value={receivingAccountHolderName}
-                                            onChange={(e) => {
-                                                setReceivingAccountHolderName(e.target.value);
-                                                setReceivingAccountHolderNameError('');
-                                            }}
-                                            onBlur={() => {
-                                                if (!receivingAccountHolderName.trim()) {
-                                                    setReceivingAccountHolderNameError('Chủ tài khoản là bắt buộc.');
-                                                } else {
-                                                    setReceivingAccountHolderNameError('');
-                                                }
-                                            }}
-                                            error={!!receivingAccountHolderNameError}
-                                            helperText={receivingAccountHolderNameError}
-                                            variant="outlined"
-                                            disabled={!isEditing}
-                                            placeholder="Tên đầy đủ (bắt buộc)"
-                                            sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
-                                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
-                                        />
-                                        <TextField
-                                            fullWidth
-                                            label="Ghi chú (tùy chọn)"
-                                            value={receivingNote}
-                                            onChange={(e) => setReceivingNote(e.target.value)}
-                                            variant="outlined"
-                                            disabled={!isEditing}
-                                            sx={{ gridColumn: '1 / -1' }}
-                                            InputProps={{ sx: { borderRadius: '16px', fontWeight: 600, fontSize: '0.875rem' } }}
-                                        />
-                                    </Box>
-                                    {/* Gợi ý khi chưa đủ thông tin hoặc ngân hàng chưa hỗ trợ QR */}
-                                    {!qrImageUrl && (
-                                        <Box sx={{ mt: 2 }}>
-                                            {accountNo && accountName && receivingBankCode && !bankId ? (
-                                                <Typography variant="body2" sx={{ color: '#B76E00' }}>
-                                                    Ngân hàng <strong>{receivingBankCode}</strong> tạm thời chưa hỗ trợ hiển thị QR tự động.
-                                                </Typography>
-                                            ) : !hasAll && (
-                                                <Typography variant="body2" sx={{ color: '#919EAB' }}>
-                                                    Điền đủ Ngân hàng, Số tài khoản và Chủ tài khoản để hiển thị mã QR bên cạnh.
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    )}
-                                </Box>
-
-                                {/* Cột phải: ô hình ảnh QR (cùng hàng, to hơn) */}
-                                <Box
-                                    sx={{
-                                        flexShrink: 0,
-                                        p: 2.5,
-                                        borderRadius: '20px',
-                                        bgcolor: alpha('#2196F3', 0.04),
-                                        border: '1px solid rgba(33, 150, 243, 0.2)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        alignSelf: { xs: 'center', md: 'flex-start' },
-                                    }}
-                                >
-                                    <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1C252E', mb: 2 }}>
-                                        Mã QR chuyển khoản (VietQR)
-                                    </Typography>
-                                    {qrImageUrl ? (
-                                        <>
-                                            <Box
-                                                component="img"
-                                                src={qrImageUrl}
-                                                alt="QR chuyển khoản"
-                                                sx={{ width: 280, height: 280, borderRadius: '12px', border: '1px solid #E5E8EB', bgcolor: '#fff' }}
-                                            />
-                                            <Typography variant="body2" sx={{ color: '#637381', mt: 1.5, textAlign: 'center', maxWidth: 280 }}>
-                                                Khách quét mã QR bằng app ngân hàng để chuyển khoản.
-                                            </Typography>
-                                            <Button
-                                                variant="outlined"
-                                                size="medium"
-                                                startIcon={<DownloadIcon />}
-                                                disabled={downloadingQr}
-                                                onClick={async () => {
-                                                    setDownloadingQr(true);
-                                                    try {
-                                                        const res = await fetch(qrImageUrl, { mode: 'cors' });
-                                                        if (!res.ok) throw new Error('Không tải được ảnh');
-                                                        const blob = await res.blob();
-                                                        const a = document.createElement('a');
-                                                        a.href = URL.createObjectURL(blob);
-                                                        a.download = `qr-chuyen-khoan-${accountNo}.jpg`;
-                                                        a.click();
-                                                        URL.revokeObjectURL(a.href);
-                                                        toast.success('Đã tải ảnh QR xuống');
-                                                    } catch {
-                                                        window.open(qrImageUrl, '_blank');
-                                                        toast.info('Mở ảnh QR trong tab mới. Bạn có thể nhấn chuột phải > Lưu hình ảnh.');
-                                                    } finally {
-                                                        setDownloadingQr(false);
-                                                    }
-                                                }}
-                                                sx={{ mt: 2, borderRadius: '12px', fontWeight: 700, textTransform: 'none' }}
-                                            >
-                                                {downloadingQr ? 'Đang tải...' : 'Tải ảnh QR'}
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <Box
-                                            sx={{
-                                                width: 280,
-                                                height: 280,
-                                                borderRadius: '12px',
-                                                border: '1px dashed #E5E8EB',
-                                                bgcolor: '#FAFBFC',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <Typography variant="body2" sx={{ color: '#919EAB', textAlign: 'center', px: 2 }}>
-                                                Mã QR sẽ hiển thị khi điền đủ thông tin bên trái
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                </Box>
-                            </Stack>
-                        );
-                    })()}
                 </Card>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>

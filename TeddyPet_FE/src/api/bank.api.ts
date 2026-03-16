@@ -26,6 +26,7 @@ export type BookingBankInformationResponse = ApiResponse<{
   note?: string | null;
   bookingId?: number | null;
   userId?: string | null;
+  userEmail?: string | null;
   createdAt?: string;
   updatedAt?: string;
 } | null>;
@@ -34,6 +35,51 @@ export const getBankInformationByBookingCode = async (
   bookingCode: string
 ): Promise<BookingBankInformationResponse> => {
   const response = await apiApp.get(`/api/bank-information/booking/code/${bookingCode}`);
+  return response.data;
+};
+
+/** Lấy thông tin chuyển khoản đã lưu theo email khách (guest) - dùng để pre-fill khi order/booking với cùng email */
+export const getBankByGuestEmail = async (
+  email: string
+): Promise<ApiResponse<{
+  id: number;
+  accountNumber: string;
+  accountHolderName: string;
+  bankCode: string;
+  bankName: string;
+  isVerify: boolean;
+  isDefault: boolean;
+  note?: string | null;
+  userEmail?: string | null;
+} | null>> => {
+  const response = await apiApp.get(`/api/bank-information/guest-by-email`, { params: { email: email.trim() } });
+  return response.data;
+};
+
+export type OrderBankInformationResponse = ApiResponse<{
+  id: number;
+  accountNumber: string;
+  accountHolderName: string;
+  bankCode: string;
+  bankName: string;
+  isVerify: boolean;
+  isDefault: boolean;
+  note?: string | null;
+  bookingId?: number | null;
+  orderId?: string | null;
+  accountType?: string | null;
+  userId?: string | null;
+  userEmail?: string | null;
+  vietqrImageUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+} | null>;
+
+/** Lấy bank info liên quan đến một order (dùng cho admin) */
+export const getBankInformationByOrderId = async (
+  orderId: string
+): Promise<OrderBankInformationResponse> => {
+  const response = await apiApp.get(`/api/bank-information/order/${orderId}`);
   return response.data;
 };
 

@@ -20,7 +20,7 @@ import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/or
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
 import { getShippingEstimation } from "../../api/shipping.api";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 // Fix for leaflet default marker icon
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -152,7 +152,7 @@ export const CheckoutPage = () => {
         ? (buyNowItem.option.price * buyNowItem.quantity)
         : cartTotalAmount;
 
-    const { register, handleSubmit, setValue, watch } = useForm<FormData>({
+    const { register, handleSubmit, setValue, watch, getValues } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
             fullName: user ? `${user.firstName} ${user.lastName}` : "",
@@ -509,8 +509,8 @@ export const CheckoutPage = () => {
                     note: data.note,
                     items: orderItems,
                     ...(!user && {
-                        guestEmail: data.guestEmail,
-                        otpCode: data.otpCode,
+                        guestEmail: data.guestEmail?.trim(),
+                        otpCode: String(data.otpCode ?? getValues("otpCode") ?? "").trim(),
                     })
                 };
             } else {
@@ -532,13 +532,18 @@ export const CheckoutPage = () => {
             const response = await createOrder(orderRequest);
 
             if (response.success) {
-                toast.success("Đặt hàng thành công!");
+                toast.success("Đơn hàng đã được tạo, đang chờ xác nhận!");
                 if (!isBuyNow) clearCart();
                 setBuyNowItem(null);
-                const successUrl = !user && data.guestEmail
-                    ? `/checkout/success?orderCode=${response.data.orderCode}&email=${data.guestEmail}`
-                    : `/checkout/success?orderCode=${response.data.orderCode}`;
-                navigate(successUrl);
+                // Chuyển thẳng sang màn chi tiết đơn (bỏ qua màn thanh toán). Nút thanh toán chỉ hiện sau khi admin xác nhận (status CONFIRMED).
+                if (user) {
+                    navigate(`/dashboard/orders/${response.data.id}`);
+                } else {
+                    const guestUrl = data.guestEmail
+                        ? `/checkout/success?orderCode=${response.data.orderCode}&email=${encodeURIComponent(data.guestEmail)}`
+                        : `/checkout/success?orderCode=${response.data.orderCode}`;
+                    navigate(guestUrl);
+                }
             } else {
                 toast.error(response.message || "Không thể tạo đơn hàng!");
             }
@@ -618,15 +623,6 @@ export const CheckoutPage = () => {
                             {!user && (
                                 <div className=" origin-top-left -mb-[8px]">
                                     <div className="space-y-[12px] mb-[16px] bg-client-primary/5 p-[15px] rounded-[22px] border border-dashed border-client-primary/20 shadow-inner relative overflow-hidden">
-                                        {isGuestVerified && (
-                                            <div className="absolute top-[10px] right-[15px] animate-scaleUp">
-                                                <div className="flex items-center gap-[4px] bg-emerald-500 text-white px-[10px] py-[3px] rounded-full text-[0.469rem] font-bold shadow-lg shadow-emerald-500/20">
-                                                    <ShieldCheck className="w-[0.547rem] h-[0.547rem]" />
-                                                    Đã xác thực
-                                                </div>
-                                            </div>
-                                        )}
-
                                         <div className="flex items-center justify-between mb-[13px]">
                                             <div className="flex items-center gap-[14px]">
                                                 <div className="w-[40px] h-[40px] rounded-full bg-client-primary/10 flex items-center justify-center">
@@ -795,8 +791,10 @@ export const CheckoutPage = () => {
                                             rows={2}
                                             className="rounded-[20px] border border-[#eee] text-client-secondary py-[14px] px-[28px] w-full outline-none focus:border-client-primary transition-default bg-white hover:border-gray-300 resize-none"
                                             onChange={(e) => {
+                                                const v = e.target.value;
                                                 isManualChange.current = true;
-                                                setValue("address", e.target.value);
+                                                setValue("address", v);
+                                                setSearchKeyword(v);
                                             }}
                                             onBlur={() => {
                                                 if (isManualChange.current && watchAddress) {
@@ -822,9 +820,10 @@ export const CheckoutPage = () => {
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') {
                                                                 e.preventDefault();
-                                                                if (suggestions.length > 0) {
-                                                                    handleSelectSuggestion(suggestions[0]);
-                                                                }
+                                                                const kw = searchKeyword.trim();
+                                                                if (kw.length < 3) return;
+                                                                setShowSuggestions(false);
+                                                                geocodeFromAddress(kw, true);
                                                             }
                                                         }}
                                                     />

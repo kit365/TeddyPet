@@ -1,4 +1,4 @@
-﻿import {
+import {
     DataGrid,
 } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
@@ -19,12 +19,16 @@ import CloseIcon from '@mui/icons-material/Close';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ReplayIcon from '@mui/icons-material/Replay';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder, downloadOrderInvoice } from '../../../api/order.api';
+import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder, downloadOrderInvoice, handleOrderRefundRequest, getOrderRefundRequests } from '../../../api/order.api';
+import { getBankInformationByOrderId } from '../../../../api/bank.api';
 import { getShippingFeeSuggestion } from '../../../api/shipping.api';
+import { getAllSettings } from '../../../api/setting.api';
+import { APP_SETTING_KEYS } from '../../../constants/settings';
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
-import { OrderResponse } from '../../../../types/order.type';
+import { OrderResponse, OrderRefundResponse } from '../../../../types/order.type';
 import { StatusConfirmDialog } from '../../../components/StatusConfirmDialog';
 
 const STATUS_OPTIONS = [
@@ -87,13 +91,27 @@ export const OrderList = () => {
     const [suggestionStatus, setSuggestionStatus] = useState<string>('');
     const [fetchingSuggestion, setFetchingSuggestion] = useState(false);
 
-    // Cancel order states
+    // Cancel / refund order states
     const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
+    const [refundOrder, setRefundOrder] = useState<OrderResponse | null>(null);
+    const [refundNote, setRefundNote] = useState('');
+    const [refundRequestId, setRefundRequestId] = useState<number | null>(null);
+    const [refundBankInfo, setRefundBankInfo] = useState<{
+        accountNumber: string;
+        accountHolderName: string;
+        bankCode: string;
+        bankName?: string | null;
+    } | null>(null);
+    const [refundHistory, setRefundHistory] = useState<OrderRefundResponse[]>([]);
+    const [loadingRefundHistory, setLoadingRefundHistory] = useState(false);
 
     // Status Confirmation Dialog State
     const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: string } | null>(null);
+
+    // Địa chỉ cửa hàng (hiển thị trong dialog xác nhận vận chuyển)
+    const [shopAddress, setShopAddress] = useState<string>('');
 
     const quickCancelReasons = [
         "Hết hàng thực tế",
@@ -112,6 +130,21 @@ export const OrderList = () => {
             setWeight(1); // Default weight like in Detail page
         }
     };
+
+    useEffect(() => {
+        const loadShopAddress = async () => {
+            try {
+                const res = await getAllSettings();
+                if (res.success && res.data) {
+                    const addr = res.data.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue || '';
+                    setShopAddress(addr);
+                }
+            } catch {
+                setShopAddress('');
+            }
+        };
+        if (confirmingOrder) loadShopAddress();
+    }, [confirmingOrder]);
 
     useEffect(() => {
         const fetchSuggestion = async () => {
@@ -145,17 +178,13 @@ export const OrderList = () => {
         if (!confirmingOrder) return;
         setUpdating(true);
         try {
+            // Chỉ gọi cập nhật phí ship: backend đã tự chuyển PENDING → CONFIRMED trong updateManualShippingFee
             await updateShippingFee(confirmingOrder.id, Number(newShippingFee));
-            const response = await updateOrderStatus(confirmingOrder.id, 'CONFIRMED');
-            if (response.success) {
-                toast.success("Đã xác nhận đơn hàng & Cập nhật phí ship!");
-                setConfirmingOrder(null);
-                refresh();
-            } else {
-                toast.error(response.message || "Xác nhận thất bại");
-            }
-        } catch (error) {
-            toast.error("Lỗi hệ thống");
+            toast.success("Đã xác nhận đơn hàng & Cập nhật phí ship!");
+            setConfirmingOrder(null);
+            refresh();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi hệ thống");
         } finally {
             setUpdating(false);
         }
@@ -187,6 +216,16 @@ export const OrderList = () => {
     };
 
     const handleCancelOrder = (orderId: string) => {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+            const payment = order.payments?.[0];
+            const isOnlinePayment = order.orderType === 'ONLINE' && payment && payment.paymentMethod !== 'CASH';
+            if (isOnlinePayment && ['PAID', 'PROCESSING'].includes(order.status)) {
+                setRefundOrder(order);
+                setRefundNote('');
+                return;
+            }
+        }
         setCancellingOrderId(orderId);
         setCancelReason('');
     };
@@ -228,6 +267,50 @@ export const OrderList = () => {
         setReturningOrderId(orderId);
         setReturnReason('');
     };
+
+    useEffect(() => {
+        const loadRefundBankInfo = async () => {
+            if (!refundOrder?.id) {
+                setRefundBankInfo(null);
+                setRefundRequestId(null);
+                return;
+            }
+            try {
+                const res = await getBankInformationByOrderId(refundOrder.id);
+                if (res.success && res.data) {
+                    setRefundBankInfo({
+                        accountNumber: res.data.accountNumber,
+                        accountHolderName: res.data.accountHolderName,
+                        bankCode: res.data.bankCode,
+                        bankName: res.data.bankName,
+                    });
+                } else {
+                    setRefundBankInfo(null);
+                }
+            } catch (error) {
+                console.error("Error loading refund bank info:", error);
+                setRefundBankInfo(null);
+            }
+
+            // Use latestRefundId from order list response if available
+            setRefundRequestId(refundOrder.latestRefundId ?? null);
+        };
+        loadRefundBankInfo();
+    }, [refundOrder?.id]);
+
+    useEffect(() => {
+        if (!refundOrder?.id) {
+            setRefundHistory([]);
+            return;
+        }
+        setLoadingRefundHistory(true);
+        getOrderRefundRequests(refundOrder.id)
+            .then((res) => {
+                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
+            })
+            .catch(() => setRefundHistory([]))
+            .finally(() => setLoadingRefundHistory(false));
+    }, [refundOrder?.id]);
 
     const handleConfirmReturn = async () => {
         if (!returningOrderId || !returnReason.trim()) return;
@@ -476,6 +559,12 @@ export const OrderList = () => {
                                 <PersonOutlineIcon sx={{ color: '#00AB55', fontSize: '1.25rem' }} />
                                 <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase' }}>
                                     KHÁCH HÀNG: <Box component="span" sx={{ color: '#1C252E', fontWeight: 900 }}>{(confirmingOrder.user?.fullName || confirmingOrder.shippingName).toUpperCase()}</Box>
+                                </Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                                <LocationOnOutlinedIcon sx={{ color: '#00AB55', fontSize: '1.25rem', mt: 0.2 }} />
+                                <Typography sx={{ fontSize: '0.8438rem', fontWeight: 700, color: '#1C252E', lineHeight: 1.4 }}>
+                                    Địa chỉ hiện tại: {shopAddress || '— Chưa cấu hình (vào Cài đặt)'}
                                 </Typography>
                             </Stack>
                             <Stack direction="row" spacing={1.5} alignItems="flex-start">
@@ -818,6 +907,264 @@ export const OrderList = () => {
                         }}
                     >
                         {isCancelling ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Xác nhận hủy'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Refund Request Dialog for ONLINE + thanh toán online khi đã PAID / PROCESSING */}
+            <Dialog
+                open={!!refundOrder}
+                onClose={() => { setRefundOrder(null); setRefundNote(''); }}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <ReplayIcon sx={{ fontSize: '1.6rem' }} />
+                        </Box>
+                        <Box>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
+                                Hủy đơn / Yêu cầu hoàn tiền
+                            </Typography>
+                            {refundOrder && (
+                                <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', mt: 0.3 }}>
+                                    Mã đơn: <strong>{refundOrder.orderCode}</strong>
+                                </Typography>
+                            )}
+                        </Box>
+                    </Stack>
+                    <IconButton onClick={() => { setRefundOrder(null); setRefundNote(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent sx={{ px: 4, py: 2 }}>
+                    <Typography sx={{ mb: 2, fontSize: '0.9rem', color: '#637381' }}>
+                        Đơn hàng đã được thanh toán online. Vui lòng ghi rõ lý do hủy/hoàn tiền để hệ thống ghi nhận và thông báo cho khách hàng.
+                    </Typography>
+
+                    <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                            Lịch sử yêu cầu hoàn tiền
+                        </Typography>
+                        {loadingRefundHistory ? (
+                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>Đang tải...</Typography>
+                        ) : refundHistory.length === 0 ? (
+                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', fontStyle: 'italic' }}>Chưa có yêu cầu nào.</Typography>
+                        ) : (
+                            <Stack spacing={1.5} sx={{ maxHeight: 220, overflow: 'auto' }}>
+                                {refundHistory.map((r) => (
+                                    <Box
+                                        key={r.id}
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: '12px',
+                                            border: '1px solid',
+                                            borderColor: r.status === 'PENDING' ? '#FED7AA' : r.status === 'APPROVED' ? '#BBF7D0' : '#FECACA',
+                                            bgcolor: r.status === 'PENDING' ? '#FFF7ED' : r.status === 'APPROVED' ? '#F0FDF4' : '#FEF2F2',
+                                        }}
+                                    >
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={0.5}>
+                                            <Typography sx={{ fontSize: '0.75rem', color: '#637381' }}>
+                                                {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
+                                            </Typography>
+                                            <Typography
+                                                sx={{
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 700,
+                                                    px: 1,
+                                                    py: 0.25,
+                                                    borderRadius: '8px',
+                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : '#FEE2E2',
+                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : '#991B1B',
+                                                }}
+                                            >
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                                            </Typography>
+                                        </Stack>
+                                        {r.customerReason && (
+                                            <Typography sx={{ fontSize: '0.8rem', color: '#1C252E', mt: 1, whiteSpace: 'pre-wrap' }}>
+                                                {r.customerReason}
+                                            </Typography>
+                                        )}
+                                        {r.adminDecisionNote && (
+                                            <Box sx={{ mt: 1, pt: 1, borderTop: '1px dashed', borderColor: 'divider' }}>
+                                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#637381', textTransform: 'uppercase' }}>
+                                                    Phản hồi admin{r.processedBy ? ` (${r.processedBy})` : ''}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '0.8rem', color: '#1C252E', mt: 0.5 }}>
+                                                    {r.adminDecisionNote}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
+                    </Box>
+
+                    {refundOrder?.cancelReason && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                Yêu cầu từ khách hàng
+                            </Typography>
+                            <Box
+                                sx={{
+                                    p: 1.5,
+                                    bgcolor: '#FFF7ED',
+                                    border: '1px solid #FED7AA',
+                                    borderRadius: '12px',
+                                }}
+                            >
+                                <Typography sx={{ fontSize: '0.85rem', color: '#9A3412', whiteSpace: 'pre-wrap' }}>
+                                    {refundOrder.cancelReason}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
+                    {refundBankInfo && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                Thông tin ngân hàng khách đã thanh toán
+                            </Typography>
+                            <Box
+                                sx={{
+                                    p: 1.5,
+                                    bgcolor: '#EFF6FF',
+                                    border: '1px solid #BFDBFE',
+                                    borderRadius: '12px',
+                                }}
+                            >
+                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                    Ngân hàng: <strong>{refundBankInfo.bankName}</strong> ({refundBankInfo.bankCode})
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                    Số tài khoản: <strong>{refundBankInfo.accountNumber}</strong>
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.85rem' }}>
+                                    Chủ TK: <strong>{refundBankInfo.accountHolderName}</strong>
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
+                    <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                            Ghi chú nội bộ cho việc hoàn tiền
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={refundNote}
+                            onChange={(e) => setRefundNote(e.target.value)}
+                            placeholder="Ví dụ: Hủy theo yêu cầu khách, đã xác nhận sẽ hoàn tiền trong 3 ngày làm việc..."
+                            sx={{
+                                '& .MuiOutlinedInput-root': { borderRadius: '16px', fontSize: '0.85rem' }
+                            }}
+                        />
+                        <Typography sx={{ mt: 0.5, fontSize: '0.75rem', color: '#919EAB', textAlign: 'right' }}>
+                            {refundNote.length}/500
+                        </Typography>
+                    </Box>
+
+                    {refundOrder && !refundOrder.guestEmail?.trim() && !refundOrder.user?.email?.trim() && (
+                        <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#FFF4E5', border: '1px solid #FFAB00' }}>
+                            <Typography sx={{ fontSize: '0.85rem', color: '#B76E00', fontWeight: 600 }}>
+                                ⚠ Đơn này không có email khách hàng. Thông báo qua email sẽ <strong>không được gửi</strong>. Cập nhật email ở trang chi tiết đơn nếu cần.
+                            </Typography>
+                        </Box>
+                    )}
+
+                    <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8' }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#637381' }}>
+                            Thao tác này sẽ cập nhật đơn hàng sang trạng thái <strong>ĐÃ HỦY</strong>. Nhân viên cần thực hiện hoàn tiền
+                            cho khách theo đúng quy trình (dùng thông tin ngân hàng đã lưu ở chi tiết đơn).
+                        </Typography>
+                    </Box>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => { setRefundOrder(null); setRefundNote(''); }}
+                        sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
+                    >
+                        Đóng
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        color="error"
+                        onClick={async () => {
+                            if (!refundOrder || !refundRequestId) {
+                                toast.error("Không tìm thấy yêu cầu hoàn tiền để hủy duyệt.");
+                                return;
+                            }
+                            setIsCancelling(true);
+                            try {
+                                const res = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
+                                    approved: false,
+                                    adminNote: refundNote.trim() || undefined,
+                                });
+                                if (res.success) {
+                                    toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
+                                    setRefundOrder(null);
+                                    setRefundNote('');
+                                    refresh();
+                                } else {
+                                    toast.error(res.message || "Không thể hủy duyệt yêu cầu hoàn tiền.");
+                                }
+                            } catch (error: any) {
+                                toast.error(error.response?.data?.message || "Lỗi hệ thống khi hủy duyệt.");
+                            } finally {
+                                setIsCancelling(false);
+                            }
+                        }}
+                        disabled={isCancelling}
+                        sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
+                    >
+                        Hủy duyệt
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={async () => {
+                            if (!refundOrder || !refundRequestId) {
+                                toast.error("Không tìm thấy yêu cầu hoàn tiền để duyệt.");
+                                return;
+                            }
+                            setIsCancelling(true);
+                            try {
+                                const response = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
+                                    approved: true,
+                                    adminNote: refundNote.trim() || undefined,
+                                });
+                                if (response.success) {
+                                    toast.success("Đã duyệt yêu cầu hoàn tiền cho đơn này.");
+                                    setRefundOrder(null);
+                                    setRefundNote('');
+                                    refresh();
+                                } else {
+                                    toast.error(response.message || "Không thể duyệt yêu cầu hoàn tiền.");
+                                }
+                            } catch (error: any) {
+                                toast.error(error.response?.data?.message || "Lỗi hệ thống khi duyệt yêu cầu hoàn tiền.");
+                            } finally {
+                                setIsCancelling(false);
+                            }
+                        }}
+                        disabled={isCancelling}
+                        sx={{
+                            py: 1.5, borderRadius: '12px', fontWeight: 800,
+                            bgcolor: '#FFAB00', boxShadow: '0 8px 16px rgba(255, 171, 0, 0.24)',
+                            '&:hover': { bgcolor: '#B76E00' },
+                            '&:disabled': { bgcolor: '#E5E8EB' }
+                        }}
+                    >
+                        {isCancelling ? 'Đang xử lý...' : 'Xác nhận hủy / hoàn tiền'}
                     </Button>
                 </DialogActions>
             </Dialog>

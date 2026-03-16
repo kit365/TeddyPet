@@ -130,9 +130,6 @@ export const OrderDetailPage = () => {
     const [returnReason, setReturnReason] = useState("");
     const [returnEvidence, setReturnEvidence] = useState(""); // Comma separated URLs
     const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
-    
-
-
     const quickReturnReasons = [
         "Sản phẩm bị vỡ, hỏng hóc",
         "Giao sai mẫu mã, kích thước",
@@ -144,6 +141,7 @@ export const OrderDetailPage = () => {
 
     const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+    const [paymentPopupUrl, setPaymentPopupUrl] = useState<string | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
     const hasToastedRef = useRef(false);
@@ -176,6 +174,27 @@ export const OrderDetailPage = () => {
             }, 3000);
         }
     }, [location.search, refresh, navigate, location.pathname]);
+
+    // Khi trang được load trong iframe sau khi PayOS redirect (returnUrl có payment_popup=1) → báo parent đóng popup và refresh
+    useEffect(() => {
+        if (typeof window === "undefined" || window.self === window.top) return;
+        const params = new URLSearchParams(location.search);
+        if (params.get("payment_popup") !== "1") return;
+        window.parent.postMessage({ type: "PAYMENT_POPUP_CLOSE" }, "*");
+    }, [location.search]);
+
+    // Parent: lắng nghe message từ iframe (sau khi thanh toán xong) để đóng popup và refresh đơn
+    useEffect(() => {
+        const handler = () => {
+            setPaymentPopupUrl(null);
+            refresh();
+        };
+        const onMessage = (event: MessageEvent) => {
+            if (event.data?.type === "PAYMENT_POPUP_CLOSE") handler();
+        };
+        window.addEventListener("message", onMessage);
+        return () => window.removeEventListener("message", onMessage);
+    }, [refresh]);
 
     const lastRefreshRef = useRef<string | null>(null);
 
@@ -319,15 +338,27 @@ export const OrderDetailPage = () => {
         }
     };
 
+    // Đóng popup nếu order đã được cập nhật sang trạng thái đã thanh toán
+    useEffect(() => {
+        const paymentInfo = order.payments?.[0];
+        const isPaid = paymentInfo?.status === 'COMPLETED' || paymentInfo?.status === 'SUCCESS';
+        if (isPaid && paymentPopupUrl) {
+            setPaymentPopupUrl(null);
+        }
+    }, [order.payments, paymentPopupUrl]);
+
     const handlePayment = async () => {
         setIsSubmitting(true);
         try {
-            const returnUrl = `${window.location.origin}/dashboard/orders/${order.id}`;
+            const returnUrl = `${window.location.origin}/dashboard/orders/${order.id}?payment_popup=1`;
             const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
             if (response.success && response.data) {
-                window.open(response.data as string, "_blank");
-                toast.success("Đang mở trang thanh toán PayOS...");
-                setTimeout(() => refresh(), 5000);
+                setPaymentPopupUrl(response.data as string);
+                toast.info("Đang mở cửa sổ PayOS. Vui lòng quét QR/chuyển khoản, sau khi thanh toán xong hệ thống sẽ tự cập nhật.", {
+                    autoClose: 5000,
+                });
+            } else {
+                toast.error(response.message || "Không thể tạo link thanh toán.");
             }
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Không thể tạo link thanh toán!");
@@ -594,6 +625,7 @@ export const OrderDetailPage = () => {
                             </button>
                         )}
 
+                        {/* Nút thanh toán chỉ hiện sau khi admin xác nhận đơn (status CONFIRMED) */}
                         {order.status === 'CONFIRMED' && paymentInfo?.paymentMethod === 'BANK_TRANSFER' && !isPaid && (
                             <div className="space-y-4">
                                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 animate-fadeIn">
@@ -633,6 +665,48 @@ export const OrderDetailPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Popup thanh toán PayOS (iframe) */}
+            {paymentPopupUrl && (
+                <div className="fixed inset-0 z-[998] flex items-center justify-center p-3 sm:p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-900/50 backdrop-blur-md"
+                        onClick={() => setPaymentPopupUrl(null)}
+                        aria-hidden
+                    />
+                    <div className="relative z-10 w-full max-w-2xl h-[88vh] sm:h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 shrink-0 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-client-primary/10 flex items-center justify-center text-client-primary shrink-0">
+                                    <Wallet className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-sm sm:text-base font-bold text-slate-800 uppercase tracking-tight truncate">
+                                        Thanh toán đơn hàng
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Quét mã QR hoặc chuyển khoản theo hướng dẫn bên dưới</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPaymentPopupUrl(null)}
+                                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-client-primary flex items-center justify-center shrink-0 transition-colors"
+                                aria-label="Đóng"
+                            >
+                                <span className="text-xl font-semibold leading-none">×</span>
+                            </button>
+                        </div>
+                        <div className="flex-1 min-h-0 flex flex-col bg-slate-50/30">
+                            <iframe
+                                src={paymentPopupUrl}
+                                title="Thanh toán PayOS"
+                                className="w-full flex-1 min-h-0 border-0 rounded-b-2xl sm:rounded-b-3xl"
+                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODALS */}
             {showFeedbackModal && (

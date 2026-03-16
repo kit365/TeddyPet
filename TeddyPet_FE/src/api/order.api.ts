@@ -4,7 +4,8 @@ import {
     OrderRequest,
     OrderResponse,
     ReturnOrderRequest,
-    AdminHandleReturnRequest
+    AdminHandleReturnRequest,
+    OrderRefundResponse
 } from "../types/order.type";
 
 const BASE_PATH = "/api/orders";
@@ -70,6 +71,12 @@ export const cancelOrder = async (id: string, reason: string) => {
     return response.data;
 };
 
+/** Khách vãng lai hủy đơn (không cần đăng nhập): orderCode + email + reason */
+export const cancelOrderByGuest = async (orderCode: string, email: string, reason: string) => {
+    const response = await apiApp.post<ApiResponse<void>>(`${BASE_PATH}/guest/cancel`, { orderCode, email, reason });
+    return response.data;
+};
+
 export const confirmReceived = async (id: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/received`);
     return response.data;
@@ -93,10 +100,42 @@ export const returnOrder = async (id: string, reason: string) => {
     return response.data;
 };
 
+export const updateOrderContactInfo = async (id: string, data: { shippingAddress?: string; guestEmail?: string }) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/contact`, data);
+    return response.data;
+};
+
 // Payment integration
 export const createPaymentUrl = async (orderId: string, gateway: string, returnUrl?: string) => {
     const response = await apiApp.post<ApiResponse<String>>(`/api/payments/create`, null, {
         params: { orderId, gateway, returnUrl }
     });
+    return response.data;
+};
+
+export const getOrderRefundRequests = async (orderId: string) => {
+    const response = await apiApp.get<ApiResponse<OrderRefundResponse[]>>(`${BASE_PATH}/${orderId}/refund-requests`);
+    return response.data;
+};
+
+export const createOrderRefundRequest = async (
+    orderId: string,
+    payload: {
+        requestedAmount: number;
+        reason: string;
+        bankInformationId?: number;
+        evidenceUrls?: string[];
+    }
+) => {
+    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests`, payload);
+    return response.data;
+};
+
+export const handleOrderRefundRequest = async (
+    orderId: string,
+    refundId: number,
+    payload: { approved: boolean; adminNote?: string }
+) => {
+    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
     return response.data;
 };
