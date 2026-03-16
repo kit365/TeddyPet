@@ -90,7 +90,13 @@ export default function PersonalSchedule() {
     const [selectedShift, setSelectedShift] = useState<IWorkShift | null>(null);
 
     const { data: myShiftsRaw = [], isLoading: loadingShifts } = useMyShifts(from, to);
-    const myShifts = myShiftsRaw as IWorkShift[];
+    const allMyShifts = myShiftsRaw as IWorkShift[];
+
+    /** Chỉ hiển thị ca đã được admin khóa (ASSIGNED hoặc COMPLETED). Ca trống (OPEN) chưa khóa thì không hiện trong lịch cá nhân. */
+    const myShifts = useMemo(
+        () => allMyShifts.filter((s) => s.status === 'ASSIGNED' || s.status === 'COMPLETED'),
+        [allMyShifts]
+    );
 
     /** Chia khoảng [from, to] thành các tuần; mỗi ngày phân loại morningShifts / afternoonShifts theo startTime. */
     const weeksWithShifts = useMemo(
@@ -124,7 +130,25 @@ export default function PersonalSchedule() {
                 ]}
             />
             <Box sx={{ px: '40px', mb: 2, mt: 3 }}>
-                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                <Stack
+                    direction="row"
+                    spacing={1.5}
+                    alignItems="center"
+                    flexWrap="wrap"
+                    sx={{
+                        '& .MuiInputBase-root': { borderRadius: 1, minHeight: 32, '& .MuiInputBase-input': { py: 0.75 } },
+                        '& .MuiButton-root': {
+                            minHeight: 32,
+                            height: 32,
+                            minWidth: 32,
+                            px: 1.5,
+                            py: 0.75,
+                            fontSize: '0.8125rem',
+                            textTransform: 'none',
+                            borderRadius: 1,
+                        },
+                    }}
+                >
                     <DateTimePicker
                         label="Từ ngày"
                         value={from ? dayjs(from) : null}
@@ -137,7 +161,7 @@ export default function PersonalSchedule() {
                         onChange={(d) => setTo(d?.toISOString() ?? '')}
                         slotProps={{ textField: { size: 'small' } }}
                     />
-                    <Button variant="outlined" size="small" onClick={() => shiftWeek(-1)}>
+                    <Button variant="outlined" size="small" onClick={() => shiftWeek(-1)} sx={{ minWidth: 32 }}>
                         {'<'}
                     </Button>
                     <Button
@@ -148,10 +172,11 @@ export default function PersonalSchedule() {
                             setFrom(r.start);
                             setTo(r.end);
                         }}
+                        sx={{ minWidth: 'auto', px: 1.5 }}
                     >
                         Về tuần hiện tại
                     </Button>
-                    <Button variant="outlined" size="small" onClick={() => shiftWeek(1)}>
+                    <Button variant="outlined" size="small" onClick={() => shiftWeek(1)} sx={{ minWidth: 32 }}>
                         {'>'}
                     </Button>
                 </Stack>
@@ -263,9 +288,9 @@ export default function PersonalSchedule() {
                                                             return (
                                                                 <TableCell
                                                                     key={dayIndex}
-                                                                    align="left"
+                                                                    align="center"
                                                                     sx={{
-                                                                        verticalAlign: 'top',
+                                                                        verticalAlign: 'middle',
                                                                         borderColor: 'grey.200',
                                                                         py: 1.5,
                                                                         px: 2.0,
@@ -286,13 +311,22 @@ export default function PersonalSchedule() {
                                                                             </button>
                                                                         </div>
                                                                     ) : (
-                                                                        <Typography
-                                                                            variant="body2"
-                                                                            color="text.disabled"
-                                                                            className="text-xs"
+                                                                        <Box
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                minHeight: 72,
+                                                                            }}
                                                                         >
-                                                                            —
-                                                                        </Typography>
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                color="text.disabled"
+                                                                                className="text-xs"
+                                                                            >
+                                                                                —
+                                                                            </Typography>
+                                                                        </Box>
                                                                     )}
                                                                 </TableCell>
                                                             );

@@ -166,18 +166,53 @@ export const ContractEditPage = () => {
                             </TextField>
                         )}
                     />
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
-                            <Button
-                                type="button"
-                                variant="outlined"
-                                onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
-                            >
-                                Hủy
-                            </Button>
-                            <Button type="submit" variant="contained" disabled={isPending}>
-                                {isPending ? 'Đang lưu...' : 'Lưu'}
-                            </Button>
-                        </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 1 }}>
+                        <Button
+                            type="button"
+                            onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
+                            sx={{
+                                minWidth: 96,
+                                px: 2.5,
+                                borderRadius: 999,
+                                borderColor: '#E2E8F0',
+                                bgcolor: '#FFFFFF',
+                                color: '#64748B',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#F8FAFC',
+                                    borderColor: '#E2E8F0',
+                                },
+                            }}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={isPending}
+                            sx={{
+                                minWidth: 120,
+                                px: 3,
+                                borderRadius: 999,
+                                bgcolor: '#020617',
+                                color: '#FFFFFF',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                boxShadow: '0 6px 18px rgba(15,23,42,0.25)',
+                                '&:hover': {
+                                    bgcolor: '#020617',
+                                    boxShadow: '0 10px 28px rgba(15,23,42,0.35)',
+                                },
+                                '&.Mui-disabled': {
+                                    bgcolor: '#020617',
+                                    opacity: 0.5,
+                                    color: '#FFFFFF',
+                                },
+                            }}
+                        >
+                            {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </Button>
+                    </Box>
                     </Stack>
                 </Box>
             </Box>

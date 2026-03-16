@@ -15,6 +15,9 @@ public interface WorkShiftRegistrationRepository extends JpaRepository<WorkShift
 
     boolean existsByWorkShift_IdAndStaff_Id(Long workShiftId, Long staffId);
 
+    /** Tồn tại đăng ký của nhân viên ở ca với một trong các trạng thái (dùng để cho phép đăng ký lại khi chỉ còn REJECTED). */
+    boolean existsByWorkShift_IdAndStaff_IdAndStatusIn(Long workShiftId, Long staffId, List<RegistrationStatus> statuses);
+
     Optional<WorkShiftRegistration> findByIdAndWorkShift_Id(Long registrationId, Long workShiftId);
 
     Optional<WorkShiftRegistration> findByWorkShift_IdAndStaff_Id(Long workShiftId, Long staffId);

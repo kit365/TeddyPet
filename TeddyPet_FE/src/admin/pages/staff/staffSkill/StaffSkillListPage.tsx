@@ -1,5 +1,7 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField } from '@mui/material';
+import Toolbar from '@mui/material/Toolbar';
+import CircularProgress from '@mui/material/CircularProgress';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useStaffProfiles } from '../hooks/useStaffProfile';
@@ -9,8 +11,10 @@ import { DataGrid, GridActionsCell, GridActionsCellItem, GridColDef, GridRenderC
 import Card from '@mui/material/Card';
 import { dataGridCardStyles, dataGridContainerStyles, dataGridStyles } from '../../service/configs/styles.config';
 import { DATA_GRID_LOCALE_VN } from '../../service/configs/localeText.config';
+import { SortAscendingIcon, SortDescendingIcon, UnsortedIcon } from '../../../assets/icons';
 import type { IStaffSkill, IStaffSkillRequest, ProficiencyLevel } from '../../../api/staffSkill.api';
 import { toast } from 'react-toastify';
+import AddIcon from '@mui/icons-material/Add';
 import { EditIcon, DeleteIcon } from '../../../assets/icons';
 
 const LEVEL_LABELS: Record<string, string> = { BEGINNER: 'Cơ bản', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
@@ -186,59 +190,82 @@ export const StaffSkillListPage = () => {
                     { label: 'Nhân sự', to: `/${prefixAdmin}/staff/profile/list` },
                     { label: 'Kỹ năng nhân viên' },
                 ]}
+                action={
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        <TextField
+                            select
+                            label="Chọn nhân viên"
+                            value={staffId}
+                            onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
+                            size="small"
+                            sx={{ minWidth: 280, '& .MuiInputBase-root': { minHeight: 40 } }}
+                        >
+                            <MenuItem value="">— Chọn nhân viên —</MenuItem>
+                            {profiles.map((p) => (
+                                <MenuItem key={p.staffId} value={p.staffId}>{p.fullName} (ID: {p.staffId})</MenuItem>
+                            ))}
+                        </TextField>
+                        <Button
+                            variant="contained"
+                            onClick={handleOpenAssign}
+                            disabled={staffId === ''}
+                            startIcon={<AddIcon />}
+                            sx={{
+                                backgroundColor: '#1C252E',
+                                minHeight: '40px',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                px: 2.5,
+                                borderRadius: '10px',
+                                textTransform: 'none',
+                                boxShadow: '0 8px 16px 0 rgba(28, 37, 46, 0.24)',
+                                color: '#ffffff',
+                                '&:hover': {
+                                    backgroundColor: '#454F5B',
+                                    boxShadow: 'none',
+                                },
+                                '&.Mui-disabled': {
+                                    backgroundColor: 'rgba(229, 231, 235, 0.8)',
+                                    color: 'rgba(148, 163, 184, 1)',
+                                },
+                            }}
+                        >
+                            Gán kỹ năng
+                        </Button>
+                    </Stack>
+                }
             />
             <Box sx={{ px: '40px', mt: 3 }}>
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <TextField
-                        select
-                        label="Chọn nhân viên"
-                        value={staffId}
-                        onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
-                        sx={{ minWidth: 280 }}
-                    >
-                        <MenuItem value="">— Chọn nhân viên —</MenuItem>
-                        {profiles.map((p) => (
-                            <MenuItem key={p.staffId} value={p.staffId}>{p.fullName} (ID: {p.staffId})</MenuItem>
-                        ))}
-                    </TextField>
-                    <Button
-                        variant="contained"
-                        onClick={handleOpenAssign}
-                        disabled={staffId === ''}
-                        sx={{
-                            backgroundColor: 'rgb(5 150 105)', // emerald-600
-                            minHeight: '1.875rem',
-                            fontWeight: 600,
-                            fontSize: '0.8125rem',
-                            px: 2.5,
-                            borderRadius: '0.5625rem',
-                            textTransform: 'none',
-                            boxShadow: '0 4px 10px rgba(16,185,129,0.25)',
-                            '&:hover': {
-                                backgroundColor: 'rgb(4 120 87)', // emerald-700
-                                boxShadow: '0 8px 18px rgba(16,185,129,0.35)',
-                            },
-                            '&.Mui-disabled': {
-                                backgroundColor: 'rgba(209,250,229,1)',
-                                color: 'rgba(148,163,184,1)',
-                                boxShadow: 'none',
-                            },
-                        }}
-                    >
-                        Gán kỹ năng
-                    </Button>
-                </Box>
                 <Card elevation={0} sx={dataGridCardStyles}>
                     <div style={dataGridContainerStyles}>
                         <DataGrid
                             rows={staffSkills}
                             getRowId={(row) => row.id}
+                            showToolbar
                             loading={isLoading}
                             columns={columns}
+                            density="comfortable"
+                            slots={{
+                                toolbar: () => <Toolbar sx={{ minHeight: 'auto', py: 1, px: 2 }} />,
+                                columnSortedAscendingIcon: SortAscendingIcon,
+                                columnSortedDescendingIcon: SortDescendingIcon,
+                                columnUnsortedIcon: UnsortedIcon,
+                                noRowsOverlay: () => (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Không có dữ liệu</span>}
+                                    </Box>
+                                ),
+                            }}
                             localeText={DATA_GRID_LOCALE_VN}
                             pagination
-                            pageSizeOptions={[5, 10, 20]}
-                            initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                            pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
+                            initialState={{
+                                pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                sorting: { sortModel: [{ field: 'id', sort: 'asc' }] },
+                                columns: { columnOrder: ['id', 'skillCode', 'skillName', 'proficiencyLevel', 'commissionRate', 'active', 'actions'] },
+                            }}
+                            getRowHeight={() => 'auto'}
+                            disableRowSelectionOnClick
                             sx={dataGridStyles}
                         />
                     </div>
@@ -296,12 +323,50 @@ export const StaffSkillListPage = () => {
                         </Stack>
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: 'flex-end', gap: 2 }}>
-                    <Button onClick={() => setOpenAssign(false)} variant="outlined">
+                <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: 'flex-end', gap: 1.5 }}>
+                    <Button
+                        onClick={() => setOpenAssign(false)}
+                        sx={{
+                            minWidth: 96,
+                            px: 2.5,
+                            borderRadius: 999,
+                            borderColor: '#E2E8F0',
+                            bgcolor: '#FFFFFF',
+                            color: '#64748B',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            '&:hover': {
+                                bgcolor: '#F8FAFC',
+                                borderColor: '#E2E8F0',
+                            },
+                        }}
+                    >
                         Hủy
                     </Button>
-                    <Button variant="contained" onClick={handleAssignSubmit} disabled={isCreating || assignSkillId === ''}>
-                        {isCreating ? 'Đang lưu...' : 'Gán kỹ năng'}
+                    <Button
+                        onClick={handleAssignSubmit}
+                        disabled={isCreating || assignSkillId === ''}
+                        sx={{
+                            minWidth: 120,
+                            px: 3,
+                            borderRadius: 999,
+                            bgcolor: '#020617',
+                            color: '#FFFFFF',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            boxShadow: '0 6px 18px rgba(15,23,42,0.25)',
+                            '&:hover': {
+                                bgcolor: '#020617',
+                                boxShadow: '0 10px 28px rgba(15,23,42,0.35)',
+                            },
+                            '&.Mui-disabled': {
+                                bgcolor: '#020617',
+                                opacity: 0.5,
+                                color: '#FFFFFF',
+                            },
+                        }}
+                    >
+                        {isCreating ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -344,12 +409,50 @@ export const StaffSkillListPage = () => {
                         </Stack>
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: 'flex-end', gap: 2 }}>
-                    <Button onClick={() => setEditingRow(null)} variant="outlined">
+                <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: 'flex-end', gap: 1.5 }}>
+                    <Button
+                        onClick={() => setEditingRow(null)}
+                        sx={{
+                            minWidth: 96,
+                            px: 2.5,
+                            borderRadius: 999,
+                            borderColor: '#E2E8F0',
+                            bgcolor: '#FFFFFF',
+                            color: '#64748B',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            '&:hover': {
+                                bgcolor: '#F8FAFC',
+                                borderColor: '#E2E8F0',
+                            },
+                        }}
+                    >
                         Hủy
                     </Button>
-                    <Button variant="contained" onClick={handleEditSubmit} disabled={isUpdating}>
-                        {isUpdating ? 'Đang lưu...' : 'Lưu'}
+                    <Button
+                        onClick={handleEditSubmit}
+                        disabled={isUpdating}
+                        sx={{
+                            minWidth: 120,
+                            px: 3,
+                            borderRadius: 999,
+                            bgcolor: '#020617',
+                            color: '#FFFFFF',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            boxShadow: '0 6px 18px rgba(15,23,42,0.25)',
+                            '&:hover': {
+                                bgcolor: '#020617',
+                                boxShadow: '0 10px 28px rgba(15,23,42,0.35)',
+                            },
+                            '&.Mui-disabled': {
+                                bgcolor: '#020617',
+                                opacity: 0.5,
+                                color: '#FFFFFF',
+                            },
+                        }}
+                    >
+                        {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </Button>
                 </DialogActions>
             </Dialog>

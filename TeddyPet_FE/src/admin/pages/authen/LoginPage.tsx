@@ -10,7 +10,7 @@ import { loginSchema, LoginFormValues } from "../../schemas/login.schema"
 import { useLogin } from "./hooks/use-login"
 import { useGoogleLogin } from "./hooks/use-google-login"
 import { SafeGoogleLogin } from "./components/SafeGoogleLogin"
-import { toast, ToastContainer } from "react-toastify"
+import { toast } from "react-toastify"
 
 const LOGOS = [
     "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-jwt.svg",
@@ -49,8 +49,6 @@ export const LoginPage = () => {
 
     return (
         <>
-            <ToastContainer />
-
             {/* Global Loading Overlay for Google Login */}
             {isGlobalLoading && (
                 <Box

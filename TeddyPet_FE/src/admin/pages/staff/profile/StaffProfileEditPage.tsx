@@ -78,6 +78,7 @@ export const StaffProfileEditPage = () => {
             bankAccountNo: '',
             bankName: '',
             positionId: undefined as number | undefined,
+            secondaryPositionId: undefined as number | undefined,
             employmentType: undefined as EmploymentTypeEnum | undefined,
             backupEmail: '',
         },
@@ -99,6 +100,7 @@ export const StaffProfileEditPage = () => {
                 bankAccountNo: profile.bankAccountNo ?? '',
                 bankName: profile.bankName ?? '',
                 positionId: profile.positionId ?? undefined,
+                secondaryPositionId: profile.secondaryPositionId ?? undefined,
                 employmentType: profile.employmentType ?? undefined,
                 backupEmail: profile.backupEmail ?? '',
             });
@@ -123,25 +125,31 @@ export const StaffProfileEditPage = () => {
     }, [userRole]);
 
     const onSubmit = (data: FormValues) => {
-        if (!id) return;
+        if (!id || !profile) return;
+
         update(
             {
                 staffId: Number(id),
                 data: {
-                    fullName: data.fullName?.trim(),
-                    email: data.email?.trim() || undefined,
-                    phoneNumber: data.phoneNumber?.trim() || undefined,
-                    citizenId: data.citizenId?.trim() || undefined,
-                    dateOfBirth: data.dateOfBirth || undefined,
-                    gender: (data.gender && (data.gender as string) !== '') ? data.gender : undefined,
-                    avatarUrl: data.avatarUrl?.trim() || undefined,
-                    altImage: data.altImage?.trim() || undefined,
-                    address: data.address?.trim() || undefined,
-                    bankAccountNo: data.bankAccountNo?.trim() || undefined,
-                    bankName: data.bankName?.trim() || undefined,
-                    positionId: data.positionId ?? undefined,
-                    employmentType: data.employmentType ?? undefined,
-                    backupEmail: data.backupEmail?.trim() || undefined,
+                    // Nếu field để trống thì giữ nguyên giá trị cũ trong hồ sơ
+                    fullName: data.fullName?.trim() || profile.fullName,
+                    email: data.email?.trim() || profile.email || undefined,
+                    phoneNumber: data.phoneNumber?.trim() || profile.phoneNumber || undefined,
+                    citizenId: data.citizenId?.trim() || profile.citizenId || undefined,
+                    dateOfBirth: data.dateOfBirth || profile.dateOfBirth || undefined,
+                    gender:
+                        (data.gender && (data.gender as string) !== '')
+                            ? data.gender
+                            : profile.gender || undefined,
+                    avatarUrl: data.avatarUrl?.trim() || profile.avatarUrl || undefined,
+                    altImage: data.altImage?.trim() || profile.altImage || undefined,
+                    address: data.address?.trim() || profile.address || undefined,
+                    bankAccountNo: data.bankAccountNo?.trim() || profile.bankAccountNo || undefined,
+                    bankName: data.bankName?.trim() || profile.bankName || undefined,
+                    positionId: data.positionId ?? profile.positionId ?? undefined,
+                    secondaryPositionId: data.secondaryPositionId ?? profile.secondaryPositionId ?? undefined,
+                    employmentType: data.employmentType ?? profile.employmentType ?? undefined,
+                    backupEmail: data.backupEmail?.trim() || profile.backupEmail || undefined,
                 },
             },
             {
@@ -353,6 +361,28 @@ export const StaffProfileEditPage = () => {
                                                 >
                                                     <MenuItem value="">
                                                         <em>— Chọn chức vụ —</em>
+                                                    </MenuItem>
+                                                    {positions.map((p) => (
+                                                        <MenuItem key={p.id} value={p.id}>
+                                                            {p.name} ({p.code})
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="secondaryPositionId"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    select
+                                                    label="Chức vụ phụ"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                >
+                                                    <MenuItem value="">
+                                                        <em>— Không có —</em>
                                                     </MenuItem>
                                                     {positions.map((p) => (
                                                         <MenuItem key={p.id} value={p.id}>

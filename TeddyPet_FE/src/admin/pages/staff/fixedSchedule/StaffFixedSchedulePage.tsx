@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
@@ -27,6 +27,19 @@ const DAY_LABELS: Record<number, string> = {
 };
 
 const DAY_SHORT_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+/** Rút gọn tên chức vụ để hiển thị trong card, tránh tràn/xuống dòng. */
+function getShortPositionLabel(fullName: string): string {
+    const raw = (fullName ?? '').trim();
+    const n = raw.toLowerCase();
+    if (!n) return '—';
+    if (n.includes('thu ngân') || n.includes('thủ ngân') || n.includes('bán hàng')) return 'Thu ngân';
+    if (n.includes('spa')) return 'Spa';
+    if (n.includes('chăm sóc')) return 'Chăm sóc';
+    if (n.includes('tư vấn')) return 'Tư vấn';
+    if (n.includes('kỹ thuật')) return 'Kỹ thuật';
+    return raw.length > 8 ? raw.slice(0, 7) + '…' : raw;
+}
 
 export const StaffFixedSchedulePage = () => {
     const [selectedStaffId, setSelectedStaffId] = useState<number | ''>('');
@@ -78,26 +91,11 @@ export const StaffFixedSchedulePage = () => {
     const createMutation = useMutation({
         mutationFn: (body: IStaffFixedScheduleRequest) => createFixedSchedule(body),
         onSuccess: (res) => {
-            if (res?.success) {
-                toast.success(res?.message ?? 'Đã thêm lịch cố định.');
+            if (res?.success !== false) {
                 queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
                 setFormPositionId('');
                 setFormDayOfWeek(1);
                 setFormIsAfternoon(false);
-            } else toast.error(res?.message ?? 'Thất bại');
-        },
-        onError: (err: any) => {
-            const status = err?.response?.status;
-            const data = err?.response?.data;
-            const msg =
-                (typeof data?.message === 'string' && data.message) ||
-                (typeof data?.error === 'string' && data.error) ||
-                (typeof err?.message === 'string' && err.message) ||
-                '';
-            if (status === 400) {
-                toast.error('Dữ liệu đã tồn tại.', { autoClose: 5000 });
-            } else {
-                toast.error(msg || 'Thêm lịch cố định thất bại', { autoClose: 5000 });
             }
         },
     });
@@ -135,12 +133,36 @@ export const StaffFixedSchedulePage = () => {
             toast.error('Dữ liệu đã tồn tại.', { autoClose: 5000 });
             return;
         }
-        createMutation.mutate({
-            staffId: selectedStaffId,
-            positionId: formPositionId,
-            dayOfWeek: formDayOfWeek,
-            isAfternoon: formIsAfternoon,
-        });
+        createMutation.mutate(
+            {
+                staffId: selectedStaffId,
+                positionId: formPositionId,
+                dayOfWeek: formDayOfWeek,
+                isAfternoon: formIsAfternoon,
+            },
+            {
+                onSuccess: (res) => {
+                    if (res?.success !== false) {
+                        toast.success(res?.message ?? 'Đã thêm lịch cố định.');
+                    } else {
+                        toast.error(res?.message ?? 'Thất bại', { autoClose: 5000 });
+                    }
+                },
+                onError: (err: any) => {
+                    const status = err?.response?.status;
+                    const data = err?.response?.data;
+                    const msg =
+                        (typeof data?.message === 'string' && data.message) ||
+                        (typeof data?.error === 'string' && data.error) ||
+                        err?.message;
+                    if (status === 400) {
+                        toast.error('Dữ liệu đã tồn tại.', { autoClose: 5000 });
+                    } else {
+                        toast.error(String(msg || 'Thêm lịch cố định thất bại'), { autoClose: 5000 });
+                    }
+                },
+            }
+        );
     };
 
     return (
@@ -158,7 +180,7 @@ export const StaffFixedSchedulePage = () => {
                     <Box className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all">
                         <div className="flex flex-col gap-4">
                             <div>
-                                <label className="block text-base md:text-lg font-semibold text-gray-700 mb-1.5">
+                                <label className="block text-base font-semibold text-gray-700 mb-1.5">
                                     Nhân viên (Full-time)
                                 </label>
                                 <div className="relative">
@@ -210,10 +232,10 @@ export const StaffFixedSchedulePage = () => {
                             {selectedStaffId && (
                                 <div className="mt-2 space-y-4">
                                     <div className="flex items-center justify-between gap-2">
-                                        <h3 className="text-base md:text-lg font-semibold text-gray-800">
+                                        <h3 className="text-base font-semibold text-gray-800">
                                             Thêm slot lịch cố định
                                         </h3>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-sm text-gray-500">
                                             Cấu hình nhanh các ca làm lặp lại
                                         </p>
                                     </div>
@@ -323,14 +345,14 @@ export const StaffFixedSchedulePage = () => {
                                             type="button"
                                             onClick={handleAdd}
                                             disabled={createMutation.isPending || !formPositionId}
-                                            className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium shadow-sm transition-all ${
+                                            className={`inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold shadow-sm transition-all ${
                                                 createMutation.isPending || !formPositionId
-                                                    ? 'bg-blue-500/60 text-white opacity-50 cursor-not-allowed'
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    ? 'bg-gray-400 text-white opacity-50 cursor-not-allowed'
+                                                    : 'bg-gray-900 hover:bg-gray-800 text-white'
                                             }`}
                                         >
-                                            <Plus className="h-4 w-4" />
-                                            {createMutation.isPending ? 'Đang thêm...' : 'Thêm'}
+                                            <Plus className="h-3 w-3" />
+                                            <span>{createMutation.isPending ? 'Đang thêm...' : 'Thêm'}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -342,7 +364,7 @@ export const StaffFixedSchedulePage = () => {
                         <Box className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-2">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h3 className="text-base md:text-lg font-semibold text-gray-800">
+                                    <h3 className="text-base font-semibold text-gray-800">
                                         Lịch cố định đã cấu hình
                                     </h3>
                                 </div>
@@ -353,80 +375,76 @@ export const StaffFixedSchedulePage = () => {
                             ) : schedules.length === 0 ? (
                                 <div className="py-3 text-sm text-gray-500">Chưa có dữ liệu.</div>
                             ) : (
-                                <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full">
-                                    {/* Header */}
-                                    <div className="bg-gray-50/50 border-b border-gray-100">
-                                        <div className="grid grid-cols-8">
-                                            <div className="flex items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-4 py-4 border-r border-gray-100">
-                                                Buổi / Ngày
-                                            </div>
-                                            {DAY_SHORT_LABELS.map((label) => (
-                                                <div
-                                                    key={label}
-                                                    className="flex flex-col items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 py-4 border-r last:border-r-0 border-gray-100 text-center"
-                                                >
-                                                    <span>{label}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Body */}
-                                    <div className="divide-y divide-gray-100">
-                                        {[
-                                            { label: 'Sáng', slotIndex: 0 },
-                                            { label: 'Chiều', slotIndex: 1 },
-                                        ].map(({ label, slotIndex }) => (
-                                            <div
-                                                key={label}
-                                                className="grid grid-cols-8"
-                                            >
-                                                {/* Row label */}
-                                                <div className="flex items-center justify-center px-4 py-6 text-base md:text-lg font-semibold text-gray-700 bg-gray-50/30 border-r border-gray-100">
-                                                    {label}
-                                                </div>
-
-                                                {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
-                                                    const cellItems = scheduleMatrix[slotIndex][dayIdx];
-
-                                                    return (
-                                                        <div
-                                                            key={dayIdx}
-                                                            className="border-r border-b border-gray-100 p-3 flex flex-col justify-center gap-3 min-h-[140px]"
-                                                        >
-                                                            {cellItems.length === 0 ? (
-                                                                <div className="flex-1 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/30 flex items-center justify-center text-xs text-gray-400 hover:bg-gray-50 transition-colors">
-                                                                    Chưa cấu hình
-                                                                </div>
-                                                            ) : (
-                                                                cellItems.map((s) => (
-                                                                    <div
-                                                                        key={s.scheduleId}
-                                                                        className="group relative w-full p-3 rounded-xl bg-white border border-gray-100 border-l-4 border-l-indigo-500 shadow-sm flex items-start justify-between"
-                                                                    >
-                                                                        <p className="text-base md:text-lg font-semibold text-gray-700 leading-snug line-clamp-3 pr-6">
-                                                                            {s.positionName}
-                                                                        </p>
-
-                                                                        <button
-                                                                            type="button"
-                                                                            disabled={deleteMutation.isPending}
-                                                                            onClick={() => {
-                                                                                deleteMutation.mutate(s.scheduleId);
-                                                                            }}
-                                                                            className="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </button>
+                                <div className="mt-4 w-full rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
+                                    <table className="w-full table-fixed border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 bg-gray-50">
+                                                <th className="w-[10%] p-1.5 text-center text-sm font-semibold text-gray-700 border-r border-gray-200">
+                                                    Buổi / Ngày
+                                                </th>
+                                                {DAY_SHORT_LABELS.map((label) => (
+                                                    <th
+                                                        key={label}
+                                                        className="p-1.5 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0"
+                                                    >
+                                                        {label}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { label: 'Sáng', slotIndex: 0 },
+                                                { label: 'Chiều', slotIndex: 1 },
+                                            ].map(({ label, slotIndex }) => (
+                                                <tr key={label} className="border-b border-gray-200 last:border-b-0">
+                                                    <td className="p-[5px] text-center text-sm font-semibold text-gray-700 border-r border-gray-200 bg-gray-50/50 align-top">
+                                                        {label}
+                                                    </td>
+                                                    {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
+                                                        const cellItems = scheduleMatrix[slotIndex][dayIdx];
+                                                        return (
+                                                            <td
+                                                                key={dayIdx}
+                                                                className="p-[5px] border-r border-gray-200 align-top last:border-r-0"
+                                                            >
+                                                                {cellItems.length === 0 ? (
+                                                                    // Không cấu hình ca → ô trống hoàn toàn
+                                                                    <div className="min-h-[60px] w-full" aria-label="Chưa cấu hình" />
+                                                                ) : (
+                                                                    <div className="flex flex-col gap-1">
+                                                                        {cellItems.map((s) => (
+                                                                            <div
+                                                                                key={s.scheduleId}
+                                                                                className="group relative w-full h-full rounded-md border border-gray-200 border-l-4 border-l-indigo-500 bg-white py-1.5 px-2 shadow-sm flex items-center justify-center min-h-[2rem]"
+                                                                            >
+                                                                                <span
+                                                                                    className="text-[11px] font-semibold text-gray-700 whitespace-nowrap overflow-hidden text-center flex items-center justify-center w-full pr-3"
+                                                                                    title={s.positionName}
+                                                                                >
+                                                                                    {getShortPositionLabel(s.positionName || '')}
+                                                                                </span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    disabled={deleteMutation.isPending}
+                                                                                    onClick={() => {
+                                                                                        deleteMutation.mutate(s.scheduleId);
+                                                                                    }}
+                                                                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
+                                                                                >
+                                                                                    <Trash2 className="h-1.5 w-1.5" />
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
-                                                                ))
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        ))}
-                                    </div>
+                                                                )}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             )}
                         </Box>

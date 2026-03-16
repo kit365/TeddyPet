@@ -162,7 +162,15 @@ public class UserApplicationService implements UserService {
         user.setGender(request.gender());
         user.setBackupEmail(request.optionalEmail());
         if (request.avatarUrl() != null) {
-            user.setAvatarUrl(request.avatarUrl());
+            String trimmedAvatar = request.avatarUrl().isBlank() ? null : request.avatarUrl().trim();
+            user.setAvatarUrl(trimmedAvatar);
+            // Tự động sinh altImage thân thiện nếu chưa có
+            if (trimmedAvatar != null && (user.getAltImage() == null || user.getAltImage().isBlank())) {
+                String displayName = (user.getFirstName() != null && !user.getFirstName().isBlank())
+                        ? user.getFirstName()
+                        : (user.getUsername() != null ? user.getUsername() : "người dùng");
+                user.setAltImage("Ảnh đại diện " + displayName);
+            }
         }
 
         User savedUser = userRepositoryPort.save(user);

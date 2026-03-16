@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record ChangePasswordRequest(
-                @NotBlank(message = "Mật khẩu cũ là bắt buộc") String oldPassword,
+                String oldPassword, // optional: nếu có thì xác thực, nếu trống thì chỉ cần OTP
 
                 @NotBlank(message = "Mật khẩu mới là bắt buộc") @Size(min = 5, message = "Mật khẩu mới phải có ít nhất 5 ký tự") String newPassword,
 

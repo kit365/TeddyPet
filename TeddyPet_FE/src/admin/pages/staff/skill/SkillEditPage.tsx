@@ -49,8 +49,14 @@ export const SkillEditPage = () => {
             },
             {
                 onSuccess: (r: any) => {
-                    if (r?.success) toast.success(r.message ?? 'Cập nhật thành công');
-                    else toast.error(r?.message ?? 'Có lỗi');
+                    const success = r?.success ?? r?.data !== undefined;
+                    const msg = r?.message ?? (typeof r?.data?.message === 'string' ? r.data.message : null);
+                    if (success) toast.success(msg ?? 'Cập nhật kỹ năng thành công.');
+                    else toast.error(msg ?? 'Có lỗi khi cập nhật.');
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message ?? err?.message ?? 'Cập nhật kỹ năng thất bại.';
+                    toast.error(msg);
                 },
             }
         );
@@ -121,16 +127,51 @@ export const SkillEditPage = () => {
                             control={control}
                             render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
                         />
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 1 }}>
                             <Button
                                 type="button"
-                                variant="outlined"
                                 onClick={() => navigate(`/${prefixAdmin}/staff/skill/list`)}
+                                sx={{
+                                    minWidth: 96,
+                                    px: 2.5,
+                                    borderRadius: 999,
+                                    borderColor: '#E2E8F0',
+                                    bgcolor: '#FFFFFF',
+                                    color: '#64748B',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        bgcolor: '#F8FAFC',
+                                        borderColor: '#E2E8F0',
+                                    },
+                                }}
                             >
                                 Hủy
                             </Button>
-                            <Button type="submit" variant="contained" disabled={isPending}>
-                                {isPending ? 'Đang lưu...' : 'Lưu'}
+                            <Button
+                                type="submit"
+                                disabled={isPending}
+                                sx={{
+                                    minWidth: 120,
+                                    px: 3,
+                                    borderRadius: 999,
+                                    bgcolor: '#020617',
+                                    color: '#FFFFFF',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    boxShadow: '0 6px 18px rgba(15,23,42,0.25)',
+                                    '&:hover': {
+                                        bgcolor: '#020617',
+                                        boxShadow: '0 10px 28px rgba(15,23,42,0.35)',
+                                    },
+                                    '&.Mui-disabled': {
+                                        bgcolor: '#020617',
+                                        opacity: 0.5,
+                                        color: '#FFFFFF',
+                                    },
+                                }}
+                            >
+                                {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                             </Button>
                         </Box>
                     </Stack>

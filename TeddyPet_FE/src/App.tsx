@@ -1,6 +1,7 @@
 import './App.css'
 import 'react-toastify/dist/ReactToastify.css';
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { Layout } from './client/layouts/Layout';
 import { LayoutAdmin } from './admin/layouts/LayoutAdmin';
@@ -9,9 +10,19 @@ import { ClientAuthRoutes, ClientRoutes } from './client/routes/index';
 import { AdminRoutes, AdminAuthRoutes } from './admin/routes/index';
 import { useScrollToTop } from './client/hooks/useScrollToTop';
 import { useAdminNotification } from './admin/hooks/useAdminNotification';
+import { setNavigateToLogin, clearNavigateToLogin } from './navigationHelper';
 
 const NotificationManager = () => {
   useAdminNotification();
+  return null;
+};
+
+const NavigateToLoginInject = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setNavigateToLogin((path: string) => navigate(path));
+    return () => clearNavigateToLogin();
+  }, [navigate]);
   return null;
 };
 
@@ -23,6 +34,7 @@ const ScrollToTopWrapper = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <BrowserRouter>
+      <NavigateToLoginInject />
       <ScrollToTopWrapper>
         <NotificationManager />
         <ToastContainer
@@ -36,6 +48,7 @@ function App() {
           draggable
           pauseOnHover
           theme="light"
+          style={{ zIndex: 10000 }}
         />
         <Routes>
           {/* Client Routes */}

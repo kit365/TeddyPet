@@ -41,6 +41,8 @@ public record StaffProfileRequest(
 
         Long positionId,
 
+        Long secondaryPositionId,
+
         EmploymentTypeEnum employmentType,
         
         @Email

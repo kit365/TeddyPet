@@ -17,6 +17,8 @@ public record WorkShiftRegistrationResponse(
         EmploymentTypeEnum workType,
         RegistrationStatus status,
         LocalDateTime registeredAt,
+        /** Lý do xin nghỉ do nhân viên nhập (nếu có). */
+        String leaveReason,
         /** Quyết định admin: APPROVED_LEAVE / REJECTED_LEAVE; null = chưa chọn. Chỉ có khi status = PENDING_LEAVE. */
         String leaveDecision
 ) {

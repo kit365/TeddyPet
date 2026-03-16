@@ -17,6 +17,9 @@ public interface WorkShiftRegistrationRepositoryPort {
 
     boolean existsByWorkShiftIdAndStaffId(Long workShiftId, Long staffId);
 
+    /** Có đăng ký đang hoạt động (PENDING/APPROVED/PENDING_LEAVE/ON_LEAVE). Không tính REJECTED – nhân viên bị từ chối có thể đăng ký lại với chức vụ khác. */
+    boolean hasActiveRegistrationForShift(Long workShiftId, Long staffId);
+
     Optional<WorkShiftRegistration> findByIdAndWorkShiftId(Long registrationId, Long workShiftId);
 
     Optional<WorkShiftRegistration> findByWorkShiftIdAndStaffId(Long workShiftId, Long staffId);

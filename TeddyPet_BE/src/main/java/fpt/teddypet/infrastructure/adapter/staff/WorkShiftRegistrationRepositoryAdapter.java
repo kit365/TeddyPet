@@ -38,6 +38,14 @@ public class WorkShiftRegistrationRepositoryAdapter implements WorkShiftRegistra
     }
 
     @Override
+    public boolean hasActiveRegistrationForShift(Long workShiftId, Long staffId) {
+        return workShiftRegistrationRepository.existsByWorkShift_IdAndStaff_IdAndStatusIn(
+                workShiftId, staffId,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED,
+                        RegistrationStatus.PENDING_LEAVE, RegistrationStatus.ON_LEAVE));
+    }
+
+    @Override
     public Optional<WorkShiftRegistration> findByIdAndWorkShiftId(Long registrationId, Long workShiftId) {
         return workShiftRegistrationRepository.findByIdAndWorkShift_Id(registrationId, workShiftId);
     }

@@ -73,6 +73,7 @@ export const StaffProfileOnboardingPage = () => {
             bankAccountNo: '',
             bankName: '',
             positionId: undefined as number | undefined,
+            secondaryPositionId: undefined as number | undefined,
             employmentType: undefined as EmploymentTypeEnum | undefined,
             assignedRole: 'STAFF',
             backupEmail: '',
@@ -132,6 +133,7 @@ export const StaffProfileOnboardingPage = () => {
                 bankAccountNo: data.bankAccountNo?.trim() || undefined,
                 bankName: data.bankName?.trim() || undefined,
                 positionId: data.positionId ?? undefined,
+                secondaryPositionId: data.secondaryPositionId ?? undefined,
                 employmentType: data.employmentType ?? undefined,
                 assignedRole: data.assignedRole || 'STAFF',
                 backupEmail: data.backupEmail?.trim() || undefined,
@@ -316,6 +318,28 @@ export const StaffProfileOnboardingPage = () => {
                                                 >
                                                     <MenuItem value="">
                                                         <em>— Chọn chức vụ —</em>
+                                                    </MenuItem>
+                                                    {positions.map((p) => (
+                                                        <MenuItem key={p.id} value={p.id}>
+                                                            {p.name} ({p.code})
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="secondaryPositionId"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    select
+                                                    label="Chức vụ phụ"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                >
+                                                    <MenuItem value="">
+                                                        <em>— Không có —</em>
                                                     </MenuItem>
                                                     {positions.map((p) => (
                                                         <MenuItem key={p.id} value={p.id}>

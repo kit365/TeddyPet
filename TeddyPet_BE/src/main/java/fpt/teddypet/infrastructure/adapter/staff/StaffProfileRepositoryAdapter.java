@@ -66,5 +66,15 @@ public class StaffProfileRepositoryAdapter implements StaffProfileRepositoryPort
     public boolean existsByCitizenIdExcludingId(String citizenId, Long excludeStaffId) {
         return staffProfileRepository.existsByCitizenIdExcludingId(citizenId, excludeStaffId);
     }
+
+    @Override
+    public boolean existsByBackupEmail(String backupEmail) {
+        return staffProfileRepository.existsByBackupEmail(backupEmail);
+    }
+
+    @Override
+    public boolean existsByBackupEmailExcludingId(String backupEmail, Long excludeStaffId) {
+        return staffProfileRepository.existsByBackupEmailExcludingId(backupEmail, excludeStaffId);
+    }
 }
 

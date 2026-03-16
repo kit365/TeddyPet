@@ -1,10 +1,11 @@
 import { Printer, Download, ArrowLeft } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useContractById } from '../hooks/useContract';
 import { useStaffProfileById } from '../hooks/useStaffProfile';
 import type { IContract } from '../../../api/contract.api';
 import { prefixAdmin } from '../../../constants/routes';
+import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 
 const formatCurrencyVND = (value: number | undefined | null): string => {
     if (value === undefined || value === null) return '—';
@@ -38,31 +39,31 @@ const getStatusDisplay = (statusRaw: string | undefined | null) => {
         return {
             label: 'Đang hiệu lực',
             badgeClass:
-                'inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700',
-            dotClass: 'h-2 w-2 rounded-full bg-emerald-500',
+                'inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700',
+            dotClass: 'h-1.5 w-1.5 rounded-full bg-emerald-500',
         };
     }
     if (status === 'PENDING') {
         return {
             label: 'Chờ hiệu lực',
             badgeClass:
-                'inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700',
-            dotClass: 'h-2 w-2 rounded-full bg-amber-500',
+                'inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700',
+            dotClass: 'h-1.5 w-1.5 rounded-full bg-amber-500',
         };
     }
     if (status === 'EXPIRED') {
         return {
             label: 'Đã hết hạn',
             badgeClass:
-                'inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-bold text-gray-700',
-            dotClass: 'h-2 w-2 rounded-full bg-gray-400',
+                'inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700',
+            dotClass: 'h-1.5 w-1.5 rounded-full bg-gray-400',
         };
     }
     return {
         label: statusRaw ?? 'Không xác định',
         badgeClass:
-            'inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-bold text-slate-700',
-        dotClass: 'h-2 w-2 rounded-full bg-slate-500',
+            'inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700',
+        dotClass: 'h-1.5 w-1.5 rounded-full bg-slate-500',
     };
 };
 
@@ -88,6 +89,9 @@ export const ContractDetailPage = () => {
 
     const statusDisplay = getStatusDisplay(contract?.status);
     const contractCode = useMemo(() => buildContractCode(contract), [contract]);
+    const [avatarError, setAvatarError] = useState(false);
+    useEffect(() => setAvatarError(false), [contract?.staffId, staffProfile?.staffId]);
+    const showAvatar = (staffProfile?.avatarUrl || staffProfile?.altImage) && !avatarError;
 
     const handlePrint = () => {
         window.print();
@@ -102,7 +106,7 @@ export const ContractDetailPage = () => {
         return (
             <div className="w-full min-h-screen bg-gray-50/60 py-10 px-4 sm:px-8 lg:px-12">
                 <div className="w-full max-w-7xl mx-auto">
-                    <p className="text-base text-gray-500">Đang tải dữ liệu hợp đồng...</p>
+                    <p className="text-sm text-gray-500">Đang tải dữ liệu hợp đồng...</p>
                 </div>
             </div>
         );
@@ -114,23 +118,23 @@ export const ContractDetailPage = () => {
                 <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">
+                            <h1 className="text-base font-semibold text-gray-900">
                                 Chi tiết hợp đồng lao động
                             </h1>
-                            <p className="mt-3 text-base font-medium text-gray-500">
+                            <p className="mt-3 text-sm font-medium text-gray-500">
                                 Không tìm thấy hợp đồng. Vui lòng kiểm tra lại đường dẫn.
                             </p>
                         </div>
                         <button
                             type="button"
+                            title="Quay lại danh sách"
                             onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
-                            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            <span>Quay lại danh sách</span>
                         </button>
                     </div>
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-base text-amber-800">
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                         Hợp đồng không tồn tại hoặc đã bị xóa.
                     </div>
                 </div>
@@ -139,66 +143,78 @@ export const ContractDetailPage = () => {
     }
 
     return (
-        <div className="w-full min-h-screen bg-gray-50/60 pt-10 pb-24 px-6 sm:px-10 lg:px-16">
-            <div className="w-full flex flex-col gap-10">
-                {/* Page header */}
-                <header className="mb-2 flex flex-col gap-4">
-                    <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
-                        <div className="flex items-start gap-3">
+        <div className="w-full min-h-screen bg-gray-50/60 pt-5 pb-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+            <div className="w-full flex flex-col gap-5">
+                {/* Page header - giống Chi tiết nhân sự: nút back, tiêu đề, breadcrumb */}
+                <header className="flex flex-col gap-2 contract-detail-no-print">
+                    <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-1.5">
                             <button
                                 type="button"
+                                title="Quay lại danh sách"
                                 onClick={() => navigate(`/${prefixAdmin}/staff/contract/list`)}
-                                className="mt-1 inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#0F172A] shadow-[0_2px_6px_rgba(0,0,0,0.06)] transition-colors hover:bg-[#F8FAFC]"
                             >
-                                <ArrowLeft className="h-4 w-4" />
-                                <span>Quay lại danh sách</span>
+                                <ArrowLeft className="h-3.5 w-3.5" />
                             </button>
                             <div>
-                                <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">
+                                <h1 className="text-[2rem] font-bold text-[#1C252E] tracking-tight">
                                     Chi tiết hợp đồng lao động
                                 </h1>
-                                <p className="mt-3 flex items-center gap-2 text-lg font-medium text-gray-500">
-                                    <span>Mã HĐ:</span>
-                                    <span className="rounded-full bg-gray-100 px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-gray-800">
-                                        {contractCode}
-                                    </span>
-                                </p>
+                                <Breadcrumb
+                                    items={[
+                                        { label: 'Trang chủ', to: '/' },
+                                        { label: 'Hợp đồng', to: `/${prefixAdmin}/staff/contract/list` },
+                                        { label: contractCode },
+                                    ]}
+                                />
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
                             <button
                                 type="button"
                                 onClick={handlePrint}
-                                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+                                className="inline-flex items-center gap-1.5 h-7 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
                             >
-                                <Printer className="h-4 w-4" />
+                                <Printer className="h-3 w-3" />
                                 <span>In hợp đồng</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDownload}
-                                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700"
+                                className="inline-flex items-center gap-1.5 h-7 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-blue-700"
                             >
-                                <Download className="h-4 w-4" />
+                                <Download className="h-3 w-3" />
                                 <span>Tải xuống</span>
                             </button>
                         </div>
                     </div>
                 </header>
 
-                {/* Employee summary card */}
-                <section className="flex items-center gap-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xl font-semibold text-gray-500">
-                        {staffProfile?.fullName?.charAt(0) ?? 'NV'}
+                {/* Employee summary card - gọn, tên nổi bật */}
+                <section className="flex items-center gap-4 rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-100 text-sm font-semibold text-gray-500">
+                        {showAvatar ? (
+                            <img
+                                src={staffProfile?.avatarUrl || staffProfile?.altImage || ''}
+                                alt={staffProfile?.fullName ?? 'Avatar'}
+                                className="h-full w-full object-cover"
+                                onError={() => setAvatarError(true)}
+                            />
+                        ) : (
+                            <span className="flex h-full w-full items-center justify-center">
+                                {staffProfile?.fullName?.charAt(0) ?? 'NV'}
+                            </span>
+                        )}
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                        <p className="text-3xl font-extrabold text-gray-900">
+                    <div className="min-w-0 flex flex-1 flex-col gap-0.5">
+                        <p className="text-base font-semibold leading-tight text-gray-900">
                             {staffProfile?.fullName ?? `Nhân viên #${contract.staffId}`}
                         </p>
-                        <p className="text-lg text-gray-600">
+                        <p className="text-sm text-gray-600">
                             {staffProfile?.positionName ?? 'Nhân viên cửa hàng'}
                         </p>
-                        <p className="text-base font-medium text-gray-400">
+                        <p className="text-sm font-medium text-gray-500">
                             ID nhân viên: {contract.staffId}
                         </p>
                     </div>
@@ -210,55 +226,55 @@ export const ContractDetailPage = () => {
                     </div>
                 </section>
 
-                {/* General information */}
-                <section className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm md:p-12">
-                    <div className="mb-10 flex items-center gap-2 border-b border-gray-100 pb-5">
-                        <h2 className="text-2xl font-bold text-gray-800">Thông tin chung</h2>
+                {/* General information - gọn, nhãn rõ */}
+                <section className="rounded-md border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+                    <div className="mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
+                        <h2 className="text-base font-semibold text-gray-800">Thông tin chung</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-y-10 gap-x-12 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Mã hợp đồng
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">{contractCode}</p>
+                            <p className="text-sm font-semibold text-gray-900">{contractCode}</p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Loại hợp đồng
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 {getContractTypeLabel(contract.contractType)}
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Trạng thái
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 {statusDisplay.label}
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Ngày bắt đầu
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 {formatDateVi(contract.startDate)}
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Ngày kết thúc
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 {formatDateVi(contract.endDate ?? undefined)}
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Ngày tạo bản ghi
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 {formatDateVi(contract.startDate)}
                             </p>
                         </div>
@@ -266,48 +282,51 @@ export const ContractDetailPage = () => {
                 </section>
 
                 {/* Salary & benefits */}
-                <section className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm md:p-12">
-                    <div className="mb-10 flex items-center gap-2 border-b border-gray-100 pb-5">
-                        <h2 className="text-2xl font-bold text-gray-800">Lương & phụ cấp</h2>
+                <section className="rounded-md border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+                    <div className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <h2 className="text-base font-semibold text-gray-800">Lương & phụ cấp</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-y-10 gap-x-12 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Lương cơ bản
                             </span>
-                            <p className="text-3xl font-extrabold text-blue-700">
-                                {formatCurrencyVND(contract.baseSalary)}
+                            <p className="text-base font-bold text-blue-700">
+                                {formatCurrencyVND(contract.baseSalary)}{' '}
+                                <span className="font-semibold text-gray-600 text-sm">
+                                    / {contract.contractType === 'FULL_TIME' ? '1 tháng' : '1 tiếng'}
+                                </span>
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Hình thức trả lương
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 Chuyển khoản hàng tháng
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Chu kỳ trả lương
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 Ngày 05 hàng tháng
                             </p>
                         </div>
                         <div>
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Phụ cấp & thưởng
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900">
                                 Theo chính sách nội bộ TeddyPet
                             </p>
                         </div>
                         <div className="md:col-span-2 lg:col-span-3">
-                            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-400">
+                            <span className="mb-1 block text-sm font-semibold uppercase tracking-wider text-gray-600">
                                 Ghi chú thêm
                             </span>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-base text-gray-900 leading-snug">
                                 Nhân viên được hưởng đầy đủ các chế độ bảo hiểm, nghỉ phép và phúc lợi theo quy định
                                 của pháp luật và quy chế của cửa hàng TeddyPet.
                             </p>
@@ -316,11 +335,11 @@ export const ContractDetailPage = () => {
                 </section>
 
                 {/* Terms summary */}
-                <section className="mb-20 rounded-2xl border border-gray-200 bg-white p-8 pb-12 shadow-sm md:p-12 md:pb-16">
-                    <div className="mb-10 flex items-center gap-2 border-b border-gray-100 pb-5">
-                        <h2 className="text-2xl font-bold text-gray-800">Tóm tắt điều khoản chính</h2>
+                <section className="mb-8 rounded-md border border-gray-200 bg-white p-4 pb-6 shadow-sm md:p-5">
+                    <div className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <h2 className="text-base font-semibold text-gray-800">Tóm tắt điều khoản chính</h2>
                     </div>
-                    <div className="space-y-6 text-lg leading-relaxed text-gray-700">
+                    <div className="space-y-3 text-base leading-relaxed text-gray-800">
                         <p>
                             Hợp đồng này quy định trách nhiệm và quyền lợi của người lao động và người sử dụng lao
                             động, căn cứ theo Bộ luật Lao động hiện hành và các quy định nội bộ của cửa hàng TeddyPet.

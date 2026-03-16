@@ -234,8 +234,7 @@ export const menuManagementData = [
         Icon: BadgeIcon,
         allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"],
         children: [
-            { id: "staff-dashboard", label: "Nhiệm vụ", path: `/${prefixAdmin}/staff/dashboard`, allowedRoles: ["STAFF", "SUPER_ADMIN"] },
-            { id: "staff-personal-schedule", label: "Lịch cá nhân", path: `/${prefixAdmin}/staff/personal-schedule`, allowedRoles: ["STAFF", "SUPER_ADMIN"] },
+            { id: "staff-personal-schedule", label: "Lịch cá nhân", path: `/${prefixAdmin}/staff/personal-schedule`, role: "STAFF" as const, allowedRoles: ["STAFF"] },
             { id: "staff-profiles", label: "Hồ sơ nhân viên", path: `/${prefixAdmin}/staff/profile/list`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
             { id: "staff-positions", label: "Danh mục chức vụ", path: `/${prefixAdmin}/staff/position/list`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
             { id: "staff-skills", label: "Danh mục kỹ năng", path: `/${prefixAdmin}/staff/skill/list`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
@@ -244,7 +243,7 @@ export const menuManagementData = [
             { id: "staff-fixed-schedules", label: "Lịch cố định", path: `/${prefixAdmin}/staff/fixed-schedules`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
             { id: "staff-official-schedule", label: "Lịch chính thức", path: `/${prefixAdmin}/staff/official-schedule`, allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"] },
             { id: "staff-work-shifts", label: "Ca làm việc (QL)", path: `/${prefixAdmin}/staff/work-shifts`, role: "ADMIN" as const, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
-            { id: "staff-register-shifts", label: "Ca làm việc", path: `/${prefixAdmin}/staff/work-shifts/register`, role: "STAFF" as const, allowedRoles: ["STAFF", "SUPER_ADMIN"] },
+            { id: "staff-register-shifts", label: "Ca làm việc", path: `/${prefixAdmin}/staff/work-shifts/register`, role: "STAFF" as const, allowedRoles: ["STAFF"] },
             { id: "staff-realtime", label: "Trạng thái realtime", path: `/${prefixAdmin}/staff/realtime`, allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"] },
             { id: "staff-payroll", label: "Lương", path: `/${prefixAdmin}/staff/payroll`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
         ]

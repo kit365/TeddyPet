@@ -95,6 +95,9 @@ import PersonalSchedule from "../pages/personal-schedule/PersonalSchedule";
 import { AcceptInvitationPage } from "../pages/authen/AcceptInvitationPage";
 import { BankInformationVerifyPage } from "../pages/bank-information/BankInformationVerifyPage";
 import { CalendarPage } from "../pages/calendar/CalendarPage";
+import { AdminProfilePage } from "../pages/profile/AdminProfilePage";
+import { AdminProfileEditPage } from "../pages/profile/AdminProfileEditPage";
+
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
@@ -197,7 +200,7 @@ export const AdminRoutes: RouteObject[] = [
     {
         path: "staff/work-shifts/register",
         element: (
-            <RoleRouteGuard allowedRoles={["STAFF", "SUPER_ADMIN"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
+            <RoleRouteGuard allowedRoles={["STAFF"]} redirectTo={`/${prefixAdmin}/staff/work-shifts`}>
                 <WorkShiftStaffPage />
             </RoleRouteGuard>
         ),
@@ -220,6 +223,8 @@ export const AdminRoutes: RouteObject[] = [
             </RoleRouteGuard>
         ),
     },
+    { path: "profile", element: <AdminProfilePage /> },
+    { path: "profile/edit", element: <AdminProfileEditPage /> },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

@@ -5,7 +5,7 @@ import { LogoAdmin } from "../../../assets/admin/logo"
 import { EyeIcon, NoEyeIcon } from "../../assets/icons"
 import { adminTheme } from "../../config/theme"
 import { setupInitialPassword } from "../../api/auth.api"
-import { toast, ToastContainer } from "react-toastify"
+import { toast } from "react-toastify"
 import { useAuthStore } from "../../../stores/useAuthStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getMe } from "../../../api/auth.api"
@@ -86,7 +86,6 @@ export const SetupPasswordPage = () => {
 
     return (
         <>
-            <ToastContainer />
             <ThemeProvider theme={adminTheme}>
                 <div className="min-h-screen flex">
                     <Container

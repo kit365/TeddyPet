@@ -96,6 +96,11 @@ public class StaffProfile extends BaseEntity {
     @JoinColumn(name = "position_id")
     private StaffPosition position;
 
+    /** Chức vụ phụ: Part-time có thể đăng ký ca theo chức vụ phụ khi chức vụ chính nghỉ. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "secondary_position_id")
+    private StaffPosition secondaryPosition;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "employment_type", length = 20)
     private EmploymentTypeEnum employmentType;

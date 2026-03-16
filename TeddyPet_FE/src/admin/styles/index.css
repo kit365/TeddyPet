@@ -110,3 +110,21 @@ html body {
     background-repeat: no-repeat;
     background-position: center center;
 }
+
+/* In trang: ẩn sidebar và header, chỉ in nội dung chính (vd. hợp đồng) */
+@media print {
+    .admin-print-hide-sidebar,
+    .admin-print-hide-header {
+        display: none !important;
+    }
+    /* Ẩn phần nút Quay lại / In / Tải xuống và tiêu đề khi in hợp đồng */
+    .contract-detail-no-print {
+        display: none !important;
+    }
+    .admin-layout {
+        background: #fff;
+    }
+    .admin-layout .flex-1 {
+        max-width: none;
+    }
+}

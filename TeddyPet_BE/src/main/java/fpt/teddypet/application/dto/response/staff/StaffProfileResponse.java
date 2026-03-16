@@ -24,6 +24,8 @@ public record StaffProfileResponse(
         Long positionId,
         String positionCode,
         String positionName,
+        Long secondaryPositionId,
+        String secondaryPositionName,
         EmploymentTypeEnum employmentType,
         String backupEmail,
         String googleWhitelistStatus, // PENDING, ACCEPTED, EXPIRED, null

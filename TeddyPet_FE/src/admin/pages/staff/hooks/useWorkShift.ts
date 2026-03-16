@@ -220,13 +220,15 @@ export const useShiftsForAdmin = (from?: string | null, to?: string | null) => {
         queryKey: ['admin-shifts', from, to],
         queryFn: () => getShiftsForAdminByDateRange(from, to),
         select: (res: ApiResponse<any>) => res.data ?? [],
+        staleTime: 2 * 60 * 1000, // 2 phút: vào lại trang không refetch, dùng cache
     });
 };
 
 export const useRegisterForShift = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (shiftId: number) => registerForShift(shiftId),
+        mutationFn: ({ shiftId, positionId }: { shiftId: number; positionId?: number | null }) =>
+            registerForShift(shiftId, positionId),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });
@@ -254,7 +256,7 @@ export const useCancelMyRegistration = () => {
 export const useRequestLeave = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (shiftId: number) => requestLeave(shiftId),
+        mutationFn: ({ shiftId, reason }: { shiftId: number; reason?: string }) => requestLeave(shiftId, reason),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['available-shifts'] });
             qc.invalidateQueries({ queryKey: ['my-shifts'] });

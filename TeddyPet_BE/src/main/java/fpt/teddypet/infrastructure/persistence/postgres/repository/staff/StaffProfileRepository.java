@@ -33,5 +33,11 @@ public interface StaffProfileRepository extends JpaRepository<StaffProfile, Long
     @Query("SELECT COUNT(s) > 0 FROM StaffProfile s WHERE s.citizenId = :citizenId AND s.id != :excludeStaffId")
     boolean existsByCitizenIdExcludingId(@org.springframework.data.repository.query.Param("citizenId") String citizenId,
                                          @org.springframework.data.repository.query.Param("excludeStaffId") Long excludeStaffId);
+
+    boolean existsByBackupEmail(String backupEmail);
+
+    @Query("SELECT COUNT(s) > 0 FROM StaffProfile s WHERE s.backupEmail = :backupEmail AND s.id != :excludeStaffId")
+    boolean existsByBackupEmailExcludingId(@org.springframework.data.repository.query.Param("backupEmail") String backupEmail,
+                                           @org.springframework.data.repository.query.Param("excludeStaffId") Long excludeStaffId);
 }
 

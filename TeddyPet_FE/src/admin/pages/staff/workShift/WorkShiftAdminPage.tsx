@@ -22,10 +22,8 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Pencil, Trash2, UserPlus } from 'lucide-react';
 import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
-
-const STATUS_LABELS: Record<string, string> = { OPEN: 'Trống', ASSIGNED: 'Đã khóa', COMPLETED: 'Hoàn thành', CANCELLED: 'Hủy' };
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const ROW_LABELS = ['Sáng', 'Chiều'];
 
@@ -120,7 +118,7 @@ function getSlotIndex(iso: string): number {
     return dayjs(iso).hour() >= 12 ? 1 : 0;
 }
 function formatTimeRange(start: string, end: string): string {
-    return `${dayjs(start).format('HH:mm')} - ${dayjs(end).format('HH:mm')}`;
+    return `${dayjs(start).format('HH:mm')}-${dayjs(end).format('HH:mm')}`;
 }
 
 /** Lấy thông báo lỗi từ response 4xx/5xx (backend trả ApiResponse với field message) */
@@ -541,11 +539,11 @@ export const WorkShiftAdminPage = () => {
                     { label: 'Ca làm việc' },
                 ]}
             />
-            <div className="px-[40px] mt-3 mb-6">
-                {/* Top Bar */}
-                <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <div className="min-w-[240px]">
+            <div className="px-4 sm:px-6 lg:px-8 mt-3 mb-6 max-w-full overflow-hidden">
+                {/* Top Bar: 1 hàng — Từ, Đến, 3 nút (gọn để cùng nằm một hàng, không tràn) */}
+                <div className="flex flex-row w-full flex-wrap items-end justify-between gap-3 rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-end gap-3 flex-nowrap min-w-0">
+                        <div className="min-w-[140px] sm:min-w-[180px]">
                             <DateTimePicker
                                 label="Từ"
                                 value={from ? dayjs(from) : null}
@@ -553,13 +551,13 @@ export const WorkShiftAdminPage = () => {
                                 slotProps={{
                                     textField: {
                                         size: 'small',
-                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        InputProps: { className: 'h-9 rounded-md bg-white' },
                                         className: 'w-full',
                                     } as any,
                                 }}
                             />
                         </div>
-                        <div className="min-w-[240px]">
+                        <div className="min-w-[140px] sm:min-w-[180px]">
                             <DateTimePicker
                                 label="Đến"
                                 value={to ? dayjs(to) : null}
@@ -567,7 +565,7 @@ export const WorkShiftAdminPage = () => {
                                 slotProps={{
                                     textField: {
                                         size: 'small',
-                                        InputProps: { className: 'h-10 rounded-md bg-white' },
+                                        InputProps: { className: 'h-9 rounded-md bg-white' },
                                         className: 'w-full',
                                     } as any,
                                 }}
@@ -576,26 +574,26 @@ export const WorkShiftAdminPage = () => {
                     </div>
 
                     {isAdminRole && (
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-nowrap shrink-0">
                             <button
                                 type="button"
                                 onClick={handleAutoGenerate}
                                 disabled={creatingBatch}
-                                className="h-10 inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-blue-600 hover:bg-slate-100 disabled:opacity-60 disabled:pointer-events-none"
+                                className="h-9 shrink-0 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-slate-100 disabled:opacity-60 disabled:pointer-events-none whitespace-nowrap"
                             >
                                 Tạo ca tự động
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setShowCreate(true)}
-                                className="h-10 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                                className="h-9 shrink-0 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 whitespace-nowrap"
                             >
                                 Tạo ca trống
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setDeleteAllConfirmOpen(true)}
-                                className="h-10 inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50"
+                                className="h-9 shrink-0 inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 whitespace-nowrap"
                             >
                                 Xóa tất cả ca
                             </button>
@@ -663,61 +661,55 @@ export const WorkShiftAdminPage = () => {
             </div>
 
             {/* Thời khóa biểu ca làm */}
-            <div className="px-[40px] mb-6">
+            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
                 <div className="mb-2">
-                    <div className="text-lg font-bold text-slate-900">Ca làm trong tuần</div>
+                    <div className="text-base font-semibold text-gray-900">Ca làm trong tuần</div>
                 </div>
 
-                <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    {/* Header */}
-                    <div className="bg-gray-50/60 border-b border-gray-100">
-                        <div className="grid grid-cols-[96px_repeat(7,minmax(0,1fr))]">
-                            <div className="flex items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-4 py-4 border-r border-gray-100">
-                                Buổi
-                            </div>
-                            {DAY_LABELS.map((label) => (
-                                <div
-                                    key={label}
-                                    className="flex items-center justify-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 py-4 border-r last:border-r-0 border-gray-100 text-center"
-                                >
-                                    {label}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="divide-y divide-gray-100">
-                        {ROW_LABELS.map((rowLabel, slotIndex) => (
-                            <div
-                                key={rowLabel}
-                                className="grid grid-cols-[96px_repeat(7,minmax(0,1fr))]"
-                            >
-                                {/* Row header: Sáng / Chiều */}
-                                <div className="flex items-center justify-center w-24 px-4 py-6 text-sm font-semibold text-gray-700 bg-gray-50/40 border-r border-gray-100">
-                                    {rowLabel}
-                                </div>
-
-                                {/* Cells for each day */}
-                                {DAY_LABELS.map((_, dayIndex) => {
+                <div className="mt-4 w-full rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <table className="w-full table-fixed border-collapse">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="w-24 p-3 text-sm font-semibold text-gray-700 text-center border-r border-gray-200">
+                                    Buổi
+                                </th>
+                                {DAY_LABELS.map((label) => (
+                                    <th
+                                        key={label}
+                                        className="p-3 text-sm font-semibold text-gray-700 text-center border-r border-gray-200 last:border-r-0"
+                                    >
+                                        {label}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {ROW_LABELS.map((rowLabel, slotIndex) => (
+                                <tr key={rowLabel} className="border-b border-gray-200 last:border-b-0">
+                                    <td className="w-24 p-3 text-sm font-semibold text-gray-700 text-center bg-gray-50/50 border-r border-gray-200 align-middle">
+                                        {rowLabel}
+                                    </td>
+                                    {DAY_LABELS.map((_, dayIndex) => {
                                     const weekStart = dayjs(from).startOf('day');
                                     const cellDate = weekStart.add(dayIndex, 'day').format('YYYY-MM-DD');
                                     const cellKey = `${cellDate}-${slotIndex}`;
                                     const shift = timetableGrid[slotIndex]?.[dayIndex];
 
-                                    if (isLoading) {
-                                        return (
-                                            <div
-                                                key={dayIndex}
-                                                className="h-[130px] border-r border-gray-100 flex items-center justify-center text-xs text-gray-400"
-                                            >
-                                                Đang tải...
-                                            </div>
-                                        );
-                                    }
+                                        if (isLoading) {
+                                            return (
+                                                <td
+                                                    key={dayIndex}
+                                                    className="h-[152px] w-auto min-w-0 border-r border-gray-200 text-sm text-gray-500 p-[5px] text-center align-top last:border-r-0"
+                                                >
+                                                    <div className="h-full w-full flex items-center justify-center">
+                                                        Đang tải...
+                                                    </div>
+                                                </td>
+                                            );
+                                        }
 
-                                    // Không có ca trong ô này → placeholder rất nhẹ
-                                    if (!shift) {
+                                        // Không có ca trong ô này → placeholder rất nhẹ
+                                        if (!shift) {
                                         const tz = '+07:00';
                                         const startTimeDefault =
                                             slotIndex === 0
@@ -731,121 +723,127 @@ export const WorkShiftAdminPage = () => {
                                         const isRecentlyDeleted = recentlyDeletedCells.includes(cellKey);
 
                                         return (
-                                            <button
+                                            <td
                                                 key={dayIndex}
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!isRecentlyDeleted) return;
-                                                    createShift(
-                                                        { startTime: startTimeDefault, endTime: endTimeDefault },
-                                                        {
-                                                            onSuccess: (res: any) => {
-                                                                if (res?.success) {
-                                                                    toast.success(res?.message ?? 'Đã tạo lại ca mặc định');
-                                                                    setRecentlyDeletedCells((prev) =>
-                                                                        prev.filter((k) => k !== cellKey)
-                                                                    );
-                                                                    queryClient.invalidateQueries({
-                                                                        queryKey: ['admin-shifts', from, to],
-                                                                    });
-                                                                } else toast.error(res?.message ?? 'Có lỗi');
-                                                            },
-                                                            onError: (err: any) => {
-                                                                toast.error(
-                                                                    getErrorMessage(err, 'Tạo lại ca mặc định thất bại')
-                                                                );
-                                                            },
-                                                        }
-                                                    );
-                                                }}
-                                                className={[
-                                                    'h-[130px] w-full border-r border-b border-gray-100 flex items-center justify-center px-2',
-                                                    'transition-colors',
-                                                    'rounded-none',
-                                                ].join(' ')}
+                                                className="h-[152px] w-auto min-w-0 border-r border-gray-200 p-[5px] align-top last:border-r-0"
                                             >
-                                                <div className="h-[130px] w-full rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/60 flex items-center justify-center text-gray-400 hover:bg-gray-50">
-                                                    <span className="text-2xl font-semibold">
-                                                        +
-                                                    </span>
-                                                </div>
-                                            </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (!isRecentlyDeleted) return;
+                                                        createShift(
+                                                            { startTime: startTimeDefault, endTime: endTimeDefault },
+                                                            {
+                                                                onSuccess: (res: any) => {
+                                                                    if (res?.success) {
+                                                                        toast.success(res?.message ?? 'Đã tạo lại ca mặc định');
+                                                                        setRecentlyDeletedCells((prev) =>
+                                                                            prev.filter((k) => k !== cellKey)
+                                                                        );
+                                                                        queryClient.invalidateQueries({
+                                                                            queryKey: ['admin-shifts', from, to],
+                                                                        });
+                                                                    } else toast.error(res?.message ?? 'Có lỗi');
+                                                                },
+                                                                onError: (err: any) => {
+                                                                    toast.error(
+                                                                        getErrorMessage(err, 'Tạo lại ca mặc định thất bại')
+                                                                    );
+                                                                },
+                                                            }
+                                                        );
+                                                    }}
+                                                    className="h-full w-full flex items-center justify-center rounded-none"
+                                                >
+                                                    <div className="h-full w-full rounded-md border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center text-sm text-gray-500 hover:bg-gray-50 min-h-0">
+                                                        <span className="text-2xl font-semibold">+</span>
+                                                    </div>
+                                                </button>
+                                            </td>
                                         );
                                     }
 
                                     const isOpen = shift.status === 'OPEN';
                                     const statusLabel = isOpen ? 'Trống' : 'Đã khóa';
                                     const borderClasses = isOpen
-                                        ? 'border border-red-100 border-l-4 border-l-red-500 hover:border-red-300'
-                                        : 'border border-blue-100 border-l-4 border-l-blue-500 hover:border-blue-300';
-                                    const dotClass = isOpen ? 'bg-red-500' : 'bg-blue-500';
-                                    const textClass = isOpen ? 'text-red-600' : 'text-blue-600';
+                                        ? 'border border-red-100/80 border-l-2 border-l-red-400 hover:border-red-200'
+                                        : 'border border-gray-100/80 border-l-2 border-l-gray-400 hover:border-gray-200';
+                                    const dotClass = isOpen ? 'bg-red-500' : 'bg-gray-500';
+                                    const textClass = isOpen ? 'text-red-600' : 'text-gray-600';
 
                                     return (
-                                        <div
+                                        <td
                                             key={dayIndex}
-                                            className="h-[130px] border-r border-b border-gray-100 px-2 py-3"
+                                            className="h-[152px] w-auto min-w-0 border-r border-gray-200 p-[5px] align-top last:border-r-0"
                                         >
                                             <div
                                                 className={[
-                                                    'group relative flex h-full w-full flex-col justify-between rounded-xl bg-white p-3.5 shadow-sm transition-all hover:shadow-md',
+                                                    'group relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-md bg-white shadow-sm transition-all hover:shadow-md px-1 pt-0.5 pb-0.5',
                                                     borderClasses,
                                                 ].join(' ')}
                                             >
+                                                {/* Nút Sửa trên, Xóa dưới - góc trên phải */}
                                                 {isOpen && (
-                                                    <div className="absolute top-2 right-2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="absolute top-1 right-1 z-10 flex flex-col items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                                                         <button
                                                             type="button"
                                                             onClick={() => openEditDialog(shift)}
-                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm hover:bg-blue-50 hover:text-blue-600 border border-slate-200"
+                                                            title="Sửa ca"
+                                                            className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
                                                         >
-                                                            <Pencil className="h-3.5 w-3.5" />
+                                                            <Pencil className="h-1.5 w-1.5" />
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setDeleteConfirmShiftId(shift.shiftId)}
-                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-400 shadow-sm hover:bg-red-50 hover:text-red-600 border border-slate-200"
+                                                            title="Xóa ca"
+                                                            className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-slate-200 bg-white text-slate-400 shadow-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                                                         >
-                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            <Trash2 className="h-1.5 w-1.5" />
                                                         </button>
                                                     </div>
                                                 )}
-                                                {/* Top: time */}
-                                                <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                                                    <Clock3 className="h-4 w-4 text-gray-400" />
-                                                    <span className="truncate">
-                                                        {formatTimeRange(shift.startTime, shift.endTime)}
-                                                    </span>
-                                                </div>
 
-                                                {/* Middle: status */}
-                                                <div className="mt-2 flex items-center gap-1.5 text-xs font-medium">
-                                                    <span
-                                                        className={`w-1.5 h-1.5 rounded-full ${dotClass}`}
-                                                    />
-                                                    <span className={textClass}>{statusLabel}</span>
-                                                </div>
+                                                {/* Nội dung: khung giờ + trạng thái */}
+                                                <div className="flex min-h-0 flex-1 flex-col items-stretch justify-between gap-1.5 overflow-hidden text-left">
+                                                    <div className="flex shrink-0 flex-col gap-0 min-w-0">
+                                                        {/* Khung giờ - to hơn, đậm hơn, cách cạnh trên ~10px */}
+                                                        <div className="flex shrink-0 items-center justify-start overflow-visible min-w-0 mt-2">
+                                                            <span className="text-sm tracking-tight font-extrabold text-gray-900 whitespace-nowrap leading-tight">
+                                                                {formatTimeRange(shift.startTime, shift.endTime)}
+                                                            </span>
+                                                        </div>
+                                                        {/* Chấm + Trống/Đã khóa - hạ xuống một chút */}
+                                                        <div className={`flex shrink-0 items-center justify-start gap-0.5 text-[9px] font-medium leading-none mt-2 ${textClass}`}>
+                                                            <span className={`h-1 w-1 shrink-0 rounded-full ${dotClass}`} />
+                                                            <span className="truncate">{statusLabel}</span>
+                                                        </div>
+                                                    </div>
 
-                                                {/* Bottom: action link */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSelectedShiftId(shift.shiftId)}
-                                                    className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors group cursor-pointer"
-                                                >
-                                                    <span>Xem đăng ký</span>
-                                                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                                                </button>
+                                                    {/* Chi tiết - cách đáy card khoảng 10px */}
+                                                    <div className="flex w-full shrink-0 justify-center mt-2 mb-2.5">
+                                                        <button
+                                                            type="button"
+                                                            title="Xem chi tiết"
+                                                            onClick={() => setSelectedShiftId(shift.shiftId)}
+                                                            className="flex shrink-0 items-center justify-center py-0 text-[11px] font-medium leading-none text-blue-600 transition-colors hover:text-blue-700 bg-transparent border-0 cursor-pointer"
+                                                        >
+                                                            <span className="truncate">Xem chi tiết -&gt;</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </td>
                                     );
                                 })}
-                            </div>
-                        ))}
-                    </div>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <Box sx={{ px: '40px' }}>
+            <Box sx={{ px: { xs: 2, sm: 3, lg: 4 } }}>
                 {/* Dialog xem đăng ký ca – popup giữa trang */}
                 <Dialog
                     open={selectedShiftId !== null}
@@ -889,17 +887,25 @@ export const WorkShiftAdminPage = () => {
                     </DialogTitle>
                     <DialogContent dividers sx={{ px: 2.5, py: 2 }}>
                         {selectedShiftId && (() => {
-                            const registrationList = registrations as IWorkShiftRegistration[];
+                            const rawList = (registrations ?? []) as IWorkShiftRegistration[];
+                            const registrationList = [...rawList].sort((a, b) => {
+                                const order = (s: string) => {
+                                    if (s === 'PENDING') return 0;
+                                    if (s === 'PENDING_LEAVE') return 1;
+                                    return 2;
+                                };
+                                return order(a.status) - order(b.status);
+                            });
                             const isInitialRegLoading = regLoading && registrationList.length === 0;
                             return (
                                 <>
                                 {/* Section: Định mức theo vai trò */}
-                                <Typography sx={{ fontWeight: 700, mb: 1.5, fontSize: '1.2rem' }}>
+                                <Typography className="text-base font-semibold text-gray-800 mb-1.5">
                                     Định mức theo vai trò
                                 </Typography>
                                 <Box sx={{ mb: 2.5 }}>
                                     {positions.length === 0 ? (
-                                        <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                        <Typography className="text-sm text-gray-500">
                                             Chưa có chức vụ.
                                         </Typography>
                                     ) : (
@@ -922,13 +928,13 @@ export const WorkShiftAdminPage = () => {
                                                 return (
                                                     <div
                                                         key={p.id}
-                                                        className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm"
+                                                        className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-3 shadow-sm"
                                                     >
                                                         <div className="flex flex-col">
-                                                            <span className="text-lg font-semibold text-slate-900">{p.name}</span>
-                                                            <span className="text-base text-slate-500">
+                                                            <span className="text-base font-semibold text-gray-900">{p.name}</span>
+                                                            <span className="text-sm text-gray-500">
                                                                 Định mức tối đa:&nbsp;
-                                                                <span className="font-semibold text-slate-800">
+                                                                <span className="font-semibold text-gray-800">
                                                                     {maxSlots} người
                                                                 </span>
                                                             </span>
@@ -1056,7 +1062,7 @@ export const WorkShiftAdminPage = () => {
                                                             });
                                                         }}
                                                     >
-                                                        Duyệt lần cuối (khóa ca)
+                                                        Khóa ca
                                                     </Button>
                                                 </span>
                                             </Tooltip>
@@ -1075,15 +1081,15 @@ export const WorkShiftAdminPage = () => {
                                 <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2, mt: 1 }} />
 
                                 {/* Section: Danh sách nhân viên */}
-                                <Typography sx={{ fontWeight: 800, mb: 1.5, fontSize: '1.2rem' }}>
+                                <Typography className="text-base font-semibold text-gray-800 mb-1.5">
                                     Nhân viên trong ca
                                 </Typography>
                                 {isInitialRegLoading ? (
-                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                    <Typography className="text-sm text-gray-500">
                                         Đang tải...
                                     </Typography>
                                 ) : registrationList.length === 0 ? (
-                                    <Typography sx={{ fontSize: '1rem' }} color="text.secondary">
+                                    <Typography className="text-sm text-gray-500">
                                         Chưa có đăng ký.
                                     </Typography>
                                 ) : (
@@ -1095,19 +1101,19 @@ export const WorkShiftAdminPage = () => {
                                             return (
                                                 <div
                                                     key={r.registrationId}
-                                                    className="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+                                                    className="flex items-center justify-between gap-4 rounded-md border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
                                                 >
                                                     <div className="flex items-center gap-4 min-w-0">
-                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-base font-bold text-blue-600">
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-600">
                                                             {initials}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <div className="text-lg font-semibold text-slate-900 truncate">
+                                                            <div className="text-base font-semibold text-gray-900 truncate">
                                                                 {r.staffFullName}
                                                             </div>
-                                                            <div className="mt-1 flex flex-wrap items-center gap-2 text-base">
+                                                            <div className="mt-1 flex flex-col items-start gap-1 text-sm">
                                                                 <span
-                                                                    className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium border ${
+                                                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium border ${
                                                                         r.workType === 'FULL_TIME'
                                                                             ? 'bg-blue-50 text-blue-700 border-blue-200'
                                                                             : 'bg-purple-50 text-purple-700 border-purple-200'
@@ -1116,7 +1122,7 @@ export const WorkShiftAdminPage = () => {
                                                                     {r.workType === 'FULL_TIME' ? 'Full-time' : 'Part-time'}
                                                                 </span>
                                                                 {r.roleAtRegistrationName && (
-                                                                    <span className="text-base text-slate-500">
+                                                                    <span className="text-sm text-gray-500">
                                                                         {r.roleAtRegistrationName}
                                                                     </span>
                                                                 )}
@@ -1124,53 +1130,79 @@ export const WorkShiftAdminPage = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
-                                                        <span
-                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-base font-medium ${sClass}`}
-                                                        >
-                                                            {sLabel}
-                                                        </span>
+                                                    <div className="flex flex-col items-end gap-2 flex-shrink-0 ml-auto">
+                                                        <div className="flex items-center gap-3">
+                                                            <span
+                                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${sClass}`}
+                                                            >
+                                                                {sLabel}
+                                                            </span>
 
-                                                        {(r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED') && selectedShiftStatus === 'OPEN' && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Tooltip title={r.status !== 'APPROVED' && !canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
-                                                                    <span>
-                                                                        <Button
-                                                                            size="small"
-                                                                            variant={r.status === 'APPROVED' ? 'contained' : 'outlined'}
-                                                                            color="success"
-                                                                            onClick={() => handleApprove(r.registrationId)}
-                                                                            disabled={r.status !== 'APPROVED' && !canApproveRegistration(r)}
-                                                                            sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 2 }}
-                                                                        >
-                                                                            Duyệt
-                                                                        </Button>
-                                                                    </span>
-                                                                </Tooltip>
-                                                                <Button
-                                                                    size="small"
-                                                                    variant={r.status === 'REJECTED' ? 'contained' : 'outlined'}
-                                                                    color="error"
-                                                                    onClick={() => handleCancelAssignment(r.registrationId)}
-                                                                    sx={{ fontSize: '0.9rem', textTransform: 'none', borderRadius: 2, px: 1.5 }}
-                                                                >
-                                                                    Từ chối
-                                                                </Button>
-                                                            </div>
-                                                        )}
+                                                            {(r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED') && selectedShiftStatus === 'OPEN' && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Tooltip title={r.status !== 'APPROVED' && !canApproveRegistration(r) ? 'Đã đủ định mức' : ''}>
+                                                                        <span>
+                                                                            <Button
+                                                                                size="small"
+                                                                                variant={r.status === 'APPROVED' ? 'contained' : 'outlined'}
+                                                                                color="success"
+                                                                                onClick={() => handleApprove(r.registrationId)}
+                                                                                disabled={r.status !== 'APPROVED' && !canApproveRegistration(r)}
+                                                                                sx={{
+                                                                                    minHeight: 32,
+                                                                                    height: 32,
+                                                                                    minWidth: 64,
+                                                                                    px: 2,
+                                                                                    py: 1,
+                                                                                    fontSize: '0.8125rem',
+                                                                                    fontWeight: 500,
+                                                                                    textTransform: 'none',
+                                                                                    borderRadius: '8px',
+                                                                                }}
+                                                                            >
+                                                                                Duyệt làm
+                                                                            </Button>
+                                                                        </span>
+                                                                    </Tooltip>
+                                                                    <Button
+                                                                        size="small"
+                                                                        variant={r.status === 'REJECTED' ? 'contained' : 'outlined'}
+                                                                        color="error"
+                                                                        onClick={() => handleCancelAssignment(r.registrationId)}
+                                                                        sx={{
+                                                                            minHeight: 32,
+                                                                            height: 32,
+                                                                            minWidth: 64,
+                                                                            px: 2,
+                                                                            py: 1,
+                                                                            fontSize: '0.8125rem',
+                                                                            fontWeight: 500,
+                                                                            textTransform: 'none',
+                                                                            borderRadius: '8px',
+                                                                        }}
+                                                                    >
+                                                                        Từ chối
+                                                                    </Button>
+                                                                </div>
+                                                            )}
 
-                                                        {r.status === 'PENDING_LEAVE' && selectedShiftStatus === 'OPEN' && (
-                                                            <>
+                                                            {r.status === 'PENDING_LEAVE' && selectedShiftStatus === 'OPEN' && (
+                                                                <>
                                                                 <Button
                                                                     size="small"
                                                                     variant={r.leaveDecision === 'APPROVED_LEAVE' ? 'contained' : 'outlined'}
                                                                     color="success"
                                                                     disabled={settingOnLeave || rejectingLeave}
                                                                     sx={{
-                                                                        fontSize: '0.9rem',
-                                                                        textTransform: 'none',
-                                                                        borderRadius: 2,
+                                                                        minHeight: 32,
+                                                                        height: 32,
+                                                                        minWidth: 64,
                                                                         px: 2,
+                                                                        py: 1,
+                                                                        fontSize: '0.8125rem',
+                                                                        fontWeight: 500,
+                                                                        textTransform: 'none',
+                                                                        borderRadius: '8px',
                                                                     }}
                                                                     onClick={() => {
                                                                         if (!selectedShiftId) return;
@@ -1180,7 +1212,7 @@ export const WorkShiftAdminPage = () => {
                                                                             {
                                                                                 onSuccess: (res: any) => {
                                                                                     if (res?.success !== false) {
-                                                                                        toast.success('Đã ghi nhận.');
+                                                                                        toast.success('Đã duyệt nghỉ');
                                                                                         queryClient.setQueryData(
                                                                                             ['work-shift-registrations', selectedShiftId],
                                                                                             (prev: IWorkShiftRegistration[] | undefined) => {
@@ -1210,10 +1242,15 @@ export const WorkShiftAdminPage = () => {
                                                                     color="error"
                                                                     disabled={settingOnLeave || rejectingLeave}
                                                                     sx={{
-                                                                        fontSize: '0.9rem',
+                                                                        minHeight: 32,
+                                                                        height: 32,
+                                                                        minWidth: 64,
+                                                                        px: 2,
+                                                                        py: 1,
+                                                                        fontSize: '0.8125rem',
+                                                                        fontWeight: 500,
                                                                         textTransform: 'none',
-                                                                        borderRadius: 2,
-                                                                        px: 1.75,
+                                                                        borderRadius: '8px',
                                                                     }}
                                                                     onClick={() => {
                                                                         if (!selectedShiftId) return;
@@ -1222,7 +1259,7 @@ export const WorkShiftAdminPage = () => {
                                                                             {
                                                                                 onSuccess: (res: any) => {
                                                                                     if (res?.success) {
-                                                                                        toast.success('Đã ghi nhận.');
+                                                                                        toast.success('Đã từ chối duyệt nghỉ');
                                                                                         queryClient.invalidateQueries({
                                                                                             queryKey: ['work-shift-registrations', selectedShiftId],
                                                                                         });
@@ -1239,8 +1276,17 @@ export const WorkShiftAdminPage = () => {
                                                                     Từ chối
                                                                 </Button>
                                                             </>
+                                                            )}
+                                                        </div>
+
+
+                                                        {(r.status === 'PENDING_LEAVE' || r.status === 'ON_LEAVE') && r.leaveReason && (
+                                                            <p className="text-sm text-gray-500 italic text-right max-w-[250px] truncate">
+                                                                Lý do xin nghỉ: {r.leaveReason}
+                                                            </p>
                                                         )}
                                                     </div>
+
                                                 </div>
                                             );
                                         })}
@@ -1252,7 +1298,7 @@ export const WorkShiftAdminPage = () => {
                                             return (
                                                 <div
                                                     key={`empty-${p.id}`}
-                                                    className="flex items-center gap-3 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-base font-medium text-slate-500 justify-center"
+                                                    className="flex items-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500 justify-center"
                                                 >
                                                     <UserPlus className="h-4 w-4 text-slate-400" />
                                                     <span>

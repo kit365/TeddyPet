@@ -1,4 +1,4 @@
-﻿import AppBar from "@mui/material/AppBar";
+import AppBar from "@mui/material/AppBar";
 import useScrollTrigger from '@mui/material/useScrollTrigger';
 import React from "react";
 import Container from "@mui/material/Container";
@@ -22,7 +22,7 @@ import { useState } from "react";
 import { toast } from 'react-toastify';
 import { InputAdornment, TextField } from "@mui/material";
 import { Search } from "iconoir-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../api/staffProfile.api";
 import { useUpdateStaffProfile } from "../../pages/staff/hooks/useStaffProfile";
@@ -80,6 +80,7 @@ const SEARCH_ROUTES = [
 export const Header = () => {
     const { i18n } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
     const [openSearchDialog, setOpenSearchDialog] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -554,14 +555,17 @@ export const Header = () => {
                                 />
                             </Button>
                             <Button
+                                onClick={() => navigate(`/admin/profile`, { state: { from: location.pathname } })}
                                 sx={{
                                     minWidth: 0,
                                     padding: 0,
+                                    borderRadius: '50%',
                                 }}
                             >
-                                <div className="relative rounded-full p-[3px] w-[2.5rem] h-[2.5rem] header__avatar">
-                                    <Avatar className="w-full h-full" src="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-25.webp" />
-                                </div>
+                                <Avatar
+                                    sx={{ width: 40, height: 40 }}
+                                    src={myProfile?.avatarUrl || (user as any)?.avatarUrl || "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/images/mock/avatar/avatar-25.webp"}
+                                />
                             </Button>
                         </Box>
                     </Container>

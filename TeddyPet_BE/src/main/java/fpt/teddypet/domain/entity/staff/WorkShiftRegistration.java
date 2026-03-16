@@ -64,6 +64,12 @@ public class WorkShiftRegistration extends BaseEntity {
     private LocalDateTime registeredAt;
 
     /**
+     * Lý do xin nghỉ do nhân viên nhập (tùy chọn).
+     */
+    @Column(name = "leave_reason")
+    private String leaveReason;
+
+    /**
      * Quyết định admin cho xin nghỉ (PENDING_LEAVE): APPROVED_LEAVE = sẽ nghỉ, REJECTED_LEAVE = từ chối.
      * Chỉ được áp dụng khi admin bấm "Duyệt lần cuối (khóa ca)".
      */

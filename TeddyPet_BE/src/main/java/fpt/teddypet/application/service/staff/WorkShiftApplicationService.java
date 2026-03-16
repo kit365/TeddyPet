@@ -255,9 +255,38 @@ public class WorkShiftApplicationService implements WorkShiftService {
     @Override
     @Transactional
     public void deleteAllWorkShifts() {
-        shiftRoleConfigRepositoryPort.deleteAll();
-        registrationRepositoryPort.deleteAll();
-        workShiftRepositoryPort.deleteAll();
+        // Chỉ xóa ca của tuần TIẾP THEO (không xóa tuần hiện tại hoặc tuần đã qua)
+        LocalDateTime[] nextWeek = getNextWeekRange();
+        LocalDateTime weekStart = nextWeek[0];
+        LocalDateTime weekEnd = nextWeek[1];
+
+        List<WorkShift> shifts = workShiftRepositoryPort.findByStartTimeBetween(weekStart, weekEnd);
+
+        for (WorkShift shift : shifts) {
+            Long shiftId = shift.getId();
+
+            // Đánh dấu soft-delete cho định mức vai trò
+            List<ShiftRoleConfig> configs = shiftRoleConfigRepositoryPort.findByWorkShiftId(shiftId);
+            for (ShiftRoleConfig config : configs) {
+                config.setActive(false);
+                config.setDeleted(true);
+                shiftRoleConfigRepositoryPort.save(config);
+            }
+
+            // Đánh dấu soft-delete cho các đăng ký ca
+            List<WorkShiftRegistration> regs = registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shiftId);
+            for (WorkShiftRegistration reg : regs) {
+                reg.setActive(false);
+                reg.setDeleted(true);
+                registrationRepositoryPort.save(reg);
+            }
+
+            // Đánh dấu soft-delete cho ca làm
+            shift.setStatus(ShiftStatus.CANCELLED);
+            shift.setActive(false);
+            shift.setDeleted(true);
+            workShiftRepositoryPort.save(shift);
+        }
     }
 
     @Override
@@ -319,12 +348,12 @@ public class WorkShiftApplicationService implements WorkShiftService {
 
     @Override
     @Transactional
-    public WorkShiftRegistrationResponse registerForShift(Long shiftId, Long staffId) {
+    public WorkShiftRegistrationResponse registerForShift(Long shiftId, Long staffId, Long requestedPositionId) {
         WorkShift shift = getShiftOrThrow(shiftId);
         if (shift.getStatus() != ShiftStatus.OPEN) {
             throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "đăng ký ca");
         }
-        if (registrationRepositoryPort.existsByWorkShiftIdAndStaffId(shiftId, staffId)) {
+        if (registrationRepositoryPort.hasActiveRegistrationForShift(shiftId, staffId)) {
             throw new AlreadyRegisteredException(shiftId, staffId);
         }
 
@@ -335,7 +364,9 @@ public class WorkShiftApplicationService implements WorkShiftService {
             throw new FullTimeCannotRegisterException();
         }
 
-        StaffPosition position = staff.getPosition();
+        // Chọn vai trò đăng ký: null = chức vụ chính; hoặc chức vụ phụ nếu staff có cấu hình
+        StaffPosition position = resolveRegistrationPosition(staff, requestedPositionId);
+
         Long positionId = position != null ? position.getId() : null;
         int maxSlots = 1;
         String roleName = position != null ? position.getName() : "Không xác định";
@@ -343,7 +374,6 @@ public class WorkShiftApplicationService implements WorkShiftService {
             maxSlots = shiftRoleConfigRepositoryPort.findByWorkShiftIdAndPositionId(shiftId, positionId)
                     .map(ShiftRoleConfig::getMaxSlots)
                     .orElse(1);
-            // Chỉ tính người sẽ đi làm / đang giữ slot. Đã duyệt nghỉ (PENDING_LEAVE + APPROVED_LEAVE) không chiếm slot → part-time có thể đăng ký bù.
             long occupyingCount = registrationRepositoryPort.countParticipatingByWorkShiftIdAndPositionId(shiftId, positionId);
             if (occupyingCount >= maxSlots) {
                 throw new ShiftRoleQuotaExceededException(shiftId, roleName, maxSlots);
@@ -365,6 +395,24 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 .build();
         WorkShiftRegistration saved = registrationRepositoryPort.save(registration);
         return toRegistrationResponse(saved);
+    }
+
+    /** Xác định vai trò đăng ký: null = chính; nếu requestedPositionId trùng chính hoặc chức vụ phụ thì dùng. */
+    private StaffPosition resolveRegistrationPosition(StaffProfile staff, Long requestedPositionId) {
+        if (requestedPositionId == null) {
+            return staff.getPosition();
+        }
+        StaffPosition main = staff.getPosition();
+        if (main != null && main.getId().equals(requestedPositionId)) {
+            return main;
+        }
+        StaffPosition secondary = staff.getSecondaryPosition();
+        if (secondary != null && secondary.getId().equals(requestedPositionId)) {
+            return secondary;
+        }
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "Bạn chỉ có thể đăng ký theo chức vụ chính hoặc chức vụ phụ của mình.");
     }
 
     @Override
@@ -468,7 +516,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
 
     @Override
     @Transactional
-    public WorkShiftRegistrationResponse requestLeave(Long shiftId, Long staffId) {
+    public WorkShiftRegistrationResponse requestLeave(Long shiftId, Long staffId, String reason) {
         WorkShift shift = getShiftOrThrow(shiftId);
         if (shift.getStatus() != ShiftStatus.OPEN) {
             throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "xin nghỉ (ca đã khóa)");
@@ -482,6 +530,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
             throw new IllegalStateException("Chỉ nhân viên toàn thời gian mới dùng Xin nghỉ. Part-time vui lòng liên hệ admin để hủy đăng ký.");
         }
         reg.setStatus(RegistrationStatus.PENDING_LEAVE);
+        reg.setLeaveReason(reason);
         registrationRepositoryPort.save(reg);
         return toRegistrationResponse(reg);
     }
@@ -533,6 +582,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
         }
         reg.setStatus(RegistrationStatus.APPROVED);
         reg.setLeaveDecision(null);
+        reg.setLeaveReason(null);
         registrationRepositoryPort.save(reg);
         return toRegistrationResponse(reg);
     }
@@ -703,6 +753,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 reg.getWorkType(),
                 reg.getStatus(),
                 reg.getRegisteredAt(),
+                reg.getLeaveReason(),
                 reg.getLeaveDecision()
         );
     }

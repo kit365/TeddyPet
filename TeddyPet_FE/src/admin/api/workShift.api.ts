@@ -53,6 +53,8 @@ export interface IWorkShiftRegistration {
     workType?: WorkType | null;
     status: RegistrationStatus;
     registeredAt: string;
+    /** Lý do xin nghỉ do nhân viên nhập (nếu có) */
+    leaveReason?: string | null;
     /** Chỉ có khi status = PENDING_LEAVE: APPROVED_LEAVE | REJECTED_LEAVE; áp dụng khi admin bấm Duyệt lần cuối */
     leaveDecision?: string | null;
 }
@@ -188,14 +190,22 @@ export const getAvailableShifts = async (from?: string | null, to?: string | nul
 };
 
 /** Staff (Full-time): Xin nghỉ ca – chuyển sang ON_LEAVE, nhả slot cho Part-time đăng ký bù */
-export const requestLeave = async (shiftId: number): Promise<ApiResponse<IWorkShiftRegistration>> => {
-    const res = await apiApp.post(`${STAFF_BASE}/${shiftId}/request-leave`, {}, withAuth());
+export const requestLeave = async (shiftId: number, reason?: string): Promise<ApiResponse<IWorkShiftRegistration>> => {
+    const payload = reason ? { reason } : {};
+    const res = await apiApp.post(`${STAFF_BASE}/${shiftId}/request-leave`, payload, withAuth());
     return res.data;
 };
 
-/** Staff: register for shift (chỉ Part-time; Full-time bị từ chối) */
-export const registerForShift = async (shiftId: number): Promise<ApiResponse<IWorkShiftRegistration>> => {
-    const res = await apiApp.post(`${STAFF_BASE}/${shiftId}/register`, {}, withAuth());
+/** Staff: register for shift (chỉ Part-time). positionId = undefined: chức vụ chính; có thể truyền chức vụ phụ để đăng ký bù. */
+export const registerForShift = async (
+    shiftId: number,
+    positionId?: number | null
+): Promise<ApiResponse<IWorkShiftRegistration>> => {
+    const params = positionId != null ? { positionId } : {};
+    const res = await apiApp.post(`${STAFF_BASE}/${shiftId}/register`, null, {
+        ...withAuth(),
+        params,
+    });
     return res.data;
 };
 

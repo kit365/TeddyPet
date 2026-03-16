@@ -1,6 +1,7 @@
 import axios from "axios"
 import Cookies from "js-cookie"
 import { useAuthStore } from "../stores/useAuthStore"
+import { redirectToLogin } from "../navigationHelper"
 
 const BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8080"
 
@@ -123,7 +124,7 @@ apiApp.interceptors.response.use(
                 const isProtectedRoute = isAdmin || window.location.pathname.startsWith("/dashboard");
 
                 if (window.location.pathname !== loginPath && isProtectedRoute) {
-                    window.location.href = loginPath;
+                    redirectToLogin(loginPath);
                 }
                 return Promise.reject(error);
             }
@@ -164,7 +165,7 @@ apiApp.interceptors.response.use(
                 }
                 const isProtectedRoute = isAdmin || window.location.pathname.startsWith("/dashboard");
                 if (window.location.pathname !== loginPath && isProtectedRoute) {
-                    window.location.href = loginPath;
+                    redirectToLogin(loginPath);
                 }
                 return Promise.reject(err);
             } finally {

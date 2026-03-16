@@ -51,13 +51,16 @@ public class StaffProfileApplicationService implements StaffProfileService {
     @Override
     @Transactional
     public StaffProfileResponse createProfile(StaffCreationDTO request) {
-        validateUniqueOnCreate(request.email(), request.phoneNumber(), request.citizenId());
+        validateUniqueOnCreate(request.email(), request.phoneNumber(), request.citizenId(), request.backupEmail());
         StaffPosition position = request.positionId() != null
                 ? staffPositionRepositoryPort.findById(request.positionId()).orElse(null)
                 : null;
         String avatarUrl = request.avatarUrl();
         String generatedAltImage = (avatarUrl != null && !avatarUrl.isBlank())
                 ? ("Ảnh đại diện " + (request.fullName() != null ? request.fullName() : "nhân viên"))
+                : null;
+        StaffPosition secondaryPosition = request.secondaryPositionId() != null
+                ? staffPositionRepositoryPort.findById(request.secondaryPositionId()).orElse(null)
                 : null;
         StaffProfile staff = StaffProfile.builder()
                 .user(null)
@@ -74,6 +77,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .bankName(request.bankName())
                 .backupEmail(request.backupEmail())
                 .position(position)
+                .secondaryPosition(secondaryPosition)
                 .employmentType(request.employmentType())
                 .build();
         if (request.avatarUrl() != null && !request.avatarUrl().isBlank()) {
@@ -140,9 +144,15 @@ public class StaffProfileApplicationService implements StaffProfileService {
 
     /**
      * Tạo bản ghi avatar_images cho avatar của nhân viên (category = "STAFF").
+     * Nếu đã có user liên kết với staff, gắn luôn userId để thuận tiện truy vết.
      */
     @Transactional
     protected AvatarImage createAvatarImageForStaff(String avatarUrl, String fullName) {
+        return createAvatarImageForStaff(avatarUrl, fullName, null);
+    }
+
+    @Transactional
+    protected AvatarImage createAvatarImageForStaff(String avatarUrl, String fullName, User user) {
         if (avatarUrl == null || avatarUrl.isBlank()) {
             return null;
         }
@@ -150,6 +160,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .imageUrl(avatarUrl.trim())
                 .altText(fullName != null && !fullName.isBlank() ? "Ảnh đại diện " + fullName : "Staff avatar")
                 .category("STAFF")
+                .user(user)
                 .isPredefined(false)
                 .build();
         return avatarImageRepository.save(avatar);
@@ -335,7 +346,13 @@ public class StaffProfileApplicationService implements StaffProfileService {
     @Transactional
     public StaffProfileResponse update(Long staffId, StaffProfileRequest request) {
         StaffProfile staff = getActiveById(staffId);
-        validateUniqueOnUpdate(staffId, request.phoneNumber(), request.citizenId());
+        validateUniqueOnUpdate(
+                staffId,
+                request.phoneNumber(),
+                request.citizenId(),
+                request.backupEmail(),
+                staff.getEmail()
+        );
 
         if (request.fullName() != null && !request.fullName().isBlank()) {
             staff.setFullName(request.fullName());
@@ -354,7 +371,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
         if (request.avatarUrl() != null) {
             String trimmed = request.avatarUrl().isBlank() ? null : request.avatarUrl().trim();
             if (trimmed != null && !trimmed.equals(staff.getAvatarUrl())) {
-                createAvatarImageForStaff(trimmed, staff.getFullName());
+                // Nếu staff đã được link với user, lưu luôn userId vào avatar_images
+                createAvatarImageForStaff(trimmed, staff.getFullName(), staff.getUser());
             }
             staff.setAvatarUrl(trimmed);
             // Auto-generate alt image when avatar present (unless explicit altImage
@@ -379,6 +397,14 @@ public class StaffProfileApplicationService implements StaffProfileService {
             staff.setPosition(position);
         } else {
             staff.setPosition(null);
+        }
+        if (request.secondaryPositionId() != null) {
+            StaffPosition secondary = staffPositionRepositoryPort.findById(request.secondaryPositionId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Không tìm thấy chức vụ phụ với id: " + request.secondaryPositionId()));
+            staff.setSecondaryPosition(secondary);
+        } else {
+            staff.setSecondaryPosition(null);
         }
         staff.setEmploymentType(request.employmentType());
 
@@ -485,7 +511,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy nhân viên với id: " + staffId));
     }
 
-    private void validateUniqueOnCreate(String email, String phoneNumber, String citizenId) {
+    private void validateUniqueOnCreate(String email, String phoneNumber, String citizenId, String backupEmail) {
         if (email != null && !email.isBlank() && staffProfileRepositoryPort.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã được sử dụng: " + email);
         }
@@ -496,9 +522,42 @@ public class StaffProfileApplicationService implements StaffProfileService {
         if (citizenId != null && !citizenId.isBlank() && staffProfileRepositoryPort.existsByCitizenId(citizenId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số CCCD/CMND đã được sử dụng: " + citizenId);
         }
+
+        if (backupEmail != null && !backupEmail.isBlank()) {
+            String normalizedBackup = backupEmail.trim().toLowerCase();
+
+            // Không cho trùng với email chính ngay trên hồ sơ nhân viên mới tạo
+            if (email != null && !email.isBlank()
+                    && normalizedBackup.equals(email.trim().toLowerCase())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng không được trùng với email chính."
+                );
+            }
+
+            // Không cho trùng email của bất kỳ user hoặc nhân viên nào khác
+            if (userRepositoryPort.existsByEmail(backupEmail)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
+            if (staffProfileRepositoryPort.existsByEmail(backupEmail)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
+            if (staffProfileRepositoryPort.existsByBackupEmail(backupEmail)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
+        }
     }
 
-    private void validateUniqueOnUpdate(Long staffId, String phoneNumber, String citizenId) {
+    private void validateUniqueOnUpdate(Long staffId, String phoneNumber, String citizenId, String backupEmail, String currentEmail) {
         if (phoneNumber != null && !phoneNumber.isBlank()
                 && staffProfileRepositoryPort.existsByPhoneNumberExcludingId(phoneNumber, staffId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng: " + phoneNumber);
@@ -506,6 +565,39 @@ public class StaffProfileApplicationService implements StaffProfileService {
         if (citizenId != null && !citizenId.isBlank()
                 && staffProfileRepositoryPort.existsByCitizenIdExcludingId(citizenId, staffId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số CCCD/CMND đã được sử dụng: " + citizenId);
+        }
+
+        if (backupEmail != null && !backupEmail.isBlank()) {
+            String normalizedBackup = backupEmail.trim().toLowerCase();
+
+            // Không cho trùng với email chính trên hồ sơ nhân viên
+            if (currentEmail != null && !currentEmail.isBlank()
+                    && normalizedBackup.equals(currentEmail.trim().toLowerCase())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng không được trùng với email chính."
+                );
+            }
+
+            // Không cho trùng email của bất kỳ user hoặc nhân viên nào khác
+            if (userRepositoryPort.existsByEmail(backupEmail)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
+            if (staffProfileRepositoryPort.existsByEmail(backupEmail)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
+            if (staffProfileRepositoryPort.existsByBackupEmailExcludingId(backupEmail, staffId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Email dự phòng đã được sử dụng: " + backupEmail
+                );
+            }
         }
     }
     private StaffProfileResponse toResponse(StaffProfile staff) {
@@ -518,6 +610,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
                     .orElse(null);
         }
 
+        StaffPosition secondaryPosition = staff.getSecondaryPosition();
         return new StaffProfileResponse(
                 staff.getId(),
                 user != null ? user.getId() : null,
@@ -536,6 +629,8 @@ public class StaffProfileApplicationService implements StaffProfileService {
                 position != null ? position.getId() : null,
                 position != null ? position.getCode() : null,
                 position != null ? position.getName() : null,
+                secondaryPosition != null ? secondaryPosition.getId() : null,
+                secondaryPosition != null ? secondaryPosition.getName() : null,
                 staff.getEmploymentType(),
                 staff.getBackupEmail(),
                 whitelistStatus,

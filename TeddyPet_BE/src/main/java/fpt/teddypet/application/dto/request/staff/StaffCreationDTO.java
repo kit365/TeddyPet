@@ -62,14 +62,12 @@ public record StaffCreationDTO(
         String bankName,
 
         @JsonProperty("positionId")
-        @NotNull(message = "Chức vụ không được để trống")
         Long positionId,
 
         @JsonProperty("secondaryPositionId")
         Long secondaryPositionId,
 
         @JsonProperty("employmentType")
-        @NotNull(message = "Loại hình công việc không được để trống")
         EmploymentTypeEnum employmentType,
 
         @JsonProperty("assignedRole")

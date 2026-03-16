@@ -757,27 +757,27 @@ public class AuthApplicationService implements AuthService {
         User user = getCurrentUser();
         log.info(AuthLogMessages.LOG_AUTH_CHANGE_PASSWORD_START, user.getUsername());
 
-        // 1. Verify old password
-        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
-            throw new IllegalArgumentException(AuthMessages.MESSAGE_OLD_PASSWORD_INCORRECT);
+        // 1. Verify old password (nếu có gửi lên)
+        if (request.oldPassword() != null && !request.oldPassword().isBlank()) {
+            if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+                throw new IllegalArgumentException(AuthMessages.MESSAGE_OLD_PASSWORD_INCORRECT);
+            }
+            if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+                throw new IllegalArgumentException(AuthMessages.MESSAGE_NEW_PASSWORD_SAME_AS_OLD);
+            }
         }
 
-        // 2. Verify new password not same as old
-        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
-            throw new IllegalArgumentException(AuthMessages.MESSAGE_NEW_PASSWORD_SAME_AS_OLD);
-        }
-
-        // 3. Verify OTP
+        // 2. Verify OTP
         Optional<String> storedOtp = verificationTokenPort.getGuestOtp(user.getEmail());
         if (storedOtp.isEmpty() || !storedOtp.get().equals(request.otpCode())) {
             throw new IllegalArgumentException(AuthMessages.MESSAGE_OTP_INVALID);
         }
 
-        // 4. Update password
+        // 3. Update password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userService.save(user);
 
-        // 5. Clear OTP and Cooldown
+        // 4. Clear OTP and Cooldown
         verificationTokenPort.deleteGuestOtp(user.getEmail());
 
         log.info(AuthLogMessages.LOG_AUTH_CHANGE_PASSWORD_SUCCESS, user.getUsername());

@@ -48,18 +48,25 @@ public class WorkShiftController {
 
     @PostMapping("/{shiftId}/request-leave")
     @Operation(summary = "Full-time: Xin nghỉ ca (chuyển sang Xin nghỉ chờ duyệt, admin duyệt/từ chối trên giao diện ca làm việc)")
-    public ResponseEntity<ApiResponse<WorkShiftRegistrationResponse>> requestLeave(@PathVariable @NotNull Long shiftId) {
+    public ResponseEntity<ApiResponse<WorkShiftRegistrationResponse>> requestLeave(
+            @PathVariable @NotNull Long shiftId,
+            @org.springframework.web.bind.annotation.RequestBody(required = false) RequestLeaveBody body
+    ) {
         Long staffId = getCurrentStaffId();
-        WorkShiftRegistrationResponse response = workShiftService.requestLeave(shiftId, staffId);
+        String reason = body != null ? body.reason() : null;
+        WorkShiftRegistrationResponse response = workShiftService.requestLeave(shiftId, staffId, reason);
         return ResponseEntity.ok(ApiResponse.success("Đã gửi xin nghỉ. Chờ admin duyệt.", response));
     }
 
+    public record RequestLeaveBody(String reason) {}
+
     @PostMapping("/{shiftId}/register")
-    @Operation(summary = "Đăng ký ca làm việc (dùng staffId từ JWT)")
+    @Operation(summary = "Đăng ký ca làm việc (dùng staffId từ JWT). positionId = null: chức vụ chính; truyền positionId: đăng ký theo chức vụ phụ khi có.")
     public ResponseEntity<ApiResponse<WorkShiftRegistrationResponse>> registerForShift(
-            @PathVariable @NotNull Long shiftId) {
+            @PathVariable @NotNull Long shiftId,
+            @RequestParam(required = false) Long positionId) {
         Long staffId = getCurrentStaffId();
-        WorkShiftRegistrationResponse response = workShiftService.registerForShift(shiftId, staffId);
+        WorkShiftRegistrationResponse response = workShiftService.registerForShift(shiftId, staffId, positionId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Đăng ký ca thành công", response));
     }

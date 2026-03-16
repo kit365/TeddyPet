@@ -28,5 +28,9 @@ public interface StaffProfileRepositoryPort {
     boolean existsByCitizenId(String citizenId);
 
     boolean existsByCitizenIdExcludingId(String citizenId, Long excludeStaffId);
+
+    boolean existsByBackupEmail(String backupEmail);
+
+    boolean existsByBackupEmailExcludingId(String backupEmail, Long excludeStaffId);
 }
 

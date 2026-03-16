@@ -30,6 +30,8 @@ export interface IStaffProfile {
     positionId?: number | null;
     positionCode?: string | null;
     positionName?: string | null;
+    secondaryPositionId?: number | null;
+    secondaryPositionName?: string | null;
     employmentType?: EmploymentTypeEnum | null;
     backupEmail?: string | null;
     googleWhitelistStatus?: string | null;
@@ -50,6 +52,7 @@ export interface IStaffOnboardingRequest {
     bankAccountNo?: string | null;
     bankName?: string | null;
     positionId?: number | null;
+    secondaryPositionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
     assignedRole?: string | null;
     backupEmail?: string | null;
@@ -68,6 +71,7 @@ export interface IStaffProfileUpdateRequest {
     bankAccountNo?: string | null;
     bankName?: string | null;
     positionId?: number | null;
+    secondaryPositionId?: number | null;
     employmentType?: EmploymentTypeEnum | null;
     backupEmail?: string | null;
 }

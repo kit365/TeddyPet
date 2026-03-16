@@ -27,7 +27,10 @@ public interface WorkShiftService {
     /** Admin: Hủy/Xóa ca trống (chỉ khi status = OPEN, chưa gán nhân viên) */
     void cancelOpenShift(Long shiftId);
 
-    /** Admin: Xóa tất cả ca làm (và đăng ký, định mức role) – dùng để tạo lại từ đầu */
+    /**
+     * Admin: Xóa tất cả ca làm của TUẦN TIẾP THEO (và đăng ký, định mức role liên quan).
+     * Không đụng tới ca của tuần hiện tại hoặc các tuần đã qua.
+     */
     void deleteAllWorkShifts();
 
     /** Admin: Lấy tất cả ca trong khoảng (OPEN + ASSIGNED) để hiển thị grid, kể cả ca đã khóa sau Duyệt lần cuối */
@@ -39,11 +42,11 @@ public interface WorkShiftService {
     /** Staff: Lấy ca trống kèm thông tin slot theo vai trò (để Part-time biết còn chỗ đăng ký; Full-time không dùng đăng ký). */
     List<AvailableShiftForStaffResponse> getAvailableShiftsForStaff(LocalDateTime from, LocalDateTime to);
 
-    /** Staff: Đăng ký ca làm việc (chỉ Part-time; Full-time bị từ chối). */
-    WorkShiftRegistrationResponse registerForShift(Long shiftId, Long staffId);
+    /** Staff: Đăng ký ca làm việc (chỉ Part-time; Full-time bị từ chối). positionId = null thì đăng ký theo chức vụ chính; có thể truyền chức vụ phụ để đăng ký bù. */
+    WorkShiftRegistrationResponse registerForShift(Long shiftId, Long staffId, Long positionId);
 
     /** Staff (Full-time): Xin nghỉ ca – chuyển đăng ký APPROVED sang PENDING_LEAVE (chờ admin duyệt). */
-    WorkShiftRegistrationResponse requestLeave(Long shiftId, Long staffId);
+    WorkShiftRegistrationResponse requestLeave(Long shiftId, Long staffId, String reason);
 
     /** Staff (Part-time): Hủy đăng ký ca (hoàn tác) – xóa bản ghi PENDING. */
     void cancelMyRegistration(Long shiftId, Long staffId);

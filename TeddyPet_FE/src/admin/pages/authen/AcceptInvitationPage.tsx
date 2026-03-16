@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Container, Typography, CircularProgress, Button, ThemeProvider } from "@mui/material";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { LogoAdmin } from "../../../assets/admin/logo";
 import { adminTheme } from "../../config/theme";
 import { getMe } from "../../../api/auth.api";
@@ -61,7 +61,6 @@ export const AcceptInvitationPage = () => {
 
     return (
         <ThemeProvider theme={adminTheme}>
-            <ToastContainer />
             <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
                 <Container
                     disableGutters

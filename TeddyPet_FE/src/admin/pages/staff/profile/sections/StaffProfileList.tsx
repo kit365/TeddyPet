@@ -615,14 +615,14 @@ export const StaffProfileList = () => {
 
                 <Stack gap={2.5}>
                     <Box>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                             Trạng thái
                         </label>
                         <div className="relative">
                             <select
                                 value={localStatus[0] || ''}
                                 onChange={(e) => setLocalStatus(e.target.value ? [e.target.value] : [])}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
+                                className="w-full h-9 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-semibold text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
                             >
                                 <option value="">Tất cả trạng thái</option>
                                 {STATUS_FILTER_OPTIONS.map((opt) => (
@@ -636,14 +636,14 @@ export const StaffProfileList = () => {
                     </Box>
 
                     <Box>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                             Loại hình làm việc
                         </label>
                         <div className="relative">
                             <select
                                 value={localEmployment[0] || ''}
                                 onChange={(e) => setLocalEmployment(e.target.value ? [e.target.value] : [])}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
+                                className="w-full h-9 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-semibold text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
                             >
                                 <option value="">Tất cả loại hình</option>
                                 {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (

@@ -227,6 +227,7 @@ export const StaffProfileDetailPage = () => {
                             <InfoRow icon={<Calendar size={18} />} label="Ngày sinh" value={profile.dateOfBirth} />
                             <InfoRow icon={<Users size={18} />} label="Giới tính" value={profile.gender === 'MALE' ? 'Nam' : profile.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
                             <InfoRow icon={<Mail size={18} />} label="Email làm việc" value={profile.email} />
+                            <InfoRow icon={<Mail size={18} />} label="Email dự phòng" value={profile.backupEmail} />
                             <InfoRow icon={<Phone size={18} />} label="Số điện thoại" value={profile.phoneNumber} />
                             <InfoRow icon={<MapPin size={18} />} label="Địa chỉ liên hệ" value={profile.address} />
                         </Box>
@@ -245,6 +246,7 @@ export const StaffProfileDetailPage = () => {
                         </Box>
                         <Box>
                             <InfoRow icon={<Award size={18} />} label="Vị trí tuyển dụng" value={profile.positionName} />
+                            <InfoRow icon={<Award size={18} />} label="Chức vụ phụ" value={profile.secondaryPositionName} />
                             <InfoRow icon={<Briefcase size={18} />} label="Loại hình nhân sự" value={profile.employmentType === 'FULL_TIME' ? 'Toàn thời gian' : 'Bán thời gian'} />
                              {bankData ? (
                                  <Box sx={{ 

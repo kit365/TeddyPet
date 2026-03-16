@@ -1,4 +1,4 @@
-﻿import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -60,6 +60,7 @@ const RenderPositionStatusCell = (params: GridRenderCellParams<IStaffPosition>) 
 };
 
 const positionColumns: GridColDef<IStaffPosition>[] = [
+    { field: 'id', headerName: 'ID', width: 80, type: 'number' },
     { field: 'code', headerName: 'Mã', width: 140 },
     { field: 'name', headerName: 'Tên chức vụ', flex: 1, minWidth: 180 },
     { field: 'description', headerName: 'Mô tả', flex: 1, minWidth: 200, valueGetter: (v: string) => v ?? '—' },
@@ -107,7 +108,11 @@ export const StaffPositionList = () => {
                     localeText={DATA_GRID_LOCALE_VN}
                     pagination
                     pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
-                    initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
+                    initialState={{
+                        pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                        sorting: { sortModel: [{ field: 'id', sort: 'asc' }] },
+                        columns: { columnOrder: ['id', 'code', 'name', 'description', 'active', 'actions'] },
+                    }}
                     getRowHeight={() => 'auto'}
                     disableRowSelectionOnClick
                     sx={{

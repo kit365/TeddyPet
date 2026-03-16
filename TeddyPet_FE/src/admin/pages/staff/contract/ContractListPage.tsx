@@ -1,5 +1,7 @@
-﻿import { useMemo, useState } from 'react';
-import { Box, Button, MenuItem, TextField } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import Toolbar from '@mui/material/Toolbar';
+import CircularProgress from '@mui/material/CircularProgress';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useStaffProfiles } from '../hooks/useStaffProfile';
@@ -8,8 +10,10 @@ import { DataGrid, GridActionsCell, GridActionsCellItem, GridColDef, GridRenderC
 import Card from '@mui/material/Card';
 import { dataGridCardStyles, dataGridContainerStyles, dataGridStyles } from '../../service/configs/styles.config';
 import { DATA_GRID_LOCALE_VN } from '../../service/configs/localeText.config';
+import { SortAscendingIcon, SortDescendingIcon, UnsortedIcon } from '../../../assets/icons';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import AddIcon from '@mui/icons-material/Add';
 import type { IContract } from '../../../api/contract.api';
 import { EditIcon, DeleteIcon, EyeIcon } from '../../../assets/icons';
 
@@ -63,11 +67,11 @@ export const ContractListPage = () => {
         );
     };
 
-    const RenderContractActionsCell = (params: { row: IContract }) => {
+    const RenderContractActionsCell = (params: GridRenderCellParams<IContract>) => {
         const { row } = params;
 
         return (
-            <GridActionsCell>
+            <GridActionsCell {...params}>
                 <GridActionsCellItem
                     icon={<EyeIcon />}
                     label="Xem chi tiết"
@@ -86,7 +90,6 @@ export const ContractListPage = () => {
                     icon={<DeleteIcon />}
                     label="Xóa"
                     showInMenu
-                    sx={{ '& .MuiTypography-root': { color: '#FF5630' } }}
                     onClick={() => handleDelete(row)}
                 />
             </GridActionsCell>
@@ -136,7 +139,7 @@ export const ContractListPage = () => {
             type: 'actions',
             width: 80,
             sortable: false,
-            renderCell: (params) => <RenderContractActionsCell row={params.row} />,
+            renderCell: (params) => <RenderContractActionsCell {...params} />,
         },
     ];
 
@@ -149,40 +152,83 @@ export const ContractListPage = () => {
                     { label: 'Nhân sự', to: `/${prefixAdmin}/staff/profile/list` },
                     { label: 'Hợp đồng' },
                 ]}
-                addButtonLabel="Thêm hợp đồng"
-                addButtonPath={`/${prefixAdmin}/staff/contract/create`}
+                action={
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        <TextField
+                            select
+                            label="Chọn nhân viên"
+                            value={staffId}
+                            onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
+                            size="small"
+                            sx={{ minWidth: 280, '& .MuiInputBase-root': { minHeight: 40 } }}
+                        >
+                            <MenuItem value="">— Tất cả —</MenuItem>
+                            {profiles.map((p) => (
+                                <MenuItem key={p.staffId} value={p.staffId}>
+                                    {p.fullName} (ID: {p.staffId})
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={() => navigate(`/${prefixAdmin}/staff/contract/create`)}
+                            sx={{
+                                backgroundColor: '#1C252E',
+                                minHeight: '40px',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                px: 2.5,
+                                borderRadius: '10px',
+                                textTransform: 'none',
+                                boxShadow: '0 8px 16px 0 rgba(28, 37, 46, 0.24)',
+                                color: '#ffffff',
+                                '&:hover': {
+                                    backgroundColor: '#454F5B',
+                                    boxShadow: 'none',
+                                },
+                            }}
+                        >
+                            Thêm hợp đồng
+                        </Button>
+                    </Stack>
+                }
             />
-            <Box sx={{ px: '40px', mt: 3, mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <TextField
-                    select
-                    label="Chọn nhân viên"
-                    value={staffId}
-                    onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : '')}
-                    sx={{ minWidth: 280 }}
-                >
-                    <MenuItem value="">— Tất cả —</MenuItem>
-                    {profiles.map((p) => (
-                        <MenuItem key={p.staffId} value={p.staffId}>
-                            {p.fullName} (ID: {p.staffId})
-                        </MenuItem>
-                    ))}
-                </TextField>
+            <Box sx={{ px: '40px', mt: 3 }}>
+                <Card elevation={0} sx={dataGridCardStyles}>
+                    <div style={dataGridContainerStyles}>
+                        <DataGrid
+                            rows={contractsWithStaffName}
+                            getRowId={(row) => row.contractId}
+                            showToolbar
+                            loading={isLoading}
+                            columns={columns}
+                            density="comfortable"
+                            slots={{
+                                toolbar: () => <Toolbar sx={{ minHeight: 'auto', py: 1, px: 2 }} />,
+                                columnSortedAscendingIcon: SortAscendingIcon,
+                                columnSortedDescendingIcon: SortDescendingIcon,
+                                columnUnsortedIcon: UnsortedIcon,
+                                noRowsOverlay: () => (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                        {isLoading ? <CircularProgress size={32} /> : <span className="text-[1.125rem]">Không có dữ liệu</span>}
+                                    </Box>
+                                ),
+                            }}
+                            localeText={DATA_GRID_LOCALE_VN}
+                            pagination
+                            pageSizeOptions={[5, 10, 20, { value: -1, label: 'Tất cả' }]}
+                            initialState={{
+                                pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                sorting: { sortModel: [{ field: 'contractId', sort: 'asc' }] },
+                            }}
+                            getRowHeight={() => 'auto'}
+                            disableRowSelectionOnClick
+                            sx={dataGridStyles}
+                        />
+                    </div>
+                </Card>
             </Box>
-            <Card elevation={0} sx={dataGridCardStyles}>
-                <div style={dataGridContainerStyles}>
-                    <DataGrid
-                        rows={contractsWithStaffName}
-                        getRowId={(row) => row.contractId}
-                        loading={isLoading}
-                        columns={columns}
-                        localeText={DATA_GRID_LOCALE_VN}
-                        pagination
-                        pageSizeOptions={[5, 10, 20]}
-                        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-                        sx={dataGridStyles}
-                    />
-                </div>
-            </Card>
         </>
     );
 };

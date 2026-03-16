@@ -67,10 +67,10 @@ public class AdminWorkShiftController {
 
     @DeleteMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Xóa tất cả ca làm (và đăng ký, định mức role) – để tạo lại từ đầu")
+    @Operation(summary = "Xóa tất cả ca làm của TUẦN TIẾP THEO (và đăng ký, định mức role) – để tạo lại từ đầu")
     public ResponseEntity<ApiResponse<Void>> deleteAllWorkShifts() {
         workShiftService.deleteAllWorkShifts();
-        return ResponseEntity.ok(ApiResponse.success("Đã xóa tất cả ca làm. Bạn có thể tạo lại ca mới."));
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa tất cả ca làm của tuần tiếp theo. Bạn có thể tạo lại ca mới."));
     }
 
     @DeleteMapping("/{shiftId}")

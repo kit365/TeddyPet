@@ -25,13 +25,15 @@ const LayoutAdminContent = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F9FAFB]">
-            {/* Sidebar occupies its own space in the flex flow */}
-            <SideBar />
+        <div className="flex min-h-screen bg-[#F9FAFB] admin-layout">
+            {/* Sidebar: ẩn khi in (chỉ in nội dung chính) */}
+            <div className="admin-print-hide-sidebar">
+                <SideBar />
+            </div>
 
             {/* Main content takes the remaining space */}
             <div className="flex-1 flex flex-col min-w-0 relative">
-                <div className="w-full bg-[#F9FAFB]/80 backdrop-blur-md border-b border-[#919eab1f]">
+                <div className="admin-print-hide-header w-full bg-[#F9FAFB]/80 backdrop-blur-md border-b border-[#919eab1f]">
                     <ThemeProvider theme={adminTheme}><Header /></ThemeProvider>
                 </div>
 
