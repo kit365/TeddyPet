@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import Cookies from "js-cookie";
 import { FooterSub } from "../../components/layouts/FooterSub";
@@ -6,9 +6,11 @@ import { ProductBanner } from "../product/sections/ProductBanner";
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneEnabledOutlinedIcon from '@mui/icons-material/PhoneEnabledOutlined';
 import EditLocationAltOutlinedIcon from '@mui/icons-material/EditLocationAltOutlined';
-import { getMyOrderByCode, lookupGuestOrder } from "../../../api/order.api";
+import { getMyOrderByCode, lookupGuestOrder, trackOrder, cancelOrder, cancelOrderByGuest } from "../../../api/order.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
+import { Wallet, CheckCircle, Box as BoxIcon, Truck, HomeSimple } from "iconoir-react";
+import { CancelOrderModal } from "../dashboard/sections/CancelOrderModal";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
@@ -16,12 +18,34 @@ const breadcrumbs = [
     { label: "Thanh toán thành công", to: "#" },
 ];
 
+const ORDER_TIMELINE_STEPS = [
+    { key: "pending_payment", label: "Chờ thanh toán", icon: Wallet },
+    { key: "paid", label: "Đã thanh toán", icon: CheckCircle },
+    { key: "processing", label: "Chờ đóng hàng", icon: BoxIcon },
+    { key: "delivering", label: "Đang vận chuyển", icon: Truck },
+    { key: "delivered", label: "Đã giao", icon: HomeSimple },
+] as const;
+
+function getOrderTimelineStepIndex(order: OrderResponse): number {
+    const paymentCompleted = order.payments?.[0]?.status === "COMPLETED";
+    const status = order.status;
+    if (status === "CANCELLED" || status === "RETURNED" || status === "RETURN_REQUESTED") return 0;
+    if (!paymentCompleted && status === "PENDING") return 0;
+    if (paymentCompleted && (status === "PENDING" || status === "CONFIRMED")) return 1;
+    if (status === "PROCESSING") return 2;
+    if (status === "DELIVERING") return 3;
+    if (status === "DELIVERED" || status === "COMPLETED") return 4;
+    return 0;
+}
+
 export const CheckSuccessPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const orderCode = searchParams.get("orderCode");
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => {
         if (orderCode) {
@@ -30,23 +54,27 @@ export const CheckSuccessPage = () => {
     }, [orderCode]);
 
     const fetchOrderDetails = async () => {
+        if (!orderCode) return;
         try {
             setLoading(true);
             const email = searchParams.get("email");
+            const hasToken = !!Cookies.get("token");
             let response;
 
             if (email) {
-                // Tra cứu cho khách vãng lai
-                response = await lookupGuestOrder(orderCode!, email);
+                // Tra cứu cho khách vãng lai (có email trong URL)
+                response = await lookupGuestOrder(orderCode, email);
+            } else if (hasToken) {
+                // User đã đăng nhập: dùng endpoint my-orders
+                response = await getMyOrderByCode(orderCode);
             } else {
-                // Tra cứu cho user đã đăng nhập
-                response = await getMyOrderByCode(orderCode!);
+                // Khách không đăng nhập và không có email trong URL: dùng API công khai track (chỉ cần orderCode)
+                response = await trackOrder(orderCode);
             }
 
             if (response.success) {
                 setOrder(response.data);
                 // Clean up URL parameters only if email is present (guest checkout)
-                // We keep orderCode for potential refresh but hide email
                 if (email) {
                     const newParams = new URLSearchParams(searchParams);
                     newParams.delete("email");
@@ -57,10 +85,55 @@ export const CheckSuccessPage = () => {
             }
         } catch (error: any) {
             console.error("Lỗi lấy chi tiết đơn hàng:", error);
-            // Nếu là khách vãng lai thì getMyOrderByCode có thể fail do chưa login
-            toast.error("Không thể tải thông tin đơn hàng. Vui lòng kiểm tra lại mã đơn.");
+            toast.error(error.response?.data?.message || "Không thể tải thông tin đơn hàng. Vui lòng kiểm tra lại mã đơn.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const isPaid = order?.payments?.[0]?.status === "COMPLETED";
+    const timelineStep = order ? getOrderTimelineStepIndex(order) : 0;
+
+    const canCancelOrder =
+        order
+        && order.status !== "CANCELLED"
+        && order.status !== "DELIVERED"
+        && order.status !== "COMPLETED"
+        && order.status !== "RETURNED"
+        && order.status !== "RETURN_REQUESTED"
+        && (
+            // Hủy đơn chưa thanh toán
+            order.status === "PENDING"
+            // Hủy & hoàn tiền: đơn ONLINE đang PAID hoặc PROCESSING (backend kiểm tra đã thanh toán)
+            || (order.orderType === "ONLINE" && ["PAID", "PROCESSING"].includes(order.status))
+        );
+    const cancelButtonLabel =
+        order?.orderType === "ONLINE" && ["PAID", "PROCESSING"].includes(order.status)
+            ? "Yêu cầu hoàn tiền"
+            : "Hủy đơn hàng";
+
+    const handleConfirmCancel = async (reason: string) => {
+        if (!order) return;
+        setIsCancelling(true);
+        try {
+            const hasToken = !!Cookies.get("token");
+            if (hasToken) {
+                await cancelOrder(order.id, reason);
+            } else {
+                const email = order.guestEmail || order.user?.email || "";
+                if (!email) {
+                    toast.error("Không thể hủy đơn. Vui lòng tra cứu đơn hàng bằng email đã đặt.");
+                    return;
+                }
+                await cancelOrderByGuest(order.orderCode, email, reason);
+            }
+            toast.success(isPaid ? "Đã gửi yêu cầu hủy đơn & hoàn tiền. TeddyPet sẽ xử lý sớm." : "Đã hủy đơn hàng.");
+            setShowCancelModal(false);
+            fetchOrderDetails();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Không thể hủy đơn.");
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -90,8 +163,43 @@ export const CheckSuccessPage = () => {
                 className="bg-top"
             />
             <div className="app-container pb-[150px] 2xl:pb-[100px] relative mt-[50px]">
-                <div className="border-l-[5px] w-full mb-[30px] border-l-[#3db44c] bg-white px-[30px] py-[20px] text-client-text shadow-[0_0_3px_#10293726] text-[1rem]">
-                    Cảm ơn bạn. Đơn hàng của bạn đã được nhận.
+                {/* Timeline trạng thái đơn hàng - rộng bằng các ô bên dưới */}
+                <div className="mb-[28px] w-full flex items-center justify-center gap-0 bg-white rounded-[8px] border border-[#10293726] p-[25px] shadow-[0_0_3px_#10293726]">
+                        {ORDER_TIMELINE_STEPS.map((step, index) => {
+                            const isActive = index <= timelineStep;
+                            const isLast = index === ORDER_TIMELINE_STEPS.length - 1;
+                            const Icon = step.icon;
+                            return (
+                                <div key={step.key} className="flex flex-1 items-center justify-center min-w-0">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div
+                                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+                                                isActive
+                                                    ? "bg-client-primary text-white shadow-sm"
+                                                    : "bg-gray-100 text-gray-400"
+                                            }`}
+                                        >
+                                            <Icon className="h-4 w-4" strokeWidth={2} />
+                                        </div>
+                                        <span
+                                            className={`text-[0.6875rem] font-medium text-center leading-tight max-w-[4.5rem] ${
+                                                isActive ? "text-client-secondary" : "text-gray-400"
+                                            }`}
+                                        >
+                                            {step.label}
+                                        </span>
+                                    </div>
+                                    {!isLast && (
+                                        <div
+                                            className={`flex-1 h-0.5 mx-1 min-w-[12px] max-w-[40px] rounded-full transition-colors ${
+                                                index < timelineStep ? "bg-client-primary" : "bg-gray-100"
+                                            }`}
+                                            aria-hidden
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
                 </div>
 
                 <div className="mb-[48px] grid grid-cols-4 border border-[#10293726] p-[25px] bg-white rounded-[8px]">
@@ -114,13 +222,19 @@ export const CheckSuccessPage = () => {
                     <div className="text-[0.875rem] text-client-text text-center px-[12px] my-[10px]">
                         <div className="text-gray-500 mb-1">Thanh toán:</div>
                         <div className="text-[1.125rem] font-bold text-client-secondary">
-                            {order.payments?.[0]?.paymentMethod === 'CASH' ? 'Tiền mặt' : order.payments?.[0]?.paymentMethod || 'Chưa xác định'}
+                            {order.payments?.[0]?.paymentMethod === "CASH"
+                                ? "Tiền mặt"
+                                : order.payments?.[0]?.paymentMethod === "BANK_TRANSFER"
+                                    ? isPaid
+                                        ? "Chuyển khoản (Đã thanh toán)"
+                                        : "Chuyển khoản (Chờ thanh toán)"
+                                    : order.payments?.[0]?.paymentMethod || "Chưa xác định"}
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-[40px] mb-[50px]">
-                    <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-[40px] mb-[50px]">
+                    <div>
                         <section className="bg-white border-[1px] border-[#eee] rounded-[12px] overflow-hidden shadow-sm">
                             <div className="bg-gray-50 px-[30px] py-[20px] border-b border-[#eee]">
                                 <h2 className="text-[1.25rem] text-client-secondary font-bold">Chi tiết đơn hàng</h2>
@@ -180,8 +294,8 @@ export const CheckSuccessPage = () => {
                         </section>
                     </div>
 
-                    <div className="lg:col-span-1">
-                        <section className="bg-white border-[1px] border-[#eee] rounded-[12px] p-[30px] shadow-sm flex flex-col gap-6">
+                    <div>
+                        <section className="bg-white border-[1px] border-[#eee] rounded-[12px] p-[30px] shadow-sm flex flex-col gap-6 h-full">
                             <h2 className="text-[1.25rem] font-bold text-client-secondary border-b border-[#eee] pb-[15px]">Thông tin nhận hàng</h2>
                             <div className="space-y-6">
                                 <div className="flex items-start gap-[15px]">
@@ -220,23 +334,23 @@ export const CheckSuccessPage = () => {
                                 )}
                             </div>
                             <div className="mt-4 pt-6 border-t border-[#eee]">
-                                <button
-                                    onClick={() => {
-                                        if (Cookies.get("token")) {
-                                            navigate(`/dashboard/orders/${order.id}`);
-                                        } else {
-                                            const emailParam = order.guestEmail || (order.user?.email ? order.user.email : "");
-                                            navigate(`/tra-cuu-don-hang?code=${order.orderCode}${emailParam ? `&email=${emailParam}` : ''}`);
-                                        }
-                                    }}
-                                    className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all block"
-                                >
-                                    {Cookies.get("token") ? "VỀ ĐƠN HÀNG CỦA TÔI" : "TRA CỨU ĐƠN HÀNG"}
-                                </button>
-                                <Link to="/shop" className="w-full mt-3 text-center text-client-primary font-bold text-[0.875rem] hover:underline block">
+                                <Link to="/shop" className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all block">
                                     TIẾP TỤC MUA SẮM
                                 </Link>
+                                {canCancelOrder && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCancelModal(true)}
+                                        className="w-full mt-3 py-2.5 text-center text-[0.875rem] font-semibold text-red-600 hover:text-red-700 rounded-[8px] border border-red-200 bg-red-50/50 hover:bg-red-50 transition-colors"
+                                    >
+                                        {cancelButtonLabel}
+                                    </button>
+                                )}
+                                <Link to={Cookies.get("token") ? `/dashboard/orders/${order.id}` : `/tra-cuu-don-hang?code=${order.orderCode}${order.guestEmail || order.user?.email ? `&email=${encodeURIComponent(order.guestEmail || order.user?.email || "")}` : ""}`} className="block w-full mt-2 py-2.5 text-center text-[0.875rem] font-semibold text-black hover:text-gray-800 rounded-[8px] border border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    {Cookies.get("token") ? "Xem chi tiết đơn hàng" : "Tra cứu đơn hàng"}
+                                </Link>
                             </div>
+                            <CancelOrderModal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={handleConfirmCancel} isCancelling={isCancelling} />
                         </section>
                     </div>
                 </div>

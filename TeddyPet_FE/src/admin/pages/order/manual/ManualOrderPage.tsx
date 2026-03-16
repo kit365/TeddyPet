@@ -64,6 +64,7 @@ export const ManualOrderPage = () => {
     const [guestName, setGuestName] = useState("");
     const [guestPhone, setGuestPhone] = useState("");
     const [guestPhoneError, setGuestPhoneError] = useState<string | null>(null);
+    const [guestEmail, setGuestEmail] = useState("");
     const [orderType, setOrderType] = useState<OrderType>("OFFLINE");
     const [shippingAddressOnline, setShippingAddressOnline] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -266,9 +267,17 @@ export const ManualOrderPage = () => {
             return;
         }
 
-        if (customerType === "GUEST" && guestPhone.trim() && !isValidVietnamesePhone(guestPhone)) {
-            setGuestPhoneError("Số điện thoại không đúng định dạng Việt Nam");
-            return;
+        if (customerType === "GUEST") {
+            if (!guestPhone.trim()) {
+                setGuestPhoneError("Vui lòng nhập số điện thoại khách hàng");
+                toast.error("Vui lòng nhập số điện thoại khách hàng");
+                return;
+            }
+            if (!isValidVietnamesePhone(guestPhone)) {
+                setGuestPhoneError("Số điện thoại không đúng định dạng Việt Nam");
+                toast.error("Số điện thoại không đúng định dạng Việt Nam");
+                return;
+            }
         }
         setGuestPhoneError(null);
 
@@ -298,6 +307,7 @@ export const ManualOrderPage = () => {
             } else {
                 orderRequest.receiverName = guestName.trim() || undefined;
                 orderRequest.receiverPhone = guestPhone.trim() || undefined;
+                if (orderType === "ONLINE" && guestEmail.trim()) orderRequest.guestEmail = guestEmail.trim();
             }
 
             const res = await createOrder(orderRequest);
@@ -839,6 +849,18 @@ export const ManualOrderPage = () => {
                                     onChange={(e) => setGuestName(e.target.value)} 
                                     sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
                                 />
+                                {orderType === "ONLINE" && (
+                                    <TextField 
+                                        fullWidth 
+                                        size="small"
+                                        type="email"
+                                        label="Email"
+                                        value={guestEmail} 
+                                        placeholder="Ví dụ: email@example.com"
+                                        onChange={(e) => setGuestEmail(e.target.value)} 
+                                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.875rem" } }}
+                                    />
+                                )}
                                 <TextField 
                                     fullWidth 
                                     size="small"
@@ -931,7 +953,7 @@ export const ManualOrderPage = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value as any)}
                                     sx={{ borderRadius: "10px", fontSize: "0.875rem" }}
                                 >
-                                    <MenuItem value="CASH">Tiền mặt (Tại quầy)</MenuItem>
+                                    <MenuItem value="CASH">{orderType === "ONLINE" ? "Thanh toán khi nhận hàng (COD)" : "Tiền mặt (Tại quầy)"}</MenuItem>
                                     <MenuItem value="BANK_TRANSFER">Chuyển khoản (PayOS QR)</MenuItem>
                                 </Select>
                             </FormControl>

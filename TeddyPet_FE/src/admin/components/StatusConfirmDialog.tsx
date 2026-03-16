@@ -1,4 +1,4 @@
-﻿import {
+import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -20,6 +20,8 @@ interface StatusConfirmDialogProps {
     newStatus: string;
     isUpdating: boolean;
     currentStatus?: string;
+    /** Nếu có, dùng thay cho nhãn mặc định (vd: đơn tại quầy chuyển CONFIRMED → hiển thị "Chờ thanh toán") */
+    statusDisplayLabel?: string;
 }
 
 export const StatusConfirmDialog = ({
@@ -28,8 +30,10 @@ export const StatusConfirmDialog = ({
     onConfirm,
     newStatus,
     isUpdating,
+    statusDisplayLabel,
 }: StatusConfirmDialogProps) => {
     const statusInfo = getOrderStatus(newStatus);
+    const displayLabel = statusDisplayLabel ?? statusInfo.label;
 
     return (
         <Dialog
@@ -66,7 +70,7 @@ export const StatusConfirmDialog = ({
                     }}
                 >
                     <Typography sx={{ color: statusInfo.color, fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase' }}>
-                        {statusInfo.label}
+                        {displayLabel}
                     </Typography>
                 </Box>
             </DialogContent>

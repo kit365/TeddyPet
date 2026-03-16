@@ -40,7 +40,7 @@ import { toast } from "react-toastify";
 import "dayjs/locale/vi";
 import { buildCreateBookingPayload } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
-import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode } from "../../../api/bank.api";
+import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode, getBankByGuestEmail } from "../../../api/bank.api";
 import type { BankOption, BankInformationPayload } from "../../../types/bank.type";
 import { useAuthStore } from "../../../stores/useAuthStore";
 
@@ -1810,11 +1810,10 @@ export const BookingDetailPage = () => {
         note: "",
     });
 
-    const openBankInfoModal = () => {
+    const openBankInfoModal = async () => {
         // Reset bank form when opening
         if (isLoggedIn && myBankAccounts.length > 0) {
             setBankFormMode("select");
-            // Auto select default account if exists
             const defaultAcc = myBankAccounts.find((a) => a.isDefault) ?? myBankAccounts[0];
             setSelectedBankAccountId(defaultAcc?.id ?? null);
         } else {
@@ -1823,6 +1822,23 @@ export const BookingDetailPage = () => {
         }
         setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
         setIsBankInfoOpen(true);
+        // Pre-fill bank form theo email khách đã lưu (khi guest hoặc đang thêm mới)
+        const email = step1Data?.email?.trim();
+        if (email && (!isLoggedIn || myBankAccounts.length === 0)) {
+            try {
+                const res = await getBankByGuestEmail(email);
+                if (res?.data) {
+                    setBankForm({
+                        accountNumber: res.data.accountNumber || "",
+                        accountHolderName: res.data.accountHolderName || "",
+                        bankCode: res.data.bankCode || "",
+                        note: res.data.note ?? "",
+                    });
+                }
+            } catch {
+                // ignore
+            }
+        }
     };
 
     const handleProceedToPayment = async (bankPayload?: BankInformationPayload) => {
@@ -1845,6 +1861,7 @@ export const BookingDetailPage = () => {
                             accountHolderName: bankPayload.accountHolderName,
                             bankCode: bankPayload.bankCode,
                             note: bankPayload.note,
+                            userEmail: step1Data?.email?.trim() || undefined,
                         });
                     } catch (e) {
                         // Nếu lưu bank info thất bại, vẫn cho khách tiếp tục nhưng log/toast nhẹ
