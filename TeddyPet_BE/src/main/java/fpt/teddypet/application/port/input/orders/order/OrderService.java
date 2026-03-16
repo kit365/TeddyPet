@@ -2,13 +2,17 @@ package fpt.teddypet.application.port.input.orders.order;
 
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.request.orders.order.AdminHandleReturnRequest;
+import fpt.teddypet.application.dto.request.orders.order.AdminHandleOrderRefundRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
+import fpt.teddypet.application.dto.request.orders.order.OrderRefundRequest;
 import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
+import fpt.teddypet.application.dto.response.orders.order.OrderRefundResponse;
 
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 
 import java.util.List;
 import java.util.UUID;
@@ -60,8 +64,11 @@ public interface OrderService {
     // Customer confirm receipt
     void confirmReceived(UUID orderId);
 
-    // Cancel order by customer (only PENDING status allowed)
+    // Cancel order by customer (PENDING or CONFIRMED/PROCESSING when paid - hủy & hoàn tiền)
     void cancelOrderByCustomer(UUID orderId, String reason);
+
+    // Cancel order by guest (no auth): orderCode + email + reason
+    void cancelOrderByGuest(String orderCode, String email, String reason);
 
     // Cancel order by admin (PENDING or CONFIRMED status allowed)
     void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername);
@@ -74,4 +81,28 @@ public interface OrderService {
 
     // Admin handles return requested by customer
     void handleReturnRequestByAdmin(UUID orderId, AdminHandleReturnRequest request, String adminUsername);
+
+    /**
+     * Admin/Staff đổi phương thức thanh toán của đơn tại quầy (chỉ khi đơn đang CONFIRMED, Chờ thanh toán).
+     */
+    void updatePaymentMethod(UUID orderId, PaymentMethodEnum paymentMethod);
+
+    /**
+     * Admin/Staff xác nhận đã thanh toán cho đơn online (chuyển khoản) – đơn CONFIRMED, payment PENDING → COMPLETED.
+     */
+    void confirmPaymentByAdmin(UUID orderId);
+
+    /**
+     * Cập nhật thông tin liên hệ của đơn (email khách/guestEmail, địa chỉ giao hàng).
+     */
+    void updateOrderContactInfo(UUID orderId, String shippingAddress, String guestEmail);
+
+    /** Khách hàng/guest gửi yêu cầu hoàn tiền cho 1 đơn (public). */
+    OrderRefundResponse createOrderRefundRequest(UUID orderId, OrderRefundRequest request);
+
+    /** Admin/Staff duyệt hoặc từ chối yêu cầu hoàn tiền. */
+    OrderRefundResponse handleOrderRefundRequest(UUID orderId, Long refundId, AdminHandleOrderRefundRequest request, String adminUsername);
+
+    /** Lấy danh sách yêu cầu hoàn tiền của đơn (theo thứ tự mới nhất trước). */
+    List<OrderRefundResponse> getOrderRefundRequests(UUID orderId);
 }

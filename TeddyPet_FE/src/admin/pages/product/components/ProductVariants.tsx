@@ -225,14 +225,18 @@ export const ProductVariants = ({
             expanded={expanded}
             onToggle={onToggle}
         >
-            <Stack spacing={3} p="24px">
+            <Stack spacing={2.5} p="16px">
                 {/* 1. Attribute List & Selection */}
                 <Box>
-                    <Typography variant="h6" gutterBottom sx={{ fontSize: '1.6rem', fontWeight: 600, color: '#637381' }}>
+                    <Typography
+                        variant="subtitle1"
+                        gutterBottom
+                        sx={{ fontSize: '1rem', fontWeight: 600, color: '#637381' }}
+                    >
                         Chọn thuộc tính
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
                         {validAttributes.map((attr: any) => {
                             const attrId = String(attr.attributeId || attr.id);
                             const isSelected = !!selectedAttributes[attrId];

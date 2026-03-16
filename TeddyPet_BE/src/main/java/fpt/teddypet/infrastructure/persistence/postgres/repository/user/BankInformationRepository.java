@@ -61,5 +61,22 @@ public interface BankInformationRepository extends JpaRepository<BankInformation
             where b.isDeleted = false and b.accountType = :accountType
             """)
     Optional<BankInformation> findByAccountTypeAndIsDeletedFalse(@Param("accountType") String accountType);
+
+    @Query("""
+            select b from BankInformation b
+            where b.isDeleted = false and b.userEmail = :userEmail and b.accountType = :accountType
+            order by b.updatedAt desc
+            """)
+    List<BankInformation> findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(
+            @Param("userEmail") String userEmail,
+            @Param("accountType") String accountType);
+
+    /** Tìm bản ghi bank_information gắn với đơn hàng (vd: từ PayOS webhook) để cập nhật khi trùng order. */
+    @Query("""
+            select b from BankInformation b
+            where b.isDeleted = false and b.orderId = :orderId
+            order by b.updatedAt desc
+            """)
+    List<BankInformation> findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(@Param("orderId") UUID orderId);
 }
 

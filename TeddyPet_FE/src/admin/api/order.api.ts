@@ -1,6 +1,6 @@
 import { apiApp } from "../../api/index";
 import { ApiResponse, PageResponse } from "../../types/common.type";
-import { OrderResponse, AdminHandleReturnRequest } from "../../types/order.type";
+import { OrderResponse, AdminHandleReturnRequest, OrderRefundResponse } from "../../types/order.type";
 
 const BASE_PATH = "/api/orders";
 
@@ -46,6 +46,12 @@ export const updateOrderStatus = async (id: string, status: string) => {
     return response.data;
 };
 
+/** Đổi phương thức thanh toán (đơn tại quầy, trạng thái Chờ thanh toán). */
+export const updateOrderPaymentMethod = async (id: string, paymentMethod: 'CASH' | 'BANK_TRANSFER') => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/payment-method?paymentMethod=${paymentMethod}`);
+    return response.data;
+};
+
 export const updateShippingFee = async (id: string, fee: number) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/shipping-fee?finalFee=${fee}`);
     return response.data;
@@ -68,6 +74,12 @@ export const cancelOrderByAdmin = async (id: string, reason: string) => {
     return response.data;
 };
 
+/** Admin xác nhận đã thanh toán cho đơn online (chuyển khoản) – sau đó mới hiện Bắt đầu đóng gói */
+export const confirmPaymentByAdmin = async (id: string) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/confirm-payment`);
+    return response.data;
+};
+
 // Return order (DELIVERING or DELIVERED status - customer boom/return)
 export const returnOrder = async (id: string, reason: string) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/return`, { reason });
@@ -77,6 +89,25 @@ export const returnOrder = async (id: string, reason: string) => {
 // Admin handle return request from customer
 export const handleReturnRequest = async (id: string, data: AdminHandleReturnRequest) => {
     const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/handle-return`, data);
+    return response.data;
+};
+
+export const updateOrderContactInfo = async (id: string, data: { shippingAddress?: string; guestEmail?: string }) => {
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/contact`, data);
+    return response.data;
+};
+
+export const getOrderRefundRequests = async (orderId: string) => {
+    const response = await apiApp.get<ApiResponse<OrderRefundResponse[]>>(`${BASE_PATH}/${orderId}/refund-requests`);
+    return response.data;
+};
+
+export const handleOrderRefundRequest = async (
+    orderId: string,
+    refundId: number,
+    payload: { approved: boolean; adminNote?: string }
+) => {
+    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
     return response.data;
 };
 

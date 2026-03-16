@@ -67,6 +67,23 @@ public class BankInformationController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
+    @GetMapping("/guest-by-email")
+    @Operation(summary = "Lấy thông tin chuyển khoản đã lưu theo email khách (guest) - dùng để pre-fill khi order/booking")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> getBankByGuestEmail(
+            @RequestParam String email) {
+        BankInformationResponse data = bankInformationService.getBankByGuestEmail(email);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/order/{orderId}")
+    @Operation(summary = "Lấy bank info theo orderId (public khi tra cứu đơn; admin cũng dùng)")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> getBankForOrder(
+            @PathVariable String orderId
+    ) {
+        BankInformationResponse data = bankInformationService.getBankForOrderId(orderId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     @PatchMapping("/{id}/verify")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @Operation(summary = "[Staff/Admin] Verify bank information")

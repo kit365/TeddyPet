@@ -5,14 +5,20 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.PageResponse;
 import fpt.teddypet.application.dto.request.orders.order.AdminHandleReturnRequest;
 import fpt.teddypet.application.dto.request.orders.order.CancelOrderRequest;
+import fpt.teddypet.application.dto.request.orders.order.GuestCancelOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.ReturnOrderRequest;
 import fpt.teddypet.application.dto.request.orders.order.OrderSearchRequest;
+import fpt.teddypet.application.dto.request.orders.order.UpdateOrderContactRequest;
+import fpt.teddypet.application.dto.request.orders.order.OrderRefundRequest;
+import fpt.teddypet.application.dto.request.orders.order.AdminHandleOrderRefundRequest;
 import fpt.teddypet.application.dto.response.orders.order.OrderResponse;
+import fpt.teddypet.application.dto.response.orders.order.OrderRefundResponse;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
 import fpt.teddypet.application.port.input.pdf.PdfService;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -122,6 +128,16 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CREATED_SUCCESS, response));
     }
 
+    @PatchMapping("/{id}/contact")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Cập nhật thông tin liên hệ đơn hàng", description = "Admin/Staff cập nhật email khách và/hoặc địa chỉ giao hàng")
+    public ResponseEntity<ApiResponse<Void>> updateContactInfo(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateOrderContactRequest request) {
+        orderService.updateOrderContactInfo(id, request.shippingAddress(), request.guestEmail());
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật thông tin liên hệ đơn hàng."));
+    }
+
     // ========== GUEST ORDER LOOKUP ==========
 
     @GetMapping("/track/{code}")
@@ -140,6 +156,30 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/guest/cancel")
+    @Operation(summary = "Hủy đơn hàng (khách vãng lai)", description = "Khách không đăng nhập hủy đơn bằng mã đơn + email + lý do")
+    public ResponseEntity<ApiResponse<Void>> cancelOrderByGuest(@Valid @RequestBody GuestCancelOrderRequest request) {
+        orderService.cancelOrderByGuest(request.orderCode(), request.email(), request.reason());
+        return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CANCELLED_SUCCESS));
+    }
+
+    @GetMapping("/{orderId}/refund-requests")
+    @Operation(summary = "Lấy danh sách yêu cầu hoàn tiền của đơn (public)", description = "Xem lịch sử các yêu cầu hoàn tiền và phản hồi admin")
+    public ResponseEntity<ApiResponse<List<OrderRefundResponse>>> getOrderRefundRequests(@PathVariable UUID orderId) {
+        List<OrderRefundResponse> list = orderService.getOrderRefundRequests(orderId);
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @PostMapping("/{id}/refund-requests")
+    @Operation(summary = "Gửi yêu cầu hoàn tiền (public)", description = "Khách hàng/khách vãng lai gửi yêu cầu hoàn tiền cho đơn hàng đã thanh toán online")
+    public ResponseEntity<ApiResponse<OrderRefundResponse>> createRefundRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody OrderRefundRequest request
+    ) {
+        OrderRefundResponse data = orderService.createOrderRefundRequest(id, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     // ========== STAFF/ADMIN ENDPOINTS ==========
 
     @GetMapping("/export")
@@ -147,6 +187,19 @@ public class OrderController {
     @Operation(summary = "Xuất đơn hàng ra Excel", description = "Xuất toàn bộ đơn hàng ra file Excel (Staff/Admin)")
     public void exportOrdersToExcel(HttpServletResponse response) throws java.io.IOException {
         orderExcelService.exportOrdersToExcel(response);
+    }
+
+    @PostMapping("/{orderId}/refund-requests/{refundId}/handle")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Duyệt / từ chối yêu cầu hoàn tiền (Staff/Admin)")
+    public ResponseEntity<ApiResponse<OrderRefundResponse>> handleRefundRequest(
+            @PathVariable UUID orderId,
+            @PathVariable Long refundId,
+            @Valid @RequestBody AdminHandleOrderRefundRequest request
+    ) {
+        String adminUsername = SecurityUtil.getCurrentUsername();
+        OrderRefundResponse data = orderService.handleOrderRefundRequest(orderId, refundId, request, adminUsername);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 
     @GetMapping
@@ -231,6 +284,16 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_STATUS_UPDATED_SUCCESS));
     }
 
+    @PatchMapping("/{id}/payment-method")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Đổi phương thức thanh toán (đơn tại quầy)", description = "Chỉ áp dụng khi đơn đang Chờ thanh toán (CONFIRMED). Cho phép đổi giữa Tiền mặt và Chuyển khoản.")
+    public ResponseEntity<ApiResponse<Void>> updatePaymentMethod(
+            @PathVariable UUID id,
+            @RequestParam PaymentMethodEnum paymentMethod) {
+        orderService.updatePaymentMethod(id, paymentMethod);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật phương thức thanh toán."));
+    }
+
     @PatchMapping("/{id}/shipping-fee")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật phí vận chuyển thủ công", description = "Admin cập nhật phí vận chuyển và chốt đơn")
@@ -251,6 +314,14 @@ public class OrderController {
         String adminUsername = SecurityUtil.getCurrentUsername();
         orderService.cancelOrderByAdmin(id, request.reason(), adminUsername);
         return ResponseEntity.ok(ApiResponse.success(OrderMessages.MESSAGE_ORDER_CANCELLED_SUCCESS));
+    }
+
+    @PatchMapping("/{id}/confirm-payment")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Xác nhận đã thanh toán (Admin)", description = "Admin/Staff xác nhận đã nhận thanh toán cho đơn online (chuyển khoản) – sau đó mới hiện nút Bắt đầu đóng gói")
+    public ResponseEntity<ApiResponse<Void>> confirmPaymentByAdmin(@PathVariable UUID id) {
+        orderService.confirmPaymentByAdmin(id);
+        return ResponseEntity.ok(ApiResponse.success("Đã xác nhận thanh toán."));
     }
 
     @PatchMapping("/{id}/return")

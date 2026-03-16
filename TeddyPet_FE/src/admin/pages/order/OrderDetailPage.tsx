@@ -18,11 +18,15 @@ import {
     InputAdornment,
     Badge,
     Chip,
-    Avatar
+    Avatar,
+    FormControl,
+    Select,
+    MenuItem
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import ReplayIcon from '@mui/icons-material/Replay';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import CloseIcon from '@mui/icons-material/Close';
@@ -34,9 +38,12 @@ import IconButton from '@mui/material/IconButton';
 import { toast } from "react-toastify";
 
 import { prefixAdmin } from "../../constants/routes";
-import { getOrderById, updateShippingFee, updateOrderStatus, cancelOrderByAdmin, returnOrder, handleReturnRequest, downloadOrderInvoice } from "../../api/order.api";
+import { getOrderById, updateShippingFee, updateOrderStatus, updateOrderPaymentMethod, cancelOrderByAdmin, returnOrder, handleReturnRequest, downloadOrderInvoice, confirmPaymentByAdmin, updateOrderContactInfo, handleOrderRefundRequest, getOrderRefundRequests } from "../../api/order.api";
 import { getShippingFeeSuggestion, getShippingRules } from "../../api/shipping.api";
-import { OrderResponse } from "../../../types/order.type";
+import { getAllSettings } from "../../api/setting.api";
+import { getBankInformationByOrderId } from "../../../api/bank.api";
+import { APP_SETTING_KEYS } from "../../constants/settings";
+import { OrderResponse, OrderRefundResponse } from "../../../types/order.type";
 import { ShippingRule } from "../../../types/shipping.type";
 import { COLORS } from "../product/configs/constants";
 import { getOrderStatus } from "../../../constants/status";
@@ -68,24 +75,39 @@ export const OrderDetailPage = () => {
     // Chỉ hiển thị ô "Miễn phí vận chuyển" khi user bấm "Đặt 0đ (Freeship)"
     const [showFreeshipOnly, setShowFreeshipOnly] = useState(false);
 
+    // Địa chỉ cửa hàng (hiển thị trong dialog xác nhận vận chuyển)
+    const [shopAddress, setShopAddress] = useState<string>('');
+
     // Địa chỉ nhận hàng: 'delivery' = giao hàng (hiện ô nhập), 'counter' = mua tại quầy
     const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'counter'>('delivery');
     const [editableShippingAddress, setEditableShippingAddress] = useState('');
     const [editableNote, setEditableNote] = useState('');
     const [editableCustomerEmail, setEditableCustomerEmail] = useState('');
+    const [editableCustomerName, setEditableCustomerName] = useState('');
+    const [editableCustomerPhone, setEditableCustomerPhone] = useState('');
 
     // Status Confirmation Dialog State
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+    const [openConfirmPaymentDialog, setOpenConfirmPaymentDialog] = useState(false);
 
     // Cancel/Return Order Dialog State
     const [openCancelDialog, setOpenCancelDialog] = useState(false);
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [refundHistory, setRefundHistory] = useState<OrderRefundResponse[]>([]);
+    const [loadingRefundHistory, setLoadingRefundHistory] = useState(false);
 
     // Handle Return Request State
     const [openHandleReturnDialog, setOpenHandleReturnDialog] = useState(false);
     const [returnApproved, setReturnApproved] = useState(true);
     const [adminReturnNote, setAdminReturnNote] = useState('');
+
+    const [customerBankInfo, setCustomerBankInfo] = useState<{
+        accountNumber: string;
+        accountHolderName: string;
+        bankCode: string;
+        bankName?: string | null;
+    } | null>(null);
 
     const quickRejectReasons = [
         "Sản phẩm không còn nguyên vẹn/đã qua sử dụng",
@@ -96,6 +118,11 @@ export const OrderDetailPage = () => {
     ];
 
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+
+    // Thu tiền mặt (đơn tại quầy - CASH): nhập số tiền đã thu và xác nhận
+    const [openCashReceivedDialog, setOpenCashReceivedDialog] = useState(false);
+    const [cashReceivedAmount, setCashReceivedAmount] = useState('');
+    const [cashReceivedError, setCashReceivedError] = useState('');
 
     useEffect(() => {
         if (id) {
@@ -115,7 +142,50 @@ export const OrderDetailPage = () => {
         setEditableShippingAddress(isCounter ? 'mua tại quầy' : addr);
         setEditableNote(order.notes ?? '');
         setEditableCustomerEmail(isCounter ? '' : (order.guestEmail ?? order.user?.email ?? ''));
+        setEditableCustomerName(order.shippingName ?? '');
+        setEditableCustomerPhone(order.shippingPhone ?? '');
     }, [order?.id, order?.orderType, order?.shippingAddress, order?.notes, order?.guestEmail, order?.user?.email]);
+
+    useEffect(() => {
+        const loadCustomerBankInfo = async () => {
+            if (!order?.id) {
+                setCustomerBankInfo(null);
+                return;
+            }
+            try {
+                const response = await getBankInformationByOrderId(order.id);
+                if (response.success && response.data) {
+                    setCustomerBankInfo({
+                        accountNumber: response.data.accountNumber,
+                        accountHolderName: response.data.accountHolderName,
+                        bankCode: response.data.bankCode,
+                        bankName: response.data.bankName,
+                    });
+                } else {
+                    setCustomerBankInfo(null);
+                }
+            } catch (error) {
+                console.error("Error fetching customer bank info:", error);
+                setCustomerBankInfo(null);
+            }
+        };
+
+        loadCustomerBankInfo();
+    }, [order?.id]);
+
+    useEffect(() => {
+        if (!openCancelDialog || !id) {
+            setRefundHistory([]);
+            return;
+        }
+        setLoadingRefundHistory(true);
+        getOrderRefundRequests(id)
+            .then((res) => {
+                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
+            })
+            .catch(() => setRefundHistory([]))
+            .finally(() => setLoadingRefundHistory(false));
+    }, [openCancelDialog, id]);
 
     useEffect(() => {
         const fetchSuggestion = async () => {
@@ -198,13 +268,58 @@ export const OrderDetailPage = () => {
         return /mua\s*(tại\s*quầy|trực\s*tiếp\s*tại\s*quầy)/i.test(addr) || addr === '';
     })();
 
+    /**
+     * Đơn tại quầy (OFFLINE) + thanh toán chuyển khoản + chưa thanh toán:
+     * cần bấm "Xác nhận đã thanh toán" trước, sau đó mới hiện "Bắt đầu đóng gói".
+     * Đơn ONLINE + chuyển khoản sẽ KHÔNG hiện nút này (chỉ dựa vào PayOS/webhook).
+     */
+    const needConfirmPaymentFirst = !!order
+        && isCounterOrder
+        && order.orderType === 'OFFLINE'
+        && order.status === 'CONFIRMED'
+        && order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+        && order.payments?.[0]?.status !== 'COMPLETED';
+
+    const handleConfirmPayment = async () => {
+        if (!id) return;
+        setUpdating(true);
+        try {
+            await confirmPaymentByAdmin(id);
+            toast.success("Đã xác nhận thanh toán. Bạn có thể bắt đầu đóng gói.");
+            setOpenConfirmPaymentDialog(false);
+            fetchOrder(id);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Xác nhận thanh toán thất bại.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleSaveContactInfo = async () => {
+        if (!order || !id) return;
+        setUpdating(true);
+        try {
+            await updateOrderContactInfo(id, {
+                shippingAddress: editableShippingAddress,
+                guestEmail: editableCustomerEmail
+            });
+            toast.success("Đã lưu thông tin liên hệ đơn hàng.");
+            await fetchOrder(id);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể lưu thông tin liên hệ.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const getNextAction = (currentStatus: string) => {
         if (isCounterOrder) {
+            if (currentStatus === 'PENDING') return { status: 'CONFIRMED', label: 'Chốt phí & Chuyển sang Chờ thanh toán', color: '#B76E00', icon: <PaymentsIcon /> };
             if (currentStatus === 'CONFIRMED') return { status: 'COMPLETED', label: 'Xác nhận đã thanh toán', color: '#118D57', icon: <CheckCircleOutlineIcon /> };
             return null;
         }
         switch (currentStatus) {
-            case 'CONFIRMED': return { status: 'PROCESSING', label: 'Bắt đầu đóng gói', color: '#16A34A', icon: <LocalShippingIcon /> };
+            case 'PAID': return { status: 'PROCESSING', label: 'Bắt đầu đóng gói', color: '#16A34A', icon: <LocalShippingIcon /> };
             case 'PROCESSING': return { status: 'DELIVERING', label: 'Bắt đầu giao hàng', color: '#1064ad', icon: <LocalShippingIcon /> };
             case 'DELIVERING': return { status: 'DELIVERED', label: 'Xác nhận Đã giao thành công', color: '#118D57', icon: <CheckCircleOutlineIcon /> };
             default: return null;
@@ -235,6 +350,50 @@ export const OrderDetailPage = () => {
         }
     };
 
+    useEffect(() => {
+        if (!openConfirmDialog) return;
+        getAllSettings()
+            .then((res) => {
+                if (res.success && res.data) {
+                    const addr = res.data.find(s => s.settingKey === APP_SETTING_KEYS.SHOP_ADDRESS)?.settingValue || '';
+                    setShopAddress(addr);
+                }
+            })
+            .catch(() => setShopAddress(''));
+    }, [openConfirmDialog]);
+
+    const handleOpenCashReceivedDialog = () => {
+        if (!order) return;
+        setCashReceivedAmount(String(order.finalAmount ?? 0));
+        setCashReceivedError('');
+        setOpenCashReceivedDialog(true);
+    };
+
+    const handleConfirmCashReceived = async () => {
+        if (!id) return;
+        const amount = Number(cashReceivedAmount.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, ''));
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setCashReceivedError('Vui lòng nhập số tiền đã thu hợp lệ.');
+            return;
+        }
+        setCashReceivedError('');
+        setUpdating(true);
+        try {
+            const response = await updateOrderStatus(id, 'COMPLETED');
+            if (response.success) {
+                toast.success('Đã xác nhận thu tiền mặt và hoàn tất đơn hàng.');
+                setOpenCashReceivedDialog(false);
+                fetchOrder(id);
+            } else {
+                toast.error(response.message || 'Xác nhận thất bại');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Lỗi khi xác nhận thanh toán');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const handleCancelOrder = async () => {
         if (!id || !cancelReason.trim() || cancelReason.length < 5) {
             toast.error("Vui lòng nhập lý do hủy đơn (ít nhất 5 ký tự)");
@@ -253,6 +412,32 @@ export const OrderDetailPage = () => {
             }
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Lỗi khi hủy đơn hàng");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleRejectRefund = async () => {
+        if (!order || !order.latestRefundId) {
+            toast.error("Không tìm thấy yêu cầu hoàn tiền để hủy duyệt.");
+            return;
+        }
+        setUpdating(true);
+        try {
+            const res = await handleOrderRefundRequest(order.id, order.latestRefundId, {
+                approved: false,
+                adminNote: cancelReason.trim() || undefined,
+            });
+            if (res.success) {
+                toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
+                setOpenCancelDialog(false);
+                setCancelReason('');
+                fetchOrder(order.id);
+            } else {
+                toast.error(res.message || "Không thể hủy duyệt yêu cầu hoàn tiền.");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi hệ thống khi hủy duyệt yêu cầu hoàn tiền.");
         } finally {
             setUpdating(false);
         }
@@ -293,22 +478,18 @@ export const OrderDetailPage = () => {
 
         setUpdating(true);
         try {
+            // Backend updateManualShippingFee đã tự chuyển PENDING → CONFIRMED khi cập nhật phí
             const response = await updateShippingFee(id, fee);
             if (response.success) {
-                if (order.status === 'PENDING') {
-                    await updateOrderStatus(id, 'CONFIRMED');
-                    toast.success("Cập nhật phí & Xác nhận đơn hàng thành công");
-                } else {
-                    toast.success("Cập nhật phí vận chuyển thành công");
-                }
+                toast.success(order.status === 'PENDING' ? "Cập nhật phí & Xác nhận đơn hàng thành công" : "Cập nhật phí vận chuyển thành công");
                 setOpenConfirmDialog(false);
                 fetchOrder(id);
             } else {
                 toast.error(response.message || "Cập nhật thất bại");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating shipping fee:", error);
-            toast.error("Lỗi khi cập nhật phí vận chuyển");
+            toast.error(error.response?.data?.message || "Lỗi khi cập nhật phí vận chuyển");
         } finally {
             setUpdating(false);
         }
@@ -439,7 +620,7 @@ export const OrderDetailPage = () => {
                                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ position: 'relative', zIndex: 1 }}>
 
                                     {/* Step 1: Placed */}
-                                    <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
+                                    <Stack spacing={2} alignItems="center" sx={{ width: isCounterOrder ? '25%' : '20%' }}>
                                         <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#00AB55', border: '5px solid white', boxShadow: '0 0 0 1px #00AB55' }} />
                                         <Box textAlign="center">
                                             <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: '#1C252E', mb: 0.5 }}>Đã đặt hàng</Typography>
@@ -447,8 +628,8 @@ export const OrderDetailPage = () => {
                                         </Box>
                                     </Stack>
 
-                                    {/* Step 2: Confirmed/Processing */}
-                                    <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
+                                    {/* Step 2: Chốt phí & Xác nhận */}
+                                    <Stack spacing={2} alignItems="center" sx={{ width: isCounterOrder ? '25%' : '20%' }}>
                                         <Box sx={{
                                             width: 28, height: 28, borderRadius: '50%',
                                             bgcolor: order.status === 'PENDING' ? '#FFAB00' : '#00AB55',
@@ -469,51 +650,177 @@ export const OrderDetailPage = () => {
                                         </Box>
                                     </Stack>
 
-                                    {/* Step 3: Chờ thanh toán (mua tại quầy) hoặc Đang giao hàng (giao hàng) */}
-                                    <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
-                                        <Box sx={{
-                                            width: 28, height: 28, borderRadius: '50%',
-                                            bgcolor: isCounterOrder
-                                                ? (['CONFIRMED', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB')
-                                                : (['DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB'),
-                                            border: '5px solid white',
-                                            boxShadow: `0 0 0 1px ${isCounterOrder ? (['CONFIRMED', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB') : (['DELIVERING', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB')}`,
-                                            animation: !isCounterOrder && order.status === 'DELIVERING' ? 'pulse-blue 2s infinite' : 'none',
-                                            '@keyframes pulse-blue': {
-                                                '0%': { boxShadow: '0 0 0 0 rgba(24, 144, 255, 0.4)' },
-                                                '70%': { boxShadow: '0 0 0 10px rgba(24, 144, 255, 0)' },
-                                                '100%': { boxShadow: '0 0 0 0 rgba(24, 144, 255, 0)' }
-                                            }
-                                        }} />
-                                        <Box textAlign="center">
-                                            <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: isCounterOrder ? (order.status === 'CONFIRMED' ? '#B76E00' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? '#1C252E' : '#919EAB')) : (order.status === 'DELIVERING' ? '#1064ad' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? '#1C252E' : '#919EAB')), mb: 0.5 }}>
-                                                {isCounterOrder ? 'Chờ thanh toán' : 'Đang giao hàng'}
-                                            </Typography>
-                                            <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
-                                                {isCounterOrder
-                                                    ? (order.status === 'CONFIRMED' ? 'Đang chờ khách đến thanh toán' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? new Date(order.updatedAt).toLocaleDateString('vi-VN') : 'Sau khi xác nhận'))
-                                                    : (order.status === 'DELIVERING' ? 'Đang vận chuyển...' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? 'Đã giao tới nơi' : 'Chờ vận chuyển'))}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
+                                    {isCounterOrder ? (
+                                        <>
+                                            {/* Step 3: Chờ thanh toán (mua tại quầy) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor: ['CONFIRMED', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB',
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${['CONFIRMED', 'DELIVERED', 'COMPLETED'].includes(order.status) ? '#00AB55' : '#919EAB'}`
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'CONFIRMED' ? '#B76E00' : (['DELIVERED', 'COMPLETED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                                        Chờ thanh toán
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {order.status === 'CONFIRMED'
+                                                            ? 'Đang chờ khách đến thanh toán'
+                                                            : (['DELIVERED', 'COMPLETED'].includes(order.status)
+                                                                ? new Date(order.updatedAt).toLocaleDateString('vi-VN')
+                                                                : 'Sau khi xác nhận')}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
 
-                                    {/* Step 4: Hoàn tất (mua tại quầy) hoặc Giao hàng & Hoàn tất (giao hàng) */}
-                                    <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
-                                        <Box sx={{
-                                            width: 28, height: 28, borderRadius: '50%',
-                                            bgcolor: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
-                                            border: '5px solid white',
-                                            boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
-                                        }} />
-                                        <Box textAlign="center">
-                                            <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
-                                                {isCounterOrder ? 'Hoàn tất' : 'Giao hàng & Hoàn tất'}
-                                            </Typography>
-                                            <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
-                                                {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? new Date(order.updatedAt).toLocaleDateString('vi-VN') : (isCounterOrder ? 'Sau khi khách thanh toán' : 'Dự kiến sau khi chốt')}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
+                                            {/* Step 4: Hoàn tất (mua tại quầy) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
+                                                        Hoàn tất
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                            ? new Date(order.updatedAt).toLocaleDateString('vi-VN')
+                                                            : 'Sau khi khách thanh toán'}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Step 3: Chờ thanh toán (ONLINE + chuyển khoản) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor:
+                                                        (order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+                                                            && order.status === 'CONFIRMED'
+                                                            && order.payments?.[0]?.status !== 'COMPLETED')
+                                                            ? '#FFAB00'
+                                                            : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                ? '#00AB55'
+                                                                : '#919EAB'),
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${
+                                                        (order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+                                                            && order.status === 'CONFIRMED'
+                                                            && order.payments?.[0]?.status !== 'COMPLETED')
+                                                            ? '#FFAB00'
+                                                            : (['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                ? '#00AB55'
+                                                                : '#919EAB')
+                                                    }`,
+                                                    animation:
+                                                        (order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+                                                            && order.status === 'CONFIRMED'
+                                                            && order.payments?.[0]?.status !== 'COMPLETED')
+                                                            ? 'pulse-orange 2s infinite'
+                                                            : 'none'
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{
+                                                        fontWeight: 700,
+                                                        fontSize: '0.9375rem',
+                                                        color:
+                                                            (order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+                                                                && order.status === 'CONFIRMED'
+                                                                && order.payments?.[0]?.status !== 'COMPLETED')
+                                                                ? '#B76E00'
+                                                                : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                    ? '#1C252E'
+                                                                    : '#919EAB'),
+                                                        mb: 0.5
+                                                    }}>
+                                                        Thanh toán
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER'
+                                                            ? (order.status === 'CONFIRMED'
+                                                                ? 'Đang chờ khách chuyển khoản qua PayOS'
+                                                                : ((order.status === 'PAID'
+                                                                    || ['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                                    ? 'Đã thanh toán online'
+                                                                    : 'Sau khi xác nhận'))
+                                                            : 'Không áp dụng (COD)'}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+
+                                            {/* Step 4: Chờ đóng gói (đơn ONLINE) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor: ['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB',
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB'}`,
+                                                    animation: order.status === 'PROCESSING' ? 'pulse-orange 2s infinite' : 'none'
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'PROCESSING' ? '#B76E00' : (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                                        Chờ đóng gói
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {order.status === 'PROCESSING'
+                                                            ? 'Nhân viên đang chuẩn bị hàng'
+                                                            : (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                ? 'Đã đóng gói xong'
+                                                                : 'Sau khi xác nhận')}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+
+                                            {/* Step 5: Đang giao hàng (ONLINE) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor: ['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB',
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB'}`,
+                                                    animation: order.status === 'DELIVERING' ? 'pulse-blue 2s infinite' : 'none'
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'DELIVERING' ? '#1064ad' : (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                                        Đang giao hàng
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {order.status === 'DELIVERING'
+                                                            ? 'Đơn hàng đang được vận chuyển'
+                                                            : (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                ? 'Đã giao tới nơi'
+                                                                : 'Chờ vận chuyển')}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+
+                                            {/* Step 6: Giao hàng & Hoàn tất (ONLINE) */}
+                                            <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                                                <Box sx={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
+                                                    border: '5px solid white',
+                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
+                                                }} />
+                                                <Box textAlign="center">
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
+                                                        Giao hàng & Hoàn tất
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                                        {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                            ? new Date(order.updatedAt).toLocaleDateString('vi-VN')
+                                                            : 'Dự kiến sau khi chốt'}
+                                                    </Typography>
+                                                </Box>
+                                            </Stack>
+                                        </>
+                                    )}
 
                                     {/* Combined Step for Return (Conditional) */}
                                     {['RETURN_REQUESTED', 'RETURNED'].includes(order.status) && (
@@ -550,8 +857,29 @@ export const OrderDetailPage = () => {
                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.5fr' }, gap: 3 }}>
                                 <Box>
                                     <Typography sx={{ color: '#919EAB', fontWeight: 700, fontSize: '0.7rem', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.8 }}>Họ tên & SĐT</Typography>
-                                    <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: '#1C252E' }}>{order.shippingName}</Typography>
-                                    <Typography sx={{ color: '#3F51B5', fontWeight: 600, fontSize: '0.9375rem', mt: 0.5 }}>{order.shippingPhone}</Typography>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Nhập tên người nhận"
+                                        value={editableCustomerName}
+                                        onChange={(e) => setEditableCustomerName(e.target.value)}
+                                        disabled={order.status !== 'PENDING'}
+                                        sx={{
+                                            mb: 1,
+                                            '& .MuiOutlinedInput-root': { fontSize: '0.875rem', borderRadius: '10px', bgcolor: '#FAFBFC' }
+                                        }}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Nhập số điện thoại"
+                                        value={editableCustomerPhone}
+                                        onChange={(e) => setEditableCustomerPhone(e.target.value)}
+                                        disabled={order.status !== 'PENDING'}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': { fontSize: '0.875rem', borderRadius: '10px', bgcolor: '#FAFBFC' }
+                                        }}
+                                    />
                                     <Typography sx={{ color: '#919EAB', fontWeight: 700, fontSize: '0.7rem', mt: 1.5, mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.8 }}>Email (tùy chọn)</Typography>
                                     <TextField
                                         fullWidth
@@ -560,6 +888,7 @@ export const OrderDetailPage = () => {
                                         placeholder="Nhập email khách hàng hoặc để trống"
                                         value={editableCustomerEmail}
                                         onChange={(e) => setEditableCustomerEmail(e.target.value)}
+                                        disabled={order.status !== 'PENDING'}
                                         sx={{
                                             '& .MuiOutlinedInput-root': { fontSize: '0.875rem', borderRadius: '10px', bgcolor: '#FAFBFC' }
                                         }}
@@ -575,6 +904,7 @@ export const OrderDetailPage = () => {
                                                 placeholder="Nhập địa chỉ giao hàng..."
                                                 value={editableShippingAddress}
                                                 onChange={(e) => setEditableShippingAddress(e.target.value)}
+                                                disabled={order.status !== 'PENDING'}
                                                 multiline
                                                 minRows={2}
                                                 sx={{
@@ -605,6 +935,26 @@ export const OrderDetailPage = () => {
                                     </Box>
                                 )}
                             </Box>
+                            {order.status === 'PENDING' && (
+                                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={handleSaveContactInfo}
+                                        disabled={updating}
+                                        sx={{
+                                            borderRadius: '999px',
+                                            textTransform: 'none',
+                                            fontWeight: 700,
+                                            px: 3,
+                                            py: 0.75,
+                                            fontSize: '0.85rem',
+                                        }}
+                                    >
+                                        {updating ? 'Đang lưu...' : 'Lưu thông tin liên hệ'}
+                                    </Button>
+                                </Box>
+                            )}
                             <Box sx={{ mt: 3, p: 2, borderRadius: '12px', bgcolor: '#FAFBFC', border: '1px solid #E5E8EB' }}>
                                 <Typography sx={{ color: '#637381', fontWeight: 600, fontSize: '0.75rem', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>Ghi chú đơn hàng</Typography>
                                 <TextField
@@ -1053,20 +1403,51 @@ export const OrderDetailPage = () => {
                                     }}>
                                         <PaymentsIcon sx={{ fontSize: '1.25rem', color: '#FFAB00' }} />
                                     </Box>
-                                    <Stack spacing={0}>
+                                    <Stack spacing={0} sx={{ flex: 1 }}>
                                         <Typography sx={{ fontSize: '0.7rem', color: '#919EAB', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hình thức</Typography>
-                                        <Typography sx={{ fontSize: '0.875rem', color: '#1C252E', fontWeight: 600 }}>
-                                            {order.payments?.[0]?.paymentMethod === 'CASH'
-                                                ? 'Thanh toán khi nhận hàng'
-                                                : (order.payments?.[0]?.status === 'COMPLETED' ? 'Đã thanh toán Online' : 'Thanh toán Online')}
-                                        </Typography>
+                                        {isCounterOrder && order.status === 'CONFIRMED' && order.payments?.[0]?.status !== 'COMPLETED' ? (
+                                            <FormControl size="small" fullWidth sx={{ mt: 0.5 }}>
+                                                <Select
+                                                    value={order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' ? 'BANK_TRANSFER' : 'CASH'}
+                                                    onChange={async (e) => {
+                                                        const method = e.target.value as 'CASH' | 'BANK_TRANSFER';
+                                                        if (!id || method === (order.payments?.[0]?.paymentMethod || 'CASH')) return;
+                                                        setUpdating(true);
+                                                        try {
+                                                            const res = await updateOrderPaymentMethod(id, method);
+                                                            if (res.success) {
+                                                                toast.success('Đã đổi phương thức thanh toán.');
+                                                                fetchOrder(id);
+                                                            } else toast.error(res.message || 'Cập nhật thất bại');
+                                                        } catch (err: any) {
+                                                            toast.error(err.response?.data?.message || 'Lỗi khi đổi phương thức thanh toán');
+                                                        } finally {
+                                                            setUpdating(false);
+                                                        }
+                                                    }}
+                                                    disabled={updating}
+                                                    sx={{ borderRadius: '10px', fontSize: '0.875rem', fontWeight: 600 }}
+                                                >
+                                                    <MenuItem value="CASH">Tiền mặt (Tại quầy)</MenuItem>
+                                                    <MenuItem value="BANK_TRANSFER">Chuyển khoản (QR)</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        ) : (
+                                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E', fontWeight: 600 }}>
+                                                {isCounterOrder
+                                                    ? (order.payments?.[0]?.status === 'COMPLETED' ? 'Đã thanh toán tại quầy' : (order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản (QR)' : 'Tiền mặt (Tại quầy)'))
+                                                    : (order.payments?.[0]?.paymentMethod === 'CASH'
+                                                        ? 'Thanh toán khi nhận hàng'
+                                                        : (order.payments?.[0]?.status === 'COMPLETED' ? 'Đã thanh toán Online' : 'Thanh toán Online'))}
+                                            </Typography>
+                                        )}
                                     </Stack>
                                 </Stack>
                             </Stack>
                         </Card>
 
-                        {/* General Status Steps Support */}
-                        {order.status !== 'PENDING' && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(order.status) && (
+                        {/* General Status Steps Support (bao gồm PENDING + đơn tại quầy: Chốt phí & Chuyển sang Chờ thanh toán) */}
+                        {(order.status !== 'PENDING' || isCounterOrder) && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(order.status) && (
                             <Card sx={{
                                 p: 3.5,
                                 borderRadius: '32px',
@@ -1077,13 +1458,46 @@ export const OrderDetailPage = () => {
                             }}>
                                 <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 2, color: '#1C252E' }}>Bước xử lý tiếp theo</Typography>
                                 <Stack spacing={2}>
-                                    {getNextAction(order.status) && (
+                                    {/* Đơn online + thanh toán online (chuyển khoản): hiện "Xác nhận đã thanh toán" trước, sau khi xác nhận mới hiện "Bắt đầu đóng gói" */}
+                                    {needConfirmPaymentFirst && (
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            startIcon={<CheckCircleOutlineIcon />}
+                                            onClick={() => setOpenConfirmPaymentDialog(true)}
+                                            disabled={updating}
+                                            sx={{
+                                                py: 1.5,
+                                                borderRadius: '12px',
+                                                fontSize: '0.9375rem',
+                                                fontWeight: 700,
+                                                textTransform: 'none',
+                                                bgcolor: '#118D57',
+                                                '&:hover': { bgcolor: '#0d7a47', filter: 'brightness(0.95)' }
+                                            }}
+                                        >
+                                            {updating ? 'Đang xử lý...' : 'Xác nhận đã thanh toán'}
+                                        </Button>
+                                    )}
+                                    {/* Đơn tại quầy CONFIRMED + tiền mặt: không hiện nút "Xác nhận đã thanh toán" (chỉ dùng "Nhập số tiền đã thu & Xác nhận" bên dưới). 
+                                        Đơn ONLINE (mọi hình thức thanh toán) chỉ được phép "Bắt đầu đóng gói" khi payment chính đã COMPLETED. */}
+                                    {!needConfirmPaymentFirst && getNextAction(order.status) && !(isCounterOrder && order.status === 'CONFIRMED' && order.payments?.[0]?.paymentMethod === 'CASH') && (
                                         <Button
                                             fullWidth
                                             variant="contained"
                                             startIcon={getNextAction(order.status)?.icon}
                                             onClick={() => getNextAction(order.status) && handleUpdateStatus(getNextAction(order.status)!.status)}
-                                            disabled={updating}
+                                            disabled={
+                                                updating
+                                                || (
+                                                    // Đơn ONLINE ở trạng thái CONFIRMED nhưng payment chính chưa COMPLETED → không cho "Bắt đầu đóng gói"
+                                                    !isCounterOrder
+                                                    && order.orderType === 'ONLINE'
+                                                    && order.status === 'CONFIRMED'
+                                                    && order.payments?.[0]
+                                                    && order.payments[0].status !== 'COMPLETED'
+                                                )
+                                            }
                                             sx={{
                                                 py: 1.5,
                                                 borderRadius: '12px',
@@ -1119,6 +1533,37 @@ export const OrderDetailPage = () => {
                                         </Button>
                                     )}
 
+                                    {/* Nút yêu cầu hoàn tiền: đơn ONLINE, đang PAID hoặc PROCESSING (backend sẽ kiểm tra đã thanh toán) */}
+                                    {order.orderType === 'ONLINE'
+                                        && ['PAID', 'PROCESSING'].includes(order.status) && (
+                                        <Badge
+                                            color="error"
+                                            variant="dot"
+                                            invisible={order.latestRefundStatus !== 'PENDING'}
+                                            overlap="rectangular"
+                                            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        >
+                                            <Button
+                                                fullWidth
+                                                variant="outlined"
+                                                color="warning"
+                                                onClick={() => setOpenCancelDialog(true)}
+                                                disabled={updating}
+                                                sx={{
+                                                    py: 1.25,
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: 600,
+                                                    textTransform: 'none',
+                                                    borderWidth: '2px',
+                                                    '&:hover': { borderWidth: '2px' }
+                                                }}
+                                            >
+                                                Yêu cầu hoàn tiền
+                                            </Button>
+                                        </Badge>
+                                    )}
+
                                     {/* Nút hoàn trả cho DELIVERING và DELIVERED */}
                                     {['DELIVERING', 'DELIVERED'].includes(order.status) && (
                                         <Button
@@ -1148,8 +1593,9 @@ export const OrderDetailPage = () => {
                             </Card>
                         )}
 
-                        <Box sx={{ px: 1 }}>
-                            {order.status === 'PENDING' ? (
+                        {/* Đơn online PENDING: nút Xác nhận Đơn hàng (mở dialog phí ship). Đơn tại quầy PENDING đã có nút trong card Bước xử lý. */}
+                        {order.status === 'PENDING' && !isCounterOrder && (
+                            <Box sx={{ px: 1 }}>
                                 <Button
                                     fullWidth
                                     variant="contained"
@@ -1179,12 +1625,44 @@ export const OrderDetailPage = () => {
                                 >
                                     {updating ? 'Đang xử lý...' : 'Xác nhận Đơn hàng'}
                                 </Button>
-                            ) : (
+                            </Box>
+                        )}
+                        {/* Đơn tại quầy (OFFLINE) CONFIRMED: tiền mặt → nhập số tiền đã thu; chuyển khoản → xử lý qua PayOS. Không hiện khi đơn online. */}
+                        {isCounterOrder && order.status === 'CONFIRMED' && order.orderType !== 'ONLINE' && (
+                            <Box sx={{ px: 1 }}>
+                                {order.payments?.[0]?.paymentMethod === 'CASH' ? (
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        size="large"
+                                        onClick={handleOpenCashReceivedDialog}
+                                        startIcon={<PaymentsIcon />}
+                                        sx={{
+                                            py: 1.5,
+                                            borderRadius: '16px',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: 700,
+                                            textTransform: 'none',
+                                            bgcolor: '#00AB55',
+                                            '&:hover': { bgcolor: '#007B55' }
+                                        }}
+                                    >
+                                        Nhập số tiền đã thu & Xác nhận
+                                    </Button>
+                                ) : (
+                                    <Typography sx={{ py: 1.5, fontSize: '0.875rem', color: '#637381', textAlign: 'center' }}>
+                                        Thanh toán chuyển khoản được xử lý qua PayOS.
+                                    </Typography>
+                                )}
+                            </Box>
+                        )}
+                        {order.status !== 'PENDING' && !isCounterOrder && (
+                            <Box sx={{ px: 1 }}>
                                 <Typography sx={{ textAlign: 'center', color: '#919EAB', fontWeight: 600, fontSize: '0.875rem' }}>
                                     Đơn hàng đã được xác nhận & chốt phí.
                                 </Typography>
-                            )}
-                        </Box>
+                            </Box>
+                        )}
                     </Stack>
                 </Box>
             </Box>
@@ -1214,6 +1692,12 @@ export const OrderDetailPage = () => {
                             <PersonOutlineIcon sx={{ color: '#00AB55', fontSize: '1.25rem' }} />
                             <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#919EAB', textTransform: 'uppercase' }}>
                                 KHÁCH HÀNG: <Box component="span" sx={{ color: '#1C252E', fontWeight: 700 }}>{order.shippingName.toUpperCase()}</Box>
+                            </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                            <LocationOnOutlinedIcon sx={{ color: '#00AB55', fontSize: '1.25rem' }} />
+                            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#1C252E' }}>
+                                Địa chỉ hiện tại: {shopAddress || '— Chưa cấu hình (vào Cài đặt)'}
                             </Typography>
                         </Stack>
                         <Stack direction="row" spacing={1.5} alignItems="flex-start">
@@ -1325,18 +1809,27 @@ export const OrderDetailPage = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Cancel Order Dialog */}
+            {/* Cancel Order Dialog - reuse layout of Hủy đơn / Yêu cầu hoàn tiền */}
             <Dialog
                 open={openCancelDialog}
                 onClose={() => { setOpenCancelDialog(false); setCancelReason(''); }}
-                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 500, width: '100%' } }}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FF5630', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            <CloseIcon sx={{ fontSize: '1.6rem' }} />
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <ReplayIcon sx={{ fontSize: '1.6rem' }} />
                         </Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>Hủy đơn hàng</Typography>
+                        <Box>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
+                                Hủy đơn / Yêu cầu hoàn tiền
+                            </Typography>
+                            {order && (
+                                <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', mt: 0.3 }}>
+                                    Mã đơn: <strong>{order.orderCode}</strong>
+                                </Typography>
+                            )}
+                        </Box>
                     </Stack>
                     <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
@@ -1344,24 +1837,154 @@ export const OrderDetailPage = () => {
                 </DialogTitle>
 
                 <DialogContent sx={{ px: 4, py: 2 }}>
-                    <Typography sx={{ mb: 3, fontSize: '1.4rem', color: '#637381' }}>
-                        Vui lòng nhập lý do hủy đơn hàng này. Thông tin sẽ được lưu lại và thông báo cho khách hàng.
+                    <Typography sx={{ mb: 2, fontSize: '0.9rem', color: '#637381' }}>
+                        Đơn hàng có thể cần hủy / hoàn tiền. Vui lòng ghi rõ lý do để hệ thống ghi nhận và thông báo cho khách hàng.
                     </Typography>
 
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="Lý do hủy đơn"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder="VD: Khách hàng yêu cầu hủy, Sản phẩm hết hàng..."
-                        sx={{
-                            '& .MuiOutlinedInput-root': { borderRadius: '16px' },
-                            '& label': { fontWeight: 700 }
-                        }}
-                    />
-                    <Typography sx={{ mt: 1, fontSize: '1.2rem', color: '#919EAB', textAlign: 'right' }}>{cancelReason.length}/500</Typography>
+                    <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                            Lịch sử yêu cầu hoàn tiền
+                        </Typography>
+                        {loadingRefundHistory ? (
+                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>Đang tải...</Typography>
+                        ) : refundHistory.length === 0 ? (
+                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', fontStyle: 'italic' }}>Chưa có yêu cầu nào.</Typography>
+                        ) : (
+                            <Stack spacing={1.5} sx={{ maxHeight: 220, overflow: 'auto' }}>
+                                {refundHistory.map((r) => (
+                                    <Box
+                                        key={r.id}
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: '12px',
+                                            border: '1px solid',
+                                            borderColor: r.status === 'PENDING' ? '#FED7AA' : r.status === 'APPROVED' ? '#BBF7D0' : '#FECACA',
+                                            bgcolor: r.status === 'PENDING' ? '#FFF7ED' : r.status === 'APPROVED' ? '#F0FDF4' : '#FEF2F2',
+                                        }}
+                                    >
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={0.5}>
+                                            <Typography sx={{ fontSize: '0.75rem', color: '#637381' }}>
+                                                {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
+                                            </Typography>
+                                            <Typography
+                                                sx={{
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 700,
+                                                    px: 1,
+                                                    py: 0.25,
+                                                    borderRadius: '8px',
+                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : '#FEE2E2',
+                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : '#991B1B',
+                                                }}
+                                            >
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                                            </Typography>
+                                        </Stack>
+                                        {r.customerReason && (
+                                            <Typography sx={{ fontSize: '0.8rem', color: '#1C252E', mt: 1, whiteSpace: 'pre-wrap' }}>
+                                                {r.customerReason}
+                                            </Typography>
+                                        )}
+                                        {r.adminDecisionNote && (
+                                            <Box sx={{ mt: 1, pt: 1, borderTop: '1px dashed', borderColor: 'divider' }}>
+                                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#637381', textTransform: 'uppercase' }}>
+                                                    Phản hồi admin{r.processedBy ? ` (${r.processedBy})` : ''}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '0.8rem', color: '#1C252E', mt: 0.5 }}>
+                                                    {r.adminDecisionNote}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
+                    </Box>
+
+                    {order?.cancelReason && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                Yêu cầu từ khách hàng
+                            </Typography>
+                            <Box
+                                sx={{
+                                    p: 1.5,
+                                    bgcolor: '#FFF7ED',
+                                    border: '1px solid #FED7AA',
+                                    borderRadius: '12px',
+                                }}
+                            >
+                                <Typography sx={{ fontSize: '0.85rem', color: '#9A3412', whiteSpace: 'pre-wrap' }}>
+                                    {order.cancelReason}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
+                    <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                            Thông tin ngân hàng khách cung cấp
+                        </Typography>
+                        {customerBankInfo ? (
+                            <Box
+                                sx={{
+                                    p: 1.5,
+                                    bgcolor: '#EFF6FF',
+                                    border: '1px solid #BFDBFE',
+                                    borderRadius: '12px',
+                                }}
+                            >
+                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                    Ngân hàng: <strong>{customerBankInfo.bankName}</strong> ({customerBankInfo.bankCode})
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                    Số tài khoản: <strong>{customerBankInfo.accountNumber}</strong>
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.85rem' }}>
+                                    Chủ TK: <strong>{customerBankInfo.accountHolderName}</strong>
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>
+                                Không tìm thấy thông tin ngân hàng cho khách hàng này.
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                            Ghi chú nội bộ cho việc hủy / hoàn tiền
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            placeholder="Ví dụ: Hủy theo yêu cầu khách, đã xác nhận sẽ hoàn tiền trong 3 ngày làm việc..."
+                            sx={{
+                                '& .MuiOutlinedInput-root': { borderRadius: '16px', fontSize: '0.85rem' }
+                            }}
+                        />
+                        <Typography sx={{ mt: 0.5, fontSize: '0.75rem', color: '#919EAB', textAlign: 'right' }}>
+                            {cancelReason.length}/500
+                        </Typography>
+                    </Box>
+
+                    {(!order?.guestEmail?.trim() && !order?.user?.email?.trim()) && (
+                        <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#FFF4E5', border: '1px solid #FFAB00' }}>
+                            <Typography sx={{ fontSize: '0.85rem', color: '#B76E00', fontWeight: 600 }}>
+                                ⚠ Đơn này không có email khách hàng. Thông báo qua email sẽ <strong>không được gửi</strong> khi Hủy duyệt hoặc Xác nhận hủy đơn. Bạn có thể cập nhật Email khách ở phần thông tin liên hệ trước khi thực hiện.
+                            </Typography>
+                        </Box>
+                    )}
+
+                    <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8' }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#637381' }}>
+                            Thao tác này sẽ cập nhật đơn hàng sang trạng thái <strong>ĐÃ HỦY</strong>. Nhân viên cần thực hiện hoàn tiền
+                            cho khách (nếu có) theo đúng quy trình.
+                        </Typography>
+                    </Box>
                 </DialogContent>
 
                 <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
@@ -1373,14 +1996,29 @@ export const OrderDetailPage = () => {
                     >
                         Đóng
                     </Button>
+                    {order?.latestRefundStatus === 'PENDING' && order.latestRefundId != null && (
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            color="error"
+                            onClick={handleRejectRefund}
+                            disabled={updating}
+                            sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
+                        >
+                            Hủy duyệt
+                        </Button>
+                    )}
                     <Button
                         fullWidth
                         variant="contained"
                         onClick={handleCancelOrder}
                         disabled={updating || cancelReason.length < 5}
                         sx={{
-                            py: 1.5, borderRadius: '12px', fontWeight: 800,
-                            bgcolor: '#FF5630', boxShadow: '0 8px 16px rgba(255, 86, 48, 0.24)',
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontWeight: 800,
+                            bgcolor: '#FF5630',
+                            boxShadow: '0 8px 16px rgba(255, 86, 48, 0.24)',
                             '&:hover': { bgcolor: '#B7211F' },
                             '&:disabled': { bgcolor: '#E5E8EB' }
                         }}
@@ -1569,6 +2207,63 @@ export const OrderDetailPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Dialog nhập số tiền đã thu (đơn tại quầy - thanh toán tiền mặt) */}
+            <Dialog
+                open={openCashReceivedDialog}
+                onClose={() => !updating && setOpenCashReceivedDialog(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '24px', p: 0 } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, borderBottom: '1px solid #E5E8EB' }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#00AB55', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <PaymentsIcon />
+                        </Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '1.25rem', color: '#1C252E' }}>Xác nhận thu tiền mặt</Typography>
+                    </Stack>
+                    <IconButton onClick={() => !updating && setOpenCashReceivedDialog(false)} size="small" sx={{ bgcolor: '#F4F6F8' }} disabled={updating}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 3 }}>
+                    <Stack spacing={2.5}>
+                        <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8', border: '1px solid #E5E8EB' }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5 }}>Số tiền cần thu</Typography>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.25rem', color: '#1C252E' }}>
+                                {(order?.finalAmount ?? 0).toLocaleString('vi-VN')}₫
+                            </Typography>
+                        </Box>
+                        <TextField
+                            label="Số tiền đã thu"
+                            value={cashReceivedAmount}
+                            onChange={(e) => { setCashReceivedAmount(e.target.value); setCashReceivedError(''); }}
+                            error={!!cashReceivedError}
+                            helperText={cashReceivedError}
+                            placeholder="Nhập số tiền khách đã thanh toán"
+                            type="text"
+                            inputMode="numeric"
+                            InputProps={{
+                                endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                            }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                        />
+                        <Typography sx={{ fontSize: '0.8125rem', color: '#637381' }}>
+                            Nhân viên nhập số tiền đã thu từ khách và bấm Xác nhận để hoàn tất đơn hàng.
+                        </Typography>
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 2, gap: 1 }}>
+                    <Button onClick={() => setOpenCashReceivedDialog(false)} disabled={updating} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600 }}>
+                        Hủy
+                    </Button>
+                    <Button variant="contained" onClick={handleConfirmCashReceived} disabled={updating} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600, bgcolor: '#00AB55', '&:hover': { bgcolor: '#007B55' } }}>
+                        {updating ? 'Đang xử lý...' : 'Xác nhận'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             {/* Status Confirm Dialog */}
             <StatusConfirmDialog
                 open={!!pendingStatus}
@@ -1576,6 +2271,17 @@ export const OrderDetailPage = () => {
                 onConfirm={handleConfirmStatusChange}
                 newStatus={pendingStatus || ''}
                 isUpdating={updating}
+                statusDisplayLabel={isCounterOrder && pendingStatus === 'CONFIRMED' ? 'Chờ thanh toán' : undefined}
+            />
+
+            {/* Xác nhận thanh toán (đơn online, chuyển khoản) – cùng giao diện như dialog chuyển trạng thái */}
+            <StatusConfirmDialog
+                open={openConfirmPaymentDialog}
+                onClose={() => setOpenConfirmPaymentDialog(false)}
+                onConfirm={handleConfirmPayment}
+                newStatus="COMPLETED"
+                isUpdating={updating}
+                statusDisplayLabel="Đã thanh toán"
             />
         </Box>
     );

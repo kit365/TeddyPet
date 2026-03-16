@@ -274,7 +274,7 @@ export const LoginPage = () => {
 
                                                         setTimeout(() => {
                                                             googleLoginMutate(credential, {
-                                                                onError: () => {
+                                                                onSettled: () => {
                                                                     setIsGlobalLoading(false);
                                                                     if (googleBtnContainer) {
                                                                         googleBtnContainer.style.opacity = '1';

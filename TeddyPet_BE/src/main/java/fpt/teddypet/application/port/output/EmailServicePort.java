@@ -81,4 +81,13 @@ public interface EmailServicePort {
      * @param order The order entity
      */
     void sendOrderConfirmation(Order order);
+
+    /**
+     * Send email when admin rejects customer's refund request (Hủy duyệt yêu cầu hoàn tiền).
+     * Uses dedicated subject/headline so customer sees "Yêu cầu hoàn tiền đã bị từ chối" instead of status-based content.
+     *
+     * @param order    The order entity
+     * @param adminNote Optional note from admin (shown in email)
+     */
+    void sendOrderRefundRejectedEmail(Order order, String adminNote);
 }

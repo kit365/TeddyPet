@@ -1,5 +1,5 @@
 import { GridColDef } from '@mui/x-data-grid';
-import { Stack, Typography, IconButton, Tooltip, Box } from '@mui/material';
+import { Stack, Typography, IconButton, Tooltip, Box, Badge } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
@@ -115,7 +115,8 @@ export const getOrderColumns = (
                             {row.shippingPhone}
                         </Typography>
                         <Typography noWrap sx={{ fontSize: '0.6875rem', color: '#919EAB', fontWeight: 700 }}>
-                            {row.user?.email || row.guestEmail || ''}
+                            {/* Ưu tiên email nhập theo đơn (guestEmail) nếu có, sau đó mới tới email tài khoản */}
+                            {row.guestEmail || row.user?.email || ''}
                         </Typography>
                     </Stack>
                 );
@@ -261,7 +262,9 @@ export const getOrderColumns = (
                         </Tooltip>
                     )}
 
-                    {params.row.status === 'CONFIRMED' && (
+                    {/* Bắt đầu đóng gói: chỉ hiển thị khi đơn đã được thanh toán thành công (payment COMPLETED) và đã chuyển sang trạng thái PAID */}
+                    {params.row.status === 'PAID'
+                        && params.row.payments?.[0]?.status === 'COMPLETED' && (
                         <Tooltip title="Bắt đầu đóng gói">
                             <IconButton
                                 size="small"
@@ -297,18 +300,38 @@ export const getOrderColumns = (
                         </Tooltip>
                     )}
 
-                    {/* Nút xóa / hủy đơn (set CANCELLED) - hiện khi PENDING, CONFIRMED, PROCESSING; có email thì backend gửi mail thông báo */}
-                    {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(params.row.status) && (
-                        <Tooltip title="Xóa / Hủy đơn hàng">
-                            <IconButton
-                                size="small"
-                                onClick={() => onCancelOrder?.(params.row.id)}
-                                sx={{ color: '#FF5630', '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' } }}
-                            >
-                                <CancelIcon sx={{ fontSize: '1.125rem' }} />
-                            </IconButton>
-                        </Tooltip>
-                    )}
+                    {/* Nút hủy / yêu cầu hoàn tiền:
+                        - Đơn ONLINE + thanh toán online (không phải CASH) => tooltip "Hủy / Yêu cầu hoàn tiền"
+                        - Các trường hợp còn lại => "Xóa / Hủy đơn hàng"
+                        Chỉ hiển thị khi trạng thái là PENDING, CONFIRMED, PROCESSING */}
+                    {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(params.row.status) && (() => {
+                        const payment = params.row.payments?.[0];
+                        const isOnlinePayment = params.row.orderType === 'ONLINE' && payment && payment.paymentMethod !== 'CASH';
+                        const hasRefundRequest = isOnlinePayment && (params.row.latestRefundStatus === 'PENDING' || !!params.row.cancelReason);
+                        const tooltipTitle = isOnlinePayment ? 'Hủy / Yêu cầu hoàn tiền' : 'Xóa / Hủy đơn hàng';
+                        const color = isOnlinePayment ? '#F97316' : '#FF5630';
+                        const hoverBg = isOnlinePayment ? 'rgba(249, 115, 22, 0.08)' : 'rgba(255, 86, 48, 0.08)';
+                        const IconComponent = isOnlinePayment ? ReplayIcon : CancelIcon;
+                        return (
+                            <Tooltip title={tooltipTitle}>
+                                <Badge
+                                    color="error"
+                                    variant="dot"
+                                    invisible={!hasRefundRequest}
+                                    overlap="circular"
+                                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                >
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => onCancelOrder?.(params.row.id)}
+                                        sx={{ color, '&:hover': { bgcolor: hoverBg } }}
+                                    >
+                                        <IconComponent sx={{ fontSize: '1.125rem' }} />
+                                    </IconButton>
+                                </Badge>
+                            </Tooltip>
+                        );
+                    })()}
 
                     {/* Nút hoàn đơn - chỉ hiện khi DELIVERING (giao không thành công) */}
                     {params.row.status === 'DELIVERING' && (

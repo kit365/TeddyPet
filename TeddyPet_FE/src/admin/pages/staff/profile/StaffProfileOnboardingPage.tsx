@@ -144,8 +144,11 @@ export const StaffProfileOnboardingPage = () => {
                         toast.success(res.message ?? 'Tạo hồ sơ thành công');
                         queryClient.invalidateQueries({ queryKey: ['staff-profiles'] });
                         queryClient.invalidateQueries({ queryKey: ['google-whitelist'] });
-                        // Navigate back to the list page
-                        navigate(`/${prefixAdmin}/staff/profile/list`);
+                        
+                        // Small delay to ensure toast is seen
+                        setTimeout(() => {
+                            navigate(`/${prefixAdmin}/staff/profile/list`);
+                        }, 500);
                     } else {
                         toast.error(res?.message ?? 'Có lỗi');
                     }
