@@ -57,8 +57,8 @@ public class OrderItemApplicationService implements OrderItemService {
 
         OrderItem orderItem = orderItemMapper.toEntity(request, variant);
 
-
-        BigDecimal unitPrice = variant.getPrice().getAmount();
+        // Sử dụng giá hiệu lực: ưu tiên saleAmount nếu có, ngược lại dùng amount gốc
+        BigDecimal unitPrice = variant.getPrice().getEffectivePrice();
         BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(request.quantity()));
         orderItem.setUnitPrice(unitPrice);
         orderItem.setTotalPrice(totalPrice);

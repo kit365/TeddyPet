@@ -1,6 +1,7 @@
 package fpt.teddypet.application.dto.response.banks;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record BankInformationResponse(
         Long id,
@@ -12,7 +13,10 @@ public record BankInformationResponse(
         Boolean isDefault,
         String note,
         Long bookingId,
+        UUID orderId,
+        String accountType,
         String userId,
+        String userEmail,
         String vietqrImageUrl,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {

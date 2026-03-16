@@ -44,7 +44,7 @@ public class BankInformationApplicationService implements BankInformationService
         BankInformation entity = BankInformation.builder()
                 .userId(userId)
                 .bookingId(null)
-                .accountType("USER")
+                .accountType("CUSTOMER")
                 .accountNumber(request.accountNumber().trim())
                 .accountHolderName(request.accountHolderName().trim())
                 .bankCode(bank.getBankCode())
@@ -102,10 +102,12 @@ public class BankInformationApplicationService implements BankInformationService
         VietnamBankEnum bank = VietnamBankEnum.fromCode(request.bankCode())
                 .orElseThrow(() -> new IllegalArgumentException("bankCode không hợp lệ."));
 
+        String userEmail = request.userEmail() != null && !request.userEmail().isBlank() ? request.userEmail().trim() : null;
         BankInformation entity = BankInformation.builder()
                 .userId(null)
                 .bookingId(booking.getId())
-                .accountType("BOOKING_REFUND")
+                .accountType("CUSTOMER")
+                .userEmail(userEmail)
                 .accountNumber(request.accountNumber().trim())
                 .accountHolderName(request.accountHolderName().trim())
                 .bankCode(bank.getBankCode())
@@ -130,23 +132,60 @@ public class BankInformationApplicationService implements BankInformationService
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy booking với mã: " + bookingCode));
 
-        // Lấy bank info theo booking_id trước (nếu khách đã nhập)
+        // 1. Lấy bank info theo booking_id trước (nếu khách đã nhập)
         var bankByBooking = bankInformationRepository.findByBookingIdNotDeleted(booking.getId()).stream()
                 .findFirst()
                 .map(this::toResponse);
-        
         if (bankByBooking.isPresent()) {
             return bankByBooking.get();
         }
-        
-        // Fallback: Lấy default bank info theo user_id (nếu booking có user)
+
+        // 2. Fallback: Lấy default bank info theo user_id (nếu booking có user)
         if (booking.getUser() != null && booking.getUser().getId() != null) {
-            return bankInformationRepository.findDefaultByUserId(booking.getUser().getId())
+            var byUser = bankInformationRepository.findDefaultByUserId(booking.getUser().getId())
+                    .map(this::toResponse)
+                    .orElse(null);
+            if (byUser != null) return byUser;
+        }
+
+        // 3. Fallback: Lấy thông tin chuyển khoản đã lưu theo email khách (guest) để hiển thị lại
+        String guestEmail = booking.getCustomerEmail();
+        if (guestEmail != null && !guestEmail.isBlank()) {
+            return bankInformationRepository.findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(
+                            guestEmail.trim(), "CUSTOMER").stream()
+                    .findFirst()
                     .map(this::toResponse)
                     .orElse(null);
         }
-        
         return null;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BankInformationResponse getBankByGuestEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        return bankInformationRepository.findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(email.trim(), "CUSTOMER")
+                .stream()
+                .findFirst()
+                .map(this::toResponse)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BankInformationResponse getBankForOrderId(String orderId) {
+        if (orderId == null || orderId.isBlank()) return null;
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(orderId);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("orderId không hợp lệ.");
+        }
+        return bankInformationRepository.findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(uuid)
+                .stream()
+                .findFirst()
+                .map(this::toResponse)
+                .orElse(null);
     }
 
     @Override
@@ -172,7 +211,10 @@ public class BankInformationApplicationService implements BankInformationService
                 b.isDefault(),
                 b.getNote(),
                 b.getBookingId(),
+                b.getOrderId(),
+                b.getAccountType(),
                 b.getUserId() != null ? b.getUserId().toString() : null,
+                b.getUserEmail(),
                 b.getVietqrImageUrl(),
                 b.getCreatedAt(),
                 b.getUpdatedAt());

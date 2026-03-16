@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.persistence.EntityNotFoundException;
 
 import fpt.teddypet.domain.exception.BookingValidationException;
+import fpt.teddypet.application.exception.PaymentException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,6 +125,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
+    }
+
+    /** Thanh toán: đơn đã tạo link trước đó, validation, hoặc lỗi cổng → trả 409/400 và message cho FE hiển thị. */
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePaymentException(PaymentException ex) {
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Lỗi thanh toán.";
+        boolean isAlreadyCreated = msg.contains("đã được tạo trước đó") || msg.contains("đã tồn tại");
+        HttpStatus status = isAlreadyCreated ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+        log.warn("PaymentException ({}): {}", status.value(), msg);
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponse.error(msg, status.value()));
     }
 
     @ExceptionHandler(RuntimeException.class)

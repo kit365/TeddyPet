@@ -41,6 +41,9 @@ public record OrderResponse(
         String returnEvidence,
         LocalDateTime returnRequestedAt,
         String adminReturnNote,
+        // Refund request info (latest)
+        String latestRefundStatus,
+        Long latestRefundId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

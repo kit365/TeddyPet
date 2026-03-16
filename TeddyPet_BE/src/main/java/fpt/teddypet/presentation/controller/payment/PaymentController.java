@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.payos.model.webhooks.Webhook;
@@ -40,18 +41,24 @@ public class PaymentController {
     }
 
     /**
+     * PayOS kiểm tra URL webhook bằng GET (không có body/JSON) khi cấu hình trong dashboard. Trả 200 để PayOS coi URL hoạt động.
+     * THỰC TẾ webhook thanh toán sẽ gọi POST JSON và được xử lý ở handlePayosWebhook.
+     */
+    @GetMapping(value = "/payos/webhook", consumes = MediaType.ALL_VALUE)
+    @Operation(summary = "PayOS Webhook check (GET)", description = "Cho PayOS dashboard kiểm tra URL")
+    public ResponseEntity<Void> payosWebhookCheck() {
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Webhook PayOS - Nhận thông báo từ PayOS khi thanh toán hoàn tất hoặc hủy.
      * PayOS gửi POST JSON (body = Webhook: data + signature). Service verify chữ ký, cập nhật Payment/Order,
      * và lưu gateway_response_code + gateway_raw_payload vào bảng payments. Xem docs/PAYOS_WEBHOOK_FLOW.md.
      */
-    @PostMapping("/payos/webhook")
+    @PostMapping(value = "/payos/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "PayOS Webhook", description = "Nhận thông báo tự động từ PayOS")
     public ResponseEntity<Void> handlePayosWebhook(@RequestBody Webhook webhook, HttpServletRequest request) {
         log.info("📥 Nhận Webhook từ PayOS: {}", webhook);
-
-        if (webhook.getData() == null) {
-            return ResponseEntity.badRequest().build();
-        }
 
         paymentService.processPaymentCallback(
                 PaymentGatewayEnum.PAYOS,

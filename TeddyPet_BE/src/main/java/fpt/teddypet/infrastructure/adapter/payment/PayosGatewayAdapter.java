@@ -1,16 +1,23 @@
 package fpt.teddypet.infrastructure.adapter.payment;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.application.exception.PaymentException;
 import fpt.teddypet.application.port.output.payment.PaymentGatewayPort;
 import fpt.teddypet.application.util.OrderValidator;
+import fpt.teddypet.config.PayosConfig;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import vn.payos.PayOS;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
@@ -22,8 +29,13 @@ import vn.payos.model.webhooks.WebhookData;
 @RequiredArgsConstructor
 public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
 
+    private static final String PAYOS_API_GET_LINK = "https://api-merchant.payos.vn/v2/payment-requests/%d";
+    private static final String PAYOS_CHECKOUT_BASE = "https://pay.payos.vn/web/";
+
     private final PayOS payOS;
     private final ObjectMapper objectMapper;
+    private final PayosConfig payosConfig;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
     public PaymentGatewayEnum getGateway() {
@@ -60,10 +72,55 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
             return response.getCheckoutUrl();
 
         } catch (Exception e) {
-            log.error("PayosGatewayAdapter failed to create payment link for order {}: {}", order.getId(),
-                    e.getMessage());
-            throw new PaymentException("PayOS Error: " + e.getMessage(), e);
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
+                String existingUrl = fetchExistingPaymentLinkUrl(order.getNumericCode());
+                if (existingUrl != null) {
+                    log.info("PayOS: returning existing payment link for order {} (orderCode={}).", order.getId(), order.getNumericCode());
+                    return existingUrl;
+                }
+            }
+            log.error("PayosGatewayAdapter failed to create payment link for order {}: {}", order.getId(), msg);
+            throw new PaymentException("PayOS Error: " + msg, e);
         }
+    }
+
+    /**
+     * Gọi PayOS API GET /v2/payment-requests/{orderCode} để lấy thông tin link đã tạo,
+     * rồi build checkoutUrl = https://pay.payos.vn/web/{paymentLinkId}.
+     */
+    private String fetchExistingPaymentLinkUrl(Long orderNumericCode) {
+        if (orderNumericCode == null) return null;
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("x-client-id", payosConfig.getClientId());
+            headers.set("x-api-key", payosConfig.getApiKey());
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            String url = String.format(PAYOS_API_GET_LINK, orderNumericCode);
+            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                JsonNode root = objectMapper.readTree(resp.getBody());
+                if ("00".equals(root.path("code").asText(""))) {
+                    JsonNode data = root.path("data");
+
+                    // Chỉ tái sử dụng link nếu trạng thái trên PayOS vẫn còn chờ thanh toán (PENDING).
+                    String status = data.path("status").asText("");
+                    if (!"PENDING".equalsIgnoreCase(status)) {
+                        log.info("PayOS payment-request {} (orderCode={}) has status '{}', not reusing checkoutUrl.",
+                                data.path("id").asText(""), orderNumericCode, status);
+                        return null;
+                    }
+
+                    String id = data.path("id").asText("");
+                    if (!id.isBlank()) {
+                        return PAYOS_CHECKOUT_BASE + id;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Could not fetch existing PayOS link for orderCode {}: {}", orderNumericCode, ex.getMessage());
+        }
+        return null;
     }
 
     @Override
