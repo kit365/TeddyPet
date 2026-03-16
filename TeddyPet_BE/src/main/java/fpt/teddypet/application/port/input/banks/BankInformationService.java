@@ -20,6 +20,12 @@ public interface BankInformationService {
 
     BankInformationResponse getBankForBookingCode(String bookingCode);
 
+    /** Lấy thông tin chuyển khoản đã lưu theo email khách (guest) để pre-fill khi order/booking với cùng email */
+    BankInformationResponse getBankByGuestEmail(String email);
+
+    /** Lấy bank info liên quan đến 1 đơn hàng (order_id) nếu có */
+    BankInformationResponse getBankForOrderId(String orderId);
+
     List<BankInformationResponse> getAllForVerify(Boolean verifiedOnly);
 }
 

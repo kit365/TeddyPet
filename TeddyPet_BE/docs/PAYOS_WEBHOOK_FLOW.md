@@ -61,15 +61,13 @@ Các cột sẵn có dùng trong luồng:
 
 ### 4.2. Bảng `bank_information`
 
-- **Không** dùng để lưu từng giao dịch webhook PayOS.
-- Dùng cho:
-  - **USER**: tài khoản ngân hàng của khách (vd đăng ký nhận hoàn tiền).
-  - **BOOKING_REFUND**: tài khoản nhận hoàn tiền đặt lịch (gắn booking).
-  - **SYSTEM_RECEIVING** (account_type): **một bản ghi duy nhất** – tài khoản ngân hàng **của hệ thống** nhận tiền khi khách thanh toán online (PayOS chuyển tiền vào đây). Cấu hình trong **Cài đặt hệ thống → Thông tin tài khoản nhận tiền**.
-
-PayOS webhook có thể chứa thông tin ngân hàng **người chuyển** (khách). Nếu cần lưu, có thể:
-- Parse từ `gateway_raw_payload` (JSON) khi cần hiển thị/đối soát, hoặc
-- Sau này thêm cột vào `payments` (vd `payer_bank_code`, `payer_account_no`) và fill khi parse webhook. Hiện tại đã đủ nếu chỉ cần lưu toàn bộ JSON vào `gateway_raw_payload`.
+- **CUSTOMER**: tài khoản ngân hàng của khách (vd đăng ký nhận hoàn tiền) hoặc tài khoản nhận hoàn tiền đặt lịch (gắn booking).
+- **SYSTEM** (account_type): **một bản ghi duy nhất** – tài khoản ngân hàng **của hệ thống** nhận tiền khi khách thanh toán online (PayOS chuyển tiền vào đây). Cấu hình trong **Cài đặt hệ thống → Thông tin tài khoản nhận tiền**.
+- **GUEST** / **CUSTOMER** theo đơn hàng: Khi PayOS webhook **thành công** (code 00), nếu payload có thông tin người chuyển (`counterAccountBankId`, `counterAccountBankName`, `counterAccountName`, `counterAccountNumber`), hệ thống lưu vào `bank_information` với:
+  - **order_id**: UUID đơn hàng (cột thêm ở V77).
+  - **account_type**: **GUEST** nếu đơn không có user (khách vãng lai), **CUSTOMER** nếu đơn có user đăng nhập.
+  - Các trường ngân hàng lấy từ webhook: bank_code/bank_name từ counterAccountBankId/counterAccountBankName, account_holder_name từ counterAccountName, account_number từ counterAccountNumber.
+  - Nếu đã có bản ghi cùng `order_id` thì cập nhật, không tạo trùng.
 
 ## 5. Tóm tắt
 

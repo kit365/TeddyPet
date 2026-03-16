@@ -332,12 +332,17 @@ public class BookingClientApplicationService implements BookingClientService {
                 fpt.teddypet.domain.entity.BankInformation bankInfo = new fpt.teddypet.domain.entity.BankInformation();
                 bankInfo.setUserId(booking.getUser() != null ? booking.getUser().getId() : null);
                 bankInfo.setBookingId(booking.getId());
+                bankInfo.setAccountType("CUSTOMER");
+                String guestEmail = booking.getCustomerEmail();
+                bankInfo.setUserEmail(guestEmail != null && !guestEmail.isBlank() ? guestEmail.trim() : null);
                 bankInfo.setBankName(request.bankInformation().bankName());
                 bankInfo.setBankCode(request.bankInformation().bankCode());
                 bankInfo.setAccountHolderName(request.bankInformation().accountHolderName());
                 bankInfo.setAccountNumber(request.bankInformation().accountNumber());
                 bankInfo.setVerify(false);
                 bankInfo.setDefault(false);
+                bankInfo.setActive(true);
+                bankInfo.setDeleted(false);
                 bankInformationRepository.save(bankInfo);
                 booking.setRefundMethod("BANK_TRANSFER");
             }

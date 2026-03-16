@@ -3,6 +3,7 @@ package fpt.teddypet.domain.entity;
 import fpt.teddypet.application.constants.payments.PaymentConstants;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.exception.PaymentDomainException;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,14 @@ public class Payment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PaymentStatusEnum status;
 
+    /**
+     * Loại giao dịch: thanh toán đơn hàng hay hoàn tiền.
+     * Dùng để phân biệt lịch sử thu tiền và hoàn tiền cho cùng một đơn.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", nullable = false, length = 50)
+    private PaymentTypeEnum paymentType;
+
     @Column(name = "transaction_id", length = 100)
     private String transactionId;
 
@@ -67,6 +76,10 @@ public class Payment extends BaseEntity {
     /** JSON payload webhook đã verify, lưu để đối soát và debug */
     @Column(name = "gateway_raw_payload", columnDefinition = "TEXT")
     private String gatewayRawPayload;
+
+    /** URL checkout từ cổng (PayOS). Dùng để trả về khi PayOS báo "đơn thanh toán đã tồn tại". */
+    @Column(name = "checkout_url", length = 512)
+    private String checkoutUrl;
 
     public boolean isAlreadyCompleted() {
         return this.status == PaymentStatusEnum.COMPLETED;

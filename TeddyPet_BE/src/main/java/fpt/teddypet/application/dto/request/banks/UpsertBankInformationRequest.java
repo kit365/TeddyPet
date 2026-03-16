@@ -19,7 +19,11 @@ public record UpsertBankInformationRequest(
         String bankCode,
 
         @Size(max = 2000, message = "note tối đa 2000 ký tự")
-        String note
+        String note,
+
+        /** Email khách (guest) để lần sau dùng cùng email order/booking thì hiển thị lại thông tin chuyển khoản này */
+        @Size(max = 255, message = "userEmail tối đa 255 ký tự")
+        String userEmail
 ) {
 }
 

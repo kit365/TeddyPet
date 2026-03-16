@@ -465,6 +465,78 @@ public class EmailServiceAdapter implements EmailServicePort {
         self.sendHtmlEmail(to, subject, htmlBody);
     }
 
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendOrderRefundRejectedEmail(Order order, String adminNote) {
+        Order detailedOrder = orderRepository.findByIdWithDetails(order.getId()).orElse(order);
+        String to = detailedOrder.getGuestEmail() != null ? detailedOrder.getGuestEmail()
+                : (detailedOrder.getUser() != null ? detailedOrder.getUser().getEmail() : null);
+        if (to == null) {
+            log.warn(EmailConstants.LOG_NO_RECIPIENT, detailedOrder.getId());
+            return;
+        }
+        log.info("Sending order refund rejected email for order {} to {}", detailedOrder.getOrderCode(), to);
+
+        Context context = prepareContext();
+        context.setVariable(EmailConstants.VAR_WEB_URL, frontendUrl);
+        context.setVariable(EmailConstants.VAR_ORDER_CODE, detailedOrder.getOrderCode());
+        context.setVariable(EmailConstants.VAR_ORDER_DATE,
+                detailedOrder.getCreatedAt() != null
+                        ? detailedOrder.getCreatedAt().atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        : LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        String paymentStatus = EmailConstants.LABEL_PAYMENT_PENDING;
+        if (!detailedOrder.getPayments().isEmpty()) {
+            Payment p = detailedOrder.getPayments().getFirst();
+            if (p.getStatus() == PaymentStatusEnum.COMPLETED) {
+                paymentStatus = EmailConstants.LABEL_PAYMENT_SUCCESS;
+            } else if (p.getPaymentMethod() == PaymentMethodEnum.CASH) {
+                paymentStatus = EmailConstants.LABEL_PAYMENT_COD;
+            }
+        }
+        context.setVariable(EmailConstants.VAR_PAYMENT_STATUS, paymentStatus);
+        context.setVariable(EmailConstants.VAR_FULL_NAME, detailedOrder.getShippingName());
+        context.setVariable(EmailConstants.VAR_ITEMS, detailedOrder.getOrderItems());
+        context.setVariable(EmailConstants.VAR_ITEM_COUNT,
+                detailedOrder.getOrderItems().stream().mapToInt(OrderItem::getQuantity).sum());
+        context.setVariable(EmailConstants.VAR_SUBTOTAL, detailedOrder.getSubtotal());
+        context.setVariable(EmailConstants.VAR_SHIPPING_FEE, detailedOrder.getShippingFee());
+        context.setVariable(EmailConstants.VAR_SHIPPING_METHOD, EmailConstants.LABEL_SHIPPING_DEFAULT);
+        context.setVariable(EmailConstants.VAR_DISCOUNT, detailedOrder.getDiscountAmount());
+        context.setVariable(EmailConstants.VAR_TOTAL, detailedOrder.getFinalAmount());
+        context.setVariable(EmailConstants.VAR_PHONE_NUMBER, detailedOrder.getShippingPhone());
+        context.setVariable(EmailConstants.VAR_ADDRESS, detailedOrder.getShippingAddress());
+        context.setVariable(EmailConstants.VAR_NOTES, detailedOrder.getNotes());
+        String method = EmailConstants.LABEL_METHOD_COD;
+        if (!detailedOrder.getPayments().isEmpty()) {
+            Payment p = detailedOrder.getPayments().getFirst();
+            if (p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER) {
+                method = EmailConstants.LABEL_METHOD_ONLINE;
+            }
+        }
+        context.setVariable(EmailConstants.VAR_PAYMENT_METHOD, method);
+        context.setVariable(EmailConstants.VAR_TRACK_ORDER_URL, frontendUrl + "/tracking?code=" + detailedOrder.getOrderCode());
+        String cName = detailedOrder.getUser() != null
+                ? (detailedOrder.getUser().getFirstName() + " " + detailedOrder.getUser().getLastName())
+                : detailedOrder.getShippingName();
+        context.setVariable(EmailConstants.VAR_CUSTOMER_NAME, cName);
+        context.setVariable(EmailConstants.VAR_CUSTOMER_EMAIL, detailedOrder.getUser() != null ? detailedOrder.getUser().getEmail()
+                : (detailedOrder.getGuestEmail() != null ? detailedOrder.getGuestEmail() : EmailConstants.LABEL_NOT_AVAILABLE));
+        context.setVariable(EmailConstants.VAR_SHIPPING_EMAIL, detailedOrder.getGuestEmail() != null ? detailedOrder.getGuestEmail()
+                : (detailedOrder.getUser() != null ? detailedOrder.getUser().getEmail() : EmailConstants.LABEL_NOT_AVAILABLE));
+
+        context.setVariable(EmailConstants.VAR_EMAIL_HEADLINE, EmailConstants.HEADLINE_ORDER_REFUND_REJECTED);
+        context.setVariable(EmailConstants.VAR_SUB_HEADLINE, EmailConstants.SUB_HEADLINE_ORDER_REFUND_REJECTED);
+        context.setVariable(EmailConstants.VAR_ORDER_STATUS, detailedOrder.getStatus().name());
+        context.setVariable(EmailConstants.VAR_ORDER_STATUS_TEXT, EmailConstants.STATUS_TEXT_REFUND_REJECTED);
+        context.setVariable("adminReturnNote", adminNote != null && !adminNote.isBlank() ? adminNote : null);
+
+        String subject = String.format(EmailConstants.SUBJECT_ORDER_REFUND_REJECTED, appName, detailedOrder.getOrderCode());
+        String htmlBody = templateEngine.process("email/orders/confirmation", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
     private Context prepareContext() {
         Context context = new Context();
         context.setVariable(EmailConstants.VAR_APP_NAME, appName);

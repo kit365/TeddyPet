@@ -27,6 +27,7 @@ import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.OrderItem;
 import fpt.teddypet.domain.entity.Payment;
+import fpt.teddypet.domain.entity.OrderRefund;
 import fpt.teddypet.domain.entity.User;
 import fpt.teddypet.domain.entity.UserAddress;
 import fpt.teddypet.domain.enums.UserStatusEnum;
@@ -47,8 +48,12 @@ import fpt.teddypet.application.service.dashboard.DashboardService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import fpt.teddypet.application.dto.response.orders.order.OrderRefundResponse;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRefundRepository;
 
 @Slf4j
 @Service
@@ -70,6 +75,7 @@ public class OrderApplicationService implements OrderService {
     private final NotificationService notificationService;
     private final DashboardService dashboardService;
     private final OrderPostCreateNotifier orderPostCreateNotifier;
+    private final OrderRefundRepository orderRefundRepository;
 
     public OrderApplicationService(
             OrderRepositoryPort orderRepositoryPort,
@@ -87,7 +93,8 @@ public class OrderApplicationService implements OrderService {
             FeedbackService feedbackService,
             NotificationService notificationService,
             @Lazy DashboardService dashboardService,
-            OrderPostCreateNotifier orderPostCreateNotifier) {
+            OrderPostCreateNotifier orderPostCreateNotifier,
+            OrderRefundRepository orderRefundRepository) {
         this.orderRepositoryPort = orderRepositoryPort;
         this.orderMapper = orderMapper;
         this.userService = userService;
@@ -104,6 +111,7 @@ public class OrderApplicationService implements OrderService {
         this.notificationService = notificationService;
         this.dashboardService = dashboardService;
         this.orderPostCreateNotifier = orderPostCreateNotifier;
+        this.orderRefundRepository = orderRefundRepository;
     }
 
     private BigDecimal calculateDiscount(Order order, Promotion promotion) {
@@ -158,7 +166,48 @@ public class OrderApplicationService implements OrderService {
 
     private OrderResponse toEnhancedResponse(Order order) {
         Double distance = calculateDistanceKm(order);
-        return orderMapper.toResponseWithDistance(order, distance);
+        OrderResponse base = orderMapper.toResponseWithDistance(order, distance);
+        OrderRefund latest = orderRefundRepository.findByOrderIdNotDeletedOrderByCreatedAtDesc(order.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+        String latestStatus = latest != null ? latest.getStatus() : null;
+        Long latestId = latest != null ? latest.getId() : null;
+
+        return new OrderResponse(
+                base.id(),
+                base.orderCode(),
+                base.user(),
+                base.userAddressId(),
+                base.guestEmail(),
+                base.subtotal(),
+                base.shippingFee(),
+                base.discountAmount(),
+                base.voucherCode(),
+                base.finalAmount(),
+                base.orderType(),
+                base.status(),
+                base.shippingAddress(),
+                base.shippingPhone(),
+                base.shippingName(),
+                base.notes(),
+                base.orderItems(),
+                base.payments(),
+                base.distanceKm(),
+                base.cancelReason(),
+                base.cancelledAt(),
+                base.cancelledBy(),
+                base.deliveredAt(),
+                base.completedAt(),
+                base.returnReason(),
+                base.returnEvidence(),
+                base.returnRequestedAt(),
+                base.adminReturnNote(),
+                latestStatus,
+                latestId,
+                base.createdAt(),
+                base.updatedAt()
+        );
     }
 
     private Double calculateDistanceKm(Order order) {
@@ -315,6 +364,16 @@ public class OrderApplicationService implements OrderService {
             }
         }
 
+        // guestEmail: ưu tiên từ request (admin tạo đơn cho khách nhập email), không thì dùng email user (đơn của khách đăng nhập)
+        String orderGuestEmail = (request.guestEmail() != null && !request.guestEmail().isBlank())
+                ? request.guestEmail().trim()
+                : (user.getEmail() != null ? user.getEmail().trim() : null);
+
+        // Đơn online bắt buộc có email để gửi thông báo (xác nhận, hủy, hoàn tiền)
+        if (!isOffline && (orderGuestEmail == null || orderGuestEmail.isBlank())) {
+            throw new IllegalArgumentException("Đơn hàng đặt online cần có email khách hàng để gửi thông báo. Vui lòng nhập email.");
+        }
+
         // Build Order
         Order order = Order.builder()
                 .user(user)
@@ -326,7 +385,7 @@ public class OrderApplicationService implements OrderService {
                 .shippingAddress(finalShippingAddress)
                 .latitude(request.latitude())
                 .longitude(request.longitude())
-                .guestEmail(user.getEmail())
+                .guestEmail(orderGuestEmail)
                 .notes(request.note())
                 .shippingFee(isOffline ? BigDecimal.ZERO : BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
@@ -366,6 +425,30 @@ public class OrderApplicationService implements OrderService {
         Order order = getById(orderId);
 
         OrderStatusEnum oldStatus = order.getStatus();
+        // Không cho phép chuyển đơn đã hủy sang trạng thái khác (tránh ghi đè nhầm từ admin)
+        if (oldStatus == OrderStatusEnum.CANCELLED && status != OrderStatusEnum.CANCELLED) {
+            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_ORDER_ALREADY_CANCELLED);
+        }
+
+        // Đơn ONLINE + thanh toán chuyển khoản: không cho phép chuyển sang "Bắt đầu đóng gói"
+        // (PROCESSING) nếu KHÔNG có payment chuyển khoản nào đã được PayOS xác nhận (COMPLETED).
+        // Áp dụng cho cả trường hợp chuyển từ CONFIRMED → PROCESSING (flow cũ)
+        // và PAID → PROCESSING (flow mới sau khi PayOS đã update đơn sang PAID).
+        if ((oldStatus == OrderStatusEnum.CONFIRMED || oldStatus == OrderStatusEnum.PAID)
+                && status == OrderStatusEnum.PROCESSING
+                && order.getOrderType() == OrderTypeEnum.ONLINE
+                && order.getPayments() != null
+                && !order.getPayments().isEmpty()) {
+            boolean hasCompletedBankTransfer = order.getPayments().stream()
+                    .anyMatch(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER
+                            && p.getStatus() == PaymentStatusEnum.COMPLETED);
+
+            if (!hasCompletedBankTransfer) {
+                throw new IllegalStateException(
+                        "Đơn hàng thanh toán online qua chuyển khoản chưa được PayOS xác nhận. Vui lòng đợi khách hàng thanh toán (tối đa 15 phút) hoặc kiểm tra lại giao dịch.");
+            }
+        }
+
         order.setStatus(status);
 
         // Update delivering time if moving to DELIVERING
@@ -401,21 +484,29 @@ public class OrderApplicationService implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.info(OrderLogMessages.LOG_ORDER_STATUS_UPDATE, orderId, oldStatus, status);
 
-        // Send real-time notification to Customer
+        // Send real-time notification to Customer (không làm fail transaction nếu lỗi)
         if (order.getUser() != null && oldStatus != status) {
-            String statusvn = getStatusInVietnamese(status);
-            notificationService.sendToUser(order.getUser().getUsername(),
-                    fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
-                            .title("Cập nhật đơn hàng")
-                            .message("Đơn hàng #" + order.getOrderCode() + " đã chuyển sang trạng thái: " + statusvn)
-                            .type("ORDER_STATUS_UPDATED")
-                            .targetUrl("/dashboard/orders/" + order.getId())
-                            .timestamp(java.time.LocalDateTime.now())
-                            .build());
+            try {
+                String statusvn = getStatusInVietnamese(status);
+                notificationService.sendToUser(order.getUser().getUsername(),
+                        fpt.teddypet.application.dto.response.notification.NotificationResponse.builder()
+                                .title("Cập nhật đơn hàng")
+                                .message("Đơn hàng #" + order.getOrderCode() + " đã chuyển sang trạng thái: " + statusvn)
+                                .type("ORDER_STATUS_UPDATED")
+                                .targetUrl("/dashboard/orders/" + order.getId())
+                                .timestamp(java.time.LocalDateTime.now())
+                                .build());
+            } catch (Exception e) {
+                log.warn("Failed to send order status notification for order {}: {}", orderId, e.getMessage());
+            }
         }
 
-        // Real-time Dashboard Update for Admin
-        dashboardService.sendDashboardUpdate();
+        // Real-time Dashboard Update for Admin (không làm fail transaction nếu lỗi)
+        try {
+            dashboardService.sendDashboardUpdate();
+        } catch (Exception e) {
+            log.warn("Failed to send dashboard update after order status change: {}", e.getMessage());
+        }
 
         // Send email notification only if status changed
         if (oldStatus != status) {
@@ -424,8 +515,40 @@ public class OrderApplicationService implements OrderService {
 
         // Send feedback email if completed
         if (status == OrderStatusEnum.COMPLETED && oldStatus != OrderStatusEnum.COMPLETED) {
-            feedbackService.sendFeedbackEmailsForOrder(orderId);
+            try {
+                feedbackService.sendFeedbackEmailsForOrder(orderId);
+            } catch (Exception e) {
+                log.warn("Failed to send feedback emails for order {}: {}", orderId, e.getMessage());
+            }
         }
+    }
+
+    @Override
+    @Transactional
+    public void updatePaymentMethod(UUID orderId, PaymentMethodEnum paymentMethod) {
+        Order order = getById(orderId);
+        if (order.getStatus() != OrderStatusEnum.CONFIRMED) {
+            throw new IllegalStateException("Chỉ được đổi phương thức thanh toán khi đơn đang ở trạng thái Chờ thanh toán (Đã xác nhận).");
+        }
+        if (order.getOrderType() != OrderTypeEnum.OFFLINE) {
+            throw new IllegalStateException("Chỉ áp dụng cho đơn hàng tại quầy.");
+        }
+        if (order.getPayments() == null || order.getPayments().isEmpty()) {
+            throw new IllegalStateException("Đơn hàng không có thông tin thanh toán.");
+        }
+        Payment mainPayment = order.getPayments().getFirst();
+        if (mainPayment.getStatus() != PaymentStatusEnum.PENDING) {
+            throw new IllegalStateException("Không thể đổi phương thức thanh toán khi đã thanh toán.");
+        }
+        mainPayment.setPaymentMethod(paymentMethod);
+        mainPayment.setNotes(paymentMethod == PaymentMethodEnum.CASH
+                ? OrderMessages.MESSAGE_NOTE_PAYMENT_CASH
+                : OrderMessages.MESSAGE_NOTE_ONLINE_PENDING);
+        if (paymentMethod == PaymentMethodEnum.CASH) {
+            mainPayment.setAmount(order.getFinalAmount());
+        }
+        orderRepositoryPort.save(order);
+        log.info("Updated order {} payment method to {}", orderId, paymentMethod);
     }
 
     private void returnOrderStock(Order order) {
@@ -735,7 +858,15 @@ public class OrderApplicationService implements OrderService {
     public OrderResponse getGuestOrderByCodeAndEmail(String orderCode, String email) {
         log.info("Looking up guest order: code={}, email={}", orderCode, email);
 
-        Order order = orderRepositoryPort.findByOrderCodeAndGuestEmail(orderCode, email)
+        String identifier = email != null ? email.trim() : "";
+        if (identifier.isEmpty()) {
+            throw new jakarta.persistence.EntityNotFoundException(
+                    OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND);
+        }
+
+        // Ưu tiên khớp theo guestEmail (đơn đặt với email trực tiếp), nếu không thì khớp theo email hoặc số điện thoại
+        Order order = orderRepositoryPort.findByOrderCodeAndGuestEmail(orderCode, identifier)
+                .or(() -> orderRepositoryPort.findByOrderCodeAndEmailOrPhone(orderCode, identifier))
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
                         OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND));
 
@@ -749,6 +880,11 @@ public class OrderApplicationService implements OrderService {
 
         Order order = getById(orderId);
         OrderStatusEnum oldStatus = order.getStatus();
+
+        // Không cho phép cập nhật phí ship khi đơn đã hủy
+        if (oldStatus == OrderStatusEnum.CANCELLED) {
+            throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_ORDER_ALREADY_CANCELLED);
+        }
 
         // Cập nhật phí ship
         order.setShippingFee(finalFee);
@@ -819,9 +955,16 @@ public class OrderApplicationService implements OrderService {
 
         Order order = getById(orderId);
 
-        // Khách chỉ được hủy khi đơn đang ở trạng thái PENDING
-        if (order.getStatus() != OrderStatusEnum.PENDING) {
-            throw new IllegalStateException("Bạn chỉ có thể hủy đơn khi đơn hàng đang chờ xác nhận.");
+        // Khách được hủy khi:
+        // - PENDING (chờ xác nhận) → hủy đơn, không hoàn tiền (chưa thanh toán)
+        // - ĐÃ THANH TOÁN và đang ở trạng thái PAID hoặc PROCESSING (đã thanh toán / đang đóng gói) → hủy & chờ hoàn tiền
+        boolean paymentCompleted = order.getPayments() != null && order.getPayments().stream()
+                .anyMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
+        boolean allowedStatus = order.getStatus() == OrderStatusEnum.PENDING
+                || (paymentCompleted && (order.getStatus() == OrderStatusEnum.PAID
+                        || order.getStatus() == OrderStatusEnum.PROCESSING));
+        if (!allowedStatus) {
+            throw new IllegalStateException("Bạn chỉ có thể hủy đơn khi đơn đang chờ xác nhận hoặc đã thanh toán (hủy & hoàn tiền).");
         }
 
         // Cập nhật thông tin hủy
@@ -855,13 +998,60 @@ public class OrderApplicationService implements OrderService {
 
     @Override
     @Transactional
+    public void cancelOrderByGuest(String orderCode, String email, String reason) {
+        Order order = orderRepositoryPort.findByOrderCodeAndGuestEmail(orderCode, email)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(OrderMessages.MESSAGE_GUEST_ORDER_NOT_FOUND));
+
+        boolean paymentCompleted = order.getPayments() != null && order.getPayments().stream()
+                .anyMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
+        boolean allowedStatus = order.getStatus() == OrderStatusEnum.PENDING
+                || (paymentCompleted && (order.getStatus() == OrderStatusEnum.PAID
+                        || order.getStatus() == OrderStatusEnum.PROCESSING));
+        if (!allowedStatus) {
+            throw new IllegalStateException("Bạn chỉ có thể hủy đơn khi đơn đang chờ xác nhận hoặc đã thanh toán (hủy & hoàn tiền).");
+        }
+
+        order.setStatus(OrderStatusEnum.CANCELLED);
+        order.setCancelReason(reason);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledBy("Khách hàng");
+
+        returnOrderStock(order);
+
+        if (order.getPayments() != null) {
+            for (Payment payment : order.getPayments()) {
+                if (payment.getStatus() == PaymentStatusEnum.PENDING) {
+                    payment.setStatus(PaymentStatusEnum.VOIDED);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_BY_CUSTOMER);
+                } else if (payment.getStatus() == PaymentStatusEnum.COMPLETED) {
+                    payment.setStatus(PaymentStatusEnum.REFUND_PENDING);
+                    payment.setNotes(OrderMessages.MESSAGE_NOTE_CANCEL_REFUND_PENDING);
+                }
+            }
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Guest cancelled order: code={}, email={}, reason={}", orderCode, email, reason);
+        sendOrderStatusEmail(order);
+    }
+
+    @Override
+    @Transactional
     public void cancelOrderByAdmin(UUID orderId, String reason, String adminUsername) {
         Order order = getById(orderId);
 
-        // Admin chỉ được hủy khi đơn ở trạng thái PENDING, CONFIRMED hoặc PROCESSING
-        if (order.getStatus() != OrderStatusEnum.PENDING
-                && order.getStatus() != OrderStatusEnum.CONFIRMED
-                && order.getStatus() != OrderStatusEnum.PROCESSING) {
+        // Admin chỉ được hủy khi:
+        // - Đơn chưa thanh toán: PENDING, CONFIRMED, PROCESSING
+        // - Đơn đã thanh toán: khi đang PAID hoặc PROCESSING (đã thanh toán / đang đóng gói) → hủy & hoàn tiền
+        boolean paymentCompleted = order.getPayments() != null && order.getPayments().stream()
+                .anyMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
+        if (!paymentCompleted) {
+            if (order.getStatus() != OrderStatusEnum.PENDING
+                    && order.getStatus() != OrderStatusEnum.CONFIRMED
+                    && order.getStatus() != OrderStatusEnum.PROCESSING) {
+                throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_CANCEL_INVALID_STATUS);
+            }
+        } else if (order.getStatus() != OrderStatusEnum.PAID && order.getStatus() != OrderStatusEnum.PROCESSING) {
             throw new IllegalStateException(OrderMessages.MESSAGE_ERROR_CANCEL_INVALID_STATUS);
         }
 
@@ -892,6 +1082,171 @@ public class OrderApplicationService implements OrderService {
 
         // Gửi email thông báo
         sendOrderStatusEmail(order);
+    }
+
+    @Override
+    @Transactional
+    public void confirmPaymentByAdmin(UUID orderId) {
+        Order order = getById(orderId);
+        if (order.getStatus() != OrderStatusEnum.CONFIRMED) {
+            throw new IllegalStateException("Chỉ được xác nhận thanh toán khi đơn đang ở trạng thái Đã xác nhận.");
+        }
+        if (order.getPayments() == null || order.getPayments().isEmpty()) {
+            throw new IllegalStateException("Đơn hàng không có thông tin thanh toán.");
+        }
+        boolean updated = false;
+        for (Payment payment : order.getPayments()) {
+            if (payment.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER
+                    && payment.getStatus() == PaymentStatusEnum.PENDING) {
+                payment.setStatus(PaymentStatusEnum.COMPLETED);
+                payment.setCompletedAt(java.time.Instant.now());
+                payment.setNotes("Admin xác nhận đã nhận thanh toán chuyển khoản.");
+                updated = true;
+                log.info("Admin confirmed payment for order: {}", orderId);
+                break;
+            }
+        }
+        if (!updated) {
+            throw new IllegalStateException("Không có giao dịch chuyển khoản nào đang chờ để xác nhận.");
+        }
+        orderRepositoryPort.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void updateOrderContactInfo(UUID orderId, String shippingAddress, String guestEmail) {
+        Order order = getById(orderId);
+
+        if (shippingAddress != null) {
+            String addr = shippingAddress.trim();
+            order.setShippingAddress(addr.isEmpty() ? null : addr);
+        }
+
+        if (guestEmail != null) {
+            String email = guestEmail.trim();
+            order.setGuestEmail(email.isEmpty() ? null : email);
+        }
+
+        orderRepositoryPort.save(order);
+        log.info("Updated contact info for order {} (shippingAddress={}, guestEmail={})",
+                order.getOrderCode(), order.getShippingAddress(), order.getGuestEmail());
+    }
+
+    @Override
+    @Transactional
+    public OrderRefundResponse createOrderRefundRequest(UUID orderId, OrderRefundRequest request) {
+        Order order = getById(orderId);
+
+        // Chỉ cho phép 1 yêu cầu PENDING tại 1 thời điểm
+        orderRefundRepository.findLatestPending(order.getId()).ifPresent(r -> {
+            throw new IllegalStateException("Đã có yêu cầu hoàn tiền đang chờ xử lý.");
+        });
+
+        // Validate đơn ONLINE + thanh toán online
+        Payment payment = (order.getPayments() == null || order.getPayments().isEmpty()) ? null : order.getPayments().get(0);
+        if (order.getOrderType() != OrderTypeEnum.ONLINE || payment == null) {
+            throw new IllegalStateException("Đơn hàng không hỗ trợ yêu cầu hoàn tiền.");
+        }
+        if (payment.getPaymentMethod() == PaymentMethodEnum.CASH) {
+            throw new IllegalStateException("Đơn hàng COD không hỗ trợ yêu cầu hoàn tiền online.");
+        }
+
+        // Chỉ cho yêu cầu khi đã PAID hoặc PROCESSING
+        if (order.getStatus() != OrderStatusEnum.PAID && order.getStatus() != OrderStatusEnum.PROCESSING) {
+            throw new IllegalStateException("Chỉ có thể yêu cầu hoàn tiền khi đơn đã thanh toán hoặc đang đóng gói.");
+        }
+
+        OrderRefund entity = OrderRefund.builder()
+                .orderId(order.getId())
+                .paymentId(payment.getId())
+                .bankInformationId(request.bankInformationId())
+                .requestedAmount(request.requestedAmount())
+                .currency("VND")
+                .customerReason(request.reason().trim())
+                .evidenceUrls(request.evidenceUrls() != null && !request.evidenceUrls().isEmpty()
+                        ? String.join(";", request.evidenceUrls())
+                        : null)
+                .status("PENDING")
+                .build();
+
+        entity = orderRefundRepository.save(entity);
+
+        // Ghi vào order để admin list hiển thị badge đỏ (đang dùng cancelReason)
+        order.setCancelReason(request.reason().trim());
+        orderRepositoryPort.save(order);
+
+        return toOrderRefundResponse(entity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderRefundResponse> getOrderRefundRequests(UUID orderId) {
+        Order order = getById(orderId);
+        return orderRefundRepository.findByOrderIdNotDeletedOrderByCreatedAtDesc(order.getId()).stream()
+                .map(this::toOrderRefundResponse)
+                .toList();
+    }
+
+    private OrderRefundResponse toOrderRefundResponse(OrderRefund r) {
+        return new OrderRefundResponse(
+                r.getId(),
+                r.getStatus(),
+                r.getRequestedAmount(),
+                r.getCurrency(),
+                r.getCustomerReason(),
+                r.getEvidenceUrls(),
+                r.getAdminDecisionNote(),
+                r.getProcessedBy(),
+                r.getCreatedAt(),
+                r.getProcessedAt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public OrderRefundResponse handleOrderRefundRequest(UUID orderId, Long refundId, AdminHandleOrderRefundRequest request, String adminUsername) {
+        Order order = getById(orderId);
+        OrderRefund refund = orderRefundRepository.findById(refundId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu hoàn tiền."));
+
+        if (!refund.getOrderId().equals(order.getId())) {
+            throw new IllegalArgumentException("Yêu cầu hoàn tiền không thuộc đơn hàng này.");
+        }
+        if (!"PENDING".equalsIgnoreCase(refund.getStatus())) {
+            throw new IllegalStateException("Yêu cầu hoàn tiền đã được xử lý trước đó.");
+        }
+
+        boolean approved = Boolean.TRUE.equals(request.approved());
+        refund.setStatus(approved ? "APPROVED" : "REJECTED");
+        refund.setAdminDecisionNote(request.adminNote());
+        refund.setProcessedBy(adminUsername);
+        refund.setProcessedAt(LocalDateTime.now());
+        orderRefundRepository.save(refund);
+
+        if (approved) {
+            order.setStatus(OrderStatusEnum.CANCELLED);
+            order.setCancelReason("Đã xử lý hoàn tiền đơn hàng theo khách hàng yêu cầu");
+            order.setCancelledAt(LocalDateTime.now());
+            order.setCancelledBy(adminUsername);
+            orderRepositoryPort.save(order);
+            // Gửi mail: dùng template sẵn có (order confirmation) để báo thay đổi trạng thái
+            try {
+                emailServicePort.sendOrderConfirmation(order);
+            } catch (Exception e) {
+                log.error("Failed to send refund approval email for order {}", order.getOrderCode(), e);
+            }
+        } else {
+            // Cho phép khách gửi lại: bỏ cancelReason để không hiện chấm đỏ
+            order.setCancelReason(null);
+            orderRepositoryPort.save(order);
+            try {
+                emailServicePort.sendOrderRefundRejectedEmail(order, request.adminNote());
+            } catch (Exception e) {
+                log.error("Failed to send refund reject email for order {}", order.getOrderCode(), e);
+            }
+        }
+
+        return toOrderRefundResponse(refund);
     }
 
     @Override

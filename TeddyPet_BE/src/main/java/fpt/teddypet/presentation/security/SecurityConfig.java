@@ -113,8 +113,13 @@ public class SecurityConfig {
                         // Bank information cho booking (guest có thể nhập thông tin nhận hoàn tiền theo bookingCode)
                         .requestMatchers(HttpMethod.GET, "/api/bank-information/booking/code/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bank-information/booking/code/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bank-information/guest-by-email").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bank-information/order/*").permitAll()
                         // Guest Cart Sync
                         .requestMatchers(HttpMethod.POST, "/api/carts/guest/**", "/api/cart/guest/**").permitAll()
+                        // Order refund requests: cho phép khách gửi & xem danh sách yêu cầu hoàn tiền (public)
+                        .requestMatchers(HttpMethod.POST, "/api/orders/*/refund-requests").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*/refund-requests").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

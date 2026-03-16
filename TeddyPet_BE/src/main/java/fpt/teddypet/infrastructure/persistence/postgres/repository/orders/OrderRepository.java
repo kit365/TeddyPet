@@ -16,11 +16,13 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecificationExecutor<Order> {
 
-    @EntityGraph(attributePaths = { "orderItems", "user", "payments" })
+    // Chỉ fetch orderItems + user, để tránh MultipleBagFetchException (payments sẽ được load lazy bằng query riêng).
+    @EntityGraph(attributePaths = { "orderItems", "user" })
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     List<Order> findAllForExcelExport();
     
-    @EntityGraph(attributePaths = { "orderItems", "user", "payments" })
+    // Dùng cho sendOrderConfirmation: tránh fetch nhiều bag cùng lúc, payments được load lazy khi truy cập.
+    @EntityGraph(attributePaths = { "orderItems", "user" })
     @Query("SELECT o FROM Order o WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(UUID id);
 
@@ -47,7 +49,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     @Query("SELECT DISTINCT o FROM Order o JOIN o.payments p " +
             "WHERE o.status = :status " +
             "AND p.paymentMethod = :method " +
-            "AND o.createdAt < :expiryTime " +
+            // Đếm thời gian quá hạn thanh toán tính từ lúc đơn được chuyển sang CONFIRMED (updatedAt)
+            "AND o.updatedAt < :expiryTime " +
             "AND p.status = 'PENDING'")
     List<Order> findExpiredBankTransferOrders(OrderStatusEnum status,
             fpt.teddypet.domain.enums.payments.PaymentMethodEnum method,

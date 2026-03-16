@@ -15,6 +15,11 @@ import java.util.UUID;
 @SuperBuilder
 public class BankInformation extends BaseEntity {
 
+    /** account_type: GUEST = khách vãng lai (không đăng nhập), CUSTOMER = khách đã đăng nhập, SYSTEM = tài khoản nhận tiền PayOS */
+    public static final String ACCOUNT_TYPE_GUEST = "GUEST";
+    public static final String ACCOUNT_TYPE_CUSTOMER = "CUSTOMER";
+    public static final String ACCOUNT_TYPE_SYSTEM = "SYSTEM";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,6 +29,14 @@ public class BankInformation extends BaseEntity {
 
     @Column(name = "booking_id")
     private Long bookingId;
+
+    /** Đơn hàng liên quan (vd: lưu thông tin người chuyển từ PayOS theo order) */
+    @Column(name = "order_id")
+    private UUID orderId;
+
+    /** Email khách (guest) để lần sau dùng cùng email order/booking thì hiển thị lại thông tin chuyển khoản đã lưu */
+    @Column(name = "user_email", length = 255)
+    private String userEmail;
 
     @Column(name = "account_number", length = 50, nullable = false)
     private String accountNumber;
@@ -48,12 +61,12 @@ public class BankInformation extends BaseEntity {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
-    /** USER = ngân hàng khách, BOOKING_REFUND = tk hoàn tiền đặt lịch, SYSTEM_RECEIVING = tài khoản nhận tiền thanh toán online (PayOS) */
+    /** CUSTOMER = ngân hàng khách / tk hoàn tiền đặt lịch, SYSTEM = tài khoản nhận tiền thanh toán online (PayOS) */
     @Column(name = "account_type", length = 50, nullable = false)
     @Builder.Default
-    private String accountType = "USER";
+    private String accountType = "CUSTOMER";
 
-    /** URL ảnh mã QR VietQR (img.vietqr.io) - lưu để lần sau lấy lên dùng, chủ yếu cho SYSTEM_RECEIVING */
+    /** URL ảnh mã QR VietQR (img.vietqr.io) - lưu để lần sau lấy lên dùng, chủ yếu cho SYSTEM */
     @Column(name = "vietqr_image_url", columnDefinition = "TEXT")
     private String vietqrImageUrl;
 }

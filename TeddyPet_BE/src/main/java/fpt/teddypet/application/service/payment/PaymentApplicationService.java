@@ -1,5 +1,7 @@
 package fpt.teddypet.application.service.payment;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.constants.payments.PaymentConstants;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.application.dto.response.payment.PaymentResult;
@@ -9,20 +11,25 @@ import fpt.teddypet.application.port.input.payment.PaymentService;
 import fpt.teddypet.application.port.output.payment.PaymentGatewayPort;
 import fpt.teddypet.application.port.output.payment.PaymentRepositoryPort;
 import fpt.teddypet.application.util.OrderValidator;
+import fpt.teddypet.domain.entity.BankInformation;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.entity.Payment;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.exception.PaymentDomainException;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -34,6 +41,8 @@ public class PaymentApplicationService implements PaymentService {
 
     private final OrderService orderService;
     private final PaymentRepositoryPort paymentRepositoryPort;
+    private final BankInformationRepository bankInformationRepository;
+    private final ObjectMapper objectMapper;
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
     private Map<PaymentGatewayEnum, PaymentGatewayPort<?>> gatewayMap;
 
@@ -54,7 +63,27 @@ public class PaymentApplicationService implements PaymentService {
         OrderValidator.validateForPayment(order);
         PaymentGatewayPort<?> gatewayAdapter = getGatewayAdapter(gateway);
 
-        String paymentUrl = gatewayAdapter.buildPaymentUrl(order, ipAddress, returnUrl);
+        String paymentUrl;
+        try {
+            paymentUrl = gatewayAdapter.buildPaymentUrl(order, ipAddress, returnUrl);
+        } catch (PaymentException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            // PayOS báo "Đơn thanh toán đã tồn tại" khi user bấm thanh toán lần 2
+            // → cố gắng trả về link đang PENDING trong DB (nếu có), tránh tạo trùng.
+            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
+                Optional<Payment> existing = paymentRepositoryPort
+                        .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
+                                orderId, gateway.name(), PaymentStatusEnum.PENDING);
+                if (existing.isPresent() && existing.get().getCheckoutUrl() != null
+                        && !existing.get().getCheckoutUrl().isBlank()) {
+                    log.info("Returning stored checkout URL for order {} (PayOS order already exists).", orderId);
+                    return existing.get().getCheckoutUrl();
+                }
+                throw new PaymentException(
+                        "Đơn thanh toán đã được tạo trước đó. Vui lòng kiểm tra email hoặc thử lại sau vài phút.");
+            }
+            throw e;
+        }
 
         // Use orderCode or numericCode as the primary transaction identifier for
         // searching during callbacks
@@ -67,9 +96,11 @@ public class PaymentApplicationService implements PaymentService {
                 .amount(order.getFinalAmount())
                 .paymentMethod(gateway.getPaymentMethod())
                 .status(PaymentStatusEnum.PENDING)
+                .paymentType(PaymentTypeEnum.ORDER_PAYMENT)
                 .paymentGateway(gateway.name())
                 .transactionId(transactionRef) // Crucial for finding it back in callback
                 .notes(PaymentConstants.Messages.MSG_PAYMENT_INITIATED + gateway.getDisplayName())
+                .checkoutUrl(paymentUrl)
                 .build();
 
         paymentRepositoryPort.save(payment);
@@ -132,14 +163,32 @@ public class PaymentApplicationService implements PaymentService {
                         return;
                     }
 
+                    // Callback có thể đến muộn / bị retry: nếu payment không còn ở trạng thái cho phép complete
+                    // (vd: VOIDED do đơn đã bị hủy/return/timeout) thì bỏ qua để tránh 500.
+                    if (!payment.canComplete()) {
+                        log.warn("Ignore callback txnId={} because payment status is {} (cannot complete).",
+                                result.transactionId(), payment.getStatus());
+                        return;
+                    }
+
                     try {
+                        // Đánh dấu payment đã hoàn tất, lưu payload từ gateway
                         payment.complete(gateway.getDisplayName());
                         payment.setGatewayResponseCode(result.gatewayResponseCode());
                         payment.setGatewayRawPayload(result.rawPayload());
                         paymentRepositoryPort.save(payment);
 
                         Order order = payment.getOrder();
-                        orderService.updateOrderStatus(order.getId(), OrderStatusEnum.PROCESSING);
+
+                        // Sau khi thanh toán online thành công: chuyển đơn sang trạng thái PAID (ĐÃ THANH TOÁN),
+                        // admin sẽ chủ động bấm "Bắt đầu đóng gói" để chuyển sang PROCESSING.
+                        if (order.getStatus() == OrderStatusEnum.CONFIRMED) {
+                            orderService.updateOrderStatus(order.getId(), OrderStatusEnum.PAID);
+                        }
+
+                        if (gateway == PaymentGatewayEnum.PAYOS && result.rawPayload() != null && !result.rawPayload().isBlank()) {
+                            savePayerBankInfoFromPayosPayload(result.rawPayload(), payment);
+                        }
 
                         log.info(PaymentConstants.Messages.PAYMENT_COMPLETED,
                                 gateway, result.transactionId(), order.getId());
@@ -170,5 +219,64 @@ public class PaymentApplicationService implements PaymentService {
                             }
                         },
                         () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
+    }
+
+    /**
+     * Khi PayOS webhook thành công, nếu payload có thông tin người chuyển (counterAccount*)
+     * thì lưu vào bank_information theo order. Khách vãng lai (order.user == null) → account_type GUEST,
+     * khách đăng nhập → account_type CUSTOMER.
+     */
+    private void savePayerBankInfoFromPayosPayload(String rawPayload, Payment payment) {
+        try {
+            JsonNode root = objectMapper.readTree(rawPayload);
+            String accountNumber = root.path("counterAccountNumber").asText("").trim();
+            String accountName = root.path("counterAccountName").asText("").trim();
+            String bankCode = root.path("counterAccountBankId").asText("").trim();
+            String bankName = root.path("counterAccountBankName").asText("").trim();
+            if (accountNumber.isBlank() && accountName.isBlank()) {
+                return;
+            }
+            Order order = payment.getOrder();
+            UUID orderId = order.getId();
+            boolean isGuest = order.getUser() == null;
+            String accountType = isGuest ? BankInformation.ACCOUNT_TYPE_GUEST : BankInformation.ACCOUNT_TYPE_CUSTOMER;
+            if (bankCode.isBlank()) bankCode = "PAYOS";
+            if (bankName.isBlank()) bankName = "PayOS";
+            if (accountNumber.isBlank()) accountNumber = "N/A";
+            if (accountName.isBlank()) accountName = "N/A";
+
+            Optional<BankInformation> existingOpt = bankInformationRepository
+                    .findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(orderId)
+                    .stream()
+                    .findFirst();
+            BankInformation entity;
+            if (existingOpt.isPresent()) {
+                entity = existingOpt.get();
+                entity.setAccountNumber(accountNumber);
+                entity.setAccountHolderName(accountName);
+                entity.setBankCode(bankCode);
+                entity.setBankName(bankName);
+            } else {
+                entity = BankInformation.builder()
+                        .orderId(orderId)
+                        .userId(isGuest ? null : order.getUser().getId())
+                        .userEmail(isGuest ? order.getGuestEmail() : null)
+                        .bookingId(null)
+                        .accountNumber(accountNumber)
+                        .accountHolderName(accountName)
+                        .bankCode(bankCode)
+                        .bankName(bankName)
+                        .accountType(accountType)
+                        .isVerify(false)
+                        .isDefault(false)
+                        .isActive(true)
+                        .isDeleted(false)
+                        .build();
+            }
+            bankInformationRepository.save(entity);
+            log.info("Saved payer bank info from PayOS for order {} (accountType={}).", orderId, accountType);
+        } catch (Exception e) {
+            log.warn("Could not save payer bank info from PayOS payload for payment {}: {}", payment.getId(), e.getMessage());
+        }
     }
 }
