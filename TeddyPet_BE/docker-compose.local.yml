@@ -1,0 +1,76 @@
+services:
+  teddypet-be:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teddypet-be-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      # Kết nối tới Neon Postgres (DB ngoài)
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      # Kết nối tới MongoDB (Container nội bộ)
+      - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/${MONGO_DATABASE:-teddypet_mongo}?authSource=admin
+      # Kết nối tới Redis (Container nội bộ)
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      # Các biến môi trường khác từ .env hoặc máy local
+      - CLOUDINARY_URL=${CLOUDINARY_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    networks:
+      - teddypet-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mongodb:
+    image: mongo:7.0
+    container_name: teddypet-mongodb-dev
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-teddypet_mongo}
+    ports:
+      - "27017:27017"
+    networks:
+      - teddypet-network
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: teddypet-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - teddypet-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  teddypet-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:

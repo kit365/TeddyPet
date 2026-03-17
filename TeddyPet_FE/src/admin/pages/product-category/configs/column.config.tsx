@@ -12,19 +12,20 @@ export const columnsConfig: GridColDef<any>[] = [
         field: "name",
         headerName: "Tên danh mục",
         flex: 1,
-        minWidth: 200,
+        minWidth: 250,
         hideable: false,
         renderCell: RenderTitleCell,
     },
     {
         field: "parentName",
         headerName: "Danh mục cha",
-        width: 180,
+        width: 200,
+        renderCell: (params) => <span>{params.value || '—'}</span>,
     },
     {
         field: "createdAt",
         headerName: "Thời gian tạo",
-        width: 160,
+        width: 180,
         filterable: true,
         type: "dateTime",
         valueGetter: (value) => value ? new Date(value) : null,
@@ -39,7 +40,7 @@ export const columnsConfig: GridColDef<any>[] = [
     {
         field: "view",
         headerName: "Lượt xem",
-        width: 140,
+        width: 100,
     },
     {
         field: 'actions',
@@ -48,6 +49,7 @@ export const columnsConfig: GridColDef<any>[] = [
         sortable: false,
         filterable: false,
         align: 'right',
+        headerAlign: 'right',
         renderCell: RenderActionsCell,
     },
 ];

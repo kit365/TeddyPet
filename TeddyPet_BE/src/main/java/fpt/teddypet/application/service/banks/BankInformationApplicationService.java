@@ -61,6 +61,39 @@ public class BankInformationApplicationService implements BankInformationService
     }
 
     @Override
+    public BankInformationResponse updateMyBank(Long id, UpsertBankInformationRequest request) {
+        UUID userId = authService.getCurrentUser().getId();
+        BankInformation entity = bankInformationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bank information."));
+
+        if (entity.getUserId() == null || !entity.getUserId().equals(userId)) {
+            throw new AccessDeniedException("Không có quyền chỉnh sửa tài khoản này.");
+        }
+
+        if (entity.isDeleted()) {
+            throw new IllegalArgumentException("Tài khoản đã bị xóa.");
+        }
+
+        VietnamBankEnum bank = VietnamBankEnum.fromCode(request.bankCode())
+                .orElseThrow(() -> new IllegalArgumentException("bankCode không hợp lệ."));
+
+        // Nếu đổi số tài khoản hoặc ngân hàng thì reset verify
+        if (!entity.getAccountNumber().equals(request.accountNumber().trim()) ||
+                !entity.getBankCode().equals(bank.getBankCode())) {
+            entity.setVerify(false);
+        }
+
+        entity.setAccountNumber(request.accountNumber().trim());
+        entity.setAccountHolderName(request.accountHolderName().trim());
+        entity.setBankCode(bank.getBankCode());
+        entity.setBankName(bank.getBankName());
+        entity.setNote(request.note());
+
+        entity = bankInformationRepository.save(entity);
+        return toResponse(entity);
+    }
+
+    @Override
     public BankInformationResponse setMyDefault(Long bankInfoId, SetDefaultBankInformationRequest request) {
         UUID userId = authService.getCurrentUser().getId();
         BankInformation entity = bankInformationRepository.findById(bankInfoId)

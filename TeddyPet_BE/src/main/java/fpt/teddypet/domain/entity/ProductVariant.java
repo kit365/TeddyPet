@@ -28,6 +28,8 @@ public class ProductVariant extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Product product;
 
     @Column(nullable = false, length = 100)
@@ -70,10 +72,14 @@ public class ProductVariant extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "featured_image_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ProductImage featuredImage;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "product_variant_attribute_values", joinColumns = @JoinColumn(name = "variant_id"), inverseJoinColumns = @JoinColumn(name = "value_id"))
     @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<ProductAttributeValue> attributeValues = new ArrayList<>();
 }

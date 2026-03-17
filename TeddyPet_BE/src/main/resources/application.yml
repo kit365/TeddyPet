@@ -12,6 +12,8 @@ spring:
     time-zone: Asia/Ho_Chi_Minh
     serialization:
       write-dates-as-timestamps: false
+  flyway:
+    repair-on-migrate: ${SPRING_FLYWAY_REPAIR_ON_MIGRATE:false}
   security:
     oauth2:
       client:
@@ -61,7 +63,7 @@ app:
     client-secret: ${GOOGLE_CLIENT_SECRET:}
     allowed-admin-emails: ${ADMIN_GOOGLE_EMAILS:}
     redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
-  frontend-url: ${APP_FRONTEND_URL:https://teddypet-dusky.vercel.app}
+  frontend-url: ${APP_FRONTEND_URL:https://teddypet.id.vn}
   password-reset:
     token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
   slot:

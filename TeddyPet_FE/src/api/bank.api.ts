@@ -118,3 +118,11 @@ export const setMyDefaultBankInformation = async (
   return response.data;
 };
 
+export const updateMyBankInformation = async (
+  id: number,
+  payload: BankInformationPayload
+): Promise<ApiResponse<any>> => {
+  const response = await apiApp.put(`/api/bank-information/me/${id}`, payload);
+  return response.data;
+};
+

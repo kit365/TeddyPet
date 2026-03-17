@@ -12,6 +12,8 @@ public interface BankInformationService {
 
     BankInformationResponse createMyBank(UpsertBankInformationRequest request);
 
+    BankInformationResponse updateMyBank(Long id, UpsertBankInformationRequest request);
+
     BankInformationResponse setMyDefault(Long bankInfoId, SetDefaultBankInformationRequest request);
 
     BankInformationResponse verifyBank(Long bankInfoId, VerifyBankInformationRequest request);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:teddypet_mobile/application/common/geo_location_service.dart';
 import 'package:teddypet_mobile/application/common/vietnam_location_service.dart';
 import 'package:teddypet_mobile/core/theme/app_colors.dart';
 import 'package:teddypet_mobile/data/models/request/user/user_address_request.dart';
@@ -25,6 +26,7 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
   bool _isDefault = false;
 
   final _locationService = VietnamLocationService();
+  final _geoLocationService = GeoLocationService();
   List<VietnamLocationResponse> _provinces = [];
   List<VietnamLocationResponse> _districts = [];
   List<VietnamLocationResponse> _wards = [];
@@ -148,6 +150,103 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
     }
   }
 
+  Future<void> _getCurrentLocation() async {
+    setState(() => _loadingLocations = true);
+
+    try {
+      final result = await _geoLocationService.getCurrentLocation();
+      if (result != null) {
+        await _mapGeocodedDataToUI(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('kCLErrorDomain')) {
+          errorMsg = 'Lỗi mạng khi lấy địa chỉ. Vui lòng kiểm tra kết nối.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingLocations = false);
+    }
+  }
+
+  Future<void> _mapGeocodedDataToUI(GeoLocationResult result) async {
+    debugPrint("Geocoding Result: Prov=${result.province}, Dist=${result.district}, Ward=${result.ward}, Street=${result.street}");
+
+    // 1. Tìm Tỉnh/TP
+    final provinceName = result.province;
+    if (provinceName.isEmpty) {
+      debugPrint("Province name is empty, skipping auto-map");
+      _streetController.text = result.street;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lấy vị trí thành công nhưng không tìm thấy địa chỉ cụ thể. Vui lòng chọn thủ công.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final matchedProvince = _provinces.cast<VietnamLocationResponse?>().firstWhere(
+      (p) =>
+          p!.name.toLowerCase().contains(provinceName.toLowerCase()) ||
+          provinceName.toLowerCase().contains(p.name.toLowerCase()),
+      orElse: () => null,
+    );
+
+    if (matchedProvince == null) {
+      debugPrint("No province match found for: $provinceName");
+      _streetController.text = result.street;
+      return;
+    }
+
+    setState(() => _selectedProvince = matchedProvince);
+    await _loadDistricts(matchedProvince.code);
+
+    // 2. Tìm Quận/Huyện
+    final districtName = result.district;
+    final matchedDistrict = _districts.cast<VietnamLocationResponse?>().firstWhere(
+      (d) =>
+          d!.name.toLowerCase().contains(districtName.toLowerCase()) ||
+          districtName.toLowerCase().contains(d.name.toLowerCase()),
+      orElse: () => null,
+    );
+
+    if (matchedDistrict == null) {
+      debugPrint("No district match found for: $districtName");
+      setState(() {
+         _selectedDistrict = null;
+         _selectedWard = null;
+         _streetController.text = result.street;
+      });
+      return;
+    }
+
+    setState(() => _selectedDistrict = matchedDistrict);
+    await _loadWards(matchedDistrict.code);
+
+    // 3. Tìm Phường/Xã
+    final wardName = result.ward;
+    final matchedWard = _wards.cast<VietnamLocationResponse?>().firstWhere(
+      (w) =>
+          w!.name.toLowerCase().contains(wardName.toLowerCase()) ||
+          wardName.toLowerCase().contains(w.name.toLowerCase()),
+      orElse: () => null,
+    );
+
+    setState(() {
+      _selectedWard = matchedWard;
+      if (matchedWard == null) {
+         debugPrint("No ward match found for: $wardName");
+      }
+      // 4. Điền số nhà/tên đường
+      _streetController.text = result.street;
+    });
+  }
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -264,7 +363,30 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
                         : null,
                   ),
                   const SizedBox(height: 30),
-                  _buildSectionTitle('Địa chỉ nhận hàng'),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSectionTitle('Địa chỉ nhận hàng'),
+                      TextButton.icon(
+                        onPressed: _getCurrentLocation,
+                        icon: const Icon(Icons.my_location,
+                            size: 16, color: AppColors.primary),
+                        label: const Text(
+                          'Lấy vị trí hiện tại',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 15),
 
                   // Tỉnh / Thành phố

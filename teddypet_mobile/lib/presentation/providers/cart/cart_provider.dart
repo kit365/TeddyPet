@@ -22,7 +22,8 @@ class CartProvider extends ChangeNotifier {
     try {
       _cart = await _controller.getMyCart();
     } catch (e) {
-      debugPrint("Lỗi tải giỏ hàng: \$e");
+      debugPrint("Lỗi tải giỏ hàng: $e");
+      _cart = null; // Clear cart on error (e.g. 401)
     } finally {
       if (!background) {
         _isLoading = false;
@@ -34,7 +35,7 @@ class CartProvider extends ChangeNotifier {
   Future<bool> addToCart(int variantId, int quantity) async {
     final success = await _controller.addToCart(variantId, quantity);
     if (success) {
-      await fetchMyCart(background: true); // Refetch sau khi cập nhật thành công (chạy ngầm, ko hiện quay spinner)
+      await fetchMyCart(background: true);
     }
     return success;
   }
@@ -53,5 +54,38 @@ class CartProvider extends ChangeNotifier {
       await fetchMyCart(background: true);
     }
     return success;
+  }
+
+  /// Mua lại các sản phẩm từ đơn hàng cũ
+  Future<bool> buyAgain(List<dynamic> items) async {
+    _isLoading = true;
+    notifyListeners();
+    bool allSuccess = true;
+
+    try {
+      for (var item in items) {
+        // item có thể là OrderItemEntity
+        final variantId = item.variantId;
+        if (variantId != null) {
+          final success = await _controller.addToCart(variantId, item.quantity);
+          if (!success) allSuccess = false;
+        }
+      }
+      if (allSuccess) {
+        await fetchMyCart(background: true);
+      }
+      return allSuccess;
+    } catch (e) {
+      debugPrint("Lỗi khi mua lại: $e");
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void clearCart() {
+    _cart = null;
+    notifyListeners();
   }
 }

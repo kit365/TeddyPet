@@ -13,6 +13,7 @@ import fpt.teddypet.application.port.output.payment.PaymentRepositoryPort;
 import fpt.teddypet.application.util.OrderValidator;
 import fpt.teddypet.domain.entity.BankInformation;
 import fpt.teddypet.domain.entity.Order;
+import fpt.teddypet.domain.enums.banks.VietnamBankEnum;
 import fpt.teddypet.domain.entity.Payment;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
@@ -187,6 +188,7 @@ public class PaymentApplicationService implements PaymentService {
                         }
 
                         if (gateway == PaymentGatewayEnum.PAYOS && result.rawPayload() != null && !result.rawPayload().isBlank()) {
+                            log.info("💰 PayOS Success JSON Payload for order {}: \n{}", order.getId(), result.rawPayload());
                             savePayerBankInfoFromPayosPayload(result.rawPayload(), payment);
                         }
 
@@ -221,10 +223,24 @@ public class PaymentApplicationService implements PaymentService {
                         () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
     }
 
+    /** Mã Napas (PayOS counterAccountBankId) -> mã ngân hàng nội bộ (VietnamBankEnum), để suy ra tên khi PayOS không trả bankName. */
+    private static final Map<String, String> NAPAS_CODE_TO_BANK_CODE = Map.ofEntries(
+            Map.entry("970436", "VCB"), Map.entry("970418", "BIDV"), Map.entry("970415", "CTG"),
+            Map.entry("970416", "ACB"), Map.entry("970407", "TCB"), Map.entry("970422", "MBB"),
+            Map.entry("970432", "VPB"), Map.entry("970423", "TPB"), Map.entry("970443", "SHB"),
+            Map.entry("970403", "STB"), Map.entry("970441", "VIB"), Map.entry("970437", "HDB"),
+            Map.entry("970431", "EIB"), Map.entry("970448", "OCB"), Map.entry("970426", "MSB"),
+            Map.entry("970429", "SCB"), Map.entry("970400", "SGB"), Map.entry("970438", "BVB"),
+            Map.entry("970452", "KLB"), Map.entry("970425", "ABB"), Map.entry("970440", "SEAB"),
+            Map.entry("970430", "PGB"), Map.entry("970419", "NCB"), Map.entry("970434", "IVB"),
+            Map.entry("970427", "VRB"), Map.entry("970458", "UOB"), Map.entry("970442", "HSBC"),
+            Map.entry("970410", "SCVN"));
+
     /**
-     * Khi PayOS webhook thành công, nếu payload có thông tin người chuyển (counterAccount*)
-     * thì lưu vào bank_information theo order. Khách vãng lai (order.user == null) → account_type GUEST,
-     * khách đăng nhập → account_type CUSTOMER.
+     * Khi webhook thanh toán thành công (PayOS/VietQR), nếu payload có thông tin người chuyển (counterAccount*)
+     * thì lưu vào bank_information theo order. Chỉ lưu khi có ít nhất một trong counterAccountNumber hoặc counterAccountName
+     * (thanh toán chuyển khoản); nếu thanh toán bằng MoMo/ví/ phương thức khác không có thông tin ngân hàng thì bỏ qua,
+     * khi khách cần hoàn tiền sẽ yêu cầu khách nhập và tạo bank_information lúc đó.
      */
     private void savePayerBankInfoFromPayosPayload(String rawPayload, Payment payment) {
         try {
@@ -233,22 +249,50 @@ public class PaymentApplicationService implements PaymentService {
             String accountName = root.path("counterAccountName").asText("").trim();
             String bankCode = root.path("counterAccountBankId").asText("").trim();
             String bankName = root.path("counterAccountBankName").asText("").trim();
+
+            // Thanh toán qua MoMo/ví/PP khác ngoài ngân hàng: payload không có counterAccount* → không lưu bank_information
             if (accountNumber.isBlank() && accountName.isBlank()) {
+                log.debug("Payment success payload has no counter-account info (e.g. MoMo/ví), skip saving bank_information for order {}", payment.getOrder().getId());
                 return;
             }
+
             Order order = payment.getOrder();
             UUID orderId = order.getId();
             boolean isGuest = order.getUser() == null;
             String accountType = isGuest ? BankInformation.ACCOUNT_TYPE_GUEST : BankInformation.ACCOUNT_TYPE_CUSTOMER;
+            UUID userId = isGuest ? null : order.getUser().getId();
+            String userEmail = isGuest ? order.getGuestEmail() : null;
+
+            // Lưu tạm thông tin có thể lưu; trường thiếu dùng placeholder, khi khách cần hoàn tiền sẽ yêu cầu cập nhật lại
             if (bankCode.isBlank()) bankCode = "PAYOS";
-            if (bankName.isBlank()) bankName = "PayOS";
+            if (bankName.isBlank()) {
+                String internalCode = NAPAS_CODE_TO_BANK_CODE.get(bankCode);
+                bankName = VietnamBankEnum.fromCode(internalCode != null ? internalCode : bankCode)
+                        .map(VietnamBankEnum::getBankName)
+                        .orElse("PayOS");
+            }
             if (accountNumber.isBlank()) accountNumber = "N/A";
             if (accountName.isBlank()) accountName = "N/A";
 
-            Optional<BankInformation> existingOpt = bankInformationRepository
-                    .findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(orderId)
-                    .stream()
-                    .findFirst();
+            // 1. Check for duplicate account by (accountNumber, bankCode, user/email) to reuse accounts
+            Optional<BankInformation> existingOpt = Optional.empty();
+            if (userId != null) {
+                existingOpt = bankInformationRepository
+                        .findByAccountNumberAndBankCodeAndUserIdAndIsDeletedFalse(accountNumber, bankCode, userId)
+                        .stream().findFirst();
+            } else if (userEmail != null) {
+                existingOpt = bankInformationRepository
+                        .findByAccountNumberAndBankCodeAndUserEmailAndIsDeletedFalse(accountNumber, bankCode, userEmail)
+                        .stream().findFirst();
+            }
+
+            // 2. Fallback to check by orderId (idempotency for same order retries/different account)
+            if (existingOpt.isEmpty()) {
+                existingOpt = bankInformationRepository
+                        .findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(orderId)
+                        .stream().findFirst();
+            }
+
             BankInformation entity;
             if (existingOpt.isPresent()) {
                 entity = existingOpt.get();
@@ -256,11 +300,12 @@ public class PaymentApplicationService implements PaymentService {
                 entity.setAccountHolderName(accountName);
                 entity.setBankCode(bankCode);
                 entity.setBankName(bankName);
+                entity.setOrderId(orderId); // Update link to most recent order
             } else {
                 entity = BankInformation.builder()
                         .orderId(orderId)
-                        .userId(isGuest ? null : order.getUser().getId())
-                        .userEmail(isGuest ? order.getGuestEmail() : null)
+                        .userId(userId)
+                        .userEmail(userEmail)
                         .bookingId(null)
                         .accountNumber(accountNumber)
                         .accountHolderName(accountName)

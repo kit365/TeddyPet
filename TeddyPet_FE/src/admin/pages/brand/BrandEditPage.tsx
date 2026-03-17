@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material";
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, Typography } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
 import { Tiptap } from "../../components/layouts/titap/Tiptap";
@@ -97,9 +97,15 @@ export const BrandEditPage = () => {
             <ThemeProvider theme={localTheme}>
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
+                        <Box>
+                            <Box gap="16px" sx={{ display: "flex", alignItems: "center" }}>
+                                <SwitchButton control={control} name="isActive" />
+                            </Box>
+                        </Box>
+
                         <CollapsibleCard
                             title="Chi tiết"
-                            subheader="Cập nhật tiêu đề, mô tả và hình ảnh thương hiệu"
+                            subheader="Cập nhật tiêu đề và hình ảnh thương hiệu"
                             expanded={expandedDetail}
                             onToggle={toggle(setExpandedDetail)}
                         >
@@ -150,33 +156,70 @@ export const BrandEditPage = () => {
                                 />
                             </Stack>
                         </CollapsibleCard>
-
-                        <Box gap="24px" sx={{ display: "flex", alignItems: "center" }}>
-                            <SwitchButton control={control} name="isActive" />
-                            <Button
-                                type="submit"
-                                disabled={isUpdating}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: "3rem",
-                                    minWidth: "4rem",
-                                    fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    padding: "8px 16px",
-                                    borderRadius: "8px",
-                                    textTransform: "none",
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                        background: "#454F5B",
-                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                    }
-                                }}
-                                variant="contained"
-                            >
-                                {isUpdating ? 'Đang cập nhật...' : 'Cập nhật thương hiệu'}
-                            </Button>
-                        </Box>
                     </Stack>
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/brand/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isUpdating}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isUpdating ? 'Đang cập nhật...' : 'Cập nhật thương hiệu'}
+                        </Button>
+                    </Box>
                 </form>
             </ThemeProvider>
         </>

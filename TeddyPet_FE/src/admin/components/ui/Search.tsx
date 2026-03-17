@@ -1,4 +1,4 @@
-﻿import Box from '@mui/material/Box';
+import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import { Icon } from '@iconify/react';
@@ -35,10 +35,24 @@ export const Search = ({ maxWidth = 260, placeholder, value, onChange }: SearchP
                 }}
                 sx={{
                     '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
-                        fontSize: "1rem",
+                        borderRadius: '12px',
+                        fontSize: "0.9375rem",
                         paddingLeft: "14px",
                         paddingRight: "14px",
+                        height: '44px',
+                        backgroundColor: 'white',
+                        border: '1px solid rgba(145, 158, 171, 0.2)',
+                        transition: 'all 0.2s ease',
+                        '& fieldset': { border: 'none' },
+                        '&:hover': {
+                            backgroundColor: '#F9FAFB',
+                            borderColor: 'rgba(145, 158, 171, 0.44)',
+                        },
+                        '&.Mui-focused': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 0 0 3px rgba(28, 37, 46, 0.05)',
+                            borderColor: '#1C252E',
+                        },
                     },
                 }}
             />

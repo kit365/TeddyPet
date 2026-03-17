@@ -12,9 +12,11 @@ class AppRoutes {
     static const String wishlist = "/wishlist";
     static const String addressList = "/address-list";
     static const String addEditAddress = "/add-edit-address";
+    static const String cart = "/cart";
     static const String checkout = "/checkout";
     static const String paymentMethod = "/payment-method";
     static const String orderSuccess = "/order-success";
     static const String myPurchases = "/my_purchases";
     static const String orderDetail = "/order_detail";
+    static const String orderReview = "/order_review";
 }

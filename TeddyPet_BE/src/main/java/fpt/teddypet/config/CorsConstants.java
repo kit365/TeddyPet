@@ -20,8 +20,8 @@ public final class CorsConstants {
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5000",
             "http://127.0.0.1:5173",
-            "https://teddypet-dusky.vercel.app",
-            "https://teddypet.id.vn");
+            "https://teddypet.id.vn",
+            "https://teddypet-dusky.vercel.app");
 
     public static final List<String> ALLOWED_METHODS = List.of(
             "GET",

@@ -1,16 +1,17 @@
 name: Backend CI/CD (Guardian Edition)
+# Triggering final deploy test with Env Var Fix
 
 on:
   push:
     branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_BE/**"
-      - ".github/workflows/**"
+      - ".github/workflows/backend-ci-cd.yml"
   pull_request:
     branches: [ "main", "staging" ]
     paths:
       - "TeddyPet_BE/**"
-      - ".github/workflows/**"
+      - ".github/workflows/backend-ci-cd.yml"
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/teddypet-be
@@ -81,6 +82,15 @@ jobs:
           path: ${{ env.WORKING_DIRECTORY }}/target/*.jar
           retention-days: 1
 
+      - name: 🔔 Discord Notification (Failure)
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          content: "❌ **Backend Build Failed!** Kiểm tra ngay đi bồ ơi!"
+          title: "TeddyPet BE - Build Error"
+
   # Cấp độ 2: Bảo mật - Dependency Scan
   security-scan:
     name: 🛡️ Security Scan (SCA)
@@ -133,9 +143,44 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ startsWith(github.ref, 'refs/tags/v') && format('{0}:{1}', env.IMAGE_NAME, github.ref_name) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Render Deploy
+      - name: 🚀 Sync Config & Deploy to VPS (Raw SSH)
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          
+          # Sync configuration files
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+          
+          # Deploy services
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=10 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f
+          EOF
+
+      - name: 🔔 Discord Notification (Success)
+        if: success()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          content: "✅ **Backend Deployed Successfully!** VPS đã cập nhật bản mới nhất."
+          title: "TeddyPet BE - Deployment Success"
+
+      - name: 🔔 Discord Notification (Failure)
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          content: "🚨 **Backend Deployment Failed!** VPS có biến rồi!"
+          title: "TeddyPet BE - Deployment Error"

@@ -35,8 +35,12 @@ spring:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/teddypet}
     
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      # Khi chạy bằng docker-compose.local.yml:
+      # - BE chạy trong container, dùng SPRING_DATA_REDIS_HOST=redis, SPRING_DATA_REDIS_PORT=6379
+      # Khi chạy BE local:
+      # - Không set 2 biến này, sẽ fallback về localhost:6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       ssl:

@@ -1,4 +1,4 @@
-﻿import { Avatar, Box, Link, ListItemText } from "@mui/material";
+import { Avatar, Box, Link, ListItemText } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridRenderCellParams } from "@mui/x-data-grid";
 import { DeleteIcon, EditIcon, EyeIcon } from "../../../assets/icons/index";
 import { COLORS } from "../configs/constants";
@@ -86,7 +86,7 @@ export const RenderCreatedAtCell = ({ value }: RenderCreatedAtCellProps) => {
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: "4px"
+                gap: "4px",
             }}>
 
             <span

@@ -12,6 +12,8 @@ public interface ProductTagRepositoryPort {
 
     List<ProductTag> findAll();
 
+    List<ProductTag> findAllActiveWithProducts();
+
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, Long tagId);

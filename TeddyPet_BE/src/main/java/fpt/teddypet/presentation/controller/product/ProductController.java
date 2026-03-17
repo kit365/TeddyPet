@@ -63,6 +63,13 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/slug/{slug}/detail")
+    @Operation(summary = "Lấy chi tiết sản phẩm theo slug", description = "Lấy thông tin chi tiết sản phẩm theo slug")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getDetailBySlug(@PathVariable String slug) {
+        ProductDetailResponse response = productService.getDetailBySlug(slug);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/{productId}")
     @Operation(summary = "Lấy chi tiết sản phẩm theo ID", description = "Lấy thông tin chi tiết sản phẩm theo ID")
     public ResponseEntity<ApiResponse<ProductDetailResponse>> getDetail(@PathVariable Long productId) {

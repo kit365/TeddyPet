@@ -35,6 +35,7 @@ import { OrderHistoryPage } from "../pages/dashboard/OrderHistory";
 import { OrderInvoicePage } from "../pages/dashboard/OrderInvoice";
 import { PetsPage } from "../pages/dashboard/Pets";
 import { PetCreatePage } from "../pages/dashboard/PetCreate";
+import { BankInformationListPage } from "../pages/dashboard/BankInformationList";
 import { AuthGuard } from "../components/guards/AuthGuard";
 
 import { ForgotPasswordPage } from "../pages/auth/ForgotPassword";
@@ -46,6 +47,7 @@ import { RegisterSuccessPage } from "../pages/auth/RegisterSuccess";
 import { ResetPasswordEntryPage } from "../pages/auth/ResetPasswordEntry";
 import { ResetPasswordFormPage } from "../pages/auth/ResetPasswordForm";
 import { AuthCallback } from "../pages/auth/AuthCallback";
+import { PaymentCallbackPage } from "../pages/payment/PaymentCallbackPage";
 
 export const ClientAuthRoutes: RouteObject[] = [
     { path: "/auth/register", element: <RegisterPage /> },
@@ -59,6 +61,7 @@ export const ClientAuthRoutes: RouteObject[] = [
     { path: "/auth/reset-password-form", element: <ResetPasswordFormPage /> },
     { path: "/auth/setup-password", element: <SetupPasswordPage /> },
     { path: "/auth/callback", element: <AuthCallback /> },
+    { path: "/payment/callback", element: <PaymentCallbackPage /> },
 ];
 
 export const ClientRoutes: RouteObject[] = [
@@ -93,6 +96,7 @@ export const ClientRoutes: RouteObject[] = [
             { path: "address", element: <AddressListPage /> },
             { path: "address/create", element: <AddressCreatePage /> },
             { path: "address/edit/:id", element: <AddressEditPage /> },
+            { path: "bank-information", element: <BankInformationListPage /> },
             { path: "change-password", element: <ChangePasswordPage /> },
             { path: "review", element: <ReviewPage /> },
             { path: "order/invoice/:id", element: <OrderInvoicePage /> },

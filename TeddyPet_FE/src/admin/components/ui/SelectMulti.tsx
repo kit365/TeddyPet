@@ -1,4 +1,4 @@
-﻿import FormControl from '@mui/material/FormControl';
+import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -23,6 +23,7 @@ interface SelectMultiProps {
     value?: string[];
     onChange?: (value: string[]) => void;
     searchable?: boolean;
+    fullWidth?: boolean;
 }
 
 // Global premium styles
@@ -77,7 +78,7 @@ const MENU_PROPS = {
     },
 };
 
-export const SelectMulti = memo(({ label, options, value: valueProp, onChange, searchable }: SelectMultiProps) => {
+export const SelectMulti = memo(({ label, options, value: valueProp, onChange, searchable, fullWidth }: SelectMultiProps) => {
     const [internalValues, setInternalValues] = useState<string[]>([]);
     const values = valueProp !== undefined ? valueProp : internalValues;
 
@@ -166,13 +167,13 @@ export const SelectMulti = memo(({ label, options, value: valueProp, onChange, s
                         />
                     ))
                 }
-                sx={{ width: 'auto', minWidth: 220 }}
+                sx={{ width: fullWidth ? '100%' : 'auto', minWidth: 220 }}
             />
         );
     }
 
     return (
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: 180, width: fullWidth ? '100%' : 'auto' }}>
             <InputLabel sx={LABEL_STYLE}>{label}</InputLabel>
             <Select
                 multiple

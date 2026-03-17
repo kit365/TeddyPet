@@ -1,5 +1,5 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress } from "@mui/material"
-import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon, Check } from "lucide-react";
+import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress, Card, CardHeader, Divider } from "@mui/material"
+import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
 import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useSalesUnits } from "./hooks/useProduct";
@@ -10,8 +10,9 @@ import { Title } from "../../components/ui/Title"
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
-import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
+
 import { prefixAdmin } from "../../constants/routes";
+import { ListHeader } from "../../components/ui/ListHeader";
 import { CategoryMultiTreeSelect } from "../../components/ui/CategoryMultiTreeSelect";
 import { useNestedProductCategories } from "../product-category/hooks/useProductCategory";
 import { ProductVariants } from "./components/ProductVariants";
@@ -51,6 +52,29 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 
 type FormMode = 'create' | 'edit' | 'view';
 
+const SectionCard = ({ title, subheader, children }: { title: string; subheader?: string; children: React.ReactNode }) => (
+    <Card sx={{
+        backgroundImage: 'none !important',
+        backdropFilter: 'none !important',
+        backgroundColor: '#fff !important',
+        boxShadow: '0 0 2px 0 #919eab33, 0 12px 24px -4px #919eab1f',
+        borderRadius: '16px',
+        color: '#1C252E',
+    }}>
+        <CardHeader
+            title={title}
+            subheader={subheader}
+            slotProps={{
+                title: { sx: { fontWeight: 600, fontSize: '1.125rem' } },
+                subheader: { sx: { color: '#637381', fontSize: '0.875rem', mt: 0.5 } },
+            }}
+            sx={{ padding: '24px 24px 0', mb: '24px' }}
+        />
+        <Divider sx={{ borderColor: '#919eab33' }} />
+        {children}
+    </Card>
+);
+
 export const ProductFormPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -66,9 +90,7 @@ export const ProductFormPage = () => {
 
     const isReadOnly = mode === 'view';
 
-    const [expandedDetail, setExpandedDetail] = useState(true);
     const [expandedVariants, setExpandedVariants] = useState(true);
-    const [expandedExtra, setExpandedExtra] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
 
@@ -355,6 +377,11 @@ export const ProductFormPage = () => {
                 toast.error("Vui lòng chọn ít nhất 1 danh mục cho sản phẩm đang hoạt động");
                 return;
             }
+            const unuploadedFiles = files.filter(f => f instanceof File);
+            if (unuploadedFiles.length > 0) {
+                toast.error(`Có ${unuploadedFiles.length} ảnh chưa được tải lên server (Cloudinary). Vui lòng nhấn nút "Tải lên" trước khi lưu sản phẩm.`);
+                return;
+            }
             if (files.length === 0) {
                 toast.error("Vui lòng tải lên ít nhất 1 hình ảnh cho sản phẩm đang hoạt động");
                 return;
@@ -577,36 +604,34 @@ export const ProductFormPage = () => {
 
     return (
         <>
-            <div className="mb-[40px] gap-[16px] flex items-start justify-end">
-                <div className="mr-auto">
-                    <Title title={pageTitle} />
-                    <Breadcrumb
-                        items={[
-                            { label: t('admin.dashboard'), to: "/" },
-                            { label: t('admin.product.title.list'), to: `/${prefixAdmin}/product/list` },
-                            { label: mode === 'create' ? t('admin.common.create') : mode === 'edit' ? t('admin.common.edit') : t('admin.common.details') }
-                        ]}
-                    />
-                </div>
-                {mode === 'view' && (
-                    <Button
-                        variant="contained"
-                        onClick={() => navigate(`/${prefixAdmin}/product/edit/${id}`)}
-                        startIcon={<EditIcon size={16} />}
-                        sx={{
-                            background: '#1C252E',
-                            fontWeight: 700,
-                            borderRadius: "8px",
-                            textTransform: "none",
-                            py: 1.2, px: 3,
-                            boxShadow: "0 8px 16px 0 rgba(28, 37, 46, 0.24)",
-                            "&:hover": { background: "#454F5B" }
-                        }}
-                    >
-                        {t('admin.common.edit')}
-                    </Button>
-                )}
-            </div>
+            <Box sx={{ mb: '40px' }}>
+                <ListHeader
+                    title={pageTitle}
+                    breadcrumbItems={[
+                        { label: t('admin.dashboard'), to: "/" },
+                        { label: t('admin.product.title.list'), to: `/${prefixAdmin}/product/list` },
+                        { label: mode === 'create' ? t('admin.common.create') : mode === 'edit' ? t('admin.common.edit') : t('admin.common.details') }
+                    ]}
+                    action={mode === 'view' && (
+                        <Button
+                            variant="contained"
+                            onClick={() => navigate(`/${prefixAdmin}/product/edit/${id}`)}
+                            startIcon={<EditIcon size={16} />}
+                            sx={{
+                                background: '#1C252E',
+                                fontWeight: 700,
+                                borderRadius: "8px",
+                                textTransform: "none",
+                                py: 1.2, px: 3,
+                                boxShadow: "0 8px 16px 0 rgba(28, 37, 46, 0.24)",
+                                "&:hover": { background: "#454F5B" }
+                            }}
+                        >
+                            {t('admin.common.edit')}
+                        </Button>
+                    )}
+                />
+            </Box>
 
             <ThemeProvider theme={localTheme}>
                 <form
@@ -614,79 +639,153 @@ export const ProductFormPage = () => {
                     onSubmit={handleSubmit}
                     key={mode === 'create' ? 'create' : (product?.id || 'loading')}
                 >
-                    <Stack sx={{ margin: { xs: "0px 20px", lg: "0px 120px" }, gap: "40px", pb: 5 }}>
-
-                        {/* 1. PRODUCT TYPE */}
-                        {mode === 'create' && (
-                            <CollapsibleCard title="Loại sản phẩm" expanded={true} onToggle={() => { }}>
-                                <Stack p="24px">
-                                    <FormControl fullWidth>
-                                        <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
-                                        <Select
-                                            labelId="product-type-label"
-                                            value={productType}
-                                            label="Loại sản phẩm"
-                                            onChange={(e) => setProductType(e.target.value as any)}
-                                            disabled={isReadOnly}
-                                        >
-                                            {productTypeOptions.map((type) => (
-                                                <MenuItem key={type} value={type}>
-                                                    {PRODUCT_TYPE_LABELS[type] || type}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </CollapsibleCard>
-                        )}
-
-                        {/* 2. GENERAL DETAILS */}
-                        <CollapsibleCard
-                            title={t('admin.common.details')}
-                            subheader={t('admin.common.description')}
-                            expanded={expandedDetail}
-                            onToggle={toggle(setExpandedDetail)}
-                        >
-                            <Stack p="24px" gap="24px">
-                                <Stack direction={{ xs: "column", md: "row" }} gap={2}>
+                    <Box sx={{
+                        margin: { xs: "0px 20px", lg: "0px 80px" },
+                        pb: '100px', /* room for sticky footer */
+                        display: 'flex',
+                        flexDirection: { xs: 'column', lg: 'row' },
+                        gap: '24px',
+                        alignItems: 'flex-start',
+                    }}>
+                        {/* ———————————————— LEFT COLUMN (65%) ———————————————— */}
+                        <Box sx={{ flex: '1 1 65%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            {/* 1. GENERAL DETAILS */}
+                            <SectionCard
+                                title={t('admin.common.details')}
+                                subheader="Thông tin chi tiết"
+                            >
+                                <Stack p="24px" gap="24px">
                                     <TextField
                                         label={t('admin.product.fields.name')}
                                         name="name"
                                         fullWidth
                                         required
-                                        sx={{ flex: 2 }}
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         InputProps={{ readOnly: isReadOnly }}
                                     />
-                                    <Stack direction="row" gap={2} alignItems="center" sx={{ flex: 2 }}>
-                                        <TextField
-                                            label="Mã vạch (Barcode)"
-                                            name="barcode"
-                                            placeholder="Mã vạch..."
-                                            fullWidth
-                                            value={barcode}
-                                            onChange={(e) => setBarcode(e.target.value)}
-                                            InputProps={{
-                                                readOnly: isReadOnly,
-                                                endAdornment: !isReadOnly && (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Tạo mã vạch ngẫu nhiên">
-                                                            <IconButton onClick={() => setBarcode(generateBarcode())} color="primary">
-                                                                <RefreshCwIcon size={20} />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                        />
-                                        {barcode && (
-                                            <Box sx={{ border: '1px solid #eee', p: 0.5, borderRadius: 1, bgcolor: 'white' }}>
-                                                <Barcode value={barcode} width={1} height={40} fontSize={12} />
-                                            </Box>
+                                    <Box>
+                                        {!isReadOnly ? (
+                                            <Tiptap value={description} onChange={setDescription} />
+                                        ) : (
+                                            <Box
+                                                sx={{ p: 2, border: '1px solid #eee', borderRadius: '12px', minHeight: '100px' }}
+                                                dangerouslySetInnerHTML={{ __html: description || "<i>Chưa có mô tả</i>" }}
+                                            />
                                         )}
+                                    </Box>
+                                    <Box>
+                                        <UploadFiles
+                                            files={files}
+                                            onFilesChange={setFiles}
+                                            folder="products"
+                                            disabled={isReadOnly}
+                                        />
+                                    </Box>
+                                </Stack>
+                            </SectionCard>
+
+                            {/* 2. PRICING & INVENTORY (SIMPLE) OR VARIANTS (VARIABLE) */}
+                            {productType === "SIMPLE" ? (
+                                <SectionCard
+                                    title="Giá & Kho hàng"
+                                    subheader="Thiết lập giá và số lượng tồn kho"
+                                >
+                                    <Stack p="24px" spacing={3}>
+                                        <Stack direction="row" spacing={2}>
+                                            <TextField
+                                                label="Giá bán gốc (VNĐ)"
+                                                name="simplePrice"
+                                                required
+                                                fullWidth
+                                                value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
+                                                onChange={(e) => setSimplePrice(Number(e.target.value.replace(/\D/g, "")))}
+                                                InputProps={{
+                                                    readOnly: isReadOnly,
+                                                    onWheel: (e) => (e.target as HTMLElement).blur()
+                                                }}
+                                            />
+                                            <TextField
+                                                label="Giá khuyến mãi (VNĐ)"
+                                                name="simpleSalePrice"
+                                                fullWidth
+                                                value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
+                                                onChange={(e) => setSimpleSalePrice(Number(e.target.value.replace(/\D/g, "")))}
+                                                InputProps={{
+                                                    readOnly: isReadOnly,
+                                                    onWheel: (e) => (e.target as HTMLElement).blur()
+                                                }}
+                                                helperText={!isReadOnly && "Nhập 0 nếu không có giảm giá"}
+                                            />
+                                        </Stack>
+                                        <Stack direction="row" spacing={2}>
+                                            <TextField
+                                                label="Số lượng tồn kho"
+                                                name="simpleStock"
+                                                required
+                                                fullWidth
+                                                value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
+                                                onChange={(e) => setSimpleStock(Number(e.target.value.replace(/\D/g, "")))}
+                                                InputProps={{
+                                                    readOnly: isReadOnly,
+                                                    onWheel: (e) => (e.target as HTMLElement).blur()
+                                                }}
+                                            />
+                                            <TextField
+                                                label="Mã SKU"
+                                                name="simpleSku"
+                                                fullWidth
+                                                value={simpleSku}
+                                                onChange={(e) => setSimpleSku(e.target.value)}
+                                                InputProps={{ readOnly: isReadOnly }}
+                                            />
+                                        </Stack>
+                                        <Stack direction="row" spacing={2}>
+                                            <TextField
+                                                label="Trọng lượng (gram)"
+                                                fullWidth
+                                                value={simpleWeight === 0 ? "" : simpleWeight.toLocaleString("vi-VN")}
+                                                onChange={(e) => setSimpleWeight(Number(e.target.value.replace(/\D/g, "")))}
+                                                InputProps={{
+                                                    readOnly: isReadOnly,
+                                                    onWheel: (e) => (e.target as HTMLElement).blur(),
+                                                    endAdornment: <InputAdornment position="end">g</InputAdornment>
+                                                }}
+                                            />
+                                            <FormControl fullWidth>
+                                                <InputLabel>Đơn vị</InputLabel>
+                                                <Select
+                                                    value={simpleUnit}
+                                                    label="Đơn vị"
+                                                    onChange={(e) => setSimpleUnit(e.target.value)}
+                                                    disabled={isReadOnly}
+                                                >
+                                                    {salesUnitOptions.map((opt) => (
+                                                        <MenuItem key={opt.code} value={opt.code}>{opt.label}</MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Stack>
                                     </Stack>
-                                    <FormControl sx={{ flex: 1 }}>
+                                </SectionCard>
+                            ) : (
+                                <ProductVariants
+                                    expanded={expandedVariants}
+                                    onToggle={toggle(setExpandedVariants)}
+                                    variants={variants}
+                                    onVariantsChange={setVariants}
+                                    availableImages={files}
+                                    readOnly={isReadOnly}
+                                />
+                            )}
+                        </Box>
+
+                        {/* ———————————————— RIGHT COLUMN (35%) ———————————————— */}
+                        <Box sx={{ flex: '1 1 35%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            {/* — TRẠNG THÁI — */}
+                            <SectionCard title="Trạng thái & Loại" subheader="Cấu hình cơ bản">
+                                <Stack p="24px" spacing={3}>
+                                    <FormControl fullWidth>
                                         <InputLabel>Trạng thái</InputLabel>
                                         <Select
                                             value={status}
@@ -701,9 +800,155 @@ export const ProductFormPage = () => {
                                             ))}
                                         </Select>
                                     </FormControl>
-                                </Stack>
 
-                                <Stack direction={{ xs: "column", md: "row" }} gap={2}>
+                                    {mode === 'create' && (
+                                        <FormControl fullWidth>
+                                            <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
+                                            <Select
+                                                labelId="product-type-label"
+                                                value={productType}
+                                                label="Loại sản phẩm"
+                                                onChange={(e) => setProductType(e.target.value as any)}
+                                                disabled={isReadOnly}
+                                            >
+                                                {productTypeOptions.map((type) => (
+                                                    <MenuItem key={type} value={type}>
+                                                        {PRODUCT_TYPE_LABELS[type] || type}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    )}
+
+                                    <Stack direction="row" gap={2} alignItems="center">
+                                        <TextField
+                                            label="Mã vạch (Barcode)"
+                                            name="barcode"
+                                            placeholder="Mã vạch..."
+                                            fullWidth
+                                            value={barcode}
+                                            onChange={(e) => setBarcode(e.target.value)}
+                                            InputProps={{
+                                                readOnly: isReadOnly,
+                                                endAdornment: !isReadOnly && (
+                                                    <InputAdornment position="end">
+                                                        <Tooltip title="Tạo mã vạch ngẫu nhiên">
+                                                            <IconButton onClick={() => setBarcode(generateBarcode())} color="primary" size="small">
+                                                                <RefreshCwIcon size={16} />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </InputAdornment>
+                                                ),
+                                                sx: { bgcolor: '#F8FAFC' }
+                                            }}
+                                        />
+                                        {barcode && (
+                                            <Box sx={{ border: '1px solid #919eab33', p: 0.5, borderRadius: 1.5, bgcolor: 'white', display: 'flex' }}>
+                                                <Barcode value={barcode} width={0.8} height={30} fontSize={10} />
+                                            </Box>
+                                        )}
+                                    </Stack>
+                                </Stack>
+                            </SectionCard>
+
+                            {/* — TỔ CHỨC — */}
+                            <SectionCard title="Phân loại" subheader="Danh mục, Tags, Độ tuổi">
+                                <Stack p="24px" spacing={3}>
+                                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                                        <Box sx={{ flex: 1 }}>
+                                            <CategoryMultiTreeSelect
+                                                categories={productCategories}
+                                                selectedIds={selectedCategoryIds}
+                                                onChange={setSelectedCategoryIds}
+                                                disabled={isReadOnly}
+                                            />
+                                        </Box>
+                                        {!isReadOnly && (
+                                            <IconButton onClick={() => setOpenQuickCategory(true)} sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 40, height: 40, mt: 0.5 }}>
+                                                <PlusIcon size={20} />
+                                            </IconButton>
+                                        )}
+                                    </Stack>
+
+                                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                                        <Autocomplete
+                                            fullWidth
+                                            multiple
+                                            options={tagOptions}
+                                            getOptionLabel={(option) => typeof option === 'string' ? option : (option?.name || "")}
+                                            value={selectedTags}
+                                            onChange={(_, val) => !isReadOnly && setSelectedTags(val)}
+                                            readOnly={isReadOnly}
+                                            renderInput={(params) => <TextField {...params} label="Gắn thẻ (Tags)" />}
+                                            renderTags={(value, getTagProps) =>
+                                                value.map((option, index) => {
+                                                    const { key, ...chipProps } = getTagProps({ index });
+                                                    return (
+                                                        <Chip
+                                                            key={key}
+                                                            {...chipProps}
+                                                            label={option?.name || ""}
+                                                            size="small"
+                                                            sx={{ bgcolor: `${option?.color || '#00B8D9'}22`, color: option?.color || '#00B8D9', fontWeight: 700 }}
+                                                        />
+                                                    );
+                                                })
+                                            }
+                                        />
+                                        {!isReadOnly && (
+                                            <IconButton onClick={() => setOpenQuickTag(true)} sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 40, height: 40, mt: 0.5 }}>
+                                                <PlusIcon size={20} />
+                                            </IconButton>
+                                        )}
+                                    </Stack>
+
+                                    <FormControl fullWidth>
+                                        <InputLabel>Dành cho giống (Species)</InputLabel>
+                                        <Select
+                                            multiple
+                                            value={petTypes}
+                                            onChange={handleChangePetTypes}
+                                            input={<OutlinedInput label="Dành cho giống (Species)" />}
+                                            renderValue={(selected) => selected.map(val => PET_TYPE_LABELS[val] || val).join(', ')}
+                                            disabled={isReadOnly}
+                                        >
+                                            {petTypeOptions.map((type) => (
+                                                <MenuItem key={type} value={type}>
+                                                    {PET_TYPE_LABELS[type] || type}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    <FormControl fullWidth>
+                                        <InputLabel>Độ tuổi</InputLabel>
+                                        <Select
+                                            multiple
+                                            value={selectedAgeIds}
+                                            onChange={handleChangeAge}
+                                            input={<OutlinedInput label="Độ tuổi" />}
+                                            disabled={isReadOnly}
+                                            renderValue={(selected) => {
+                                                const names = selected.map(id => {
+                                                    const age = ageRanges.find((a: any) => (a.id || a.ageRangeId) === id);
+                                                    return age?.name || id;
+                                                });
+                                                return names.join(', ');
+                                            }}
+                                        >
+                                            {ageRanges.map((age: any) => (
+                                                <MenuItem key={age?.id || age?.ageRangeId} value={age?.id || age?.ageRangeId}>
+                                                    {age?.name ? (AGE_RANGE_LABELS[age.name] || age.name) : ""}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </SectionCard>
+
+                            {/* — THÔNG SỐ — */}
+                            <SectionCard title="Thông số kỹ thuật" subheader="Thương hiệu, Xuất xứ, Vật liệu">
+                                <Stack p="24px" spacing={3}>
                                     <Stack direction="row" gap={1} sx={{ flex: 1 }}>
                                         <FormControl fullWidth>
                                             <InputLabel>Thương hiệu</InputLabel>
@@ -727,7 +972,7 @@ export const ProductFormPage = () => {
                                         )}
                                     </Stack>
 
-                                    <FormControl fullWidth sx={{ flex: 1 }}>
+                                    <FormControl fullWidth>
                                         <InputLabel>Xuất xứ</InputLabel>
                                         <Select
                                             value={origin}
@@ -743,26 +988,7 @@ export const ProductFormPage = () => {
                                             ))}
                                         </Select>
                                     </FormControl>
-                                </Stack>
 
-                                <Stack direction={{ xs: "column", md: "row" }} gap={2}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Dành cho giống (Species)</InputLabel>
-                                        <Select
-                                            multiple
-                                            value={petTypes}
-                                            onChange={handleChangePetTypes}
-                                            input={<OutlinedInput label="Dành cho giống (Species)" />}
-                                            renderValue={(selected) => selected.map(val => PET_TYPE_LABELS[val] || val).join(', ')}
-                                            disabled={isReadOnly}
-                                        >
-                                            {petTypeOptions.map((type) => (
-                                                <MenuItem key={type} value={type}>
-                                                    {PET_TYPE_LABELS[type] || type}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
                                     <TextField
                                         label="Nguyên vật liệu"
                                         name="material"
@@ -772,218 +998,46 @@ export const ProductFormPage = () => {
                                         InputProps={{ readOnly: isReadOnly }}
                                     />
                                 </Stack>
+                            </SectionCard>
+                        </Box>
+                    </Box>
 
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>Mô tả sản phẩm</Typography>
-                                    {!isReadOnly ? (
-                                        <Tiptap value={description} onChange={setDescription} />
-                                    ) : (
-                                        <Box
-                                            sx={{ p: 2, border: '1px solid #eee', borderRadius: '8px', minHeight: '100px' }}
-                                            dangerouslySetInnerHTML={{ __html: description || "<i>Chưa có mô tả</i>" }}
-                                        />
-                                    )}
-                                </Box>
-
-                                <UploadFiles
-                                    files={files}
-                                    onFilesChange={setFiles}
-                                    folder="products"
-                                    disabled={isReadOnly}
-                                />
-                            </Stack>
-                        </CollapsibleCard>
-
-                        {/* 3. PRICING & INVENTORY (SIMPLE) OR VARIANTS (VARIABLE) */}
-                        {productType === "SIMPLE" ? (
-                            <CollapsibleCard
-                                title="Giá & Kho hàng"
-                                subheader="Thiết lập giá và số lượng tồn kho"
-                                expanded={true}
-                                onToggle={() => { }}
-                            >
-                                <Stack p="24px" gap="24px" direction="row" flexWrap="wrap">
-                                    <TextField
-                                        label="Giá bán gốc (VNĐ)"
-                                        required
-                                        value={simplePrice === 0 ? "" : simplePrice.toLocaleString("vi-VN")}
-                                        onChange={(e) => setSimplePrice(Number(e.target.value.replace(/\D/g, "")))}
-                                        sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{
-                                            readOnly: isReadOnly,
-                                            onWheel: (e) => (e.target as HTMLElement).blur()
-                                        }}
-                                    />
-                                    <TextField
-                                        label="Giá khuyến mãi (VNĐ)"
-                                        value={simpleSalePrice === 0 ? "" : simpleSalePrice.toLocaleString("vi-VN")}
-                                        onChange={(e) => setSimpleSalePrice(Number(e.target.value.replace(/\D/g, "")))}
-                                        sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{
-                                            readOnly: isReadOnly,
-                                            onWheel: (e) => (e.target as HTMLElement).blur()
-                                        }}
-                                        helperText={!isReadOnly && "Nhập 0 nếu không có giảm giá"}
-                                    />
-                                    <TextField
-                                        label="Số lượng tồn kho"
-                                        required
-                                        value={simpleStock === 0 ? "" : simpleStock.toLocaleString("vi-VN")}
-                                        onChange={(e) => setSimpleStock(Number(e.target.value.replace(/\D/g, "")))}
-                                        sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{
-                                            readOnly: isReadOnly,
-                                            onWheel: (e) => (e.target as HTMLElement).blur()
-                                        }}
-                                    />
-                                    <TextField
-                                        label="Mã SKU"
-                                        value={simpleSku}
-                                        onChange={(e) => setSimpleSku(e.target.value)}
-                                        sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{ readOnly: isReadOnly }}
-                                    />
-                                    <TextField
-                                        label="Trọng lượng (gram)"
-                                        value={simpleWeight === 0 ? "" : simpleWeight.toLocaleString("vi-VN")}
-                                        onChange={(e) => setSimpleWeight(Number(e.target.value.replace(/\D/g, "")))}
-                                        sx={{ flex: 1, minWidth: '200px' }}
-                                        InputProps={{
-                                            readOnly: isReadOnly,
-                                            onWheel: (e) => (e.target as HTMLElement).blur(),
-                                            endAdornment: <InputAdornment position="end">g</InputAdornment>
-                                        }}
-                                    />
-                                    <FormControl sx={{ flex: 1, minWidth: '200px' }}>
-                                        <InputLabel>Đơn vị</InputLabel>
-                                        <Select
-                                            value={simpleUnit}
-                                            label="Đơn vị"
-                                            onChange={(e) => setSimpleUnit(e.target.value)}
-                                            disabled={isReadOnly}
-                                        >
-                                            {salesUnitOptions.map((opt) => (
-                                                <MenuItem key={opt.code} value={opt.code}>{opt.label}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </CollapsibleCard>
-                        ) : (
-                            <ProductVariants
-                                expanded={expandedVariants}
-                                onToggle={toggle(setExpandedVariants)}
-                                variants={variants}
-                                onVariantsChange={setVariants}
-                                availableImages={files}
-                                readOnly={isReadOnly}
-                            />
-                        )}
-
-                        {/* 4. ATTRIBUTES / CATEGORIES / TAGS */}
-                        <CollapsibleCard
-                            title="Tổ chức"
-                            subheader="Phân loại, Độ tuổi và Gắn thẻ"
-                            expanded={expandedExtra}
-                            onToggle={toggle(setExpandedExtra)}
-                        >
-                            <Stack p="24px" gap="24px">
-                                <FormControl fullWidth>
-                                    <InputLabel>Độ tuổi</InputLabel>
-                                    <Select
-                                        multiple
-                                        value={selectedAgeIds}
-                                        onChange={handleChangeAge}
-                                        input={<OutlinedInput label="Độ tuổi" />}
-                                        disabled={isReadOnly}
-                                        renderValue={(selected) => {
-                                            const names = selected.map(id => {
-                                                const age = ageRanges.find((a: any) => (a.id || a.ageRangeId) === id);
-                                                return age?.name || id;
-                                            });
-                                            return names.join(', ');
-                                        }}
-                                    >
-                                        {ageRanges.map((age: any) => (
-                                            <MenuItem key={age?.id || age?.ageRangeId} value={age?.id || age?.ageRangeId}>
-                                                {age?.name ? (AGE_RANGE_LABELS[age.name] || age.name) : ""}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-
-                                <Stack direction="row" spacing={1} alignItems="flex-start">
-                                    <Box sx={{ flex: 1 }}>
-                                        <CategoryMultiTreeSelect
-                                            categories={productCategories}
-                                            selectedIds={selectedCategoryIds}
-                                            onChange={setSelectedCategoryIds}
-                                            disabled={isReadOnly}
-                                        />
-                                    </Box>
-                                    {!isReadOnly && (
-                                        <IconButton onClick={() => setOpenQuickCategory(true)} sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 40, height: 40, mt: 0.5 }}>
-                                            <PlusIcon size={20} />
-                                        </IconButton>
-                                    )}
-                                </Stack>
-
-                                <Stack direction="row" spacing={1} alignItems="flex-start">
-                                    <Autocomplete
-                                        fullWidth
-                                        multiple
-                                        options={tagOptions}
-                                        getOptionLabel={(option) => typeof option === 'string' ? option : (option?.name || "")}
-                                        value={selectedTags}
-                                        onChange={(_, val) => !isReadOnly && setSelectedTags(val)}
-                                        readOnly={isReadOnly}
-                                        renderInput={(params) => <TextField {...params} label="Gắn thẻ (Tags)" />}
-                                        renderTags={(value, getTagProps) =>
-                                            value.map((option, index) => {
-                                                const { key, ...chipProps } = getTagProps({ index });
-                                                return (
-                                                    <Chip
-                                                        key={key}
-                                                        {...chipProps}
-                                                        label={option?.name || ""}
-                                                        size="small"
-                                                        sx={{ bgcolor: `${option?.color || '#00B8D9'}22`, color: option?.color || '#00B8D9', fontWeight: 700 }}
-                                                    />
-                                                );
-                                            })
-                                        }
-                                    />
-                                    {!isReadOnly && (
-                                        <IconButton onClick={() => setOpenQuickTag(true)} sx={{ bgcolor: "#F4F6F8", borderRadius: "8px", width: 40, height: 40, mt: 0.5 }}>
-                                            <PlusIcon size={20} />
-                                        </IconButton>
-                                    )}
-                                </Stack>
-                            </Stack>
-                        </CollapsibleCard>
-
-                    </Stack>
-
-                    {/* Bottom Actions Bar (Static) */}
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
                     {mode !== 'view' && (
                         <Box sx={{
-                            margin: { xs: "0px 20px", lg: "0px 120px" },
-                            mt: 5,
-                            mb: 10,
+                            position: 'fixed',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            zIndex: 1000,
+                            backdropFilter: 'blur(8px)',
+                            background: 'rgba(255,255,255,0.85)',
+                            borderTop: '1px solid #919eab33',
+                            py: '16px',
+                            px: { xs: '20px', lg: '120px' },
                             display: 'flex',
                             justifyContent: 'flex-end',
-                            gap: 2,
+                            gap: '12px',
                         }}>
                             <Button
+                                type="button"
                                 variant="outlined"
-                                color="inherit"
                                 onClick={() => navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`)}
                                 sx={{
-                                    px: 4,
-                                    py: 1.5,
-                                    borderColor: 'rgba(145, 158, 171, 0.32)',
+                                    minHeight: '2.75rem',
+                                    minWidth: '6rem',
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    padding: '6px 22px',
+                                    borderRadius: '8px',
+                                    textTransform: 'none',
+                                    borderColor: '#919eab52',
                                     color: '#637381',
-                                    '&:hover': { bgcolor: 'rgba(145, 158, 171, 0.08)', borderColor: '#1C252E', color: '#1C252E' }
+                                    '&:hover': {
+                                        borderColor: '#1C252E',
+                                        color: '#1C252E',
+                                        background: 'rgba(145, 158, 171, 0.08)',
+                                    },
                                 }}
                             >
                                 {t('admin.common.cancel')}
@@ -991,15 +1045,20 @@ export const ProductFormPage = () => {
                             <Button
                                 type="submit"
                                 variant="contained"
-                                startIcon={<Check size={22} />}
                                 sx={{
-                                    px: 4,
-                                    py: 1.5,
-                                    bgcolor: '#1C252E',
-                                    minWidth: '180px',
-                                    fontSize: '1rem',
-                                    boxShadow: '0 8px 16px 0 rgba(28, 37, 46, 0.24)',
-                                    '&:hover': { bgcolor: '#454F5B' }
+                                    background: '#1C252E',
+                                    minHeight: '2.75rem',
+                                    minWidth: '10rem',
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    padding: '6px 28px',
+                                    borderRadius: '8px',
+                                    textTransform: 'none',
+                                    boxShadow: 'none',
+                                    '&:hover': {
+                                        background: '#454F5B',
+                                        boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                    },
                                 }}
                             >
                                 {mode === 'create' ? t('admin.common.create') : "Lưu thay đổi"}

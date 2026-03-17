@@ -8,6 +8,15 @@ import 'package:teddypet_mobile/presentation/providers/category/category_provide
 import 'package:teddypet_mobile/data/repositories/category/category_repository_impl.dart';
 import 'package:teddypet_mobile/application/category/category_app_service_impl.dart';
 import 'package:teddypet_mobile/presentation/controllers/category/category_controller.dart';
+import 'package:teddypet_mobile/presentation/providers/product/product_list_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/product/product_detail_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/product/product_reviews_provider.dart';
+import 'package:teddypet_mobile/data/repositories/product/product_repository_impl.dart';
+import 'package:teddypet_mobile/application/product/product_app_service_impl.dart';
+import 'package:teddypet_mobile/presentation/controllers/product/product_controller.dart';
+import 'package:teddypet_mobile/presentation/providers/common/filter_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/common/navigation_provider.dart';
+import 'package:teddypet_mobile/data/repositories/brand/brand_repository.dart';
 import 'package:teddypet_mobile/presentation/providers/cart/cart_provider.dart';
 import 'package:teddypet_mobile/data/repositories/cart/cart_repository_impl.dart';
 import 'package:teddypet_mobile/application/cart/cart_app_service_impl.dart';
@@ -20,10 +29,15 @@ import 'package:teddypet_mobile/presentation/providers/wishlist/wishlist_provide
 import 'package:teddypet_mobile/data/repositories/wishlist/wishlist_repository.dart';
 import 'package:teddypet_mobile/application/wishlist/wishlist_app_service.dart';
 import 'package:teddypet_mobile/presentation/controllers/wishlist/wishlist_controller.dart';
+import 'package:teddypet_mobile/data/repositories/feedback/feedback_repository_impl.dart';
+import 'package:teddypet_mobile/application/feedback/feedback_app_service.dart';
+import 'package:teddypet_mobile/presentation/controllers/feedback/feedback_controller.dart';
+import 'package:teddypet_mobile/presentation/providers/feedback/feedback_provider.dart';
 import 'package:teddypet_mobile/core/network/api_client.dart';
 import 'package:teddypet_mobile/data/api/wishlist.api.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
 import 'core/routes/app_router.dart';
+import 'package:teddypet_mobile/presentation/providers/home/home_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,12 +51,30 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => UserAddressProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(
           create: (_) => CategoryProvider(
             CategoryController(
               CategoryAppServiceImpl(CategoryRepositoryImpl()),
             ),
           ),
+        ),
+        Provider(
+          create: (_) => ProductController(
+            ProductAppServiceImpl(ProductRepositoryImpl()),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ProductListProvider(context.read<ProductController>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ProductDetailProvider(context.read<ProductController>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ProductReviewsProvider(context.read<ProductController>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => FilterProvider(BrandRepositoryImpl()),
         ),
         ChangeNotifierProvider(
           create: (_) => CartProvider(
@@ -64,6 +96,21 @@ Future<void> main() async {
               WishlistAppServiceImpl(
                 WishlistRepositoryImpl(WishlistApi(ApiClient())),
               ),
+            ),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FeedbackProvider(
+            FeedbackController(
+              FeedbackAppServiceImpl(FeedbackRepositoryImpl()),
+            ),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => HomeProvider(
+            context.read<ProductController>(),
+            CategoryController(
+              CategoryAppServiceImpl(CategoryRepositoryImpl()),
             ),
           ),
         ),

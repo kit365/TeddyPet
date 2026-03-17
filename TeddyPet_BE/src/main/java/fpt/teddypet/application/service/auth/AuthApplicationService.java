@@ -85,8 +85,15 @@ public class AuthApplicationService implements AuthService {
 
     @PostConstruct
     public void init() {
+        java.util.List<String> audiences = (googleClientId != null && !googleClientId.isBlank())
+                ? java.util.Arrays.stream(googleClientId.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList()
+                : java.util.Collections.emptyList();
+
         this.googleVerifier = new GoogleIdTokenVerifier.Builder(HTTP_TRANSPORT, JSON_FACTORY)
-                .setAudience(Collections.singletonList(googleClientId))
+                .setAudience(audiences)
                 .build();
     }
 

@@ -234,7 +234,7 @@ export const useAdminNotification = (autoConnect = true) => {
 
         if (!user?.username) return;
 
-        const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8080";
+        const apiBase = import.meta.env.VITE_API_URL || "";
         const socketUrl = `${apiBase}/ws`;
         const client = new Client({
             brokerURL: socketUrl.replace('http', 'ws'),

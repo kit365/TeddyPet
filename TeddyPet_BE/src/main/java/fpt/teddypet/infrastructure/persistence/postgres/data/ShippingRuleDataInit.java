@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(15)
 @RequiredArgsConstructor
 public class ShippingRuleDataInit implements CommandLineRunner {

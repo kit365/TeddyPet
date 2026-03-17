@@ -27,6 +27,8 @@ export const SafeGoogleLogin = memo(({ onSuccess, onError, disabled }: SafeGoogl
                 }}
             >
                 <GoogleLogin
+                    size="large"
+                    width="400"
                     onSuccess={(credentialResponse) => {
                         try {
                             if (credentialResponse.credential) {

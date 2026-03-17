@@ -1,6 +1,6 @@
 import {
     User, MapPin, PawPrint, Package,
-    LogOut, Camera, ShieldCheck, Loader2, ImagePlus, History, X, Check
+    LogOut, Camera, ShieldCheck, Loader2, ImagePlus, History, X, Check, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -422,6 +422,12 @@ export const Sidebar = () => {
                         icon={ShieldCheck}
                         label="Mật khẩu & Bảo mật"
                         active={pathname === "/dashboard/change-password"}
+                    />
+                    <SidebarItem
+                        to="/dashboard/bank-information"
+                        icon={CreditCard}
+                        label="Phương thức thanh toán"
+                        active={pathname === "/dashboard/bank-information"}
                     />
                     <button
                         onClick={handleLogout}

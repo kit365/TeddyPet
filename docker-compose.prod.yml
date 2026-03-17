@@ -1,0 +1,126 @@
+services:
+  # --- Backend ---
+  teddypet-be:
+    image: ${DOCKER_REGISTRY_BE:-kitops365/teddypet-be}:latest
+    container_name: teddypet-be-container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      # These specific overrides ensure internal container networking works regardless of .env values
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SERVER_PORT: 8080
+      SPRING_FLYWAY_REPAIR_ON_MIGRATE: "true"
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m"
+    networks:
+      - teddypet-prod-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # --- Frontend ---
+  teddypet-fe:
+    image: ${DOCKER_REGISTRY_FE:-kitops365/teddypet-fe}:latest
+    container_name: teddypet-fe-container
+    restart: always
+    networks:
+      - teddypet-prod-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - teddypet-be
+
+  # --- Reverse Proxy (Nginx) ---
+  nginx:
+    image: nginx:stable-alpine
+    container_name: teddypet-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/conf.d:/etc/nginx/templates
+      - ./infrastructure/nginx/certbot/conf:/etc/letsencrypt
+      - ./infrastructure/nginx/certbot/www:/var/www/certbot
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+    networks:
+      - teddypet-prod-network
+    depends_on:
+      - teddypet-be
+      - teddypet-fe
+
+  # --- SSL Manager (Certbot) ---
+  certbot:
+    image: certbot/certbot
+    container_name: teddypet-certbot
+    volumes:
+      - ./infrastructure/nginx/certbot/conf:/etc/letsencrypt
+      - ./infrastructure/nginx/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - teddypet-prod-network
+
+  # --- Infrastructure ---
+  mongodb:
+    image: mongo:7.0
+    container_name: teddypet-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-teddypet_mongo}
+    networks:
+      - teddypet-prod-network
+    volumes:
+      - teddypet-mongodb-data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: teddypet-redis
+    restart: always
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: >
+      sh -c 'redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes'
+    volumes:
+      - teddypet-redis-data:/data
+    networks:
+      - teddypet-prod-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Real-time Log Viewer ---
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8888:8080"
+    restart: always
+    networks:
+      - teddypet-prod-network
+
+networks:
+  teddypet-prod-network:
+    driver: bridge
+
+volumes:
+  teddypet-mongodb-data:
+  teddypet-redis-data:

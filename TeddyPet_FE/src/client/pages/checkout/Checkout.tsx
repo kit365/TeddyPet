@@ -19,7 +19,7 @@ import { createOrder } from "../../../api/order.api";
 import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
-import { getShippingEstimation } from "../../api/shipping.api";
+// Phí ship luôn "Liên hệ sau" - shop gọi lại chốt giá, không tính lúc checkout
 import { CheckCircle2 } from "lucide-react";
 
 // Fix for leaflet default marker icon
@@ -118,8 +118,8 @@ export const CheckoutPage = () => {
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
     const [loadingAddresses, setLoadingAddresses] = useState(true);
-    const [shippingFee, setShippingFee] = useState<number | null>(null);
-    const [calculatingFee, setCalculatingFee] = useState(false);
+    const [shippingFee] = useState<number | null>(null); // Luôn null = "Liên hệ sau" (giữ hook để tránh lỗi "Rendered more hooks")
+    const [_calculatingFee] = useState(false); // Không dùng, giữ để số lượng hooks ổn định
 
     // Shipping & Payment States
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -280,33 +280,6 @@ export const CheckoutPage = () => {
         fetchAddresses();
     }, [user]);
 
-    const calculateShipping = async (lat: number, lon: number) => {
-        let provinceId = 0;
-        // Mock HCM detection
-        if (lat >= 10.7 && lat <= 11.0 && lon >= 106.6 && lon <= 106.8) {
-            provinceId = 79;
-        }
-
-        setCalculatingFee(true);
-        try {
-            const resVal = await getShippingEstimation(provinceId);
-            if (resVal && resVal.data !== undefined && resVal.data > 0) {
-                setShippingFee(Number(resVal.data));
-            } else {
-                setShippingFee(null); // null means "Liên hệ sau"
-            }
-        } catch (err) {
-            console.error("Error calculating fee", err);
-            setShippingFee(null);
-        } finally {
-            setCalculatingFee(false);
-        }
-    };
-
-    useEffect(() => {
-        setShippingFee(0);
-    }, [selectedAddressId, addresses]);
-
     const handleCurrentLocation = () => {
         if (!navigator.geolocation) {
             toast.info("Trình duyệt của bạn không hỗ trợ định vị GPS");
@@ -322,7 +295,6 @@ export const CheckoutPage = () => {
                 setValue("latitude", latitude);
                 setValue("longitude", longitude);
                 fetchAddressFromCoords(latitude, longitude);
-                calculateShipping(latitude, longitude);
             },
             (err) => {
                 console.error("Lỗi GPS:", err);
@@ -341,7 +313,6 @@ export const CheckoutPage = () => {
                 isManualChange.current = false;
                 setValue("address", data.display_name);
                 setSearchKeyword(data.display_name);
-                setShippingFee(0);
             }
         } catch (error) {
             console.error("Lỗi reverse geocoding:", error);
@@ -390,7 +361,6 @@ export const CheckoutPage = () => {
                 }
                 setSearchKeyword(displayName);
                 setShowSuggestions(false);
-                calculateShipping(lat, lon);
             }
         } catch (error) {
             console.error("Lỗi Geocoding:", error);
@@ -447,7 +417,6 @@ export const CheckoutPage = () => {
         setValue("address", suggestion.display_name);
         setSearchKeyword(suggestion.display_name);
         setShowSuggestions(false);
-        calculateShipping(lat, lon);
     };
 
     const handlePlaceOrder = async (data: FormData) => {
@@ -987,9 +956,10 @@ export const CheckoutPage = () => {
                                     <div className="flex justify-between text-[#666] text-[1.0rem]">
                                         <span className="font-medium">Phí vận chuyển</span>
                                         <span className="font-bold text-client-secondary">
-                                            {calculatingFee ? "Đang tính..." : (shippingFee !== null && shippingFee > 0 ? `${shippingFee.toLocaleString()}đ` : "Liên hệ sau")}
+                                            Liên hệ sau
                                         </span>
                                     </div>
+                                    <p className="text-[0.8rem] text-[#888] -mt-1">Shop sẽ gọi lại để chốt giá ship</p>
 
                                     <div className="pt-[10px] border-t border-[#eee] flex justify-between items-center">
                                         <span className="text-[1.0rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>

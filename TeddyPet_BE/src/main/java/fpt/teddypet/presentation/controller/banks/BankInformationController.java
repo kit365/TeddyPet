@@ -41,6 +41,15 @@ public class BankInformationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(data));
     }
 
+    @PutMapping("/me/{id}")
+    @Operation(summary = "Cập nhật bank information của tôi")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> updateMyBank(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpsertBankInformationRequest request) {
+        BankInformationResponse data = bankInformationService.updateMyBank(id, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     @PatchMapping("/me/{id}/default")
     @Operation(summary = "Set/unset bank default của tôi")
     public ResponseEntity<ApiResponse<BankInformationResponse>> setMyDefault(

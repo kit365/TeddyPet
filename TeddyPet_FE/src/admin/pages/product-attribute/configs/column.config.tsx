@@ -1,4 +1,4 @@
-﻿import { Box, Link } from "@mui/material";
+import { Box, Link } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridRenderCellParams, GridColDef } from "@mui/x-data-grid";
 import { DeleteIcon, EditIcon, EyeIcon } from "../../../assets/icons/index";
 import { COLORS } from "./constants";
@@ -186,17 +186,10 @@ export const RenderActionsCell = (params: GridRenderCellParams) => {
 // Column configs
 export const columnsConfig: GridColDef<any>[] = [
     {
-        field: "displayOrder",
-        headerName: "STT",
-        width: 70,
-        align: 'center',
-        headerAlign: 'center',
-    },
-    {
         field: "name",
         headerName: "Tên thuộc tính",
         flex: 1,
-        minWidth: 180,
+        minWidth: 200,
         hideable: false,
         renderCell: RenderNameCell,
     },
@@ -209,18 +202,17 @@ export const columnsConfig: GridColDef<any>[] = [
     {
         field: "values",
         headerName: "Danh sách lựa chọn",
-        flex: 2,
-        minWidth: 350,
+        width: 400,
         renderCell: RenderValuesCell,
     },
     {
         field: 'actions',
-        headerName: 'Hành động',
+        headerName: '',
         width: 100,
         sortable: false,
         filterable: false,
-        align: 'center',
-        headerAlign: 'center',
+        align: 'right',
+        headerAlign: 'right',
         renderCell: RenderActionsCell,
     },
 ];

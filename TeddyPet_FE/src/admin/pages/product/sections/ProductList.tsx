@@ -1,4 +1,4 @@
-﻿import {
+import {
     DataGrid,
     GridColDef,
 } from '@mui/x-data-grid';
@@ -23,6 +23,9 @@ import { useBrands } from '../../brand/hooks/useBrand';
 import { useNestedProductCategories } from '../../product-category/hooks/useProductCategory';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import Popover from '@mui/material/Popover';
+import Divider from '@mui/material/Divider';
+import { useRef } from 'react';
 
 const STATUS_OPTIONS = [
     { label: 'Tất cả', value: 'all' },
@@ -106,6 +109,32 @@ export const ProductList = () => {
 
     const [currentTab, setCurrentTab] = useState('all');
 
+    // Filter popover
+    const filterBtnRef = useRef<HTMLButtonElement>(null);
+    const [filterOpen, setFilterOpen] = useState(false);
+
+    // Staged filter state (local buffer)
+    const [localCategory, setLocalCategory] = useState<number[]>([]);
+    const [localBrand, setLocalBrand] = useState<number[]>([]);
+    const [localStock, setLocalStock] = useState<string[]>([]);
+    const [localPetType, setLocalPetType] = useState<string[]>([]);
+
+    const handleOpenFilter = () => {
+        setLocalCategory(filters.category || []);
+        setLocalBrand(filters.brand || []);
+        setLocalStock(filters.stock || []);
+        setLocalPetType(filters.petTypes || []);
+        setFilterOpen(true);
+    };
+
+    const handleApplyFilter = () => {
+        setCategoryFilter(localCategory);
+        setBrandFilter(localBrand);
+        setStockFilter(localStock);
+        setPetTypeFilter(localPetType);
+        setFilterOpen(false);
+    };
+
     const handleTabChange = (_: any, newValue: string) => {
         setCurrentTab(newValue);
         setStatusFilter([newValue]);
@@ -154,93 +183,65 @@ export const ProductList = () => {
 
                 {/* Filter & Search Section */}
                 <Stack
-                    direction={{ xs: 'column', lg: 'row' }}
-                    sx={{ 
-                        px: 3, 
-                        py: 2.5, 
-                        flexWrap: 'wrap',
-                        alignItems: 'center', 
-                        gap: 2, 
-                        justifyContent: 'flex-start'
-                    }}
+                    direction="row"
+                    alignItems="center"
+                    spacing={2}
+                    sx={{ px: 3, py: 2.5 }}
                 >
                     {/* Search Field */}
                     <TextField
                         size="small"
-                        placeholder="Tìm theo tên sản phẩm, danh mục, thương hiệu..."
+                        placeholder="Tìm theo tên sản phẩm, mã SKU..."
                         value={filters.search}
                         onChange={(e) => setSearchFilter(e.target.value)}
                         sx={{
-                            width: { xs: '100%', md: 400, lg: 450 },
-                            flexShrink: 0,
+                            flex: 1,
+                            maxWidth: 450,
                             '& .MuiOutlinedInput-root': {
-                                borderRadius: '12px',
-                                bgcolor: '#F4F6F8',
+                                borderRadius: '14px',
+                                bgcolor: 'white',
+                                height: '44px',
+                                border: '1px solid rgba(145, 158, 171, 0.24)',
+                                transition: 'all 0.2s ease',
                                 '& fieldset': { border: 'none' },
-                                '&:hover fieldset': { border: 'none' },
-                                '&.Mui-focused fieldset': { border: '1px solid #1C252E' },
-                                fontSize: '0.9375rem'
-                            }
+                                '&:hover': {
+                                    bgcolor: '#F9FAFB',
+                                    borderColor: 'rgba(145, 158, 171, 0.44)',
+                                },
+                                '&.Mui-focused': {
+                                    bgcolor: 'white',
+                                    boxShadow: '0 0 0 3px rgba(28, 37, 46, 0.05)',
+                                    borderColor: '#1C252E',
+                                },
+                                fontSize: '0.9375rem',
+                            },
                         }}
                         InputProps={{
                             startAdornment: (
-                                <InputAdornment position="start" sx={{ mr: 0.5 }}>
-                                    <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                                <InputAdornment position="start" sx={{ mr: 1 }}>
+                                    <SearchIcon sx={{ color: '#637381', fontSize: '1.25rem' }} />
                                 </InputAdornment>
                             ),
                         }}
                     />
 
-                    {/* Filters Group - Now follows right after search */}
-                    <Stack 
-                        direction="row" 
-                        spacing={1.2} 
-                        sx={{ 
-                            flexWrap: 'wrap',
-                            gap: 1.2, 
-                            alignItems: 'center',
-                        }}
-                    >
-                        <SelectMulti
-                            label="Danh mục"
-                            options={categoryOptions}
-                            value={filters.category?.map(String) || []}
-                            onChange={(val) => setCategoryFilter(val.map(Number))}
-                        />
-                        <SelectMulti
-                            label="Thương hiệu"
-                            options={brandOptions}
-                            value={filters.brand?.map(String) || []}
-                            onChange={(val) => setBrandFilter(val.map(Number))}
-                            searchable
-                        />
-                        <SelectMulti
-                            label="Tình trạng kho"
-                            options={STOCK_STATUS_OPTIONS}
-                            value={filters.stock || []}
-                            onChange={setStockFilter}
-                        />
-                        <SelectMulti
-                            label="Loại thú cưng"
-                            options={PET_TYPE_OPTIONS}
-                            value={filters.petTypes || []}
-                            onChange={setPetTypeFilter}
-                        />
+                    <Box sx={{ flex: 1 }} />
 
+                    {/* Action Buttons Group */}
+                    <Stack direction="row" spacing={1.5} alignItems="center">
                         {isFiltered && (
                             <Button
                                 color="error"
                                 onClick={clearFilters}
                                 startIcon={<RestartAltIcon />}
-                                sx={{ 
-                                    fontWeight: 700, 
-                                    textTransform: 'none', 
-                                    fontSize: '0.8125rem', 
-                                    whiteSpace: 'nowrap',
+                                sx={{
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                    fontSize: '0.8125rem',
                                     borderRadius: '10px',
                                     px: 2,
                                     height: '40px',
-                                    bgcolor: 'rgba(255, 86, 48, 0.08)', // Soft red background
+                                    bgcolor: 'rgba(255, 86, 48, 0.08)',
                                     color: '#FF5630',
                                     '&:hover': {
                                         bgcolor: 'rgba(255, 86, 48, 0.16)'
@@ -250,33 +251,33 @@ export const ProductList = () => {
                                 Xóa bộ lọc
                             </Button>
                         )}
+
+                        <Button
+                            ref={filterBtnRef}
+                            onClick={handleOpenFilter}
+                            startIcon={<FilterListIcon sx={{ fontSize: '1.15rem !important' }} />}
+                            sx={{
+                                height: '44px',
+                                px: 2,
+                                borderRadius: '14px',
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                color: '#1C252E',
+                                border: '1.5px solid rgba(145, 158, 171, 0.32)',
+                                background: 'white',
+                                transition: 'all 0.2s',
+                                '&:hover': {
+                                    bgcolor: 'rgba(145, 158, 171, 0.05)',
+                                    borderColor: '#1C252E',
+                                },
+                            }}
+                        >
+                            Bộ lọc {`(${products.length})`}
+                        </Button>
                     </Stack>
                 </Stack>
 
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    sx={{ px: 3, pb: 2 }}
-                >
-                    <Box sx={{ 
-                        bgcolor: 'rgba(0, 167, 111, 0.1)', 
-                        px: 1.2,
-                        py: 0.5,
-                        borderRadius: '20px', 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
-                    }}>
-                        <FilterListIcon sx={{ color: '#00A76F', fontSize: '1.125rem' }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#00A76F', fontSize: '0.875rem' }}>
-                            Kết quả tìm kiếm: 
-                            <Box component="span" sx={{ ml: 0.5, color: '#1C252E' }}>
-                                {products.length} sản phẩm
-                            </Box>
-                        </Typography>
-                    </Box>
-                </Stack>
 
                 <Box sx={{ width: '100%', minWidth: 0 }}>
                     <DataGrid
@@ -331,6 +332,112 @@ export const ProductList = () => {
                     />
                 </Box>
             </Card>
+
+            {/* ── Filter Popover ── */}
+            <Popover
+                open={filterOpen}
+                anchorEl={filterBtnRef.current}
+                onClose={() => setFilterOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            mt: 1,
+                            borderRadius: '16px',
+                            minWidth: 320,
+                            boxShadow: '0 12px 24px -4px rgba(145,158,171,0.12), 0 0 2px 0 rgba(145,158,171,0.2)',
+                            p: 2.5,
+                        },
+                    },
+                }}
+            >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: '#1C252E' }}>
+                        Bộ lọc nâng cao
+                    </Typography>
+                </Stack>
+
+                <Divider sx={{ mb: 2 }} />
+
+                <Stack gap={2.5}>
+                    <Box>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: '#919EAB', textTransform: 'uppercase', mb: 1, letterSpacing: 1 }}>
+                            Danh mục
+                        </Typography>
+                        <SelectMulti
+                            label="Danh mục"
+                            fullWidth
+                            options={categoryOptions}
+                            value={localCategory.map(String)}
+                            onChange={(val) => setLocalCategory(val.map(Number))}
+                        />
+                    </Box>
+
+                    <Box>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: '#919EAB', textTransform: 'uppercase', mb: 1, letterSpacing: 1 }}>
+                            Thương hiệu
+                        </Typography>
+                        <SelectMulti
+                            label="Thương hiệu"
+                            fullWidth
+                            options={brandOptions}
+                            value={localBrand.map(String)}
+                            onChange={(val) => setLocalBrand(val.map(Number))}
+                            searchable
+                        />
+                    </Box>
+
+                    <Box>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: '#919EAB', textTransform: 'uppercase', mb: 1, letterSpacing: 1 }}>
+                            Tình trạng kho
+                        </Typography>
+                        <SelectMulti
+                            label="Tình trạng kho"
+                            fullWidth
+                            options={STOCK_STATUS_OPTIONS}
+                            value={localStock}
+                            onChange={setLocalStock}
+                        />
+                    </Box>
+
+                    <Box>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: '#919EAB', textTransform: 'uppercase', mb: 1, letterSpacing: 1 }}>
+                            Loại thú cưng
+                        </Typography>
+                        <SelectMulti
+                            label="Loại thú cưng"
+                            fullWidth
+                            options={PET_TYPE_OPTIONS}
+                            value={localPetType}
+                            onChange={setLocalPetType}
+                        />
+                    </Box>
+                </Stack>
+
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handleApplyFilter}
+                    sx={{
+                        mt: 4,
+                        height: '48px',
+                        borderRadius: '14px',
+                        textTransform: 'none',
+                        fontWeight: 900,
+                        fontSize: '0.9375rem',
+                        bgcolor: '#1C252E',
+                        color: 'white',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                        '&:hover': { 
+                            bgcolor: '#454F5B',
+                            boxShadow: '0 12px 20px rgba(0,0,0,0.2)',
+                        },
+                    }}
+                >
+                    Áp dụng
+                </Button>
+            </Popover>
         </Box>
     )
 }

@@ -1,4 +1,4 @@
-﻿import {
+import {
     Box,
     Stack,
     TextField,
@@ -34,7 +34,8 @@ import { toast } from "react-toastify";
 import { z } from "zod";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 // Schema validation - flexible based on displayType
 const attributeValueSchema = z.object({
@@ -56,6 +57,8 @@ type EditAttributeFormValues = z.infer<typeof editAttributeSchema>;
 
 export const ProductAttributeEditPage = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { t } = useTranslation();
     const [expandedDetail, setExpandedDetail] = useState(true);
     const [expandedValues, setExpandedValues] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
@@ -559,31 +562,71 @@ export const ProductAttributeEditPage = () => {
                         </CollapsibleCard>
 
                         {/* Submit button */}
-                        <Box gap="24px" sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                            <Button
-                                type="submit"
-                                disabled={isPending}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: "3rem",
-                                    minWidth: "4rem",
-                                    fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    padding: "8px 22px",
-                                    borderRadius: "8px",
-                                    textTransform: "none",
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                        background: "#454F5B",
-                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                    }
-                                }}
-                                variant="contained"
-                            >
-                                {isPending ? "Đang cập nhật..." : "Cập nhật thuộc tính"}
-                            </Button>
-                        </Box>
+                        <Box sx={{ mb: 10 }} />
                     </Stack>
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/product/attribute/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isPending}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isPending ? "Đang cập nhật..." : "Cập nhật thuộc tính"}
+                        </Button>
+                    </Box>
                 </form>
             </ThemeProvider>
         </>

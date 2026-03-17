@@ -1,8 +1,6 @@
 services:
   teddypet-be:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: kitops365/teddypet-be:latest
     container_name: teddypet-be-container
     ports:
       - "8080:8080"

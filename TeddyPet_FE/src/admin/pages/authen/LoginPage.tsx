@@ -3,7 +3,7 @@ import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdor
 import { Link, useSearchParams } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { LogoAdmin } from "../../../assets/admin/logo"
+import { LogoTeddyPet } from "../../../assets/admin/LogoTeddyPet"
 import { SettingsIcon, EyeIcon, NoEyeIcon } from "../../assets/icons"
 import { adminTheme } from "../../config/theme"
 import { loginSchema, LoginFormValues } from "../../schemas/login.schema"
@@ -12,13 +12,7 @@ import { useGoogleLogin } from "./hooks/use-google-login"
 import { SafeGoogleLogin } from "./components/SafeGoogleLogin"
 import { toast } from "react-toastify"
 
-const LOGOS = [
-    "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-jwt.svg",
-    "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-firebase.svg",
-    "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-amplify.svg",
-    "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-auth0.svg",
-    "https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/icons/platforms/ic-supabase.svg"
-]
+
 
 export const LoginPage = () => {
     const [searchParams] = useSearchParams();
@@ -119,8 +113,8 @@ export const LoginPage = () => {
                             background: "transparent"
                         }}>
                         {/* Logo */}
-                        <Link to="/" className="inline-block w-[40px] h-[40px]">
-                            <LogoAdmin />
+                        <Link to="/" className="inline-block">
+                            <LogoTeddyPet width="100px" height="40px" />
                         </Link>
                         <Button
                             className="hover:scale-[1.04] hover:bg-admin-hoverIcon transition-all duration-150 ease-in-out"
@@ -149,25 +143,21 @@ export const LoginPage = () => {
                                 <Typography sx={{ fontSize: "0.9375rem", mt: "16px", color: "#637381" }}>Nâng cao hiệu quả với quy trình tối ưu.</Typography>
                             </div>
                             <img src="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/illustrations/illustration-dashboard.webp" alt="" className="w-full aspect-[4/3] object-cover" />
-                            <ul className="gap-[16px] flex">
-                                {LOGOS.map((logo, index) => (
-                                    <li
-                                        key={index}
-                                        className="cursor-not-allowed grayscale"
-                                    >
-                                        <img
-                                            src={logo}
-                                            alt={`platform-${index}`}
-                                            className="w-[32px] h-[32px]"
-                                        />
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="flex items-center gap-2">
+                                <LogoTeddyPet width="40px" height="40px" />
+                                <Typography sx={{ fontSize: "1.125rem", fontWeight: "800", color: "#1C252E", letterSpacing: 1 }}>
+                                    TEDDY PET
+                                </Typography>
+                            </div>
                         </div>
                         {/* Right */}
                         <div className="flex flex-col items-center justify-center flex-1 py-[80px] px-[16px]">
                             <Box sx={{ width: "100%", maxWidth: "480px", display: "flex", flexDirection: "column" }}>
-                                <h5 className="text-[1.1875rem] font-[700] mb-[40px]">Đăng nhập vào tài khoản của bạn</h5>
+                                <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                                    <Typography variant="h4" sx={{ fontWeight: 800, color: "#1C252E" }}>
+                                        Đăng nhập vào tài khoản
+                                    </Typography>
+                                </Box>
                                 <form onSubmit={handleSubmit(onSubmit)}>
                                     <Box sx={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                                         {forbidden && (
@@ -190,7 +180,6 @@ export const LoginPage = () => {
                                             )}
                                         />
                                         <div className="flex flex-col gap-[12px]">
-                                            <Link to={'/admin/auth/forgot-password'} className="text-[0.875rem] text-end hover:underline">Quên mật khẩu?</Link>
                                             <Controller
                                                 name="password"
                                                 control={control}
@@ -224,6 +213,11 @@ export const LoginPage = () => {
                                                     />
                                                 )}
                                             />
+                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Link to={'/admin/auth/forgot-password'} className="text-[0.8125rem] text-[#637381] hover:text-[#1C252E] transition-colors font-medium">
+                                                    Quên mật khẩu?
+                                                </Link>
+                                            </Box>
                                         </div>
                                         <Button
                                             type="submit"

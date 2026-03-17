@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class LocationService {
   static final LocationService _instance = LocationService._internal();
@@ -47,11 +48,40 @@ class LocationService {
     }
   }
 
-  /// Get formatted location string (latitude, longitude)
+  /// Get readable address from coordinates
+  Future<String?> getAddressFromCoordinates(double latitude, double longitude) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        // Format: District, City (e.g., Quận 1, TP. Hồ Chí Minh)
+        final district = place.subAdministrativeArea ?? place.locality ?? '';
+        final city = place.administrativeArea ?? '';
+        
+        if (district.isNotEmpty && city.isNotEmpty) {
+          return "$district, $city";
+        } else if (city.isNotEmpty) {
+          return city;
+        } else if (district.isNotEmpty) {
+          return district;
+        }
+        return place.name;
+      }
+    } catch (e) {
+      print('Error geocoding: $e');
+    }
+    return null;
+  }
+
+  /// Get formatted location string (Address or Lat,Long)
   Future<String?> getLocationString() async {
     final position = await getCurrentLocation();
     if (position != null) {
-      return '${position.latitude},${position.longitude}';
+      final address = await getAddressFromCoordinates(position.latitude, position.longitude);
+      if (address != null) {
+        return address;
+      }
+      return '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
     }
     return null;
   }

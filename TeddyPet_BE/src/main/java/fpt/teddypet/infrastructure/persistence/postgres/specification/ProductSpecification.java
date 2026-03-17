@@ -89,10 +89,14 @@ public class ProductSpecification {
         };
     }
 
-    public static Specification<Product> buildBaseSpecification() {
+    public static Specification<Product> buildClientSpecification() {
         return (root, query, criteriaBuilder) -> criteriaBuilder.and(
                 criteriaBuilder.equal(root.get(BaseEntity_.isDeleted), false),
                 criteriaBuilder.equal(root.get(BaseEntity_.isActive), true));
+    }
+
+    public static Specification<Product> buildAdminSpecification() {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get(BaseEntity_.isDeleted), false);
     }
 
     // A. Bộ lọc Phân tích dữ liệu
@@ -168,9 +172,10 @@ public class ProductSpecification {
             return null;
         }
         return (root, query, criteriaBuilder) -> {
-            if (query != null) {
-                query.distinct(true);
+            if (query == null) {
+                return criteriaBuilder.conjunction();
             }
+            query.distinct(true);
 
             Subquery<Long> variantSubquery = query.subquery(Long.class);
             Root<ProductVariant> variantRoot = variantSubquery.from(ProductVariant.class);

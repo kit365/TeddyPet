@@ -4,7 +4,14 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/entities/order/order_entity.dart';
+import '../../../data/models/request/feedback/feedback_request.dart';
+import '../../../data/models/response/feedback/feedback_token_response.dart';
+import '../../../data/models/response/feedback/feedback_item_response.dart';
+import '../../providers/cart/cart_provider.dart';
+import '../../providers/feedback/feedback_provider.dart';
 import '../../providers/order/order_provider.dart';
+import '../../../core/routes/app_routes.dart';
+import 'models/order_review_arguments.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final OrderEntity? order;
@@ -20,6 +27,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   bool _isAddressExpanded = false;
   bool _isOrderInfoExpanded = false;
   String? _currentOrderId;
+  bool _isReordering = false;
+  bool _isAllReviewed = false;
+  bool _isCheckingReviewStatus = false;
 
   @override
   void initState() {
@@ -30,8 +40,34 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     // Fetch từ API để có data mới nhất
     if (_currentOrderId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<OrderProvider>().fetchOrderDetail(_currentOrderId!);
+        final orderProvider = context.read<OrderProvider>();
+        orderProvider.fetchOrderDetail(_currentOrderId!);
+        _checkReviewStatus();
       });
+    }
+  }
+
+  Future<void> _checkReviewStatus() async {
+    final orderId = widget.order?.id ?? widget.orderId;
+    if (orderId == null) return;
+
+    if (mounted) {
+      setState(() => _isCheckingReviewStatus = true);
+    }
+    try {
+      final feedbackProvider = context.read<FeedbackProvider>();
+      final allReviewed = await feedbackProvider.isOrderAllReviewed(orderId);
+      if (mounted) {
+        setState(() {
+          _isAllReviewed = allReviewed;
+        });
+      }
+    } catch (e) {
+      debugPrint("Lỗi khi kiểm tra trạng thái đánh giá: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingReviewStatus = false);
+      }
     }
   }
 
@@ -290,60 +326,71 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildProductItem(OrderItemEntity item) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-              image: DecorationImage(
-                image: NetworkImage(item.imageUrl ?? 'https://placehold.co/100x100'),
-                fit: BoxFit.cover,
+    return InkWell(
+      onTap: () {
+        if (item.productId != null) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.productDetail,
+            arguments: item.productId,
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+                image: DecorationImage(
+                  image: NetworkImage(item.imageUrl ?? 'https://placehold.co/100x100'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.productName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.productName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.variantName,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'x${item.quantity}',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                    ),
-                    Text(
-                      '${NumberFormat("#,###", "vi_VN").format(item.unitPrice)}đ',
-                      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
-                    ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    item.variantName,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'x${item.quantity}',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                      ),
+                      Text(
+                        '${NumberFormat("#,###", "vi_VN").format(item.unitPrice)}đ',
+                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -533,24 +580,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       case 'COMPLETED':
         // Hoàn thành - đánh giá + mua lại
         return _buildActionButtons([
-          _ActionButton(
-            label: 'ĐÁNH GIÁ',
-            isPrimary: false,
-            isReview: true,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng đánh giá sẽ được cập nhật')),
-              );
-            },
-          ),
+          if (!_isAllReviewed && !_isCheckingReviewStatus)
+            _ActionButton(
+              label: 'ĐÁNH GIÁ',
+              isPrimary: true,
+              isReview: true,
+              onPressed: () => _showReviewDialog(context, order),
+            ),
           _ActionButton(
             label: 'MUA LẠI',
-            isPrimary: true,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng mua lại sẽ được cập nhật')),
-              );
-            },
+            isPrimary: false,
+            isLoading: _isReordering,
+            onPressed: () => _handleBuyAgain(context, order),
           ),
         ]);
       case 'CANCELLED':
@@ -559,12 +600,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         return _buildActionButtons([
           _ActionButton(
             label: 'MUA LẠI',
-            isPrimary: true,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng mua lại sẽ được cập nhật')),
-              );
-            },
+            isPrimary: false,
+            isLoading: _isReordering,
+            onPressed: () => _handleBuyAgain(context, order),
           ),
         ]);
       default:
@@ -598,23 +636,33 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     ? ElevatedButton(
                         onPressed: btn.onPressed,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(
-                          btn.label,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
+                        child: btn.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                btn.label,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
                       )
                     : OutlinedButton(
                         onPressed: btn.onPressed,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: btn.isReview ? AppColors.secondary : Colors.red,
-                          side: BorderSide(color: btn.isReview ? AppColors.secondary : Colors.red),
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -635,7 +683,73 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   // ========== Action Dialogs ==========
 
+  void _handleBuyAgain(BuildContext context, OrderEntity order) async {
+    setState(() => _isReordering = true);
+    
+    final cartProvider = context.read<CartProvider>();
+    final success = await cartProvider.buyAgain(order.items);
+    
+    if (mounted) {
+      setState(() => _isReordering = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm sản phẩm vào giỏ hàng!'),
+            backgroundColor: AppColors.secondary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Có lỗi xảy ra khi mua lại sản phẩm')),
+        );
+      }
+    }
+  }
+
+  void _showReviewDialog(BuildContext context, OrderEntity order) async {
+    final feedbackProvider = context.read<FeedbackProvider>();
+    
+    // Tải thông tin đánh giá (để xem đã đánh giá chưa)
+    await feedbackProvider.fetchOrderFeedbackDetails(order.id);
+    
+    if (!mounted) return;
+    
+    if (feedbackProvider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(feedbackProvider.errorMessage!)),
+      );
+      return;
+    }
+
+    final details = feedbackProvider.feedbackDetails;
+    if (details == null || details.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có sản phẩm nào để đánh giá')),
+      );
+      return;
+    }
+
+    // Điều hướng sang trang đánh giá mới thay vì hiện dialog
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.orderReview,
+      arguments: OrderReviewArguments(
+        orderId: order.id,
+        feedbackDetails: details,
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Nếu đánh giá thành công, tải lại chi tiết đơn hàng để cập nhật trạng thái nút
+      final orderProvider = context.read<OrderProvider>();
+      orderProvider.fetchOrderDetail(order.id);
+      _checkReviewStatus(); // Cập nhật trạng thái ẩn nút đánh giá
+    }
+  }
+
   void _showCancelDialog(BuildContext context, OrderEntity order, OrderProvider provider) {
+    // ... (unchanged)
     final TextEditingController reasonController = TextEditingController();
     
     showDialog(
@@ -707,7 +821,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Đã nhận', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -779,7 +893,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Gửi yêu cầu', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -792,12 +906,271 @@ class _ActionButton {
   final String label;
   final bool isPrimary;
   final bool isReview;
+  final bool isLoading;
   final VoidCallback onPressed;
 
   _ActionButton({
     required this.label,
     required this.isPrimary,
     this.isReview = false,
+    this.isLoading = false,
     required this.onPressed,
   });
+}
+
+class _FeedbackListDialog extends StatefulWidget {
+  final String orderId;
+  final List<dynamic> items; // List<FeedbackItemResponse>
+  final VoidCallback onSubmitted;
+
+  const _FeedbackListDialog({
+    required this.orderId,
+    required this.items,
+    required this.onSubmitted,
+  });
+
+  @override
+  State<_FeedbackListDialog> createState() => _FeedbackListDialogState();
+}
+
+class _FeedbackListDialogState extends State<_FeedbackListDialog> {
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Đánh giá sản phẩm',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const Divider(),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: widget.items.map((item) {
+                    return _FeedbackItemWidget(
+                      orderId: widget.orderId,
+                      item: item,
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('ĐÓNG'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackItemWidget extends StatefulWidget {
+  final String orderId;
+  final dynamic item; // FeedbackItemResponse
+
+  const _FeedbackItemWidget({required this.orderId, required this.item});
+
+  @override
+  State<_FeedbackItemWidget> createState() => _FeedbackItemWidgetState();
+}
+
+class _FeedbackItemWidgetState extends State<_FeedbackItemWidget> {
+  int _rating = 5;
+  final TextEditingController _commentController = TextEditingController();
+  bool _isSubmitted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSubmitted = widget.item.isSubmitted;
+    if (_isSubmitted) {
+      _rating = widget.item.rating ?? 5;
+      _commentController.text = widget.item.comment ?? '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  image: DecorationImage(
+                    image: NetworkImage(widget.item.imageUrl ?? 'https://placehold.co/50x50'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.item.productName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      widget.item.variantName,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (!_isSubmitted) ...[
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    onPressed: () => setState(() => _rating = index + 1),
+                    icon: Icon(
+                      index < _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 28,
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                hintText: 'Chia sẻ trải nghiệm của bạn...',
+                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Consumer<FeedbackProvider>(
+                builder: (context, provider, _) {
+                  return SizedBox(
+                    width: 120,
+                    child: ElevatedButton(
+                      onPressed: provider.isLoading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: provider.isLoading
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Gửi đánh giá', style: TextStyle(fontSize: 12)),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Row(
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < _rating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 20,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _commentController.text,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Đã gửi đánh giá',
+              style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _submit() async {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập bình luận')),
+      );
+      return;
+    }
+
+    final provider = context.read<FeedbackProvider>();
+    final success = await provider.submitFeedback(
+      FeedbackRequest(
+        orderId: widget.orderId,
+        productId: widget.item.productId,
+        variantId: widget.item.variantId,
+        rating: _rating,
+        comment: _commentController.text.trim(),
+      ),
+    );
+
+    if (success && mounted) {
+      setState(() => _isSubmitted = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã gửi đánh giá thành công!')),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Có lỗi xảy ra khi gửi đánh giá')),
+      );
+    }
+  }
 }

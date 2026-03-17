@@ -24,6 +24,9 @@ public interface ProductTagRepository extends JpaRepository<ProductTag, Long> {
 
     Optional<ProductTag> findByIdAndIsDeletedFalse(Long tagId);
 
+    @Query("SELECT t FROM ProductTag t LEFT JOIN FETCH t.products WHERE t.isDeleted = false AND t.isActive = true")
+    List<ProductTag> findAllActiveWithProducts();
+
     List<ProductTag> findAllByIdInAndIsActiveAndIsDeleted(List<Long> tagIds, boolean isActive, boolean isDeleted);
 
     @Modifying

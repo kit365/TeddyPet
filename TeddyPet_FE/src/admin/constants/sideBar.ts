@@ -10,7 +10,6 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ForumIcon from '@mui/icons-material/Forum';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import CreditScoreIcon from '@mui/icons-material/CreditScore';
 
 export const menuOverviewData = [

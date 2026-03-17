@@ -141,7 +141,7 @@ export const OrderDetailPage = () => {
 
     const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-    const [paymentPopupUrl, setPaymentPopupUrl] = useState<string | null>(null);
+    const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const hasToastedRef = useRef(false);
@@ -161,6 +161,10 @@ export const OrderDetailPage = () => {
             toast.info("Bạn đã hủy thanh toán. Đơn hàng vẫn đang chờ bạn!");
             navigate(location.pathname, { replace: true });
         } else if (code === '00') {
+            const payosData = Object.fromEntries(queryParams.entries());
+            console.log(">>> PayOS Success Data:", JSON.stringify(payosData, null, 2));
+            
+            setIsPaymentProcessing(true);
             hasToastedRef.current = true;
             toast.success("Thanh toán thành công! TeddyPet đang chuẩn bị hàng cho bạn.");
             navigate(location.pathname, { replace: true });
@@ -170,31 +174,13 @@ export const OrderDetailPage = () => {
             const poll = setInterval(() => {
                 refresh();
                 count++;
-                if (count >= 5) clearInterval(poll);
+                if (count >= 5) {
+                    clearInterval(poll);
+                    setIsPaymentProcessing(false);
+                }
             }, 3000);
         }
     }, [location.search, refresh, navigate, location.pathname]);
-
-    // Khi trang được load trong iframe sau khi PayOS redirect (returnUrl có payment_popup=1) → báo parent đóng popup và refresh
-    useEffect(() => {
-        if (typeof window === "undefined" || window.self === window.top) return;
-        const params = new URLSearchParams(location.search);
-        if (params.get("payment_popup") !== "1") return;
-        window.parent.postMessage({ type: "PAYMENT_POPUP_CLOSE" }, "*");
-    }, [location.search]);
-
-    // Parent: lắng nghe message từ iframe (sau khi thanh toán xong) để đóng popup và refresh đơn
-    useEffect(() => {
-        const handler = () => {
-            setPaymentPopupUrl(null);
-            refresh();
-        };
-        const onMessage = (event: MessageEvent) => {
-            if (event.data?.type === "PAYMENT_POPUP_CLOSE") handler();
-        };
-        window.addEventListener("message", onMessage);
-        return () => window.removeEventListener("message", onMessage);
-    }, [refresh]);
 
     const lastRefreshRef = useRef<string | null>(null);
 
@@ -224,6 +210,7 @@ export const OrderDetailPage = () => {
             setTimeLeft("Đã hủy");
         }
     }, [order, refresh]);
+    
 
     if (fetching || !order) {
         return (
@@ -338,25 +325,13 @@ export const OrderDetailPage = () => {
         }
     };
 
-    // Đóng popup nếu order đã được cập nhật sang trạng thái đã thanh toán
-    useEffect(() => {
-        const paymentInfo = order.payments?.[0];
-        const isPaid = paymentInfo?.status === 'COMPLETED' || paymentInfo?.status === 'SUCCESS';
-        if (isPaid && paymentPopupUrl) {
-            setPaymentPopupUrl(null);
-        }
-    }, [order.payments, paymentPopupUrl]);
-
     const handlePayment = async () => {
         setIsSubmitting(true);
         try {
-            const returnUrl = `${window.location.origin}/dashboard/orders/${order.id}?payment_popup=1`;
+            const returnUrl = window.location.href;
             const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
             if (response.success && response.data) {
-                setPaymentPopupUrl(response.data as string);
-                toast.info("Đang mở cửa sổ PayOS. Vui lòng quét QR/chuyển khoản, sau khi thanh toán xong hệ thống sẽ tự cập nhật.", {
-                    autoClose: 5000,
-                });
+                window.location.href = response.data as string;
             } else {
                 toast.error(response.message || "Không thể tạo link thanh toán.");
             }
@@ -594,7 +569,7 @@ export const OrderDetailPage = () => {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400 font-bold uppercase tracking-wider">Phí ship</span>
-                                    <span className="font-bold text-slate-900">+{order.shippingFee.toLocaleString()}đ</span>
+                                    <span className="font-bold text-slate-900">{order.shippingFee != null && order.shippingFee > 0 ? `+${order.shippingFee.toLocaleString()}đ` : "Liên hệ sau"}</span>
                                 </div>
                                 {order.discountAmount > 0 && (
                                     <div className="flex justify-between items-center text-sm text-red-500">
@@ -666,47 +641,6 @@ export const OrderDetailPage = () => {
                 </div>
             </div>
 
-            {/* Popup thanh toán PayOS (iframe) */}
-            {paymentPopupUrl && (
-                <div className="fixed inset-0 z-[998] flex items-center justify-center p-3 sm:p-4">
-                    <div
-                        className="absolute inset-0 bg-slate-900/50 backdrop-blur-md"
-                        onClick={() => setPaymentPopupUrl(null)}
-                        aria-hidden
-                    />
-                    <div className="relative z-10 w-full max-w-2xl h-[88vh] sm:h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 shrink-0 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-client-primary/10 flex items-center justify-center text-client-primary shrink-0">
-                                    <Wallet className="w-5 h-5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <h3 className="text-sm sm:text-base font-bold text-slate-800 uppercase tracking-tight truncate">
-                                        Thanh toán đơn hàng
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">Quét mã QR hoặc chuyển khoản theo hướng dẫn bên dưới</p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setPaymentPopupUrl(null)}
-                                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-client-primary flex items-center justify-center shrink-0 transition-colors"
-                                aria-label="Đóng"
-                            >
-                                <span className="text-xl font-semibold leading-none">×</span>
-                            </button>
-                        </div>
-                        <div className="flex-1 min-h-0 flex flex-col bg-slate-50/30">
-                            <iframe
-                                src={paymentPopupUrl}
-                                title="Thanh toán PayOS"
-                                className="w-full flex-1 min-h-0 border-0 rounded-b-2xl sm:rounded-b-3xl"
-                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* MODALS */}
             {showFeedbackModal && (
@@ -865,6 +799,26 @@ export const OrderDetailPage = () => {
                     background: #E2E8F0;
                 }
             `}</style>
+            {/* Overlay xử lý thanh toán */}
+            {isPaymentProcessing && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-center">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-client-primary/10 border-t-client-primary rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Wallet className="w-6 h-6 text-client-primary/40" />
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Đang xác thực...</h3>
+                            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                                Hệ thống đang đồng bộ trạng thái thanh toán. 
+                                <span className="block text-rose-500 font-bold mt-1 uppercase text-[10px] tracking-widest">⚠️ Vui lòng không đóng trình duyệt</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 };

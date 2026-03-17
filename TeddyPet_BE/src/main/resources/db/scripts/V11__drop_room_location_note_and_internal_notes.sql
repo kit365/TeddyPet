@@ -1,2 +1,0 @@
-ALTER TABLE rooms DROP COLUMN IF EXISTS location_note;
-ALTER TABLE rooms DROP COLUMN IF EXISTS internal_notes;

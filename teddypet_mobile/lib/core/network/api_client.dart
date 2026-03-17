@@ -9,7 +9,7 @@ class ApiClient {
   ApiClient() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: dotenv.get('API_URL', fallback: 'http://localhost:8080/api'),
+        baseUrl: dotenv.get('API_URL', fallback: 'http://localhost:8080/api/'),
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         contentType: 'application/json',
@@ -32,7 +32,11 @@ class ApiClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          final statusCode = e.response?.statusCode;
+          print('--- API ERROR ---');
+          print('Path: ${e.requestOptions.path}');
+          print('Status Code: ${e.response?.statusCode}');
+          print('Response Data: ${e.response?.data}');
+          print('------------------');
           return handler.next(e);
         },
       ),

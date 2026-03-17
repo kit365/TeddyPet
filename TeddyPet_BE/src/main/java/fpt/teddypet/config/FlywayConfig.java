@@ -1,30 +1,28 @@
 package fpt.teddypet.config;
 
-import lombok.extern.slf4j.Slf4j;
-import org.flywaydb.core.api.exception.FlywayValidateException;
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 
-/**
- * Khi pull code về, file migration có thể đã đổi (checksum khác với bản từng apply trên DB).
- * Strategy này: nếu validate fail thì chạy repair (cập nhật checksum trong flyway_schema_history)
- * rồi migrate lại, giúp app khởi động được mà không cần chạy flyway repair tay.
- */
-@Slf4j
 @Configuration
 public class FlywayConfig {
+
+    @Value("${spring.flyway.repair-on-migrate:false}")
+    private boolean repairOnMigrate;
 
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
-            try {
-                flyway.migrate();
-            } catch (FlywayValidateException e) {
-                log.warn("Flyway validation failed (checksum mismatch after pull). Running repair then migrate: {}", e.getMessage());
+            if (repairOnMigrate) {
+                System.out.println(">>> [FLYWAY] repairOnMigrate is TRUE. Running repair...");
                 flyway.repair();
-                flyway.migrate();
+                System.out.println(">>> [FLYWAY] Repair completed!");
+            } else {
+                System.out.println(">>> [FLYWAY] repairOnMigrate is FALSE. Normal migration...");
             }
+            flyway.migrate();
         };
     }
 }

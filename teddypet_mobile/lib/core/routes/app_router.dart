@@ -10,6 +10,7 @@ import 'package:teddypet_mobile/presentation/pages/profile/add_edit_address_page
 import 'package:teddypet_mobile/presentation/pages/profile/account_settings_page.dart';
 import 'package:teddypet_mobile/presentation/pages/main/main_page.dart';
 import 'package:teddypet_mobile/data/models/response/user/user_address_response.dart';
+import 'package:teddypet_mobile/presentation/pages/cart/cart_page.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/checkout_page.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/payment_method_page.dart';
 import 'package:teddypet_mobile/presentation/pages/cart/order_success_page.dart';
@@ -18,7 +19,10 @@ import 'package:teddypet_mobile/presentation/pages/order/order_detail_page.dart'
 import 'package:teddypet_mobile/presentation/pages/product/product_detail_page.dart';
 import 'package:teddypet_mobile/presentation/pages/product/product_reviews_page.dart';
 import 'package:teddypet_mobile/presentation/pages/wishlist/wishlist_page.dart';
-import '../../data/models/entities/order/order_entity.dart';
+import 'package:teddypet_mobile/data/models/entities/order/order_entity.dart';
+import 'package:teddypet_mobile/presentation/pages/product/models/product_reviews_arguments.dart';
+import 'package:teddypet_mobile/presentation/pages/order/models/order_review_arguments.dart';
+import 'package:teddypet_mobile/presentation/pages/order/order_review_page.dart';
 
 import 'app_routes.dart';
 
@@ -104,19 +108,33 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const WishlistPage(),
         );
-      case AppRoutes.productDetail:
-        final slug = settings.arguments as String?;
+      case AppRoutes.cart:
         return MaterialPageRoute(
-          builder: (_) => ProductDetailPage(slug: slug),
+          builder: (_) => const CartPage(),
+        );
+      case AppRoutes.productDetail:
+        final args = settings.arguments;
+        if (args is String) {
+          return MaterialPageRoute(
+            builder: (_) => ProductDetailPage(slug: args),
+          );
+        } else if (args is int) {
+          return MaterialPageRoute(
+            builder: (_) => ProductDetailPage(productId: args),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => const ProductDetailPage(),
         );
       case AppRoutes.productReviews:
-        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        final args = settings.arguments as ProductReviewsArguments;
         return MaterialPageRoute(
-          builder: (_) => ProductReviewsPage(
-            rating: (args['rating'] as num?)?.toDouble() ?? 0,
-            totalReviews: (args['totalReviews'] as num?)?.toInt() ?? 0,
-            productName: args['productName'] as String? ?? '',
-          ),
+          builder: (_) => ProductReviewsPage(args: args),
+        );
+      case AppRoutes.orderReview:
+        final args = settings.arguments as OrderReviewArguments;
+        return MaterialPageRoute(
+          builder: (_) => OrderReviewPage(args: args),
         );
       default:
         return MaterialPageRoute(

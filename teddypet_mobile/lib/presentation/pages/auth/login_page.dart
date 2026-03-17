@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:teddypet_mobile/presentation/providers/auth/auth_provider.dart';
@@ -6,6 +7,7 @@ import 'package:teddypet_mobile/core/utils/snackbar_utils.dart';
 import 'package:teddypet_mobile/core/utils/dialog_utils.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/custom_text_field.dart';
 import 'package:teddypet_mobile/presentation/common/widgets/primary_button.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_auth;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -162,8 +164,57 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 20),
               OutlinedButton(
                 onPressed: () async {
-                  // TODO: Implement Google Sign In SDK here
-                  // Sau đó gọi: context.read<AuthProvider>().loginWithGoogle(idToken);
+                  try {
+                    // 1. Initialize Google Sign In
+                    final googleSignIn = google_auth.GoogleSignIn(
+                      clientId: dotenv.get('GOOGLE_CLIENT_ID'),
+                      serverClientId: dotenv.get('GOOGLE_SERVER_CLIENT_ID'), // Lấy từ .env
+                      scopes: ['email', 'profile'],
+                    );
+
+                    // 2. Start the sign-in process
+                    final googleUser = await googleSignIn.signIn();
+                    if (googleUser == null) return; // User cancelled
+
+                    // 3. Obtain the authentication details
+                    final googleAuth = await googleUser.authentication;
+                    final idToken = googleAuth.idToken;
+
+                    if (idToken == null) {
+                      throw Exception('Không thể lấy ID Token từ Google');
+                    }
+
+                    // 4. Call AuthProvider to login with BE
+                    if (!mounted) return;
+                    final authProvider = context.read<AuthProvider>();
+                    final success = await authProvider.loginWithGoogle(idToken);
+
+                    if (!mounted) return;
+                    if (success) {
+                      DialogUtils.showSuccess(
+                        context,
+                        'Đăng nhập Google thành công!',
+                        onConfirm: () {
+                          Navigator.pushReplacementNamed(context, AppRoutes.home);
+                        },
+                      );
+                    } else {
+                      SnackBarUtils.show(
+                        context,
+                        authProvider.error ?? 'Đăng nhập Google thất bại!',
+                        isError: true,
+                      );
+                    }
+                  } catch (e) {
+                    print('❌ Lỗi Google Sign In: $e');
+                    if (mounted) {
+                      SnackBarUtils.show(
+                        context,
+                        'Lỗi đăng nhập Google: ${e.toString()}',
+                        isError: true,
+                      );
+                    }
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),

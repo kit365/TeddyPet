@@ -5,7 +5,7 @@ import 'cart_repository.dart';
 
 class CartRepositoryImpl implements CartRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/carts';
+  final String _baseEndpoint = 'carts';
 
   @override
   Future<CartEntity?> getMyCart() async {

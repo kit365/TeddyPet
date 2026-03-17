@@ -8,6 +8,7 @@ import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
+import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -113,7 +114,7 @@ public class OrderExcelService {
             setCurrencyCell(row, OrderExcelColumn.DISCOUNT_AMOUNT.getIndex(), order.getDiscountAmount(), currencyStyle);
 
             if (order.getPayments() != null && !order.getPayments().isEmpty()) {
-                Payment p = order.getPayments().get(0);
+                Payment p = order.getPayments().iterator().next();
                 row.createCell(OrderExcelColumn.PAYMENT_METHOD.getIndex())
                         .setCellValue(p.getPaymentMethod() != null ? p.getPaymentMethod().name() : "");
                 row.createCell(OrderExcelColumn.PAYMENT_STATUS.getIndex())
@@ -181,7 +182,7 @@ public class OrderExcelService {
                                     getCellDecimal(firstRow.getCell(OrderExcelColumn.DISCOUNT_AMOUNT.getIndex())))
                             .guestEmail(getCellStr(firstRow.getCell(OrderExcelColumn.CUSTOMER_EMAIL.getIndex())))
                             .orderItems(new ArrayList<>())
-                            .payments(new ArrayList<>())
+                            .payments(new java.util.LinkedHashSet<>())
                             .build();
 
                     // Dates
@@ -227,6 +228,7 @@ public class OrderExcelService {
                     Payment payment = Payment.builder()
                             .order(order)
                             .paymentMethod(pm)
+                            .paymentType(PaymentTypeEnum.ORDER_PAYMENT)
                             .status(ps)
                             .amount(order.getFinalAmount())
                             .build();

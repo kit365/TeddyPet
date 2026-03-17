@@ -95,7 +95,10 @@ public class SystemReceivingAccountServiceImpl implements SystemReceivingAccount
                 b.isDefault(),
                 b.getNote(),
                 b.getBookingId(),
+                b.getOrderId(),
+                b.getAccountType(),
                 b.getUserId() != null ? b.getUserId().toString() : null,
+                b.getUserEmail(),
                 b.getVietqrImageUrl(),
                 b.getCreatedAt(),
                 b.getUpdatedAt());

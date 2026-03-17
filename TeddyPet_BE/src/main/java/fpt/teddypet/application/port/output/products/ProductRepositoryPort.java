@@ -43,4 +43,6 @@ public interface ProductRepositoryPort {
     List<Product> findAll();
 
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
+
+    List<Product> findAll(Specification<Product> spec);
 }

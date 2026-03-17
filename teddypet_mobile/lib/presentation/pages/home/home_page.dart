@@ -1,80 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:teddypet_mobile/presentation/providers/home/home_provider.dart';
+import 'package:teddypet_mobile/presentation/pages/home/widgets/home/product_section.dart';
 import 'package:teddypet_mobile/presentation/pages/home/widgets/main_header.dart';
-import '../../../core/theme/app_colors.dart';
 import './widgets/home/category_menu.dart';
+import './models/product_section_model.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().fetchHomeData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const MainHeader(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const CategoryMenu(),
-            const SizedBox(height: 10),
+      body: Consumer<HomeProvider>(
+        builder: (context, homeProvider, child) {
+          if (homeProvider.isLoading && homeProvider.categories.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            _buildSectionPlaceholder('Thương hiệu nổi bật'),
-            const SizedBox(height: 10),
-
-            _buildSectionPlaceholder('Dịch vụ hiện có'),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionPlaceholder(String title) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondary,
-                ),
+          if (homeProvider.error != null && homeProvider.categories.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(homeProvider.error!, style: const TextStyle(color: Colors.red)),
+                  ElevatedButton(
+                    onPressed: () => homeProvider.fetchHomeData(),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
               ),
-              const Text(
-                'Xem tất cả >',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.secondary
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+            );
+          }
 
-          Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: const Center(
-              child: Text(
-                'Nội dung trống (Đang cập nhật Layout)',
-                style: TextStyle(color: Colors.grey),
+          return RefreshIndicator(
+            onRefresh: () => homeProvider.fetchHomeData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  const CategoryMenu(),
+                  const SizedBox(height: 10),
+
+                  ProductSection(
+                    model: ProductSectionModel(
+                      title: 'Sản phẩm mới',
+                      products: homeProvider.newArrivals,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  ProductSection(
+                    model: ProductSectionModel(
+                      title: 'Bán chạy',
+                      products: homeProvider.bestSellers,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          )
-        ],
+          );
+        },
       ),
     );
   }

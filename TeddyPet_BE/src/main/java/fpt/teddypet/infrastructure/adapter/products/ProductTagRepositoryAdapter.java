@@ -40,6 +40,11 @@ public class ProductTagRepositoryAdapter implements ProductTagRepositoryPort {
     }
 
     @Override
+    public List<ProductTag> findAllActiveWithProducts() {
+        return productTagRepository.findAllActiveWithProducts();
+    }
+
+    @Override
     public boolean existsByNameAndIdNot(String name, Long tagId) {
         return productTagRepository.existsByNameAndIdNot(name, tagId);
     }

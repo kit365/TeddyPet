@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { CreditCard, BadgeCheck, BadgeX } from "lucide-react";
+import { CreditCard, BadgeCheck, BadgeX, Pencil, QrCode, X, Info } from "lucide-react";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import {
@@ -8,7 +8,9 @@ import {
   getBanks,
   getMyBankInformation,
   setMyDefaultBankInformation,
+  updateMyBankInformation,
 } from "../../../api/bank.api";
+import { getVietQRBanks, type VietQRBank } from "../../../api/vietqr.api";
 import type { BankInformationPayload, BankOption } from "../../../types/bank.type";
 
 type MyBankItem = {
@@ -27,7 +29,12 @@ export const BankInformationListPage = () => {
   const [loading, setLoading] = useState(true);
   const [banks, setBanks] = useState<MyBankItem[]>([]);
   const [bankOptions, setBankOptions] = useState<BankOption[]>([]);
-  const [openCreate, setOpenCreate] = useState(false);
+  const [vietQRBanks, setVietQRBanks] = useState<VietQRBank[]>([]);
+  
+  const [openForm, setOpenForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<MyBankItem | null>(null);
+  const [qrData, setQrData] = useState<MyBankItem | null>(null);
+  
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<BankInformationPayload>({
     accountNumber: "",
@@ -45,9 +52,14 @@ export const BankInformationListPage = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [myRes, bankRes] = await Promise.all([getMyBankInformation(), getBanks()]);
+      const [myRes, bankRes, vqrRes] = await Promise.all([
+        getMyBankInformation(), 
+        getBanks(),
+        getVietQRBanks()
+      ]);
       setBanks((myRes.data ?? []) as any);
       setBankOptions(bankRes.data ?? []);
+      setVietQRBanks(vqrRes);
     } catch (e: any) {
       toast.error(e?.message ?? "Không thể tải thông tin ngân hàng.");
     } finally {
@@ -64,6 +76,28 @@ export const BankInformationListPage = () => {
   const sorted = useMemo(() => {
     return [...banks].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   }, [banks]);
+
+  const handleEdit = (item: MyBankItem) => {
+    setEditingItem(item);
+    setForm({
+      accountNumber: item.accountNumber,
+      accountHolderName: item.accountHolderName,
+      bankCode: item.bankCode,
+      note: item.note || "",
+    });
+    setOpenForm(true);
+  };
+
+  const handleCreateNew = () => {
+    setEditingItem(null);
+    setForm({
+      accountNumber: "",
+      accountHolderName: "",
+      bankCode: "",
+      note: "",
+    });
+    setOpenForm(true);
+  };
 
   if (!user) {
     return (
@@ -83,18 +117,18 @@ export const BankInformationListPage = () => {
 
   return (
     <DashboardLayout pageTitle="Tài khoản ngân hàng" breadcrumbs={breadcrumbs}>
-      <div className="flex justify-between items-end border-b border-slate-100 pb-8 mb-10">
+      <div className="flex justify-between items-end border-b border-slate-100 pb-6 mb-8">
         <div>
-          <h3 className="text-[2.8rem] font-black text-slate-800 tracking-tight italic flex items-center gap-3">
+          <h3 className="text-[1.5rem] font-bold text-slate-800 tracking-tight italic flex items-center gap-3">
             Tài khoản ngân hàng
           </h3>
-          <p className="text-[1.2rem] text-slate-400 font-medium mt-1 uppercase tracking-widest">
+          <p className="text-[0.875rem] text-slate-400 font-medium mt-1 uppercase tracking-widest leading-none">
             Dùng cho hoàn tiền/đối soát khi cần
           </p>
         </div>
         <button
-          onClick={() => setOpenCreate(true)}
-          className="flex items-center gap-2 bg-client-primary text-white px-8 py-3.5 rounded-2xl font-black text-[1.1rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-xl shadow-client-primary/20"
+          onClick={handleCreateNew}
+          className="flex items-center gap-2 bg-client-primary text-white px-6 py-2.5 rounded-xl font-bold text-[0.9rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-lg shadow-client-primary/20 active:scale-95"
         >
           + Thêm tài khoản
         </button>
@@ -110,19 +144,14 @@ export const BankInformationListPage = () => {
           {sorted.map((item) => (
             <div
               key={item.id}
-              className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 transition-all hover:shadow-2xl hover:shadow-client-primary/5 hover:-translate-y-1"
+              className="group relative bg-white border border-slate-100 rounded-[1.5rem] p-6 transition-all hover:shadow-xl hover:shadow-client-primary/5 hover:-translate-y-0.5"
             >
-              {item.isDefault && (
-                <div className="absolute top-6 right-6 bg-emerald-50 text-emerald-600 text-[1.1rem] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-emerald-100">
-                  Mặc định
-                </div>
-              )}
-              <div className="flex items-start gap-5">
-                <div className="mt-1">
+              <div className="flex items-start gap-4">
+                <div className="mt-1 shrink-0">
                   <input
                     type="radio"
                     name="bank_default"
-                    className="appearance-none w-6 h-6 border-2 border-slate-200 rounded-full checked:border-client-primary checked:border-[6px] transition-all cursor-pointer bg-white"
+                    className="appearance-none w-5 h-5 border-2 border-slate-200 rounded-full checked:border-client-primary checked:border-[5px] transition-all cursor-pointer bg-white"
                     checked={item.isDefault}
                     onChange={async () => {
                       try {
@@ -135,33 +164,54 @@ export const BankInformationListPage = () => {
                     }}
                   />
                 </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[1.8rem] text-slate-800 font-bold">
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 pr-2">
+                    <div className="text-[1.1rem] text-slate-800 font-bold truncate">
                       {item.bankName} ({item.bankCode})
                     </div>
+                    {item.isDefault && (
+                      <span className="bg-emerald-50 text-emerald-600 text-[0.65rem] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-100">
+                        Mặc định
+                      </span>
+                    )}
                     <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[1.1rem] font-black uppercase tracking-widest border ${item.isVerify
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-black uppercase tracking-widest border ${item.isVerify
+                        ? "bg-sky-50 text-sky-700 border-sky-100"
                         : "bg-amber-50 text-amber-700 border-amber-100"
                         }`}
                     >
-                      {item.isVerify ? <BadgeCheck size={16} /> : <BadgeX size={16} />}
+                      {item.isVerify ? <BadgeCheck size={12} /> : <BadgeX size={12} />}
                       {item.isVerify ? "Đã xác thực" : "Chưa xác thực"}
                     </div>
                   </div>
-                  <div className="text-[1.5rem] text-slate-500 font-medium">
-                    <span className="font-black text-slate-700">Số TK:</span> {item.accountNumber}
+                  <div className="text-[0.9rem] text-slate-500 font-medium">
+                    <span className="font-bold text-slate-700">Số TK:</span> {item.accountNumber}
                   </div>
-                  <div className="text-[1.5rem] text-slate-500 font-medium">
-                    <span className="font-black text-slate-700">Chủ TK:</span> {item.accountHolderName}
+                  <div className="text-[0.9rem] text-slate-500 font-medium">
+                    <span className="font-bold text-slate-700">Chủ TK:</span> {item.accountHolderName}
                   </div>
                   {item.note ? (
-                    <div className="text-[1.4rem] text-slate-400 italic leading-relaxed">
+                    <div className="text-[0.8rem] text-slate-400 italic leading-relaxed truncate">
                       Ghi chú: {item.note}
                     </div>
                   ) : null}
                 </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => setQrData(item)}
+                  className="p-2 text-slate-400 hover:text-client-primary hover:bg-blue-50 rounded-lg transition-colors title='Hiện mã QR'"
+                >
+                  <QrCode size={18} />
+                </button>
+                <button 
+                  onClick={() => handleEdit(item)}
+                  className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors title='Chỉnh sửa'"
+                >
+                  <Pencil size={18} />
+                </button>
               </div>
             </div>
           ))}
@@ -175,43 +225,54 @@ export const BankInformationListPage = () => {
         </div>
       )}
 
-      {openCreate && (
+      {/* Form Modal (Create / Edit) */}
+      {openForm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-[720px] rounded-[18px] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.25)] overflow-hidden">
-            <div className="px-6 py-5 bg-[#fff7ed] border-b border-[#fed7aa]">
-              <div className="text-[1.8rem] font-black text-[#9a3412]">Thêm tài khoản ngân hàng</div>
-              <div className="text-[1.25rem] text-slate-500 mt-1">
-                Tài khoản do bạn tạo sẽ cần nhân viên xác thực.
+            <div className="px-5 py-4 bg-[#fff7ed] border-b border-[#fed7aa] flex items-center justify-between">
+              <div>
+                <div className="text-[1.25rem] font-black text-[#9a3412] uppercase tracking-tight">
+                  {editingItem ? "Chỉnh sửa tài khoản" : "Thêm tài khoản ngân hàng"}
+                </div>
+                <div className="text-[0.875rem] text-slate-500 mt-1 font-medium">
+                  {editingItem ? "Cập nhật thông tin tài khoản của bạn." : "Tài khoản do bạn tạo sẽ cần nhân viên xác thực."}
+                </div>
               </div>
+              <button 
+                onClick={() => setOpenForm(false)}
+                className="p-2 hover:bg-white/50 rounded-full transition-colors text-[#9a3412]"
+              >
+                <X size={24} />
+              </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-[1.3rem] font-black text-slate-800">Số tài khoản *</label>
+                  <label className="block mb-1 text-[0.875rem] font-black text-slate-800 uppercase tracking-widest">Số tài khoản *</label>
                   <input
                     value={form.accountNumber}
                     onChange={(e) => setForm((p) => ({ ...p, accountNumber: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-[1.4rem] outline-none focus:border-client-primary"
+                    className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-client-primary transition-all"
                     placeholder="0123456789"
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 text-[1.3rem] font-black text-slate-800">Chủ tài khoản *</label>
+                  <label className="block mb-1 text-[0.875rem] font-black text-slate-800 uppercase tracking-widest">Chủ tài khoản *</label>
                   <input
                     value={form.accountHolderName}
                     onChange={(e) => setForm((p) => ({ ...p, accountHolderName: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-[1.4rem] outline-none focus:border-client-primary"
+                    className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-client-primary transition-all"
                     placeholder="NGUYEN VAN A"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block mb-1 text-[1.3rem] font-black text-slate-800">Ngân hàng *</label>
+                <label className="block mb-1 text-[0.875rem] font-black text-slate-800 uppercase tracking-widest">Ngân hàng *</label>
                 <select
                   value={form.bankCode}
                   onChange={(e) => setForm((p) => ({ ...p, bankCode: e.target.value }))}
-                  className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-[1.4rem] outline-none focus:border-client-primary"
+                  className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-client-primary transition-all"
                 >
                   <option value="">— Chọn ngân hàng —</option>
                   {bankOptions.map((b) => (
@@ -223,20 +284,29 @@ export const BankInformationListPage = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-[1.3rem] font-black text-slate-800">Ghi chú</label>
+                <label className="block mb-1 text-[0.875rem] font-black text-slate-800 uppercase tracking-widest">Ghi chú</label>
                 <textarea
                   rows={3}
                   value={form.note ?? ""}
                   onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))}
-                  className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-[1.4rem] outline-none focus:border-client-primary"
+                  className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-client-primary transition-all"
                 />
               </div>
+
+              {editingItem && (
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex gap-3 text-amber-700">
+                  <Info className="shrink-0" size={20} />
+                  <p className="text-[0.85rem] font-medium leading-relaxed">
+                    Lưu ý: Nếu bạn thay đổi số tài khoản hoặc ngân hàng, trạng thái "Đã xác thực" sẽ được đặt lại cho đến khi nhân viên kiểm tra lại.
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setOpenCreate(false)}
-                  className="rounded-[14px] border border-slate-200 bg-white px-6 py-3 text-[1.3rem] font-black text-slate-600 hover:bg-slate-50"
+                  onClick={() => setOpenForm(false)}
+                  className="rounded-[12px] border border-slate-200 bg-white px-6 py-2.5 text-[0.9rem] font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
                 >
                   Hủy
                 </button>
@@ -256,18 +326,22 @@ export const BankInformationListPage = () => {
                     }
                     try {
                       setSaving(true);
-                      await createMyBankInformation(payload);
-                      toast.success("Đã thêm tài khoản ngân hàng.");
-                      setOpenCreate(false);
-                      setForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
+                      if (editingItem) {
+                        await updateMyBankInformation(editingItem.id, payload);
+                        toast.success("Đã cập nhật tài khoản ngân hàng.");
+                      } else {
+                        await createMyBankInformation(payload);
+                        toast.success("Đã thêm tài khoản ngân hàng.");
+                      }
+                      setOpenForm(false);
                       fetchAll();
                     } catch (e: any) {
-                      toast.error(e?.message ?? "Không thể thêm tài khoản.");
+                      toast.error(e?.message ?? "Không thể lưu tài khoản.");
                     } finally {
                       setSaving(false);
                     }
                   }}
-                  className="rounded-[14px] bg-client-primary px-6 py-3 text-[1.3rem] font-black text-white hover:bg-client-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="rounded-[12px] bg-client-primary px-6 py-2.5 text-[0.9rem] font-bold text-white hover:bg-client-secondary disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-client-primary/20 transition-all active:scale-95"
                 >
                   {saving ? "Đang lưu..." : "Lưu"}
                 </button>
@@ -276,7 +350,81 @@ export const BankInformationListPage = () => {
           </div>
         </div>
       )}
+
+      {/* QR Modal */}
+      {qrData && (
+        <QRModal 
+          item={qrData} 
+          banks={vietQRBanks} 
+          onClose={() => setQrData(null)} 
+        />
+      )}
     </DashboardLayout>
+  );
+};
+
+const QRModal = ({ item, banks, onClose }: { item: MyBankItem; banks: VietQRBank[]; onClose: () => void }) => {
+  const bin = useMemo(() => {
+    // Tìm BIN dựa trên bankCode (ví dụ: VCB, MBB...)
+    // VietnamBankEnum: VCB -> MBB
+    // VietQR: shortName (VCB, MB...), code (Vietcombank, MBBank...)
+    // Thường shortName trùng với bankCode của hệ thống
+    const found = banks.find(b => 
+      b.shortName.toLowerCase() === item.bankCode.toLowerCase() || 
+      b.code.toLowerCase() === item.bankCode.toLowerCase()
+    );
+    return found?.bin || "";
+  }, [item.bankCode, banks]);
+
+  const qrUrl = bin 
+    ? `https://img.vietqr.io/image/${bin}-${item.accountNumber}-compact2.png?accountName=${encodeURIComponent(item.accountHolderName)}`
+    : null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-[420px] bg-white rounded-[24px] overflow-hidden shadow-2xl">
+        <div className="bg-client-primary p-6 text-white flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <QrCode size={24} />
+            <h4 className="text-[1.1rem] font-black uppercase tracking-tight">Mã QR Thanh toán</h4>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="p-8 flex flex-col items-center">
+          {qrUrl ? (
+            <>
+              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-6 shadow-inner">
+                <img 
+                  src={qrUrl} 
+                  alt="VietQR" 
+                  className="w-full aspect-square object-contain rounded-xl"
+                  onLoad={() => console.log("QR Loaded")}
+                />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-[1.2rem] font-bold text-slate-800">{item.bankName}</p>
+                <p className="text-slate-500 font-medium">Số TK: <span className="text-slate-800 font-bold">{item.accountNumber}</span></p>
+                <p className="text-slate-500 font-medium">Chủ TK: <span className="text-slate-800 font-bold uppercase">{item.accountHolderName}</span></p>
+              </div>
+            </>
+          ) : (
+            <div className="py-20 text-center">
+              <Info className="mx-auto text-amber-500 mb-4" size={48} />
+              <p className="text-slate-500 font-medium italic">Không thể khởi tạo mã QR cho ngân hàng này.</p>
+            </div>
+          )}
+          
+          <button 
+            onClick={onClose}
+            className="mt-8 w-full bg-slate-100 text-slate-600 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -34,6 +34,7 @@ import fpt.teddypet.domain.enums.UserStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.domain.enums.orders.OrderTypeEnum;
 import fpt.teddypet.domain.enums.payments.PaymentMethodEnum;
+import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -274,6 +275,7 @@ public class OrderApplicationService implements OrderService {
         Payment payment = Payment.builder()
                 .amount(order.getFinalAmount())
                 .paymentMethod(PaymentMethodEnum.CASH)
+                .paymentType(PaymentTypeEnum.ORDER_PAYMENT)
                 .status(PaymentStatusEnum.PENDING)
                 .notes(OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
                 .build();
@@ -289,6 +291,7 @@ public class OrderApplicationService implements OrderService {
         Payment payment = Payment.builder()
                 .amount(order.getFinalAmount())
                 .paymentMethod(PaymentMethodEnum.BANK_TRANSFER)
+                .paymentType(PaymentTypeEnum.ORDER_PAYMENT)
                 .status(PaymentStatusEnum.PENDING)
                 .notes(OrderMessages.MESSAGE_NOTE_ONLINE_PENDING)
                 .build();
@@ -536,7 +539,7 @@ public class OrderApplicationService implements OrderService {
         if (order.getPayments() == null || order.getPayments().isEmpty()) {
             throw new IllegalStateException("Đơn hàng không có thông tin thanh toán.");
         }
-        Payment mainPayment = order.getPayments().getFirst();
+        Payment mainPayment = order.getPayments().iterator().next();
         if (mainPayment.getStatus() != PaymentStatusEnum.PENDING) {
             throw new IllegalStateException("Không thể đổi phương thức thanh toán khi đã thanh toán.");
         }
@@ -753,6 +756,7 @@ public class OrderApplicationService implements OrderService {
         Payment payment = Payment.builder()
                 .amount(order.getFinalAmount())
                 .paymentMethod(method)
+                .paymentType(PaymentTypeEnum.ORDER_PAYMENT)
                 .status(paymentStatus)
                 .notes(method == PaymentMethodEnum.CASH
                         ? (isGuest ? OrderMessages.MESSAGE_NOTE_GUEST_COD : OrderMessages.MESSAGE_NOTE_PAYMENT_CASH)
@@ -901,7 +905,7 @@ public class OrderApplicationService implements OrderService {
         // chưa có)
         if (order.getPayments() != null && !order.getPayments().isEmpty()) {
             // Giả sử payment đầu tiên là payment chính
-            Payment mainPayment = order.getPayments().getFirst();
+            Payment mainPayment = order.getPayments().iterator().next();
             if (mainPayment.getPaymentMethod() == PaymentMethodEnum.CASH
                     && mainPayment.getStatus() == PaymentStatusEnum.PENDING) {
                 mainPayment.setAmount(order.getFinalAmount());
@@ -1143,7 +1147,7 @@ public class OrderApplicationService implements OrderService {
         });
 
         // Validate đơn ONLINE + thanh toán online
-        Payment payment = (order.getPayments() == null || order.getPayments().isEmpty()) ? null : order.getPayments().get(0);
+        Payment payment = (order.getPayments() == null || order.getPayments().isEmpty()) ? null : order.getPayments().iterator().next();
         if (order.getOrderType() != OrderTypeEnum.ONLINE || payment == null) {
             throw new IllegalStateException("Đơn hàng không hỗ trợ yêu cầu hoàn tiền.");
         }

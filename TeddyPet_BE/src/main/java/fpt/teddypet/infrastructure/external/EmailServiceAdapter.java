@@ -341,7 +341,7 @@ public class EmailServiceAdapter implements EmailServicePort {
         // Payment Status Text
         String paymentStatus = EmailConstants.LABEL_PAYMENT_PENDING;
         if (!detailedOrder.getPayments().isEmpty()) {
-            Payment p = detailedOrder.getPayments().getFirst();
+            Payment p = detailedOrder.getPayments().iterator().next();
             if (p.getStatus() == PaymentStatusEnum.COMPLETED) {
                 paymentStatus = EmailConstants.LABEL_PAYMENT_SUCCESS;
             } else if (p.getPaymentMethod() == PaymentMethodEnum.CASH) {
@@ -367,8 +367,8 @@ public class EmailServiceAdapter implements EmailServicePort {
         // Payment Link for Bank Transfer
         if (detailedOrder.getStatus() == OrderStatusEnum.CONFIRMED &&
                 !detailedOrder.getPayments().isEmpty() &&
-                detailedOrder.getPayments().get(0).getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER &&
-                detailedOrder.getPayments().get(0).getStatus() != PaymentStatusEnum.COMPLETED) {
+                detailedOrder.getPayments().iterator().next().getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER &&
+                detailedOrder.getPayments().iterator().next().getStatus() != PaymentStatusEnum.COMPLETED) {
             context.setVariable(EmailConstants.VAR_PAYMENT_URL, frontendUrl + "/dashboard/orders/" + detailedOrder.getId());
         }
 
@@ -380,7 +380,7 @@ public class EmailServiceAdapter implements EmailServicePort {
 
         String method = EmailConstants.LABEL_METHOD_COD;
         if (!detailedOrder.getPayments().isEmpty()) {
-            Payment p = detailedOrder.getPayments().getFirst();
+            Payment p = detailedOrder.getPayments().iterator().next();
             if (p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER) {
                 method = EmailConstants.LABEL_METHOD_ONLINE;
             }
@@ -488,7 +488,7 @@ public class EmailServiceAdapter implements EmailServicePort {
                         : LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         String paymentStatus = EmailConstants.LABEL_PAYMENT_PENDING;
         if (!detailedOrder.getPayments().isEmpty()) {
-            Payment p = detailedOrder.getPayments().getFirst();
+            Payment p = detailedOrder.getPayments().iterator().next();
             if (p.getStatus() == PaymentStatusEnum.COMPLETED) {
                 paymentStatus = EmailConstants.LABEL_PAYMENT_SUCCESS;
             } else if (p.getPaymentMethod() == PaymentMethodEnum.CASH) {
@@ -510,7 +510,7 @@ public class EmailServiceAdapter implements EmailServicePort {
         context.setVariable(EmailConstants.VAR_NOTES, detailedOrder.getNotes());
         String method = EmailConstants.LABEL_METHOD_COD;
         if (!detailedOrder.getPayments().isEmpty()) {
-            Payment p = detailedOrder.getPayments().getFirst();
+            Payment p = detailedOrder.getPayments().iterator().next();
             if (p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER) {
                 method = EmailConstants.LABEL_METHOD_ONLINE;
             }

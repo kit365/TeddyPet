@@ -1,4 +1,4 @@
-﻿import { COLORS } from './constants';
+import { COLORS } from './constants';
 import { SxProps, Theme } from '@mui/material';
 
 // Toolbar
@@ -18,8 +18,7 @@ export const dataGridCardStyles = {
     background: COLORS.background,
     color: COLORS.primary,
     borderRadius: '16px',
-    height: 'calc(100vh - 280px)', // Dynamic height
-    minHeight: '400px',
+    flex: 1, // Fill remaining space
     display: 'flex',
     flexDirection: 'column' as const,
     boxShadow: COLORS.shadow,

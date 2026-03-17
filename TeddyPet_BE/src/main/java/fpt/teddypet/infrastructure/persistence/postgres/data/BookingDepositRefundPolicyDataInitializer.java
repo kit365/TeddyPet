@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(11)
 @RequiredArgsConstructor
 public class BookingDepositRefundPolicyDataInitializer implements CommandLineRunner {

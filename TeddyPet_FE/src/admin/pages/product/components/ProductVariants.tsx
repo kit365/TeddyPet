@@ -225,18 +225,14 @@ export const ProductVariants = ({
             expanded={expanded}
             onToggle={onToggle}
         >
-            <Stack spacing={2.5} p="16px">
+            <Stack spacing={3} p="24px">
                 {/* 1. Attribute List & Selection */}
                 <Box>
-                    <Typography
-                        variant="subtitle1"
-                        gutterBottom
-                        sx={{ fontSize: '1rem', fontWeight: 600, color: '#637381' }}
-                    >
+                    <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600, color: '#1C252E' }}>
                         Chọn thuộc tính
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                         {validAttributes.map((attr: any) => {
                             const attrId = String(attr.attributeId || attr.id);
                             const isSelected = !!selectedAttributes[attrId];
@@ -247,7 +243,7 @@ export const ProductVariants = ({
                                     key={attrId}
                                     variant="outlined"
                                     sx={{
-                                        minWidth: 200,
+                                        minWidth: 160,
                                         cursor: 'pointer',
                                         bgcolor: isSelected ? 'rgba(0, 184, 217, 0.08)' : 'transparent',
                                         borderColor: isSelected ? '#00a764' : 'divider',
@@ -262,7 +258,7 @@ export const ProductVariants = ({
                                 >
                                     <CardContent sx={{ p: '16px !important' }}>
                                         <Box display="flex" justifyContent="space-between" alignItems="center">
-                                            <Typography sx={{ fontWeight: 600, fontSize: '1.5rem', color: isSelected ? '#00a764' : '#1C2524' }}>
+                                            <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: isSelected ? '#00a764' : '#1C252E' }}>
                                                 {attr?.name}
                                             </Typography>
                                             {isSelected && (
@@ -279,12 +275,12 @@ export const ProductVariants = ({
                                                         right: 8
                                                     }}
                                                 >
-                                                    <DeleteIcon sx={{ fontSize: '1.6rem', marginRight: "0px" }} />
+                                                    <DeleteIcon sx={{ fontSize: '1rem', marginRight: "0px" }} />
                                                 </IconButton>
                                             )}
                                         </Box>
 
-                                        <Typography variant="body2" sx={{ fontSize: '1.3rem', color: 'text.secondary', mt: 1 }}>
+                                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.5 }}>
                                             {isSelected ? `Đã chọn ${selectedCount} giá trị` : 'Chưa chọn giá trị nào'}
                                         </Typography>
 
@@ -297,7 +293,7 @@ export const ProductVariants = ({
                                                         size="small"
                                                         sx={{
                                                             height: 24,
-                                                            fontSize: '1.2rem',
+                                                            fontSize: '0.75rem',
                                                             bgcolor: '#fff',
                                                             border: '1px solid #919eab33'
                                                         }}
@@ -309,7 +305,7 @@ export const ProductVariants = ({
                                                         size="small"
                                                         sx={{
                                                             height: 24,
-                                                            fontSize: '1.2rem',
+                                                            fontSize: '0.75rem',
                                                             bgcolor: '#fff',
                                                             border: '1px solid #919eab33'
                                                         }}
@@ -333,7 +329,7 @@ export const ProductVariants = ({
                             onClick={handlePreviewVariants}
                             disabled={Object.keys(selectedAttributes).length === 0}
                             sx={{
-                                fontSize: '1.4rem',
+                                fontSize: '0.875rem',
                                 textTransform: 'none',
                                 bgcolor: '#1C252E',
                                 color: '#fff',
@@ -352,14 +348,14 @@ export const ProductVariants = ({
                 {variants.length > 0 && (
                     <Box>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-                            <Typography variant="h6" sx={{ fontSize: '1.6rem', fontWeight: 600 }}>
+                            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
                                 Danh sách biến thể ({variants.length})
                             </Typography>
                             {!readOnly && (
                                 <Button
                                     color="error"
                                     onClick={() => onVariantsChange([])}
-                                    sx={{ fontSize: '1.4rem', textTransform: 'none' }}
+                                    sx={{ fontSize: '0.875rem', textTransform: 'none' }}
                                 >
                                     Xóa tất cả
                                 </Button>
@@ -374,20 +370,20 @@ export const ProductVariants = ({
                                         {Object.keys(selectedAttributes).map(attrId => {
                                             const attr = attributes.find((a: any) => String(a.attributeId || a.id) === attrId);
                                             return (
-                                                <TableCell key={attrId} sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>
+                                                <TableCell key={attrId} sx={{ minWidth: 70, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>
                                                     {attr?.name || 'Thuộc tính'}
                                                 </TableCell>
                                             );
                                         })}
 
-                                        <TableCell sx={{ minWidth: 80, fontSize: '1.4rem', fontWeight: 600 }}>Ảnh</TableCell>
-                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Giá bán</TableCell>
-                                        <TableCell sx={{ minWidth: 140, fontSize: '1.4rem', fontWeight: 600 }}>Giá khuyến mãi</TableCell>
-                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Tồn kho</TableCell>
-                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Trọng lượng</TableCell>
-                                        <TableCell sx={{ minWidth: 100, fontSize: '1.4rem', fontWeight: 600 }}>Đơn vị</TableCell>
-                                        <TableCell sx={{ minWidth: 120, fontSize: '1.4rem', fontWeight: 600 }}>Trạng thái</TableCell>
-                                        {!readOnly && <TableCell width={50} align="center"></TableCell>}
+                                        <TableCell sx={{ minWidth: 60, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Ảnh</TableCell>
+                                        <TableCell sx={{ minWidth: 90, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Giá bán</TableCell>
+                                        <TableCell sx={{ minWidth: 90, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Giá KM</TableCell>
+                                        <TableCell sx={{ minWidth: 70, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Kho</TableCell>
+                                        <TableCell sx={{ minWidth: 80, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Cân nặng</TableCell>
+                                        <TableCell sx={{ minWidth: 75, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Đơn vị</TableCell>
+                                        <TableCell sx={{ minWidth: 100, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Trạng thái</TableCell>
+                                        {!readOnly && <TableCell width={40} align="center" sx={{ px: 0.5 }}></TableCell>}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -400,15 +396,15 @@ export const ProductVariants = ({
                                                 const variantAttr = variant.attributes.find(a => a?.name === attr?.name);
 
                                                 return (
-                                                    <TableCell key={attrId}>
-                                                        <Typography variant="body2" sx={{ fontSize: '1.4rem', color: '#1C252E' }}>
+                                                    <TableCell key={attrId} sx={{ py: '6px', px: 1 }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
                                                             {variantAttr?.value}
                                                         </Typography>
                                                     </TableCell>
                                                 );
                                             })}
 
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <Select
                                                     size="small"
                                                     disabled={readOnly}
@@ -442,13 +438,14 @@ export const ProductVariants = ({
                                                         );
                                                     }}
                                                     sx={{
-                                                        minWidth: 60,
+                                                        minWidth: 44,
+                                                        height: 36,
                                                         '& .MuiSelect-select': { 
                                                             padding: '0px !important', 
                                                             display: 'flex', 
                                                             justifyContent: 'center', 
                                                             alignItems: 'center',
-                                                            minHeight: '44px' 
+                                                            minHeight: '36px' 
                                                         },
                                                         '& fieldset': { border: 'none !important' },
                                                         '&:hover fieldset': { border: 'none !important' }
@@ -467,7 +464,7 @@ export const ProductVariants = ({
                                                 </Select>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <TextField
                                                     size="small"
                                                     value={variant.originalPrice === 0 ? "" : variant.originalPrice.toLocaleString("vi-VN")}
@@ -476,15 +473,15 @@ export const ProductVariants = ({
                                                         newVariants[index].originalPrice = Number(e.target.value.replace(/\D/g, ""));
                                                         onVariantsChange(newVariants);
                                                     }}
-                                                    sx={{ minWidth: 120 }}
+                                                    sx={{ minWidth: 90 }}
                                                     fullWidth
                                                     InputProps={{ 
-                                                        sx: { fontSize: '1.4rem' },
+                                                        sx: { fontSize: '0.875rem', height: 36 },
                                                         onWheel: (e) => (e.target as HTMLElement).blur()
                                                     }}
                                                 />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <TextField
                                                     size="small"
                                                     value={variant.price === 0 ? "" : variant.price.toLocaleString("vi-VN")}
@@ -493,15 +490,15 @@ export const ProductVariants = ({
                                                         newVariants[index].price = Number(e.target.value.replace(/\D/g, ""));
                                                         onVariantsChange(newVariants);
                                                     }}
-                                                    sx={{ minWidth: 120 }}
+                                                    sx={{ minWidth: 90 }}
                                                     fullWidth
                                                     InputProps={{ 
-                                                        sx: { fontSize: '1.4rem' },
+                                                        sx: { fontSize: '0.875rem', height: 36 },
                                                         onWheel: (e) => (e.target as HTMLElement).blur()
                                                     }}
                                                 />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <TextField
                                                     size="small"
                                                     value={variant.stock === 0 ? "" : variant.stock.toLocaleString("vi-VN")}
@@ -510,15 +507,15 @@ export const ProductVariants = ({
                                                         newVariants[index].stock = Number(e.target.value.replace(/\D/g, ""));
                                                         onVariantsChange(newVariants);
                                                     }}
-                                                    sx={{ minWidth: 100 }}
+                                                    sx={{ minWidth: 60 }}
                                                     fullWidth
                                                     InputProps={{ 
-                                                        sx: { fontSize: '1.4rem' },
+                                                        sx: { fontSize: '0.8125rem', height: 36 },
                                                         onWheel: (e) => (e.target as HTMLElement).blur()
                                                     }}
                                                 />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <TextField
                                                     size="small"
                                                     value={variant.weight === 0 ? "" : variant.weight.toLocaleString("vi-VN")}
@@ -527,17 +524,17 @@ export const ProductVariants = ({
                                                         newVariants[index].weight = Number(e.target.value.replace(/\D/g, ""));
                                                         onVariantsChange(newVariants);
                                                     }}
-                                                    sx={{ minWidth: 100 }}
+                                                    sx={{ minWidth: 70 }}
                                                     fullWidth
                                                     InputProps={{ 
-                                                        sx: { fontSize: '1.4rem' },
+                                                        sx: { fontSize: '0.8125rem', height: 36 },
                                                         onWheel: (e) => (e.target as HTMLElement).blur(),
-                                                        endAdornment: <Typography sx={{ fontSize: '1.2rem', color: 'text.secondary', ml: 0.5 }}>g</Typography>
+                                                        endAdornment: <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', ml: 0.5 }}>g</Typography>
                                                     }}
                                                 />
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <Select
                                                     size="small"
                                                     disabled={readOnly}
@@ -547,17 +544,17 @@ export const ProductVariants = ({
                                                         newVariants[index].unit = e.target.value as string;
                                                         onVariantsChange(newVariants);
                                                     }}
-                                                    sx={{ minWidth: 90, fontSize: '1.3rem' }}
+                                                    sx={{ minWidth: 65, fontSize: '0.8125rem' }}
                                                 >
                                                     {salesUnitOptions.map((opt) => (
-                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '1.3rem' }}>
+                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '0.875rem' }}>
                                                             {opt.label}
                                                         </MenuItem>
                                                     ))}
                                                 </Select>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
                                                 <Select
                                                     size="small"
                                                     disabled={readOnly}
@@ -568,7 +565,7 @@ export const ProductVariants = ({
                                                         onVariantsChange(newVariants);
                                                     }}
                                                     sx={{
-                                                        minWidth: 110, fontSize: '1.3rem',
+                                                        minWidth: 90, fontSize: '0.8125rem',
                                                         color: variant.status === "ACTIVE" ? '#00A76F' : (variant.status === "DRAFT" ? '#637381' : '#FF5630'),
                                                         bgcolor: variant.status === "ACTIVE" ? 'rgba(0, 167, 111, 0.08)' : (variant.status === "DRAFT" ? 'rgba(99, 115, 129, 0.08)' : 'rgba(255, 86, 48, 0.08)'),
                                                         fontWeight: 600,
@@ -581,12 +578,12 @@ export const ProductVariants = ({
                                                 </Select>
                                             </TableCell>
                                             {!readOnly && (
-                                                <TableCell align="center">
+                                                <TableCell width={30} align="center" sx={{ px: 0.5 }}>
                                                     <IconButton
                                                         onClick={() => handleRemoveVariant(index)}
-                                                        sx={{ color: '#FF5630' }}
+                                                        sx={{ color: '#FF5630', p: 0.5 }}
                                                     >
-                                                        <DeleteIcon sx={{ fontSize: '2rem' }} />
+                                                        <DeleteIcon sx={{ fontSize: '1.25rem' }} />
                                                     </IconButton>
                                                 </TableCell>
                                             )}
@@ -596,7 +593,7 @@ export const ProductVariants = ({
                             </Table>
                         </TableContainer>
 
-                        <Typography variant="body2" sx={{ fontSize: '1.3rem', color: 'text.secondary', mt: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 1.5 }}>
                             <span style={{ color: '#FF5630', fontWeight: 'bold' }}>*</span> Ghi chú: Nhập <strong>Giá khuyến mãi = 0</strong> nếu biến thể này <strong>không có giảm giá</strong>.
                         </Typography>
                     </Box>
@@ -613,9 +610,9 @@ export const ProductVariants = ({
                     sx: { borderRadius: '12px' }
                 }}
             >
-                <DialogTitle sx={{ fontSize: '2rem', fontWeight: 700, pb: 1 }}>
+                <DialogTitle sx={{ fontSize: '1.125rem', fontWeight: 700, pb: 1 }}>
                     Chọn {currentAttribute?.name}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '1.4rem' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '0.875rem' }}>
                         Vui lòng chọn các giá trị bạn muốn tạo biến thể
                     </Typography>
                 </DialogTitle>
@@ -629,9 +626,9 @@ export const ProductVariants = ({
                                     onChange={handleToggleAllTemp}
                                 />
                             }
-                            label={<Typography sx={{ fontSize: '1.5rem', fontWeight: 600 }}>Tất cả</Typography>}
+                            label={<Typography sx={{ fontSize: '0.9375rem', fontWeight: 600 }}>Tất cả</Typography>}
                         />
-                        <Typography sx={{ fontSize: '1.4rem', color: 'text.secondary' }}>
+                        <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                             {tempSelectedValues.size} đã chọn
                         </Typography>
                     </Box>
@@ -645,7 +642,7 @@ export const ProductVariants = ({
                                             onChange={() => handleToggleTempValue(val.value)}
                                         />
                                     }
-                                    label={<Typography sx={{ fontSize: '1.5rem' }}>{val.value}</Typography>}
+                                    label={<Typography sx={{ fontSize: '0.9375rem' }}>{val.value}</Typography>}
                                     sx={{ width: '100%', mr: 0 }}
                                 />
                             </Box>
@@ -655,14 +652,14 @@ export const ProductVariants = ({
                 <DialogActions sx={{ p: 2.5 }}>
                     <Button
                         onClick={() => setOpenAttributeDialog(false)}
-                        sx={{ fontSize: '1.4rem', color: 'text.secondary', fontWeight: 600 }}
+                        sx={{ fontSize: '0.875rem', color: 'text.secondary', fontWeight: 600 }}
                     >
                         Hủy
                     </Button>
                     <Button
                         onClick={handleSaveSelection}
                         variant="contained"
-                        sx={{ fontSize: '1.4rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
+                        sx={{ fontSize: '0.875rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
                     >
                         Xác nhận
                     </Button>
@@ -684,7 +681,7 @@ export const ProductVariants = ({
             >
                 <DialogTitle sx={{ fontSize: '2rem', fontWeight: 700, pb: 1 }}>
                     Xác nhận danh sách biến thể
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '1.4rem' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '0.875rem' }}>
                         Bỏ chọn những biến thể bạn không muốn tạo
                     </Typography>
                 </DialogTitle>
@@ -704,7 +701,7 @@ export const ProductVariants = ({
                                             }}
                                         />
                                     </TableCell>
-                                    <TableCell sx={{ fontSize: '1.5rem', fontWeight: 600 }}>Biến thể</TableCell>
+                                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Biến thể</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -720,7 +717,7 @@ export const ProductVariants = ({
                                         <TableCell>
                                             <Box sx={{ display: 'flex', gap: 1 }}>
                                                 {variant.attributes.map((attr, i) => (
-                                                    <Chip key={i} label={`${attr?.name}: ${attr?.value}`} size="small" sx={{ fontSize: '1.3rem' }} />
+                                                    <Chip key={i} label={`${attr?.name}: ${attr?.value}`} size="small" sx={{ fontSize: '0.75rem' }} />
                                                 ))}
                                             </Box>
                                         </TableCell>
@@ -731,13 +728,13 @@ export const ProductVariants = ({
                     </TableContainer>
                 </DialogContent>
                 <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
-                    <Typography sx={{ fontSize: '1.4rem', color: 'text.secondary', ml: 1 }}>
+                    <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', ml: 1 }}>
                         Đã chọn: {previewVariants.filter(v => v.active).length} / {previewVariants.length}
                     </Typography>
                     <Box>
                         <Button
                             onClick={() => setOpenPreviewDialog(false)}
-                            sx={{ fontSize: '1.4rem', color: 'text.secondary', fontWeight: 600, mr: 1 }}
+                            sx={{ fontSize: '0.875rem', color: 'text.secondary', fontWeight: 600, mr: 1 }}
                         >
                             Hủy
                         </Button>
@@ -745,7 +742,7 @@ export const ProductVariants = ({
                             onClick={handleConfirmVariants}
                             variant="contained"
                             disabled={previewVariants.filter(v => v.active).length === 0}
-                            sx={{ fontSize: '1.4rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
+                            sx={{ fontSize: '0.875rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
                         >
                             Tạo biến thể
                         </Button>

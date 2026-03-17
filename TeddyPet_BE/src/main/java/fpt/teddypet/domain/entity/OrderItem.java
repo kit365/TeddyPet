@@ -22,15 +22,21 @@ public class OrderItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Order order;
 
     // Liên kết (có thể nullable để phòng trường hợp sản phẩm bị xóa)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ProductVariant variant;
 
     @Column(nullable = false)

@@ -11,14 +11,14 @@ export const columnsConfig: GridColDef<any>[] = [
         field: "name",
         headerName: "Tên thương hiệu",
         flex: 1,
-        minWidth: 200,
+        minWidth: 250,
         hideable: false,
         renderCell: RenderTitleCell,
     },
     {
         field: "websiteUrl",
         headerName: "Website",
-        width: 200,
+        width: 250,
         renderCell: (params) => {
             const url = params.value;
             return url ? (
@@ -33,7 +33,7 @@ export const columnsConfig: GridColDef<any>[] = [
     {
         field: "createdAt",
         headerName: "Thời gian tạo",
-        width: 160,
+        width: 180,
         filterable: true,
         type: "dateTime",
         valueGetter: (value) => value ? new Date(value) : null,
@@ -52,6 +52,7 @@ export const columnsConfig: GridColDef<any>[] = [
         sortable: false,
         filterable: false,
         align: 'right',
+        headerAlign: 'right',
         renderCell: RenderActionsCell,
     },
 ];

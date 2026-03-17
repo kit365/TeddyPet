@@ -93,4 +93,9 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public Page<Product> findAll(Specification<Product> spec, Pageable pageable) {
         return productRepository.findAll(spec, pageable);
     }
+
+    @Override
+    public List<Product> findAll(Specification<Product> spec) {
+        return productRepository.findAll(spec);
+    }
 }

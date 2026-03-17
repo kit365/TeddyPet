@@ -1,5 +1,6 @@
 package fpt.teddypet.presentation.controller.payment;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.port.input.payment.PaymentService;
 import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
@@ -25,6 +26,7 @@ import static fpt.teddypet.presentation.constants.ApiConstants.API_PAYMENT;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/create")
     @Operation(summary = "Tạo link thanh toán", description = "Khởi tạo thanh toán cho đơn hàng (Cần được Admin xác nhận phí ship trước)")
@@ -58,7 +60,11 @@ public class PaymentController {
     @PostMapping(value = "/payos/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "PayOS Webhook", description = "Nhận thông báo tự động từ PayOS")
     public ResponseEntity<Void> handlePayosWebhook(@RequestBody Webhook webhook, HttpServletRequest request) {
-        log.info("📥 Nhận Webhook từ PayOS: {}", webhook);
+        try {
+            log.info("📥 [INCOMING] Nhận Webhook từ PayOS: {}", objectMapper.writeValueAsString(webhook));
+        } catch (Exception e) {
+            log.info("📥 Nhận Webhook từ PayOS (serialize error): {}", webhook);
+        }
 
         paymentService.processPaymentCallback(
                 PaymentGatewayEnum.PAYOS,

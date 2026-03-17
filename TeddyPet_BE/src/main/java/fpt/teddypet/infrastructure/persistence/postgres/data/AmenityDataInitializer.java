@@ -15,6 +15,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(20)
 @RequiredArgsConstructor
 public class AmenityDataInitializer implements CommandLineRunner {

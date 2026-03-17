@@ -635,7 +635,7 @@ export const OrderTrackingPage = () => {
                                         </div>
                                         <div className="flex justify-between items-center text-xs mb-2">
                                             <span className="text-gray-500 font-semibold uppercase tracking-wide">Phí vận chuyển:</span>
-                                            <span className="font-bold text-client-secondary">+{order.shippingFee.toLocaleString()}đ</span>
+                                            <span className="font-bold text-client-secondary">{order.shippingFee != null && order.shippingFee > 0 ? `+${order.shippingFee.toLocaleString()}đ` : "Liên hệ sau"}</span>
                                         </div>
                                         <div className="pt-2 border-t-2 border-dashed border-gray-200 flex justify-between items-center">
                                             <span className="text-sm font-bold text-client-secondary uppercase tracking-tight">Tổng cộng:</span>

@@ -1,4 +1,4 @@
-﻿import {
+import {
     Card,
     CardHeader,
     Collapse,
@@ -23,7 +23,14 @@ export const CollapsibleCard = ({
     children,
 }: Props) => {
     return (
-        <Card>
+        <Card sx={{
+            backgroundImage: 'none !important',
+            backdropFilter: 'none !important',
+            backgroundColor: '#fff !important',
+            boxShadow: '0 0 2px 0 #919eab33, 0 12px 24px -4px #919eab1f',
+            borderRadius: '16px',
+            color: '#1C252E',
+        }}>
             <CardHeader
                 title={title}
                 subheader={subheader}

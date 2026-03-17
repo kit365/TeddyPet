@@ -162,7 +162,7 @@
             "fields": {
                 "name": "Tên danh mục",
                 "parent": "Danh mục cha",
-                "description_placeholder": "Tiêu đề, mô tả, hình ảnh..."
+                "description_placeholder": "Tiêu đề, hình ảnh..."
             }
         },
         "blog_category": {
@@ -174,7 +174,7 @@
             "fields": {
                 "name": "Tên danh mục",
                 "parent": "Danh mục cha",
-                "description_placeholder": "Tiêu đề, mô tả, hình ảnh..."
+                "description_placeholder": "Tiêu đề, hình ảnh..."
             }
         },
         "tiptap": {

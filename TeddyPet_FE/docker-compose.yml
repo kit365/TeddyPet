@@ -1,0 +1,14 @@
+services:
+  teddypet-fe:
+    image: kitops365/teddypet-fe:latest
+    container_name: teddypet-fe-container
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - teddypet-local-network
+
+networks:
+  teddypet-local-network:
+    external: true
+    name: teddypet-local-network

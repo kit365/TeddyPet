@@ -3,7 +3,7 @@ import Cookies from "js-cookie"
 import { useAuthStore } from "../stores/useAuthStore"
 import { redirectToLogin } from "../navigationHelper"
 
-const BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8080"
+const BASE_URL = import.meta.env.VITE_API_URL || ""
 
 let isRefreshing = false
 const failedQueue: { resolve: (value: string | null) => void; reject: (err?: unknown) => void }[] = []

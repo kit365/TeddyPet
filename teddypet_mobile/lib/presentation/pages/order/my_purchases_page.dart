@@ -5,6 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/entities/order/order_entity.dart';
 import '../../providers/order/order_provider.dart';
+import '../../providers/feedback/feedback_provider.dart';
+import '../product/models/product_reviews_arguments.dart';
+import 'models/order_review_arguments.dart';
 
 class MyPurchasesPage extends StatefulWidget {
   const MyPurchasesPage({super.key});
@@ -428,37 +431,53 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
                     ],
                   ),
                   const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Chức năng mua lại sẽ được cập nhật'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (order.status == 'DELIVERED')
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ElevatedButton(
+                            onPressed: () => _confirmReceived(context, order),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            ),
+                            child: const Text('Đã nhận hàng', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
                         ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Color(0xFFE67E22),
-                        width: 0.8,
+                      if (order.status == 'COMPLETED')
+                        _ReviewButton(
+                          order: order,
+                          onTap: () => _showReviewPage(context, order),
+                        ),
+                      OutlinedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Chức năng mua lại sẽ được cập nhật'),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary, width: 0.8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                        child: const Text(
+                          'Mua lại',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 5,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    child: const Text(
-                      'Mua lại',
-                      style: TextStyle(
-                        color: Color(0xFFE67E22),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12, // Chữ nhỏ hơn
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -506,6 +525,150 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _confirmReceived(BuildContext context, OrderEntity order) async {
+    final provider = context.read<OrderProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận đã nhận hàng'),
+        content: const Text('Bạn đã nhận được hàng và hài lòng với sản phẩm?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Chưa'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Đã nhận', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await provider.confirmReceived(order.id);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cảm ơn bạn đã xác nhận!')),
+        );
+        provider.fetchMyOrders(); // Refresh list
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(provider.errorMessage ?? 'Có lỗi xảy ra')),
+        );
+      }
+    }
+  }
+
+  void _showReviewPage(BuildContext context, OrderEntity order) async {
+    final feedbackProvider = context.read<FeedbackProvider>();
+    
+    // Tải thông tin đánh giá
+    await feedbackProvider.fetchOrderFeedbackDetails(order.id);
+    
+    if (!mounted) return;
+    
+    if (feedbackProvider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(feedbackProvider.errorMessage!)),
+      );
+      return;
+    }
+
+    final details = feedbackProvider.feedbackDetails;
+    if (details == null || details.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có sản phẩm nào để đánh giá')),
+      );
+      return;
+    }
+
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.orderReview,
+      arguments: OrderReviewArguments(
+        orderId: order.id,
+        feedbackDetails: details,
+      ),
+    );
+
+    if (result == true && mounted) {
+      context.read<OrderProvider>().fetchMyOrders(); // Refresh list to update button state
+    }
+  }
+}
+
+class _ReviewButton extends StatefulWidget {
+  final OrderEntity order;
+  final VoidCallback onTap;
+
+  const _ReviewButton({required this.order, required this.onTap});
+
+  @override
+  State<_ReviewButton> createState() => _ReviewButtonState();
+}
+
+class _ReviewButtonState extends State<_ReviewButton> {
+  bool _isHidden = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkReviewStatus();
+  }
+
+  @override
+  void didUpdateWidget(_ReviewButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.id != widget.order.id) {
+      _checkReviewStatus();
+    }
+  }
+
+  Future<void> _checkReviewStatus() async {
+    // Để tránh flickering, ta có thể check trong background
+    setState(() => _isLoading = true);
+    try {
+      final feedbackProvider = context.read<FeedbackProvider>();
+      final allReviewed = await feedbackProvider.isOrderAllReviewed(widget.order.id);
+      if (mounted) {
+        setState(() {
+          _isHidden = allReviewed;
+        });
+      }
+    } catch (e) {
+      debugPrint("Lỗi check review: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isHidden || _isLoading) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ElevatedButton(
+        onPressed: widget.onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        child: const Text('Đánh giá', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }

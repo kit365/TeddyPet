@@ -8,6 +8,8 @@ import 'package:teddypet_mobile/presentation/pages/profile/profile_page.dart';
 import 'package:teddypet_mobile/presentation/providers/auth/auth_provider.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
 import 'package:teddypet_mobile/presentation/pages/order/order_detail_page.dart';
+import 'package:teddypet_mobile/presentation/providers/cart/cart_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/common/navigation_provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -17,38 +19,33 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tải giỏ hàng ngay khi vào app để hiện badge
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CartProvider>().fetchMyCart(background: true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final navProvider = context.watch<NavigationProvider>();
+    final currentIndex = navProvider.currentIndex;
 
     final List<Widget> pages = [
       const HomePage(),
       const CategoryPage(), // Gắn trang danh mục vào đây
       const CartPage(), // Gắn trang giỏ hàng vào đây (index 2)
-      Center(
+      const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.notifications_none, size: 60, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text('Thông báo (Coming soon)', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const OrderDetailPage()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              child: const Text('XEM DEMO CHI TIẾT ĐƠN HÀNG', style: TextStyle(color: Colors.white)),
-            ),
+            Icon(Icons.notifications_none, size: 60, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Bạn chưa có thông báo nào', style: TextStyle(color: Colors.grey, fontSize: 16)),
           ],
         ),
       ),
@@ -57,7 +54,7 @@ class _MainPageState extends State<MainPage> {
 
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: pages,
       ),
       bottomNavigationBar: Container(
@@ -71,11 +68,9 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
+          currentIndex: currentIndex,
           onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
+            navProvider.setTab(index);
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
@@ -84,7 +79,7 @@ class _MainPageState extends State<MainPage> {
           selectedFontSize: 12,
           unselectedFontSize: 12,
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
@@ -96,8 +91,34 @@ class _MainPageState extends State<MainPage> {
               label: 'Danh mục',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart_outlined),
-              activeIcon: Icon(Icons.shopping_cart),
+              icon: Consumer<CartProvider>(
+                builder: (context, cartProvider, child) {
+                  final count = cartProvider.cart?.totalItems ?? 0;
+                  return Badge(
+                    label: Text(
+                      count.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                    isLabelVisible: count > 0,
+                    backgroundColor: Colors.red,
+                    child: const Icon(Icons.shopping_cart_outlined),
+                  );
+                },
+              ),
+              activeIcon: Consumer<CartProvider>(
+                builder: (context, cartProvider, child) {
+                  final count = cartProvider.cart?.totalItems ?? 0;
+                  return Badge(
+                    label: Text(
+                      count.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                    isLabelVisible: count > 0,
+                    backgroundColor: Colors.red,
+                    child: const Icon(Icons.shopping_cart),
+                  );
+                },
+              ),
               label: 'Giỏ hàng',
             ),
             BottomNavigationBarItem(

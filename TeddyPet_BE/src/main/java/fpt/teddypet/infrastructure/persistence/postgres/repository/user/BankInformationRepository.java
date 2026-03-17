@@ -78,5 +78,11 @@ public interface BankInformationRepository extends JpaRepository<BankInformation
             order by b.updatedAt desc
             """)
     List<BankInformation> findByOrderIdAndIsDeletedFalseOrderByUpdatedAtDesc(@Param("orderId") UUID orderId);
+
+    List<BankInformation> findByAccountNumberAndBankCodeAndUserIdAndIsDeletedFalse(
+            String accountNumber, String bankCode, UUID userId);
+
+    List<BankInformation> findByAccountNumberAndBankCodeAndUserEmailAndIsDeletedFalse(
+            String accountNumber, String bankCode, String userEmail);
 }
 

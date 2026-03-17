@@ -34,7 +34,6 @@ import fpt.teddypet.domain.entity.ProductAgeRange;
 import fpt.teddypet.domain.entity.ProductVariant;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.domain.enums.StockStatusEnum;
-import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.specification.ProductSpecification;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -228,7 +227,8 @@ public class ProductApplicationService implements ProductService {
             }
 
             int totalStock = activeVariants.stream()
-                    .mapToInt(v -> v.getStockQuantity().getValue())
+                    .mapToInt(v -> v.getStockQuantity() != null && v.getStockQuantity().getValue() != null 
+                            ? v.getStockQuantity().getValue() : 0)
                     .sum();
 
             product.updateStockStatus(totalStock);
@@ -253,7 +253,8 @@ public class ProductApplicationService implements ProductService {
                 .filter(v -> !v.isDeleted() && v.isActive() && ProductStatusEnum.ACTIVE.equals(v.getStatus()))
                 .toList();
         int totalStock = activeVariants.stream()
-                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity().getValue() : 0)
+                .mapToInt(v -> (v.getStockQuantity() != null && v.getStockQuantity().getValue() != null) 
+                        ? v.getStockQuantity().getValue() : 0)
                 .sum();
         if (totalStock <= 0) {
             return StockStatusEnum.OUT_OF_STOCK;
@@ -301,8 +302,10 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductResponse> getAll() {
-        List<Product> products = productRepositoryPort.findAll();
+        Specification<Product> spec = ProductSpecification.buildAdminSpecification();
+        List<Product> products = productRepositoryPort.findAll(spec);
         log.info(ProductLogMessages.LOG_PRODUCT_GET_ALL, products.size());
         return products.stream()
                 .map(productMapper::toResponse)
@@ -310,6 +313,7 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductDetailResponse getDetail(Long productId) {
         Product product = getById(productId);
         return mapToDetailResponse(product);
@@ -346,7 +350,7 @@ public class ProductApplicationService implements ProductService {
                 request.keyword(), request.page(), request.size());
 
         // Build base and keyword specifications
-        Specification<Product> baseSpec = ProductSpecification.buildBaseSpecification();
+        Specification<Product> baseSpec = ProductSpecification.buildAdminSpecification();
         Specification<Product> keywordSpec = ProductSpecification.buildKeywordSearchSpecification(request.keyword());
 
         // Expand category IDs to include all descendants (hierarchical filtering)
@@ -441,7 +445,7 @@ public class ProductApplicationService implements ProductService {
         }
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
-                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildClientSpecification(),
                 ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildCategorySlugsFilterSpecification(List.of(slug))));
 
@@ -463,7 +467,7 @@ public class ProductApplicationService implements ProductService {
         }
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
-                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildClientSpecification(),
                 ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildBrandSlugsFilterSpecification(List.of(slug))));
 
@@ -479,7 +483,7 @@ public class ProductApplicationService implements ProductService {
         log.info("Searching home products with filters: {}", request);
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
-                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildClientSpecification(),
                 ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildKeywordSearchSpecification(request.keyword()),
                 ProductSpecification.buildCategorySlugsFilterSpecification(request.categorySlugs()),
@@ -511,7 +515,7 @@ public class ProductApplicationService implements ProductService {
             productPage = Page.empty();
         } else {
             Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
-                    ProductSpecification.buildBaseSpecification(),
+                    ProductSpecification.buildClientSpecification(),
                     ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                     ProductSpecification.buildCategoryFilterSpecification(categoryIds),
                     ProductSpecification.buildExcludeProductIdSpecification(productId)));
@@ -527,7 +531,7 @@ public class ProductApplicationService implements ProductService {
         log.info("Getting search suggestions for keyword: {}", keyword);
 
         Specification<Product> spec = ProductSpecification.combineAll(Arrays.asList(
-                ProductSpecification.buildBaseSpecification(),
+                ProductSpecification.buildClientSpecification(),
                 ProductSpecification.buildStatusFilterSpecification(ProductStatusEnum.ACTIVE),
                 ProductSpecification.buildKeywordSearchSpecification(keyword)));
 

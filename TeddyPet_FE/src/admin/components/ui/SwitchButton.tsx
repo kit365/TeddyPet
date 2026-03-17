@@ -1,4 +1,4 @@
-﻿import { FormControlLabel, Switch, Typography } from "@mui/material";
+import { FormControlLabel, Switch, Typography } from "@mui/material";
 import { Control, Controller, FieldValues } from "react-hook-form";
 import { Path } from "react-hook-form";
 
@@ -19,7 +19,6 @@ export const SwitchButton = <T extends FieldValues>({ control, name, label = 'Ho
                         pl: "24px",
                         ml: "-11px",
                         mr: "16px",
-                        flexGrow: "1",
                     }}
                     control={
                         <Switch

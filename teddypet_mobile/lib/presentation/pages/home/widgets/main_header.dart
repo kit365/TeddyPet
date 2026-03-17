@@ -6,20 +6,37 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../providers/auth/auth_provider.dart';
 
-class MainHeader extends StatelessWidget implements PreferredSizeWidget {
+class MainHeader extends StatefulWidget implements PreferredSizeWidget {
   const MainHeader({super.key});
 
-  Future<void> _handleLocationTap(BuildContext context) async {
+  @override
+  State<MainHeader> createState() => _MainHeaderState();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(84);
+}
+
+class _MainHeaderState extends State<MainHeader> {
+  String? _currentAddress;
+  bool _isLoadingLocation = false;
+
+  Future<void> _handleLocationTap() async {
     final locationService = LocationService();
 
-    SnackBarUtils.show(
-      context,
-      'Đang lấy vị trí hiện tại...',
-      duration: const Duration(seconds: 2),
-    );
+    setState(() {
+      _isLoadingLocation = true;
+    });
 
     final location = await locationService.getLocationString();
-    if (!context.mounted) return;
+    
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingLocation = false;
+      if (location != null) {
+        _currentAddress = location;
+      }
+    });
 
     if (location == null) {
       SnackBarUtils.show(
@@ -27,13 +44,7 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
         'Không thể lấy vị trí. Vui lòng bật GPS và cấp quyền vị trí.',
         isError: true,
       );
-      return;
     }
-
-    SnackBarUtils.show(
-      context,
-      'Vị trí hiện tại: $location',
-    );
   }
 
   @override
@@ -61,31 +72,54 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
 
               // 2. Search bar
               Expanded(
-                child: Container(
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F3F5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search, color: Colors.grey, size: 18),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          "Tìm kiếm",
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_currentAddress != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4, left: 2),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, color: AppColors.primary, size: 12),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _currentAddress!,
+                                style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F3F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.search, color: Colors.grey, size: 18),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              "Tìm kiếm",
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
 
-              // 3. Icons (Dùng GestureDetector để tránh padding thừa của IconButton)
+              // 3. Icons
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -104,11 +138,17 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _handleLocationTap(context),
+                    onTap: _handleLocationTap,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       color: Colors.transparent,
-                      child: const Icon(Icons.location_on_outlined, color: AppColors.secondary, size: 24),
+                      child: _isLoadingLocation
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            )
+                          : const Icon(Icons.location_on_outlined, color: AppColors.secondary, size: 24),
                     ),
                   ),
                   GestureDetector(
@@ -127,7 +167,4 @@ class MainHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(64);
 }
