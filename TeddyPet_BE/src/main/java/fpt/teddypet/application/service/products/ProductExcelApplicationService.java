@@ -548,24 +548,18 @@ public class ProductExcelApplicationService implements ProductExcelService {
     private void addDataValidations(Workbook workbook, Sheet sheet) {
         DataValidationHelper helper = sheet.getDataValidationHelper();
 
-        // Tooltip cho Product ID
+        // Prompt Excel/POI toi da ~255 ky tu (title ~32)
         addTooltip(sheet, helper, ProductExcelColumn.PRODUCT_ID.getIndex(),
-                "⚠️ QUAN TRỌNG - ID Sản Phẩm",
-                "• Để TRỐNG = thêm mới (hoặc khớp barcode/slug)\n" +
-                        "• Có ID + cột TÊN phải TRÙNG tên SP trên hệ thống → mới cập nhật đúng SP đó\n" +
-                        "• ID đúng nhưng TÊN khác → mặc định TẠO MỚI (tránh ghi đè nhầm); chọn Ghi đè trong wizard nếu cố ý đổi tên\n" +
-                        "• ID không tồn tại → tạo mới");
+                "ID san pham",
+                "Trong=them moi. Co ID: Ten phai trung ten SP tren he thong moi cap nhat. Ten khac=tao moi (Import wizard: Ghi de). ID khong ton tai=tao moi.");
 
         addTooltip(sheet, helper, ProductExcelColumn.SLUG.getIndex(),
-                "🔒 Slug — chỉ xem",
-                "Cột này bị khóa. Slug do hệ thống tự sinh từ tên sản phẩm.\n" +
-                        "Khi xuất Excel bạn sẽ thấy slug hiện tại để đối chiếu; không nhập/sửa khi import.");
+                "Slug (chi xem)",
+                "He thong tu sinh tu ten SP. Chi de doi chieu khi xuat; import bo qua cot nay.");
 
-        // Tooltip cho VARIANT_ID (chỉ xem, không dùng khi import)
         addTooltip(sheet, helper, ProductExcelColumn.VARIANT_ID.getIndex(),
-                "📋 VARIANT_ID chỉ xem",
-                "Không cần nhập VARIANT_ID khi import.\n" +
-                        "Nếu bạn nhập/copy từ export, hệ thống sẽ BỎ QUA cột này.");
+                "VARIANT_ID",
+                "Chi xem. Import khong dung cot nay (copy tu export cung bo qua).");
 
         // Dropdown Trạng thái (Status)
         String[] statusList = Arrays.stream(ProductStatusEnum.values())
@@ -576,10 +570,8 @@ public class ProductExcelApplicationService implements ProductExcelService {
 
         // Tooltip Loại thú cưng (không dropdown vì Excel không hỗ trợ multi-select)
         addTooltip(sheet, helper, ProductExcelColumn.PET_TYPES.getIndex(),
-                "🐾 Loại Thú Cưng",
-                "Nhập giá trị, cách nhau bởi dấu PHẨY (,)\n\n" +
-                        "Giá trị hợp lệ:\n  DOG → Chó\n  CAT → Mèo\n  OTHER → Khác\n\n" +
-                        "Ví dụ: DOG,CAT  hoặc  CAT,OTHER");
+                "Loai thu cung",
+                "Cach nhau dau phay: DOG,CAT,OTHER. VD: DOG hoac DOG,CAT");
 
         // Dropdown Thương hiệu (từ DB, qua hidden sheet)
         List<fpt.teddypet.domain.entity.ProductBrand> brands = brandRepository.findAll();
@@ -609,13 +601,26 @@ public class ProductExcelApplicationService implements ProductExcelService {
         addRangeTooltip(sheet, helper, col, col, title, message);
     }
 
+    /** Excel/POI: prompt & error text toi da 255 ky tu, title ngan hon. */
+    private static final int EXCEL_DV_TEXT_MAX = 255;
+    private static final int EXCEL_DV_TITLE_MAX = 32;
+
+    private static String clampExcelDataValidationText(String s, int maxLen) {
+        if (s == null) return "";
+        String t = s.trim();
+        if (t.length() <= maxLen) return t;
+        return t.substring(0, Math.max(0, maxLen - 1)).trim() + "…";
+    }
+
     private void addRangeTooltip(Sheet sheet, DataValidationHelper helper,
             int fromCol, int toCol, String title, String message) {
         DataValidation v = helper.createValidation(
                 helper.createTextLengthConstraint(
                         DataValidationConstraint.OperatorType.GREATER_OR_EQUAL, "0", null),
                 new CellRangeAddressList(1, 5000, fromCol, toCol));
-        v.createPromptBox(title, message);
+        v.createPromptBox(
+                clampExcelDataValidationText(title, EXCEL_DV_TITLE_MAX),
+                clampExcelDataValidationText(message, EXCEL_DV_TEXT_MAX));
         v.setShowPromptBox(true);
         v.setShowErrorBox(false);
         sheet.addValidationData(v);
@@ -627,7 +632,9 @@ public class ProductExcelApplicationService implements ProductExcelService {
                 helper.createExplicitListConstraint(values),
                 new CellRangeAddressList(1, 5000, col, col));
         v.setShowErrorBox(true);
-        v.createErrorBox(errorTitle, errorMsg);
+        v.createErrorBox(
+                clampExcelDataValidationText(errorTitle, EXCEL_DV_TITLE_MAX),
+                clampExcelDataValidationText(errorMsg, EXCEL_DV_TEXT_MAX));
         sheet.addValidationData(v);
     }
 
