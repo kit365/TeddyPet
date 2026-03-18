@@ -98,6 +98,12 @@ export const menuManagementData = [
                 path: `/${prefixAdmin}/booking/refund-policies`,
                 allowedRoles: ["ADMIN", "SUPER_ADMIN"],
             },
+            {
+                id: "no-show-config",
+                label: "Cấu hình khách không đến (NO-SHOW)",
+                path: `/${prefixAdmin}/booking/no-show-config`,
+                allowedRoles: ["ADMIN", "SUPER_ADMIN"],
+            },
         ]
     },
     {
