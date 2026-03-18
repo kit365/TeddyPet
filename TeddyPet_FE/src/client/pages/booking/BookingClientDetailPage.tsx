@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -12,7 +12,8 @@ import type {
     BookingStatus,
 } from "../../../types/booking.type";
 import { apiApp } from "../../../api";
-import { confirmBookingDeposit } from "../../../api/booking-deposit.api";
+import { createBookingDepositPayosUrl } from "../../../api/booking-deposit.api";
+import { cancelBookingFromClient } from "../../../api/booking.api";
 import { CancelBookingModal } from "./components/CancelBookingModal";
 
 /* ─── helpers ─── */
@@ -80,7 +81,6 @@ const InfoRow = ({ label, value }: { label: string; value?: React.ReactNode }) =
     </div>
 );
 
-type PaymentMethod = "BANK_TRANSFER" | "MOMO" | "ZALOPAY" | "VNPAY";
 type ActiveView = "detail" | "payment";
 
 /* ─── Main component ─── */
@@ -96,9 +96,63 @@ export const BookingClientDetailPage = () => {
     const stateOpenPayment = location.state && (location.state as any).openPayment === true;
     const [activeView, setActiveView] = useState<ActiveView>(stateOpenPayment ? "payment" : "detail");
 
-    // Payment state
-    const [isConfirming, setIsConfirming] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("BANK_TRANSFER");
+    const [payosCheckoutUrl, setPayosCheckoutUrl] = useState<string | null>(null);
+    const [payosLoading, setPayosLoading] = useState(false);
+    const [autoCancellingExpired, setAutoCancellingExpired] = useState(false);
+    const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+
+    // When PayOS redirects back inside iframe, notify parent to close popup & refresh
+    useEffect(() => {
+        const isPopupReturn = searchParams.get("payment_popup") === "1";
+        if (!isPopupReturn) return;
+        const depositId = searchParams.get("depositId");
+        try {
+            (window.parent ?? window).postMessage(
+                { type: "PAYOS_DEPOSIT_RETURN", depositId },
+                "*"
+            );
+        } catch (e) {
+            console.error("postMessage failed:", e);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams.toString()]);
+
+    useEffect(() => {
+        let pollTimer: any = null;
+        const onMessage = (event: MessageEvent) => {
+            const data = event?.data;
+            if (!data || data.type !== "PAYOS_DEPOSIT_RETURN") return;
+            setPayosCheckoutUrl(null);
+            setActiveView("detail");
+
+            const startedAt = Date.now();
+            const tick = async () => {
+                try {
+                    const next = await fetchData();
+                    const paid = Boolean(next?.depositPaid);
+                    const status = String(next?.status ?? "");
+                    if (paid || status.toUpperCase() !== "PENDING") {
+                        toast.success("Đã nhận thanh toán cọc.");
+                        return;
+                    }
+                } catch {
+                    // ignore transient errors
+                }
+                if (Date.now() - startedAt > 60_000) {
+                    toast.info("Hệ thống đang xử lý thanh toán. Vui lòng đợi thêm hoặc tải lại trang.");
+                    return;
+                }
+                pollTimer = setTimeout(tick, 2500);
+            };
+            pollTimer = setTimeout(tick, 800);
+        };
+        window.addEventListener("message", onMessage);
+        return () => {
+            window.removeEventListener("message", onMessage);
+            if (pollTimer) clearTimeout(pollTimer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bookingCode]);
 
     // Cancel modal state
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -107,11 +161,13 @@ export const BookingClientDetailPage = () => {
     const expiresAt = booking?.depositExpiresAt ? dayjs(booking.depositExpiresAt) : null;
     const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
-    const fetchData = async () => {
-        if (!bookingCode) return;
+    const fetchData = async (): Promise<ClientBookingDetailResponse | null> => {
+        if (!bookingCode) return null;
         try {
             const res = await apiApp.get<{ data: ClientBookingDetailResponse }>(`/api/bookings/code/${bookingCode}`);
-            setBooking(res.data.data);
+            const next = res.data.data;
+            setBooking(next);
+            return next;
         } catch (error: any) {
             console.error("Error fetching booking details:", error);
             if (error.response?.status === 404) {
@@ -126,6 +182,7 @@ export const BookingClientDetailPage = () => {
         } finally {
             setLoading(false);
         }
+        return null;
     };
 
     useEffect(() => {
@@ -165,11 +222,6 @@ export const BookingClientDetailPage = () => {
     }, [remainingSeconds]);
 
     const showDepositTimer = booking && !booking.depositPaid && booking.depositId && booking.depositExpiresAt;
-    const transferContent = useMemo(
-        () => `TP-DEP-${booking?.depositId ?? "XXXX"}`,
-        [booking?.depositId]
-    );
-
     const canEditServices =
         booking &&
         booking.status !== "CANCELLED" &&
@@ -183,43 +235,73 @@ export const BookingClientDetailPage = () => {
 
     const canEdit = Boolean(canEditServices || canEditContactOnly);
 
-    const handleCopyContent = () => {
-        try {
-            if (navigator && (navigator as any).clipboard && (navigator as any).clipboard.writeText) {
-                (navigator as any).clipboard
-                    .writeText(transferContent)
-                    .then(() => toast.success("Đã copy nội dung chuyển khoản"))
-                    .catch(() => undefined);
-            } else {
-                toast.error("Trình duyệt không hỗ trợ copy tự động.");
-            }
-        } catch {
-            toast.error("Không thể copy nội dung. Vui lòng copy thủ công.");
-        }
-    };
+    // Auto-cancel booking when deposit expires (PayOS iframe cannot be controlled cross-origin)
+    useEffect(() => {
+        if (!booking) return;
+        if (!isExpired) return;
+        if (autoCancellingExpired) return;
+        if (booking.depositPaid) return;
+        if (String(booking.status ?? "").toUpperCase() !== "PENDING") return;
+        if (String(booking.paymentStatus ?? "").toUpperCase() !== "PENDING") return;
 
-    const handleConfirmPayment = async () => {
+        setAutoCancellingExpired(true);
+        (async () => {
+            try {
+                const res = await cancelBookingFromClient(booking.bookingCode, { reason: "Hết hạn thanh toán cọc" });
+                if ((res as any)?.success) {
+                    toast.info("Đơn đặt lịch đã bị hủy do hết hạn thanh toán cọc.", { autoClose: 4500 });
+                } else {
+                    toast.error((res as any)?.message ?? "Không thể tự động hủy đơn khi hết hạn.");
+                }
+            } catch (e) {
+                console.error("Auto-cancel booking failed:", e);
+                toast.error("Không thể tự động hủy đơn khi hết hạn. Vui lòng tải lại trang.");
+            } finally {
+                setPayosCheckoutUrl(null);
+                setActiveView("detail");
+                await fetchData();
+                setAutoCancellingExpired(false);
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isExpired, booking?.bookingCode, booking?.status, booking?.paymentStatus, booking?.depositPaid, booking?.depositId, autoCancellingExpired]);
+
+    const openPayosDepositInline = async () => {
         if (!booking?.depositId || isExpired) {
             toast.error("Giữ chỗ đã hết hạn. Vui lòng quay lại đặt lịch và chọn lại phòng/khung giờ.");
             return;
         }
-        setIsConfirming(true);
         try {
-            const res = await confirmBookingDeposit(booking.depositId, paymentMethod);
-            if (res?.success && res?.data?.bookingCode) {
-                toast.success("Thanh toán (giả lập) thành công. Đơn hàng của bạn đã được cập nhật.");
-                setActiveView("detail"); // Stay on page, switch back to detail view
-                await fetchData();       // Refetch data to show PAID status and clear timer
-            } else {
-                toast.error(res?.message ?? "Không thể xác nhận thanh toán cọc.");
+            if (activeView !== "payment") setActiveView("payment");
+            setPayosLoading(true);
+            const base = window.location.origin;
+            const returnUrl = `${base}${location.pathname}?payment_popup=1&depositId=${booking.depositId}`;
+            const res = await createBookingDepositPayosUrl(booking.depositId, returnUrl);
+            const url = (res as any)?.data?.checkoutUrl as string | undefined;
+            if (!url) {
+                toast.error(res?.message ?? "Không thể tạo link thanh toán PayOS.");
+                return;
             }
-        } catch (err: unknown) {
-            const message = (err as { message?: string })?.message ?? "Không thể xác nhận thanh toán cọc.";
-            toast.error(message);
+            setPayosCheckoutUrl(url);
+        } catch (e: any) {
+            console.error(e);
+            toast.error(e?.response?.data?.message ?? e?.message ?? "Không thể tạo link PayOS.");
         } finally {
-            setIsConfirming(false);
+            setPayosLoading(false);
         }
     };
+
+    // Auto-show PayOS iframe as soon as user is on payment view
+    useEffect(() => {
+        if (activeView !== "payment") return;
+        if (!booking?.depositId) return;
+        if (booking.depositPaid) return;
+        if (isExpired) return;
+        if (payosCheckoutUrl) return;
+        if (payosLoading) return;
+        openPayosDepositInline();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeView, booking?.depositId, booking?.depositPaid, isExpired, payosCheckoutUrl, payosLoading]);
 
     /* ─── Render helpers for deep data ─── */
     const renderServiceItems = (items?: ClientBookingPetServiceItemDetail[]) => {
@@ -469,45 +551,7 @@ export const BookingClientDetailPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Bank Info (if deposit not paid and not cancelled) */}
-                                {!booking.depositPaid && booking.depositId && booking.status !== "CANCELLED" && (
-                                    <div className="rounded-[8px] bg-white border border-[#f3e0d6] px-5 py-4 mb-6 shadow-sm">
-                                        <p className="text-[0.9375rem] font-[700] text-[#c45a3a] mb-3">Thông tin chuyển khoản ngân hàng (Cọc)</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <ul className="space-y-1.5 text-[0.8438rem] text-[#374151]">
-                                                <li>
-                                                    <span className="font-[600] inline-block w-[100px]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
-                                                </li>
-                                                <li>
-                                                    <span className="font-[600] inline-block w-[100px]">Số TK:</span> 0123 456 789
-                                                </li>
-                                                <li>
-                                                    <span className="font-[600] inline-block w-[100px]">Chủ TK:</span> CÔNG TY TNHH TEDDYPET
-                                                </li>
-                                            </ul>
-                                            <div className="md:border-l md:border-[#f1f1f1] md:pl-5">
-                                                <div className="font-[600] text-[0.8438rem] text-[#111827] mb-2">Nội dung chuyển khoản (quan trọng)</div>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        readOnly
-                                                        value={transferContent}
-                                                        className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[0.875rem] font-[700] text-[#111827] outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCopyContent}
-                                                        className="px-4 py-2 rounded-[6px] border border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a] text-[0.8438rem] hover:bg-[#ffece4] font-[600] transition-colors"
-                                                    >
-                                                        Copy
-                                                    </button>
-                                                </div>
-                                                <p className="text-[#6b7280] text-[0.75rem] mt-2 italic">
-                                                    * Vui lòng nhập đúng nội dung chuyển khoản để hệ thống xác nhận tự động.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                {/* Deposit payment is handled via PayOS; no inline bank info here */}
 
                                 {/* ── Section 2: Pets ── */}
                                 {booking.pets && booking.pets.length > 0 && (
@@ -525,7 +569,7 @@ export const BookingClientDetailPage = () => {
                                         {booking && booking.status === "PENDING" && booking.paymentStatus === "PENDING" && !booking.depositPaid && booking.depositId && !isExpired && (
                                             <button
                                                 type="button"
-                                                onClick={() => setActiveView("payment")}
+                                                onClick={openPayosDepositInline}
                                                 className="inline-flex items-center justify-center rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#45a049] transition-colors"
                                             >
                                                 Thanh toán cọc ngay
@@ -566,140 +610,53 @@ export const BookingClientDetailPage = () => {
                         {/* =================== PAYMENT VIEW (INLINE) =================== */}
                         {booking && activeView === "payment" && (
                             <>
-                                <div className="flex flex-wrap gap-2 items-center justify-between bg-white border border-[#f3e0d6] rounded-[8px] px-4 py-3 mb-4">
-                                    <div>
-                                        <div className="text-[#181818] font-[700]">Mã giữ chỗ (Deposit)</div>
-                                        <div className="text-[#505050] text-[0.875rem]">{booking.depositId ?? "—"}</div>
-                                    </div>
-                                </div>
-
-                                <p className="text-[#505050] text-[0.875rem] mb-6">
-                                    Nếu quá thời gian quy định chưa thanh toán, hệ thống sẽ tự động hủy đơn giữ chỗ. Bạn sẽ phải thực hiện lại quy trình đặt lịch.
-                                </p>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="flex flex-col items-center justify-center rounded-[8px] px-4 py-6 bg-white border border-[#f1f1f1]">
-                                        <div className="mb-4 text-[0.9062rem] font-[600] text-[#111827]">
-                                            Quét mã QR để thanh toán
+                                <div className="rounded-[12px] bg-white border border-[#f1f1f1] p-5">
+                                    <div className="flex items-center justify-between gap-3 mb-4">
+                                        <div>
+                                            <p className="text-[#111827] font-[800]">Thanh toán cọc</p>
+                                            <p className="text-[#6b7280] text-[0.875rem]">
+                                                Quét mã QR/chuyển khoản trong khung PayOS bên dưới. Sau khi thanh toán xong hệ thống sẽ tự cập nhật.
+                                            </p>
                                         </div>
-                                        <div className="w-[200px] h-[200px] rounded-[12px] bg-[#f9fafb] flex items-center justify-center border border-[#e5e7eb] mb-4">
-                                            <div className="text-[0.75rem] text-[#9ca3af] text-center px-4">
-                                                (QR Code)
-                                            </div>
-                                        </div>
-                                        <div className="text-[0.8125rem] text-[#6b7280] text-center w-[80%]">
-                                            Vui lòng đảm bảo số tiền và nội dung thanh toán.
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="text-[0.9062rem] font-[700] text-[#111827] mb-2">
-                                            Hình thức thanh toán
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {(["BANK_TRANSFER", "MOMO", "ZALOPAY", "VNPAY"] as PaymentMethod[]).map((id) => {
-                                                const labelMap: Record<PaymentMethod, string> = {
-                                                    BANK_TRANSFER: "Chuyển khoản",
-                                                    MOMO: "Ví MoMo",
-                                                    ZALOPAY: "ZaloPay",
-                                                    VNPAY: "VNPAY",
-                                                };
-                                                const label = labelMap[id];
-                                                const selected = paymentMethod === id;
-                                                return (
-                                                    <button
-                                                        key={id}
-                                                        type="button"
-                                                        onClick={() => setPaymentMethod(id)}
-                                                        className={
-                                                            "px-4 py-2 rounded-[8px] border text-[0.8125rem] font-[600] transition-colors " +
-                                                            (selected
-                                                                ? "border-[#ffbaa0] bg-[#fff5f0] text-[#c45a3a]"
-                                                                : "border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]")
-                                                        }
-                                                    >
-                                                        {label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {paymentMethod === "BANK_TRANSFER" && (
-                                            <div className="mt-2 space-y-3 text-[0.8438rem] text-[#111827] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
-                                                <div className="font-[600] mb-2">Tài khoản ngân hàng</div>
-                                                <ul className="space-y-1.5 text-[0.8125rem] text-[#374151]">
-                                                    <li>
-                                                        <span className="font-[500] inline-block w-[100px]">Ngân hàng:</span> Vietcombank – Chi nhánh Q.7
-                                                    </li>
-                                                    <li>
-                                                        <span className="font-[500] inline-block w-[100px]">Số TK:</span> 0123 456 789
-                                                    </li>
-                                                    <li>
-                                                        <span className="font-[500] inline-block w-[100px]">Chủ TK:</span> CÔNG TY TNHH TEDDYPET
-                                                    </li>
-                                                </ul>
-                                                <div className="mt-4 pt-4 border-t border-[#f1f1f1]">
-                                                    <div className="font-[600] mb-2">Nội dung chuyển khoản (quan trọng)</div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            readOnly
-                                                            value={transferContent}
-                                                            className="flex-1 rounded-[6px] border border-[#d1d5db] bg-[#f9fafb] px-3 py-2 text-[0.8438rem] font-[700] text-[#111827] outline-none"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleCopyContent}
-                                                            className="px-3 py-2 rounded-[6px] border border-[#e5e7eb] bg-white text-[0.8125rem] hover:bg-[#f3f4f6] font-[500]"
-                                                        >
-                                                            Copy
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {paymentMethod !== "BANK_TRANSFER" && (
-                                            <div className="mt-2 text-[0.8438rem] text-[#374151] bg-white border border-[#f1f1f1] p-4 rounded-[8px]">
-                                                Quét mã QR qua ứng dụng {paymentMethod} để tiến hành thanh toán giữ chỗ.
-                                            </div>
-                                        )}
-
-                                        <div className="flex gap-3 pt-4 mt-2 border-t border-[#f1f1f1]">
+                                        <div className="flex gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveView("detail")}
-                                                className="py-[10px] px-[20px] rounded-[8px] border border-[#ddd] bg-white text-[#181818] font-[600] text-[0.875rem] hover:bg-[#f5f5f5] transition-colors"
+                                                className="py-[10px] px-[16px] rounded-[10px] border border-[#ddd] bg-white text-[#181818] font-[700] text-[0.875rem] hover:bg-[#f5f5f5] transition-colors"
                                             >
                                                 Quay lại chi tiết
                                             </button>
-                                            {booking.status === "PENDING" && !isExpired && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsCancelModalOpen(true)}
-                                                    className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
-                                                >
-                                                    Hủy đơn đặt lịch
-                                                </button>
-                                            )}
-                                            {!isExpired && (
-                                                <button
-                                                    type="button"
-                                                    disabled={!booking.depositId || isConfirming}
-                                                    onClick={handleConfirmPayment}
-                                                    className="py-[10px] px-[20px] rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] hover:bg-[#45a049] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                                                    title="Mô phỏng thanh toán thành công"
-                                                >
-                                                    {isConfirming ? "Đang xử lý..." : "Xác nhận đã thanh toán"}
-                                                </button>
-                                            )}
                                         </div>
                                     </div>
+
+                                    {!payosCheckoutUrl ? (
+                                        <div className="mt-3 rounded-[14px] overflow-hidden border border-[#e5e7eb] bg-[#fafafa] flex items-center justify-center h-[72vh]">
+                                            <div className="text-[#6b7280] text-[0.9rem] font-[600]">
+                                                {autoCancellingExpired
+                                                    ? "Giữ chỗ đã hết hạn. Đang hủy đơn và cập nhật trạng thái..."
+                                                    : payosLoading
+                                                        ? "Đang tải màn hình PayOS..."
+                                                        : "Đang chuẩn bị thanh toán..."}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-3 rounded-[14px] overflow-hidden border border-[#e5e7eb] bg-[#fafafa]">
+                                            <iframe
+                                                src={payosCheckoutUrl}
+                                                title="Thanh toán PayOS"
+                                                className="w-full h-[72vh] border-0"
+                                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* PayOS is rendered inline inside the payment view */}
             
             {booking && (
                 <CancelBookingModal

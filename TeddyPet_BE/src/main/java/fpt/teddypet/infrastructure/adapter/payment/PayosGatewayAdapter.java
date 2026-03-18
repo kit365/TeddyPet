@@ -86,6 +86,44 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     }
 
     /**
+     * Dùng cho domain khác ngoài Order (vd: BookingDeposit): tạo link PayOS theo orderCode + amount.
+     * Nếu PayOS báo orderCode đã tồn tại, cố gắng fetch lại link đang PENDING.
+     */
+    public String buildPaymentUrlByOrderCode(Long orderCode, long amount, String description, String returnUrl) {
+        if (orderCode == null) {
+            throw new PaymentException("Lỗi hệ thống: thiếu orderCode để tạo PayOS link.");
+        }
+        try {
+            String desc = description != null ? description : "Thanh toán";
+            if (desc.length() > 25) {
+                desc = desc.substring(0, 25);
+            }
+
+            CreatePaymentLinkRequest request = CreatePaymentLinkRequest.builder()
+                    .orderCode(orderCode)
+                    .amount(amount)
+                    .description(desc)
+                    .returnUrl(returnUrl)
+                    .cancelUrl(returnUrl)
+                    .build();
+
+            CreatePaymentLinkResponse response = payOS.paymentRequests().create(request);
+            return response.getCheckoutUrl();
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
+                String existingUrl = fetchExistingPaymentLinkUrl(orderCode);
+                if (existingUrl != null) {
+                    log.info("PayOS: returning existing payment link (orderCode={}).", orderCode);
+                    return existingUrl;
+                }
+            }
+            log.error("PayosGatewayAdapter failed to create payment link (orderCode={}): {}", orderCode, msg);
+            throw new PaymentException("PayOS Error: " + msg, e);
+        }
+    }
+
+    /**
      * Gọi PayOS API GET /v2/payment-requests/{orderCode} để lấy thông tin link đã tạo,
      * rồi build checkoutUrl = https://pay.payos.vn/web/{paymentLinkId}.
      */

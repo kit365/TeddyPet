@@ -161,6 +161,7 @@ const normalizeBooking = (b: Record<string, unknown>): BookingResponse => ({
   cancelRequested: b.cancelRequested != null ? Boolean(b.cancelRequested) : undefined,
   cancelledReason: b.cancelledReason != null ? String(b.cancelledReason) : undefined,
   internalNotes: b.internalNotes != null ? String(b.internalNotes) : undefined,
+  bookingDateFrom: b.bookingDateFrom != null ? String(b.bookingDateFrom) : undefined,
   bookingCheckInDate: b.bookingCheckInDate != null ? String(b.bookingCheckInDate) : undefined,
   bookingCheckOutDate: b.bookingCheckOutDate != null ? String(b.bookingCheckOutDate) : undefined,
   cancelledAt: b.cancelledAt != null ? String(b.cancelledAt) : undefined,

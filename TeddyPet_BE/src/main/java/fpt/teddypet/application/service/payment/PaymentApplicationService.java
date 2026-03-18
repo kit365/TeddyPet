@@ -21,6 +21,9 @@ import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.exception.PaymentDomainException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.application.port.output.EmailServicePort;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -43,6 +49,9 @@ public class PaymentApplicationService implements PaymentService {
     private final OrderService orderService;
     private final PaymentRepositoryPort paymentRepositoryPort;
     private final BankInformationRepository bankInformationRepository;
+    private final BookingDepositRepository bookingDepositRepository;
+    private final BookingRepository bookingRepository;
+    private final EmailServicePort emailServicePort;
     private final ObjectMapper objectMapper;
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
     private Map<PaymentGatewayEnum, PaymentGatewayPort<?>> gatewayMap;
@@ -201,7 +210,90 @@ public class PaymentApplicationService implements PaymentService {
                         log.error("Failed to update payment/order for txnId: {}", result.transactionId(), e);
                         throw new PaymentException("Failed to update payment: " + e.getMessage(), e);
                     }
-                }, () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
+                }, () -> {
+                    log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId());
+                    tryHandleBookingDepositPayosCallback(result, gateway);
+                });
+    }
+
+    /**
+     * Fallback: PayOS webhook có thể dành cho BookingDeposit (cọc booking), không tạo record payments.
+     * Nếu không tìm thấy Payment theo transactionId thì thử map sang booking_deposits.payos_order_code.
+     */
+    private void tryHandleBookingDepositPayosCallback(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
+        if (gateway != PaymentGatewayEnum.PAYOS) return;
+        Long orderCode;
+        try {
+            orderCode = Long.parseLong(result.transactionId());
+        } catch (Exception ex) {
+            return;
+        }
+
+        bookingDepositRepository.findFirstByPayosOrderCode(orderCode)
+                .ifPresent(deposit -> {
+                    try {
+                        // Always save latest verified payload for audit/debug
+                        if (result.rawPayload() != null && !result.rawPayload().isBlank()) {
+                            deposit.setWebhookPayload(result.rawPayload());
+                        }
+
+                        // Idempotent: already paid
+                        if ("PAID".equalsIgnoreCase(deposit.getStatus()) || Boolean.TRUE.equals(deposit.getDepositPaid())) {
+                            bookingDepositRepository.save(deposit);
+                            return;
+                        }
+
+                        // Ignore if expired
+                        if (deposit.getExpiresAt() != null && deposit.getExpiresAt().isBefore(LocalDateTime.now())) {
+                            bookingDepositRepository.save(deposit);
+                            return;
+                        }
+
+                        if (!"PENDING".equalsIgnoreCase(deposit.getStatus())) {
+                            bookingDepositRepository.save(deposit);
+                            return;
+                        }
+
+                        if (deposit.getBookingId() == null) {
+                            bookingDepositRepository.save(deposit);
+                            return;
+                        }
+
+                        var bookingOpt = bookingRepository.findById(deposit.getBookingId());
+                        if (bookingOpt.isEmpty()) {
+                            bookingDepositRepository.save(deposit);
+                            return;
+                        }
+                        var booking = bookingOpt.get();
+
+                        BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+                        BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
+                                : BigDecimal.valueOf(25);
+                        BigDecimal depositAmount = total
+                                .multiply(percentage)
+                                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+                        booking.setPaidAmount(depositAmount);
+                        booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
+                        booking.setIsTemporary(false);
+                        bookingRepository.save(booking);
+
+                        deposit.setStatus("PAID");
+                        deposit.setDepositPaid(true);
+                        deposit.setDepositPaidAt(LocalDateTime.now());
+                        deposit.setPaymentMethod(PaymentGatewayEnum.PAYOS.name());
+                        deposit.setNotes("Thanh toán cọc - PayOS");
+                        deposit.setDepositAmount(depositAmount);
+                        deposit.setBookingCode(booking.getBookingCode());
+                        bookingDepositRepository.save(deposit);
+
+                        if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                            emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to finalize booking deposit for payosOrderCode={}", orderCode, e);
+                    }
+                });
     }
 
     private void markPaymentFailed(GatewayCallbackResult result, PaymentGatewayEnum gateway) {

@@ -574,37 +574,66 @@ export const ServiceCreatePage = () => {
                                         <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                     </Box>
                                     {isRequiredRoom && (
-                                        <Box sx={{ mt: 2 }}>
-                                            <Box sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 2 }}>Loại phòng gắn với dịch vụ này (sau khi tạo sẽ gắn)</Box>
-                                            <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.8125rem' } }}>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell>Tên loại phòng</TableCell>
-                                                        <TableCell>Dịch vụ hiện tại</TableCell>
-                                                        <TableCell padding="checkbox">Gắn vào dịch vụ này</TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {roomTypes.map((rt) => (
-                                                        <TableRow key={rt.roomTypeId}>
-                                                            <TableCell>{rt.typeName}</TableCell>
-                                                            <TableCell>{rt.serviceName ?? '—'}</TableCell>
-                                                            <TableCell padding="checkbox">
-                                                                <Checkbox
-                                                                    checked={selectedRoomTypeIds.includes(rt.roomTypeId)}
-                                                                    onChange={(_, checked) => {
-                                                                        setSelectedRoomTypeIds((prev) =>
-                                                                            checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
+                                        <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                            <Box sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.5 }}>Loại phòng gắn với dịch vụ này</Box>
+                                            <Box sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
+                                                Chọn các loại phòng sẽ được sử dụng cho dịch vụ này. Một loại phòng chỉ có thể gắn với một dịch vụ. (Gắn sau khi tạo thành công)
+                                            </Box>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
+                                                {roomTypes.map((rt) => {
+                                                    const isSelected = selectedRoomTypeIds.includes(rt.roomTypeId);
+                                                    const currentService = rt.serviceName;
+                                                    return (
+                                                        <Card
+                                                            key={rt.roomTypeId}
+                                                            variant="outlined"
+                                                            sx={{
+                                                                p: 1.5,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                borderRadius: 1.5,
+                                                                transition: 'all 0.2s',
+                                                                borderColor: isSelected ? 'primary.main' : 'divider',
+                                                                bgcolor: isSelected ? 'primary.lighter' : 'background.paper',
+                                                                boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                                            }}
+                                                        >
+                                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                                <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : 'text.primary' }}>
+                                                                    {rt.typeName}
+                                                                </Typography>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                    <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>Dịch vụ:</Typography>
+                                                                    {currentService ? (
+                                                                        <Chip
+                                                                            label={currentService}
+                                                                            size="small"
+                                                                            sx={{ height: 18, fontSize: '0.75rem', fontWeight: 500 }}
+                                                                        />
+                                                                    ) : (
+                                                                        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontStyle: 'italic' }}>Chưa gắn</Typography>
+                                                                    )}
+                                                                </Box>
+                                                            </Box>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={isSelected}
+                                                                onChange={(_, checked) => {
+                                                                    setSelectedRoomTypeIds((prev) =>
+                                                                        checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
+                                                                    );
+                                                                }}
+                                                                color="primary"
+                                                            />
+                                                        </Card>
+                                                    );
+                                                })}
+                                            </Box>
                                             {roomTypes.length === 0 && (
-                                                <Box sx={{ py: 2, color: 'text.secondary', fontSize: '0.8125rem' }}>Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.</Box>
+                                                <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '0.875rem', bgcolor: 'background.paper', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+                                                    Chưa có loại phòng. Tạo tại Quản lý phòng → Danh sách loại phòng.
+                                                </Box>
                                             )}
                                         </Box>
                                     )}

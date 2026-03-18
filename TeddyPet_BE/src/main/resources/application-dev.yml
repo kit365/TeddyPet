@@ -40,7 +40,8 @@ spring:
       # Khi chạy BE local:
       # - Không set 2 biến này, sẽ fallback về localhost:6379
       host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      # docker-compose.yml map redis -> host port 6380 by default
+      port: ${SPRING_DATA_REDIS_PORT:6380}
       password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       ssl:

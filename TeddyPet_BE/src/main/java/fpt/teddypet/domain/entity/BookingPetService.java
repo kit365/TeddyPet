@@ -98,6 +98,15 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "status", length = 50)
     private String status;
 
+    @Column(name = "cancelled_reason", columnDefinition = "TEXT")
+    private String cancelledReason;
+
+    @Column(name = "cancelled_by", length = 255)
+    private String cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Column(name = "staff_notes", columnDefinition = "TEXT")
     private String staffNotes;
 

@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.controller.booking;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingDepositIntentResponse;
+import fpt.teddypet.application.dto.response.bookings.CreateBookingDepositPayosResponse;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.presentation.constants.ApiConstants;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -47,5 +49,15 @@ public class BookingDepositClientController {
                 return ResponseEntity
                                 .status(HttpStatus.CREATED)
                                 .body(ApiResponse.success("Thanh toán cọc thành công. Đã tạo booking.", response));
+        }
+
+        @PostMapping("/{depositId}/payos")
+        @Operation(summary = "Tạo link PayOS để thanh toán cọc (5 phút)")
+        public ResponseEntity<ApiResponse<CreateBookingDepositPayosResponse>> createPayosCheckoutUrl(
+                        @PathVariable Long depositId,
+                        @RequestParam(required = false) String returnUrl) {
+                CreateBookingDepositPayosResponse response = bookingDepositClientService
+                                .createPayosCheckoutUrl(depositId, returnUrl);
+                return ResponseEntity.ok(ApiResponse.success("Đã tạo link PayOS thanh toán cọc", response));
         }
 }

@@ -108,6 +108,7 @@ public class SecurityConfig {
                         // Booking deposits (giữ chỗ + xác nhận cọc): cho phép khách vãng lai
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/confirm").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/payos").permitAll()
                         // Banks: cho phép khách xem danh sách ngân hàng để nhập thông tin hoàn cọc
                         .requestMatchers(HttpMethod.GET, "/api/banks", "/api/banks/**").permitAll()
                         // Bank information cho booking (guest có thể nhập thông tin nhận hoàn tiền theo bookingCode)

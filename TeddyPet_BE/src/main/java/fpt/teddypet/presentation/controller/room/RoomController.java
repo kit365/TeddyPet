@@ -5,16 +5,19 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.room.RoomSetPositionRequest;
 import fpt.teddypet.application.dto.request.room.RoomUpsertRequest;
 import fpt.teddypet.application.dto.response.room.RoomResponse;
+import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.input.room.RoomService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -24,6 +27,7 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+    private final BookingClientService bookingClientService;
 
     @PostMapping
     @Operation(summary = "Create or Update Room")
@@ -41,6 +45,14 @@ public class RoomController {
             @RequestParam(required = false) Long roomTypeId,
             @RequestParam(required = false) Long roomLayoutConfigId) {
         return ResponseEntity.ok(ApiResponse.success(roomService.getAll(roomTypeId, roomLayoutConfigId)));
+    }
+
+    @GetMapping("/booked-ids")
+    @Operation(summary = "Get booked room IDs for date range", description = "Returns room IDs that have a booking overlapping the given check-in/check-out. Used by client room picker to blur booked rooms.")
+    public ResponseEntity<ApiResponse<List<Long>>> getBookedRoomIds(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+        return ResponseEntity.ok(ApiResponse.success(bookingClientService.getBookedRoomIds(checkIn, checkOut)));
     }
 
     @GetMapping("/{id}")

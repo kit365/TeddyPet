@@ -44,6 +44,23 @@ const formatBookingDateTime = (value?: string) => {
   return `${day}/${month} - ${hours}:${minutes} (${period})`;
 };
 
+/** Định dạng cho cột Ngày gửi: dd/mm (FE có thể nhận ISO date yyyy-MM-dd) */
+const formatBookingDateOnly = (value?: string) => {
+  if (!value) return "—";
+  const s = value.trim();
+  const datePart = s.length >= 10 ? s.slice(0, 10) : s;
+  const [yyyy, mm, dd] = datePart.split("-");
+  if (!yyyy || !mm || !dd) {
+    // Fallback: cố parse bằng Date
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return "—";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+  }
+  return `${dd.padStart(2, "0")}/${mm.padStart(2, "0")}`;
+};
+
 export const getBookingColumns = (
   onViewDetail: (row: BookingResponse) => void,
   onEdit?: (row: BookingResponse) => void,
@@ -92,11 +109,10 @@ export const getBookingColumns = (
       <Typography sx={{ fontWeight: 600, fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
     ),
   },
-
   {
-    field: "bookingCheckInDate",
-    headerName: "Check-in",
-    minWidth: 128,
+    field: "createdAt",
+    headerName: "Ngày đặt lịch",
+    minWidth: 148,
     flex: 0.7,
     align: "center",
     headerAlign: "center",
@@ -110,9 +126,9 @@ export const getBookingColumns = (
     },
   },
   {
-    field: "bookingCheckOutDate",
-    headerName: "Check-out",
-    minWidth: 128,
+    field: "bookingDateFrom",
+    headerName: "Ngày gửi",
+    minWidth: 148,
     flex: 0.7,
     align: "center",
     headerAlign: "center",
@@ -120,7 +136,7 @@ export const getBookingColumns = (
       const val = params.value as string | undefined;
       return (
         <Typography sx={{ fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>
-          {val ? formatBookingDateTime(val) : "—"}
+          {val ? formatBookingDateOnly(val) : "—"}
         </Typography>
       );
     },
