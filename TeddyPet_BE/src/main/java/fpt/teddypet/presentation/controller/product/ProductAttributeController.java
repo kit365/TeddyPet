@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.common.EnumOptionResponse;
 import fpt.teddypet.application.dto.response.UnitResponse;
 import fpt.teddypet.application.dto.response.product.attribute.ProductAttributeResponse;
+import fpt.teddypet.application.service.products.ProductAttributeExcelService;
 import fpt.teddypet.application.port.input.products.ProductAttributeService;
 import fpt.teddypet.application.util.EnumUtil;
 import fpt.teddypet.domain.enums.AttributeDisplayType;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,6 +32,7 @@ import static fpt.teddypet.application.util.UnitEnumUtil.getUnitsByCategory;
 public class ProductAttributeController {
 
     private final ProductAttributeService productAttributeService;
+    private final ProductAttributeExcelService productAttributeExcelService;
 
     @PostMapping
     @Operation(summary = "Tạo thuộc tính sản phẩm", description = "Tạo mới thuộc tính sản phẩm cùng danh sách giá trị (optional)")
@@ -94,6 +97,26 @@ public class ProductAttributeController {
     public ResponseEntity<ApiResponse<List<UnitEnum>>> getSupportedUnits(@PathVariable Long attributeId) {
         List<UnitEnum> supportedUnits = productAttributeService.getSupportedUnits(attributeId);
         return ResponseEntity.ok(ApiResponse.success(supportedUnits));
+    }
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Export thuộc tính sản phẩm ra Excel")
+    public void exportExcel(jakarta.servlet.http.HttpServletResponse response) {
+        productAttributeExcelService.exportToExcel(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel thuộc tính sản phẩm")
+    public void downloadTemplate(jakarta.servlet.http.HttpServletResponse response) {
+        productAttributeExcelService.downloadTemplate(response);
+    }
+
+    @PostMapping(value = "/excel/import", consumes = "multipart/form-data")
+    @Operation(summary = "Import thuộc tính sản phẩm từ Excel")
+    public ResponseEntity<ApiResponse<ProductAttributeExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        ProductAttributeExcelService.ImportResult result = productAttributeExcelService.importFromExcel(file);
+        return ResponseEntity.ok(ApiResponse.success("Import thuộc tính sản phẩm thành công", result));
     }
 }
 

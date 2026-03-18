@@ -21,6 +21,7 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ReplayIcon from '@mui/icons-material/Replay';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder, downloadOrderInvoice, handleOrderRefundRequest, getOrderRefundRequests } from '../../../api/order.api';
 import { getBankInformationByOrderId } from '../../../../api/bank.api';
 import { getShippingFeeSuggestion } from '../../../api/shipping.api';
@@ -97,6 +98,7 @@ export const OrderList = () => {
     const [isCancelling, setIsCancelling] = useState(false);
     const [refundOrder, setRefundOrder] = useState<OrderResponse | null>(null);
     const [refundNote, setRefundNote] = useState('');
+    const [refundTxId, setRefundTxId] = useState('');
     const [refundRequestId, setRefundRequestId] = useState<number | null>(null);
     const [refundBankInfo, setRefundBankInfo] = useState<{
         accountNumber: string;
@@ -911,20 +913,20 @@ export const OrderList = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Refund Request Dialog for ONLINE + thanh toán online khi đã PAID / PROCESSING */}
+            {/* Refund Request Dialog for ONLINE + thanh toán online khi đã PAID / PROCESSING or APPROVED */}
             <Dialog
                 open={!!refundOrder}
-                onClose={() => { setRefundOrder(null); setRefundNote(''); }}
+                onClose={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }}
                 PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            <ReplayIcon sx={{ fontSize: '1.6rem' }} />
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: refundOrder?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            {refundOrder?.latestRefundStatus === 'APPROVED' ? <CheckCircleOutlineIcon sx={{ fontSize: '1.6rem' }} /> : <ReplayIcon sx={{ fontSize: '1.6rem' }} />}
                         </Box>
                         <Box>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
-                                Hủy đơn / Yêu cầu hoàn tiền
+                                {refundOrder?.latestRefundStatus === 'APPROVED' ? 'Xác nhận Chuyển tiền' : 'Hủy đơn / Yêu cầu hoàn tiền'}
                             </Typography>
                             {refundOrder && (
                                 <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', mt: 0.3 }}>
@@ -933,7 +935,7 @@ export const OrderList = () => {
                             )}
                         </Box>
                     </Stack>
-                    <IconButton onClick={() => { setRefundOrder(null); setRefundNote(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                    <IconButton onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -1049,6 +1051,24 @@ export const OrderList = () => {
                         </Box>
                     )}
 
+                    {refundOrder?.latestRefundStatus === 'APPROVED' && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                Mã giao dịch hoàn tiền (nếu có)
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                value={refundTxId}
+                                onChange={(e) => setRefundTxId(e.target.value)}
+                                placeholder="Nhập mã giao dịch chuyển khoản..."
+                                sx={{
+                                    '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                                }}
+                            />
+                        </Box>
+                    )}
+
                     <Box sx={{ mb: 2 }}>
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
                             Ghi chú nội bộ cho việc hoàn tiền
@@ -1079,8 +1099,9 @@ export const OrderList = () => {
 
                     <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8' }}>
                         <Typography sx={{ fontSize: '0.8rem', color: '#637381' }}>
-                            Thao tác này sẽ cập nhật đơn hàng sang trạng thái <strong>ĐÃ HỦY</strong>. Nhân viên cần thực hiện hoàn tiền
-                            cho khách theo đúng quy trình (dùng thông tin ngân hàng đã lưu ở chi tiết đơn).
+                            {refundOrder?.latestRefundStatus === 'APPROVED'
+                                ? 'Xác nhận rằng nhân viên đã thực hiện chuyển khoản số tiền hoàn lại cho khách hàng thành công. Trạng thái yêu cầu sẽ chuyển thành ĐÃ HOÀN TIỀN.'
+                                : 'Thao tác này sẽ cập nhật đơn hàng sang trạng thái ĐÃ HỦY. Nhân viên cần thực hiện hoàn tiền cho khách theo đúng quy trình (dùng thông tin ngân hàng đã lưu ở chi tiết đơn).'}
                         </Typography>
                     </Box>
                 </DialogContent>
@@ -1089,51 +1110,53 @@ export const OrderList = () => {
                     <Button
                         fullWidth
                         variant="outlined"
-                        onClick={() => { setRefundOrder(null); setRefundNote(''); }}
+                        onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }}
                         sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
                     >
                         Đóng
                     </Button>
-                    <Button
-                        fullWidth
-                        variant="outlined"
-                        color="error"
-                        onClick={async () => {
-                            if (!refundOrder || !refundRequestId) {
-                                toast.error("Không tìm thấy yêu cầu hoàn tiền để hủy duyệt.");
-                                return;
-                            }
-                            setIsCancelling(true);
-                            try {
-                                const res = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
-                                    approved: false,
-                                    adminNote: refundNote.trim() || undefined,
-                                });
-                                if (res.success) {
-                                    toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
-                                    setRefundOrder(null);
-                                    setRefundNote('');
-                                    refresh();
-                                } else {
-                                    toast.error(res.message || "Không thể hủy duyệt yêu cầu hoàn tiền.");
+                    {refundOrder?.latestRefundStatus === 'PENDING' && (
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            color="error"
+                            onClick={async () => {
+                                if (!refundOrder || !refundRequestId) {
+                                    toast.error("Không tìm thấy yêu cầu hoàn tiền để hủy duyệt.");
+                                    return;
                                 }
-                            } catch (error: any) {
-                                toast.error(error.response?.data?.message || "Lỗi hệ thống khi hủy duyệt.");
-                            } finally {
-                                setIsCancelling(false);
-                            }
-                        }}
-                        disabled={isCancelling}
-                        sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
-                    >
-                        Hủy duyệt
-                    </Button>
+                                setIsCancelling(true);
+                                try {
+                                    const res = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
+                                        approved: false,
+                                        adminNote: refundNote.trim() || undefined,
+                                    });
+                                    if (res.success) {
+                                        toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
+                                        setRefundOrder(null);
+                                        setRefundNote('');
+                                        refresh();
+                                    } else {
+                                        toast.error(res.message || "Không thể hủy duyệt yêu cầu hoàn tiền.");
+                                    }
+                                } catch (error: any) {
+                                    toast.error(error.response?.data?.message || "Lỗi hệ thống khi hủy duyệt.");
+                                } finally {
+                                    setIsCancelling(false);
+                                }
+                            }}
+                            disabled={isCancelling}
+                            sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
+                        >
+                            Hủy duyệt
+                        </Button>
+                    )}
                     <Button
                         fullWidth
                         variant="contained"
                         onClick={async () => {
                             if (!refundOrder || !refundRequestId) {
-                                toast.error("Không tìm thấy yêu cầu hoàn tiền để duyệt.");
+                                toast.error("Không tìm thấy yêu cầu hoàn tiền để xử lý.");
                                 return;
                             }
                             setIsCancelling(true);
@@ -1141,17 +1164,20 @@ export const OrderList = () => {
                                 const response = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
                                     approved: true,
                                     adminNote: refundNote.trim() || undefined,
+                                    refundTransactionId: refundOrder.latestRefundStatus === 'APPROVED' ? refundTxId : undefined,
                                 });
                                 if (response.success) {
-                                    toast.success("Đã duyệt yêu cầu hoàn tiền cho đơn này.");
+                                    const msg = refundOrder.latestRefundStatus === 'APPROVED' ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt yêu cầu hoàn tiền cho đơn này.";
+                                    toast.success(msg);
                                     setRefundOrder(null);
                                     setRefundNote('');
+                                    setRefundTxId('');
                                     refresh();
                                 } else {
-                                    toast.error(response.message || "Không thể duyệt yêu cầu hoàn tiền.");
+                                    toast.error(response.message || "Không thể xử lý yêu cầu hoàn tiền.");
                                 }
                             } catch (error: any) {
-                                toast.error(error.response?.data?.message || "Lỗi hệ thống khi duyệt yêu cầu hoàn tiền.");
+                                toast.error(error.response?.data?.message || "Lỗi hệ thống khi xử lý yêu cầu hoàn tiền.");
                             } finally {
                                 setIsCancelling(false);
                             }
@@ -1159,12 +1185,13 @@ export const OrderList = () => {
                         disabled={isCancelling}
                         sx={{
                             py: 1.5, borderRadius: '12px', fontWeight: 800,
-                            bgcolor: '#FFAB00', boxShadow: '0 8px 16px rgba(255, 171, 0, 0.24)',
-                            '&:hover': { bgcolor: '#B76E00' },
+                            bgcolor: refundOrder?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FFAB00',
+                            boxShadow: `0 8px 16px ${refundOrder?.latestRefundStatus === 'APPROVED' ? 'rgba(0, 171, 85, 0.24)' : 'rgba(255, 171, 0, 0.24)'}`,
+                            '&:hover': { bgcolor: refundOrder?.latestRefundStatus === 'APPROVED' ? '#007B55' : '#B76E00' },
                             '&:disabled': { bgcolor: '#E5E8EB' }
                         }}
                     >
-                        {isCancelling ? 'Đang xử lý...' : 'Xác nhận hủy / hoàn tiền'}
+                        {isCancelling ? 'Đang xử lý...' : (refundOrder?.latestRefundStatus === 'APPROVED' ? 'Xác nhận đã chuyển tiền' : 'Xác nhận hủy / hoàn tiền')}
                     </Button>
                 </DialogActions>
             </Dialog>

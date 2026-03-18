@@ -50,14 +50,14 @@ public class ProductCategoryApplicationService implements ProductCategoryService
 
         productCategoryMapper.updateCategoryFromRequest(request, category);
 
-        // Generate and validate Slug
-        String slug = SlugUtil.toSlug(request.name());
-        ValidationUtils.ensureUnique(
-                () -> isNew
-                        ? productCategoryRepositoryPort.existsBySlug(slug)
-                        : productCategoryRepositoryPort.existsBySlugAndIdNot(slug, category.getId()),
-                "Slug '" + slug + "' đã tồn tại");
-        category.setSlug(slug);
+        // Generate and validate unique Slug
+        String baseSlug = SlugUtil.toSlug(request.name());
+        String finalSlug = baseSlug;
+        int counter = 1;
+        while (productCategoryRepositoryPort.existsBySlugAndIdNot(finalSlug, isNew ? -1L : category.getId())) {
+            finalSlug = baseSlug + "-" + counter++;
+        }
+        category.setSlug(finalSlug);
 
         // Set parent if provided
         if (request.parentId() != null) {
@@ -75,6 +75,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductCategoryResponse getByIdResponse(Long categoryId) {
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_BY_ID, categoryId);
         ProductCategory category = getById(categoryId);
@@ -89,6 +90,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getAll() {
         List<ProductCategory> categories = productCategoryRepositoryPort.findAll();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_ALL, categories.size());
@@ -109,6 +111,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getRootCategories() {
         List<ProductCategory> rootCategories = productCategoryRepositoryPort.findRootCategories();
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_ROOT_CATEGORIES, rootCategories.size());
@@ -118,6 +121,7 @@ public class ProductCategoryApplicationService implements ProductCategoryService
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getChildCategories(Long parentId) {
         List<ProductCategory> childCategories = productCategoryRepositoryPort.findChildCategories(parentId);
         log.info(ProductCategoryLogMessages.LOG_PRODUCT_CATEGORY_GET_CHILD_CATEGORIES, parentId,

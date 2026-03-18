@@ -7,7 +7,7 @@ spring:
   application:
     name: teddypet
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   jackson:
     time-zone: Asia/Ho_Chi_Minh
     serialization:

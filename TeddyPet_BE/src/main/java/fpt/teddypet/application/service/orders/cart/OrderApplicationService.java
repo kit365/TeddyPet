@@ -440,15 +440,22 @@ public class OrderApplicationService implements OrderService {
         if ((oldStatus == OrderStatusEnum.CONFIRMED || oldStatus == OrderStatusEnum.PAID)
                 && status == OrderStatusEnum.PROCESSING
                 && order.getOrderType() == OrderTypeEnum.ONLINE
-                && order.getPayments() != null
-                && !order.getPayments().isEmpty()) {
-            boolean hasCompletedBankTransfer = order.getPayments().stream()
-                    .anyMatch(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER
-                            && p.getStatus() == PaymentStatusEnum.COMPLETED);
+                && order.getPayments() != null) {
 
-            if (!hasCompletedBankTransfer) {
-                throw new IllegalStateException(
-                        "Đơn hàng thanh toán online qua chuyển khoản chưa được PayOS xác nhận. Vui lòng đợi khách hàng thanh toán (tối đa 15 phút) hoặc kiểm tra lại giao dịch.");
+            // Chỉ bắt buộc hoàn tất thanh toán nếu đơn hàng có hình thức thanh toán là BANK_TRANSFER.
+            // Nếu đơn hàng là COD (CASH), cho phép bắt đầu đóng gói ngay.
+            boolean hasBankTransfer = order.getPayments().stream()
+                    .anyMatch(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER);
+
+            if (hasBankTransfer) {
+                boolean allBankTransfersCompleted = order.getPayments().stream()
+                        .filter(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER)
+                        .allMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
+
+                if (!allBankTransfersCompleted) {
+                    throw new IllegalStateException(
+                            "Đơn hàng thanh toán online qua chuyển khoản chưa được PayOS xác nhận. Vui lòng đợi khách hàng thanh toán (tối đa 10 phút) hoặc kiểm tra lại giao dịch.");
+                }
             }
         }
 
@@ -1155,9 +1162,9 @@ public class OrderApplicationService implements OrderService {
             throw new IllegalStateException("Đơn hàng COD không hỗ trợ yêu cầu hoàn tiền online.");
         }
 
-        // Chỉ cho yêu cầu khi đã PAID hoặc PROCESSING
-        if (order.getStatus() != OrderStatusEnum.PAID && order.getStatus() != OrderStatusEnum.PROCESSING) {
-            throw new IllegalStateException("Chỉ có thể yêu cầu hoàn tiền khi đơn đã thanh toán hoặc đang đóng gói.");
+        // Cho phép yêu cầu hoàn tiền ở bất kỳ trạng thái nào trước khi giao hàng (trừ hoàn trả COMPLETED thì dùng quy trình khác)
+        if (order.getStatus() == OrderStatusEnum.DELIVERING || order.getStatus() == OrderStatusEnum.DELIVERED || order.getStatus() == OrderStatusEnum.COMPLETED) {
+            throw new IllegalStateException("Đơn hàng đã được giao hoặc hoàn thành, không thể yêu cầu hoàn trả bằng quy trình này.");
         }
 
         OrderRefund entity = OrderRefund.builder()
@@ -1201,8 +1208,11 @@ public class OrderApplicationService implements OrderService {
                 r.getEvidenceUrls(),
                 r.getAdminDecisionNote(),
                 r.getProcessedBy(),
+                r.getRefundTransactionId(),
+                r.getAdminEvidenceUrls(),
                 r.getCreatedAt(),
-                r.getProcessedAt()
+                r.getProcessedAt(),
+                r.getRefundCompletedAt()
         );
     }
 
@@ -1216,40 +1226,53 @@ public class OrderApplicationService implements OrderService {
         if (!refund.getOrderId().equals(order.getId())) {
             throw new IllegalArgumentException("Yêu cầu hoàn tiền không thuộc đơn hàng này.");
         }
-        if (!"PENDING".equalsIgnoreCase(refund.getStatus())) {
-            throw new IllegalStateException("Yêu cầu hoàn tiền đã được xử lý trước đó.");
-        }
 
+        String currentStatus = refund.getStatus().toUpperCase();
         boolean approved = Boolean.TRUE.equals(request.approved());
-        refund.setStatus(approved ? "APPROVED" : "REJECTED");
-        refund.setAdminDecisionNote(request.adminNote());
-        refund.setProcessedBy(adminUsername);
-        refund.setProcessedAt(LocalDateTime.now());
-        orderRefundRepository.save(refund);
 
-        if (approved) {
-            order.setStatus(OrderStatusEnum.CANCELLED);
-            order.setCancelReason("Đã xử lý hoàn tiền đơn hàng theo khách hàng yêu cầu");
-            order.setCancelledAt(LocalDateTime.now());
-            order.setCancelledBy(adminUsername);
-            orderRepositoryPort.save(order);
-            // Gửi mail: dùng template sẵn có (order confirmation) để báo thay đổi trạng thái
-            try {
-                emailServicePort.sendOrderConfirmation(order);
-            } catch (Exception e) {
-                log.error("Failed to send refund approval email for order {}", order.getOrderCode(), e);
+        if ("PENDING".equals(currentStatus)) {
+            refund.setStatus(approved ? "APPROVED" : "REJECTED");
+            refund.setAdminDecisionNote(request.adminNote());
+            refund.setProcessedBy(adminUsername);
+            refund.setProcessedAt(LocalDateTime.now());
+
+            if (approved) {
+                order.setStatus(OrderStatusEnum.CANCELLED);
+                order.setCancelReason("Đã xử lý hoàn tiền đơn hàng theo khách hàng yêu cầu");
+                order.setCancelledAt(LocalDateTime.now());
+                order.setCancelledBy(adminUsername);
+                orderRepositoryPort.save(order);
+
+                try {
+                    emailServicePort.sendOrderConfirmation(order);
+                } catch (Exception e) {
+                    log.error("Failed to send refund approval email for order {}", order.getOrderCode(), e);
+                }
+            } else {
+                order.setCancelReason(null);
+                orderRepositoryPort.save(order);
+                try {
+                    emailServicePort.sendOrderRefundRejectedEmail(order, request.adminNote());
+                } catch (Exception e) {
+                    log.error("Failed to send refund reject email for order {}", order.getOrderCode(), e);
+                }
+            }
+        } else if ("APPROVED".equals(currentStatus) && approved) {
+            // Case: Admin has approved (Order is CANCELLED) and now confirms money transfer
+            refund.setStatus("REFUNDED");
+            refund.setRefundTransactionId(request.refundTransactionId());
+            if (request.adminEvidenceUrls() != null) {
+                refund.setAdminEvidenceUrls(new java.util.ArrayList<>(request.adminEvidenceUrls()));
+            }
+            refund.setRefundCompletedAt(LocalDateTime.now());
+            if (request.adminNote() != null && !request.adminNote().isBlank()) {
+                refund.setAdminDecisionNote(request.adminNote());
             }
         } else {
-            // Cho phép khách gửi lại: bỏ cancelReason để không hiện chấm đỏ
-            order.setCancelReason(null);
-            orderRepositoryPort.save(order);
-            try {
-                emailServicePort.sendOrderRefundRejectedEmail(order, request.adminNote());
-            } catch (Exception e) {
-                log.error("Failed to send refund reject email for order {}", order.getOrderCode(), e);
-            }
+            throw new IllegalStateException("Yêu cầu hoàn tiền đã ở trạng thái " + currentStatus + " hoặc thao tác không hợp lệ.");
         }
 
+        orderRefundRepository.save(refund);
         return toOrderRefundResponse(refund);
     }
 

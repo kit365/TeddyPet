@@ -8,8 +8,10 @@ import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.banks.BankInformationService;
 import fpt.teddypet.domain.entity.BankInformation;
 import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.enums.banks.VietnamBankEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,6 +28,7 @@ public class BankInformationApplicationService implements BankInformationService
 
     private final BankInformationRepository bankInformationRepository;
     private final BookingRepository bookingRepository;
+    private final OrderRepository orderRepository;
     private final AuthService authService;
 
     @Override
@@ -139,7 +142,39 @@ public class BankInformationApplicationService implements BankInformationService
         BankInformation entity = BankInformation.builder()
                 .userId(null)
                 .bookingId(booking.getId())
-                .accountType("CUSTOMER")
+                .accountType("GUEST")
+                .userEmail(userEmail)
+                .accountNumber(request.accountNumber().trim())
+                .accountHolderName(request.accountHolderName().trim())
+                .bankCode(bank.getBankCode())
+                .bankName(bank.getBankName())
+                .isVerify(false)
+                .isDefault(false)
+                .note(request.note())
+                .isActive(true)
+                .isDeleted(false)
+                .build();
+
+        entity = bankInformationRepository.save(entity);
+        return toResponse(entity);
+    }
+
+    @Override
+    public BankInformationResponse createGuestBankForOrderCode(String orderCode, UpsertBankInformationRequest request) {
+        if (orderCode == null || orderCode.isBlank()) {
+            throw new IllegalArgumentException("orderCode là bắt buộc.");
+        }
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
+
+        VietnamBankEnum bank = VietnamBankEnum.fromCode(request.bankCode())
+                .orElseThrow(() -> new IllegalArgumentException("bankCode không hợp lệ."));
+
+        String userEmail = request.userEmail() != null && !request.userEmail().isBlank() ? request.userEmail().trim() : null;
+        BankInformation entity = BankInformation.builder()
+                .userId(null)
+                .orderId(order.getId())
+                .accountType("GUEST")
                 .userEmail(userEmail)
                 .accountNumber(request.accountNumber().trim())
                 .accountHolderName(request.accountHolderName().trim())
@@ -185,7 +220,7 @@ public class BankInformationApplicationService implements BankInformationService
         String guestEmail = booking.getCustomerEmail();
         if (guestEmail != null && !guestEmail.isBlank()) {
             return bankInformationRepository.findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(
-                            guestEmail.trim(), "CUSTOMER").stream()
+                            guestEmail.trim(), "GUEST").stream()
                     .findFirst()
                     .map(this::toResponse)
                     .orElse(null);
@@ -197,7 +232,7 @@ public class BankInformationApplicationService implements BankInformationService
     @Transactional(readOnly = true)
     public BankInformationResponse getBankByGuestEmail(String email) {
         if (email == null || email.isBlank()) return null;
-        return bankInformationRepository.findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(email.trim(), "CUSTOMER")
+        return bankInformationRepository.findByUserEmailAndAccountTypeAndIsDeletedFalseOrderByUpdatedAtDesc(email.trim(), "GUEST")
                 .stream()
                 .findFirst()
                 .map(this::toResponse)
@@ -253,4 +288,3 @@ public class BankInformationApplicationService implements BankInformationService
                 b.getUpdatedAt());
     }
 }
-

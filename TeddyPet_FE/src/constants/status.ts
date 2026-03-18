@@ -93,10 +93,38 @@ export const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string; 
     }
 };
 
+export const REFUND_STATUS_MAP: Record<string, { label: string; color: string; bgColor: string }> = {
+    PENDING: {
+        label: "Chờ duyệt",
+        color: "#B76E00",
+        bgColor: "rgba(255, 171, 0, 0.12)"
+    },
+    APPROVED: {
+        label: "Chờ hoàn tiền",
+        color: "#118D57",
+        bgColor: "rgba(34, 197, 94, 0.12)"
+    },
+    REFUNDED: {
+        label: "Đã hoàn tiền",
+        color: "#006C9C",
+        bgColor: "rgba(0, 184, 217, 0.12)"
+    },
+    REJECTED: {
+        label: "Từ chối",
+        color: "#B71D18",
+        bgColor: "rgba(255, 86, 48, 0.12)"
+    }
+};
+
 export const getOrderStatus = (status: string) => {
     return ORDER_STATUS_MAP[status] || { label: status, color: "#637381", bgColor: "rgba(145, 158, 171, 0.16)", dotColor: "#919EAB" };
 };
 
 export const getPaymentStatus = (status: string) => {
     return PAYMENT_STATUS_MAP[status] || PAYMENT_STATUS_MAP.DEFAULT;
+};
+
+export const getRefundStatus = (status: string | null | undefined) => {
+    if (!status) return null;
+    return REFUND_STATUS_MAP[status] || { label: status, color: "#637381", bgColor: "rgba(145, 158, 171, 0.16)" };
 };

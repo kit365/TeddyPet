@@ -39,7 +39,7 @@ public final class EmailConstants {
 
     // Email Sub-headlines
     public static final String SUB_HEADLINE_ORDER_RECEIVED = "Đơn hàng của bạn đã được tiếp nhận. Chúng tôi sẽ sớm liên hệ để xác nhận giá vận chuyển.";
-    public static final String SUB_HEADLINE_ORDER_CONFIRMED = "Đơn hàng của bạn đã được xác nhận. Vui lòng hoàn tất thanh toán (nếu chọn chuyển khoản) trong vòng 15 phút để tránh bị hủy tự động.";
+    public static final String SUB_HEADLINE_ORDER_CONFIRMED = "Đơn hàng của bạn đã được xác nhận. Vui lòng hoàn tất thanh toán (nếu chọn chuyển khoản) trong vòng 10 phút để tránh bị hủy tự động.";
     public static final String SUB_HEADLINE_ORDER_PREPARING = "TeddyPet đang kiểm tra và đóng gói các sản phẩm trong đơn hàng của bạn để đảm bảo chất lượng tốt nhất khi đến tay.";
     public static final String SUB_HEADLINE_ORDER_DELIVERING = "TeddyPet đã bàn giao đơn hàng cho đơn vị vận chuyển. Bạn hãy chuẩn bị điện thoại để nhận hàng nhé!";
     public static final String SUB_HEADLINE_ORDER_DELIVERED = "Đơn hàng đã được giao đến bạn. Hy vọng bạn và bé cưng sẽ hài lòng với sản phẩm từ TeddyPet!";

@@ -105,7 +105,7 @@ export const getOrderRefundRequests = async (orderId: string) => {
 export const handleOrderRefundRequest = async (
     orderId: string,
     refundId: number,
-    payload: { approved: boolean; adminNote?: string }
+    payload: { approved: boolean; adminNote?: string; refundTransactionId?: string; adminEvidenceUrls?: string[] }
 ) => {
     const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
     return response.data;

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { trackOrder, confirmReceived, lookupGuestOrder, createPaymentUrl } from "../../../api/order.api";
+import { trackOrder, confirmReceived, lookupGuestOrder, createPaymentUrl, createOrderRefundRequest } from "../../../api/order.api";
+import { createGuestBankInformationByOrderCode } from "../../../api/bank.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +14,7 @@ import {
 } from "iconoir-react";
 import { format } from "date-fns";
 import { useAuthStore } from "../../../stores/useAuthStore";
-import { createOrderRefundRequest, getOrderRefundRequests } from "../../../api/order.api";
-import { getBankInformationByOrderId } from "../../../api/bank.api";
-import type { OrderRefundResponse } from "../../../types/order.type";
+import { RefundRequestModal } from "../dashboard/sections/RefundRequestModal";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
@@ -55,7 +54,6 @@ const OrderStepper = ({ status, isPaid = false, cancelReason }: { status: string
     const isCancelled = status === 'CANCELLED';
     const currentStepKey = steps[currentIdx]?.key ?? 'PENDING';
     const progressColor = STEP_COLORS[currentStepKey] ?? STEP_COLORS.PENDING;
-    const isCompleted = status === 'COMPLETED';
 
     if (isCancelled) {
         return (
@@ -262,49 +260,16 @@ export const OrderTrackingPage = () => {
 
     const showPaymentButton = order && order.status === 'CONFIRMED' && isOnlineBankTransfer && !isPaid && !paymentCancelled;
 
-    // Nút yêu cầu hoàn tiền: đơn ONLINE, đang PAID hoặc PROCESSING
+    // Nút yêu cầu hoàn tiền
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const [refundReason, setRefundReason] = useState("");
-    const [refundHistory, setRefundHistory] = useState<OrderRefundResponse[]>([]);
-    const [loadingRefundHistory, setLoadingRefundHistory] = useState(false);
-    const [orderBankInfo, setOrderBankInfo] = useState<{
-        accountNumber: string;
-        accountHolderName: string;
-        bankCode: string;
-        bankName?: string | null;
-    } | null>(null);
+    const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
+    
     const showRefundButton = order && order.orderType === 'ONLINE' && ['PAID', 'PROCESSING'].includes(order.status);
     const hasPendingRefund = order?.latestRefundStatus === 'PENDING';
-    const canSendNewRefund = !hasPendingRefund;
 
-    useEffect(() => {
-        if (!showCancelModal || !order?.id) {
-            setRefundHistory([]);
-            setOrderBankInfo(null);
-            return;
-        }
-        setLoadingRefundHistory(true);
-        getOrderRefundRequests(order.id)
-            .then((res) => {
-                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
-            })
-            .catch(() => setRefundHistory([]))
-            .finally(() => setLoadingRefundHistory(false));
-        getBankInformationByOrderId(order.id)
-            .then((res) => {
-                if (res.success && res.data)
-                    setOrderBankInfo({
-                        accountNumber: res.data.accountNumber,
-                        accountHolderName: res.data.accountHolderName,
-                        bankCode: res.data.bankCode,
-                        bankName: res.data.bankName ?? null,
-                    });
-                else setOrderBankInfo(null);
-            })
-            .catch(() => setOrderBankInfo(null));
-    }, [showCancelModal, order?.id]);
+    // Polling logic
 
-    // === Countdown 15 phút cho đơn đã xác nhận & chờ thanh toán online ===
+    // === Countdown 10 phút cho đơn đã xác nhận & chờ thanh toán online ===
     const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
 
     useEffect(() => {
@@ -313,7 +278,7 @@ export const OrderTrackingPage = () => {
             return;
         }
         const confirmedAt = new Date(order.updatedAt).getTime();
-        const deadline = confirmedAt + 15 * 60 * 1000; // 15 phút
+        const deadline = confirmedAt + 10 * 60 * 1000; // 10 phút
 
         const updateCountdown = () => {
             const now = Date.now();
@@ -379,6 +344,46 @@ export const OrderTrackingPage = () => {
             toast.error(error.response?.data?.message || "Không thể tạo link thanh toán!");
         } finally {
             setIsPaymentSubmitting(false);
+        }
+    };
+
+    const handleRefundConfirm = async (reason: string, bankInformationId?: number, guestBank?: any) => {
+        if (!order) return;
+        setIsSubmittingRefund(true);
+        try {
+            let finalBankId = bankInformationId;
+            
+            if (guestBank && !finalBankId) {
+                const res = await createGuestBankInformationByOrderCode(order.orderCode, guestBank);
+                if (res.success) {
+                    finalBankId = res.data.id;
+                } else {
+                    throw new Error(res.message || "Không thể lưu thông tin ngân hàng.");
+                }
+            }
+
+            if (!finalBankId) {
+                toast.error("Thiếu thông tin ngân hàng hoàn tiền.");
+                return;
+            }
+
+            const res = await createOrderRefundRequest(order.id, {
+                requestedAmount: order.finalAmount,
+                reason: reason.trim(),
+                bankInformationId: finalBankId
+            });
+
+            if (res.success) {
+                toast.success("Đã gửi yêu cầu hoàn tiền thành công!");
+                setShowCancelModal(false);
+                doTrackOrder(order.orderCode, order.guestEmail || email || undefined);
+            } else {
+                toast.error(res.message || "Không thể gửi yêu cầu hoàn tiền.");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || error.message || "Không thể gửi yêu cầu hoàn tiền!");
+        } finally {
+            setIsSubmittingRefund(false);
         }
     };
 
@@ -726,183 +731,15 @@ export const OrderTrackingPage = () => {
                 </div>
             )}
 
-            {/* Modal yêu cầu hoàn tiền */}
-            {showCancelModal && order && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center px-3 sm:px-4 py-4">
-                    <div
-                        className="absolute inset-0 bg-black/35 backdrop-blur-sm"
-                        onClick={() => setShowCancelModal(false)}
-                        aria-hidden
-                    />
-                    <div className="relative z-10 w-full max-w-[520px] max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-scaleUp flex flex-col">
-                        {/* Header */}
-                        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shadow-sm">
-                                    <WarningCircle className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <h3 className="text-[1.4rem] font-black text-client-secondary leading-tight">
-                                        Yêu cầu hoàn tiền
-                                    </h3>
-                                    <p className="text-[1rem] text-gray-500 mt-0.5">
-                                        Mã đơn: <span className="font-semibold text-client-primary">{order.orderCode}</span>
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowCancelModal(false)}
-                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-[1.3rem] leading-none transition-colors"
-                                aria-label="Đóng"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        {/* Content - scrollable */}
-                        <div className="px-5 py-3 space-y-4 overflow-y-auto flex-1 min-h-0">
-                            {/* Lịch sử yêu cầu hoàn tiền */}
-                            <div className="space-y-2">
-                                <h4 className="text-[1rem] font-bold text-gray-800">Lịch sử yêu cầu hoàn tiền</h4>
-                                {loadingRefundHistory ? (
-                                    <p className="text-sm text-gray-500">Đang tải...</p>
-                                ) : refundHistory.length === 0 ? (
-                                    <p className="text-sm text-gray-500 italic">Chưa có yêu cầu nào.</p>
-                                ) : (
-                                    <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
-                                        {refundHistory.map((r) => (
-                                            <div
-                                                key={r.id}
-                                                className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3 text-left"
-                                            >
-                                                <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                    <span className="text-xs text-gray-500">
-                                                        {r.createdAt ? format(new Date(r.createdAt), "dd/MM/yyyy HH:mm") : "—"}
-                                                    </span>
-                                                    <span
-                                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                                            r.status === "PENDING"
-                                                                ? "bg-amber-100 text-amber-800"
-                                                                : r.status === "APPROVED"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
-                                                        }`}
-                                                    >
-                                                        {r.status === "PENDING" ? "Chờ xử lý" : r.status === "APPROVED" ? "Đã duyệt" : "Từ chối"}
-                                                    </span>
-                                                </div>
-                                                {r.customerReason && (
-                                                    <p className="text-sm text-gray-700 mt-1.5 whitespace-pre-wrap">{r.customerReason}</p>
-                                                )}
-                                                {r.adminDecisionNote && (
-                                                    <div className="mt-2 pt-2 border-t border-gray-200">
-                                                        <p className="text-xs font-semibold text-gray-500 uppercase">Phản hồi TeddyPet</p>
-                                                        <p className="text-sm text-gray-800 mt-0.5">{r.adminDecisionNote}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {!canSendNewRefund && (
-                                <div className="rounded-2xl bg-amber-50 px-3 py-2 border border-amber-200">
-                                    <p className="text-[0.95rem] text-amber-800 font-medium">
-                                        Bạn có 1 yêu cầu đang chờ TeddyPet xử lý. Không thể gửi thêm cho đến khi có phản hồi.
-                                    </p>
-                                </div>
-                            )}
-
-                            {canSendNewRefund && (
-                                <>
-                                    <div className="flex items-start gap-2 rounded-2xl bg-red-50 px-3 py-2 border border-red-100">
-                                        <InfoCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                                        <p className="text-[1.05rem] text-red-700 leading-snug">
-                                            Yêu cầu sẽ được gửi tới TeddyPet. Chúng tôi sẽ kiểm tra đơn và liên hệ lại cho bạn.
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[1.1rem] font-semibold text-gray-800">
-                                            Lý do yêu cầu hoàn tiền
-                                        </label>
-                                        <textarea
-                                            value={refundReason}
-                                            onChange={(e) => setRefundReason(e.target.value)}
-                                            rows={3}
-                                            maxLength={300}
-                                            placeholder="Ví dụ: Thay đổi kế hoạch, muốn hủy đơn và hoàn lại tiền đã thanh toán..."
-                                            className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-[1.1rem] outline-none focus:border-client-primary focus:ring-2 focus:ring-client-primary/10 resize-none bg-gray-50 placeholder:text-gray-400"
-                                        />
-                                        <div className="flex justify-between items-center text-[0.9rem] text-gray-400">
-                                            <span>Tối thiểu 10 ký tự</span>
-                                            <span>{refundReason.length}/300</span>
-                                        </div>
-                                    </div>
-                                    {orderBankInfo && (
-                                        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-[1rem] text-gray-800 leading-snug">
-                                            <p className="font-medium text-emerald-800 mb-1.5">Thông tin tài khoản ngân hàng đã lưu cho đơn này</p>
-                                            <p><span className="text-gray-600">Ngân hàng:</span> {orderBankInfo.bankName ?? orderBankInfo.bankCode}</p>
-                                            <p><span className="text-gray-600">Số tài khoản:</span> {orderBankInfo.accountNumber}</p>
-                                            <p><span className="text-gray-600">Chủ tài khoản:</span> {orderBankInfo.accountHolderName}</p>
-                                        </div>
-                                    )}
-                                    <p className="rounded-2xl bg-gray-50 px-3 py-2 text-[1rem] text-gray-600 leading-snug border border-dashed border-gray-200">
-                                        Nếu đã thanh toán chuyển khoản, nhân viên có thể sẽ xin thêm thông tin tài khoản ngân hàng của bạn.
-                                    </p>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="px-5 pb-3 pt-2 border-t border-gray-100 flex gap-2 shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowCancelModal(false);
-                                    setRefundReason("");
-                                }}
-                                className="flex-1 h-10 rounded-2xl border border-gray-200 text-[1.1rem] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                                Đóng
-                            </button>
-                            {canSendNewRefund && (
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        if (refundReason.trim().length < 10) {
-                                            toast.error("Vui lòng mô tả lý do rõ ràng hơn (tối thiểu 10 ký tự).");
-                                            return;
-                                        }
-                                        if (!order) return;
-                                        try {
-                                            const res = await createOrderRefundRequest(order.id, {
-                                                requestedAmount: order.finalAmount,
-                                                reason: refundReason.trim(),
-                                            });
-                                            if (res.success) {
-                                                toast.success("Đã ghi nhận yêu cầu hoàn tiền. TeddyPet sẽ liên hệ lại với bạn.");
-                                                setShowCancelModal(false);
-                                                setRefundReason("");
-                                                setOrder((prev) => prev ? { ...prev, latestRefundStatus: "PENDING" } : prev);
-                                            } else {
-                                                toast.error(res.message || "Không thể gửi yêu cầu hoàn tiền.");
-                                            }
-                                        } catch (err: any) {
-                                            const msg = err?.response?.data?.message || "Không thể gửi yêu cầu hoàn tiền.";
-                                            toast.error(msg);
-                                        }
-                                    }}
-                                    className="flex-1 h-10 rounded-2xl bg-red-500 hover:bg-red-600 text-[1.1rem] font-bold text-white shadow-md transition-colors"
-                                >
-                                    Gửi yêu cầu
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal yêu cầu hoàn tiền mới */}
+            <RefundRequestModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleRefundConfirm}
+                isSubmitting={isSubmittingRefund}
+                orderCode={order?.orderCode || ""}
+                isLoggedIn={isAuthenticated}
+            />
 
             {/* Modal Gợi ý Đánh giá */}
             {showFeedbackModal && (

@@ -10,7 +10,12 @@ RUN npm install
 # Copy source và build ứng dụng
 COPY . .
 
-RUN if [ -f .env.prod ]; then cp .env.prod .env; fi && npm run build
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
+RUN if [ -f .env.prod ]; then cp .env.prod .env; fi && \
+    if [ -n "$VITE_GOOGLE_CLIENT_ID" ]; then echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env; fi && \
+    npm run build
 
 # Giai đoạn 2: Serve
 FROM nginx:stable-alpine

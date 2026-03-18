@@ -4,7 +4,7 @@ import { UserList } from "./sections/UserList";
 
 export const UserListPage = () => {
     return (
-        <>
+        <div className="flex flex-col gap-[16px]">
             <ListHeader
                 title="Người dùng"
                 breadcrumbItems={[
@@ -16,6 +16,6 @@ export const UserListPage = () => {
                 addButtonPath={`/${prefixAdmin}/user/create`}
             />
             <UserList />
-        </>
+        </div>
     )
 }

@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, FormHelperText, Typography } from "@mui/material";
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, FormHelperText } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
 import { Tiptap } from "../../components/layouts/titap/Tiptap";
@@ -15,6 +15,7 @@ import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFi
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
 import { useParams, useNavigate } from "react-router-dom";
+import { useRef } from "react";
 
 export const ProductCategoryEditPage = () => {
     const { id } = useParams();
@@ -49,9 +50,11 @@ export const ProductCategoryEditPage = () => {
         },
     });
 
+    const isInitializedRef = useRef(false);
+
     // 3. Đổ dữ liệu vào Form khi có dữ liệu từ Detail API
     useEffect(() => {
-        if (detailRes?.success && detailRes?.data) {
+        if (detailRes?.success && detailRes?.data && !isInitializedRef.current) {
             const detail = detailRes.data;
             reset({
                 name: detail.name || "",
@@ -65,6 +68,7 @@ export const ProductCategoryEditPage = () => {
                   ? detail.suitablePetTypes 
                   : ["DOG", "CAT"],
             });
+            isInitializedRef.current = true;
         }
     }, [detailRes, reset]);
 

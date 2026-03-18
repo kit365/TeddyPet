@@ -87,8 +87,12 @@ public class ProductApplicationService implements ProductService {
     public void create(ProductRequest request) {
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_START, request.name());
 
-        // Generate slug from name
-        String slug = SlugUtil.toSlug(request.name());
+        String slug;
+        if (request.slug() != null && !request.slug().isBlank()) {
+            slug = request.slug().trim();
+        } else {
+            slug = SlugUtil.toSlug(request.name());
+        }
         validateSlugUniqueness(slug, null);
 
         Product product = Product.builder().build();
@@ -180,11 +184,13 @@ public class ProductApplicationService implements ProductService {
         Product savedProduct = productRepositoryPort.save(product);
         log.info(ProductLogMessages.LOG_PRODUCT_UPSERT_SUCCESS, savedProduct.getId());
 
-        if (request.images() != null) {
+        // SAFETY: When request sends empty lists (e.g., Excel import with missing columns),
+        // do NOT wipe existing images/variants.
+        if (request.images() != null && !request.images().isEmpty()) {
             productImageService.saveImages(new ProductImageSaveRequest(savedProduct.getId(), request.images()));
         }
 
-        if (request.variants() != null) {
+        if (request.variants() != null && !request.variants().isEmpty()) {
             productVariantService.saveVariants(new ProductVariantSaveRequest(savedProduct.getId(), request.variants()));
         }
 
@@ -654,10 +660,15 @@ public class ProductApplicationService implements ProductService {
 
     private void setProductRelationships(Product product, ProductRequest request) {
 
-        product.setBrand(productBrandService.getByIdAndStatusAndDeleted(
-                request.brandId(),
-                true,
-                false));
+        // Brand is optional (Excel import may omit). Only resolve when provided.
+        if (request.brandId() != null) {
+            product.setBrand(productBrandService.getByIdAndStatusAndDeleted(
+                    request.brandId(),
+                    true,
+                    false));
+        } else {
+            product.setBrand(null);
+        }
 
         product.setCategories(productCategoryService.getAllByIdsAndActiveAndDeleted(
                 request.categoryIds(),

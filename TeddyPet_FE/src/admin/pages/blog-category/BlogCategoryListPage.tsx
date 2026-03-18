@@ -7,7 +7,7 @@ export const BlogCategoryListPage = () => {
     const { t } = useTranslation();
 
     return (
-        <>
+        <div className="flex flex-col gap-[24px]">
             <ListHeader
                 title={t("admin.blog_category.title.list")}
                 breadcrumbItems={[
@@ -20,6 +20,6 @@ export const BlogCategoryListPage = () => {
             />
 
             <BlogCategoryList />
-        </>
+        </div>
     )
 }

@@ -1,70 +1,59 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, MenuItem, Select, FormControl, InputLabel, FormHelperText, createTheme } from "@mui/material"
-import { useTranslation } from "react-i18next";
-import { Breadcrumb } from "../../components/ui/Breadcrumb"
-import { Title } from "../../components/ui/Title"
-import { useState } from "react"
-import { Tiptap } from "../../components/layouts/titap/Tiptap"
-import { CollapsibleCard } from "../../components/ui/CollapsibleCard"
-import { useCreateBlog } from "./hooks/useBlog"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, Controller } from "react-hook-form"
-import { createBlogSchema, CreateBlogFormValues } from "../../schemas/blog.schema"
-import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile"
-import { toast } from "react-toastify"
-import { prefixAdmin } from "../../constants/routes"
-
+import { Autocomplete, Box, Card, CardHeader, Chip, Divider, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, TextField, ThemeProvider, useTheme, Button, Typography } from "@mui/material";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
+import { Title } from "../../components/ui/Title";
+import { Tiptap } from "../../components/layouts/titap/Tiptap";
+import { useCreateBlog, useBlogTags, useCreateBlogTag } from "./hooks/useBlog";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
+import { createBlogSchema, CreateBlogFormValues } from "../../schemas/blog.schema";
+import { prefixAdmin } from "../../constants/routes";
+import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import { useNestedBlogCategories } from "../blog-category/hooks/useBlogCategory";
+import { getBlogCategoryTheme } from "../blog-category/configs/theme";
 import { CategoryTreeSelectGeneric } from "../../components/ui/CategoryTreeSelectGeneric";
-import { Autocomplete } from "@mui/material";
-import { useBlogTags } from "./hooks/useBlog";
+import { useTranslation } from "react-i18next";
+
+const SectionCard = ({ title, subheader, children }: { title: string; subheader?: string; children: React.ReactNode }) => (
+    <Card sx={{
+        backgroundImage: 'none !important',
+        backdropFilter: 'none !important',
+        backgroundColor: '#fff !important',
+        boxShadow: '0 0 2px 0 #919eab33, 0 12px 24px -4px #919eab1f',
+        borderRadius: '16px',
+        color: '#1C252E',
+    }}>
+        <CardHeader
+            title={title}
+            subheader={subheader}
+            slotProps={{
+                title: { sx: { fontWeight: 600, fontSize: '1.125rem' } },
+                subheader: { sx: { color: '#637381', fontSize: '0.875rem', mt: 0.5 } },
+            }}
+            sx={{ padding: '24px 24px 0', mb: '24px' }}
+        />
+        <Divider sx={{ borderColor: '#919eab33' }} />
+        {children}
+    </Card>
+);
 
 export const BlogCreatePage = () => {
     const { t } = useTranslation();
-    const [expandedDetail, setExpandedDetail] = useState(true);
-    const [expandedExtra, setExpandedExtra] = useState(true);
-    const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
-        () => setter(prev => !prev);
-
+    const navigate = useNavigate();
     const outerTheme = useTheme();
-
-    const localTheme = createTheme(outerTheme, {
-        components: {
-            MuiCard: {
-                styleOverrides: {
-                    root: {
-                        backgroundImage: "none !important",
-                        backdropFilter: "none !important",
-                        backgroundColor: "#fff !important",
-                        boxShadow: "0 0 2px 0 #919eab33, 0 12px 24px -4px #919eab1f",
-                        borderRadius: "16px",
-                        color: "#1C252E",
-                    },
-                }
-            },
-            MuiAutocomplete: {
-                styleOverrides: {
-                    listbox: {
-                        padding: 0,
-                    },
-                    option: {
-                        fontSize: '0.875rem',
-                        padding: '6px',
-                        marginBottom: '4px',
-                        borderRadius: '6px',
-                    },
-                },
-            },
-        }
-    });
+    const localTheme = getBlogCategoryTheme(outerTheme);
 
     const { data: blogCategories = [] } = useNestedBlogCategories();
-    const { data: availableTags = [] } = useBlogTags();
+    const { data: tagOptions = [] } = useBlogTags();
     const { mutate: create, isPending } = useCreateBlog();
+    const { mutateAsync: createTag } = useCreateBlogTag();
 
     const {
         control,
         handleSubmit,
-        reset,
+        setValue,
+        watch,
     } = useForm<CreateBlogFormValues>({
         resolver: zodResolver(createBlogSchema) as any,
         defaultValues: {
@@ -81,9 +70,35 @@ export const BlogCreatePage = () => {
         },
     });
 
+    const formatTagName = (name: string): string => {
+        return name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[đĐ]/g, (char) => (char === "đ" ? "d" : "D"))
+            .replace(/[^a-zA-Z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "");
+    };
+
+    const handleCreateTag = async (tagName: string) => {
+        const formatted = formatTagName(tagName);
+        try {
+            const res = await createTag({ name: formatted });
+            if (res.success) {
+                const newTagId = String(res.data.tagId);
+                const currentTags = watch("tagIds") || [];
+                setValue("tagIds", [...currentTags, newTagId]);
+                toast.success(`Đã tạo tag: ${formatted}`);
+            } else {
+                toast.error(res.message || "Không thể tạo tag");
+            }
+        } catch (error) {
+            toast.error("Lỗi khi tạo tag");
+        }
+    };
+
     const onSubmit = (data: CreateBlogFormValues) => {
-        // Map string IDs to what API expects (array of strings)
-        // Data.tagIds is already string[] per schema
         const payload = {
             ...data,
             categoryId: Number(data.categoryId),
@@ -93,20 +108,20 @@ export const BlogCreatePage = () => {
         create(payload, {
             onSuccess: (response) => {
                 if (response.success) {
-                    toast.success(response.message || "Tạo bài viết thành công");
-                    reset();
+                    toast.success(response.message || t("admin.validation.create_success"));
+                    navigate(`/${prefixAdmin}/blog/list`);
                 } else {
                     toast.error(response.message);
                 }
             },
             onError: () => {
-                toast.error("Tạo bài viết thất bại");
+                toast.error(t("admin.validation.create_failed"));
             }
         });
     };
 
     return (
-        <>
+        <div className="flex flex-col gap-[24px]">
             <div className="mb-[40px] gap-[16px] flex items-start justify-end">
                 <div className="mr-auto">
                     <Title title={t("admin.blog.title.create")} />
@@ -114,86 +129,106 @@ export const BlogCreatePage = () => {
                         items={[
                             { label: t("admin.dashboard"), to: "/" },
                             { label: t("admin.blog.title.list"), to: `/${prefixAdmin}/blog/list` },
-                            { label: t("admin.common.create") }
+                            { label: t("admin.common.add") }
                         ]}
                     />
                 </div>
             </div>
+
             <ThemeProvider theme={localTheme}>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <Stack sx={{
-                        margin: "0px 120px",
-                        gap: "40px"
+                    <Box sx={{
+                        margin: { xs: "0px 20px", lg: "0px 120px" },
+                        display: 'flex',
+                        flexDirection: { xs: 'column', lg: 'row' },
+                        gap: '24px',
+                        alignItems: 'flex-start',
                     }}>
-                        <CollapsibleCard
-                            title={t("admin.common.details")}
-                            subheader={t("admin.common.description")}
-                            expanded={expandedDetail}
-                            onToggle={toggle(setExpandedDetail)}
-                        >
-                            <Stack p="24px" gap="24px">
-                                <Controller
-                                    name="title"
-                                    control={control}
-                                    render={({ field, fieldState }) => (
-                                        <TextField
-                                            {...field}
-                                            label={t("admin.blog.fields.title")}
-                                            fullWidth
-                                            error={!!fieldState.error}
-                                            helperText={fieldState.error?.message}
-                                        />
-                                    )}
-                                />
-                                <Controller
-                                    name="excerpt"
-                                    control={control}
-                                    render={({ field, fieldState }) => (
-                                        <TextField
-                                            {...field}
-                                            label={t("admin.blog.fields.excerpt")}
-                                            multiline
-                                            rows={4}
-                                            fullWidth
-                                            error={!!fieldState.error}
-                                            helperText={fieldState.error?.message}
-                                            sx={{}}
-                                        />
-                                    )}
-                                />
-                                <Controller
-                                    name="content"
-                                    control={control}
-                                    render={({ field, fieldState }) => (
-                                        <Box>
-                                            <Tiptap
-                                                value={field.value ?? ""}
-                                                onChange={field.onChange}
+                        {/* ———————————————— LEFT COLUMN (65%) ———————————————— */}
+                        <Box sx={{ flex: '1 1 65%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            <SectionCard title={t("admin.common.details")} subheader={t("admin.common.description")}>
+                                <Stack p="24px" gap="24px">
+                                    <Controller
+                                        name="title"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                label={t("admin.blog.fields.title")}
+                                                fullWidth
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
                                             />
-                                            {fieldState.error && <FormHelperText error>{fieldState.error.message}</FormHelperText>}
-                                        </Box>
-                                    )}
-                                />
-                                <FormUploadSingleFile
-                                    name="featuredImage"
-                                    control={control}
-                                />
-                            </Stack>
-                        </CollapsibleCard>
-                        <CollapsibleCard
-                            title={t("admin.common.attributes")}
-                            subheader={t("admin.common.description")}
-                            expanded={expandedExtra}
-                            onToggle={toggle(setExpandedExtra)}
-                        >
-                            <Stack p="24px" gap="24px">
-                                <Box
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(2, 1fr)",
-                                        gap: "24px 16px",
-                                    }}
-                                >
+                                        )}
+                                    />
+                                    <Controller
+                                        name="excerpt"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                label={t("admin.blog.fields.excerpt")}
+                                                multiline
+                                                rows={3}
+                                                fullWidth
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
+                                            />
+                                        )}
+                                    />
+                                    <Controller
+                                        name="content"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <Box>
+                                                <Tiptap
+                                                    value={field.value ?? ""}
+                                                    onChange={field.onChange}
+                                                />
+                                                {fieldState.error && <FormHelperText error>{fieldState.error.message}</FormHelperText>}
+                                            </Box>
+                                        )}
+                                    />
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ mb: 1, color: '#637381' }}>{t("admin.blog.fields.featured_image")}</Typography>
+                                        <FormUploadSingleFile
+                                            name="featuredImage"
+                                            control={control}
+                                        />
+                                    </Box>
+                                </Stack>
+                            </SectionCard>
+
+                            <SectionCard title="SEO Settings" subheader="Cấu hình tìm kiếm">
+                                <Stack p="24px" gap="24px">
+                                    <Controller
+                                        name="metaTitle"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField {...field} label={t("admin.blog.fields.meta_title")} fullWidth />
+                                        )}
+                                    />
+                                    <Controller
+                                        name="metaDescription"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                label={t("admin.blog.fields.meta_desc")}
+                                                multiline
+                                                rows={3}
+                                                fullWidth
+                                            />
+                                        )}
+                                    />
+                                </Stack>
+                            </SectionCard>
+                        </Box>
+
+                        {/* ———————————————— RIGHT COLUMN (35%) ———————————————— */}
+                        <Box sx={{ flex: '1 1 35%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            <SectionCard title={t("admin.common.status")} subheader="Cấu hình hiển thị">
+                                <Stack p="24px" gap="24px">
                                     <Controller
                                         name="status"
                                         control={control}
@@ -220,90 +255,17 @@ export const BlogCreatePage = () => {
                                                 {...field}
                                                 label={t("admin.common.position")}
                                                 type="number"
+                                                fullWidth
                                                 error={!!fieldState.error}
                                                 helperText={fieldState.error?.message}
                                             />
                                         )}
                                     />
-                                    <Controller
-                                        name="tagIds"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Autocomplete
-                                                multiple
-                                                options={availableTags}
-                                                getOptionLabel={(option) => option.name}
-                                                value={availableTags.filter((tag: any) => field.value?.includes(String(tag.id || tag.tagId))) || []}
-                                                onChange={(_, newValue) => {
-                                                    field.onChange(newValue.map((tag: any) => String(tag.id || tag.tagId)));
-                                                }}
-                                                filterSelectedOptions
-                                                renderInput={(params) => (
-                                                    <TextField
-                                                        {...params}
-                                                        label={t("admin.blog.fields.tags")}
-                                                        placeholder={t("admin.blog.fields.tags_placeholder")}
-                                                    />
-                                                )}
-                                                sx={{
-                                                    '& .MuiAutocomplete-clearIndicator': {
-                                                        color: "#637381",
-                                                        fontSize: "1.5rem",
-                                                        '& .MuiSvgIcon-root': {
-                                                            fontSize: '1.125rem',
-                                                        },
-                                                    },
-                                                    '& .MuiFormLabel-root': {
-                                                        color: "#919EAB",
-                                                        fontWeight: "400",
-                                                        '&.Mui-focused, &.MuiFormLabel-filled': {
-                                                            color: field.value && field.value.length > 0 || expandedExtra ? "#FF5630" : "#1C252E",
-                                                            fontWeight: "600",
-                                                        },
-                                                    },
+                                </Stack>
+                            </SectionCard>
 
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: "#919eab33 !important",
-                                                        borderWidth: "1px !important",
-                                                        transition: 'border-color 0.2s',
-                                                    },
-
-                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: "#FF5630 !important",
-                                                        borderWidth: "2px !important",
-                                                    },
-
-
-                                                    "& .MuiChip-root": {
-                                                        backgroundColor: "rgba(0, 184, 217, 0.16)",
-                                                        color: "#006C9C",
-                                                        fontSize: "0.8125rem",
-                                                        height: "24px",
-                                                        borderRadius: "8px",
-                                                    },
-
-                                                    '& .MuiChip-label': {
-                                                        paddingLeft: "8px",
-                                                        paddingRight: "8px",
-                                                        fontWeight: "600"
-                                                    },
-
-                                                    "& .MuiChip-deleteIcon": {
-                                                        color: "rgb(0, 108, 156)",
-                                                        opacity: "0.48",
-                                                        fontSize: "0.9375rem",
-                                                        marginRight: "4px",
-                                                        marginLeft: "-4px"
-                                                    },
-
-                                                    "& .MuiChip-deleteIcon:hover": {
-                                                        color: "rgb(0, 108, 156)",
-                                                        opacity: "0.8"
-                                                    },
-                                                }}
-                                            />
-                                        )}
-                                    />
+                            <SectionCard title="Phân loại" subheader="Danh mục & Tags">
+                                <Stack p="24px" gap="24px">
                                     <CategoryTreeSelectGeneric
                                         control={control}
                                         categories={blogCategories}
@@ -311,59 +273,119 @@ export const BlogCreatePage = () => {
                                         label={t("admin.blog.fields.category")}
                                         placeholder={t("admin.blog.fields.select_category")}
                                     />
-                                </Box>
 
-                                <Controller
-                                    name="metaTitle"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField {...field} label={t("admin.blog.fields.meta_title")} fullWidth />
-                                    )}
-                                />
-                                <Controller
-                                    name="metaDescription"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            label={t("admin.blog.fields.meta_desc")}
-                                            multiline
-                                            rows={4}
-                                            fullWidth
-                                            sx={{}}
-                                        />
-                                    )}
-                                />
-                            </Stack>
-                        </CollapsibleCard>
-                        <Box gap="24px" sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                            <Button
-                                type="submit"
-                                disabled={isPending}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: "3rem",
-                                    minWidth: "4rem",
-                                    fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    padding: "8px 16px",
-                                    borderRadius: "8px",
-                                    textTransform: "none",
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                        background: "#454F5B",
-                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                    }
-                                }}
-                                variant="contained"
-                            >
-                                {isPending ? t('admin.common.processing') : t('admin.blog.title.create')}
-                            </Button>
+                                    <Controller
+                                        name="tagIds"
+                                        control={control}
+                                        render={({ field: { value, onChange } }) => (
+                                            <Autocomplete
+                                                multiple
+                                                options={tagOptions}
+                                                getOptionLabel={(option: any) => option.name || ""}
+                                                value={tagOptions.filter((opt: any) => value?.includes(String(opt.tagId)))}
+                                                onChange={(_, newValue) => {
+                                                    onChange(newValue.map((v: any) => String(v.tagId)));
+                                                }}
+                                                renderTags={(tagValue, getTagProps) =>
+                                                    tagValue.map((option, index) => (
+                                                        <Chip
+                                                            label={option.name}
+                                                            {...getTagProps({ index })}
+                                                            size="small"
+                                                            sx={{ borderRadius: '8px', bgcolor: 'rgba(145, 158, 171, 0.16)' }}
+                                                        />
+                                                    ))
+                                                }
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        label={t("admin.blog.fields.tags")}
+                                                        placeholder={t("admin.blog.fields.tags_placeholder")}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                const val = (e.target as HTMLInputElement).value;
+                                                                if (val && !tagOptions.some((t: any) => t.name.toLowerCase() === val.toLowerCase())) {
+                                                                    e.preventDefault();
+                                                                    handleCreateTag(val);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            />
+                                        )}
+                                    />
+                                </Stack>
+                            </SectionCard>
                         </Box>
-                    </Stack>
+                    </Box>
+
+                    <div className="h-[120px]" />
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/blog/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isPending}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isPending ? t('admin.common.processing') : t('admin.blog.title.create')}
+                        </Button>
+                    </Box>
                 </form>
             </ThemeProvider>
-
-        </>
+        </div>
     )
 }

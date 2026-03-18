@@ -11,6 +11,7 @@ import fpt.teddypet.application.port.input.products.ProductAttributeService;
 import fpt.teddypet.application.port.output.products.ProductAttributeRepositoryPort;
 import fpt.teddypet.application.util.DisplayOrderUtil;
 import fpt.teddypet.application.util.ListUtil;
+import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import fpt.teddypet.domain.valueobject.Measurement;
@@ -37,6 +38,16 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
         log.info(ProductAttributeLogMessages.LOG_PRODUCT_ATTRIBUTE_CREATE_START, request.name());
 
         List<ProductAttribute> existingAttributes = productAttributeRepositoryPort.findAllActive();
+
+        // Best-practice: merge attributes by normalized name (case/diacritics-insensitive)
+        // Example: "trọng lượng" vs "Trọng Lượng" should be treated as the same attribute.
+        ProductAttribute existingByNormalized = findActiveByNormalizedName(existingAttributes, request.name());
+        if (existingByNormalized != null) {
+            mergeIntoExistingAttribute(existingByNormalized, request);
+            productAttributeRepositoryPort.save(existingByNormalized);
+            log.info("Merged attribute '{}' into existing attributeId={}", request.name(), existingByNormalized.getAttributeId());
+            return;
+        }
 
         validateNameDuplicate(request.name(), null);
         validateValueDuplicates(request.values());
@@ -366,6 +377,72 @@ public class ProductAttributeApplicationService implements ProductAttributeServi
                         throw new IllegalArgumentException(ProductAttributeMessages.MESSAGE_PRODUCT_ATTRIBUTE_NAME_DUPLICATE);
                     }
                 });
+    }
+
+    private static String normalizeNameKey(String name) {
+        if (name == null) return "";
+        return SlugUtil.toSlug(name.trim());
+    }
+
+    private ProductAttribute findActiveByNormalizedName(List<ProductAttribute> activeAttributes, String name) {
+        if (!org.springframework.util.StringUtils.hasText(name)) return null;
+        String key = normalizeNameKey(name);
+        if (key.isBlank()) return null;
+        for (ProductAttribute a : ListUtil.safe(activeAttributes)) {
+            if (a == null || a.isDeleted()) continue;
+            if (key.equals(normalizeNameKey(a.getName()))) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    private void mergeIntoExistingAttribute(ProductAttribute existing, ProductAttributeRequest request) {
+        if (request == null) return;
+
+        // Update canonical display name to latest (helps unify UI)
+        if (org.springframework.util.StringUtils.hasText(request.name())) {
+            existing.setName(request.name().trim());
+        }
+
+        // Keep existing displayType to avoid breaking variants; only set if missing
+        if (existing.getDisplayType() == null && request.displayType() != null) {
+            existing.setDisplayType(request.displayType());
+        }
+
+        // Merge supported units (union)
+        if (request.supportedUnits() != null && !request.supportedUnits().isEmpty()) {
+            Set<fpt.teddypet.domain.enums.UnitEnum> merged = new LinkedHashSet<>();
+            if (existing.getSupportedUnits() != null) merged.addAll(existing.getSupportedUnits());
+            merged.addAll(request.supportedUnits());
+            existing.setSupportedUnits(new ArrayList<>(merged));
+        }
+
+        // Merge values by normalized value string
+        if (request.values() == null || request.values().isEmpty()) return;
+        Map<String, ProductAttributeValue> existingByKey = new HashMap<>();
+        for (ProductAttributeValue v : ListUtil.safe(existing.getValues())) {
+            if (v == null || v.isDeleted()) continue;
+            existingByKey.put(normalizeNameKey(v.getValue()), v);
+        }
+        for (ProductAttributeValueItemRequest vr : request.values()) {
+            if (vr == null || vr.value() == null) continue;
+            String vKey = normalizeNameKey(vr.value());
+            if (vKey.isBlank()) continue;
+            if (existingByKey.containsKey(vKey)) continue;
+
+            ProductAttributeValue newVal = ProductAttributeValue.builder()
+                    .attribute(existing)
+                    .value(vr.value().trim())
+                    .displayCode(vr.displayCode())
+                    .measurement(vr.amount() != null || vr.unit() != null
+                            ? new Measurement(vr.amount(), vr.unit())
+                            : null)
+                    .isActive(true)
+                    .isDeleted(false)
+                    .build();
+            existing.getValues().add(newVal);
+        }
     }
 
     private void validateValueDuplicates(List<ProductAttributeValueItemRequest> valueRequests) {

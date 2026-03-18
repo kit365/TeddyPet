@@ -24,16 +24,16 @@ public class OrderCleanupScheduler {
     private final OrderService orderService;
 
     /**
-     * Tự động hủy các đơn hàng chuyển khoản (BANK_TRANSFER) đã quá 15 phút mà chưa
+     * Tự động hủy các đơn hàng chuyển khoản (BANK_TRANSFER) đã quá 10 phút mà chưa
      * thanh toán.
      * Chạy mỗi 1 phút một lần.
      */
     @Scheduled(fixedRate = 60000) // 1 minute
     @Transactional
     public void cancelExpiredOrders() {
-        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(15);
+        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(10);
 
-        // Countdown 15 phút chỉ tính từ lúc đơn được xác nhận (CONFIRMED)
+        // Countdown 10 phút chỉ tính từ lúc đơn được xác nhận (CONFIRMED)
         log.debug("Checking for expired bank transfer orders confirmed before {}", expiryTime);
 
         // Tìm các đơn hàng:
@@ -58,7 +58,7 @@ public class OrderCleanupScheduler {
                     if (!isPaid) {
                         orderService.cancelOrderByAdmin(
                                 order.getId(),
-                                "Hệ thống tự động hủy do quá 15 phút chưa nhận được thanh toán chuyển khoản.",
+                                "Hệ thống tự động hủy do quá 10 phút chưa nhận được thanh toán chuyển khoản.",
                                 "SYSTEM");
                         log.info("Auto-cancelled expired order: {}", order.getOrderCode());
                     }

@@ -64,5 +64,11 @@ public class OrderRefund extends BaseEntity {
 
     @Column(name = "refund_completed_at")
     private LocalDateTime refundCompletedAt;
+
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "order_refund_admin_evidence", joinColumns = @JoinColumn(name = "refund_id"))
+    @Column(name = "evidence_url")
+    private java.util.List<String> adminEvidenceUrls = new java.util.ArrayList<>();
 }
 

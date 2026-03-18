@@ -17,11 +17,10 @@ import {
 } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
 import {
     useDisplayTypes,
-    useSalesUnits,
     useMeasurementUnits,
     useProductAttributeDetail,
     useUpdateProductAttribute
@@ -58,7 +57,6 @@ type EditAttributeFormValues = z.infer<typeof editAttributeSchema>;
 export const ProductAttributeEditPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { t } = useTranslation();
     const [expandedDetail, setExpandedDetail] = useState(true);
     const [expandedValues, setExpandedValues] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
@@ -98,9 +96,11 @@ export const ProductAttributeEditPage = () => {
     const watchedDisplayType = watch("displayType");
     const isColorType = watchedDisplayType === "COLOR";
 
+    const isInitializedRef = useRef(false);
+
     // Populate form with detail data
     useEffect(() => {
-        if (detailRes?.success && detailRes?.data) {
+        if (detailRes?.success && detailRes?.data && !isInitializedRef.current) {
             const detail = detailRes.data;
             reset({
                 name: detail.name || "",
@@ -114,6 +114,7 @@ export const ProductAttributeEditPage = () => {
                     displayCode: v.displayCode || "",
                 })) || [{ value: "", amount: 0, unit: "", displayCode: "" }],
             });
+            isInitializedRef.current = true;
         }
     }, [detailRes, reset]);
 
@@ -450,10 +451,15 @@ export const ProductAttributeEditPage = () => {
                                                         <TextField
                                                             label="Giá trị"
                                                             placeholder="0"
-                                                            value={(inputField.value ?? 0) === 0 ? "" : (inputField.value ?? 0).toLocaleString("vi-VN")}
+                                                            value={inputField.value ?? ""}
                                                             onChange={(e) => {
-                                                                const numValue = Number(e.target.value.replace(/\D/g, ""));
-                                                                inputField.onChange(numValue);
+                                                                const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                                                                if (val === "" || val === ".") {
+                                                                    inputField.onChange("");
+                                                                    return;
+                                                                }
+                                                                const numValue = parseFloat(val);
+                                                                inputField.onChange(isNaN(numValue) ? 0 : numValue);
                                                             }}
                                                             onWheel={(e) => (e.target as HTMLElement).blur()}
                                                             error={!!fieldState.error}

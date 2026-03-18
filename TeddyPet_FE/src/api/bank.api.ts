@@ -15,6 +15,14 @@ export const createGuestBankInformationByBookingCode = async (
   return response.data;
 };
 
+export const createGuestBankInformationByOrderCode = async (
+  orderCode: string,
+  payload: BankInformationPayload
+): Promise<ApiResponse<any>> => {
+  const response = await apiApp.post(`/api/bank-information/order/code/${orderCode}`, payload);
+  return response.data;
+};
+
 export type BookingBankInformationResponse = ApiResponse<{
   id: number;
   accountNumber: string;

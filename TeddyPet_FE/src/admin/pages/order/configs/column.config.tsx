@@ -11,7 +11,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReplayIcon from '@mui/icons-material/Replay';
-import { getOrderStatus, getPaymentStatus } from '../../../../constants/status';
+import { getOrderStatus, getPaymentStatus, getRefundStatus } from '../../../../constants/status';
 import { prefixAdmin } from '../../../constants/routes';
 import { OrderResponse } from '../../../../types/order.type';
 
@@ -241,6 +241,41 @@ export const getOrderColumns = (
             }
         },
         {
+            field: 'latestRefundStatus',
+            headerName: 'Hoàn tiền',
+            width: 120,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => {
+                const status = params.value;
+                if (!status) return null;
+                const refundInfo = getRefundStatus(status);
+                if (!refundInfo) return null;
+
+                return (
+                    <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box
+                            sx={{
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '6px',
+                                bgcolor: refundInfo.bgColor,
+                            }}
+                        >
+                            <Typography sx={{
+                                color: refundInfo.color,
+                                fontWeight: 800,
+                                fontSize: '0.625rem',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {refundInfo.label}
+                            </Typography>
+                        </Box>
+                    </Box>
+                );
+            }
+        },
+        {
             field: 'actions',
             headerName: 'Hành động',
             width: 150,
@@ -262,9 +297,9 @@ export const getOrderColumns = (
                         </Tooltip>
                     )}
 
-                    {/* Bắt đầu đóng gói: chỉ hiển thị khi đơn đã được thanh toán thành công (payment COMPLETED) và đã chuyển sang trạng thái PAID */}
-                    {params.row.status === 'PAID'
-                        && params.row.payments?.[0]?.status === 'COMPLETED' && (
+                    {/* Bắt đầu đóng gói */}
+                    {((params.row.status === 'PAID' && params.row.payments?.[0]?.status === 'COMPLETED') ||
+                      (params.row.status === 'CONFIRMED' && params.row.payments?.[0]?.paymentMethod === 'CASH')) && (
                         <Tooltip title="Bắt đầu đóng gói">
                             <IconButton
                                 size="small"
@@ -304,7 +339,7 @@ export const getOrderColumns = (
                         - Đơn ONLINE + thanh toán online (không phải CASH) => tooltip "Hủy / Yêu cầu hoàn tiền"
                         - Các trường hợp còn lại => "Xóa / Hủy đơn hàng"
                         Chỉ hiển thị khi trạng thái là PENDING, CONFIRMED, PROCESSING */}
-                    {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(params.row.status) && (() => {
+                    {(['PENDING', 'CONFIRMED', 'PROCESSING'].includes(params.row.status) || (params.row.status === 'CANCELLED' && params.row.latestRefundStatus === 'APPROVED')) && (() => {
                         const payment = params.row.payments?.[0];
                         const isOnlinePayment = params.row.orderType === 'ONLINE' && payment && payment.paymentMethod !== 'CASH';
                         const hasRefundRequest = isOnlinePayment && (params.row.latestRefundStatus === 'PENDING' || !!params.row.cancelReason);

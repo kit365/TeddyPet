@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, LinearProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -58,7 +58,7 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
         }
     };
 
-    const handleImport = () => {
+    const handleImport = async () => {
         if (!file || isPending) return;
         onImport(file);
     };
@@ -164,6 +164,7 @@ export const ImportExcelModal = ({ open, onClose, onImport, isPending = false, i
                         )}
                     </Box>
                 )}
+
             </DialogContent>
 
             <DialogActions sx={{ p: '16px 24px' }}>

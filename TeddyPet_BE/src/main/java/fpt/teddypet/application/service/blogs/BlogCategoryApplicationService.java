@@ -46,13 +46,15 @@ public class BlogCategoryApplicationService implements BlogCategoryService {
         // Update basic fields
         blogCategoryMapper.updateCategoryFromRequest(request, category);
 
-        // Generate Slug if new or name changed
+        // Generate and validate unique Slug if new or name changed
         if (isNew || !category.getName().equals(request.name())) {
-            String slug = SlugUtil.toSlug(request.name());
-            ValidationUtils.ensureUnique(
-                    () -> blogCategoryRepositoryPort.existsBySlugAndIdNot(slug, isNew ? -1L : category.getId()),
-                    String.format(BlogCategoryMessages.MESSAGE_BLOG_CATEGORY_SLUG_ALREADY_EXISTS, slug));
-            category.setSlug(slug);
+            String baseSlug = SlugUtil.toSlug(request.name());
+            String finalSlug = baseSlug;
+            int counter = 1;
+            while (blogCategoryRepositoryPort.existsBySlugAndIdNot(finalSlug, isNew ? -1L : category.getId())) {
+                finalSlug = baseSlug + "-" + counter++;
+            }
+            category.setSlug(finalSlug);
         }
 
         // Handle Parent

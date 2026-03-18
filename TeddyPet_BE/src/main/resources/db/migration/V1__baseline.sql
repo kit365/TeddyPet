@@ -2826,20 +2826,6 @@ CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
 
 COMMENT ON TABLE newsletter_subscriptions IS 'Đăng ký nhận newsletter';
 
--- ========== V71__bank_information_account_type.sql ==========
--- Thêm loại tài khoản: USER (ngân hàng khách), BOOKING_REFUND (tk hoàn tiền đặt lịch), SYSTEM_RECEIVING (tài khoản nhận tiền thanh toán online PayOS)
--- (Đã gộp vào định nghĩa bảng bank_information trong phần CREATE TABLE ở trên)
-
--- ========== V72__payments_payos_webhook_fields.sql ==========
--- ĐÃ GỘP: các cột gateway_response_code, gateway_raw_payload đã nằm trong định nghĩa bảng payments.
-
--- ========== V73__bank_information_vietqr_image_url.sql ==========
--- Lưu URL ảnh mã QR VietQR của tài khoản nhận tiền (dùng cho SYSTEM_RECEIVING), để lần sau lấy lên dùng mà không cần tạo lại
--- (Đã gộp vào định nghĩa bảng bank_information trong phần CREATE TABLE ở trên)
-
--- ========== V74__bank_information_account_type_customer_system.sql ==========
--- Đổi giá trị account_type thành chỉ còn CUSTOMER và SYSTEM; cập nhật toàn bộ bản ghi hiện có.
-
 -- 1. Cập nhật dữ liệu: USER, BOOKING_REFUND -> CUSTOMER; SYSTEM_RECEIVING -> SYSTEM
 UPDATE bank_information
 SET account_type = CASE
@@ -2867,21 +2853,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_bank_information_system
 
 COMMENT ON COLUMN bank_information.account_type IS 'CUSTOMER = ngân hàng khách/hoàn tiền, SYSTEM = tài khoản nhận tiền thanh toán online (PayOS)';
 
--- ========== V75__add_leave_reason_to_work_shift_registrations.sql ==========
--- ĐÃ GỘP: cột leave_reason đã nằm trong định nghĩa bảng work_shift_registrations.
--- ========== V76__add_checkout_url_to_payments.sql ==========
--- ĐÃ GỘP: cột checkout_url đã nằm trong định nghĩa bảng payments.
-
--- ========== V77__add_order_id_to_bank_information.sql ==========
--- Thêm order_id để lưu thông tin tài khoản người chuyển (từ PayOS webhook) theo đơn hàng.
--- (Đã gộp vào định nghĩa bảng bank_information trong phần CREATE TABLE ở trên)
-
--- ========== V78__add_paid_status_to_orders_check.sql ==========
--- ĐÃ GỘP: constraint CHECK(status) trên bảng orders đã bao gồm trạng thái PAID ngay trong CREATE TABLE.
--- ========== V79__add_payment_type_to_payments.sql ==========
--- ĐÃ GỘP: cột payment_type (NOT NULL, default ORDER_PAYMENT) đã nằm trong định nghĩa bảng payments.
--- ========== V80__create_order_refunds.sql ==========
--- Order refunds: lưu yêu cầu hoàn tiền cho đơn hàng (customer request + admin process)
 
 create table if not exists order_refunds (
     id bigserial primary key,
@@ -2915,6 +2886,12 @@ create table if not exists order_refunds (
 
 create index if not exists idx_order_refunds_order_id on order_refunds (order_id);
 create index if not exists idx_order_refunds_status on order_refunds (status);
+
+-- Yêu cầu hoàn tiền: bằng chứng từ admin (nhiều ảnh)
+create table if not exists order_refund_admin_evidence (
+    refund_id bigint not null references order_refunds(id),
+    evidence_url text
+);
 
 
 -- ========== V81__restore_secondary_position_on_staff_profiles.sql ==========

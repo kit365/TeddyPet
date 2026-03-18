@@ -12,7 +12,6 @@ import fpt.teddypet.application.port.output.services.ServiceCategoryRepositoryPo
 import fpt.teddypet.application.util.DisplayOrderUtil;
 import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.application.util.SlugUtil;
-import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ServiceCategory;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -48,12 +47,13 @@ public class ServiceCategoryApplicationService implements ServiceCategoryService
         serviceCategoryMapper.updateCategoryFromRequest(request, category);
 
         if (isNew || !category.getCategoryName().equals(request.name())) {
-            String slug = SlugUtil.toSlug(request.name());
-            ValidationUtils.ensureUnique(
-                    () -> serviceCategoryRepositoryPort.existsBySlugAndIdNot(slug, isNew ? -1L : category.getId()),
-                    String.format(ServiceCategoryMessages.MESSAGE_SERVICE_CATEGORY_SLUG_ALREADY_EXISTS, slug)
-            );
-            category.setSlug(slug);
+            String baseSlug = SlugUtil.toSlug(request.name());
+            String finalSlug = baseSlug;
+            int counter = 1;
+            while (serviceCategoryRepositoryPort.existsBySlugAndIdNot(finalSlug, isNew ? -1L : category.getId())) {
+                finalSlug = baseSlug + "-" + counter++;
+            }
+            category.setSlug(finalSlug);
         }
 
         if (request.parentId() != null) {
