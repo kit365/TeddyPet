@@ -44,6 +44,17 @@ public class BookingDeposit extends BaseEntity {
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
 
+    /**
+     * Mã orderCode dùng cho PayOS (để map webhook -> booking deposit).
+     * Tách riêng với order numeric_code.
+     */
+    @Column(name = "payos_order_code")
+    private Long payosOrderCode;
+
+    /** Checkout URL PayOS (cache để tái sử dụng khi PayOS báo orderCode đã tồn tại). */
+    @Column(name = "checkout_url", length = 512)
+    private String checkoutUrl;
+
     @Column(name = "refunded")
     @Builder.Default
     private Boolean refunded = false;

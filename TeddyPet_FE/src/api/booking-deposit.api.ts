@@ -13,6 +13,15 @@ export type ConfirmBookingDepositResponse = ApiResponse<{
     bookingCode: string;
 }>;
 
+export type CreateBookingDepositPayosUrlResponse = ApiResponse<{
+    depositId: number;
+    payosOrderCode: number;
+    checkoutUrl: string;
+    expiresAt: string;
+    bookingId: number;
+    bookingCode: string;
+}>;
+
 export const createBookingDepositIntent = async (
     payload: CreateBookingRequest
 ): Promise<CreateBookingDepositIntentResponse> => {
@@ -31,6 +40,18 @@ export const confirmBookingDeposit = async (
         ? `/api/bookings/deposit-intent/${depositId}/confirm?paymentMethod=${paymentMethod}`
         : `/api/bookings/deposit-intent/${depositId}/confirm`;
     const response = await apiApp.post<ConfirmBookingDepositResponse>(url, {});
+    return response.data;
+};
+
+export const createBookingDepositPayosUrl = async (
+    depositId: number,
+    returnUrl?: string
+): Promise<CreateBookingDepositPayosUrlResponse> => {
+    const response = await apiApp.post<CreateBookingDepositPayosUrlResponse>(
+        `/api/bookings/deposit-intent/${depositId}/payos`,
+        null,
+        { params: returnUrl ? { returnUrl } : undefined }
+    );
     return response.data;
 };
 

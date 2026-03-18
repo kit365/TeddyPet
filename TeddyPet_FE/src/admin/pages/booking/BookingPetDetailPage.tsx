@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -11,7 +11,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   IconButton,
   CircularProgress,
   Divider,
@@ -19,7 +18,6 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { prefixAdmin } from "../../constants/routes";
-import { UploadSingleFile } from "../../components/upload/UploadSingleFile";
 import { getAdminBookingDetail, getAdminBookingPetDetail } from "../../api/booking.api";
 import type { BookingPetResponse } from "../../../types/booking.type";
 
@@ -31,6 +29,59 @@ const isFoodBrought = (v?: boolean | string) => {
   if (v === undefined || v === null) return false;
   if (typeof v === "string") return v === "true" || v === "1";
   return v;
+};
+
+const parsePhotoUrls = (value?: string | null): string[] => {
+  if (!value) return [];
+  const s = String(value).trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      return parsed.map((x) => String(x)).filter(Boolean);
+    }
+  } catch {
+    // Backward compatibility: old data might be a single URL string.
+  }
+  return [s];
+};
+
+const PhotoThumbnails = ({ photos }: { photos: string[] }) => {
+  const max = 8;
+  const shown = photos.slice(0, max);
+  const remaining = photos.length - shown.length;
+
+  if (!shown.length) {
+    return (
+      <Typography sx={{ fontSize: "0.9375rem", color: "text.primary", fontWeight: 500 }}>—</Typography>
+    );
+  }
+
+  return (
+    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+      {shown.map((url, idx) => (
+        <Box
+          key={`${url}-${idx}`}
+          component="img"
+          src={url}
+          alt={`Ảnh ${idx + 1}`}
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: "10px",
+            objectFit: "cover",
+            border: "1px solid rgba(145, 158, 171, 0.22)",
+            backgroundColor: "white",
+          }}
+        />
+      ))}
+      {remaining > 0 ? (
+        <Typography sx={{ ml: 0.5, fontWeight: 700, fontSize: "0.85rem", color: "text.secondary" }}>
+          +{remaining} ảnh
+        </Typography>
+      ) : null}
+    </Box>
+  );
 };
 
 const InfoRow = ({
@@ -56,13 +107,6 @@ export const BookingPetDetailPage = () => {
   const [booking, setBooking] = useState<any>(undefined);
   const [pet, setPet] = useState<BookingPetResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [staffFields, setStaffFields] = useState({
-    arrivalCondition: "",
-    departureCondition: "",
-    arrivalPhotos: "",
-    departurePhotos: "",
-    belongingPhotos: "",
-  });
   useEffect(() => {
     const fetchPetDetail = async () => {
       if (id && petId) {
@@ -74,15 +118,6 @@ export const BookingPetDetailPage = () => {
           const petRes = await getAdminBookingPetDetail(id, petId);
           const p = petRes.data ?? null;
           setPet(p ?? null);
-          if (p) {
-            setStaffFields({
-              arrivalCondition: p.arrivalCondition ?? "",
-              departureCondition: p.departureCondition ?? "",
-              arrivalPhotos: p.arrivalPhotos ?? "",
-              departurePhotos: p.departurePhotos ?? "",
-              belongingPhotos: p.belongingPhotos ?? "",
-            });
-          }
         } catch (error) {
           console.error(error);
           setBooking(undefined);
@@ -121,7 +156,12 @@ export const BookingPetDetailPage = () => {
     );
   }
 
-  const services = pet.services ?? [];
+  // Avoid conditional hooks: compute directly (no useMemo) so early returns (loading/not found)
+  // won't change hook order.
+  const services = pet?.services ?? [];
+  const arrivalPhotos = parsePhotoUrls(pet?.arrivalPhotos);
+  const departurePhotos = parsePhotoUrls(pet?.departurePhotos);
+  const belongingPhotos = parsePhotoUrls(pet?.belongingPhotos);
 
   return (
     <Box sx={{ pb: 8, bgcolor: "#F4F7F9", minHeight: "100vh" }}>
@@ -187,7 +227,7 @@ export const BookingPetDetailPage = () => {
             </Box>
           </Card>
 
-          {/* Card 2: Nhân viên/Admin nhập */}
+          {/* Card 2: Tình trạng thú cưng & Hành lý */}
           <Card
             sx={{
               p: 4,
@@ -197,68 +237,35 @@ export const BookingPetDetailPage = () => {
             }}
           >
             <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 2, color: "#1C252E" }}>
-              Nhân viên / Admin nhập
+              Tình trạng thú cưng & Hành lý
             </Typography>
             <Typography variant="body2" sx={{ color: "#637381", mb: 3, fontSize: "0.8125rem" }}>
-              Các mục dưới đây do nhân viên hoặc admin cập nhật khi nhận/trả thú cưng.
+              Thông tin nhận/trả thực tế của thú cưng và hành lý.
             </Typography>
             <Stack spacing={2.5}>
-              <TextField
-                label="Tình trạng khi đến"
-                value={staffFields.arrivalCondition}
-                onChange={(e) =>
-                  setStaffFields((prev) => ({ ...prev, arrivalCondition: e.target.value }))
-                }
-                placeholder="Nhập tình trạng thú cưng khi đến..."
-                fullWidth
-                multiline
-                rows={2}
-                size="small"
-                sx={{
-                  "& .MuiInputBase-input": { fontSize: "0.9062rem" },
-                  "& .MuiInputLabel-root": { fontSize: "0.875rem" },
-                }}
-              />
-              <TextField
-                label="Tình trạng khi về"
-                value={staffFields.departureCondition}
-                onChange={(e) =>
-                  setStaffFields((prev) => ({ ...prev, departureCondition: e.target.value }))
-                }
-                placeholder="Nhập tình trạng thú cưng khi về..."
-                fullWidth
-                multiline
-                rows={2}
-                size="small"
-                sx={{
-                  "& .MuiInputBase-input": { fontSize: "0.9062rem" },
-                  "& .MuiInputLabel-root": { fontSize: "0.875rem" },
-                }}
-              />
-              <UploadSingleFile
-                title="Ảnh khi đến"
-                compact
-                value={staffFields.arrivalPhotos}
-                onChange={(v) =>
-                  setStaffFields((prev) => ({ ...prev, arrivalPhotos: v }))
-                }
-              />
-              <UploadSingleFile
-                title="Ảnh khi về"
-                compact
-                value={staffFields.departurePhotos}
-                onChange={(v) =>
-                  setStaffFields((prev) => ({ ...prev, departurePhotos: v }))
-                }
-              />
-              <UploadSingleFile
-                title="Ảnh đồ đạc mang theo"
-                compact
-                value={staffFields.belongingPhotos}
-                onChange={(v) =>
-                  setStaffFields((prev) => ({ ...prev, belongingPhotos: v }))
-                }
-              />
+              <InfoRow label="Tình trạng khi đến" value={pet.arrivalCondition} />
+              <InfoRow label="Tình trạng khi về" value={pet.departureCondition} />
+
+              <Box sx={{ mt: 0.5 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.875rem", mb: 1 }}>
+                  Ảnh khi đến
+                </Typography>
+                <PhotoThumbnails photos={arrivalPhotos} />
+              </Box>
+
+              <Box sx={{ mt: 0.5 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.875rem", mb: 1 }}>
+                  Ảnh khi về
+                </Typography>
+                <PhotoThumbnails photos={departurePhotos} />
+              </Box>
+
+              <Box sx={{ mt: 0.5 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.875rem", mb: 1 }}>
+                  Ảnh đồ đạc mang theo
+                </Typography>
+                <PhotoThumbnails photos={belongingPhotos} />
+              </Box>
             </Stack>
           </Card>
 

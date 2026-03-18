@@ -1,11 +1,11 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const DEFAULT_DISCLAIMER =
     "Giá cuối cùng sẽ được xác định sau khi cân đo thực tế tại shop. Nếu có chênh lệch, chúng tôi sẽ thông báo trước khi thực hiện.";
 
 export type ServiceSelectFieldProps = {
     /** Nhãn trên (vd: "Chọn dịch vụ *", "Chọn dịch vụ thêm") */
-    label: string;
+    label: ReactNode;
     /** Text hiển thị trong nút dropdown */
     displayValue: string;
     /** Có bị vô hiệu hóa không (vd: chưa chọn cân nặng/loại thú cưng) */

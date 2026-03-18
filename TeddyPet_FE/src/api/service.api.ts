@@ -69,6 +69,17 @@ export const getRoomsByLayoutConfigId = async (layoutConfigId: number): Promise<
     return response.data;
 };
 
+/** Danh sách roomId đã được đặt trong khoảng ngày (để làm mờ phòng đã đặt trên sơ đồ). */
+export const getBookedRoomIds = async (
+    checkIn: string,
+    checkOut: string
+): Promise<ApiResponse<number[]>> => {
+    const response = await apiApp.get<ApiResponse<number[]>>(`${ROOMS_URL}/booked-ids`, {
+        params: { checkIn, checkOut },
+    });
+    return response.data;
+};
+
 /** Room types (public — for client booking room type buttons) */
 export interface RoomTypeClient {
     roomTypeId: number;

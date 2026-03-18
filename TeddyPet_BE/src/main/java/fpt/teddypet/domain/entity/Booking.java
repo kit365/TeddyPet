@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,6 +92,10 @@ public class Booking extends BaseEntity {
     @Column(name = "remaining_amount", precision = 12, scale = 2)
     private BigDecimal remainingAmount;
 
+    @Column(name = "credit_to_refund", precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal creditToRefund = BigDecimal.ZERO;
+
     @Column(name = "is_temporary", nullable = false)
     @Builder.Default
     private Boolean isTemporary = false;
@@ -107,6 +112,13 @@ public class Booking extends BaseEntity {
 
     @Column(name = "booking_check_out_date")
     private LocalDateTime bookingCheckOutDate;
+
+    /**
+     * Ngày gửi (khách chọn khi tạo booking) – dùng để hiển thị danh sách,
+     * không ghi đè bởi luồng staff Check-in/Check-out.
+     */
+    @Column(name = "booking_date_from")
+    private LocalDate bookingDateFrom;
 
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

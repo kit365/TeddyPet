@@ -116,6 +116,7 @@ public final class ApiConstants {
     /** Admin booking management APIs */
     public static final String API_ADMIN_BOOKINGS = BASE_API + "/admin/bookings";
     public static final String API_ADMIN_BOOKING_DEPOSIT_REFUND_POLICIES = BASE_API + "/admin/booking-deposit-refund-policies";
+    public static final String API_ADMIN_NO_SHOW_CONFIG = BASE_API + "/admin/no-show-config";
 
     // Bank API base path
     public static final String API_BANKS = BASE_API + "/banks";

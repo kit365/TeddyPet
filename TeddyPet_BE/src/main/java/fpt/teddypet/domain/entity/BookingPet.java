@@ -45,6 +45,12 @@ public class BookingPet extends BaseEntity {
     @Column(name = "weight_at_booking", precision = 6, scale = 2)
     private BigDecimal weightAtBooking;
 
+    @Column(name = "confirmed_pet_type", length = 100)
+    private String confirmedPetType;
+
+    @Column(name = "confirmed_weight", precision = 6, scale = 2)
+    private BigDecimal confirmedWeight;
+
     @Column(name = "pet_condition_notes", columnDefinition = "TEXT")
     private String petConditionNotes;
 

@@ -17,6 +17,8 @@ export interface ServiceClient {
   serviceName: string;
   code: string;
   duration: number; // minutes
+  /** Số giờ phải đặt trước (advance booking) – dùng để chặn đặt quá sát giờ, đặc biệt với dịch vụ cần phòng. */
+  advanceBookingHours?: number;
   basePrice?: number;
   priceUnit?: string;
   suitablePetTypes?: string[];
@@ -53,6 +55,124 @@ export type PaymentStatus =
 
 /** Admin/API: payment method (booking: chỉ CASH và BANK_TRANSFER) */
 export type PaymentMethod = "CASH" | "BANK_TRANSFER";
+
+// ===== Admin check-in repricing (preview/confirm) =====
+
+export interface AdminCheckInRepricePetInput {
+  petId: number;
+  confirmedPetType: string;
+  confirmedWeight: number;
+  /**
+   * Thông tin nhận thực tế (dùng ở bước confirm check-in).
+   * `arrivalPhotos/belongingPhotos` là mảng URL ảnh (FE upload nhiều ảnh).
+   */
+  arrivalCondition?: string;
+  arrivalPhotos?: string[];
+  belongingPhotos?: string[];
+}
+
+export interface AdminCheckInRepricePreviewRequest {
+  pets: AdminCheckInRepricePetInput[];
+}
+
+export interface AdminCheckInRepricePreviewResponse {
+  oldTotal: number;
+  newTotal: number;
+  paidAmount: number;
+  oldRemaining: number;
+  newRemaining: number;
+  petDiffs: Array<{
+    petId: number;
+    petName?: string | null;
+    oldPetType?: string | null;
+    newPetType?: string | null;
+    oldWeight?: number | null;
+    newWeight?: number | null;
+  }>;
+  serviceDiffs: Array<{
+    petId: number;
+    petName?: string | null;
+    bookingPetServiceId: number;
+    serviceId: number;
+    serviceName?: string | null;
+    requiresRoom: boolean;
+    numberOfNights?: number | null;
+    oldUnitPrice: number;
+    newUnitPrice: number;
+    oldSubtotal: number;
+    newSubtotal: number;
+    delta: number;
+  }>;
+  itemDiffs: Array<{
+    petId: number;
+    petName?: string | null;
+    bookingPetServiceId: number;
+    itemId: number;
+    itemServiceId: number;
+    itemServiceName?: string | null;
+    itemType: string;
+    oldUnitPrice: number;
+    newUnitPrice: number;
+    oldSubtotal: number;
+    newSubtotal: number;
+    delta: number;
+  }>;
+}
+
+// ===== Admin check-out confirm (departure status + photos) =====
+export interface AdminCheckOutConfirmPetInput {
+  petId: number;
+  departureCondition?: string;
+  departurePhotos?: string[];
+}
+
+export interface AdminCheckOutConfirmRequest {
+  pets: AdminCheckOutConfirmPetInput[];
+}
+
+/** Giao dịch thanh toán hóa đơn (từng lần thu tiền) */
+export interface BookingPaymentTransactionResponse {
+  id: number;
+  bookingId: number;
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string | null;
+  paidBy?: string | null;
+  paidByName?: string | null;
+  paidAt: string;
+  receivedBy?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+/** Request thêm một giao dịch thanh toán */
+export interface CreateBookingPaymentTransactionRequest {
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string | null;
+  paidBy?: string | null;
+  paidByName?: string | null;
+  paidAt: string; // ISO datetime
+  receivedBy?: string | null;
+  status?: string;
+  note?: string | null;
+}
+
+/** Một dòng trong danh sách giao dịch chi tiết (cọc + thanh toán hóa đơn) */
+export interface BookingTransactionItemResponse {
+  transactionType: "DEPOSIT" | "INVOICE_PAYMENT";
+  id: number;
+  amount: number;
+  paymentMethod: string;
+  paidAt: string;
+  status: string;
+  label: string;
+  transactionReference?: string | null;
+  paidByName?: string | null;
+  note?: string | null;
+}
 
 /** One item of pet food brought (pet_food_brought table) */
 export interface PetFoodBroughtItemResponse {
@@ -94,6 +214,10 @@ export interface BookingPetServiceItemResponse {
   itemServiceId: number;
   itemServiceName?: string;
   itemType: string; // ADDON | CHARGE
+  isActive?: boolean;
+  cancelledReason?: string | null;
+  cancelledBy?: string | null;
+  cancelledAt?: string | null;
   chargeReason?: string | null;
   chargeEvidence?: string | null;
   chargedBy?: string | null;
@@ -151,6 +275,7 @@ export interface BookingResponse {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  creditToRefund?: number;
   deposit?: number;
   depositPaid?: boolean;
   depositId?: number;
@@ -162,6 +287,9 @@ export interface BookingResponse {
   cancelRequested?: boolean;
   cancelledReason?: string | null;
   internalNotes?: string;
+  depositAmount?: number;
+  /** Ngày gửi (khách chọn khi tạo booking) */
+  bookingDateFrom?: string;
   bookingCheckInDate?: string; // ISO datetime, set by Check-in button
   bookingCheckOutDate?: string; // set by Check-out button
   cancelledAt?: string;

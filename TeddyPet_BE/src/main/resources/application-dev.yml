@@ -31,11 +31,17 @@ spring:
   
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://admin:admin123@localhost:27017/teddypet}
+      # MongoDB không auth (local). Restart backend sau khi sửa. Nếu vẫn lỗi "Authentication failed": xóa biến môi trường SPRING_DATA_MONGODB_URI hoặc set = mongodb://localhost:27017/teddypet
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/teddypet}
     
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      # Khi chạy bằng docker-compose.local.yml:
+      # - BE chạy trong container, dùng SPRING_DATA_REDIS_HOST=redis, SPRING_DATA_REDIS_PORT=6379
+      # Khi chạy BE local:
+      # - Không set 2 biến này, sẽ fallback về localhost:6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      # docker-compose.yml map redis -> host port 6380 by default
+      port: ${SPRING_DATA_REDIS_PORT:6380}
       password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       ssl:

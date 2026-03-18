@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BookingDepositRepository extends JpaRepository<BookingDeposit, Long> {
@@ -20,4 +21,6 @@ public interface BookingDepositRepository extends JpaRepository<BookingDeposit, 
     @Query("SELECT b FROM BookingDeposit b WHERE b.status = :status AND b.expiresAt <= :threshold AND b.reminderSent = false")
     List<BookingDeposit> findPendingReminders(@Param("status") String status,
             @Param("threshold") LocalDateTime threshold);
+
+    Optional<BookingDeposit> findFirstByPayosOrderCode(Long payosOrderCode);
 }

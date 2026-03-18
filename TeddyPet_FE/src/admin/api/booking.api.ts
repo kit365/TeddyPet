@@ -6,6 +6,12 @@ import type {
     BookingPetResponse,
     BookingPetServiceResponse,
     BookingPetServiceItemResponse,
+    BookingPaymentTransactionResponse,
+    CreateBookingPaymentTransactionRequest,
+    BookingTransactionItemResponse,
+    AdminCheckInRepricePreviewRequest,
+    AdminCheckInRepricePreviewResponse,
+  AdminCheckOutConfirmRequest,
 } from '../../types/booking.type';
 
 const BASE_URL = '/api/admin/bookings';
@@ -160,7 +166,75 @@ export const checkInBooking = async (bookingId: string | number): Promise<ApiRes
     return response.data;
 };
 
-export const checkOutBooking = async (bookingId: string | number): Promise<ApiResponse<BookingResponse>> => {
-    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-out`, {}, withAuth());
+export const previewCheckInReprice = async (
+    bookingId: string | number,
+    body: AdminCheckInRepricePreviewRequest
+): Promise<ApiResponse<AdminCheckInRepricePreviewResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/check-in/reprice-preview`, body, withAuth());
+    return response.data;
+};
+
+export const confirmCheckInWithReprice = async (
+    bookingId: string | number,
+    body: { pets: AdminCheckInRepricePreviewRequest["pets"]; staffNote?: string }
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/check-in/confirm`, body, withAuth());
+    return response.data;
+};
+
+export const cancelBookingPetService = async (
+    bookingId: string | number,
+    bookingPetServiceId: string | number,
+    cancelReason: string
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/pet-services/${bookingPetServiceId}/cancel`, { cancelReason }, withAuth());
+    return response.data;
+};
+
+export const cancelBookingPetServiceItem = async (
+    bookingId: string | number,
+    itemId: string | number,
+    cancelReason: string
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/pet-service-items/${itemId}/cancel`, { cancelReason }, withAuth());
+    return response.data;
+};
+
+export const checkOutBooking = async (
+    bookingId: string | number,
+    body: AdminCheckOutConfirmRequest
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/check-out`, body, withAuth());
+    return response.data;
+};
+
+export const updateAdminBookingInternalNotes = async (
+    bookingId: string | number,
+    internalNotes: string | null
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/internal-notes`, { internalNotes }, withAuth());
+    return response.data;
+};
+
+export const getBookingPaymentTransactions = async (
+    bookingId: string | number
+): Promise<ApiResponse<BookingPaymentTransactionResponse[]>> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/payment-transactions`, withAuth());
+    return response.data;
+};
+
+/** Danh sách giao dịch chi tiết: cọc + thanh toán hóa đơn, sắp xếp theo thời gian */
+export const getBookingTransactions = async (
+    bookingId: string | number
+): Promise<ApiResponse<BookingTransactionItemResponse[]>> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/transactions`, withAuth());
+    return response.data;
+};
+
+export const addBookingPaymentTransaction = async (
+    bookingId: string | number,
+    body: CreateBookingPaymentTransactionRequest
+): Promise<ApiResponse<BookingPaymentTransactionResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-transactions`, body, withAuth());
     return response.data;
 };

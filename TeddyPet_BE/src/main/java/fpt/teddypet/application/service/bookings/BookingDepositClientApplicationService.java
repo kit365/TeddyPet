@@ -7,6 +7,7 @@ import fpt.teddypet.application.dto.request.bookings.CreateBookingPetRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingDepositIntentResponse;
+import fpt.teddypet.application.dto.response.bookings.CreateBookingDepositPayosResponse;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
@@ -20,6 +21,7 @@ import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
+import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
@@ -50,6 +52,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final TimeSlotRepositoryPort timeSlotRepositoryPort;
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
+    private final PayosGatewayAdapter payosGatewayAdapter;
 
     @Override
     public CreateBookingDepositIntentResponse createDepositIntent(CreateBookingRequest request) {
@@ -150,6 +153,71 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         } catch (Exception e) {
             throw new IllegalStateException("Không thể tạo booking từ giữ chỗ: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public CreateBookingDepositPayosResponse createPayosCheckoutUrl(Long depositId, String returnUrl) {
+        BookingDeposit deposit = bookingDepositRepository.findById(depositId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy giữ chỗ với id: " + depositId));
+
+        if (!"PENDING".equalsIgnoreCase(deposit.getStatus())) {
+            throw new IllegalStateException("Giữ chỗ đã được xử lý hoặc hết hạn.");
+        }
+        if (deposit.getExpiresAt() != null && deposit.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Giữ chỗ đã hết hạn. Vui lòng chọn lại dịch vụ.");
+        }
+        if (deposit.getBookingId() == null) {
+            throw new IllegalStateException("Giữ chỗ này không gắn với booking nào.");
+        }
+
+        Booking booking = bookingRepository.findById(deposit.getBookingId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
+
+        // Reuse existing link if present
+        if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
+                && deposit.getPayosOrderCode() != null) {
+            return new CreateBookingDepositPayosResponse(
+                    deposit.getId(),
+                    deposit.getPayosOrderCode(),
+                    deposit.getCheckoutUrl(),
+                    deposit.getExpiresAt(),
+                    booking.getId(),
+                    booking.getBookingCode()
+            );
+        }
+
+        Long payosOrderCode = deposit.getPayosOrderCode();
+        if (payosOrderCode == null) {
+            // 12-digit-ish stable code for PayOS, derived from depositId to map webhook -> deposit
+            payosOrderCode = 900_000_000_000L + deposit.getId();
+            deposit.setPayosOrderCode(payosOrderCode);
+        }
+
+        BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
+                : BigDecimal.valueOf(25);
+        BigDecimal depositAmount = total
+                .multiply(percentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        if (depositAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Số tiền cọc không hợp lệ.");
+        }
+
+        String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
+        long amount = depositAmount.longValue();
+
+        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, returnUrl);
+        deposit.setCheckoutUrl(checkoutUrl);
+        bookingDepositRepository.save(deposit);
+
+        return new CreateBookingDepositPayosResponse(
+                deposit.getId(),
+                payosOrderCode,
+                checkoutUrl,
+                deposit.getExpiresAt(),
+                booking.getId(),
+                booking.getBookingCode()
+        );
     }
 
     private void validateServicesActive(CreateBookingRequest request) {

@@ -5,6 +5,9 @@ import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 
+import java.time.LocalDate;
+import java.util.List;
+
 public interface BookingClientService {
 
     /**
@@ -32,4 +35,9 @@ public interface BookingClientService {
      * Khách hàng gửi yêu cầu hủy booking
      */
     ClientBookingDetailResponse cancelBooking(String bookingCode, fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest request);
+
+    /**
+     * Danh sách roomId đã có đặt phòng trùng khoảng ngày (dùng cho sơ đồ phòng làm mờ phòng đã đặt).
+     */
+    List<Long> getBookedRoomIds(LocalDate checkIn, LocalDate checkOut);
 }
