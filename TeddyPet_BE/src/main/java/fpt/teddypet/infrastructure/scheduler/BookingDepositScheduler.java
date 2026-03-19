@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
+import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
 import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
@@ -31,6 +32,7 @@ public class BookingDepositScheduler {
     private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
+    private final BookingHoldReleaseService bookingHoldReleaseService;
 
     /** Chạy mỗi 30s để nhả giữ chỗ quá 5 phút. */
     @Scheduled(fixedDelay = 30_000)
@@ -48,7 +50,7 @@ public class BookingDepositScheduler {
                 String payloadJson = d.getHoldPayloadJson();
                 if (payloadJson != null && !payloadJson.isBlank()) {
                     JsonNode payload = objectMapper.readTree(payloadJson);
-                    releaseHolds(payload);
+                    bookingHoldReleaseService.releaseHolds(payload);
                 }
                 d.setStatus("EXPIRED");
                 bookingDepositRepository.save(d);
@@ -87,52 +89,6 @@ public class BookingDepositScheduler {
                 }
             } catch (Exception e) {
                 log.error("Failed to release holds for deposit {}", d.getId(), e);
-            }
-        }
-    }
-
-    private void releaseHolds(JsonNode holdPayload) {
-        if (holdPayload == null || holdPayload.isNull())
-            return;
-
-        JsonNode rooms = holdPayload.get("rooms");
-        if (rooms != null && rooms.isArray()) {
-            for (JsonNode n : rooms) {
-                if (n == null || n.isNull())
-                    continue;
-                Long roomId = n.asLong();
-                try {
-                    Room room = roomRepositoryPort.findById(roomId).orElse(null);
-                    if (room == null)
-                        continue;
-                    if (room.getStatus() == RoomStatusEnum.OCCUPIED) {
-                        room.setStatus(RoomStatusEnum.AVAILABLE);
-                        roomRepositoryPort.save(room);
-                    }
-                } catch (Exception ignored) {
-                    // best-effort
-                }
-            }
-        }
-
-        JsonNode timeSlots = holdPayload.get("timeSlots");
-        if (timeSlots != null && timeSlots.isArray()) {
-            for (JsonNode n : timeSlots) {
-                if (n == null || n.isNull())
-                    continue;
-                Long slotId = n.asLong();
-                try {
-                    TimeSlot slot = timeSlotRepositoryPort.findById(slotId).orElse(null);
-                    if (slot == null)
-                        continue;
-                    int current = slot.getCurrentBookings() != null ? slot.getCurrentBookings() : 0;
-                    if (current > 0) {
-                        slot.setCurrentBookings(current - 1);
-                        timeSlotRepositoryPort.save(slot);
-                    }
-                } catch (Exception ignored) {
-                    // best-effort
-                }
             }
         }
     }

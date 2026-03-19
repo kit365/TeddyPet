@@ -338,13 +338,13 @@ export const ServiceEditPage = () => {
                                     <SwitchButton control={control} name="isRequiredRoom" label="Yêu cầu phòng (dịch vụ gắn loại phòng)" />
                                 </Box>
                                 {isRequiredRoom && (
-                                    <Box sx={{ mt: 3, p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-                                        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600, mb: 1 }}>Loại phòng gắn với dịch vụ này</Typography>
-                                        <Typography sx={{ fontSize: '1.2rem', color: 'text.secondary', mb: 3 }}>
+                                    <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                        <Typography sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.5 }}>Loại phòng gắn với dịch vụ này</Typography>
+                                        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
                                             Chọn các loại phòng sẽ được sử dụng cho dịch vụ này. Một loại phòng chỉ có thể gắn với một dịch vụ.
                                         </Typography>
 
-                                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 2 }}>
+                                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
                                             {roomTypes.map((rt) => {
                                                 const isSelected = selectedRoomTypeIds.includes(rt.roomTypeId);
                                                 const currentService = rt.serviceName;
@@ -356,42 +356,44 @@ export const ServiceEditPage = () => {
                                                         key={rt.roomTypeId}
                                                         variant="outlined"
                                                         sx={{
-                                                            p: 2,
+                                                            p: 1.5,
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             justifyContent: 'space-between',
-                                                            borderRadius: 2,
+                                                            borderRadius: 1.5,
                                                             transition: 'all 0.2s',
                                                             borderColor: isSelected ? 'primary.main' : 'divider',
                                                             bgcolor: isSelected ? 'primary.lighter' : isDisabled ? 'action.disabledBackground' : 'background.paper',
                                                             opacity: isDisabled ? 0.55 : 1,
                                                             cursor: isDisabled ? 'not-allowed' : 'default',
+                                                            boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                                                         }}
                                                     >
-                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                            <Typography sx={{ fontSize: '1.3rem', fontWeight: 600, color: isSelected ? 'primary.main' : isDisabled ? 'text.disabled' : 'text.primary' }}>
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : isDisabled ? 'text.disabled' : 'text.primary' }}>
                                                                 {rt.typeName}
                                                             </Typography>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <Typography sx={{ fontSize: '1.1rem', color: 'text.secondary' }}>Dịch vụ:</Typography>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>Dịch vụ:</Typography>
                                                                 {currentService ? (
                                                                     <Chip
                                                                         label={currentService}
                                                                         size="small"
                                                                         color={rt.serviceId === serviceId ? "primary" : "default"}
-                                                                        sx={{ height: 20, fontSize: '1rem' }}
+                                                                        sx={{ height: 18, fontSize: '0.75rem', fontWeight: 500 }}
                                                                     />
                                                                 ) : (
-                                                                    <Typography sx={{ fontSize: '1.1rem', color: 'text.secondary', fontStyle: 'italic' }}>Chưa gắn</Typography>
+                                                                    <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontStyle: 'italic' }}>Chưa gắn</Typography>
                                                                 )}
                                                             </Box>
                                                             {isDisabled && (
-                                                                <Typography sx={{ fontSize: '0.95rem', color: 'warning.main', mt: 0.5 }}>
-                                                                    Đã thuộc dịch vụ khác — không thể chọn
+                                                                <Typography sx={{ fontSize: '0.75rem', color: 'warning.main', mt: 0.25 }}>
+                                                                    Đã thuộc dịch vụ khác
                                                                 </Typography>
                                                             )}
                                                         </Box>
                                                         <Switch
+                                                            size="small"
                                                             checked={isSelected}
                                                             disabled={isDisabled}
                                                             onChange={(_, checked) => {
@@ -406,12 +408,11 @@ export const ServiceEditPage = () => {
                                             })}
                                         </Box>
                                         {roomTypes.length === 0 && (
-                                            <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary', fontSize: '1.3rem', bgcolor: 'background.paper', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+                                            <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '0.875rem', bgcolor: 'background.paper', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
                                                 Chưa có loại phòng nào trong hệ thống. <br />
-                                                <Typography component="span" sx={{ fontSize: '1.1rem', mt: 1, display: 'block' }}>Vui lòng tạo tại Quản lý phòng → Danh sách loại phòng.</Typography>
+                                                <Typography component="span" sx={{ fontSize: '0.75rem', mt: 0.5, display: 'block' }}>Vui lòng tạo tại Quản lý phòng → Danh sách loại phòng.</Typography>
                                             </Box>
                                         )}
-
                                     </Box>
                                 )}
                             </Stack>

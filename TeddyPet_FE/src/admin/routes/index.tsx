@@ -48,6 +48,7 @@ import { BookingPetServiceDetailPage } from "../pages/booking/BookingPetServiceD
 import { BookingCreatePage } from "../pages/booking/BookingCreatePage";
 import { BookingCreateDetailPage } from "../pages/booking/BookingCreateDetailPage";
 import { BookingRefundPolicyListPage } from "../pages/booking/BookingRefundPolicyListPage";
+import { NoShowConfigPage } from "../pages/booking/NoShowConfigPage";
 import { ShopOperationHoursPage } from "../pages/shop/ShopOperationHoursPage";
 import { TimeSlotExceptionListPage } from "../pages/shop/TimeSlotExceptionListPage";
 import { TimeSlotExceptionFormPage } from "../pages/shop/TimeSlotExceptionFormPage";
@@ -143,6 +144,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "booking/detail/:id/pet/:petId", element: <BookingPetDetailPage /> },
     { path: "booking/detail/:id/pet/:petId/service/:serviceId", element: <BookingPetServiceDetailPage /> },
     { path: "booking/refund-policy/list", element: <AdminOnlyGuard><BookingRefundPolicyListPage /></AdminOnlyGuard> },
+    { path: "booking/no-show-config", element: <AdminOnlyGuard><NoShowConfigPage /></AdminOnlyGuard> },
     { path: "bank-information/verify", element: <AdminOnlyGuard><BankInformationVerifyPage /></AdminOnlyGuard> },
     { path: "shipping/list", element: <AdminOnlyGuard><ShippingRuleListPage /></AdminOnlyGuard> },
     { path: "settings", element: <AdminOnlyGuard><SettingsPage /></AdminOnlyGuard> },

@@ -1,4 +1,4 @@
-﻿import { createTheme } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 import { createElement } from 'react';
 import SvgIcon from '@mui/material/SvgIcon';
 import type { } from '@mui/x-data-grid/themeAugmentation';
@@ -43,6 +43,9 @@ const backgroundPopup = {
 };
 
 export const adminTheme = createTheme({
+    typography: {
+        fontFamily: '"Be Vietnam Pro", Inter, sans-serif',
+    },
     components: {
         MuiMenuItem: {
             styleOverrides: {

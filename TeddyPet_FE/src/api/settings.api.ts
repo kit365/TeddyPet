@@ -5,6 +5,7 @@ const BASE_PATH = "/api/settings";
 
 /** Key cấu hình SĐT cửa hàng (dùng cho thông báo hỗ trợ khách đặt lịch). */
 export const SHOP_PHONE_KEY = "SHOP_PHONE";
+export const DEFAULT_SHOP_PHONE = "0987 654 321";
 
 /**
  * Lấy giá trị cài đặt theo key (API public, dùng cho trang đặt lịch).

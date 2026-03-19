@@ -1,4 +1,4 @@
-﻿import {
+import {
   Drawer,
   Typography,
   Box,
@@ -40,6 +40,21 @@ const InfoRow = ({
   </Stack>
 );
 
+const parsePhotoUrls = (value?: string | null): string[] => {
+  if (!value) return [];
+  const s = String(value).trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      return parsed.map((x) => String(x)).filter(Boolean);
+    }
+  } catch {
+    // Backward compatibility: old data might be a single URL string.
+  }
+  return [s];
+};
+
 interface BookingPetDetailDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -49,6 +64,10 @@ interface BookingPetDetailDrawerProps {
 export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailDrawerProps) => {
   const theme = useTheme();
   if (!pet) return null;
+
+  const arrivalPhotos = parsePhotoUrls(pet.arrivalPhotos);
+  const departurePhotos = parsePhotoUrls(pet.departurePhotos);
+  const belongingPhotos = parsePhotoUrls(pet.belongingPhotos);
 
   return (
     <Drawer
@@ -91,11 +110,11 @@ export const BookingPetDetailDrawer = ({ open, onClose, pet }: BookingPetDetailD
         </Typography>
         <InfoRow label="Tình trạng khi đến" value={pet.arrivalCondition} />
         <InfoRow label="Tình trạng khi về" value={pet.departureCondition} />
-        <InfoRow label="Ảnh khi đến" value={pet.arrivalPhotos ? "Đã có" : "—"} />
-        <InfoRow label="Ảnh khi về" value={pet.departurePhotos ? "Đã có" : "—"} />
+        <InfoRow label="Ảnh khi đến" value={arrivalPhotos.length ? "Đã có" : "—"} />
+        <InfoRow label="Ảnh khi về" value={departurePhotos.length ? "Đã có" : "—"} />
 
         <Divider sx={{ my: 2 }} />
-        <InfoRow label="Ảnh đồ đạc mang theo" value={pet.belongingPhotos ? "Đã có" : "—"} />
+        <InfoRow label="Ảnh đồ đạc mang theo" value={belongingPhotos.length ? "Đã có" : "—"} />
 
         <Divider sx={{ my: 2 }} />
         <InfoRow

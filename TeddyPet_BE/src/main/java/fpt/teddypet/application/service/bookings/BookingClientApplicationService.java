@@ -16,6 +16,7 @@ import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
+import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
@@ -67,6 +68,7 @@ public class BookingClientApplicationService implements BookingClientService {
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository;
     private final EmailServicePort emailServicePort;
     private final DashboardService dashboardService;
+    private final BookingHoldReleaseService bookingHoldReleaseService;
 
     public BookingClientApplicationService(
             BookingRepository bookingRepository,
@@ -81,7 +83,8 @@ public class BookingClientApplicationService implements BookingClientService {
             fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository,
             fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository,
             EmailServicePort emailServicePort,
-            @Lazy DashboardService dashboardService) {
+            @Lazy DashboardService dashboardService,
+            BookingHoldReleaseService bookingHoldReleaseService) {
         this.bookingRepository = bookingRepository;
         this.bookingPetServiceRepository = bookingPetServiceRepository;
         this.timeSlotBookingRepository = timeSlotBookingRepository;
@@ -95,6 +98,7 @@ public class BookingClientApplicationService implements BookingClientService {
         this.bookingDepositRefundPolicyRepository = bookingDepositRefundPolicyRepository;
         this.emailServicePort = emailServicePort;
         this.dashboardService = dashboardService;
+        this.bookingHoldReleaseService = bookingHoldReleaseService;
     }
 
     @Override
@@ -373,8 +377,11 @@ public class BookingClientApplicationService implements BookingClientService {
                 // Cancel pending deposits
                 bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
                     if ("PENDING".equals(deposit.getStatus())) {
+                        String holdPayloadJson = deposit.getHoldPayloadJson();
                         deposit.setStatus("CANCELLED");
                         bookingDepositRepository.save(deposit);
+                        // Nhả giữ chỗ room/time-slot ngay khi user hủy trong lúc deposit PENDING
+                        bookingHoldReleaseService.releaseFromJson(holdPayloadJson);
                     }
                 });
                 // Xóa TimeSlotBooking records
@@ -398,8 +405,11 @@ public class BookingClientApplicationService implements BookingClientService {
             // Cancel pending deposits
             bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
                 if ("PENDING".equals(deposit.getStatus())) {
+                    String holdPayloadJson = deposit.getHoldPayloadJson();
                     deposit.setStatus("CANCELLED");
                     bookingDepositRepository.save(deposit);
+                    // Nhả giữ chỗ room/time-slot ngay khi user hủy trong lúc deposit PENDING
+                    bookingHoldReleaseService.releaseFromJson(holdPayloadJson);
                 }
             });
             // Xóa TimeSlotBooking records
@@ -419,6 +429,14 @@ public class BookingClientApplicationService implements BookingClientService {
         return getClientBookingDetailByCode(bookingCode);
     }
 
+    @Override
+    public List<Long> getBookedRoomIds(LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null) {
+            return Collections.emptyList();
+        }
+        return bookingPetServiceRepository.findDistinctRoomIdsWithOverlappingDates(checkIn, checkOut);
+    }
+
     private CreateBookingResponse createBookingInternal(CreateBookingRequest request,
             boolean increaseTimeSlotBookings) {
         if (request.pets() == null || request.pets().isEmpty()) {
@@ -432,6 +450,9 @@ public class BookingClientApplicationService implements BookingClientService {
         validateRoomNotAlreadyBooked(request);
 
         Booking booking = buildBookingEntity(request);
+        // Ngày gửi (khách chọn khi tạo booking). Lấy từ request để lưu riêng,
+        // không phụ thuộc luồng staff check-in/check-out.
+        booking.setBookingDateFrom(extractBookingDateFrom(request));
 
         BigDecimal bookingTotal = BigDecimal.ZERO;
 
@@ -444,10 +465,18 @@ public class BookingClientApplicationService implements BookingClientService {
                 bookingPet.getServices().add(bookingPetService);
 
                 // Pricing: resolve unit price by petType + weight, then compute subtotal
+                Long roomTypeIdForPricing = null;
+                if (Boolean.TRUE.equals(bookingPetService.getService() != null ? bookingPetService.getService().getIsRequiredRoom() : null)
+                        && bookingPetService.getRoomId() != null) {
+                    roomTypeIdForPricing = roomRepositoryPort.findById(bookingPetService.getRoomId())
+                            .map(r -> r.getRoomType() != null ? r.getRoomType().getId() : null)
+                            .orElse(null);
+                }
                 BigDecimal unitPrice = resolveUnitPrice(
                         bookingPetService.getService(),
                         petRequest.petType(),
-                        petRequest.weightAtBooking());
+                        petRequest.weightAtBooking(),
+                        roomTypeIdForPricing);
                 BigDecimal subtotal = computeSubtotal(bookingPetService, unitPrice);
                 bookingPetService.setBasePrice(unitPrice);
                 bookingPetService.setSubtotal(subtotal);
@@ -654,6 +683,29 @@ public class BookingClientApplicationService implements BookingClientService {
         return pet;
     }
 
+    /**
+     * Lấy "Ngày gửi" (global) khách chọn khi tạo booking từ request.
+     * Ở FE, ngày gửi được áp dụng cho tất cả dịch vụ nên checkInDate/sessionDate
+     * thường sẽ trùng nhau giữa các service.
+     */
+    private LocalDate extractBookingDateFrom(CreateBookingRequest request) {
+        if (request == null || request.pets() == null) return null;
+
+        for (CreateBookingPetRequest petReq : request.pets()) {
+            if (petReq == null || petReq.services() == null) continue;
+            for (CreateBookingPetServiceRequest svcReq : petReq.services()) {
+                if (svcReq == null) continue;
+                String d = (svcReq.checkInDate() != null && !svcReq.checkInDate().isBlank())
+                        ? svcReq.checkInDate()
+                        : svcReq.sessionDate();
+                if (d == null || d.isBlank()) continue;
+                return LocalDate.parse(d.trim());
+            }
+        }
+
+        return null;
+    }
+
     private BookingPetService buildBookingPetServiceEntity(BookingPet pet, CreateBookingPetServiceRequest svcRequest) {
         fpt.teddypet.domain.entity.Service service = serviceRepositoryPort.findById(svcRequest.serviceId())
                 .orElseThrow(
@@ -770,7 +822,7 @@ public class BookingClientApplicationService implements BookingClientService {
      * constraints, then narrower range.
      */
     private BigDecimal resolveUnitPrice(fpt.teddypet.domain.entity.Service service, String petTypeRaw,
-            BigDecimal petWeight) {
+            BigDecimal petWeight, Long roomTypeId) {
         if (service == null || service.getId() == null) {
             return BigDecimal.ZERO;
         }
@@ -795,6 +847,15 @@ public class BookingClientApplicationService implements BookingClientService {
 
             if (!matchesPetType(r.getSuitablePetTypes(), petTypeKey))
                 continue;
+
+            // If we know the selected room type, resolve pricing rules by roomTypeId.
+            // Rule with roomTypeId = null means "applies to all room types".
+            Long pricingRoomTypeId = r.getRoomType() != null ? r.getRoomType().getId() : null;
+            if (roomTypeId == null) {
+                if (pricingRoomTypeId != null) continue;
+            } else {
+                if (pricingRoomTypeId != null && !pricingRoomTypeId.equals(roomTypeId)) continue;
+            }
 
             if (petWeight == null) {
                 // If pet weight is unknown, only accept "no weight constraint" rules.

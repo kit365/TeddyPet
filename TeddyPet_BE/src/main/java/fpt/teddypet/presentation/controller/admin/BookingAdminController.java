@@ -4,11 +4,16 @@ import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.AddChargeItemRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
+import fpt.teddypet.application.dto.request.bookings.AdminCheckInConfirmRequest;
+import fpt.teddypet.application.dto.request.bookings.AdminCheckInRepricePreviewRequest;
+import fpt.teddypet.application.dto.request.bookings.AdminCheckOutConfirmRequest;
+import fpt.teddypet.application.dto.request.bookings.CancelBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
+import fpt.teddypet.application.dto.response.bookings.AdminCheckInRepricePreviewResponse;
 import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
 import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
@@ -134,10 +139,55 @@ public class BookingAdminController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
+    @PostMapping("/{bookingId}/check-in/reprice-preview")
+    @Operation(summary = "Preview chênh lệch giá khi check-in (xác nhận lại loại thú + cân nặng)")
+    public ResponseEntity<ApiResponse<AdminCheckInRepricePreviewResponse>> previewCheckInReprice(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody AdminCheckInRepricePreviewRequest request
+    ) {
+        AdminCheckInRepricePreviewResponse data = bookingAdminService.previewCheckInReprice(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{bookingId}/check-in/confirm")
+    @Operation(summary = "Xác nhận check-in + cập nhật lại thông tin thú cưng và tính lại giá toàn bộ booking")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> confirmCheckInWithReprice(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody AdminCheckInConfirmRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.confirmCheckInWithReprice(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{bookingId}/pet-services/{bookingPetServiceId}/cancel")
+    @Operation(summary = "Hủy một booking_pet_service (dịch vụ của thú cưng) và tính lại tổng tiền")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> cancelBookingPetService(
+            @PathVariable Long bookingId,
+            @PathVariable Long bookingPetServiceId,
+            @Valid @RequestBody CancelBookingPetServiceRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.cancelBookingPetService(bookingId, bookingPetServiceId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{bookingId}/pet-service-items/{itemId}/cancel")
+    @Operation(summary = "Hủy một booking_pet_service_item (add-on/charge) và tính lại tổng tiền")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> cancelBookingPetServiceItem(
+            @PathVariable Long bookingId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody CancelBookingPetServiceRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.cancelBookingPetServiceItem(bookingId, itemId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     @PatchMapping("/{bookingId}/check-out")
     @Operation(summary = "Check-out: ghi nhận thời gian ra (booking_check_out_date)")
-    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> checkOut(@PathVariable Long bookingId) {
-        AdminBookingListItemResponse data = bookingAdminService.checkOut(bookingId);
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> checkOut(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody AdminCheckOutConfirmRequest request
+    ) {
+        AdminBookingListItemResponse data = bookingAdminService.checkOut(bookingId, request);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
