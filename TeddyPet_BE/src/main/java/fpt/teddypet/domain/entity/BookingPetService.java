@@ -92,6 +92,9 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "base_price", precision = 12, scale = 2)
     private BigDecimal basePrice;
 
+    @Column(name = "paid_amount", precision = 12, scale = 2)
+    private BigDecimal paidAmount;
+
     @Column(name = "subtotal", precision = 12, scale = 2)
     private BigDecimal subtotal;
 

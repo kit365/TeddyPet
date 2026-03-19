@@ -2951,7 +2951,7 @@ END $$;
 
 
 -- ========== V86__booking_service_cancellations_and_credit.sql ==========
-ALTER TABLE booking_service_details 
+ALTER TABLE booking_pet_services 
 ADD COLUMN IF NOT EXISTS paid_amount NUMERIC(12,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS cancellation_reason VARCHAR(255);
 
