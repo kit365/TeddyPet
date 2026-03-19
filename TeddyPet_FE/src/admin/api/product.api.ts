@@ -132,9 +132,17 @@ export const importAgeRangesExcel = async (file: File): Promise<ApiResponse<any>
     return response.data;
 };
 
-export const importProductsExcel = async (file: File): Promise<any> => {
+export type DuplicateResolution = { rowNumber: number; decision: 'OVERWRITE' | 'CREATE_NEW' };
+
+export const importProductsExcel = async (
+    file: File,
+    duplicateResolutions?: DuplicateResolution[]
+): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (duplicateResolutions != null && duplicateResolutions.length > 0) {
+        formData.append('duplicateResolutions', JSON.stringify(duplicateResolutions));
+    }
 
     const token = Cookies.get('tokenAdmin');
     const response = await apiApp.post(`${BASE_URL}/excel/import`, formData, {
@@ -143,6 +151,25 @@ export const importProductsExcel = async (file: File): Promise<any> => {
             'Content-Type': 'multipart/form-data',
         },
     });
+    return response.data;
+};
+
+// --- EXCEL PRODUCT IMPORT WIZARD ---
+
+export const previewProductsExcelImport = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL}/excel/preview`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const confirmCreateMissingForProductsExcel = async (preview: any): Promise<ApiResponse<any>> => {
+    const response = await apiApp.post(`${BASE_URL}/excel/confirm-create`, preview, withAuth());
     return response.data;
 };
 

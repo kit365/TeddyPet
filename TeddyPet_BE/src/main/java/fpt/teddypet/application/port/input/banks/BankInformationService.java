@@ -20,6 +20,8 @@ public interface BankInformationService {
 
     BankInformationResponse createGuestBankForBookingCode(String bookingCode, UpsertBankInformationRequest request);
 
+    BankInformationResponse createGuestBankForOrderCode(String orderCode, UpsertBankInformationRequest request);
+
     BankInformationResponse getBankForBookingCode(String bookingCode);
 
     /** Lấy thông tin chuyển khoản đã lưu theo email khách (guest) để pre-fill khi order/booking với cùng email */

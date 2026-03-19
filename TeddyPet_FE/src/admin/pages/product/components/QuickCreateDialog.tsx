@@ -43,11 +43,14 @@ export const QuickCreateDialog: React.FC<QuickCreateDialogProps> = ({
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    const prevOpenRef = React.useRef(open);
+
     useEffect(() => {
-        if (open) {
+        if (open && !prevOpenRef.current) {
             setFormData(initialData || {});
             setErrors({});
         }
+        prevOpenRef.current = open;
     }, [open, initialData]);
 
     const handleFieldChange = (key: string, value: any) => {

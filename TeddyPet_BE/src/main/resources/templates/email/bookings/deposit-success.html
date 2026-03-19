@@ -1,34 +1,43 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<head>
-    <meta charset="UTF-8">
-    <title th:text="'Thanh toán cọc thành công đơn đặt lịch #' + ${bookingCode}"></title>
+<head th:replace="~{email/fragments/head :: head(title='Thanh toán cọc thành công')}">
+    <title>Thanh toán cọc thành công</title>
 </head>
 
-<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-    <div
-        style="background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #4CAF50; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h2 style="color: #4CAF50; border-bottom: 2px solid #eee; padding-bottom: 10px;">Thanh toán cọc thành công</h2>
-        <p style="color: #555; line-height: 1.6;">Xin chào,</p>
-        <p style="color: #555; line-height: 1.6;">Cảm ơn bạn đã lựa chọn <strong><span
-                    th:text="${appName}">TeddyPet</span></strong>. Đơn đặt lịch của bạn với mã <strong><span
-                    th:text="${bookingCode}"></span></strong> đã được thanh toán cọc thành công.</p>
-        <p style="color: #555; line-height: 1.6;">Đơn đặt lịch của bạn đã được xác nhận. Vui lòng nhấn vào nút bên dưới
-            để xem thêm chi tiết đơn đặt lịch của bạn:</p>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;" bgcolor="#f1f5f9">
+    <table class="email-outer" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9;" bgcolor="#f1f5f9">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table class="email-card" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 600px; width: 100%;" bgcolor="#ffffff">
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 16px 16px 0 0;">
+                            <div th:replace="~{email/fragments/header :: header}"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 40px 40px; background-color: #ffffff; line-height: 1.6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155;">
+                            <h2 style="color: #4CAF50; font-size: 24px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">✅ Thanh toán cọc thành công</h2>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Xin chào,</p>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Cảm ơn bạn đã lựa chọn <strong style="color: #4f46e5;" th:text="${appName}">TeddyPet</strong>. Đơn đặt lịch của bạn với mã <strong style="color: #334155;" th:text="${bookingCode}"></strong> đã được thanh toán cọc thành công.</p>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Đơn đặt lịch của bạn đã được xác nhận. Vui lòng nhấn vào nút bên dưới để xem thêm chi tiết đơn đặt lịch của bạn:</p>
 
-        <div style="text-align: center; margin: 30px 0;">
-            <a th:href="${detailUrl}"
-                style="background-color: #4CAF50; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Xem
-                chi tiết đơn đặt lịch</a>
-        </div>
-
-        <div
-            style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-            <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
-            <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
-        </div>
-    </div>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a th:href="${detailUrl}" style="display: inline-block; padding: 16px 36px; background-color: #4CAF50; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                    <span style="color: #ffffff;">Xem chi tiết đơn đặt lịch</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 0 0 16px 16px;">
+                            <div th:replace="~{email/fragments/footer :: footer}"></div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 
 </html>

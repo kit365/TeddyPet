@@ -159,11 +159,17 @@ public class OrderExcelService {
                 List<Row> rows = entry.getValue();
                 try {
                     if (orderRepository.existsByOrderCode(code)) {
+                        errors.add("Đơn " + code + ": đã tồn tại → bỏ qua.");
                         skipped++;
                         continue;
                     }
 
                     Row firstRow = rows.get(0);
+                    String shippingPhone = getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_PHONE.getIndex()));
+                    String shippingName = getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_NAME.getIndex()));
+                    if (!StringUtils.hasText(shippingPhone)) shippingPhone = "N/A";
+                    if (!StringUtils.hasText(shippingName)) shippingName = "N/A";
+
                     Order order = Order.builder()
                             .orderCode(code)
                             .orderType(parseEnum(OrderTypeEnum.class,
@@ -172,8 +178,8 @@ public class OrderExcelService {
                             .status(parseEnum(OrderStatusEnum.class,
                                     getCellStr(firstRow.getCell(OrderExcelColumn.STATUS.getIndex())),
                                     OrderStatusEnum.COMPLETED))
-                            .shippingPhone(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_PHONE.getIndex())))
-                            .shippingName(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_NAME.getIndex())))
+                            .shippingPhone(shippingPhone)
+                            .shippingName(shippingName)
                             .shippingAddress(getCellStr(firstRow.getCell(OrderExcelColumn.SHIPPING_ADDRESS.getIndex())))
                             .voucherCode(getCellStr(firstRow.getCell(OrderExcelColumn.VOUCHER_CODE.getIndex())))
                             .notes(getCellStr(firstRow.getCell(OrderExcelColumn.NOTES.getIndex())))
@@ -204,6 +210,15 @@ public class OrderExcelService {
                         int qty = (int) getCellDouble(r.getCell(OrderExcelColumn.QUANTITY.getIndex()));
                         BigDecimal price = getCellDecimal(r.getCell(OrderExcelColumn.UNIT_PRICE.getIndex()));
 
+                        if (!StringUtils.hasText(prodName)) {
+                            errors.add("Đơn " + code + ": có dòng item thiếu PRODUCT_NAME → bỏ qua dòng đó.");
+                            continue;
+                        }
+                        if (qty <= 0) {
+                            errors.add("Đơn " + code + ": có dòng item qty <= 0 (" + prodName + ") → bỏ qua dòng đó.");
+                            continue;
+                        }
+
                         OrderItem item = OrderItem.builder()
                                 .order(order)
                                 .productName(prodName)
@@ -214,6 +229,12 @@ public class OrderExcelService {
                                 .build();
                         order.getOrderItems().add(item);
                         subtotal = subtotal.add(item.getTotalPrice());
+                    }
+
+                    if (order.getOrderItems().isEmpty()) {
+                        errors.add("Đơn " + code + ": không có item hợp lệ → bỏ qua.");
+                        skipped++;
+                        continue;
                     }
                     order.setSubtotal(subtotal);
                     order.setFinalAmount(subtotal.add(order.getShippingFee()).subtract(order.getDiscountAmount()));

@@ -80,4 +80,63 @@ public class EmailPreviewController {
 
                 return "email/orders/confirmation";
         }
+
+        @GetMapping("/forgot-password")
+        public String previewForgotPassword(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("resetLink", "http://localhost:5173/reset-password?token=test-token");
+                return "email/auth/forgot-password";
+        }
+
+        @GetMapping("/verify-account")
+        public String previewVerifyAccount(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("verifyLink", "http://localhost:5173/verify?token=test-token");
+                return "email/auth/verify-account";
+        }
+
+        @GetMapping("/security-otp")
+        public String previewSecurityOtp(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("otp", "123456");
+                return "email/auth/security-otp";
+        }
+
+        @GetMapping("/admin-invitation")
+        public String previewAdminInvitation(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("invitationLink", "http://localhost:5173/accept-invitation?token=test-token");
+                return "email/auth/admin-invitation";
+        }
+
+        @GetMapping("/guest-order-otp")
+        public String previewGuestOrderOtp(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("otp", "654321");
+                return "email/otp/guest-order";
+        }
+
+        @GetMapping("/booking-pending-deposit")
+        public String previewBookingPendingDeposit(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("bookingCode", "BK-TEST-123");
+                model.addAttribute("paymentUrl", "http://localhost:5173/payment/BK-TEST-123");
+                return "email/bookings/pending-deposit";
+        }
+
+        @GetMapping("/booking-deposit-success")
+        public String previewBookingDepositSuccess(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("bookingCode", "BK-TEST-123");
+                model.addAttribute("detailUrl", "http://localhost:5173/bookings/BK-TEST-123");
+                return "email/bookings/deposit-success";
+        }
+
+        @GetMapping("/booking-cancelled")
+        public String previewBookingCancelled(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("bookingCode", "BK-TEST-123");
+                model.addAttribute("detailUrl", "http://localhost:5173/bookings/BK-TEST-123");
+                return "email/bookings/booking-cancelled";
+        }
 }

@@ -4,7 +4,9 @@ import jakarta.validation.constraints.NotNull;
 
 public record AdminHandleOrderRefundRequest(
         @NotNull Boolean approved,
-        String adminNote
+        String adminNote,
+        String refundTransactionId,
+        java.util.List<String> adminEvidenceUrls
 ) {
 }
 

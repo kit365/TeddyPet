@@ -4,7 +4,7 @@ import { prefixAdmin } from "../../constants/routes";
 import { useTranslation } from "react-i18next";
 import { ExportImport } from "../../components/ui/ExportImport";
 import { useExportProducts, useImportProducts, useDownloadProductsTemplate } from "./hooks/useProduct";
-import { ImportExcelModal } from "./components/ImportExcelModal";
+import { ProductImportWizardModal } from "./components/ProductImportWizardModal";
 import { useState } from "react";
 
 export const ProductListPage = () => {
@@ -38,10 +38,12 @@ export const ProductListPage = () => {
 
             <ProductList />
 
-            <ImportExcelModal
+            <ProductImportWizardModal
                 open={openImportModal}
                 onClose={() => setOpenImportModal(false)}
-                onImport={(file) => importMutation.mutate(file)}
+                onImport={(file, duplicateResolutions) =>
+                    importMutation.mutate({ file, duplicateResolutions })
+                }
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
             />

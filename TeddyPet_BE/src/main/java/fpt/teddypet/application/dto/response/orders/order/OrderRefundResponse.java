@@ -12,8 +12,11 @@ public record OrderRefundResponse(
         String evidenceUrls,
         String adminDecisionNote,
         String processedBy,
+        String refundTransactionId,
+        java.util.List<String> adminEvidenceUrls,
         LocalDateTime createdAt,
-        LocalDateTime processedAt
+        LocalDateTime processedAt,
+        LocalDateTime refundCompletedAt
 ) {
 }
 

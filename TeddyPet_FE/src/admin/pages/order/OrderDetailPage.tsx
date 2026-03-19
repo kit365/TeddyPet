@@ -35,13 +35,16 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'; // Added
 import IconButton from '@mui/material/IconButton';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { toast } from "react-toastify";
 
 import { prefixAdmin } from "../../constants/routes";
+import { uploadImagesToCloudinary } from "../../api/uploadCloudinary.api";
 import { getOrderById, updateShippingFee, updateOrderStatus, updateOrderPaymentMethod, cancelOrderByAdmin, returnOrder, handleReturnRequest, downloadOrderInvoice, confirmPaymentByAdmin, updateOrderContactInfo, handleOrderRefundRequest, getOrderRefundRequests } from "../../api/order.api";
 import { getShippingFeeSuggestion, getShippingRules } from "../../api/shipping.api";
 import { getAllSettings } from "../../api/setting.api";
 import { getBankInformationByOrderId } from "../../../api/bank.api";
+import { getVietQRBanks, type VietQRBank } from "../../../api/vietqr.api";
 import { APP_SETTING_KEYS } from "../../constants/settings";
 import { OrderResponse, OrderRefundResponse } from "../../../types/order.type";
 import { ShippingRule } from "../../../types/shipping.type";
@@ -63,10 +66,8 @@ export const OrderDetailPage = () => {
     const [newShippingFee, setNewShippingFee] = useState<string>('');
     const [distance, setDistance] = useState<number>(5);
     const [weight, setWeight] = useState<number>(1);
-
-    const [suggestedFee, setSuggestedFee] = useState<number>(0);
+ 
     const [breakdown, setBreakdown] = useState<any>(null);
-    const [suggestionStatus, setSuggestionStatus] = useState<string>('');
     const [fetchingSuggestion, setFetchingSuggestion] = useState(false);
 
     // Danh sách quy tắc phí vận chuyển; chọn 1 bản ghi thì mới nổi bật "Áp dụng giá này"
@@ -78,8 +79,7 @@ export const OrderDetailPage = () => {
     // Địa chỉ cửa hàng (hiển thị trong dialog xác nhận vận chuyển)
     const [shopAddress, setShopAddress] = useState<string>('');
 
-    // Địa chỉ nhận hàng: 'delivery' = giao hàng (hiện ô nhập), 'counter' = mua tại quầy
-    const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'counter'>('delivery');
+    // Địa chỉ nhận hàng
     const [editableShippingAddress, setEditableShippingAddress] = useState('');
     const [editableNote, setEditableNote] = useState('');
     const [editableCustomerEmail, setEditableCustomerEmail] = useState('');
@@ -108,6 +108,11 @@ export const OrderDetailPage = () => {
         bankCode: string;
         bankName?: string | null;
     } | null>(null);
+ 
+    const [refundTxId, setRefundTxId] = useState('');
+    const [adminEvidenceUrls, setAdminEvidenceUrls] = useState<string[]>(['']);
+    const [isUploading, setIsUploading] = useState(false);
+    const [vietQRBanks, setVietQRBanks] = useState<VietQRBank[]>([]);
 
     const quickRejectReasons = [
         "Sản phẩm không còn nguyên vẹn/đã qua sử dụng",
@@ -138,7 +143,6 @@ export const OrderDetailPage = () => {
         const addr = (order.shippingAddress || '').trim();
         const isCounterByAddress = /mua\s*(tại\s*quầy|trực\s*tiếp\s*tại\s*quầy)/i.test(addr) || addr === '';
         const isCounter = isOffline || isCounterByAddress;
-        setDeliveryMode(isCounter ? 'counter' : 'delivery');
         setEditableShippingAddress(isCounter ? 'mua tại quầy' : addr);
         setEditableNote(order.notes ?? '');
         setEditableCustomerEmail(isCounter ? '' : (order.guestEmail ?? order.user?.email ?? ''));
@@ -187,6 +191,7 @@ export const OrderDetailPage = () => {
             .finally(() => setLoadingRefundHistory(false));
     }, [openCancelDialog, id]);
 
+
     useEffect(() => {
         const fetchSuggestion = async () => {
             if (distance > 0) {
@@ -194,21 +199,16 @@ export const OrderDetailPage = () => {
                 try {
                     const response = await getShippingFeeSuggestion(distance, 0, order?.subtotal || 0, weight);
                     if (response.success && response.data) {
-                        setSuggestedFee(response.data.amount || 0);
-                        setSuggestionStatus(response.data.status);
                         setBreakdown({
                             feePerKm: response.data.feePerKm || 0,
                             overWeightFee: response.data.overWeightFee || 0,
                             baseWeight: response.data.baseWeight || 0
                         });
                     } else {
-                        setSuggestedFee(0);
-                        setSuggestionStatus('ERROR');
                         setBreakdown(null);
                     }
                 } catch (error) {
                     console.error("Error fetching suggestion:", error);
-                    setSuggestedFee(0);
                     setBreakdown(null);
                 } finally {
                     setFetchingSuggestion(false);
@@ -217,7 +217,7 @@ export const OrderDetailPage = () => {
         };
         fetchSuggestion();
     }, [distance, weight, order]);
-
+ 
     useEffect(() => {
         if (order?.status === 'PENDING') {
             getShippingRules().then((res) => {
@@ -236,6 +236,30 @@ export const OrderDetailPage = () => {
         let fee = distance * feePerKm;
         if (weight > baseWeight) fee += (weight - baseWeight) * overWeightFee;
         return Math.max(Math.round(fee), minFee);
+    };
+
+    useEffect(() => {
+        getVietQRBanks().then(setVietQRBanks).catch(() => setVietQRBanks([]));
+    }, []);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            const urls = await uploadImagesToCloudinary(files, `refunds/${order?.orderCode || 'evidence'}`);
+            // Add new URLs to the existing list, filtering out empty ones
+            const currentUrls = adminEvidenceUrls.filter(u => u.trim() !== '');
+            // Append new urls and keep one empty field for manual input if needed
+            setAdminEvidenceUrls([...currentUrls, ...urls, '']); 
+            toast.success(`Đã tải lên ${urls.length} ảnh thành công.`);
+        } catch (error: any) {
+            toast.error(error.message || "Lỗi khi tải ảnh lên.");
+        } finally {
+            setIsUploading(false);
+            if (e.target) e.target.value = ''; // Reset input
+        }
     };
 
     const fetchOrder = async (orderId: string) => {
@@ -319,6 +343,11 @@ export const OrderDetailPage = () => {
             return null;
         }
         switch (currentStatus) {
+            case 'CONFIRMED': {
+                const isCOD = order?.payments?.[0]?.paymentMethod === 'CASH';
+                if (isCOD) return { status: 'PROCESSING', label: 'Bắt đầu đóng gói', color: '#16A34A', icon: <LocalShippingIcon /> };
+                return null;
+            }
             case 'PAID': return { status: 'PROCESSING', label: 'Bắt đầu đóng gói', color: '#16A34A', icon: <LocalShippingIcon /> };
             case 'PROCESSING': return { status: 'DELIVERING', label: 'Bắt đầu giao hàng', color: '#1064ad', icon: <LocalShippingIcon /> };
             case 'DELIVERING': return { status: 'DELIVERED', label: 'Xác nhận Đã giao thành công', color: '#118D57', icon: <CheckCircleOutlineIcon /> };
@@ -429,7 +458,8 @@ export const OrderDetailPage = () => {
                 adminNote: cancelReason.trim() || undefined,
             });
             if (res.success) {
-                toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
+                const msg = order.latestRefundStatus === 'PENDING' ? "Đã từ chối yêu cầu hoàn tiền." : "Đã hủy duyệt yêu cầu hoàn tiền.";
+                toast.success(msg);
                 setOpenCancelDialog(false);
                 setCancelReason('');
                 fetchOrder(order.id);
@@ -1490,12 +1520,13 @@ export const OrderDetailPage = () => {
                                             disabled={
                                                 updating
                                                 || (
-                                                    // Đơn ONLINE ở trạng thái CONFIRMED nhưng payment chính chưa COMPLETED → không cho "Bắt đầu đóng gói"
+                                                    // Đơn ONLINE ở trạng thái CONFIRMED nhưng payment chính chưa COMPLETED → không cho "Bắt đầu đóng gói" (ngoại trừ COD)
                                                     !isCounterOrder
                                                     && order.orderType === 'ONLINE'
                                                     && order.status === 'CONFIRMED'
                                                     && order.payments?.[0]
                                                     && order.payments[0].status !== 'COMPLETED'
+                                                    && order.payments[0].paymentMethod !== 'CASH'
                                                 )
                                             }
                                             sx={{
@@ -1511,7 +1542,7 @@ export const OrderDetailPage = () => {
                                             {updating ? 'Đang xử lý...' : getNextAction(order.status)?.label}
                                         </Button>
                                     )}
-                                    {/* Nút hủy đơn cho PENDING và CONFIRMED */}
+                                    {/* Nút hủy đơn: chỉ cho đơn CHƯA thanh toán (PENDING, CONFIRMED) */}
                                     {['PENDING', 'CONFIRMED'].includes(order.status) && (
                                         <Button
                                             fullWidth
@@ -1533,9 +1564,8 @@ export const OrderDetailPage = () => {
                                         </Button>
                                     )}
 
-                                    {/* Nút yêu cầu hoàn tiền: đơn ONLINE, đang PAID hoặc PROCESSING (backend sẽ kiểm tra đã thanh toán) */}
-                                    {order.orderType === 'ONLINE'
-                                        && ['PAID', 'PROCESSING'].includes(order.status) && (
+                                    {/* Nút hủy đơn & hoàn tiền: đơn ĐÃ thanh toán (PAID, PROCESSING) */}
+                                    {['PAID', 'PROCESSING'].includes(order.status) && (
                                         <Badge
                                             color="error"
                                             variant="dot"
@@ -1559,7 +1589,7 @@ export const OrderDetailPage = () => {
                                                     '&:hover': { borderWidth: '2px' }
                                                 }}
                                             >
-                                                Yêu cầu hoàn tiền
+                                                Hủy đơn & yêu cầu hoàn tiền
                                             </Button>
                                         </Badge>
                                     )}
@@ -1812,17 +1842,17 @@ export const OrderDetailPage = () => {
             {/* Cancel Order Dialog - reuse layout of Hủy đơn / Yêu cầu hoàn tiền */}
             <Dialog
                 open={openCancelDialog}
-                onClose={() => { setOpenCancelDialog(false); setCancelReason(''); }}
+                onClose={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }}
                 PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            <ReplayIcon sx={{ fontSize: '1.6rem' }} />
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            {order?.latestRefundStatus === 'APPROVED' ? <CheckCircleOutlineIcon sx={{ fontSize: '1.6rem' }} /> : <ReplayIcon sx={{ fontSize: '1.6rem' }} />}
                         </Box>
                         <Box>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
-                                Hủy đơn / Yêu cầu hoàn tiền
+                                {order?.latestRefundStatus === 'APPROVED' ? 'Xác nhận Chuyển tiền' : 'Hủy đơn / Yêu cầu hoàn tiền'}
                             </Typography>
                             {order && (
                                 <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', mt: 0.3 }}>
@@ -1831,16 +1861,13 @@ export const OrderDetailPage = () => {
                             )}
                         </Box>
                     </Stack>
-                    <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                    <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
 
                 <DialogContent sx={{ px: 4, py: 2 }}>
-                    <Typography sx={{ mb: 2, fontSize: '0.9rem', color: '#637381' }}>
-                        Đơn hàng có thể cần hủy / hoàn tiền. Vui lòng ghi rõ lý do để hệ thống ghi nhận và thông báo cho khách hàng.
-                    </Typography>
-
+                    {/* 1. Refund History */}
                     <Box sx={{ mb: 2 }}>
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
                             Lịch sử yêu cầu hoàn tiền
@@ -1858,8 +1885,8 @@ export const OrderDetailPage = () => {
                                             p: 1.5,
                                             borderRadius: '12px',
                                             border: '1px solid',
-                                            borderColor: r.status === 'PENDING' ? '#FED7AA' : r.status === 'APPROVED' ? '#BBF7D0' : '#FECACA',
-                                            bgcolor: r.status === 'PENDING' ? '#FFF7ED' : r.status === 'APPROVED' ? '#F0FDF4' : '#FEF2F2',
+                                            borderColor: r.status === 'PENDING' ? '#FED7AA' : r.status === 'APPROVED' ? '#BBF7D0' : r.status === 'REFUNDED' ? '#E5E8EB' : '#FECACA',
+                                            bgcolor: r.status === 'PENDING' ? '#FFF7ED' : r.status === 'APPROVED' ? '#F0FDF4' : r.status === 'REFUNDED' ? '#F8FAFC' : '#FEF2F2',
                                         }}
                                     >
                                         <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={0.5}>
@@ -1873,11 +1900,11 @@ export const OrderDetailPage = () => {
                                                     px: 1,
                                                     py: 0.25,
                                                     borderRadius: '8px',
-                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : '#FEE2E2',
-                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : '#991B1B',
+                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : r.status === 'REFUNDED' ? '#E2E8F0' : '#FEE2E2',
+                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : r.status === 'REFUNDED' ? '#475569' : '#991B1B',
                                                 }}
                                             >
-                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : r.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Từ chối'}
                                             </Typography>
                                         </Stack>
                                         {r.customerReason && (
@@ -1893,6 +1920,19 @@ export const OrderDetailPage = () => {
                                                 <Typography sx={{ fontSize: '0.8rem', color: '#1C252E', mt: 0.5 }}>
                                                     {r.adminDecisionNote}
                                                 </Typography>
+                                                {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                    <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
+                                                        {r.adminEvidenceUrls.map((url, i) => (
+                                                            <Avatar
+                                                                key={i}
+                                                                src={url}
+                                                                variant="rounded"
+                                                                sx={{ width: 48, height: 48, borderRadius: '8px', border: '1px solid #E5E8EB', cursor: 'pointer' }}
+                                                                onClick={() => window.open(url, '_blank')}
+                                                            />
+                                                        ))}
+                                                    </Stack>
+                                                )}
                                             </Box>
                                         )}
                                     </Box>
@@ -1901,6 +1941,7 @@ export const OrderDetailPage = () => {
                         )}
                     </Box>
 
+                    {/* 2. Customer Request */}
                     {order?.cancelReason && (
                         <Box sx={{ mb: 2 }}>
                             <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
@@ -1921,29 +1962,66 @@ export const OrderDetailPage = () => {
                         </Box>
                     )}
 
+                    {/* 3. Bank Info + VietQR */}
                     <Box sx={{ mb: 2 }}>
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
                             Thông tin ngân hàng khách cung cấp
                         </Typography>
                         {customerBankInfo ? (
-                            <Box
-                                sx={{
-                                    p: 1.5,
-                                    bgcolor: '#EFF6FF',
-                                    border: '1px solid #BFDBFE',
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <Box
+                                    sx={{
+                                        flex: 1,
+                                        p: 1.5,
+                                        bgcolor: '#EFF6FF',
+                                        border: '1px solid #BFDBFE',
+                                        borderRadius: '12px',
+                                    }}
+                                >
+                                    <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                        Ngân hàng: <strong>{customerBankInfo.bankName || customerBankInfo.bankCode}</strong> ({customerBankInfo.bankCode})
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                        Số tài khoản: <strong>{customerBankInfo.accountNumber}</strong>
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '0.85rem' }}>
+                                        Chủ TK: <strong>{customerBankInfo.accountHolderName}</strong>
+                                    </Typography>
+                                </Box>
+                                <Box sx={{
+                                    width: { xs: '100%', sm: 120 },
+                                    height: 120,
+                                    p: 1,
+                                    bgcolor: 'white',
                                     borderRadius: '12px',
-                                }}
-                            >
-                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                                    Ngân hàng: <strong>{customerBankInfo.bankName}</strong> ({customerBankInfo.bankCode})
-                                </Typography>
-                                <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                                    Số tài khoản: <strong>{customerBankInfo.accountNumber}</strong>
-                                </Typography>
-                                <Typography sx={{ fontSize: '0.85rem' }}>
-                                    Chủ TK: <strong>{customerBankInfo.accountHolderName}</strong>
-                                </Typography>
-                            </Box>
+                                    border: '1px solid #E5E8EB',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    {(() => {
+                                        const found = vietQRBanks.find(b =>
+                                            b.shortName?.toLowerCase() === customerBankInfo.bankCode.toLowerCase() ||
+                                            b.code?.toLowerCase() === customerBankInfo.bankCode.toLowerCase()
+                                        );
+                                        const bin = found?.bin || "";
+                                        const qrUrl = bin
+                                            ? `https://img.vietqr.io/image/${bin}-${customerBankInfo.accountNumber}-compact2.png?accountName=${encodeURIComponent(customerBankInfo.accountHolderName)}&amount=${order?.finalAmount || 0}`
+                                            : null;
+
+                                        return qrUrl ? (
+                                            <img
+                                                src={qrUrl}
+                                                alt="VietQR"
+                                                style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' }}
+                                                onClick={() => window.open(qrUrl, '_blank')}
+                                            />
+                                        ) : (
+                                            <Typography sx={{ fontSize: '0.6rem', color: '#919EAB', textAlign: 'center' }}>Không tạo được QR</Typography>
+                                        );
+                                    })()}
+                                </Box>
+                            </Stack>
                         ) : (
                             <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>
                                 Không tìm thấy thông tin ngân hàng cho khách hàng này.
@@ -1951,6 +2029,111 @@ export const OrderDetailPage = () => {
                         )}
                     </Box>
 
+                    {/* 4. Refund Tx and Evidence (If refund requested) */}
+                    {order?.latestRefundId != null && (
+                        <>
+                            <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
+
+                            <Box sx={{ mb: 2 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                    Mã giao dịch hoàn tiền (nếu đã thực hiện)
+                                </Typography>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={refundTxId}
+                                    onChange={(e) => setRefundTxId(e.target.value)}
+                                    placeholder="Nhập mã giao dịch chuyển khoản..."
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                                    }}
+                                />
+                            </Box>
+
+                            <Box sx={{ mb: 2 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                    Bằng chứng hoàn tiền (Link ảnh / Chứng từ)
+                                </Typography>
+                                <Stack spacing={1.5}>
+                                    {adminEvidenceUrls.map((url, index) => (
+                                        <Box key={index}>
+                                            <Stack direction="row" spacing={1} alignItems="flex-start">
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    value={url}
+                                                    onChange={(e) => {
+                                                        const newUrls = [...adminEvidenceUrls];
+                                                        newUrls[index] = e.target.value;
+                                                        setAdminEvidenceUrls(newUrls);
+                                                    }}
+                                                    placeholder="Dán link ảnh bằng chứng: https://..."
+                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                                />
+                                                {adminEvidenceUrls.length > 1 && (
+                                                    <IconButton
+                                                        onClick={() => setAdminEvidenceUrls(adminEvidenceUrls.filter((_, i) => i !== index))}
+                                                        sx={{ mt: 0.5, bgcolor: 'rgba(255, 86, 48, 0.08)', color: '#FF5630', '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.16)' } }}
+                                                    >
+                                                        <CloseIcon sx={{ fontSize: '1.2rem' }} />
+                                                    </IconButton>
+                                                )}
+                                            </Stack>
+                                            {url.trim() && (url.startsWith('http') || url.startsWith('https')) && (
+                                                <Box sx={{ mt: 1, ml: 1 }}>
+                                                    <Avatar 
+                                                        src={url} 
+                                                        variant="rounded" 
+                                                        sx={{ width: 80, height: 80, borderRadius: '8px', border: '1px solid #E5E8EB', mb: 1 }}
+                                                        imgProps={{ onError: (e) => (e.currentTarget.style.display = 'none') }}
+                                                    />
+                                                </Box>
+                                            )}
+                                        </Box>
+                                    ))}
+                                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => setAdminEvidenceUrls([...adminEvidenceUrls, ''])}
+                                            sx={{ textTransform: 'none', borderRadius: '10px', height: 36 }}
+                                        >
+                                            + Thêm link
+                                        </Button>
+
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            id="admin-refund-upload"
+                                            onChange={handleFileUpload}
+                                        />
+                                        <label htmlFor="admin-refund-upload">
+                                            <Button
+                                                component="span"
+                                                variant="contained"
+                                                size="small"
+                                                startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <CloudUploadIcon />}
+                                                disabled={isUploading}
+                                                sx={{ 
+                                                    textTransform: 'none', 
+                                                    borderRadius: '10px', 
+                                                    height: 36,
+                                                    bgcolor: '#1C252E', 
+                                                    '&:hover': { bgcolor: '#454F5B' } 
+                                                }}
+                                            >
+                                                {isUploading ? 'Đang tải...' : 'Tải từ máy'}
+                                            </Button>
+                                        </label>
+                                    </Stack>
+                                </Stack>
+                            </Box>
+                        </>
+                    )}
+
+                    {/* 5. Internal note */}
                     <Box sx={{ mb: 2 }}>
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
                             Ghi chú nội bộ cho việc hủy / hoàn tiền
@@ -1958,10 +2141,10 @@ export const OrderDetailPage = () => {
                         <TextField
                             fullWidth
                             multiline
-                            rows={3}
+                            rows={2}
                             value={cancelReason}
                             onChange={(e) => setCancelReason(e.target.value)}
-                            placeholder="Ví dụ: Hủy theo yêu cầu khách, đã xác nhận sẽ hoàn tiền trong 3 ngày làm việc..."
+                            placeholder="Ví dụ: Hủy theo yêu cầu khách, đã xác nhận sẽ hoàn tiền..."
                             sx={{
                                 '& .MuiOutlinedInput-root': { borderRadius: '16px', fontSize: '0.85rem' }
                             }}
@@ -1981,8 +2164,9 @@ export const OrderDetailPage = () => {
 
                     <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8' }}>
                         <Typography sx={{ fontSize: '0.8rem', color: '#637381' }}>
-                            Thao tác này sẽ cập nhật đơn hàng sang trạng thái <strong>ĐÃ HỦY</strong>. Nhân viên cần thực hiện hoàn tiền
-                            cho khách (nếu có) theo đúng quy trình.
+                            {order?.latestRefundStatus === 'APPROVED'
+                                ? 'Xác nhận rằng nhân viên đã thực hiện chuyển khoản số tiền hoàn lại cho khách hàng thành công. Trạng thái yêu cầu sẽ chuyển thành ĐÃ HOÀN TIỀN.'
+                                : 'Thao tác này sẽ cập nhật đơn hàng sang trạng thái ĐÃ HỦY. Nhân viên cần thực hiện hoàn tiền cho khách (nếu có) theo đúng quy trình.'}
                         </Typography>
                     </Box>
                 </DialogContent>
@@ -1991,7 +2175,7 @@ export const OrderDetailPage = () => {
                     <Button
                         fullWidth
                         variant="outlined"
-                        onClick={() => { setOpenCancelDialog(false); setCancelReason(''); }}
+                        onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }}
                         sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
                     >
                         Đóng
@@ -2005,25 +2189,60 @@ export const OrderDetailPage = () => {
                             disabled={updating}
                             sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
                         >
-                            Hủy duyệt
+                            {order?.latestRefundStatus === 'PENDING' ? 'Từ chối (Reject)' : 'Hủy duyệt'}
                         </Button>
                     )}
                     <Button
                         fullWidth
                         variant="contained"
-                        onClick={handleCancelOrder}
-                        disabled={updating || cancelReason.length < 5}
+                        onClick={async () => {
+                            if (order?.latestRefundId != null) {
+                                setUpdating(true);
+                                try {
+                                    const response = await handleOrderRefundRequest(order.id, order.latestRefundId, {
+                                        approved: true,
+                                        adminNote: cancelReason.trim() || undefined,
+                                        refundTransactionId: refundTxId.trim() || undefined,
+                                        adminEvidenceUrls: adminEvidenceUrls.filter(u => u.trim() !== ''),
+                                    });
+                                    if (response.success) {
+                                        const msg = order.latestRefundStatus === 'APPROVED' ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt yêu cầu hoàn tiền cho đơn này.";
+                                        toast.success(msg);
+                                        setOpenCancelDialog(false);
+                                        setCancelReason('');
+                                        setRefundTxId('');
+                                        setAdminEvidenceUrls(['']);
+                                        fetchOrder(order.id);
+                                    } else {
+                                        toast.error(response.message || "Không thể xử lý yêu cầu hoàn tiền.");
+                                    }
+                                } catch (error: any) {
+                                    toast.error(error.response?.data?.message || "Lỗi hệ thống khi xử lý yêu cầu hoàn tiền.");
+                                } finally {
+                                    setUpdating(false);
+                                }
+                            } else {
+                                handleCancelOrder();
+                            }
+                        }}
+                        disabled={updating || (order?.latestRefundId == null && cancelReason.length < 5)}
                         sx={{
                             py: 1.5,
                             borderRadius: '12px',
                             fontWeight: 800,
-                            bgcolor: '#FF5630',
-                            boxShadow: '0 8px 16px rgba(255, 86, 48, 0.24)',
-                            '&:hover': { bgcolor: '#B7211F' },
+                            bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FF5630',
+                            boxShadow: `0 8px 16px ${order?.latestRefundStatus === 'APPROVED' ? 'rgba(0, 171, 85, 0.24)' : 'rgba(255, 86, 48, 0.24)'}`,
+                            '&:hover': { bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#007B55' : '#B7211F' },
                             '&:disabled': { bgcolor: '#E5E8EB' }
                         }}
                     >
-                        {updating ? 'Đang xử lý...' : 'Xác nhận hủy đơn'}
+                        {updating ? 'Đang xử lý...' : (
+                            order?.latestRefundStatus === 'APPROVED' 
+                                ? 'Xác nhận Đã hoàn tiền' 
+                                : order?.latestRefundId != null 
+                                    ? 'Duyệt Hoàn tiền & Hủy đơn' 
+                                    : 'Xác nhận Hủy đơn hàng'
+                        )}
                     </Button>
                 </DialogActions>
             </Dialog>

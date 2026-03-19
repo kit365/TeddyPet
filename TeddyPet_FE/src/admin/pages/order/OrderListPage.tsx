@@ -1,16 +1,15 @@
-﻿import { ListHeader } from "../../components/ui/ListHeader";
+import { ListHeader } from "../../components/ui/ListHeader";
 import { OrderList } from "./sections/OrderList";
 import { prefixAdmin } from "../../constants/routes";
 import { useTranslation } from "react-i18next";
 import { Button, Stack } from "@mui/material";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import FileUploadIcon from "@mui/icons-material/FileUpload";
-import { exportOrdersToExcel, importOrdersFromExcel } from "../../api/order.api";
+import { exportOrdersToExcel, importOrdersFromExcel, downloadOrderTemplate } from "../../api/order.api";
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { ImportExcelModal } from "./components/ImportExcelModal";
 import AddIcon from "@mui/icons-material/Add";
 import { Link } from "react-router-dom";
+import { ExportImport } from "../../components/ui/ExportImport";
 
 export const OrderListPage = () => {
     const { t } = useTranslation();
@@ -28,6 +27,15 @@ export const OrderListPage = () => {
             toast.error("Không thể xuất file đơn hàng");
         } finally {
             setExporting(false);
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            await downloadOrderTemplate();
+            toast.success("Tải template đơn hàng thành công!");
+        } catch (error) {
+            toast.error("Không thể tải template đơn hàng");
         }
     };
 
@@ -82,43 +90,12 @@ export const OrderListPage = () => {
                         >
                             Tạo đơn mới
                         </Button>
-                        <Button
-                            variant="outlined"
-                            startIcon={<FileUploadIcon />}
-                            onClick={() => setIsImportModalOpen(true)}
-                            sx={{
-                                borderRadius: "10px",
-                                textTransform: "none",
-                                fontWeight: 700,
-                                fontSize: "0.8125rem",
-                                px: 3,
-                                py: 1.2,
-                                color: "#1C252E",
-                                borderColor: "#1C252E",
-                                "&:hover": { bgcolor: "rgba(28, 37, 46, 0.05)", borderColor: "#454F5B" }
-                            }}
-                        >
-                            Nhập Excel
-                        </Button>
-                        <Button
-                            variant="contained"
-                            startIcon={<FileDownloadIcon />}
-                            onClick={handleExport}
-                            disabled={exporting}
-                            sx={{
-                                bgcolor: "#1C252E",
-                                borderRadius: "10px",
-                                textTransform: "none",
-                                fontWeight: 700,
-                                fontSize: "0.8125rem",
-                                px: 3,
-                                py: 1.2,
-                                boxShadow: "0 8px 16px rgba(28, 37, 46, 0.24)",
-                                "&:hover": { bgcolor: "#454F5B" }
-                            }}
-                        >
-                            {exporting ? "Đang xuất..." : "Xuất Excel"}
-                        </Button>
+                        <ExportImport
+                            onExport={handleExport}
+                            onImport={() => setIsImportModalOpen(true)}
+                            onDownloadTemplate={handleDownloadTemplate}
+                            isExporting={exporting}
+                        />
                     </Stack>
                 }
             />

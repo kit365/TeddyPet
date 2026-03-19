@@ -40,12 +40,11 @@ export const ProductCategoryList = () => {
     const filterBtnRef = useRef<HTMLButtonElement>(null);
     const [filterOpen, setFilterOpen] = useState(false);
 
-    const childCategories = useMemo(
+    const allCategories = useMemo(
         () =>
             (categories as any[]).filter(
                 (c) =>
                     c != null &&
-                    c.parentId != null &&
                     c.categoryId != null &&
                     typeof c.name === 'string' &&
                     c.name.trim() !== ''
@@ -55,22 +54,22 @@ export const ProductCategoryList = () => {
 
     const parentOptions = useMemo(() => {
         const map = new Map<number, string>();
-        childCategories.forEach((c) => {
+        allCategories.forEach((c) => {
             if (c.parentId != null && c.parentName != null && !map.has(c.parentId)) {
                 map.set(c.parentId, c.parentName);
             }
         });
         return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-    }, [childCategories]);
+    }, [allCategories]);
 
     const rows = useMemo(() => {
-        return childCategories.filter((c) => {
+        return allCategories.filter((c) => {
             const matchesParent = parentFilter === 'all' || c.parentId === parentFilter;
             const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = statusFilter.length === 0 || statusFilter.includes(c.isActive ? 'active' : 'inactive');
             return matchesParent && matchesSearch && matchesStatus;
         });
-    }, [childCategories, parentFilter, searchQuery, statusFilter]);
+    }, [allCategories, parentFilter, searchQuery, statusFilter]);
 
     const isFiltered = parentFilter !== 'all' || searchQuery !== '' || statusFilter.length > 0;
 

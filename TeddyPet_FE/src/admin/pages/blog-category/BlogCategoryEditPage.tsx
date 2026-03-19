@@ -1,8 +1,8 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material";
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material";
 import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { Title } from "../../components/ui/Title";
 import { Tiptap } from "../../components/layouts/titap/Tiptap";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
 import { useBlogCategoryDetail, useNestedBlogCategories, useUpdateBlogCategory } from "./hooks/useBlogCategory";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,12 +14,13 @@ import { prefixAdmin } from "../../constants/routes";
 import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export const BlogCategoryEditPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
+    const navigate = useNavigate();
     const [expandedDetail, setExpandedDetail] = useState(true);
 
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
@@ -48,9 +49,11 @@ export const BlogCategoryEditPage = () => {
         },
     });
 
+    const isInitializedRef = useRef(false);
+
     // 3. Đổ dữ liệu vào Form khi có dữ liệu từ Detail API
     useEffect(() => {
-        if (detailRes?.success && detailRes?.data) {
+        if (detailRes?.success && detailRes?.data && !isInitializedRef.current) {
             const detail = detailRes.data;
             reset({
                 name: detail.name || "",
@@ -60,6 +63,7 @@ export const BlogCategoryEditPage = () => {
                 isActive: detail.isActive,
                 imageUrl: detail.imageUrl || "",
             });
+            isInitializedRef.current = true;
         }
     }, [detailRes, reset]);
 
@@ -112,6 +116,12 @@ export const BlogCategoryEditPage = () => {
             <ThemeProvider theme={localTheme}>
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
+                        <Box>
+                            <Box gap="16px" sx={{ display: "flex", alignItems: "center" }}>
+                                <SwitchButton control={control} name="isActive" />
+                            </Box>
+                        </Box>
+
                         <CollapsibleCard
                             title={t("admin.common.details")}
                             subheader={t("admin.blog_category.fields.description_placeholder")}
@@ -156,33 +166,72 @@ export const BlogCategoryEditPage = () => {
                                 />
                             </Stack>
                         </CollapsibleCard>
-
-                        <Box gap="24px" sx={{ display: "flex", alignItems: "center" }}>
-                            <SwitchButton control={control} name="isActive" />
-                            <Button
-                                type="submit"
-                                disabled={isUpdating}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: "3rem",
-                                    minWidth: "4rem",
-                                    fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    padding: "8px 16px",
-                                    borderRadius: "8px",
-                                    textTransform: "none",
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                        background: "#454F5B",
-                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                    }
-                                }}
-                                variant="contained"
-                            >
-                                {isUpdating ? t("admin.common.processing") : t("admin.blog_category.title.edit")}
-                            </Button>
-                        </Box>
                     </Stack>
+
+                    <div className="h-[120px]" />
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/blog-category/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isUpdating}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isUpdating ? t("admin.common.processing") : t("admin.blog_category.title.edit")}
+                        </Button>
+                    </Box>
                 </form>
             </ThemeProvider>
         </>

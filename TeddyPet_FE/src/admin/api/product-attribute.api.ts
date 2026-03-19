@@ -63,3 +63,34 @@ export const getMeasurementUnits = async (): Promise<ApiResponse<any[]>> => {
     return response.data;
 };
 
+// ─── Excel Import/Export ─────────────────────────────────────────────────────
+
+export const exportProductAttributesExcel = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/export`, {
+        ...withAuth(),
+        responseType: 'blob',
+    } as any);
+    return response.data;
+};
+
+export const downloadProductAttributesTemplate = async (): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/excel/template`, {
+        ...withAuth(),
+        responseType: 'blob',
+    } as any);
+    return response.data;
+};
+
+export const importProductAttributesExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL}/excel/import`, formData, {
+        ...withAuth(),
+        headers: {
+            ...(withAuth().headers || {}),
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+

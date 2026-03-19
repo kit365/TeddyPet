@@ -68,6 +68,15 @@ public class BankInformationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(data));
     }
 
+    @PostMapping("/order/code/{orderCode}")
+    @Operation(summary = "Khách vãng lai nhập bank info cho đơn hàng (để hoàn tiền)")
+    public ResponseEntity<ApiResponse<BankInformationResponse>> createGuestBankForOrder(
+            @PathVariable String orderCode,
+            @Valid @RequestBody UpsertBankInformationRequest request) {
+        BankInformationResponse data = bankInformationService.createGuestBankForOrderCode(orderCode, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(data));
+    }
+
     @GetMapping("/booking/code/{bookingCode}")
     @Operation(summary = "Lấy bank info theo booking code (nếu có)")
     public ResponseEntity<ApiResponse<BankInformationResponse>> getBankForBooking(

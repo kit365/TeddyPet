@@ -10,83 +10,85 @@ import java.util.function.BiFunction;
 
 /**
  * Enum định nghĩa CẤU HÌNH từng cột Excel cho tính năng Import/Export Sản phẩm.
- *
- * Lợi ích:
- * - Thêm/xóa/di chuyển cột chỉ cần sửa Enum này, không động vào Service
- * - isReadOnly tự động điều khiển việc khóa sheet, tô màu header
- * - dataExtractor giúp fillDataRow() không cần if-else cho từng cột
  */
 @Getter
 @RequiredArgsConstructor
 public enum ProductExcelColumn {
 
-        // ─── CỘT SẢN PHẨM (0-7): Người dùng có thể chỉnh sửa ───────────────────
-
         PRODUCT_ID(0, "ID Sản Phẩm", false,
                         (p, v) -> p.productId() != null ? String.valueOf(p.productId()) : ""),
 
-        // Slug KHÔNG có trong template - BE tự generate từ tên sản phẩm
+        /** Chỉ hiển thị khi xuất; khóa sửa; import không đọc cột này — slug do hệ thống sinh */
+        SLUG(1, "[CHỈ XEM] Slug (hệ thống)", true,
+                        (p, v) -> p.slug() != null ? p.slug() : ""),
 
-        NAME(1, "Tên Sản Phẩm *", false,
+        NAME(2, "Tên Sản Phẩm *", false,
                         (p, v) -> p.name() != null ? p.name() : ""),
 
-        BARCODE(2, "Barcode", false,
-                        (p, v) -> ""), // Không có trong ProductResponse - để trống khi export
+        BARCODE(3, "Barcode", false,
+                        (p, v) -> ""),
 
-        STATUS(3, "Trạng Thái (mặc định: DRAFT)", false,
+        STATUS(4, "Trạng Thái (mặc định: DRAFT)", false,
                         (p, v) -> p.status() != null ? p.status().name() : ""),
 
-        DESCRIPTION(4, "Mô Tả", false,
-                        (p, v) -> ""), // Không có trong ProductResponse - để trống khi export
+        DESCRIPTION(5, "Mô Tả", false,
+                        (p, v) -> ""),
 
-        BRAND(5, "Tên Thương Hiệu", false,
+        BRAND(6, "Tên Thương Hiệu", false,
                         (p, v) -> p.brand() != null ? p.brand().name() : ""),
 
-        CATEGORIES(6, "Tên Danh Mục (cách bởi dấu phẩy)", false,
+        CATEGORIES(7, "Tên Danh Mục (cách bởi dấu phẩy)", false,
                         (p, v) -> p.categories() != null
                                         ? String.join(", ", p.categories().stream().map(c -> c.name()).toList())
                                         : ""),
 
-        PET_TYPES(7, "Loại Thú Cưng (DOG/CAT/OTHER, cách nhau dấu ,)", false,
-                        (p, v) -> ""), // Không có trong ProductResponse - để trống khi export
+        TAGS(8, "Tags (cách bởi dấu phẩy)", false,
+                        (p, v) -> p.tags() != null
+                                        ? String.join(", ", p.tags().stream().map(t -> t.name()).toList())
+                                        : ""),
 
-        // ─── CỘT BIẾN THỂ (8-15): CHỈ XEM - không được import ──────────────────
+        PET_TYPES(9, "Loại Thú Cưng (DOG/CAT/OTHER, cách nhau dấu ,)", false,
+                        (p, v) -> ""),
 
-        VARIANT_ID(8, "[CHỈ XEM] ID Biến ThỂ", true,
+        VARIANT_ID(10, "[CHỈ XEM] ID Biến Thể", true,
                         (p, v) -> v != null && v.variantId() != null ? String.valueOf(v.variantId()) : ""),
 
-        VARIANT_NAME(9, "[CHỈ XEM] Tên Biến ThỂ", true,
+        VARIANT_NAME(11, "Tên Biến Thể", false,
                         (p, v) -> v != null && v.name() != null ? v.name() : ""),
 
-        VARIANT_ATTRIBUTES(10, "[CHỈ XEM] Thuộc Tính (Kích cỡ:S, Màu:Đỏ)", true,
+        VARIANT_ATTRIBUTES(12, "Thuộc Tính Biến Thể (Kích cỡ:S, Màu:Đỏ)", false,
                         (p, v) -> v != null && v.attributes() != null
                                         ? String.join(", ", v.attributes().stream()
                                                         .map(a -> a.attributeName() + ": " + a.value()).toList())
                                         : ""),
 
-        VARIANT_PRICE(11, "[CHỈ XEM] Giá Bán", true,
+        VARIANT_PRICE(13, "Giá Bán *", false,
                         (p, v) -> v != null && v.price() != null ? v.price().toPlainString() : ""),
 
-        VARIANT_SALE_PRICE(12, "[CHỈ XEM] Giá Khuyến Mãi", true,
+        VARIANT_SALE_PRICE(14, "Giá Khuyến Mãi", false,
                         (p, v) -> v != null && v.salePrice() != null ? v.salePrice().toPlainString() : ""),
 
-        VARIANT_STOCK(13, "[CHỈ XEM] Tồn Kho", true,
+        VARIANT_STOCK(15, "Tồn Kho *", false,
                         (p, v) -> v != null && v.stockQuantity() != null ? String.valueOf(v.stockQuantity()) : ""),
 
-        VARIANT_UNIT(14, "[CHỈ XEM] Đơn Vị", true,
+        VARIANT_UNIT(16, "Đơn Vị *", false,
                         (p, v) -> v != null && v.unit() != null ? v.unit().name() : ""),
 
-        VARIANT_WEIGHT(15, "[CHỈ XEM] Trọng Lượng (g)", true,
-                        (p, v) -> v != null && v.weight() != null ? String.valueOf(v.weight()) : "");
+        VARIANT_WEIGHT(17, "Trọng Lượng (g)", false,
+                        (p, v) -> v != null && v.weight() != null ? String.valueOf(v.weight()) : ""),
 
-        // ─── Fields ──────────────────────────────────────────────────────────────
+        PRODUCT_IMAGE_URLS(18, "Hình Ảnh SP (URL, cách bởi dấu phẩy)", false,
+                        (p, v) -> p.images() != null
+                                        ? String.join(", ", p.images().stream().map(i -> i.imageUrl()).toList())
+                                        : ""),
+
+        VARIANT_FEATURED_IMAGE_URL(19, "Hình Ảnh Biến Thể (URL)", false,
+                        (p, v) -> v != null && v.featuredImageUrl() != null ? v.featuredImageUrl() : "");
 
         private final int index;
         private final String header;
         private final boolean readOnly;
         private final BiFunction<ProductResponse, ProductVariantResponse, String> dataExtractor;
-
-        // ─── Static helpers ───────────────────────────────────────────────────────
 
         public static int firstReadOnlyIndex() {
                 return Arrays.stream(values())

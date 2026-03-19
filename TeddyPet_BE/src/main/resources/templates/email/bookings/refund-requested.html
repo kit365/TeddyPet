@@ -1,30 +1,50 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="UTF-8">
-  <title th:text="'Yêu cầu hoàn cọc đơn đặt lịch #' + ${bookingCode}"></title>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{email/fragments/head :: head(title='Yêu cầu hoàn cọc đã được ghi nhận')}">
+    <title>Yêu cầu hoàn cọc đã được ghi nhận</title>
 </head>
-<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-  <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #ff9800; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <h2 style="color: #ff9800; border-bottom: 2px solid #eee; padding-bottom: 10px;">Yêu cầu hoàn cọc đã được ghi nhận</h2>
-    <p style="color: #555; line-height: 1.6;">Xin chào,</p>
-    <p style="color: #555; line-height: 1.6;">Yêu cầu hủy đặt lịch và hoàn tiền cọc cho đơn <strong><span th:text="${bookingCode}"></span></strong> tại <strong><span th:text="${appName}">TeddyPet</span></strong> đã được ghi nhận thành công.</p>
 
-    <div th:if="${refundAmount != null}" style="background-color: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 16px; margin: 20px 0;">
-      <p style="margin: 0; color: #555; line-height: 1.6;">Số tiền hoàn dự kiến: <strong style="color: #e65100;" th:text="${refundAmount}"></strong></p>
-      <p style="margin: 8px 0 0; font-size: 0.85em; color: #888;">Nhân viên của chúng tôi sẽ xử lý yêu cầu và liên hệ với bạn trong thời gian sớm nhất.</p>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;" bgcolor="#f1f5f9">
+    <table class="email-outer" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9;" bgcolor="#f1f5f9">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table class="email-card" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 600px; width: 100%;" bgcolor="#ffffff">
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 16px 16px 0 0;">
+                            <div th:replace="~{email/fragments/header :: header}"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 40px 40px; background-color: #ffffff; line-height: 1.6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155;">
+                            <h2 style="color: #ff9800; font-size: 24px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">📋 Yêu cầu hoàn cọc đã được ghi nhận</h2>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Xin chào,</p>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Yêu cầu hủy đặt lịch và hoàn tiền cọc cho đơn <strong style="color: #334155;" th:text="${bookingCode}"></strong> tại <strong style="color: #4f46e5;" th:text="${appName}">TeddyPet</strong> đã được ghi nhận thành công.</p>
 
-    <p style="color: #555; line-height: 1.6;">Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ hotline để được hỗ trợ.</p>
+                            <!-- Refund amount info box -->
+                            <div th:if="${refundAmount != null}" style="background-color: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                                <p style="margin: 0; color: #334155; line-height: 1.6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Số tiền hoàn dự kiến: <strong style="color: #e65100;" th:text="${refundAmount}"></strong></p>
+                                <p style="margin: 8px 0 0; font-size: 13px; color: #64748b; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Nhân viên của chúng tôi sẽ xử lý yêu cầu và liên hệ với bạn trong thời gian sớm nhất.</p>
+                            </div>
 
-    <div style="text-align: center; margin: 30px 0;">
-      <a th:href="${detailUrl}" style="background-color: #ff9800; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Xem chi tiết đơn đặt lịch</a>
-    </div>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ hotline để được hỗ trợ.</p>
 
-    <div style="margin-top: 30px; font-size: 0.8em; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-      <p>Trân trọng,<br><strong th:text="${appName}">TeddyPet</strong> Team</p>
-      <p th:if="${hotline != null}">Hotline: <span th:text="${hotline}"></span></p>
-    </div>
-  </div>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a th:href="${detailUrl}" style="display: inline-block; padding: 16px 36px; background-color: #ff9800; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                    <span style="color: #ffffff;">Xem chi tiết đơn đặt lịch</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 0 0 16px 16px;">
+                            <div th:replace="~{email/fragments/footer :: footer}"></div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
+
 </html>

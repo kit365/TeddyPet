@@ -28,8 +28,11 @@ import {
 import { toast } from "react-toastify";
 import { useState, useEffect, useRef } from "react";
 import { CancelOrderModal } from "./sections/CancelOrderModal";
-import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice, createPaymentUrl } from "../../../api/order.api";
+import { RefundRequestModal } from "./sections/RefundRequestModal";
+import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice, createPaymentUrl, getOrderRefundRequests, createOrderRefundRequest } from "../../../api/order.api";
+import { createGuestBankInformationByOrderCode } from "../../../api/bank.api";
 import { ORDER_STATUS_MAP } from "../../../constants/status";
+import { OrderRefundResponse } from "../../../types/order.type";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // Component Stepper Siêu Cấp
@@ -127,6 +130,8 @@ export const OrderDetailPage = () => {
     const [isCancelling, setIsCancelling] = useState(false);
 
     const [showReturnModal, setShowReturnModal] = useState(false);
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
     const [returnReason, setReturnReason] = useState("");
     const [returnEvidence, setReturnEvidence] = useState(""); // Comma separated URLs
     const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
@@ -141,13 +146,13 @@ export const OrderDetailPage = () => {
 
     const [isCustomReturnReason, setIsCustomReturnReason] = useState(false);
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-    const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const hasToastedRef = useRef(false);
 
     // Bộ đếm ngược cho thanh toán
     const [timeLeft, setTimeLeft] = useState<string>("");
+    const [refundHistory, setRefundHistory] = useState<OrderRefundResponse[]>([]);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -161,24 +166,19 @@ export const OrderDetailPage = () => {
             toast.info("Bạn đã hủy thanh toán. Đơn hàng vẫn đang chờ bạn!");
             navigate(location.pathname, { replace: true });
         } else if (code === '00') {
-            const payosData = Object.fromEntries(queryParams.entries());
-            console.log(">>> PayOS Success Data:", JSON.stringify(payosData, null, 2));
-            
-            setIsPaymentProcessing(true);
             hasToastedRef.current = true;
             toast.success("Thanh toán thành công! TeddyPet đang chuẩn bị hàng cho bạn.");
             navigate(location.pathname, { replace: true });
 
-            // Polling logic
+            // Polling nhẹ để đồng bộ trạng thái (không hiện overlay)
             let count = 0;
             const poll = setInterval(() => {
                 refresh();
                 count++;
-                if (count >= 5) {
+                if (count >= 3) {
                     clearInterval(poll);
-                    setIsPaymentProcessing(false);
                 }
-            }, 3000);
+            }, 2000);
         }
     }, [location.search, refresh, navigate, location.pathname]);
 
@@ -188,7 +188,7 @@ export const OrderDetailPage = () => {
         if (order?.status === 'CONFIRMED' && order?.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' && order?.payments?.[0]?.status !== 'COMPLETED') {
             const timer = setInterval(() => {
                 const createdAt = new Date(order.createdAt).getTime();
-                const expireAt = createdAt + 60 * 60 * 1000;
+                const expireAt = createdAt + 10 * 60 * 1000; // 10 minutes timeout
                 const now = new Date().getTime();
                 const distance = expireAt - now;
 
@@ -206,10 +206,17 @@ export const OrderDetailPage = () => {
                 }
             }, 1000);
             return () => clearInterval(timer);
-        } else if (order?.status === 'CANCELLED') {
-            setTimeLeft("Đã hủy");
         }
     }, [order, refresh]);
+
+    useEffect(() => {
+        if (!id) return;
+        getOrderRefundRequests(id)
+            .then((res) => {
+                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
+            })
+            .catch(() => setRefundHistory([]));
+    }, [id]);
     
 
     if (fetching || !order) {
@@ -325,6 +332,42 @@ export const OrderDetailPage = () => {
         }
     };
 
+    const handleRefundConfirm = async (reason: string, bankInformationId?: number, guestBank?: any) => {
+        setIsSubmittingRefund(true);
+        try {
+            let finalBankId = bankInformationId;
+            
+            // If guestBank is provided (though normally not in dashboard, but for consistency)
+            if (guestBank && !finalBankId) {
+                const res = await createGuestBankInformationByOrderCode(order.orderCode, guestBank);
+                if (res.success) {
+                    finalBankId = res.data.id;
+                } else {
+                    throw new Error(res.message || "Không thể lưu thông tin ngân hàng.");
+                }
+            }
+
+            if (!finalBankId) {
+                toast.error("Thiếu thông tin ngân hàng hoàn tiền.");
+                return;
+            }
+
+            await createOrderRefundRequest(order.id, {
+                requestedAmount: order.finalAmount,
+                reason: reason.trim(),
+                bankInformationId: finalBankId
+            });
+
+            toast.success("Đã gửi yêu cầu hoàn tiền. TeddyPet sẽ kiểm tra và phản hồi sớm!");
+            setShowRefundModal(false);
+            await refresh();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || error.message || "Không thể gửi yêu cầu hoàn tiền!");
+        } finally {
+            setIsSubmittingRefund(false);
+        }
+    };
+
     const handlePayment = async () => {
         setIsSubmitting(true);
         try {
@@ -394,11 +437,39 @@ export const OrderDetailPage = () => {
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${order.status === 'CANCELLED' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
                                         <WarningCircle width={20} height={20} />
                                     </div>
-                                    <div>
+                                    <div className="flex-1 min-w-0">
                                         <div className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest mb-1">Lý do {order.status === 'CANCELLED' ? 'hủy đơn' : 'hoàn trả'}</div>
                                         <div className="text-sm font-bold text-slate-700 leading-tight">"{order.cancelReason}"</div>
                                         {order.cancelledBy && (
                                             <div className="text-[0.625rem] text-gray-400 mt-2 font-medium">Thực hiện bởi: <span className="font-bold text-gray-500">{order.cancelledBy}</span></div>
+                                        )}
+
+                                        {/* Refund Details for User */}
+                                        {refundHistory.length > 0 && (
+                                            <div className="mt-4 space-y-3">
+                                                {refundHistory.filter(r => r.status === 'REFUNDED').map((r) => (
+                                                    <div key={r.id} className="p-3 bg-white rounded-xl border border-emerald-100 shadow-sm animate-fadeIn">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white">
+                                                                <ShieldCheck width={12} height={12} />
+                                                            </div>
+                                                            <span className="text-[0.625rem] font-bold text-emerald-600 uppercase tracking-widest">Đã xác nhận hoàn tiền</span>
+                                                        </div>
+                                                        {r.refundTransactionId && (
+                                                            <div className="text-[10px] text-slate-400 mb-2">Mã GD: <span className="font-bold text-slate-600 uppercase">{r.refundTransactionId}</span></div>
+                                                        )}
+                                                        {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {r.adminEvidenceUrls.map((url, i) => (
+                                                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-emerald-50 shadow-sm hover:scale-105 transition-all">
+                                                                        <img src={url} alt="Bằng chứng hoàn tiền" className="w-full h-full object-cover" />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -606,7 +677,7 @@ export const OrderDetailPage = () => {
                                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 animate-fadeIn">
                                     <WarningCircle width={24} height={24} className="text-blue-500 shrink-0 mt-0.5" />
                                     <p className="text-sm font-medium text-blue-700 leading-relaxed">
-                                        <strong>Lưu ý:</strong> Vui lòng thanh toán <strong>chính xác số tiền</strong> ({order.finalAmount.toLocaleString()}đ) để hệ thống tự động xác nhận đơn hàng ngay lập tức.
+                                        <strong>Lưu ý:</strong> Vui lòng thanh toán <strong>chính xác số tiền</strong> ({order.finalAmount.toLocaleString()}đ) trong vòng <strong>10 phút</strong> để hệ thống tự động xác nhận đơn hàng ngay lập tức.
                                     </p>
                                 </div>
                                 <button
@@ -615,18 +686,29 @@ export const OrderDetailPage = () => {
                                     className="w-full h-12 bg-slate-900 hover:bg-client-secondary text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 hover:translate-y-[-1px] active:translate-y-0 disabled:opacity-50"
                                 >
                                     {isSubmitting ? <RefreshDouble width={20} height={20} className="animate-spin" /> : <Wallet width={20} height={20} />}
-                                    {timeLeft === "Hết hạn" ? "Thanh toán đã hết hạn" : "Thanh toán đơn hàng ngay"}
+                                    {timeLeft === "Hết hạn" ? "Thanh toán đã hết hạn" : `Thanh toán đơn hàng ngay (${timeLeft})`}
                                 </button>
                             </div>
                         )}
 
-                        {order.status === 'PENDING' && (
-                            <button
-                                onClick={() => setShowCancelModal(true)}
-                                className="w-full h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
-                            >
-                                <WarningCircle width={20} height={20} /> Hủy đơn hàng
-                            </button>
+                        {/* Hủy đơn: PENDING hoặc CONFIRMED/PAID nếu đã thanh toán online (backend sẽ tự xử lý hoàn tiền) */}
+                        {(order.status === 'PENDING' || ((order.status === 'CONFIRMED' || order.status === 'PAID') && isPaid)) && (
+                            <div className="space-y-2">
+                                {isPaid && (
+                                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2">
+                                        <WarningCircle width={18} height={18} className="text-amber-500 shrink-0 mt-0.5" />
+                                        <p className="text-xs font-medium text-amber-700 leading-relaxed">
+                                            Đơn hàng đã thanh toán. Khi hủy đơn, hệ thống sẽ tạo yêu cầu hoàn tiền cho bạn.
+                                        </p>
+                                    </div>
+                                )}
+                                <button
+                                    onClick={() => isPaid ? setShowRefundModal(true) : setShowCancelModal(true)}
+                                    className="w-full h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                                >
+                                    <WarningCircle width={20} height={20} /> {isPaid ? 'Hủy đơn & yêu cầu hoàn tiền' : 'Hủy đơn hàng'}
+                                </button>
+                            </div>
                         )}
 
                         {order.status === 'COMPLETED' && isWithinReturnPeriod() && (
@@ -777,6 +859,15 @@ export const OrderDetailPage = () => {
                 </div>
             )}
 
+            <RefundRequestModal
+                isOpen={showRefundModal}
+                onClose={() => setShowRefundModal(false)}
+                onConfirm={handleRefundConfirm}
+                isSubmitting={isSubmittingRefund}
+                orderCode={order.orderCode}
+                isLoggedIn={true}
+            />
+
             <CancelOrderModal
                 isOpen={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
@@ -799,26 +890,7 @@ export const OrderDetailPage = () => {
                     background: #E2E8F0;
                 }
             `}</style>
-            {/* Overlay xử lý thanh toán */}
-            {isPaymentProcessing && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-center">
-                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
-                        <div className="relative">
-                            <div className="w-16 h-16 border-4 border-client-primary/10 border-t-client-primary rounded-full animate-spin"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Wallet className="w-6 h-6 text-client-primary/40" />
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Đang xác thực...</h3>
-                            <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                                Hệ thống đang đồng bộ trạng thái thanh toán. 
-                                <span className="block text-rose-500 font-bold mt-1 uppercase text-[10px] tracking-widest">⚠️ Vui lòng không đóng trình duyệt</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </DashboardLayout>
     );
 };

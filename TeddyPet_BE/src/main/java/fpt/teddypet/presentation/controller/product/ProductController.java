@@ -158,10 +158,27 @@ public class ProductController {
     @PostMapping(value = "/excel/import", consumes = "multipart/form-data")
     @Operation(summary = "Nhập Excel sản phẩm", description = "Trả về kết quả chi tiết: tạo mới, cập nhật, bỏ qua, lỗi.")
     public ResponseEntity<ApiResponse<ProductExcelService.ImportResult>> importFromExcel(
-            @RequestParam("file") MultipartFile file) {
-        ProductExcelService.ImportResult result = productExcelService.importProductsFromExcel(file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "duplicateResolutions", required = false) String duplicateResolutionsJson) {
+        ProductExcelService.ImportResult result = productExcelService.importProductsFromExcel(file, duplicateResolutionsJson);
         String message = String.format("Nhập Excel hoàn tất: tạo mới %d, cập nhật %d, bỏ qua %d.",
                 result.created(), result.updated(), result.skipped());
         return ResponseEntity.ok(ApiResponse.success(message, result));
+    }
+
+    @PostMapping(value = "/excel/preview", consumes = "multipart/form-data")
+    @Operation(summary = "Preview import Excel sản phẩm", description = "Đọc file và liệt kê Brand/Category/Attribute mới (chưa có trong hệ thống) để wizard xác nhận trước.")
+    public ResponseEntity<ApiResponse<ProductExcelService.ImportPreview>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        ProductExcelService.ImportPreview preview = productExcelService.previewImport(file);
+        return ResponseEntity.ok(ApiResponse.success(preview));
+    }
+
+    @PostMapping("/excel/confirm-create")
+    @Operation(summary = "Confirm tạo Brand/Category thiếu", description = "Tạo các Brand/Category (và sau này Attribute) đang thiếu dựa theo preview.")
+    public ResponseEntity<ApiResponse<ProductExcelService.ConfirmCreateResult>> confirmCreateMissing(
+            @RequestBody ProductExcelService.ImportPreview preview) {
+        ProductExcelService.ConfirmCreateResult result = productExcelService.confirmCreateMissing(preview);
+        return ResponseEntity.ok(ApiResponse.success("Đã tạo các mục thiếu.", result));
     }
 }

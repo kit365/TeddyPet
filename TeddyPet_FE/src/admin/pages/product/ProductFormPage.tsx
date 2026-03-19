@@ -1,12 +1,10 @@
-import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, Typography, InputAdornment, IconButton, Tooltip, Chip, CircularProgress, Card, CardHeader, Divider } from "@mui/material"
+import { Autocomplete, Box, createTheme, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent, Stack, TextField, ThemeProvider, useTheme, Button, InputAdornment, IconButton, Tooltip, Chip, CircularProgress, Card, CardHeader, Divider } from "@mui/material"
 import { RotateCw as RefreshCwIcon, Plus as PlusIcon, Edit2 as EditIcon } from "lucide-react";
 import { autoGenerateSEO, generateBarcode, generateSKU } from "./utils/product-helper";
 import { useTranslation } from "react-i18next";
 import { useProductTags, useProductAgeRanges, useCountries, useBrands, useProductDetail, useUpdateProduct, useCreateProduct, usePetTypes, useProductStatuses, useProductTypes, useCreateProductTag, useUpdateProductTag, useSalesUnits } from "./hooks/useProduct";
 import { useCreateBrand } from "../brand/hooks/useBrand";
 import { useCreateProductCategory } from "../product-category/hooks/useProductCategory";
-import { Breadcrumb } from "../../components/ui/Breadcrumb"
-import { Title } from "../../components/ui/Title"
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
 import { UploadFiles } from "../../components/ui/UploadFiles"
@@ -173,6 +171,128 @@ export const ProductFormPage = () => {
     const [editingTag, setEditingTag] = useState<any>(null);
 
     const isInitializedRef = useRef<string | null>(null);
+    const draftAppliedRef = useRef(false);
+    const draftSaveTimerRef = useRef<number | null>(null);
+
+    const getDraftKey = useCallback(() => {
+        if (mode === "edit" && id) return `teddypet:admin:productDraft:edit:${id}`;
+        return "teddypet:admin:productDraft:create";
+    }, [mode, id]);
+
+    const clearDraft = useCallback(() => {
+        try {
+            localStorage.removeItem(getDraftKey());
+        } catch {
+            // ignore
+        }
+    }, [getDraftKey]);
+
+    const buildDraftPayload = useCallback(() => {
+        // Do not persist raw File objects (cannot restore after reload).
+        const serializableFiles = (files || [])
+            .map((f: any) => {
+                if (typeof f === "string") return f;
+                const preview = f?.preview;
+                if (typeof preview === "string" && (preview.startsWith("http://") || preview.startsWith("https://"))) {
+                    return { id: f?.id || f?.imageId, name: f?.name, preview };
+                }
+                return null;
+            })
+            .filter(Boolean);
+
+        return {
+            v: 1,
+            mode,
+            id: id || null,
+            updatedAt: Date.now(),
+            data: {
+                name,
+                barcode,
+                status,
+                productType,
+                petTypes,
+                origin,
+                brandId,
+                selectedCategoryIds,
+                selectedTags,
+                selectedAgeIds,
+                description,
+                material,
+                metaTitle,
+                metaDescription,
+                files: serializableFiles,
+                simplePrice,
+                simpleSalePrice,
+                simpleStock,
+                simpleSku,
+                simpleWeight,
+                simpleUnit,
+                variants
+            }
+        };
+    }, [
+        files,
+        mode,
+        id,
+        name,
+        barcode,
+        status,
+        productType,
+        petTypes,
+        origin,
+        brandId,
+        selectedCategoryIds,
+        selectedTags,
+        selectedAgeIds,
+        description,
+        material,
+        metaTitle,
+        metaDescription,
+        simplePrice,
+        simpleSalePrice,
+        simpleStock,
+        simpleSku,
+        simpleWeight,
+        simpleUnit,
+        variants
+    ]);
+
+    const applyDraftPayload = useCallback((draft: any) => {
+        const d = draft?.data;
+        if (!d) return;
+        if (typeof d.name === "string") setName(d.name);
+        if (typeof d.barcode === "string") setBarcode(d.barcode);
+        if (typeof d.status === "string") setStatus(d.status);
+        if (typeof d.productType === "string") setProductType(d.productType);
+        if (Array.isArray(d.petTypes)) setPetTypes(d.petTypes);
+        if (typeof d.origin === "string") setOrigin(d.origin);
+        if (d.brandId !== undefined) setBrandId(d.brandId);
+        if (Array.isArray(d.selectedCategoryIds)) setSelectedCategoryIds(d.selectedCategoryIds);
+        if (Array.isArray(d.selectedTags)) setSelectedTags(d.selectedTags);
+        if (Array.isArray(d.selectedAgeIds)) setSelectedAgeIds(d.selectedAgeIds);
+        if (typeof d.description === "string") setDescription(d.description);
+        if (typeof d.material === "string") setMaterial(d.material);
+        if (typeof d.metaTitle === "string") setMetaTitle(d.metaTitle);
+        if (typeof d.metaDescription === "string") setMetaDescription(d.metaDescription);
+
+        if (Array.isArray(d.files)) {
+            const restored = d.files.map((f: any) => {
+                if (typeof f === "string") return f;
+                if (f?.preview) return { id: f?.id, name: f?.name || "image", preview: f.preview, size: 0, type: "image/jpeg" };
+                return null;
+            }).filter(Boolean);
+            setFiles(restored as any);
+        }
+
+        if (typeof d.simplePrice === "number") setSimplePrice(d.simplePrice);
+        if (typeof d.simpleSalePrice === "number") setSimpleSalePrice(d.simpleSalePrice);
+        if (typeof d.simpleStock === "number") setSimpleStock(d.simpleStock);
+        if (typeof d.simpleSku === "string") setSimpleSku(d.simpleSku);
+        if (typeof d.simpleWeight === "number") setSimpleWeight(d.simpleWeight);
+        if (typeof d.simpleUnit === "string") setSimpleUnit(d.simpleUnit);
+
+        if (Array.isArray(d.variants)) setVariants(d.variants);
+    }, []);
 
     const resetFormStates = useCallback(() => {
         setSelectedTags([]);
@@ -198,9 +318,62 @@ export const ProductFormPage = () => {
         setMaterial("");
     }, []);
 
+    // Restore draft once after init for create/edit (so user can jump out to create attributes, then come back)
+    useEffect(() => {
+        if (isReadOnly) return;
+        if (draftAppliedRef.current) return;
+        if (mode !== "create" && mode !== "edit") return;
+        if (!isInitializedRef.current) return;
+
+        try {
+            const raw = localStorage.getItem(getDraftKey());
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed?.data) return;
+            // Ensure draft matches current context
+            if (mode === "edit" && parsed?.id && parsed.id !== id) return;
+
+            applyDraftPayload(parsed);
+            draftAppliedRef.current = true;
+            toast.info("Đã khôi phục bản nháp sản phẩm (draft) từ lần trước.");
+        } catch {
+            // ignore
+        }
+    }, [applyDraftPayload, getDraftKey, id, isReadOnly, mode]);
+
+    // Auto-save draft (debounced)
+    useEffect(() => {
+        if (isReadOnly) return;
+        if (mode !== "create" && mode !== "edit") return;
+
+        if (draftSaveTimerRef.current) {
+            window.clearTimeout(draftSaveTimerRef.current);
+        }
+
+        draftSaveTimerRef.current = window.setTimeout(() => {
+            try {
+                const payload = buildDraftPayload();
+                localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+            } catch {
+                // ignore
+            }
+        }, 600);
+
+        return () => {
+            if (draftSaveTimerRef.current) {
+                window.clearTimeout(draftSaveTimerRef.current);
+                draftSaveTimerRef.current = null;
+            }
+        };
+    }, [buildDraftPayload, getDraftKey, isReadOnly, mode]);
+
     const populateForm = useCallback((p: any) => {
         if (!p) return;
-        setProductType(p.productType || "SIMPLE");
+        const resolvedType: "SIMPLE" | "VARIABLE" =
+            (p.productType === "VARIABLE" || p.productType === "SIMPLE")
+                ? p.productType
+                : (p?.variants?.some((v: any) => (v?.attributes?.length || 0) > 0) ? "VARIABLE" : "SIMPLE");
+        setProductType(resolvedType);
         setStatus(p.status || "DRAFT");
         setBarcode(p.barcode || "");
 
@@ -235,7 +408,7 @@ export const ProductFormPage = () => {
         })) || [];
         setFiles(productImages);
 
-        if (p.productType === "SIMPLE" && p?.variants && p.variants.length > 0) {
+        if (resolvedType === "SIMPLE" && p?.variants && p.variants.length > 0) {
             const defaultVariant = p.variants[0];
             setSimplePrice(defaultVariant?.price || 0);
             setSimpleSalePrice(defaultVariant?.salePrice || 0);
@@ -243,7 +416,7 @@ export const ProductFormPage = () => {
             setSimpleSku(defaultVariant?.sku || "");
             setSimpleWeight(defaultVariant?.weight || 0);
             setSimpleUnit(defaultVariant?.unit || "PIECE");
-        } else if (p.productType === "VARIABLE" && p?.variants) {
+        } else if (resolvedType === "VARIABLE" && p?.variants) {
             const mappedVariants: Variant[] = p.variants.map((v: any) => ({
                 id: String(v?.variantId || v?.id || `v-${Math.random()}`),
                 variantId: v?.variantId || v?.id,
@@ -334,12 +507,28 @@ export const ProductFormPage = () => {
         }
     };
 
+    const formatTagName = (name: string): string => {
+        return name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[đĐ]/g, (char) => (char === "đ" ? "d" : "D"))
+            .replace(/[^a-zA-Z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "");
+    };
+
     const handleSaveTag = async (data: any) => {
         try {
+            const formattedData = {
+                ...data,
+                name: data.name ? formatTagName(data.name) : data.name
+            };
+
             if (editingTag) {
                 const res = await updateTagMutation.mutateAsync({
                     id: editingTag.id || editingTag.tagId,
-                    data
+                    data: formattedData
                 });
                 if (res?.success === false) return toast.error(res?.message || "Lỗi cập nhật tag");
 
@@ -347,7 +536,7 @@ export const ProductFormPage = () => {
                 setEditingTag(null);
                 setSelectedTags(prev => prev.map(t => (t.id || t.tagId) === (res?.data?.id || res?.data?.tagId || res?.id || res?.tagId) ? (res?.data || res) : t));
             } else {
-                const res = await createTagMutation.mutateAsync(data);
+                const res = await createTagMutation.mutateAsync(formattedData);
                 if (res?.success === false) return toast.error(res?.message || "Lỗi thêm tag");
 
                 toast.success("Đã thêm tag mới");
@@ -505,6 +694,7 @@ export const ProductFormPage = () => {
                     if (response?.success === false) {
                         toast.error(response?.message || "Cập nhật sản phẩm thất bại");
                     } else {
+                        clearDraft();
                         toast.success(response?.message || "Cập nhật sản phẩm thành công!");
                         navigate(`/${prefixAdmin}/product/list`);
                     }
@@ -519,6 +709,7 @@ export const ProductFormPage = () => {
                     if (response?.success === false) {
                         toast.error(response?.message || "Tạo sản phẩm thất bại");
                     } else {
+                        clearDraft();
                         toast.success(response?.message || "Tạo sản phẩm thành công!");
                         navigate(`/${prefixAdmin}/product/list`);
                     }
@@ -769,14 +960,58 @@ export const ProductFormPage = () => {
                                     </Stack>
                                 </SectionCard>
                             ) : (
-                                <ProductVariants
-                                    expanded={expandedVariants}
-                                    onToggle={toggle(setExpandedVariants)}
-                                    variants={variants}
-                                    onVariantsChange={setVariants}
-                                    availableImages={files}
-                                    readOnly={isReadOnly}
-                                />
+                                <>
+                                    {!isReadOnly && (
+                                        <Box sx={{ mb: 2 }}>
+                                            <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+                                                <Box>
+                                                    <Box sx={{ fontWeight: 800, color: "#1C252E", fontSize: "0.875rem" }}>
+                                                        Thiếu thuộc tính?
+                                                    </Box>
+                                                    <Box sx={{ color: "#637381", fontSize: "0.75rem", fontWeight: 600 }}>
+                                                        Bạn có thể mở trang tạo thuộc tính/giá trị trong tab mới. Sản phẩm đang làm dở sẽ được lưu draft tự động.
+                                                    </Box>
+                                                </Box>
+                                                <Stack direction="row" spacing={1}>
+                                                    <Button
+                                                        variant="outlined"
+                                                        onClick={() => window.open(`/${prefixAdmin}/product-attribute/create`, "_blank")}
+                                                        sx={{
+                                                            borderRadius: "10px",
+                                                            textTransform: "none",
+                                                            fontWeight: 800,
+                                                            px: 2.0
+                                                        }}
+                                                    >
+                                                        Thêm thuộc tính
+                                                    </Button>
+                                                    <Button
+                                                        variant="contained"
+                                                        onClick={() => window.open(`/${prefixAdmin}/product-attribute/list`, "_blank")}
+                                                        sx={{
+                                                            bgcolor: "#1C252E",
+                                                            borderRadius: "10px",
+                                                            textTransform: "none",
+                                                            fontWeight: 800,
+                                                            px: 2.0,
+                                                            "&:hover": { bgcolor: "#454F5B" }
+                                                        }}
+                                                    >
+                                                        Danh sách thuộc tính
+                                                    </Button>
+                                                </Stack>
+                                            </Stack>
+                                        </Box>
+                                    )}
+                                    <ProductVariants
+                                        expanded={expandedVariants}
+                                        onToggle={toggle(setExpandedVariants)}
+                                        variants={variants}
+                                        onVariantsChange={setVariants}
+                                        availableImages={files}
+                                        readOnly={isReadOnly}
+                                    />
+                                </>
                             )}
                         </Box>
 
@@ -801,24 +1036,22 @@ export const ProductFormPage = () => {
                                         </Select>
                                     </FormControl>
 
-                                    {mode === 'create' && (
-                                        <FormControl fullWidth>
-                                            <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
-                                            <Select
-                                                labelId="product-type-label"
-                                                value={productType}
-                                                label="Loại sản phẩm"
-                                                onChange={(e) => setProductType(e.target.value as any)}
-                                                disabled={isReadOnly}
-                                            >
-                                                {productTypeOptions.map((type) => (
-                                                    <MenuItem key={type} value={type}>
-                                                        {PRODUCT_TYPE_LABELS[type] || type}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    )}
+                                    <FormControl fullWidth>
+                                        <InputLabel id="product-type-label">Loại sản phẩm</InputLabel>
+                                        <Select
+                                            labelId="product-type-label"
+                                            value={productType}
+                                            label="Loại sản phẩm"
+                                            onChange={(e) => setProductType(e.target.value as any)}
+                                            disabled={isReadOnly}
+                                        >
+                                            {productTypeOptions.map((type) => (
+                                                <MenuItem key={type} value={type}>
+                                                    {PRODUCT_TYPE_LABELS[type] || type}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
 
                                     <Stack direction="row" gap={2} alignItems="center">
                                         <TextField

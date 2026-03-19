@@ -6,9 +6,10 @@ import {
     getProductAgeRanges, createProductAgeRange, updateProductAgeRange, deleteProductAgeRange, getProductAgeRangeById,
     getCountries, createProduct, getProductById, updateProduct, deleteProduct,
     getPetTypes, getSalesUnits, getProductStatuses, getProductTypes,
-    exportProductsExcel, downloadProductsTemplate, importProductsExcel,
+    exportProductsExcel, downloadProductsTemplate, importProductsExcel, type DuplicateResolution,
     exportTagsExcel, downloadTagsTemplate, importTagsExcel,
     exportAgeRangesExcel, downloadAgeRangesTemplate, importAgeRangesExcel
+    , previewProductsExcelImport, confirmCreateMissingForProductsExcel
 } from '../../../api/product.api';
 import { getBrands } from '../../../api/brand.api';
 import { ApiResponse } from '../../../config/type';
@@ -298,7 +299,8 @@ export const useImportProducts = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: importProductsExcel,
+        mutationFn: (vars: { file: File; duplicateResolutions?: DuplicateResolution[] }) =>
+            importProductsExcel(vars.file, vars.duplicateResolutions),
         onSuccess: (response: any) => {
             queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
             const result = response?.data;
@@ -322,6 +324,18 @@ export const useImportProducts = () => {
         onError: (err: any) => {
             toast.error(err?.response?.data?.message || 'Import thất bại. Vui lòng kiểm tra lại file.');
         },
+    });
+};
+
+export const usePreviewProductsImport = () => {
+    return useMutation({
+        mutationFn: previewProductsExcelImport,
+    });
+};
+
+export const useConfirmCreateMissingForProductsImport = () => {
+    return useMutation({
+        mutationFn: confirmCreateMissingForProductsExcel,
     });
 };
 

@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button } from "@mui/material"
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button } from "@mui/material"
 import { Breadcrumb } from "../../components/ui/Breadcrumb"
 import { Title } from "../../components/ui/Title"
 import { Tiptap } from "../../components/layouts/titap/Tiptap"
@@ -15,9 +15,11 @@ import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFi
 import { toast } from "react-toastify";
 import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export const BlogCategoryCreatePage = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [expandedDetail, setExpandedDetail] = useState(true);
     const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
         () => setter(prev => !prev);
@@ -57,7 +59,7 @@ export const BlogCategoryCreatePage = () => {
         create(payload as any, {
             onSuccess: (response) => {
                 if (response.success) {
-                    toast.success(response.message);
+                    toast.success(response.message || t("admin.validation.create_success"));
                     reset({
                         name: "",
                         description: "",
@@ -90,12 +92,16 @@ export const BlogCategoryCreatePage = () => {
                     />
                 </div>
             </div>
+
             <ThemeProvider theme={localTheme}>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <Stack sx={{
-                        margin: "0px 120px",
-                        gap: "40px"
-                    }}>
+                    <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
+                        <Box>
+                            <Box gap="16px" sx={{ display: "flex", alignItems: "center" }}>
+                                <SwitchButton control={control} name="isActive" />
+                            </Box>
+                        </Box>
+
                         <CollapsibleCard
                             title={t("admin.common.details")}
                             subheader={t("admin.blog_category.fields.description_placeholder")}
@@ -103,13 +109,7 @@ export const BlogCategoryCreatePage = () => {
                             onToggle={toggle(setExpandedDetail)}
                         >
                             <Stack p="24px" gap="24px">
-                                <Box
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(2, 1fr)",
-                                        gap: "24px 16px",
-                                    }}
-                                >
+                                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px 16px" }}>
                                     <Controller
                                         name="name"
                                         control={control}
@@ -119,6 +119,7 @@ export const BlogCategoryCreatePage = () => {
                                                 label={t("admin.blog_category.fields.name")}
                                                 error={!!fieldState.error}
                                                 helperText={fieldState.error?.message}
+                                                fullWidth
                                             />
                                         )}
                                     />
@@ -126,8 +127,8 @@ export const BlogCategoryCreatePage = () => {
                                         control={control}
                                         categories={nestedCategories}
                                     />
-
                                 </Box>
+
                                 <Controller
                                     name="description"
                                     control={control}
@@ -138,41 +139,81 @@ export const BlogCategoryCreatePage = () => {
                                         />
                                     )}
                                 />
+
                                 <FormUploadSingleFile
                                     name="imageUrl"
                                     control={control}
                                 />
                             </Stack>
                         </CollapsibleCard>
-                        <Box gap="24px" sx={{ display: "flex", alignItems: "center" }}>
-                            <SwitchButton control={control} name="isActive" />
-                            <Button
-                                type="submit"
-                                disabled={isPending}
-                                sx={{
-                                    background: '#1C252E',
-                                    minHeight: "3rem",
-                                    minWidth: "4rem",
-                                    fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    padding: "8px 16px",
-                                    borderRadius: "8px",
-                                    textTransform: "none",
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                        background: "#454F5B",
-                                        boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                                    }
-                                }}
-                                variant="contained"
-                            >
-                                {isPending ? t("admin.common.loading") : t("admin.blog_category.title.create")}
-                            </Button>
-                        </Box>
                     </Stack>
+
+                    <div className="h-[120px]" />
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/blog-category/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isPending}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isPending ? t("admin.common.loading") : t("admin.blog_category.title.create")}
+                        </Button>
+                    </Box>
                 </form>
             </ThemeProvider>
-
         </>
     )
 }

@@ -12,10 +12,7 @@ import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import vn.payos.PayOS;
@@ -30,6 +27,7 @@ import vn.payos.model.webhooks.WebhookData;
 public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
 
     private static final String PAYOS_API_GET_LINK = "https://api-merchant.payos.vn/v2/payment-requests/%d";
+    private static final String PAYOS_API_CANCEL_LINK = "https://api-merchant.payos.vn/v2/payment-requests/%d/cancel";
     private static final String PAYOS_CHECKOUT_BASE = "https://pay.payos.vn/web/";
 
     private final PayOS payOS;
@@ -74,11 +72,7 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
-                String existingUrl = fetchExistingPaymentLinkUrl(order.getNumericCode());
-                if (existingUrl != null) {
-                    log.info("PayOS: returning existing payment link for order {} (orderCode={}).", order.getId(), order.getNumericCode());
-                    return existingUrl;
-                }
+                return handleExistingPaymentLink(order, ipAddress, returnUrl);
             }
             log.error("PayosGatewayAdapter failed to create payment link for order {}: {}", order.getId(), msg);
             throw new PaymentException("PayOS Error: " + msg, e);
@@ -86,8 +80,10 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     }
 
     /**
-     * Dùng cho domain khác ngoài Order (vd: BookingDeposit): tạo link PayOS theo orderCode + amount.
-     * Nếu PayOS báo orderCode đã tồn tại, cố gắng fetch lại link đang PENDING.
+     * Khi PayOS báo "orderCode đã tồn tại":
+     * 1. Fetch link cũ, kiểm tra amount
+     * 2. Nếu amount khớp → tái sử dụng link
+     * 3. Nếu amount KHÔNG khớp → cancel link cũ, tạo link MỚI với amount đúng
      */
     public String buildPaymentUrlByOrderCode(Long orderCode, long amount, String description, String returnUrl) {
         if (orderCode == null) {
@@ -112,10 +108,10 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
-                String existingUrl = fetchExistingPaymentLinkUrl(orderCode);
-                if (existingUrl != null) {
+                ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
+                if (existing != null && existing.checkoutUrl() != null) {
                     log.info("PayOS: returning existing payment link (orderCode={}).", orderCode);
-                    return existingUrl;
+                    return existing.checkoutUrl();
                 }
             }
             log.error("PayosGatewayAdapter failed to create payment link (orderCode={}): {}", orderCode, msg);
@@ -123,11 +119,73 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
         }
     }
 
+    private String handleExistingPaymentLink(Order order, String ipAddress, String returnUrl) {
+        Long orderNumericCode = order.getNumericCode();
+        long expectedAmount = order.getFinalAmount().longValue();
+
+        ExistingLinkInfo existing = fetchExistingPaymentInfo(orderNumericCode);
+
+        if (existing != null && (existing.status().equalsIgnoreCase("PENDING") || existing.status().equalsIgnoreCase("PAID"))) {
+            if (existing.amount() == expectedAmount) {
+                log.info("PayOS: reusing existing payment link for order {} (orderCode={}, status={}, amount={}).",
+                        order.getId(), orderNumericCode, existing.status(), expectedAmount);
+                return existing.checkoutUrl();
+            }
+
+            // Amount mismatch! Cancel old link and retry
+            log.warn("PayOS: amount mismatch for order {} (orderCode={}). " +
+                            "Expected={}, existing={}. Cancelling old link and creating new one.",
+                    order.getId(), orderNumericCode, expectedAmount, existing.amount());
+
+            boolean cancelled = cancelPaymentLink(orderNumericCode);
+            if (cancelled) {
+                try {
+                    String description = "Thanh toán " + order.getOrderCode();
+                    if (description.length() > 25) {
+                        description = order.getOrderCode();
+                    }
+
+                    CreatePaymentLinkRequest retryRequest = CreatePaymentLinkRequest.builder()
+                            .orderCode(orderNumericCode)
+                            .amount(expectedAmount)
+                            .description(description)
+                            .returnUrl(returnUrl)
+                            .cancelUrl(returnUrl)
+                            .build();
+
+                    CreatePaymentLinkResponse retryResponse = payOS.paymentRequests().create(retryRequest);
+                    log.info("PayOS: successfully created new payment link with correct amount {} for order {}.",
+                            expectedAmount, order.getId());
+                    return retryResponse.getCheckoutUrl();
+
+                } catch (Exception retryEx) {
+                    log.error("PayOS: failed to create new link after cancelling old one for order {}: {}",
+                            order.getId(), retryEx.getMessage());
+                    throw new PaymentException("Không thể tạo lại link thanh toán. Vui lòng thử lại sau.", retryEx);
+                }
+            } else {
+                log.error("PayOS: failed to cancel old link for order {} (orderCode={}). Cannot create new link.",
+                        order.getId(), orderNumericCode);
+                throw new PaymentException("Không thể hủy link thanh toán cũ để tạo mới. Vui lòng liên hệ hỗ trợ.");
+            }
+        }
+
+        // Link exists but not PENDING (e.g., PAID, CANCELLED) — cannot reuse
+        log.warn("PayOS: existing link for order {} (orderCode={}) has status '{}', cannot reuse or create new.",
+                order.getId(), orderNumericCode, existing != null ? existing.status() : "UNKNOWN");
+        throw new PaymentException("Đơn thanh toán đã được tạo trước đó. Vui lòng kiểm tra email hoặc thử lại sau vài phút.");
+    }
+
+    /**
+     * DTO nội bộ chứa thông tin link PayOS đã tồn tại.
+     */
+    private record ExistingLinkInfo(String checkoutUrl, long amount, String status) {}
+
     /**
      * Gọi PayOS API GET /v2/payment-requests/{orderCode} để lấy thông tin link đã tạo,
-     * rồi build checkoutUrl = https://pay.payos.vn/web/{paymentLinkId}.
+     * bao gồm amount và status.
      */
-    private String fetchExistingPaymentLinkUrl(Long orderNumericCode) {
+    private ExistingLinkInfo fetchExistingPaymentInfo(Long orderNumericCode) {
         if (orderNumericCode == null) return null;
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -141,24 +199,48 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
                 if ("00".equals(root.path("code").asText(""))) {
                     JsonNode data = root.path("data");
 
-                    // Chỉ tái sử dụng link nếu trạng thái trên PayOS vẫn còn chờ thanh toán (PENDING).
                     String status = data.path("status").asText("");
-                    if (!"PENDING".equalsIgnoreCase(status)) {
-                        log.info("PayOS payment-request {} (orderCode={}) has status '{}', not reusing checkoutUrl.",
-                                data.path("id").asText(""), orderNumericCode, status);
-                        return null;
-                    }
-
+                    long amount = data.path("amount").asLong(0);
                     String id = data.path("id").asText("");
-                    if (!id.isBlank()) {
-                        return PAYOS_CHECKOUT_BASE + id;
-                    }
+
+                    String checkoutUrl = !id.isBlank() ? PAYOS_CHECKOUT_BASE + id : null;
+
+                    return new ExistingLinkInfo(checkoutUrl, amount, status);
                 }
             }
         } catch (Exception ex) {
             log.warn("Could not fetch existing PayOS link for orderCode {}: {}", orderNumericCode, ex.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Hủy link thanh toán PayOS đã tồn tại.
+     * POST /v2/payment-requests/{orderCode}/cancel
+     */
+    private boolean cancelPaymentLink(Long orderNumericCode) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("x-client-id", payosConfig.getClientId());
+            headers.set("x-api-key", payosConfig.getApiKey());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            String body = "{\"cancellationReason\":\"Amount mismatch - recreating with correct amount\"}";
+            HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+            String url = String.format(PAYOS_API_CANCEL_LINK, orderNumericCode);
+            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+
+            if (resp.getStatusCode().is2xxSuccessful()) {
+                log.info("PayOS: successfully cancelled payment link for orderCode {}.", orderNumericCode);
+                return true;
+            } else {
+                log.warn("PayOS: cancel link returned status {} for orderCode {}.", resp.getStatusCode(), orderNumericCode);
+            }
+        } catch (Exception ex) {
+            log.error("PayOS: failed to cancel link for orderCode {}: {}", orderNumericCode, ex.getMessage());
+        }
+        return false;
     }
 
     @Override

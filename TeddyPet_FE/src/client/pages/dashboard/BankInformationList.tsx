@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { CreditCard, BadgeCheck, BadgeX, Pencil, QrCode, X, Info } from "lucide-react";
+import { CreditCard, BadgeCheck, BadgeX, Pencil, QrCode, X, Info, Search, ChevronDown } from "lucide-react";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import {
   createMyBankInformation,
-  getBanks,
   getMyBankInformation,
   setMyDefaultBankInformation,
   updateMyBankInformation,
 } from "../../../api/bank.api";
 import { getVietQRBanks, type VietQRBank } from "../../../api/vietqr.api";
-import type { BankInformationPayload, BankOption } from "../../../types/bank.type";
+import type { BankInformationPayload } from "../../../types/bank.type";
 
 type MyBankItem = {
   id: number;
@@ -28,7 +27,6 @@ export const BankInformationListPage = () => {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [banks, setBanks] = useState<MyBankItem[]>([]);
-  const [bankOptions, setBankOptions] = useState<BankOption[]>([]);
   const [vietQRBanks, setVietQRBanks] = useState<VietQRBank[]>([]);
   
   const [openForm, setOpenForm] = useState(false);
@@ -43,6 +41,9 @@ export const BankInformationListPage = () => {
     note: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+
   const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
     { label: "Tài khoản", to: "/dashboard/profile" },
@@ -52,13 +53,11 @@ export const BankInformationListPage = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [myRes, bankRes, vqrRes] = await Promise.all([
-        getMyBankInformation(), 
-        getBanks(),
+      const [myRes, vqrRes] = await Promise.all([
+        getMyBankInformation(),
         getVietQRBanks()
       ]);
       setBanks((myRes.data ?? []) as any);
-      setBankOptions(bankRes.data ?? []);
       setVietQRBanks(vqrRes);
     } catch (e: any) {
       toast.error(e?.message ?? "Không thể tải thông tin ngân hàng.");
@@ -77,14 +76,31 @@ export const BankInformationListPage = () => {
     return [...banks].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   }, [banks]);
 
+  const filteredBanks = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return vietQRBanks;
+    return vietQRBanks.filter(
+      (b) =>
+        b.shortName.toLowerCase().includes(term) ||
+        b.code.toLowerCase().includes(term) ||
+        b.name.toLowerCase().includes(term)
+    );
+  }, [searchTerm, vietQRBanks]);
+
+  const selectedBank = useMemo(() => {
+    return vietQRBanks.find(b => b.shortName.toLowerCase() === form.bankCode.toLowerCase() || b.code.toLowerCase() === form.bankCode.toLowerCase());
+  }, [form.bankCode, vietQRBanks]);
+
   const handleEdit = (item: MyBankItem) => {
     setEditingItem(item);
     setForm({
       accountNumber: item.accountNumber,
-      accountHolderName: item.accountHolderName,
+      accountHolderName: item.accountHolderName.toUpperCase(),
       bankCode: item.bankCode,
       note: item.note || "",
     });
+    setSearchTerm("");
+    setShowAutocomplete(false);
     setOpenForm(true);
   };
 
@@ -96,6 +112,8 @@ export const BankInformationListPage = () => {
       bankCode: "",
       note: "",
     });
+    setSearchTerm("");
+    setShowAutocomplete(false);
     setOpenForm(true);
   };
 
@@ -269,18 +287,85 @@ export const BankInformationListPage = () => {
 
               <div>
                 <label className="block mb-1 text-[0.875rem] font-black text-slate-800 uppercase tracking-widest">Ngân hàng *</label>
-                <select
-                  value={form.bankCode}
-                  onChange={(e) => setForm((p) => ({ ...p, bankCode: e.target.value }))}
-                  className="w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-client-primary transition-all"
-                >
-                  <option value="">— Chọn ngân hàng —</option>
-                  {bankOptions.map((b) => (
-                    <option key={b.bankCode} value={b.bankCode}>
-                      {b.bankCode} — {b.bankName}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <div 
+                    className={`flex items-center justify-between w-full rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[0.95rem] cursor-pointer hover:border-client-primary transition-all ${showAutocomplete ? 'ring-2 ring-client-primary/20 border-client-primary' : ''}`}
+                    onClick={() => setShowAutocomplete(!showAutocomplete)}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      {selectedBank ? (
+                        <>
+                          <img src={selectedBank.logo} alt={selectedBank.shortName} className="w-8 h-8 object-contain rounded-md" />
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="font-bold text-slate-800 shrink-0">{selectedBank.shortName}</span>
+                            <span className="text-slate-400 font-medium truncate">— {selectedBank.name}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-slate-400">— Chọn ngân hàng —</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`shrink-0 text-slate-400 transition-transform ${showAutocomplete ? 'rotate-180' : ''}`} size={20} />
+                  </div>
+
+                  {showAutocomplete && (
+                    <>
+                      {/* Backdrop to close on click outside */}
+                      <div className="fixed inset-0 z-[999]" onClick={() => setShowAutocomplete(false)} />
+                      
+                      <div className="absolute left-0 right-0 mt-2 z-[1000] bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden flex flex-col max-h-[360px] animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="p-3 border-b border-slate-50 sticky top-0 bg-white z-10">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input 
+                              autoFocus
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              placeholder="Tìm tên, mã hoặc viết tắt..."
+                              className="w-full bg-slate-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-[0.9rem] outline-none focus:ring-2 focus:ring-client-primary/10 transition-all"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1 py-1 scrollbar-hide">
+                          {filteredBanks.length > 0 ? (
+                            filteredBanks.map((b) => (
+                              <div 
+                                key={b.id}
+                                className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-slate-50 ${form.bankCode === b.shortName || form.bankCode === b.code ? 'bg-client-primary/5' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setForm(p => ({ ...p, bankCode: b.shortName, bankName: b.name }));
+                                  setShowAutocomplete(false);
+                                  setSearchTerm("");
+                                }}
+                              >
+                                <img src={b.logo} alt={b.shortName} className="w-10 h-10 object-contain bg-white rounded-lg p-1 border border-slate-100" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 text-[0.95rem]">{b.shortName}</span>
+                                    {b.transferSupported === 1 && (
+                                      <span className="bg-emerald-50 text-emerald-600 text-[0.55rem] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Nhanh 24/7</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[0.8rem] text-slate-400 truncate font-medium">{b.name}</p>
+                                </div>
+                                {(form.bankCode === b.shortName || form.bankCode === b.code) && (
+                                  <BadgeCheck size={18} className="text-client-primary" />
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-10 text-center space-y-2">
+                              <Info className="mx-auto text-slate-300" size={32} />
+                              <p className="text-slate-400 font-medium italic">Không tìm thấy ngân hàng nào.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div>

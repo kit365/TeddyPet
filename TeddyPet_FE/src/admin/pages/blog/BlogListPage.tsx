@@ -1,9 +1,5 @@
-﻿import Button from "@mui/material/Button";
-import AddIcon from '@mui/icons-material/Add';
-import { Breadcrumb } from "../../components/ui/Breadcrumb";
-import { Title } from "../../components/ui/Title";
+import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
-import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import { Search } from "../../components/ui/Search";
 import { SortButton } from "../../components/ui/SortButton";
@@ -11,15 +7,11 @@ import { TabList } from "../../components/ui/TabList";
 import { BlogList } from "./sections/BlogList";
 import { useBlogs } from "./hooks/useBlog";
 import { useState, useMemo } from "react";
-
-
 import { useTranslation } from "react-i18next";
 
 export const BlogListPage = () => {
     const { t } = useTranslation();
-    const navigate = useNavigate();
     const { data: allBlogs = [], isLoading } = useBlogs();
-
 
     const [sortBy, setSortBy] = useState("latest");
     const [tabStatus, setTabStatus] = useState(0); // 0: All, 1: Published, 2: Draft, 3: Archived
@@ -36,8 +28,6 @@ export const BlogListPage = () => {
         } else if (tabStatus === 3) {
             result = result.filter(blog => blog.status === 'ARCHIVED');
         }
-
-
 
         // 3. Sort
         result.sort((a, b) => {
@@ -64,65 +54,38 @@ export const BlogListPage = () => {
         };
     }, [allBlogs]);
 
-    // Inline removeVietnameseTones if not available globally
-
-
     return (
-        <>
-            <div className="mb-[40px] gap-[16px] flex items-start justify-end">
-                <div className="mr-auto">
-                    <Title title={t("admin.blog.title.list")} />
-                    <Breadcrumb
-                        items={[
-                            { label: t("admin.dashboard"), to: "/" },
-                            { label: t("admin.blog.title.list"), to: `/${prefixAdmin}/blog/list` },
-                            { label: t("admin.common.list") }
-                        ]}
+        <div className="flex flex-col gap-[24px]">
+            <ListHeader
+                title={t("admin.blog.title.list")}
+                breadcrumbItems={[
+                    { label: t("admin.dashboard"), to: "/" },
+                    { label: t("admin.blog.title.list") }
+                ]}
+                addButtonLabel={t("admin.blog.title.create")}
+                addButtonPath={`/${prefixAdmin}/blog/create`}
+            />
+
+            <Box>
+                <Box sx={{ mb: "24px", display: 'flex', justifyContent: "space-between", gap: "16px" }}>
+                    <Search />
+                    <SortButton
+                        value={sortBy}
+                        onChange={setSortBy}
                     />
-                </div>
-                <Button
-                    onClick={() => navigate(`/${prefixAdmin}/blog/create`)}
-                    sx={{
-                        background: '#1C252E',
-                        minHeight: "2.25rem",
-                        minWidth: "4rem",
-                        fontWeight: 700,
-                        fontSize: "0.875rem",
-                        padding: "6px 12px",
-                        borderRadius: "8px",
-                        textTransform: "none",
-                        boxShadow: "none",
-                        "&:hover": {
-                            background: "#454F5B",
-                            boxShadow: "0 8px 16px 0 rgba(145 158 171 / 16%)"
-                        }
-                    }}
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                >
+                </Box>
 
-                    {t("admin.blog.title.create")}
-                </Button>
-            </div>
+                <TabList
+                    value={tabStatus}
+                    onChange={(_, newVal) => setTabStatus(newVal)}
+                    counts={counts}
+                />
 
-            <Box sx={{ mb: "40px", display: 'flex', justifyContent: "space-between" }}>
-                <Search />
-                <SortButton
-                    value={sortBy}
-                    onChange={setSortBy}
+                <BlogList
+                    blogs={filteredBlogs}
+                    isLoading={isLoading}
                 />
             </Box>
-
-            <TabList
-                value={tabStatus}
-                onChange={(_, newVal) => setTabStatus(newVal)}
-                counts={counts}
-            />
-
-            <BlogList
-                blogs={filteredBlogs}
-                isLoading={isLoading}
-            />
-        </>
+        </div>
     )
 }
