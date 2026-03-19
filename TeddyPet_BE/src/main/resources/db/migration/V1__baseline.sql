@@ -1986,6 +1986,7 @@ create table if not exists booking_deposits (
 
     -- ======= DEPOSIT PAYMENT =======
     deposit_paid boolean default false,
+    checkout_url varchar(512),
     deposit_paid_at timestamp,
     payment_method varchar(50),
 
@@ -2958,3 +2959,7 @@ ADD COLUMN IF NOT EXISTS cancellation_reason VARCHAR(255);
 -- ========== V87__add_booking_date_from.sql ==========
 ALTER TABLE bookings 
 ADD COLUMN IF NOT EXISTS booking_date_from TIMESTAMP;
+
+
+
+
