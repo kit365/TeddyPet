@@ -1,2 +1,0 @@
--- ===== REPLY_COMMENT IN FEEDBACKS =====
-ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS reply_comment TEXT;
