@@ -13,7 +13,7 @@ import {
     filterPanelStyles,
     dataGridStyles,
 } from '../../product/configs/styles.config';
-import { Stack, Typography, TextField, InputAdornment, Box, Tabs, Tab, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, IconButton, Divider } from '@mui/material';
+import { Stack, Typography, TextField, InputAdornment, Box, Tabs, Tab, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, IconButton, Divider, Avatar } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -22,7 +22,9 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ReplayIcon from '@mui/icons-material/Replay';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { updateOrderStatus, updateShippingFee, cancelOrderByAdmin, returnOrder, downloadOrderInvoice, handleOrderRefundRequest, getOrderRefundRequests } from '../../../api/order.api';
+import { uploadImagesToCloudinary } from '../../../api/uploadCloudinary.api';
 import { getBankInformationByOrderId } from '../../../../api/bank.api';
 import { getShippingFeeSuggestion } from '../../../api/shipping.api';
 import { getAllSettings } from '../../../api/setting.api';
@@ -108,6 +110,8 @@ export const OrderList = () => {
     } | null>(null);
     const [refundHistory, setRefundHistory] = useState<OrderRefundResponse[]>([]);
     const [loadingRefundHistory, setLoadingRefundHistory] = useState(false);
+    const [refundEvidenceUrls, setRefundEvidenceUrls] = useState<string[]>(['']);
+    const [refundEvidenceUploading, setRefundEvidenceUploading] = useState(false);
 
     // Status Confirmation Dialog State
     const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: string } | null>(null);
@@ -209,9 +213,9 @@ export const OrderList = () => {
             } else {
                 toast.error(response.message || "Cập nhật thất bại");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating status:", error);
-            toast.error("Lỗi khi cập nhật trạng thái");
+            toast.error(error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái");
         } finally {
             setUpdating(false);
         }
@@ -278,6 +282,7 @@ export const OrderList = () => {
                 return;
             }
             try {
+                // Try to get from API first (for registered users)
                 const res = await getBankInformationByOrderId(refundOrder.id);
                 if (res.success && res.data) {
                     setRefundBankInfo({
@@ -286,6 +291,19 @@ export const OrderList = () => {
                         bankCode: res.data.bankCode,
                         bankName: res.data.bankName,
                     });
+                } else if (refundHistory.length > 0) {
+                    // Fallback: Use bank info from the latest refund request (useful for guests)
+                    const latest = refundHistory[0];
+                    if (latest.accountNumber) {
+                        setRefundBankInfo({
+                            accountNumber: latest.accountNumber,
+                            accountHolderName: latest.accountHolderName ?? '',
+                            bankCode: latest.bankCode || 'N/A',
+                            bankName: latest.bankName || 'N/A',
+                        });
+                    } else {
+                        setRefundBankInfo(null);
+                    }
                 } else {
                     setRefundBankInfo(null);
                 }
@@ -298,13 +316,14 @@ export const OrderList = () => {
             setRefundRequestId(refundOrder.latestRefundId ?? null);
         };
         loadRefundBankInfo();
-    }, [refundOrder?.id]);
+    }, [refundOrder?.id, refundHistory]);
 
     useEffect(() => {
         if (!refundOrder?.id) {
             setRefundHistory([]);
             return;
         }
+        setRefundHistory([]);
         setLoadingRefundHistory(true);
         getOrderRefundRequests(refundOrder.id)
             .then((res) => {
@@ -313,6 +332,49 @@ export const OrderList = () => {
             .catch(() => setRefundHistory([]))
             .finally(() => setLoadingRefundHistory(false));
     }, [refundOrder?.id]);
+
+    useEffect(() => {
+        if (!refundOrder?.id) return;
+        setRefundTxId('');
+        setRefundEvidenceUrls(['']);
+    }, [refundOrder?.id]);
+
+    useEffect(() => {
+        if (!refundOrder || refundHistory.length === 0) return;
+        if (refundOrder.latestRefundStatus !== 'APPROVED') {
+            setRefundEvidenceUrls(['']);
+            setRefundTxId('');
+            return;
+        }
+        const rid = refundOrder.latestRefundId;
+        const r = refundHistory.find((x) => x.id === rid && x.status === 'APPROVED')
+            || refundHistory.find((x) => x.status === 'APPROVED');
+        if (r) {
+            setRefundTxId(r.refundTransactionId?.trim() || '');
+            const urls = (r.adminEvidenceUrls || []).filter(Boolean);
+            setRefundEvidenceUrls(urls.length > 0 ? [...urls, ''] : ['']);
+        }
+    }, [refundOrder?.id, refundOrder?.latestRefundStatus, refundOrder?.latestRefundId, refundHistory]);
+
+    const handleRefundEvidenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0 || !refundOrder) return;
+        setRefundEvidenceUploading(true);
+        try {
+            const urls = await uploadImagesToCloudinary(files, `refunds/${refundOrder.orderCode || 'evidence'}`);
+            setRefundEvidenceUrls((prev) => {
+                const current = prev.filter((u) => u.trim() !== '');
+                return [...current, ...urls, ''];
+            });
+            toast.success(`Đã tải lên ${urls.length} ảnh.`);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Lỗi khi tải ảnh';
+            toast.error(msg);
+        } finally {
+            setRefundEvidenceUploading(false);
+            if (e.target) e.target.value = '';
+        }
+    };
 
     const handleConfirmReturn = async () => {
         if (!returningOrderId || !returnReason.trim()) return;
@@ -916,7 +978,7 @@ export const OrderList = () => {
             {/* Refund Request Dialog for ONLINE + thanh toán online khi đã PAID / PROCESSING or APPROVED */}
             <Dialog
                 open={!!refundOrder}
-                onClose={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }}
+                onClose={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); setRefundEvidenceUrls(['']); }}
                 PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
@@ -935,7 +997,7 @@ export const OrderList = () => {
                             )}
                         </Box>
                     </Stack>
-                    <IconButton onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                    <IconButton onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); setRefundEvidenceUrls(['']); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -977,11 +1039,11 @@ export const OrderList = () => {
                                                     px: 1,
                                                     py: 0.25,
                                                     borderRadius: '8px',
-                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : '#FEE2E2',
-                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : '#991B1B',
+                                                    bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : r.status === 'ACTION_REQUIRED' ? '#FFF7ED' : '#FEE2E2',
+                                                    color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : r.status === 'ACTION_REQUIRED' ? '#C05621' : '#991B1B',
                                                 }}
                                             >
-                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Chờ hoàn tiền' : r.status === 'ACTION_REQUIRED' ? 'Cần cập nhật' : 'Từ chối'}
                                             </Typography>
                                         </Stack>
                                         {r.customerReason && (
@@ -1052,21 +1114,101 @@ export const OrderList = () => {
                     )}
 
                     {refundOrder?.latestRefundStatus === 'APPROVED' && (
-                        <Box sx={{ mb: 2 }}>
-                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
-                                Mã giao dịch hoàn tiền (nếu có)
-                            </Typography>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                value={refundTxId}
-                                onChange={(e) => setRefundTxId(e.target.value)}
-                                placeholder="Nhập mã giao dịch chuyển khoản..."
-                                sx={{
-                                    '& .MuiOutlinedInput-root': { borderRadius: '12px' }
-                                }}
-                            />
-                        </Box>
+                        <>
+                            <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+                                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#065F46' }}>
+                                    Bước 2 — Thanh toán đang <strong>chờ hoàn tiền</strong>. Sau khi chuyển khoản, nhập mã GD và tải bằng chứng.
+                                </Typography>
+                            </Box>
+                            <Box sx={{ mb: 2 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                    Mã giao dịch hoàn tiền
+                                </Typography>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={refundTxId}
+                                    onChange={(e) => setRefundTxId(e.target.value)}
+                                    placeholder="Nhập mã giao dịch chuyển khoản..."
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                                    }}
+                                />
+                            </Box>
+                            <Box sx={{ mb: 2 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
+                                    Bằng chứng chuyển khoản (ảnh / link)
+                                </Typography>
+                                <Stack spacing={1.5}>
+                                    {refundEvidenceUrls.map((url, index) => (
+                                        <Box key={index}>
+                                            <Stack direction="row" spacing={1} alignItems="flex-start">
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    value={url}
+                                                    onChange={(e) => {
+                                                        const next = [...refundEvidenceUrls];
+                                                        next[index] = e.target.value;
+                                                        setRefundEvidenceUrls(next);
+                                                    }}
+                                                    placeholder="https://..."
+                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                                />
+                                                {refundEvidenceUrls.length > 1 && (
+                                                    <IconButton
+                                                        onClick={() => setRefundEvidenceUrls(refundEvidenceUrls.filter((_, i) => i !== index))}
+                                                        sx={{ mt: 0.5, bgcolor: 'rgba(255, 86, 48, 0.08)', color: '#FF5630' }}
+                                                    >
+                                                        <CloseIcon sx={{ fontSize: '1.2rem' }} />
+                                                    </IconButton>
+                                                )}
+                                            </Stack>
+                                            {url.trim().startsWith('http') && (
+                                                <Box sx={{ mt: 1, ml: 1 }}>
+                                                    <Avatar
+                                                        src={url}
+                                                        variant="rounded"
+                                                        sx={{ width: 80, height: 80, borderRadius: '8px', border: '1px solid #E5E8EB' }}
+                                                        imgProps={{ onError: (ev) => { ev.currentTarget.style.display = 'none'; } }}
+                                                    />
+                                                </Box>
+                                            )}
+                                        </Box>
+                                    ))}
+                                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => setRefundEvidenceUrls([...refundEvidenceUrls, ''])}
+                                            sx={{ textTransform: 'none', borderRadius: '10px', height: 36 }}
+                                        >
+                                            + Thêm link
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            id="orderlist-admin-refund-upload"
+                                            onChange={handleRefundEvidenceUpload}
+                                        />
+                                        <label htmlFor="orderlist-admin-refund-upload">
+                                            <Button
+                                                component="span"
+                                                variant="contained"
+                                                size="small"
+                                                startIcon={refundEvidenceUploading ? <CircularProgress size={16} color="inherit" /> : <CloudUploadIcon />}
+                                                disabled={refundEvidenceUploading}
+                                                sx={{ textTransform: 'none', borderRadius: '10px', height: 36, bgcolor: '#1C252E' }}
+                                            >
+                                                {refundEvidenceUploading ? 'Đang tải...' : 'Tải từ máy'}
+                                            </Button>
+                                        </label>
+                                    </Stack>
+                                </Stack>
+                            </Box>
+                        </>
                     )}
 
                     <Box sx={{ mb: 2 }}>
@@ -1110,7 +1252,7 @@ export const OrderList = () => {
                     <Button
                         fullWidth
                         variant="outlined"
-                        onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); }}
+                        onClick={() => { setRefundOrder(null); setRefundNote(''); setRefundTxId(''); setRefundEvidenceUrls(['']); }}
                         sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
                     >
                         Đóng
@@ -1119,10 +1261,47 @@ export const OrderList = () => {
                         <Button
                             fullWidth
                             variant="outlined"
+                            color="warning"
+                            onClick={async () => {
+                                if (!refundOrder || !refundRequestId) {
+                                    toast.error("Không tìm thấy yêu cầu hoàn tiền để yêu cầu cập nhật.");
+                                    return;
+                                }
+                                setIsCancelling(true);
+                                try {
+                                    const res = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
+                                        requireMoreInfo: true,
+                                        adminNote: refundNote.trim() || undefined,
+                                    });
+                                    if (res.success) {
+                                        toast.success("Đã yêu cầu khách hàng cung cấp lại thông tin.");
+                                        setRefundOrder(null);
+                                        setRefundNote('');
+                                        setRefundEvidenceUrls(['']);
+                                        refresh();
+                                    } else {
+                                        toast.error(res.message || "Không thể gửi yêu cầu cập nhật.");
+                                    }
+                                } catch (error: any) {
+                                    toast.error(error.response?.data?.message || "Lỗi hệ thống khi yêu cầu cập nhật.");
+                                } finally {
+                                    setIsCancelling(false);
+                                }
+                            }}
+                            disabled={isCancelling}
+                            sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
+                        >
+                            Cần cập nhật
+                        </Button>
+                    )}
+                    {refundOrder?.latestRefundStatus === 'PENDING' && (
+                        <Button
+                            fullWidth
+                            variant="outlined"
                             color="error"
                             onClick={async () => {
                                 if (!refundOrder || !refundRequestId) {
-                                    toast.error("Không tìm thấy yêu cầu hoàn tiền để hủy duyệt.");
+                                    toast.error("Không tìm thấy yêu cầu hoàn tiền để từ chối.");
                                     return;
                                 }
                                 setIsCancelling(true);
@@ -1132,15 +1311,16 @@ export const OrderList = () => {
                                         adminNote: refundNote.trim() || undefined,
                                     });
                                     if (res.success) {
-                                        toast.success("Đã hủy duyệt yêu cầu hoàn tiền.");
+                                        toast.success("Đã từ chối yêu cầu hoàn tiền.");
                                         setRefundOrder(null);
                                         setRefundNote('');
+                                        setRefundEvidenceUrls(['']);
                                         refresh();
                                     } else {
-                                        toast.error(res.message || "Không thể hủy duyệt yêu cầu hoàn tiền.");
+                                        toast.error(res.message || "Không thể từ chối yêu cầu hoàn tiền.");
                                     }
                                 } catch (error: any) {
-                                    toast.error(error.response?.data?.message || "Lỗi hệ thống khi hủy duyệt.");
+                                    toast.error(error.response?.data?.message || "Lỗi hệ thống khi từ chối.");
                                 } finally {
                                     setIsCancelling(false);
                                 }
@@ -1148,7 +1328,7 @@ export const OrderList = () => {
                             disabled={isCancelling}
                             sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
                         >
-                            Hủy duyệt
+                            Từ chối
                         </Button>
                     )}
                     <Button
@@ -1161,17 +1341,24 @@ export const OrderList = () => {
                             }
                             setIsCancelling(true);
                             try {
+                                const step2 = refundOrder.latestRefundStatus === 'APPROVED';
                                 const response = await handleOrderRefundRequest(refundOrder.id, refundRequestId, {
                                     approved: true,
                                     adminNote: refundNote.trim() || undefined,
-                                    refundTransactionId: refundOrder.latestRefundStatus === 'APPROVED' ? refundTxId : undefined,
+                                    ...(step2
+                                        ? {
+                                            refundTransactionId: refundTxId.trim() || undefined,
+                                            adminEvidenceUrls: refundEvidenceUrls.filter((u) => u.trim() !== ''),
+                                        }
+                                        : {}),
                                 });
                                 if (response.success) {
-                                    const msg = refundOrder.latestRefundStatus === 'APPROVED' ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt yêu cầu hoàn tiền cho đơn này.";
+                                    const msg = step2 ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt yêu cầu hoàn tiền — đơn hủy, chờ chuyển khoản hoàn tiền.";
                                     toast.success(msg);
                                     setRefundOrder(null);
                                     setRefundNote('');
                                     setRefundTxId('');
+                                    setRefundEvidenceUrls(['']);
                                     refresh();
                                 } else {
                                     toast.error(response.message || "Không thể xử lý yêu cầu hoàn tiền.");

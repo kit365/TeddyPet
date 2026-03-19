@@ -95,4 +95,9 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                     return new IllegalArgumentException(AuthMessages.MESSAGE_USER_NOT_FOUND);
                 });
     }
+
+    @Override
+    public List<User> findByRoleName(String roleName) {
+        return userRepository.findByRole_Name(roleName);
+    }
 }

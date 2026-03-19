@@ -10,8 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserService {
-    /** Admin: lấy danh sách tất cả user (cho trang Danh sách người dùng). */
-    List<UserProfileResponse> getAllUsers();
+    /** Admin: lấy danh sách tất cả user (cho trang Danh sách người dùng), hỗ trợ lọc theo role. */
+    List<UserProfileResponse> getAllUsers(String roleName);
 
     User getById(UUID userId);
 

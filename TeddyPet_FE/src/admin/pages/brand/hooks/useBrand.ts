@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBrands, createBrand, getBrandById, updateBrand, deleteBrand, downloadBrandsTemplate, exportBrandsExcel, importBrandsExcel } from '../../../api/brand.api';
+import { getBrands, createBrand, getBrandById, updateBrand, deleteBrand, downloadBrandsTemplate, exportBrandsExcel, importBrandsExcel, previewBrandsImportExcel } from '../../../api/brand.api';
 import { ApiResponse } from '../../../config/type';
 import { toast } from 'react-toastify';
 
@@ -113,6 +113,15 @@ export const useImportBrandsExcel = () => {
         },
         onError: (error: any) => {
             toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu từ Excel');
+        }
+    });
+};
+
+export const usePreviewBrandImportExcel = () => {
+    return useMutation({
+        mutationFn: previewBrandsImportExcel,
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Không thể kiểm tra dữ liệu Excel');
         }
     });
 };

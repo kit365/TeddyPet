@@ -1,4 +1,4 @@
-﻿import { FooterSub } from "../../components/layouts/FooterSub";
+import { FooterSub } from "../../components/layouts/FooterSub";
 import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
@@ -101,7 +101,7 @@ export const BookingPage = () => {
                             <div className="text-[1.25rem] font-[700] mb-[10px] group-hover:text-[#ffbaa0] cursor-pointer transition-default">
                                 Địa điểm
                             </div>
-                            <p>64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
+                            <p>99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam</p>
                         </div>
                     </div>
 
@@ -133,7 +133,7 @@ export const BookingPage = () => {
                     </div>
 
                     <div className="w-[335px] h-[190px]">
-                        <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/07/text_04.png" alt="" width={335} height={190} className="image-phone-booking cursor-pointer" />
+                        <img src="file:///Users/ngotuankiet/.gemini/antigravity/brain/3ee94048-3cb0-4052-aa9d-7ba527439328/phone_bone_updated_1773903974469.png" alt="" width={335} height={190} className="image-phone-booking cursor-pointer" />
                     </div>
                 </div>
 
@@ -261,7 +261,7 @@ export const BookingPage = () => {
                             </div>
                             <div className="pl-[20px]">
                                 <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
-                                <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
+                                <p className="text-[#181818]">99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam</p>
                             </div>
                         </div>
                         <div className="flex mb-[32px]">
@@ -270,8 +270,8 @@ export const BookingPage = () => {
                             </div>
                             <div className="pl-[20px]">
                                 <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
-                                <p className="text-[#181818]">+84346587796</p>
-                                <p className="text-[#181818]">+84346587796</p>
+                                <p className="text-[#181818]">096 768 13 28</p>
+                                <p className="text-[#181818]">096 768 13 28</p>
                             </div>
                         </div>
                         <div className="flex mb-[32px]">

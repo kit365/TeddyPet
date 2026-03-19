@@ -2,8 +2,8 @@ import { BrandList } from "./sections/BrandList";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
 import { ExportImport } from "../../components/ui/ExportImport";
-import { useExportBrandsExcel, useImportBrandsExcel, useDownloadBrandsTemplate } from "./hooks/useBrand";
-import { ImportExcelModal } from "../product/components/ImportExcelModal";
+import { useExportBrandsExcel, useImportBrandsExcel, useDownloadBrandsTemplate, usePreviewBrandImportExcel } from "./hooks/useBrand";
+import { EntityImportWizardModal } from "../../components/upload/EntityImportWizardModal";
 import { useState } from "react";
 
 export const BrandListPage = () => {
@@ -12,6 +12,7 @@ export const BrandListPage = () => {
     const exportMutation = useExportBrandsExcel();
     const importMutation = useImportBrandsExcel();
     const downloadTemplateMutation = useDownloadBrandsTemplate();
+    const previewMutation = usePreviewBrandImportExcel();
 
     return (
         <div className="flex flex-col gap-[16px]">
@@ -37,12 +38,14 @@ export const BrandListPage = () => {
 
             <BrandList />
 
-            <ImportExcelModal
+            <EntityImportWizardModal
                 open={openImportModal}
                 onClose={() => setOpenImportModal(false)}
                 onImport={(file) => importMutation.mutate(file)}
+                previewMutation={previewMutation}
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
+                entityName="Thương hiệu"
             />
         </div>
     );

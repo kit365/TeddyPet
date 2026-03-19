@@ -31,6 +31,11 @@ public class BlogCommentRepositoryAdapter implements BlogCommentRepositoryPort {
     }
 
     @Override
+    public List<BlogComment> findAllByParentIdIsNullOrderByCreatedAtDesc() {
+        return blogCommentRepository.findAllByParentIsNullOrderByCreatedAtDesc();
+    }
+
+    @Override
     public void delete(BlogComment comment) {
         blogCommentRepository.delete(comment);
     }

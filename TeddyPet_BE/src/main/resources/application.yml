@@ -69,4 +69,5 @@ app:
   slot:
     duration-minutes: ${APP_SLOT_DURATION_MINUTES:30}
     generate-days-ahead: ${APP_SLOT_GENERATE_DAYS_AHEAD:60}
+  hotline: ${APP_HOTLINE:096 768 13 28}
 

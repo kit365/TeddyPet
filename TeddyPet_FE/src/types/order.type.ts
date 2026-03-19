@@ -79,9 +79,15 @@ export interface OrderResponse {
     returnRequestedAt?: string;
     adminReturnNote?: string;
     /** Trạng thái yêu cầu hoàn tiền gần nhất (nếu có) */
-    latestRefundStatus?: "PENDING" | "APPROVED" | "REFUNDED" | "REJECTED" | "CANCELLED";
+    latestRefundStatus?: "PENDING" | "APPROVED" | "REFUNDED" | "REJECTED" | "CANCELLED" | "ACTION_REQUIRED";
     /** ID yêu cầu hoàn tiền gần nhất (nếu có) */
     latestRefundId?: number;
+    /** Mã giao dịch hoàn tiền (nếu approved/refunded) */
+    refundTransactionId?: string;
+    /** Danh sách ảnh bằng chứng hoàn tiền từ phía admin */
+    adminRefundEvidenceUrls?: string[];
+    /** Ghi chú hoàn tiền từ phía admin */
+    adminRefundNote?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -107,6 +113,10 @@ export interface OrderRefundResponse {
     processedBy?: string | null;
     refundTransactionId?: string | null;
     adminEvidenceUrls?: string[];
+    bankName?: string | null;
+    bankCode?: string | null;
+    accountNumber?: string | null;
+    accountHolderName?: string | null;
     createdAt: string;
     processedAt?: string | null;
     refundCompletedAt?: string | null;

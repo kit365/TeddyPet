@@ -49,6 +49,7 @@ public class FeedbackApplicationService implements FeedbackService {
     private String frontendUrl;
 
     @Override
+    @Transactional(readOnly = true)
     public List<FeedbackResponse> getAllFeedbacks() {
         return feedbackRepositoryPort.findAll().stream()
                 .map(feedbackMapper::toResponse)
@@ -111,7 +112,7 @@ public class FeedbackApplicationService implements FeedbackService {
         }
 
         Feedback feedback = Feedback.builder()
-                .orderId(order.getId())
+                .order(order)
                 .user(user)
                 .guestEmail(guestEmail)
                 .guestName(guestName)
@@ -164,7 +165,7 @@ public class FeedbackApplicationService implements FeedbackService {
             }
             FeedbackToken token = feedbackTokenRepositoryPort.findByToken(request.token())
                     .orElseThrow(() -> new IllegalArgumentException(FeedbackMessages.MESSAGE_FEEDBACK_INVALID_TOKEN));
-            if (!feedback.getOrderId().equals(token.getOrderId())) {
+            if (!feedback.getOrder().getId().equals(token.getOrderId())) {
                 throw new AccessDeniedException("Token doesn't match this feedback.");
             }
         }
@@ -236,6 +237,7 @@ public class FeedbackApplicationService implements FeedbackService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<FeedbackResponse> getProductFeedbacks(Long productId) {
         return feedbackRepositoryPort.findByProductId(productId).stream()
                 .map(feedbackMapper::toResponse)
@@ -243,6 +245,7 @@ public class FeedbackApplicationService implements FeedbackService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public FeedbackTokenResponse getFeedbackTokenDetails(UUID token) {
         FeedbackToken feedbackToken = feedbackTokenRepositoryPort.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException(FeedbackMessages.MESSAGE_FEEDBACK_INVALID_TOKEN));
@@ -263,6 +266,7 @@ public class FeedbackApplicationService implements FeedbackService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public FeedbackTokenResponse getOrderFeedbackDetails(UUID orderId, String email) {
         Order order = orderRepositoryPort.findById(orderId);
 
@@ -311,11 +315,48 @@ public class FeedbackApplicationService implements FeedbackService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<FeedbackResponse> getMyFeedbacks() {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         return feedbackRepositoryPort.findByUserId(currentUserId).stream()
                 .map(feedbackMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse getFeedbackStats() {
+        long total = feedbackRepositoryPort.findAll().size();
+        Double avg = feedbackRepositoryPort.getAverageRating();
+        long today = feedbackRepositoryPort.countTodayReviews();
+
+        java.util.Map<Integer, Long> distribution = new java.util.HashMap<>();
+        for (int i = 1; i <= 5; i++) distribution.put(i, 0L);
+        List<Object[]> distRows = feedbackRepositoryPort.getRatingDistribution();
+        for (Object[] row : distRows) {
+            distribution.put((Integer) row[0], (Long) row[1]);
+        }
+
+        List<Object[]> trendRows = feedbackRepositoryPort.getMonthlyTrends();
+        java.util.List<fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse.MonthlyReviewCount> trends = trendRows.stream()
+                .map(row -> new fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse.MonthlyReviewCount((String) row[0], ((Number) row[1]).longValue()))
+                .collect(Collectors.toList());
+
+        // Simple growth calculation: (this month - last month) / last month
+        java.math.BigDecimal growth = java.math.BigDecimal.ZERO;
+        if (trends.size() >= 2) {
+            long currentMonth = trends.get(0).count();
+            long lastMonth = trends.get(1).count();
+            if (lastMonth > 0) {
+                growth = java.math.BigDecimal.valueOf((double) (currentMonth - lastMonth) / lastMonth * 100)
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
+            } else if (currentMonth > 0) {
+                growth = java.math.BigDecimal.valueOf(100);
+            }
+        }
+
+        return new fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse(
+                total, avg != null ? avg : 0.0, today, growth, distribution, trends);
     }
 
     @Override

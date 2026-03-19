@@ -1,5 +1,7 @@
 package fpt.teddypet.application.service.products;
 
+import fpt.teddypet.domain.entity.ProductAgeRange;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductAgeRangeRepository;
 import fpt.teddypet.application.dto.request.products.product.ProductRequest;
 import fpt.teddypet.application.dto.request.products.image.ProductImageItemRequest;
 import fpt.teddypet.application.dto.request.products.variant.ProductVariantRequest;
@@ -11,12 +13,14 @@ import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.domain.entity.Product;
 import fpt.teddypet.domain.entity.ProductBrand;
 import fpt.teddypet.domain.entity.ProductCategory;
+import fpt.teddypet.domain.entity.ProductTag;
 import fpt.teddypet.domain.entity.ProductAttribute;
 import fpt.teddypet.domain.entity.ProductAttributeValue;
 import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.ProductStatusEnum;
 import fpt.teddypet.domain.enums.ProductTypeEnum;
 import fpt.teddypet.domain.enums.UnitEnum;
+import java.util.Objects;
 import fpt.teddypet.application.mapper.products.ProductMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +30,6 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,7 +46,6 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.products.Prod
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductCategoryRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductTagRepository;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductImageRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductAttributeRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductAttributeValueRepository;
 
@@ -57,9 +59,9 @@ public class ProductExcelApplicationService implements ProductExcelService {
     private final ProductCategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductTagRepository tagRepository;
-    private final ProductImageRepository productImageRepository;
     private final ProductAttributeRepository productAttributeRepository;
     private final ProductAttributeValueRepository productAttributeValueRepository;
+    private final ProductAgeRangeRepository ageRangeRepository;
     private final ProductMapper productMapper;
     private final ObjectMapper objectMapper;
 
@@ -126,7 +128,14 @@ public class ProductExcelApplicationService implements ProductExcelService {
         row.getCell(ProductExcelColumn.DESCRIPTION.getIndex()).setCellValue(
                 entity.getDescription() != null ? entity.getDescription() : "");
         // PetTypes
-        row.getCell(ProductExcelColumn.PET_TYPES.getIndex()).setCellValue(petTypesStr);
+        row.getCell(ProductExcelColumn.PET_TYPES.getIndex()).setCellValue(petTypesStr != null ? petTypesStr : "");
+        // Age Ranges
+        if (entity.getAgeRanges() != null && !entity.getAgeRanges().isEmpty()) {
+            String ageRangesStr = entity.getAgeRanges().stream()
+                    .map(ProductAgeRange::getName)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            row.getCell(ProductExcelColumn.PET_AGE.getIndex()).setCellValue(ageRangesStr);
+        }
     }
 
     @Override
@@ -155,9 +164,11 @@ public class ProductExcelApplicationService implements ProductExcelService {
         if (file.isEmpty())
             throw new IllegalArgumentException("File trống, vui lòng chọn file hợp lệ.");
 
-        Map<Integer, String> dupResolutions = parseDuplicateResolutions(duplicateResolutionsJson);
         int created = 0, updated = 0, skipped = 0;
         List<String> errors = new ArrayList<>();
+
+        // Track slugs used within this batch to avoid internal collisions
+        Set<String> usedSlugsInBatch = new HashSet<>();
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -165,73 +176,81 @@ public class ProductExcelApplicationService implements ProductExcelService {
             Map<Long, ProductRequestDetails> toUpdate = new LinkedHashMap<>();
             List<ProductRequestDetails> toCreate = new ArrayList<>();
 
+            // 1. Parsing and Grouping Phase
+            Map<String, ProductRequestDetails> nameToCreateMap = new LinkedHashMap<>();
+            Map<Long, ProductRequestDetails> idToUpdateMap = new LinkedHashMap<>();
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
-                if (row == null || isRowEmpty(row))
-                    continue;
+                if (row == null || isRowEmpty(row)) continue;
 
                 int excelRow = i + 1;
-                Long productId = getLongValue(getCell(row, headerMap, ProductExcelColumn.PRODUCT_ID));
                 ProductRequestDetails rowDt = parseProduct(row, headerMap);
 
-                if (productId != null) {
-                    if (!productRepository.existsById(productId)) {
-                        log.warn("Dòng {}: ID sản phẩm {} không tồn tại → sẽ tạo mới (ignore ID).", excelRow, productId);
-                        toCreate.add(rowDt);
-                        continue;
+                if (!StringUtils.hasText(rowDt.name)) {
+                    skipped++;
+                    continue;
+                }
+
+                Long productIdFromCol = getLongValue(getCell(row, headerMap, ProductExcelColumn.PRODUCT_ID));
+                Long existingId = null;
+
+                // Priority 1: Check by PRODUCT_ID if provided
+                if (productIdFromCol != null) {
+                    if (productRepository.existsById(productIdFromCol)) {
+                        existingId = productIdFromCol;
+                    } else {
+                        log.warn("Dòng {}: PRODUCT_ID={} không tồn tại.", excelRow, productIdFromCol);
                     }
-                    String excelName = getStringValue(getCell(row, headerMap, ProductExcelColumn.NAME));
-                    if (StringUtils.hasText(excelName)) {
-                        Product dbById = productRepository.findById(productId).orElse(null);
-                        if (dbById != null && !namesMatchForImport(excelName, dbById.getName())) {
-                            if (!"OVERWRITE".equalsIgnoreCase(dupResolutions.getOrDefault(excelRow, "CREATE_NEW"))) {
-                                log.info("Dòng {}: PRODUCT_ID={} trỏ SP \"{}\" nhưng file là \"{}\" → tạo mới (tránh ghi đè nhầm).",
-                                        excelRow, productId, dbById.getName(), excelName);
-                                toCreate.add(rowDt);
-                                continue;
-                            }
-                        }
-                    }
-                    ProductRequestDetails target = toUpdate.computeIfAbsent(productId, id -> initFromExistingProduct(id));
+                }
+
+                // Priority 2: Check by Barcode
+                if (existingId == null && StringUtils.hasText(rowDt.barcode)) {
+                    existingId = productRepository.findByBarcodeAndIsActiveTrueAndIsDeletedFalse(rowDt.barcode.trim())
+                            .map(Product::getId).orElse(null);
+                }
+
+                // Priority 3: Check by Slug (from Name)
+                if (existingId == null) {
+                    String slug = SlugUtil.toSlug(rowDt.name.trim());
+                    existingId = productRepository.findBySlug(slug)
+                            .map(Product::getId).orElse(null);
+                }
+
+                if (existingId != null) {
+                    // Group under Update
+                    ProductRequestDetails target = idToUpdateMap.computeIfAbsent(existingId, id -> initFromExistingProduct(id));
                     mergeRowInto(target, rowDt);
                 } else {
-                    String name = getStringValue(getCell(row, headerMap, ProductExcelColumn.NAME));
-                    if (!StringUtils.hasText(name)) {
-                        skipped++;
-                        continue;
-                    }
-
-                    String barcode = getStringValue(getCell(row, headerMap, ProductExcelColumn.BARCODE));
-                    MatchResult match = resolveExistingProductMatch(barcode, name.trim());
-                    Long existingId = match != null ? match.productId() : null;
-
-                    if (existingId != null) {
-                        Product existing = productRepository.findById(existingId).orElse(null);
-                        boolean sameName = existing != null && namesMatchForImport(name, existing.getName());
-                        if (!sameName && !"OVERWRITE".equalsIgnoreCase(dupResolutions.getOrDefault(excelRow, "CREATE_NEW"))) {
-                            existingId = null;
-                        }
-                    }
-
-                    if (existingId != null) {
-                        ProductRequestDetails target = toUpdate.computeIfAbsent(existingId, id -> initFromExistingProduct(id));
+                    // Group under Create (by Name)
+                    String normalizedName = rowDt.name.trim().toLowerCase();
+                    ProductRequestDetails target = nameToCreateMap.computeIfAbsent(normalizedName, k -> rowDt);
+                    if (target != rowDt) {
                         mergeRowInto(target, rowDt);
-                    } else {
-                        ProductRequestDetails target = toCreate.stream().filter(p -> name.equalsIgnoreCase(p.name)).findFirst().orElse(null);
-                        if (target == null) {
-                            toCreate.add(rowDt);
-                        } else {
-                            mergeRowInto(target, rowDt);
-                        }
                     }
                 }
             }
 
-            // Cập nhật sản phẩm theo ID
+            toCreate.addAll(nameToCreateMap.values());
+            toUpdate.putAll(idToUpdateMap);
+
+            // 2. Perform Updates
             for (Map.Entry<Long, ProductRequestDetails> entry : toUpdate.entrySet()) {
                 Long id = entry.getKey();
+                ProductRequestDetails prd = entry.getValue();
                 try {
-                    productService.update(id, mapToRequest(entry.getValue()));
+                    String slug = SlugUtil.toSlug(prd.name);
+                    if (usedSlugsInBatch.contains(slug)) {
+                        throw new RuntimeException("Tên sản phẩm bị trùng trong cùng lượt import: " + prd.name);
+                    }
+                    Product current = productRepository.findById(id).orElse(null);
+                    if (current != null && !current.getSlug().equals(slug)) {
+                        if (isSlugColliding(slug, id)) {
+                            throw new RuntimeException("Tên mới bị trùng slug với sản phẩm khác trong hệ thống: " + prd.name);
+                        }
+                    }
+                    usedSlugsInBatch.add(slug);
+                    productService.update(id, mapToRequest(prd));
                     updated++;
                 } catch (Exception e) {
                     String msg = String.format("Lỗi cập nhật SP ID %d: %s", id, e.getMessage());
@@ -241,9 +260,21 @@ public class ProductExcelApplicationService implements ProductExcelService {
                 }
             }
 
-            // Tạo mới sản phẩm
+            // 3. Perform Creates
             for (ProductRequestDetails prd : toCreate) {
                 try {
+                    String slug = SlugUtil.toSlug(prd.name);
+                    if (usedSlugsInBatch.contains(slug)) {
+                        // This product was already handled in the UPDATE phase (same slug).
+                        // Can happen when sibling variant rows resolved to an existing product.
+                        log.info("SP \"{}\" bỏ qua tạo mới vì slug đã được xử lý trong lượt cập nhật.", prd.name);
+                        skipped++;
+                        continue;
+                    }
+                    if (isSlugColliding(slug, null)) {
+                        throw new RuntimeException("Tên sản phẩm bị trùng slug với sản phẩm khác trong hệ thống: " + prd.name);
+                    }
+                    usedSlugsInBatch.add(slug);
                     productService.create(mapToRequest(prd));
                     created++;
                 } catch (Exception e) {
@@ -264,6 +295,12 @@ public class ProductExcelApplicationService implements ProductExcelService {
         return new ProductExcelService.ImportResult(created, updated, skipped, errors);
     }
 
+    private boolean isSlugColliding(String slug, Long excludeId) {
+        Optional<Product> existing = productRepository.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug);
+        if (existing.isEmpty()) return false;
+        return excludeId == null || !existing.get().getId().equals(excludeId);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public ImportPreview previewImport(MultipartFile file) {
@@ -272,7 +309,13 @@ public class ProductExcelApplicationService implements ProductExcelService {
         Set<String> brandNames = new LinkedHashSet<>();
         Set<String> categoryNames = new LinkedHashSet<>();
         Set<String> tagNames = new LinkedHashSet<>();
+        Set<String> ageNames = new LinkedHashSet<>();
+        Set<String> attributeNamesForPreview = new LinkedHashSet<>();
         List<ProductExcelService.DuplicateRowPreview> duplicateRows = new ArrayList<>();
+
+        // In-batch duplicate detection: only flag if (slug + barcode + attributes) are all identical.
+        // Otherwise, they are just variants of the same product.
+        Map<String, Integer> inBatchDuplicates = new HashMap<>(); // compositeKey -> rowNumber
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -282,6 +325,24 @@ public class ProductExcelApplicationService implements ProductExcelService {
                 if (row == null || isRowEmpty(row)) continue;
                 int excelRow = i + 1;
 
+                String name = getStringValue(getCell(row, headerMap, ProductExcelColumn.NAME));
+                String barcode = getStringValue(getCell(row, headerMap, ProductExcelColumn.BARCODE));
+                String attrs = getStringValue(getCell(row, headerMap, ProductExcelColumn.VARIANT_ATTRIBUTES));
+                Long productId = getLongValue(getCell(row, headerMap, ProductExcelColumn.PRODUCT_ID));
+
+                if (StringUtils.hasText(name)) {
+                    String slug = SlugUtil.toSlug(name);
+                    String compositeKey = slug + "|" + (barcode != null ? barcode.trim() : "") + "|" + (attrs != null ? attrs.trim() : "");
+                    if (inBatchDuplicates.containsKey(compositeKey)) {
+                        duplicateRows.add(new ProductExcelService.DuplicateRowPreview(
+                            excelRow, name.trim(), barcode != null ? barcode.trim() : "",
+                            "TRONG_FILE", 0L, "Dòng này bị lặp (Tên, Barcode và Thuộc tính giống hệt dòng " + inBatchDuplicates.get(compositeKey) + ")"));
+                    } else {
+                        inBatchDuplicates.put(compositeKey, excelRow);
+                    }
+                }
+
+                // B. Detect potential new entities
                 String brandName = getStringValue(getCell(row, headerMap, ProductExcelColumn.BRAND));
                 if (StringUtils.hasText(brandName)) brandNames.add(brandName.trim());
 
@@ -299,41 +360,44 @@ public class ProductExcelApplicationService implements ProductExcelService {
                     }
                 }
 
-                Long productId = getLongValue(getCell(row, headerMap, ProductExcelColumn.PRODUCT_ID));
-                String name = getStringValue(getCell(row, headerMap, ProductExcelColumn.NAME));
+                String ages = getStringValue(getCell(row, headerMap, ProductExcelColumn.PET_AGE));
+                if (StringUtils.hasText(ages)) {
+                    for (String a : ages.split(",")) {
+                        if (StringUtils.hasText(a)) ageNames.add(a.trim());
+                    }
+                }
 
-                // Có PRODUCT_ID nhưng tên file ≠ tên SP trong DB → nguy cơ ghi đè nhầm (file export hay giữ ID cũ).
+                if (StringUtils.hasText(attrs)) {
+                    for (String part : attrs.split(",")) {
+                        String[] kv = part.split(":", 2);
+                        if (kv.length > 0 && StringUtils.hasText(kv[0])) {
+                            attributeNamesForPreview.add(kv[0].trim());
+                        }
+                    }
+                }
+
+                // C. Compare with DB for external duplicates
                 if (productId != null && productRepository.existsById(productId) && StringUtils.hasText(name)) {
                     productRepository.findById(productId).ifPresent(p -> {
                         if (!namesMatchForImport(name, p.getName())) {
                             duplicateRows.add(new ProductExcelService.DuplicateRowPreview(
-                                    excelRow,
-                                    name.trim(),
-                                    "",
-                                    "PRODUCT_ID",
-                                    productId,
+                                    excelRow, name.trim(), "", "PRODUCT_ID", productId,
                                     p.getName() != null ? p.getName() : ""));
                         }
                     });
-                }
-
-                if (productId != null) continue;
-
-                if (!StringUtils.hasText(name)) continue;
-                String barcode = getStringValue(getCell(row, headerMap, ProductExcelColumn.BARCODE));
-                MatchResult match = resolveExistingProductMatch(barcode, name.trim());
-                if (match == null) continue;
-                productRepository.findById(match.productId()).ifPresent(p -> {
-                    if (!namesMatchForImport(name, p.getName())) {
-                        duplicateRows.add(new ProductExcelService.DuplicateRowPreview(
-                                excelRow,
-                                name.trim(),
-                                StringUtils.hasText(barcode) ? barcode.trim() : "",
-                                match.source(),
-                                match.productId(),
-                                p.getName() != null ? p.getName() : ""));
+                } else if (productId == null && StringUtils.hasText(name)) {
+                    MatchResult match = resolveExistingProductMatch(barcode, name.trim());
+                    if (match != null) {
+                        productRepository.findById(match.productId()).ifPresent(p -> {
+                            if (!namesMatchForImport(name, p.getName())) {
+                                duplicateRows.add(new ProductExcelService.DuplicateRowPreview(
+                                        excelRow, name.trim(), barcode != null ? barcode.trim() : "",
+                                        match.source(), match.productId(),
+                                        p.getName() != null ? p.getName() : ""));
+                            }
+                        });
                     }
-                });
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Không thể đọc file Excel để preview: " + e.getMessage(), e);
@@ -350,9 +414,33 @@ public class ProductExcelApplicationService implements ProductExcelService {
                 .filter(n -> tagRepository.findByNameIgnoreCase(n).isEmpty())
                 .toList();
 
-        List<String> missingAttributes = List.of();
+        List<String> missingAgeRanges = ageNames.stream()
+                .filter(n -> ageRangeRepository.findByName(n).isEmpty())
+                .toList();
 
-        return new ImportPreview(missingBrands, missingCategories, missingTags, missingAttributes, duplicateRows);
+        // Detect missing attributes
+        Set<String> missingAttrSet = new LinkedHashSet<>();
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+             Sheet sheet = workbook.getSheetAt(0);
+             Map<String, Integer> headerMap = buildHeaderIndexMap(sheet);
+             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                 Row row = sheet.getRow(i);
+                 if (row == null || isRowEmpty(row)) continue;
+                 String attrs = getStringValue(getCell(row, headerMap, ProductExcelColumn.VARIANT_ATTRIBUTES));
+                 if (StringUtils.hasText(attrs)) {
+                     for (String part : attrs.split(",")) {
+                         String attrName = part.split(":")[0].trim();
+                         if (StringUtils.hasText(attrName) && productAttributeRepository.findByNameIgnoreCaseAndIsDeletedFalse(attrName).isEmpty()) {
+                             missingAttrSet.add(attrName);
+                         }
+                     }
+                 }
+             }
+        } catch (Exception ignored) {}
+
+        List<String> missingAttributes = missingAttrSet.stream().toList();
+
+        return new ImportPreview(missingBrands, missingCategories, missingTags, missingAgeRanges, missingAttributes, duplicateRows);
     }
 
     private record MatchResult(long productId, String source) {}
@@ -398,7 +486,7 @@ public class ProductExcelApplicationService implements ProductExcelService {
     @Override
     @Transactional
     public ConfirmCreateResult confirmCreateMissing(ImportPreview preview) {
-        if (preview == null) return new ConfirmCreateResult(0, 0, 0, 0);
+        if (preview == null) return new ConfirmCreateResult(0, 0, 0, 0, 0);
         int createdBrands = 0;
         int createdCategories = 0;
         int createdTags = 0;
@@ -424,7 +512,39 @@ public class ProductExcelApplicationService implements ProductExcelService {
             }
         }
 
-        return new ConfirmCreateResult(createdBrands, createdCategories, createdTags, 0);
+        int createdAgeRanges = 0;
+        if (preview.missingAgeRanges() != null) {
+            for (String ar : preview.missingAgeRanges()) {
+                if (ageRangeRepository.findByName(ar).isEmpty()) {
+                    ageRangeRepository.save(fpt.teddypet.domain.entity.ProductAgeRange.builder()
+                            .name(ar.trim())
+                            .isActive(true)
+                            .isDeleted(false)
+                            .build());
+                    createdAgeRanges++;
+                    log.info("confirmCreateMissing: Created missing age range '{}'", ar);
+                }
+            }
+        }
+
+        int createdAttributes = 0;
+        if (preview.missingAttributes() != null) {
+            for (String a : preview.missingAttributes()) {
+                // This will trigger the orElseGet in getOrCreateAttributeValueId logic
+                // But we want to pre-create them here
+                fpt.teddypet.domain.entity.ProductAttribute created = productAttributeRepository.findByNameIgnoreCaseAndIsDeletedFalse(a.trim())
+                    .orElseGet(() -> productAttributeRepository.save(fpt.teddypet.domain.entity.ProductAttribute.builder()
+                        .name(a.trim())
+                        .displayType(fpt.teddypet.domain.enums.AttributeDisplayType.TEXT)
+                        .supportedUnits(new ArrayList<>())
+                        .values(new ArrayList<>())
+                        .displayOrder(0)
+                        .build()));
+                if (created != null) createdAttributes++;
+            }
+        }
+
+        return new ConfirmCreateResult(createdBrands, createdCategories, createdTags, createdAgeRanges, createdAttributes);
     }
 
     private Long getOrCreateTagIdByName(String tagName) {
@@ -449,6 +569,23 @@ public class ProductExcelApplicationService implements ProductExcelService {
                                     .isDeleted(false)
                                     .build());
                     log.info("Auto-created missing tag '{}' (id={}) during Excel import.", normalized, created.getId());
+                    return created.getId();
+                });
+    }
+
+    private Long getOrCreateAgeRangeIdByName(String ageName) {
+        if (!StringUtils.hasText(ageName)) return null;
+        String normalized = ageName.trim();
+        return ageRangeRepository.findByName(normalized)
+                .map(fpt.teddypet.domain.entity.ProductAgeRange::getId)
+                .orElseGet(() -> {
+                    fpt.teddypet.domain.entity.ProductAgeRange created = ageRangeRepository.save(
+                            fpt.teddypet.domain.entity.ProductAgeRange.builder()
+                                    .name(normalized)
+                                    .isActive(true)
+                                    .isDeleted(false)
+                                    .build());
+                    log.info("Auto-created missing age range '{}' (id={}) during Excel import.", normalized, created.getId());
                     return created.getId();
                 });
     }
@@ -695,6 +832,7 @@ public class ProductExcelApplicationService implements ProductExcelService {
         Long brandId;
         List<Long> categoryIds = new ArrayList<>();
         List<Long> tagIds = new ArrayList<>();
+        List<Long> ageRangeIds = new ArrayList<>();
         List<PetTypeEnum> petTypes = new ArrayList<>();
         List<ProductImageItemRequest> images = new ArrayList<>();
         List<ProductVariantRequest> variants = new ArrayList<>();
@@ -731,6 +869,52 @@ public class ProductExcelApplicationService implements ProductExcelService {
     private Long getOrCreateCategoryIdByName(String categoryName) {
         if (!StringUtils.hasText(categoryName)) return null;
         String normalized = categoryName.trim();
+
+        // Support hierarchical path format: "Parent > Child"
+        if (normalized.contains(">")) {
+            String[] parts = normalized.split(">", 2);
+            String parentNameRaw = parts[0].trim();
+            String childNameRaw  = parts[1].trim();
+
+            // Resolve parent (look up only, do not create root categories here)
+            ProductCategory parent = StringUtils.hasText(parentNameRaw)
+                    ? categoryRepository.findByNameIgnoreCase(parentNameRaw).orElse(null)
+                    : null;
+
+            if (!StringUtils.hasText(childNameRaw)) return null;
+
+            // Try to find child under the resolved parent first
+            if (parent != null) {
+                final Long parentId = parent.getId();
+                List<ProductCategory> candidates = categoryRepository.findByNameIgnoreCase(childNameRaw).stream()
+                        // findByNameIgnoreCase might return Optional; adapt if yours returns a list
+                        .filter(c -> c.getParent() != null && c.getParent().getId().equals(parentId))
+                        .toList();
+                // Ideally use a method that returns List; fall back to the Optional if needed
+                if (!candidates.isEmpty()) return candidates.get(0).getId();
+            }
+
+            // Fall back: look up child by name alone
+            ProductCategory childByName = categoryRepository.findByNameIgnoreCase(childNameRaw).orElse(null);
+            if (childByName != null) return childByName.getId();
+
+            // Auto-create child under the resolved parent
+            String slugBase = SlugUtil.toSlug(childNameRaw);
+            String slug = slugBase;
+            int suffix = 1;
+            while (categoryRepository.existsBySlug(slug)) { slug = slugBase + "-" + suffix++; }
+            ProductCategory created = categoryRepository.save(ProductCategory.builder()
+                    .name(childNameRaw)
+                    .slug(slug)
+                    .parent(parent)   // preserves hierarchy
+                    .isActive(true)
+                    .isDeleted(false)
+                    .build());
+            log.info("Auto-created category '{}' under parent '{}' (id={})", childNameRaw, parentNameRaw, created.getId());
+            return created.getId();
+        }
+
+        // Plain name (no path) — existing behaviour
         return categoryRepository.findByNameIgnoreCase(normalized)
                 .map(ProductCategory::getId)
                 .orElseGet(() -> {
@@ -778,12 +962,13 @@ public class ProductExcelApplicationService implements ProductExcelService {
 
         // Tags
         String tagNames = getStringValue(getCell(row, headerMap, ProductExcelColumn.TAGS));
-        if (StringUtils.hasText(tagNames)) {
-            for (String tName : tagNames.split(",")) {
-                Long tagId = getOrCreateTagIdByName(tName);
-                if (tagId != null) dt.tagIds.add(tagId);
-            }
-        }
+        dt.tagIds = parseTagIds(tagNames);
+
+        // Age Ranges
+        String ageRanges = getStringValue(getCell(row, headerMap, ProductExcelColumn.PET_AGE));
+        dt.ageRangeIds = parseAgeRangeIds(ageRanges);
+
+        // PetTypes
 
         String petStr = getStringValue(getCell(row, headerMap, ProductExcelColumn.PET_TYPES));
         if (StringUtils.hasText(petStr)) {
@@ -898,6 +1083,26 @@ public class ProductExcelApplicationService implements ProductExcelService {
         return createdVal.getValueId();
     }
 
+    private List<Long> parseTagIds(String raw) {
+        if (!StringUtils.hasText(raw)) return new ArrayList<>();
+        List<Long> ids = new ArrayList<>();
+        for (String tag : raw.split(",")) {
+            Long id = getOrCreateTagIdByName(tag.trim());
+            if (id != null) ids.add(id);
+        }
+        return ids;
+    }
+
+    private List<Long> parseAgeRangeIds(String raw) {
+        if (!StringUtils.hasText(raw)) return new ArrayList<>();
+        List<Long> ids = new ArrayList<>();
+        for (String age : raw.split(",")) {
+            Long id = getOrCreateAgeRangeIdByName(age.trim());
+            if (id != null) ids.add(id);
+        }
+        return ids;
+    }
+
     private ProductRequest mapToRequest(ProductRequestDetails dt) {
         // Mặc định DRAFT - sản phẩm import từ Excel cần được review trên web trước khi
         // publish
@@ -933,7 +1138,7 @@ public class ProductExcelApplicationService implements ProductExcelService {
                 status,
                 productType,
                 dt.categoryIds,
-                dt.tagIds, null, attributeIds,
+                dt.tagIds, dt.ageRangeIds, attributeIds,
                 dt.images,
                 dt.variants);
     }
@@ -954,16 +1159,32 @@ public class ProductExcelApplicationService implements ProductExcelService {
             target.images.addAll(rowDt.images);
         }
         if (rowDt.variants != null && !rowDt.variants.isEmpty()) target.variants.addAll(rowDt.variants);
+        if (rowDt.ageRangeIds != null && !rowDt.ageRangeIds.isEmpty()) {
+            for (Long id : rowDt.ageRangeIds) {
+                if (!target.ageRangeIds.contains(id)) target.ageRangeIds.add(id);
+            }
+        }
     }
 
     private ProductRequestDetails initFromExistingProduct(Long productId) {
         ProductRequestDetails dt = new ProductRequestDetails();
         if (productId == null) return dt;
-        try {
-            // Preload existing images so Excel import does not wipe them out
-            List<fpt.teddypet.domain.entity.ProductImage> imgs =
-                    productImageRepository.findByProductIdAndIsDeletedFalseOrderByDisplayOrderAsc(productId);
-            for (fpt.teddypet.domain.entity.ProductImage img : imgs) {
+        Product p = productRepository.findById(productId).orElse(null);
+        if (p == null) return dt;
+        
+        dt.name = p.getName();
+        dt.barcode = p.getBarcode();
+        dt.desc = p.getDescription();
+        dt.brandId = p.getBrand() != null ? p.getBrand().getId() : null;
+        dt.categoryIds = new ArrayList<>(p.getCategories().stream().map(ProductCategory::getId).toList());
+        dt.tagIds = new ArrayList<>(p.getTags().stream().map(ProductTag::getId).toList());
+        dt.ageRangeIds = new ArrayList<>(p.getAgeRanges().stream().map(ProductAgeRange::getId).toList());
+        dt.petTypes = new ArrayList<>(p.getPetTypes());
+        dt.status = p.getStatus() != null ? p.getStatus().name() : null;
+
+        // Preload existing images
+        for (fpt.teddypet.domain.entity.ProductImage img : p.getImages()) {
+            if (!img.isDeleted()) {
                 dt.images.add(new ProductImageItemRequest(
                         img.getId(),
                         img.getImageUrl(),
@@ -971,7 +1192,6 @@ public class ProductExcelApplicationService implements ProductExcelService {
                         img.getDisplayOrder()
                 ));
             }
-        } catch (Exception ignored) {
         }
         return dt;
     }

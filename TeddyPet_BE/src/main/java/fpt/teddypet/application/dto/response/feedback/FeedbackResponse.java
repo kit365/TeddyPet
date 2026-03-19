@@ -15,9 +15,10 @@ public record FeedbackResponse(
                 Integer rating,
                 String comment,
                 String replyComment,
-                LocalDateTime repliedAt,
+                @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime repliedAt,
+                String orderCode,
                 boolean isEdited,
                 boolean isPurchased,
-                LocalDateTime createdAt,
-                LocalDateTime updatedAt) {
+                @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime createdAt,
+                @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updatedAt) {
 }

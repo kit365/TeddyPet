@@ -14,6 +14,10 @@ public record OrderRefundResponse(
         String processedBy,
         String refundTransactionId,
         java.util.List<String> adminEvidenceUrls,
+        String bankName,
+        String bankCode,
+        String accountNumber,
+        String accountHolderName,
         LocalDateTime createdAt,
         LocalDateTime processedAt,
         LocalDateTime refundCompletedAt

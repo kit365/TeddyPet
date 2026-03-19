@@ -114,4 +114,11 @@ public class ProductCategoryController {
         SimpleEntityExcelService.ImportResult result = excelService.importCategories(file);
         return ResponseEntity.ok(ApiResponse.success("Import danh mục hoàn tất.", result));
     }
+    @PostMapping("/excel/preview")
+    @Operation(summary = "Xem trước dữ liệu nhập danh mục sản phẩm từ file Excel")
+    public ResponseEntity<ApiResponse<List<SimpleEntityExcelService.EntityPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<SimpleEntityExcelService.EntityPreviewRow> result = excelService.previewImportCategories(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview danh mục", result));
+    }
 }

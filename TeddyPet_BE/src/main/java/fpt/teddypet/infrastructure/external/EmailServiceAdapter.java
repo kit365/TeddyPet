@@ -4,7 +4,6 @@ import fpt.teddypet.application.constants.common.GeneralConstants;
 import fpt.teddypet.application.constants.email.EmailConstants;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppSettingRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -13,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.context.annotation.Lazy;
 import java.util.Map;
 import java.util.List;
@@ -38,14 +38,24 @@ import java.time.LocalDate;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class EmailServiceAdapter implements EmailServicePort {
 
     private final TemplateEngine templateEngine;
     private final AppSettingRepository appSettingRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository orderRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private EmailServiceAdapter self;
+
+    public EmailServiceAdapter(TemplateEngine templateEngine, AppSettingRepository appSettingRepository, fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository orderRepository) {
+        this.templateEngine = templateEngine;
+        this.appSettingRepository = appSettingRepository;
+        this.orderRepository = orderRepository;
+        
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000); // 10s
+        factory.setReadTimeout(10000);    // 10s
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @Autowired
     public void setSelf(@Lazy EmailServiceAdapter self) {

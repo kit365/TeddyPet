@@ -19,7 +19,7 @@ import { createOrder } from "../../../api/order.api";
 import { OrderRequest, OrderItemRequest, PaymentMethod } from "../../../types/order.type";
 import { UserAddressResponse } from "../../../types/address.type";
 import { sendGuestOtp, verifyGuestOtp } from "../../../api/otp.api";
-// Phí ship luôn "Liên hệ sau" - shop gọi lại chốt giá, không tính lúc checkout
+// Trước khi tạo đơn: chưa có phí chốt. Sau khi shop xác nhận → xem trang đơn / email (getOrderShippingFeeLabel).
 import { CheckCircle2 } from "lucide-react";
 
 // Fix for leaflet default marker icon
@@ -118,8 +118,6 @@ export const CheckoutPage = () => {
     const [addresses, setAddresses] = useState<UserAddressResponse[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
     const [loadingAddresses, setLoadingAddresses] = useState(true);
-    const [shippingFee] = useState<number | null>(null); // Luôn null = "Liên hệ sau" (giữ hook để tránh lỗi "Rendered more hooks")
-    const [_calculatingFee] = useState(false); // Không dùng, giữ để số lượng hooks ổn định
 
     // Shipping & Payment States
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -509,8 +507,8 @@ export const CheckoutPage = () => {
                     navigate(`/dashboard/orders/${response.data.id}`);
                 } else {
                     const guestUrl = data.guestEmail
-                        ? `/checkout/success?orderCode=${response.data.orderCode}&email=${encodeURIComponent(data.guestEmail)}`
-                        : `/checkout/success?orderCode=${response.data.orderCode}`;
+                        ? `/checkout/success?orderRef=${encodeURIComponent(response.data.orderCode)}&email=${encodeURIComponent(data.guestEmail)}`
+                        : `/checkout/success?orderRef=${encodeURIComponent(response.data.orderCode)}`;
                     navigate(guestUrl);
                 }
             } else {
@@ -955,15 +953,17 @@ export const CheckoutPage = () => {
 
                                     <div className="flex justify-between text-[#666] text-[1.0rem]">
                                         <span className="font-medium">Phí vận chuyển</span>
-                                        <span className="font-bold text-client-secondary">
+                                        <span className="font-bold text-amber-700 text-right max-w-[58%]">
                                             Liên hệ sau
                                         </span>
                                     </div>
-                                    <p className="text-[0.8rem] text-[#888] -mt-1">Shop sẽ gọi lại để chốt giá ship</p>
+                                    <p className="text-[0.8rem] text-[#888] leading-snug -mt-1">
+                                        Trước khi đặt hàng: shop chưa chốt phí ship. Sau khi TeddyPet xác nhận đơn, bạn sẽ thấy <strong>đúng phí ship</strong> trên trang chi tiết đơn, tra cứu đơn và email xác nhận.
+                                    </p>
 
                                     <div className="pt-[10px] border-t border-[#eee] flex justify-between items-center">
-                                        <span className="text-[1.0rem] font-bold text-client-secondary uppercase tracking-tight">Tổng thanh toán</span>
-                                        <div className="text-[1.375rem] text-client-primary font-bold tracking-tighter leading-none">{((checkoutTotalAmount || 0) + (shippingFee || 0)).toLocaleString()}đ</div>
+                                        <span className="text-[1.0rem] font-bold text-client-secondary uppercase tracking-tight">Tạm tính (chưa gồm ship)</span>
+                                        <div className="text-[1.375rem] text-client-primary font-bold tracking-tighter leading-none">{(checkoutTotalAmount || 0).toLocaleString()}đ</div>
                                     </div>
 
                                     <button

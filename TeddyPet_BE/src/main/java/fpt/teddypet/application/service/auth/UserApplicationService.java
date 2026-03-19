@@ -67,8 +67,14 @@ public class UserApplicationService implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserProfileResponse> getAllUsers() {
-        return userRepositoryPort.findAll().stream()
+    public List<UserProfileResponse> getAllUsers(String roleName) {
+        List<User> users;
+        if (roleName != null && !roleName.isBlank()) {
+            users = userRepositoryPort.findByRoleName(roleName);
+        } else {
+            users = userRepositoryPort.findAll();
+        }
+        return users.stream()
                 .map(this::toProfileResponse)
                 .toList();
     }

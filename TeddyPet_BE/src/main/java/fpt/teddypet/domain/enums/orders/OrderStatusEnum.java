@@ -9,6 +9,8 @@ public enum OrderStatusEnum {
     DELIVERED,         // Đã giao thành công (chờ khách xác nhận)
     COMPLETED,         // Hoàn thành
     CANCELLED,         // Đã hủy
+    REFUND_PENDING,    // Chờ hoàn tiền (đơn đã hủy, chờ admin xác nhận đã chuyển tiền)
+    REFUNDED,          // Đã hoàn tiền (đơn đã hủy và đã xác nhận chuyển khoản xong)
     RETURN_REQUESTED,  // Khách yêu cầu trả hàng (chờ admin duyệt)
     RETURNED           // Hoàn trả (khách boom hàng hoặc trả hàng đã duyệt)
 }

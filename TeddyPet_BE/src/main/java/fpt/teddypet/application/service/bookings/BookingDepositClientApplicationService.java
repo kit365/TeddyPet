@@ -28,6 +28,7 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +54,9 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
     private final PayosGatewayAdapter payosGatewayAdapter;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     public CreateBookingDepositIntentResponse createDepositIntent(CreateBookingRequest request) {
@@ -208,7 +212,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
         long amount = depositAmount.longValue();
 
-        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, returnUrl);
+        String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
+        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
         deposit.setCheckoutUrl(checkoutUrl);
         bookingDepositRepository.save(deposit);
 

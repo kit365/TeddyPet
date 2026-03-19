@@ -36,6 +36,12 @@ public class BlogCommentController {
         return ResponseEntity.ok(ApiResponse.success(blogCommentService.getCommentsByBlogPostId(postId)));
     }
 
+    @GetMapping("/all")
+    @Operation(summary = "Get All Blog Comments", description = "Retrieves all root comments for admin management.")
+    public ResponseEntity<ApiResponse<List<BlogCommentResponse>>> getAllComments() {
+        return ResponseEntity.ok(ApiResponse.success(blogCommentService.getAllComments()));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete Blog Comment", description = "Deletes a comment by its ID.")
     public ResponseEntity<ApiResponse<Void>> deleteComment(@PathVariable Long id) {

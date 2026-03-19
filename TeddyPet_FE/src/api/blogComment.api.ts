@@ -32,6 +32,11 @@ export const getBlogComments = async (postId: number): Promise<ApiResponse<BlogC
     return response.data;
 };
 
+export const getAllBlogComments = async (): Promise<ApiResponse<BlogCommentResponse[]>> => {
+    const response = await apiApp.get(`${BASE_PATH}/all`);
+    return response.data;
+};
+
 export const deleteBlogComment = async (id: number): Promise<ApiResponse<void>> => {
     const response = await apiApp.delete(`${BASE_PATH}/${id}`);
     return response.data;

@@ -1,5 +1,6 @@
 package fpt.teddypet.application.port.output.payment;
 
+import fpt.teddypet.application.dto.response.payment.BuildPaymentUrlResult;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.domain.entity.Order;
 import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
@@ -11,6 +12,6 @@ public interface PaymentGatewayPort<T> {
     default PaymentMethodEnum getPaymentMethod() {
         return getGateway().getPaymentMethod();
     }
-    String buildPaymentUrl(Order order, String ipAddress, String returnUrl);
+    BuildPaymentUrlResult buildPaymentUrl(Order order, String ipAddress, String returnUrl);
     GatewayCallbackResult handleCallback(T callbackData, HttpServletRequest request);
 }

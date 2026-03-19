@@ -98,6 +98,7 @@ import { BankInformationVerifyPage } from "../pages/bank-information/BankInforma
 import { CalendarPage } from "../pages/calendar/CalendarPage";
 import { AdminProfilePage } from "../pages/profile/AdminProfilePage";
 import { AdminProfileEditPage } from "../pages/profile/AdminProfileEditPage";
+import { TransactionListPage } from "../pages/transaction/TransactionListPage";
 
 
 export const AdminRoutes: RouteObject[] = [
@@ -136,6 +137,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "order/detail/:id", element: <OrderDetailPage /> },
     { path: "order/manual", element: <ManualOrderPage /> },
     { path: "feedback/list", element: <FeedbackListPage /> },
+    { path: "transaction/list", element: <AdminOnlyGuard><TransactionListPage /></AdminOnlyGuard> },
     { path: "booking/list", element: <BookingListPage /> },
     { path: "booking/create", element: <BookingCreatePage /> },
     { path: "booking/create/detail", element: <BookingCreateDetailPage /> },

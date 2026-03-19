@@ -1,7 +1,6 @@
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -15,8 +14,11 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { SortAscendingIcon, SortDescendingIcon, UnsortedIcon } from '../../../assets/icons';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { DATA_GRID_LOCALE_VN } from '../../service/configs/localeText.config';
 import { useState, useMemo, useEffect } from 'react';
+import { Button, Menu } from '@mui/material';
 import { useUsers } from '../hooks/useUser';
 import { useNavigate } from 'react-router-dom';
 import { prefixAdmin } from '../../../constants/routes';
@@ -226,8 +228,10 @@ const userColumns: GridColDef<IUserProfile>[] = [
 ];
 
 export const UserList = () => {
-    const { data: users = [], isLoading, isError } = useUsers();
+    const [role, setRole] = useState<string | undefined>('USER');
+    const { data: users = [], isLoading, isError, refetch } = useUsers(role);
     const [search, setSearch] = useState('');
+    const [roleAnchorEl, setRoleAnchorEl] = useState<null | HTMLElement>(null);
 
     useEffect(() => {
         if (isError) {
@@ -235,8 +239,20 @@ export const UserList = () => {
         }
     }, [isError]);
 
+    const handleRoleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+        setRoleAnchorEl(event.currentTarget);
+    };
+
+    const handleRoleMenuClose = (selectedRole?: string) => {
+        if (selectedRole !== undefined) {
+            setRole(selectedRole || undefined);
+        }
+        setRoleAnchorEl(null);
+    };
+
     const filteredUsers = useMemo(() => {
         if (!search.trim()) return users;
+        
         const q = search.trim().toLowerCase();
         return users.filter(u => 
             u.username?.toLowerCase().includes(q) ||
@@ -246,6 +262,14 @@ export const UserList = () => {
             u.phoneNumber?.toLowerCase().includes(q)
         );
     }, [users, search]);
+
+    const roleLabel = useMemo(() => {
+        if (!role) return 'Tất cả vai trò';
+        if (role === 'USER') return 'Khách hàng';
+        if (role === 'ADMIN') return 'Quản trị viên';
+        if (role === 'STAFF') return 'Nhân viên';
+        return role;
+    }, [role]);
 
     return (
         <Card
@@ -259,7 +283,7 @@ export const UserList = () => {
             <Stack
                 direction="row"
                 alignItems="center"
-                sx={{ px: 3, py: 3 }}
+                sx={{ px: 3, py: 3, gap: 2 }}
             >
                 <TextField
                     size="small"
@@ -268,7 +292,7 @@ export const UserList = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     sx={{
                         flex: 1,
-                        maxWidth: 400,
+                        maxWidth: 320,
                         '& .MuiOutlinedInput-root': {
                             borderRadius: '14px',
                             bgcolor: 'white',
@@ -296,6 +320,60 @@ export const UserList = () => {
                         ),
                     }}
                 />
+
+                <Button
+                    onClick={handleRoleMenuOpen}
+                    startIcon={<FilterListIcon />}
+                    sx={{
+                        height: '44px',
+                        px: 2,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(145, 158, 171, 0.24)',
+                        color: role ? '#1C252E' : '#637381',
+                        bgcolor: role ? 'rgba(28, 37, 46, 0.04)' : 'transparent',
+                        fontWeight: 600,
+                        '&:hover': {
+                            bgcolor: 'rgba(28, 37, 46, 0.08)',
+                            borderColor: 'rgba(145, 158, 171, 0.44)',
+                        },
+                    }}
+                >
+                    {roleLabel}
+                </Button>
+
+                <Menu
+                    anchorEl={roleAnchorEl}
+                    open={Boolean(roleAnchorEl)}
+                    onClose={() => handleRoleMenuClose()}
+                    PaperProps={{
+                        sx: {
+                            mt: 1,
+                            borderRadius: '12px',
+                            boxShadow: '0 12px 24px -4px rgba(145,158,171,0.12), 0 0 2px 0 rgba(145,158,171,0.2)',
+                        }
+                    }}
+                >
+                    <MenuItem onClick={() => handleRoleMenuClose('')} selected={!role}>Tất cả vai trò</MenuItem>
+                    <MenuItem onClick={() => handleRoleMenuClose('USER')} selected={role === 'USER'}>Khách hàng</MenuItem>
+                    <MenuItem onClick={() => handleRoleMenuClose('STAFF')} selected={role === 'STAFF'}>Nhân viên</MenuItem>
+                    <MenuItem onClick={() => handleRoleMenuClose('ADMIN')} selected={role === 'ADMIN'}>Quản trị viên</MenuItem>
+                </Menu>
+
+                <Box sx={{ flexGrow: 1 }} />
+
+                <IconButton 
+                    onClick={() => {
+                        refetch();
+                        toast.info('Đang làm mới dữ liệu...');
+                    }}
+                    sx={{ 
+                        color: '#637381',
+                        bgcolor: 'rgba(145, 158, 171, 0.08)',
+                        '&:hover': { bgcolor: 'rgba(145, 158, 171, 0.16)' }
+                    }}
+                >
+                    <RefreshIcon />
+                </IconButton>
             </Stack>
 
             <Box sx={{ width: '100%' }}>

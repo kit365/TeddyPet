@@ -23,63 +23,64 @@ import {
     ShieldCheck,
     Star,
     Download,
-    InfoCircle
+    InfoCircle,
+    Eye
 } from "iconoir-react";
 import { toast } from "react-toastify";
 import { useState, useEffect, useRef } from "react";
 import { CancelOrderModal } from "./sections/CancelOrderModal";
 import { RefundRequestModal } from "./sections/RefundRequestModal";
-import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice, createPaymentUrl, getOrderRefundRequests, createOrderRefundRequest } from "../../../api/order.api";
+import { confirmReceived, cancelOrder, requestReturn, downloadMyOrderInvoice, createPaymentUrl, getOrderRefundRequests, createOrderRefundRequest, updateOrderRefundRequest } from "../../../api/order.api";
 import { createGuestBankInformationByOrderCode } from "../../../api/bank.api";
 import { ORDER_STATUS_MAP } from "../../../constants/status";
+import { getOrderShippingFeeLabel } from "../../utils/orderShippingDisplay";
 import { OrderRefundResponse } from "../../../types/order.type";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // Component Stepper Siêu Cấp
 const OrderStepper = ({ status }: { status: string }) => {
-    const steps = [
+    const baseSteps = [
         { key: 'PENDING', label: ORDER_STATUS_MAP.PENDING.label, icon: <ClipboardCheck width={24} height={24} /> },
         { key: 'CONFIRMED', label: ORDER_STATUS_MAP.CONFIRMED.label, icon: <CheckCircle width={24} height={24} /> },
+        { key: 'PAID', label: ORDER_STATUS_MAP.PAID.label, icon: <Wallet width={24} height={24} /> },
         { key: 'PROCESSING', label: ORDER_STATUS_MAP.PROCESSING.label, icon: <BoxIcon width={24} height={24} /> },
         { key: 'DELIVERING', label: ORDER_STATUS_MAP.DELIVERING.label, icon: <Truck width={24} height={24} /> },
         { key: 'DELIVERED', label: ORDER_STATUS_MAP.DELIVERED.label, icon: <HomeSimple width={24} height={24} /> },
         { key: 'COMPLETED', label: ORDER_STATUS_MAP.COMPLETED.label, icon: <Package width={24} height={24} /> },
     ];
 
-    if (status === 'RETURN_REQUESTED') {
-        steps.push({ key: 'RETURN_REQUESTED', label: 'Yêu cầu trả', icon: <RefreshDouble className="w-[2.4rem] h-[2.4rem]" /> });
-    }
-
-    const currentIdx = steps.findIndex(s => s.key === status);
     const isCancelled = status === 'CANCELLED';
-
-    if (isCancelled) {
-        return (
-            <div className="bg-red-50/50 border border-dashed border-red-200 rounded-2xl p-4 flex items-center gap-3 animate-fadeIn mb-4">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white shadow-md shrink-0">
-                    <WarningCircle width={24} height={24} />
-                </div>
-                <div>
-                    <h3 className="text-sm font-bold text-red-600 uppercase leading-none mb-1">Đơn hàng đã hủy</h3>
-                    <p className="text-xs text-red-400 font-medium leading-none">TeddyPet rất tiếc vì đơn hàng này đã bị hủy trên hệ thống.</p>
-                </div>
-            </div>
-        );
-    }
-
+    const isRefunding = status === 'REFUND_PENDING';
+    const isRefunded = status === 'REFUNDED';
     const isReturned = status === 'RETURNED';
-    if (isReturned) {
-        return (
-            <div className="bg-orange-50/50 border border-dashed border-orange-200 rounded-2xl p-4 flex items-center gap-3 animate-fadeIn mb-4">
-                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-md shrink-0">
-                    <RefreshDouble width={24} height={24} />
-                </div>
-                <div>
-                    <h3 className="text-sm font-bold text-orange-600 uppercase leading-none mb-1">Đơn hàng đã hoàn trả</h3>
-                    <p className="text-xs text-orange-400 font-medium leading-none">Đơn hàng này đã được hoàn trả về shop.</p>
-                </div>
-            </div>
-        );
+    const isReturnRequested = status === 'RETURN_REQUESTED';
+
+    // Terminal/Divergent Status
+    const isDivergent = isCancelled || isRefunding || isRefunded || isReturned || isReturnRequested;
+
+    let finalSteps = [...baseSteps];
+    let effectiveIdx = baseSteps.findIndex(s => s.key === status);
+
+    if (isDivergent) {
+        const terminalStep = {
+            key: status,
+            label: isCancelled ? 'Đã hủy' : (isRefunding ? 'Chờ hoàn tiền' : (isRefunded ? 'Đã hoàn tiền' : (isReturned ? 'Hoàn trả' : 'Đang trả hàng'))),
+            icon: isCancelled ? <WarningCircle width={24} height={24} /> : (isRefunding || isRefunded || isReturned || isReturnRequested ? <RefreshDouble width={24} height={24} /> : <Package width={24} height={24} />)
+        };
+
+        // Determine where to cut the timeline
+        let cutIdx = baseSteps.length;
+        if (isCancelled) {
+            // Cancel usually happens before shipping
+            cutIdx = 4; // Up to PROCESSING
+        } else if (isRefunding || isRefunded) {
+            cutIdx = 4; // Up to PROCESSING
+        } else if (isReturned || isReturnRequested) {
+            cutIdx = 6; // Up to DELIVERED
+        }
+
+        finalSteps = [...baseSteps.slice(0, cutIdx), terminalStep];
+        effectiveIdx = finalSteps.length - 1;
     }
 
     const isCompleted = status === 'COMPLETED';
@@ -90,27 +91,41 @@ const OrderStepper = ({ status }: { status: string }) => {
                 <div className="absolute top-6 left-[8%] right-[8%] h-[2px] bg-gray-100 -z-0 rounded-full"></div>
                 <div
                     className={`absolute top-6 left-[8%] h-[2px] transition-all duration-[1200ms] ease-in-out -z-0 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-client-primary'}`}
-                    style={{ width: currentIdx > 0 ? `${(currentIdx / (steps.length - 1)) * 84}%` : '0%' }}
+                    style={{ width: effectiveIdx > 0 ? `${(effectiveIdx / (finalSteps.length - 1)) * 84}%` : '0%' }}
                 ></div>
 
-                {steps.map((step, index) => {
-                    const isActive = index <= currentIdx;
-                    const isCurrent = index === currentIdx;
+                {finalSteps.map((step, index) => {
+                    const isActive = index <= effectiveIdx;
+                    const isCurrent = index === effectiveIdx;
+
+                    let dotBgColor = isActive ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') : 'bg-white text-gray-200 border border-gray-100';
+                    let textColor = isActive ? (isCompleted ? 'text-emerald-600' : 'text-slate-900') : 'text-gray-300';
+
+                    if (isCurrent) {
+                        if (isCancelled) {
+                            dotBgColor = 'bg-red-500 shadow-red-200';
+                            textColor = 'text-red-500';
+                        } else if (isRefunding) {
+                            dotBgColor = 'bg-amber-500 shadow-amber-200';
+                            textColor = 'text-amber-500';
+                        } else if (isRefunded) {
+                            dotBgColor = 'bg-blue-500 shadow-blue-200';
+                            textColor = 'text-blue-500';
+                        } else if (isReturned || isReturnRequested) {
+                            dotBgColor = 'bg-orange-500 shadow-orange-200';
+                            textColor = 'text-orange-500';
+                        }
+                    }
 
                     return (
                         <div key={step.key} className="flex flex-col items-center gap-2 z-10 w-[14%] relative">
                             <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-700 ${isActive
-                                    ? (isCompleted ? 'bg-emerald-500 shadow-emerald-200' : 'bg-client-primary shadow-client-primary/30') + ' text-white scale-105 shadow-md'
-                                    : 'bg-white text-gray-200 border border-gray-100 text-[0.75rem]'
-                                    } ${isCurrent ? (isCompleted ? 'ring-4 ring-emerald-50' : 'ring-4 ring-client-primary/10') : ''}`}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-700 ${dotBgColor} text-white scale-105 shadow-md
+                                     ${isCurrent && !isDivergent ? (isCompleted ? 'ring-4 ring-emerald-50' : 'ring-4 ring-client-primary/10') : ''}`}
                             >
                                 {step.icon && (typeof step.icon === 'object' ? { ...step.icon, props: { ...step.icon.props, width: 20, height: 20 } } : step.icon)}
                             </div>
-                            <span className={`text-[0.625rem] font-bold text-center transition-colors duration-500 uppercase tracking-tight leading-tight px-1 ${isActive
-                                ? (isCompleted ? 'text-emerald-600' : 'text-slate-900')
-                                : 'text-gray-300'
-                                }`}>
+                            <span className={`text-[0.625rem] font-bold text-center transition-colors duration-500 uppercase tracking-tight leading-tight px-1 ${textColor}`}>
                                 {step.label}
                             </span>
                         </div>
@@ -123,13 +138,15 @@ const OrderStepper = ({ status }: { status: string }) => {
 
 export const OrderDetailPage = () => {
     const { id } = useParams<{ id: string }>();
-    const { order, loading: fetching, refresh } = useOrderDetail(id as string);
+    const { order, loading: fetching, error: orderError, refresh } = useOrderDetail(id as string);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
 
     const [showReturnModal, setShowReturnModal] = useState(false);
+    const refundRef = useRef<HTMLDivElement>(null);
+
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
     const [returnReason, setReturnReason] = useState("");
@@ -158,6 +175,7 @@ export const OrderDetailPage = () => {
         const queryParams = new URLSearchParams(location.search);
         const cancel = queryParams.get('cancel');
         const code = queryParams.get('code');
+        const refundSuccess = queryParams.get('refundSuccess');
 
         if (hasToastedRef.current) return;
 
@@ -179,6 +197,10 @@ export const OrderDetailPage = () => {
                     clearInterval(poll);
                 }
             }, 2000);
+        } else if (refundSuccess === 'true') {
+            hasToastedRef.current = true;
+            // No toast here, will show the banner instead
+            navigate(location.pathname, { replace: true });
         }
     }, [location.search, refresh, navigate, location.pathname]);
 
@@ -210,16 +232,19 @@ export const OrderDetailPage = () => {
     }, [order, refresh]);
 
     useEffect(() => {
-        if (!id) return;
-        getOrderRefundRequests(id)
+        if (!order?.id) return;
+        getOrderRefundRequests(order.id)
             .then((res) => {
                 if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
             })
             .catch(() => setRefundHistory([]));
-    }, [id]);
-    
+    }, [order?.id]);
 
-    if (fetching || !order) {
+    const scrollToRefundHistory = () => {
+        refundRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    if (fetching) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#fcfcfc]">
                 <div className="flex flex-col items-center gap-3">
@@ -228,6 +253,26 @@ export const OrderDetailPage = () => {
                 </div>
             </div>
         );
+    }
+
+    if (orderError && !order) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#fcfcfc] px-4">
+                <p className="text-center text-gray-600 font-medium">
+                    Không tìm thấy đơn hàng hoặc bạn không có quyền xem đơn này.
+                </p>
+                <Link
+                    to="/dashboard/orders"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-client-primary hover:bg-client-secondary text-white rounded-lg font-semibold text-sm"
+                >
+                    Quay lại danh sách đơn hàng
+                </Link>
+            </div>
+        );
+    }
+
+    if (!order) {
+        return null;
     }
 
     const breadcrumbs = [
@@ -336,7 +381,7 @@ export const OrderDetailPage = () => {
         setIsSubmittingRefund(true);
         try {
             let finalBankId = bankInformationId;
-            
+
             // If guestBank is provided (though normally not in dashboard, but for consistency)
             if (guestBank && !finalBankId) {
                 const res = await createGuestBankInformationByOrderCode(order.orderCode, guestBank);
@@ -368,11 +413,31 @@ export const OrderDetailPage = () => {
         }
     };
 
+    const handleRefundUpdate = async (refundId: number, data: any) => {
+        setIsSubmittingRefund(true);
+        try {
+            const response = await updateOrderRefundRequest(order.id, refundId, data);
+            if (response.success) {
+                toast.success("Đã cập nhật yêu cầu hoàn tiền thành công!");
+                setShowRefundModal(false);
+                await refresh();
+            } else {
+                toast.error(response.message || "Cập nhật thất bại.");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi hệ thống khi cập nhật.");
+        } finally {
+            setIsSubmittingRefund(false);
+        }
+    };
+
     const handlePayment = async () => {
+        const orderIdToPay = id ?? order?.id;
+        if (!orderIdToPay) return;
         setIsSubmitting(true);
         try {
             const returnUrl = window.location.href;
-            const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
+            const response = await createPaymentUrl(orderIdToPay, "PAYOS", returnUrl);
             if (response.success && response.data) {
                 window.location.href = response.data as string;
             } else {
@@ -395,11 +460,32 @@ export const OrderDetailPage = () => {
 
     const paymentInfo = order.payments?.[0];
     const isPaid = paymentInfo?.status === 'COMPLETED';
-    const paymentMethodLabel = paymentInfo?.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản VietQR (PayOS)' : 'Thanh toán khi nhận hàng (COD)';
+    const paymentMethodLabel = paymentInfo?.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản' : 'Thanh toán khi nhận hàng (COD)';
+
+    const queryParams = new URLSearchParams(location.search);
+    const refundSuccess = queryParams.get('refundSuccess');
 
     return (
         <DashboardLayout pageTitle="Chi tiết đơn hàng" breadcrumbs={breadcrumbs}>
             <div className="space-y-[0.78125rem]">
+                {refundSuccess === 'true' && (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center justify-between gap-4 animate-fadeIn shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle className="w-6 h-6 text-emerald-600" />
+                            <div>
+                                <h3 className="font-bold text-sm">Yêu cầu hoàn tiền đã được gửi thành công!</h3>
+                                <p className="text-xs">TeddyPet sẽ kiểm tra và phản hồi bạn trong thời gian sớm nhất.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={scrollToRefundHistory}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[0.7rem] font-bold hover:bg-emerald-200 transition-all uppercase shrink-0"
+                        >
+                            <Eye width={14} height={14} /> Xem chi tiết
+                        </button>
+                    </div>
+                )}
+
                 {/* Header Section */}
                 <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm animate-fadeIn">
                     <div className="flex items-center gap-2">
@@ -429,48 +515,19 @@ export const OrderDetailPage = () => {
                 <OrderStepper status={order.status} />
 
                 {/* Status Reasons (Cancel/Return) */}
-                {(order.status === 'CANCELLED' || order.status === 'RETURNED' || order.status === 'RETURN_REQUESTED' || ((order.status as string) === 'COMPLETED' && (order.returnReason || order.adminReturnNote))) && (
+                {(order.status === 'CANCELLED' || order.status === 'REFUND_PENDING' || order.status === 'RETURNED' || order.status === 'RETURN_REQUESTED' || ((order.status as string) === 'COMPLETED' && (order.returnReason || order.adminReturnNote))) && (
                     <div className="space-y-5 animate-fadeIn">
-                        {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
+                        {(order.status === 'CANCELLED' || order.status === 'REFUND_PENDING' || order.status === 'REFUNDED') && order.cancelReason && (
                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                                 <div className="flex items-start gap-4">
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${order.status === 'CANCELLED' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
                                         <WarningCircle width={20} height={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest mb-1">Lý do {order.status === 'CANCELLED' ? 'hủy đơn' : 'hoàn trả'}</div>
+                                        <div className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest mb-1">
+                                            Lý do {order.status === 'CANCELLED' ? 'hủy đơn' : 'hoàn tiền'}
+                                        </div>
                                         <div className="text-sm font-bold text-slate-700 leading-tight">"{order.cancelReason}"</div>
-                                        {order.cancelledBy && (
-                                            <div className="text-[0.625rem] text-gray-400 mt-2 font-medium">Thực hiện bởi: <span className="font-bold text-gray-500">{order.cancelledBy}</span></div>
-                                        )}
-
-                                        {/* Refund Details for User */}
-                                        {refundHistory.length > 0 && (
-                                            <div className="mt-4 space-y-3">
-                                                {refundHistory.filter(r => r.status === 'REFUNDED').map((r) => (
-                                                    <div key={r.id} className="p-3 bg-white rounded-xl border border-emerald-100 shadow-sm animate-fadeIn">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white">
-                                                                <ShieldCheck width={12} height={12} />
-                                                            </div>
-                                                            <span className="text-[0.625rem] font-bold text-emerald-600 uppercase tracking-widest">Đã xác nhận hoàn tiền</span>
-                                                        </div>
-                                                        {r.refundTransactionId && (
-                                                            <div className="text-[10px] text-slate-400 mb-2">Mã GD: <span className="font-bold text-slate-600 uppercase">{r.refundTransactionId}</span></div>
-                                                        )}
-                                                        {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
-                                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                                {r.adminEvidenceUrls.map((url, i) => (
-                                                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-emerald-50 shadow-sm hover:scale-105 transition-all">
-                                                                        <img src={url} alt="Bằng chứng hoàn tiền" className="w-full h-full object-cover" />
-                                                                    </a>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -526,6 +583,84 @@ export const OrderDetailPage = () => {
                         )}
                     </div>
                 )}
+                {/* Refund History Section */}
+                {refundHistory.length > 0 && (
+                    <div ref={refundRef} className="space-y-4 animate-fadeIn scroll-mt-20">
+                        <div className="flex items-center justify-between px-1">
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                                <RefreshDouble width={18} height={18} className="text-client-primary" />
+                                Lịch sử hoàn tiền ({refundHistory.length})
+                            </h3>
+                        </div>
+                        <div className="space-y-3">
+                            {refundHistory.map((r, idx) => (
+                                <div key={r.id || idx} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                                    <div className={`absolute top-0 left-0 w-1 h-full ${
+                                        r.status === 'PENDING' ? 'bg-amber-400' : 
+                                        r.status === 'APPROVED' ? 'bg-emerald-400' : 
+                                        r.status === 'REFUNDED' ? 'bg-blue-400' : 'bg-red-400'
+                                    }`}></div>
+                                    
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                                {r.createdAt ? format(new Date(r.createdAt), "HH:mm - dd/MM/yyyy") : '---'}
+                                            </div>
+                                            <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                r.status === 'PENDING' ? 'bg-amber-50 text-amber-600' : 
+                                                r.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : 
+                                                r.status === 'REFUNDED' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'
+                                            }`}>
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : 
+                                                 r.status === 'APPROVED' ? 'Chờ hoàn tiền' : 
+                                                 r.status === 'REFUNDED' ? 'Đã hoàn tiền' : 
+                                                 r.status === 'REJECTED' ? 'Từ chối' : 
+                                                 r.status === 'ACTION_REQUIRED' ? 'Cần bổ sung' : r.status}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Số tiền</div>
+                                            <div className="text-sm font-black text-slate-900">{(r.requestedAmount || order.finalAmount).toLocaleString()}đ</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {r.customerReason && (
+                                            <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Lý do của bạn</span>
+                                                <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"{r.customerReason}"</p>
+                                            </div>
+                                        )}
+
+                                        {(r.adminDecisionNote || (r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0)) && (
+                                            <div className="bg-emerald-50/30 p-2.5 rounded-xl border border-emerald-100/50">
+                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-1">Phản hồi từ TeddyPet</span>
+                                                {r.adminDecisionNote && (
+                                                    <p className="text-xs font-bold text-emerald-800 leading-relaxed mb-2">"{r.adminDecisionNote}"</p>
+                                                )}
+                                                {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {r.adminEvidenceUrls.map((url, i) => (
+                                                            <a 
+                                                                key={i} 
+                                                                href={url} 
+                                                                target="_blank" 
+                                                                rel="noreferrer" 
+                                                                className="w-14 h-14 rounded-xl overflow-hidden border border-emerald-100 shadow-sm hover:scale-105 transition-all"
+                                                            >
+                                                                <img src={url} alt="Minh chứng hoàn tiền" className="w-full h-full object-cover" />
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* 2. ADDRESS & SUPPORT */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-[0.625rem] animate-fadeIn">
@@ -553,7 +688,7 @@ export const OrderDetailPage = () => {
                         <div className="space-y-4">
                             <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4">TeddyPet sẵn sàng hỗ trợ bạn trong vòng 24h.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <a href="https://m.me/teddypet" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 h-10 bg-slate-900 text-white rounded-lg font-bold text-[0.75rem] hover:bg-client-primary transition-all shadow-sm uppercase tracking-wide">
+                                <a href="https://www.facebook.com/teddypet.official" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 h-10 bg-slate-900 text-white rounded-lg font-bold text-[0.75rem] hover:bg-client-primary transition-all shadow-sm uppercase tracking-wide">
                                     <ChatBubble width={16} height={16} /> Liên hệ Shop
                                 </a>
                                 <Link to="/bai-viet" className="flex items-center justify-center gap-2 h-10 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-[0.75rem] hover:border-slate-900 hover:text-slate-900 transition-all uppercase tracking-wide">
@@ -640,7 +775,7 @@ export const OrderDetailPage = () => {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400 font-bold uppercase tracking-wider">Phí ship</span>
-                                    <span className="font-bold text-slate-900">{order.shippingFee != null && order.shippingFee > 0 ? `+${order.shippingFee.toLocaleString()}đ` : "Liên hệ sau"}</span>
+                                    <span className="font-bold text-slate-900">{getOrderShippingFeeLabel(order, { withPlusPrefix: true })}</span>
                                 </div>
                                 {order.discountAmount > 0 && (
                                     <div className="flex justify-between items-center text-sm text-red-500">
@@ -682,7 +817,7 @@ export const OrderDetailPage = () => {
                                 </div>
                                 <button
                                     onClick={handlePayment}
-                                    disabled={isSubmitting || timeLeft === "Hết hạn"}
+                                    disabled={isSubmitting || timeLeft === "Hết hạn" || (id != null && order.id !== id)}
                                     className="w-full h-12 bg-slate-900 hover:bg-client-secondary text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 hover:translate-y-[-1px] active:translate-y-0 disabled:opacity-50"
                                 >
                                     {isSubmitting ? <RefreshDouble width={20} height={20} className="animate-spin" /> : <Wallet width={20} height={20} />}
@@ -691,22 +826,53 @@ export const OrderDetailPage = () => {
                             </div>
                         )}
 
-                        {/* Hủy đơn: PENDING hoặc CONFIRMED/PAID nếu đã thanh toán online (backend sẽ tự xử lý hoàn tiền) */}
-                        {(order.status === 'PENDING' || ((order.status === 'CONFIRMED' || order.status === 'PAID') && isPaid)) && (
-                            <div className="space-y-2">
-                                {isPaid && (
-                                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2">
-                                        <WarningCircle width={18} height={18} className="text-amber-500 shrink-0 mt-0.5" />
-                                        <p className="text-xs font-medium text-amber-700 leading-relaxed">
-                                            Đơn hàng đã thanh toán. Khi hủy đơn, hệ thống sẽ tạo yêu cầu hoàn tiền cho bạn.
-                                        </p>
-                                    </div>
-                                )}
+                        {/* Hủy đơn: */}
+                        {order.status === 'REFUND_PENDING' && (
+                            <div className="p-2 bg-[#FFF7E6] border-b border-[#FFE7B3] flex items-center gap-1.5">
+                                <InfoCircle width={20} height={20} className="text-[#B76E00]" />
+                                <p className="text-[#B76E00] font-semibold text-sm">
+                                    Đơn hàng đang chờ hoàn tiền. Hệ thống sẽ cập nhật khi admin xác nhận.
+                                </p>
+                            </div>
+                        )}
+                        {/* Success alert was here, now moved to top */}
+                        {((["PENDING", "CONFIRMED", "PAID"].includes(order.status)) &&
+                            (!order.latestRefundStatus || order.latestRefundStatus === 'REJECTED' || order.latestRefundStatus === 'CANCELLED') && 
+                            timeLeft !== "Hết hạn") && (
+                                <div className="space-y-2">
+                                    {isPaid && (
+                                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2">
+                                            <WarningCircle width={18} height={18} className="text-amber-500 shrink-0 mt-0.5" />
+                                            <p className="text-xs font-medium text-amber-700 leading-relaxed">
+                                                Đơn hàng đã thanh toán. Khi hủy đơn, hệ thống sẽ tạo yêu cầu hoàn tiền cho bạn.
+                                            </p>
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={() => isPaid ? setShowRefundModal(true) : setShowCancelModal(true)}
+                                        className="w-full h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <WarningCircle width={20} height={20} />
+                                        {isPaid
+                                            ? (order.latestRefundStatus === 'REJECTED' ? 'Gửi lại yêu cầu hoàn tiền' : 'Hủy đơn & yêu cầu hoàn tiền')
+                                            : 'Hủy đơn hàng'}
+                                    </button>
+                                </div>
+                            )}
+
+                        {order.latestRefundStatus === 'ACTION_REQUIRED' && (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-fadeIn">
+                                    <InfoCircle width={24} height={24} className="text-amber-500 shrink-0 mt-0.5" />
+                                    <p className="text-sm font-medium text-amber-700 leading-relaxed">
+                                        <strong>Cần cập nhật:</strong> Admin đã yêu cầu bạn cung cấp lại thông tin hoàn tiền chính xác hơn.
+                                    </p>
+                                </div>
                                 <button
-                                    onClick={() => isPaid ? setShowRefundModal(true) : setShowCancelModal(true)}
-                                    className="w-full h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                                    onClick={() => setShowRefundModal(true)}
+                                    className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
                                 >
-                                    <WarningCircle width={20} height={20} /> {isPaid ? 'Hủy đơn & yêu cầu hoàn tiền' : 'Hủy đơn hàng'}
+                                    <RefreshDouble width={20} height={20} /> Cập nhật thông tin hoàn tiền
                                 </button>
                             </div>
                         )}
@@ -740,10 +906,24 @@ export const OrderDetailPage = () => {
                 </div>
             )}
 
+            {showRefundModal && (
+                <RefundRequestModal
+                    isOpen={showRefundModal}
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundConfirm}
+                    onUpdate={handleRefundUpdate}
+                    isSubmitting={isSubmittingRefund}
+                    orderCode={order.orderCode}
+                    isLoggedIn={!!order.user}
+                    initialRefundRequest={refundHistory.find(r => r.status === 'ACTION_REQUIRED' || r.status === 'PENDING')}
+                    refundHistory={refundHistory}
+                />
+            )}
+
             {showReturnModal && (
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-                    <div 
-                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[8px]" 
+                    <div
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[8px]"
                         onClick={() => { setShowReturnModal(false); setReturnReason(""); setReturnEvidence(""); setIsCustomReturnReason(false); }}
                     ></div>
                     <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full relative z-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] border border-white/60 animate-scaleUp overflow-hidden">
@@ -774,24 +954,24 @@ export const OrderDetailPage = () => {
                                     return (
                                         <button
                                             key={index}
-                                            onClick={() => { 
-                                                if (reason === "Lý do khác") { 
-                                                    setIsCustomReturnReason(true); 
-                                                    setReturnReason(''); 
-                                                } else { 
-                                                    setIsCustomReturnReason(false); 
-                                                    setReturnReason(reason); 
-                                                } 
+                                            onClick={() => {
+                                                if (reason === "Lý do khác") {
+                                                    setIsCustomReturnReason(true);
+                                                    setReturnReason('');
+                                                } else {
+                                                    setIsCustomReturnReason(false);
+                                                    setReturnReason(reason);
+                                                }
                                             }}
                                             className={`w-full px-3 py-2.5 rounded-xl text-left transition-all border-2 flex items-center gap-2.5 active:scale-[0.98] ${isSelected
                                                 ? 'border-orange-400 bg-orange-50 shadow-[0_4px_12px_-4px_rgba(249,115,22,0.1)]'
                                                 : 'border-slate-50 hover:border-slate-100 bg-slate-50/20'
-                                            }`}
+                                                }`}
                                         >
                                             <div className={`shrink-0 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
                                                 ? 'border-orange-500 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]'
                                                 : 'border-slate-200 bg-white'
-                                            }`}>
+                                                }`}>
                                                 {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                                             </div>
                                             <span className={`text-[12px] font-bold leading-tight tracking-tight ${isSelected ? 'text-orange-600' : 'text-slate-600'}`}>
@@ -805,41 +985,41 @@ export const OrderDetailPage = () => {
                             {/* Custom Reason & Evidence Inputs */}
                             {isCustomReturnReason && (
                                 <div className="mt-3 animate-fadeIn">
-                                    <textarea 
-                                        value={returnReason} 
-                                        onChange={(e) => setReturnReason(e.target.value)} 
-                                        placeholder="Mô tả chi tiết lỗi sản phẩm với chúng mình..." 
-                                        className="w-full h-20 p-3 border-2 border-slate-100 rounded-xl text-[12px] font-bold text-slate-700 focus:border-orange-200 focus:bg-white focus:outline-none transition-all resize-none bg-slate-50/50 placeholder:text-slate-300 shadow-inner custom-scrollbar" 
-                                        maxLength={500} 
-                                        autoFocus 
+                                    <textarea
+                                        value={returnReason}
+                                        onChange={(e) => setReturnReason(e.target.value)}
+                                        placeholder="Mô tả chi tiết lỗi sản phẩm với chúng mình..."
+                                        className="w-full h-20 p-3 border-2 border-slate-100 rounded-xl text-[12px] font-bold text-slate-700 focus:border-orange-200 focus:bg-white focus:outline-none transition-all resize-none bg-slate-50/50 placeholder:text-slate-300 shadow-inner custom-scrollbar"
+                                        maxLength={500}
+                                        autoFocus
                                     />
                                 </div>
                             )}
 
                             <div className="mt-2.5">
                                 <label className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5 block px-1">Link ảnh bằng chứng</label>
-                                <input 
-                                    type="text" 
-                                    value={returnEvidence} 
-                                    onChange={(e) => setReturnEvidence(e.target.value)} 
-                                    placeholder="Dán link ảnh tại đây (không bắt buộc)" 
-                                    className="w-full h-10 px-3 border-2 border-slate-100 rounded-xl text-[12px] font-bold focus:border-orange-200 focus:bg-white focus:outline-none transition-all bg-slate-50/50 shadow-inner placeholder:text-slate-300 text-slate-700" 
+                                <input
+                                    type="text"
+                                    value={returnEvidence}
+                                    onChange={(e) => setReturnEvidence(e.target.value)}
+                                    placeholder="Dán link ảnh tại đây (không bắt buộc)"
+                                    className="w-full h-10 px-3 border-2 border-slate-100 rounded-xl text-[12px] font-bold focus:border-orange-200 focus:bg-white focus:outline-none transition-all bg-slate-50/50 shadow-inner placeholder:text-slate-300 text-slate-700"
                                 />
                             </div>
                         </div>
 
                         {/* Footer Actions */}
                         <div className="flex gap-3 relative">
-                            <button 
-                                onClick={() => { setShowReturnModal(false); setReturnReason(""); setReturnEvidence(""); setIsCustomReturnReason(false); }} 
+                            <button
+                                onClick={() => { setShowReturnModal(false); setReturnReason(""); setReturnEvidence(""); setIsCustomReturnReason(false); }}
                                 disabled={isSubmittingReturn}
                                 className="flex-1 h-10 bg-slate-100 text-slate-500 rounded-xl text-[11px] font-black hover:bg-slate-200 hover:text-slate-600 transition-all uppercase tracking-[0.1em] active:scale-95 disabled:opacity-50"
                             >
                                 Quay lại
                             </button>
-                            <button 
-                                onClick={handleRequestReturn} 
-                                disabled={isSubmittingReturn || !returnReason.trim()} 
+                            <button
+                                onClick={handleRequestReturn}
+                                disabled={isSubmittingReturn || !returnReason.trim()}
                                 className="flex-[1.5] h-10 bg-orange-500 text-white rounded-xl text-[11px] font-black hover:bg-orange-600 shadow-lg shadow-orange-200/50 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 uppercase tracking-[0.1em] active:scale-95 border-b-4 border-orange-700/20"
                             >
                                 {isSubmittingReturn ? (
@@ -858,15 +1038,6 @@ export const OrderDetailPage = () => {
                     </div>
                 </div>
             )}
-
-            <RefundRequestModal
-                isOpen={showRefundModal}
-                onClose={() => setShowRefundModal(false)}
-                onConfirm={handleRefundConfirm}
-                isSubmitting={isSubmittingRefund}
-                orderCode={order.orderCode}
-                isLoggedIn={true}
-            />
 
             <CancelOrderModal
                 isOpen={showCancelModal}

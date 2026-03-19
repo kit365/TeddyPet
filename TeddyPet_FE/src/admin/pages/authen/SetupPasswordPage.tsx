@@ -35,7 +35,7 @@ export const SetupPasswordPage = () => {
         // If the query returns and says mustChangePassword is false, redirect immediately
         if (meRes?.data && meRes.data.mustChangePassword === false) {
             const role = meRes.data.role;
-            let target = "/admin/dashboard/analytics";
+            let target = "/admin/dashboard/system";
             if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/system";
             else if (role === "STAFF") target = "/admin/staff/dashboard";
             navigate(target, { replace: true });
@@ -72,7 +72,7 @@ export const SetupPasswordPage = () => {
             queryClient.invalidateQueries({ queryKey: ["me-admin"] });
             
             const role = user?.role;
-            let target = "/admin/dashboard/analytics";
+            let target = "/admin/dashboard/system";
             if (role === "ADMIN" || role === "SUPER_ADMIN") target = "/admin/dashboard/system";
             else if (role === "STAFF") target = "/admin/staff/dashboard";
             

@@ -137,7 +137,13 @@ export const OrderHistoryNew = () => {
             {/* ORDERS LIST */}
             {!loading && orders.length > 0 && (
                 <div className="space-y-2">
-                    {orders.map((order) => (
+                    {orders.map((order) => {
+                        const isExpired = ['PENDING', 'CONFIRMED'].includes(order.status) && 
+                            order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' && 
+                            order.payments?.[0]?.status !== 'COMPLETED' && 
+                            (new Date().getTime() - new Date(order.createdAt).getTime()) > 10 * 60 * 1000;
+                        
+                        return (
                         <div key={order.id} className="bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all p-4">
                             <div className="grid grid-cols-[auto_1fr_100px_100px_80px] gap-4 items-center">
                                 {/* Icon */}
@@ -194,10 +200,11 @@ export const OrderHistoryNew = () => {
                                         </Link>
                                     )}
 
-                                    {order.status === "PENDING" && (
+                                    {(!isExpired && ["PENDING", "CONFIRMED", "PAID"].includes(order.status)) && (
                                         <button
                                             onClick={() => handleOpenCancelModal(order.id)}
                                             className="w-8 h-8 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                                            title={order.payments?.some(p => p.status === "COMPLETED") ? "Hủy đơn & Hoàn tiền" : "Hủy đơn hàng"}
                                         >
                                             <XmarkCircle width={14} height={14} />
                                         </button>
@@ -205,7 +212,7 @@ export const OrderHistoryNew = () => {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
 

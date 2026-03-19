@@ -99,4 +99,11 @@ public class ProductBrandController {
         SimpleEntityExcelService.ImportResult result = excelService.importBrands(file);
         return ResponseEntity.ok(ApiResponse.success("Import thương hiệu hoàn tất.", result));
     }
+    @PostMapping("/excel/preview")
+    @Operation(summary = "Xem trước dữ liệu nhập thương hiệu từ file Excel")
+    public ResponseEntity<ApiResponse<List<SimpleEntityExcelService.EntityPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<SimpleEntityExcelService.EntityPreviewRow> result = excelService.previewImportBrands(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview thương hiệu", result));
+    }
 }

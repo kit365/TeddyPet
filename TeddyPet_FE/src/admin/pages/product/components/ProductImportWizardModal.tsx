@@ -143,7 +143,8 @@ export const ProductImportWizardModal = ({
         const missingBrands = preview?.missingBrands || [];
         const missingCategories = preview?.missingCategories || [];
         const missingTags = preview?.missingTags || [];
-        const hasMissing = missingBrands.length + missingCategories.length + missingTags.length > 0;
+        const missingAttributes = preview?.missingAttributes || [];
+        const hasMissing = missingBrands.length + missingCategories.length + missingTags.length + missingAttributes.length > 0;
 
         if (hasMissing && !confirmCreateMutation.isSuccess) {
             try {
@@ -296,12 +297,11 @@ export const ProductImportWizardModal = ({
                         {hasDup && (
                             <Box sx={{ p: 2, border: '1px solid #ff980040', borderRadius: 2, bgcolor: '#fff8e1' }}>
                                 <Typography sx={{ fontWeight: 700, color: '#b45309', fontSize: '0.875rem', mb: 0.5 }}>
-                                    Nguy cơ ghi đè nhầm: tên trong file khác sản phẩm hệ thống (PRODUCT_ID / barcode / slug)
+                                    Phát hiện dòng trùng lặp cần xác nhận
                                 </Typography>
                                 <Typography sx={{ color: '#637381', fontSize: '0.8125rem', mb: 1.5 }}>
-                                    File export thường còn <strong>PRODUCT_ID</strong> cũ — sửa tên mà không xóa ID sẽ từng bị
-                                    đè lên SP khác. Giờ mặc định <strong>Tạo mới</strong>; chỉ <strong>Ghi đè</strong> khi
-                                    bạn chắc đúng SP (kể cả đổi tên có chủ đích).
+                                    — <strong>Trùng với DB</strong> (PRODUCT_ID / barcode / slug): mặc định <strong>Tạo mới</strong>; chọn <strong>Ghi đè</strong> nếu bạn chắc đó đúng là sản phẩm cần cập nhật.<br />
+                                    — <strong>Trùng trong file</strong>: Dòng này là bản sao y chang dòng khác (Tên + Barcode + Thuộc tính đều giống). Vui lòng xóa dòng trùng trong file Excel trước khi import.
                                 </Typography>
                                 <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
                                     <Button size="small" variant="outlined" onClick={() => setAllDup('CREATE_NEW')}>
@@ -331,33 +331,47 @@ export const ProductImportWizardModal = ({
                                                         ? 'Cột PRODUCT_ID'
                                                         : d.matchSource === 'BARCODE'
                                                           ? 'Barcode'
-                                                          : 'Slug (tên)'}
+                                                          : d.matchSource === 'TRONG_FILE'
+                                                            ? 'Dòng khác trong file'
+                                                            : 'Slug (tên)'}
                                                 </TableCell>
                                                 <TableCell sx={{ maxWidth: 180 }}>
-                                                    #{d.matchedProductId} — {d.matchedProductName}
+                                                    {d.matchSource === 'TRONG_FILE' ? (
+                                                     <Typography sx={{ color: '#FF5630', fontWeight: 600 }}>
+                                                         {d.matchedProductName}
+                                                     </Typography>
+                                                 ) : (
+                                                     `#${d.matchedProductId} — ${d.matchedProductName}`
+                                                 )}
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <RadioGroup
-                                                        row
-                                                        value={dupDecisions[d.rowNumber] ?? 'CREATE_NEW'}
-                                                        onChange={(_, v) =>
-                                                            setDupDecisions((prev) => ({
-                                                                ...prev,
-                                                                [d.rowNumber]: v as 'CREATE_NEW' | 'OVERWRITE',
-                                                            }))
-                                                        }
-                                                    >
-                                                        <FormControlLabel
-                                                            value="CREATE_NEW"
-                                                            control={<Radio size="small" />}
-                                                            label="Tạo mới"
-                                                        />
-                                                        <FormControlLabel
-                                                            value="OVERWRITE"
-                                                            control={<Radio size="small" color="warning" />}
-                                                            label="Ghi đè"
-                                                        />
-                                                    </RadioGroup>
+                                                    {d.matchSource === 'TRONG_FILE' ? (
+                                                        <Typography sx={{ color: '#FF5630', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            Xóa dòng trùng trong Excel
+                                                        </Typography>
+                                                    ) : (
+                                                        <RadioGroup
+                                                            row
+                                                            value={dupDecisions[d.rowNumber] ?? 'CREATE_NEW'}
+                                                            onChange={(_, v) =>
+                                                                setDupDecisions((prev) => ({
+                                                                    ...prev,
+                                                                    [d.rowNumber]: v as 'CREATE_NEW' | 'OVERWRITE',
+                                                                }))
+                                                            }
+                                                        >
+                                                            <FormControlLabel
+                                                                value="CREATE_NEW"
+                                                                control={<Radio size="small" />}
+                                                                label="Tạo mới"
+                                                            />
+                                                            <FormControlLabel
+                                                                value="OVERWRITE"
+                                                                control={<Radio size="small" color="warning" />}
+                                                                label="Ghi đè"
+                                                            />
+                                                        </RadioGroup>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -368,7 +382,7 @@ export const ProductImportWizardModal = ({
 
                         <Box sx={{ p: 2, border: '1px solid #919eab33', borderRadius: 2, bgcolor: '#fff' }}>
                             <Typography sx={{ fontWeight: 700, color: '#1C252E', fontSize: '0.875rem', mb: 1 }}>
-                                Brand / Danh mục / Tags mới
+                                Brand / Danh mục / Tags / Attributes mới
                             </Typography>
                             <Typography sx={{ color: '#637381', fontSize: '0.8125rem', mb: 2 }}>
                                 Nếu hệ thống chưa có trong file import, có thể tạo trước khi import.
@@ -409,6 +423,18 @@ export const ProductImportWizardModal = ({
                                         ) : (
                                             (preview?.missingTags || []).map((t: string) => (
                                                 <Chip key={t} label={t} size="small" />
+                                            ))
+                                        )}
+                                    </Stack>
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.75 }}>Attributes mới</Typography>
+                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                        {(preview?.missingAttributes || []).length === 0 ? (
+                                            <Typography sx={{ color: '#919EAB', fontSize: '0.75rem' }}>Không có</Typography>
+                                        ) : (
+                                            (preview?.missingAttributes || []).map((a: string) => (
+                                                <Chip key={a} label={a} size="small" />
                                             ))
                                         )}
                                     </Stack>

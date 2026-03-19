@@ -23,4 +23,13 @@ public interface FeedbackRepositoryPort {
     void delete(Feedback feedback);
 
     boolean existsByOrderIdAndProductIdAndVariantId(UUID orderId, Long productId, Long variantId);
+
+    Double getAverageRating();
+
+    java.util.List<Object[]> getRatingDistribution();
+
+    java.util.List<Object[]> getMonthlyTrends();
+
+    long countTodayReviews();
+    List<Object[]> findAverageRatingAndCountByProductId(Long productId);
 }

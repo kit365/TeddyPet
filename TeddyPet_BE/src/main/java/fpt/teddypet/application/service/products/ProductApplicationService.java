@@ -26,6 +26,7 @@ import fpt.teddypet.application.port.input.products.ProductTagService;
 import fpt.teddypet.application.port.input.products.ProductVariantService;
 import fpt.teddypet.application.port.output.products.ProductRepositoryPort;
 import fpt.teddypet.application.port.output.products.ProductVariantRepositoryPort;
+import fpt.teddypet.application.port.output.feedback.FeedbackRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.HtmlUtil;
 import fpt.teddypet.application.util.ValidationUtils;
@@ -67,6 +68,7 @@ public class ProductApplicationService implements ProductService {
     private final ProductAgeRangeService productAgeRangeService;
     private final ProductAttributeService productAttributeService;
     private final ProductVariantRepositoryPort productVariantRepositoryPort;
+    private final FeedbackRepositoryPort feedbackRepositoryPort;
 
     @Override
     public Product getById(Long productId) {
@@ -291,20 +293,40 @@ public class ProductApplicationService implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductResponse getByIdResponse(Long productId) {
         log.info(ProductLogMessages.LOG_PRODUCT_GET_BY_ID, productId);
         Product product = getById(productId);
-        return productMapper.toResponse(product);
+        ProductResponse response = productMapper.toResponse(product);
+        
+        RatingStats stats = getRatingStats(productId);
+        
+        return new ProductResponse(
+                response.productId(), response.slug(), response.name(), response.minPrice(), response.maxPrice(),
+                response.status(), response.productType(), response.stockStatus(), product.getPetTypes(),
+                response.categories(), response.tags(), response.ageRanges(), response.brand(), response.images(),
+                stats.averageRating(), stats.reviewCount(),
+                response.createdAt(), response.variants());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductResponse getBySlugResponse(String slug) {
         log.info(ProductLogMessages.LOG_PRODUCT_GET_BY_SLUG, slug);
         Product product = productRepositoryPort.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
                 .filter(p -> ProductStatusEnum.ACTIVE.equals(p.getStatus()))
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductMessages.MESSAGE_PRODUCT_NOT_FOUND_BY_SLUG, slug)));
-        return productMapper.toResponse(product);
+        ProductResponse response = productMapper.toResponse(product);
+        
+        RatingStats stats = getRatingStats(product.getId());
+
+        return new ProductResponse(
+                response.productId(), response.slug(), response.name(), response.minPrice(), response.maxPrice(),
+                response.status(), response.productType(), response.stockStatus(), product.getPetTypes(),
+                response.categories(), response.tags(), response.ageRanges(), response.brand(), response.images(),
+                stats.averageRating(), stats.reviewCount(),
+                response.createdAt(), response.variants());
     }
 
     @Override
@@ -336,6 +358,8 @@ public class ProductApplicationService implements ProductService {
     }
 
     private ProductDetailResponse mapToDetailResponse(Product product) {
+        RatingStats stats = getRatingStats(product.getId());
+
         return productMapper.toDetailResponse(product)
                 .toBuilder()
                 .categories(productCategoryService.toInfos(product.getCategories(), false, false))
@@ -346,6 +370,8 @@ public class ProductApplicationService implements ProductService {
                 .variants(productVariantService.getByProductId(product.getId(), false, false))
                 .brand(productBrandService.toInfo(product.getBrand(), false, false))
                 .stockStatus(computeStockStatus(product.getId()))
+                .averageRating(stats.averageRating())
+                .reviewCount(stats.reviewCount())
                 .build();
     }
 
@@ -418,8 +444,11 @@ public class ProductApplicationService implements ProductService {
         Page<ProductResponse> productResponsePage = productPage.map(p -> {
             ProductResponse r = productMapper.toResponse(p);
             StockStatusEnum computed = computeStockStatus(p.getId());
+            RatingStats stats = getRatingStats(p.getId());
+
             return new ProductResponse(r.productId(), r.slug(), r.name(), r.minPrice(), r.maxPrice(),
-                    r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
+                    r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.ageRanges(), r.brand(), r.images(), 
+                    stats.averageRating(), stats.reviewCount(), r.createdAt(), r.variants());
         });
 
         log.info("Found {} products (page {} of {})",
@@ -711,4 +740,15 @@ public class ProductApplicationService implements ProductService {
         }
     }
 
+    private RatingStats getRatingStats(Long productId) {
+        List<Object[]> statsList = feedbackRepositoryPort.findAverageRatingAndCountByProductId(productId);
+        if (statsList == null || statsList.isEmpty() || statsList.get(0)[0] == null) {
+            return new RatingStats(0L, 0.0);
+        }
+        Object[] stats = statsList.get(0);
+        Double averageRating = (Double) stats[1];
+        return new RatingStats((Long) stats[0], averageRating != null ? averageRating : 0.0);
+    }
+
+    private record RatingStats(Long reviewCount, Double averageRating) {}
 }

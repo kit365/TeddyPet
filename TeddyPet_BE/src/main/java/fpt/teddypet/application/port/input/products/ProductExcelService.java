@@ -40,6 +40,7 @@ public interface ProductExcelService {
             List<String> missingBrands,
             List<String> missingCategories,
             List<String> missingTags,
+            List<String> missingAgeRanges,
             List<String> missingAttributes,
             List<DuplicateRowPreview> duplicateRows) {
     }
@@ -48,6 +49,7 @@ public interface ProductExcelService {
             int createdBrands,
             int createdCategories,
             int createdTags,
+            int createdAgeRanges,
             int createdAttributes
     ) {}
 

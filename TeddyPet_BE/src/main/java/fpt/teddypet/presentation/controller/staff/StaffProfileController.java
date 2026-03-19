@@ -16,6 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletResponse;
+import fpt.teddypet.application.port.input.staff.StaffExcelService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
 
 import java.util.List;
 
@@ -26,6 +30,7 @@ import java.util.List;
 public class StaffProfileController {
 
     private final StaffProfileService staffProfileService;
+    private final StaffExcelService staffExcelService;
     private final AuthService authService;
 
     @PostMapping
@@ -92,5 +97,27 @@ public class StaffProfileController {
             return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success("Chưa có hồ sơ nhân viên", null));
         }
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/excel/export")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Xuất danh sách nhân sự ra file Excel")
+    public void exportStaffExcel(HttpServletResponse response) {
+        staffExcelService.exportStaffToExcel(response);
+    }
+
+    @GetMapping("/excel/template")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Tải file Excel mẫu để nhập nhân sự")
+    public void downloadStaffTemplate(HttpServletResponse response) {
+        staffExcelService.downloadStaffTemplate(response);
+    }
+
+    @PostMapping(value = "/excel/import", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Nhập danh sách nhân sự từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importStaffExcel(@RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = staffExcelService.importStaffFromExcel(file);
+        return ResponseEntity.ok(ApiResponse.success("Nhập dữ liệu thành công", result));
     }
 }

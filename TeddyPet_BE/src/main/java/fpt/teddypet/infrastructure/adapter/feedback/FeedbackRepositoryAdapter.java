@@ -38,7 +38,7 @@ public class FeedbackRepositoryAdapter implements FeedbackRepositoryPort {
 
     @Override
     public List<Feedback> findByOrderId(UUID orderId) {
-        return feedbackRepository.findByOrderId(orderId);
+        return feedbackRepository.findByOrder_Id(orderId);
     }
 
     @Override
@@ -59,5 +59,31 @@ public class FeedbackRepositoryAdapter implements FeedbackRepositoryPort {
     @Override
     public boolean existsByOrderIdAndProductIdAndVariantId(UUID orderId, Long productId, Long variantId) {
         return feedbackRepository.existsByOrderIdAndProductIdAndVariantId(orderId, productId, variantId);
+    }
+
+    @Override
+    public Double getAverageRating() {
+        return feedbackRepository.getAverageRating();
+    }
+
+    @Override
+    public List<Object[]> getRatingDistribution() {
+        return feedbackRepository.getRatingDistribution();
+    }
+
+    @Override
+    public List<Object[]> getMonthlyTrends() {
+        return feedbackRepository.getMonthlyTrends();
+    }
+
+    @Override
+    public long countTodayReviews() {
+        java.time.LocalDateTime todayStart = java.time.LocalDate.now().atStartOfDay();
+        return feedbackRepository.countByCreatedAtAfter(todayStart);
+    }
+
+    @Override
+    public List<Object[]> findAverageRatingAndCountByProductId(Long productId) {
+        return feedbackRepository.findAverageRatingAndCountByProductId(productId);
     }
 }

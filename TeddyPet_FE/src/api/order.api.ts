@@ -113,6 +113,14 @@ export const createPaymentUrl = async (orderId: string, gateway: string, returnU
     return response.data;
 };
 
+// Best-effort: cancel PayOS link đang treo cho đơn (khi user back/tắt trình duyệt).
+export const cancelPayosPaymentLink = async (orderId: string) => {
+    const response = await apiApp.post<ApiResponse<boolean>>(`/api/payments/payos/cancel`, null, {
+        params: { orderId }
+    });
+    return response.data;
+};
+
 export const getOrderRefundRequests = async (orderId: string) => {
     const response = await apiApp.get<ApiResponse<OrderRefundResponse[]>>(`${BASE_PATH}/${orderId}/refund-requests`);
     return response.data;
@@ -124,18 +132,38 @@ export const createOrderRefundRequest = async (
         requestedAmount: number;
         reason: string;
         bankInformationId?: number;
+        bankCode?: string;
+        accountNumber?: string;
+        accountHolderName?: string;
         evidenceUrls?: string[];
     }
 ) => {
-    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests`, payload);
+    const response = await apiApp.post<ApiResponse<OrderRefundResponse>>(`${BASE_PATH}/${orderId}/refund-requests`, payload);
+    return response.data;
+};
+
+export const updateOrderRefundRequest = async (
+    orderId: string,
+    refundId: number,
+    payload: {
+        requestedAmount?: number;
+        reason: string;
+        bankInformationId?: number;
+        bankCode?: string;
+        accountNumber?: string;
+        accountHolderName?: string;
+        evidenceUrls?: string[];
+    }
+) => {
+    const response = await apiApp.patch<ApiResponse<OrderRefundResponse>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}`, payload);
     return response.data;
 };
 
 export const handleOrderRefundRequest = async (
     orderId: string,
     refundId: number,
-    payload: { approved: boolean; adminNote?: string }
+    payload: { approved?: boolean; requireMoreInfo?: boolean; adminNote?: string; refundTransactionId?: string; adminEvidenceUrls?: string[] }
 ) => {
-    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
+    const response = await apiApp.post<ApiResponse<OrderRefundResponse>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
     return response.data;
 };

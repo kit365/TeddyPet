@@ -2,8 +2,8 @@ import { ProductCategoryList } from "./sections/ProductCategoryList";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { prefixAdmin } from "../../constants/routes";
 import { ExportImport } from "../../components/ui/ExportImport";
-import { useExportCategoriesExcel, useImportCategoriesExcel, useDownloadCategoriesTemplate } from "./hooks/useProductCategory";
-import { ImportExcelModal } from "../product/components/ImportExcelModal";
+import { useExportCategoriesExcel, useImportCategoriesExcel, useDownloadCategoriesTemplate, usePreviewCategoryImportExcel } from "./hooks/useProductCategory";
+import { EntityImportWizardModal } from "../../components/upload/EntityImportWizardModal";
 import { useState } from "react";
 
 export const ProductCategoryListPage = () => {
@@ -12,6 +12,7 @@ export const ProductCategoryListPage = () => {
     const exportMutation = useExportCategoriesExcel();
     const importMutation = useImportCategoriesExcel();
     const downloadTemplateMutation = useDownloadCategoriesTemplate();
+    const previewMutation = usePreviewCategoryImportExcel();
 
     return (
         <div className="flex flex-col gap-[16px]">
@@ -37,12 +38,14 @@ export const ProductCategoryListPage = () => {
 
             <ProductCategoryList />
 
-            <ImportExcelModal
+            <EntityImportWizardModal
                 open={openImportModal}
                 onClose={() => setOpenImportModal(false)}
                 onImport={(file) => importMutation.mutate(file)}
+                previewMutation={previewMutation}
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
+                entityName="Danh mục"
             />
         </div>
     );

@@ -39,7 +39,12 @@ public enum ProductExcelColumn {
 
         CATEGORIES(7, "Tên Danh Mục (cách bởi dấu phẩy)", false,
                         (p, v) -> p.categories() != null
-                                        ? String.join(", ", p.categories().stream().map(c -> c.name()).toList())
+                                        ? String.join(", ", p.categories().stream().map(c -> {
+                                                if (c.parentName() != null && !c.parentName().isBlank()) {
+                                                        return c.parentName() + " > " + c.name();
+                                                }
+                                                return c.name();
+                                          }).toList())
                                         : ""),
 
         TAGS(8, "Tags (cách bởi dấu phẩy)", false,
@@ -83,7 +88,12 @@ public enum ProductExcelColumn {
                                         : ""),
 
         VARIANT_FEATURED_IMAGE_URL(19, "Hình Ảnh Biến Thể (URL)", false,
-                        (p, v) -> v != null && v.featuredImageUrl() != null ? v.featuredImageUrl() : "");
+                        (p, v) -> v != null && v.featuredImageUrl() != null ? v.featuredImageUrl() : ""),
+
+        PET_AGE(20, "Độ Tuổi (cách bởi dấu phẩy)", false,
+                        (p, v) -> p.ageRanges() != null
+                                        ? String.join(", ", p.ageRanges().stream().map(a -> a.name()).toList())
+                                        : "");
 
         private final int index;
         private final String header;

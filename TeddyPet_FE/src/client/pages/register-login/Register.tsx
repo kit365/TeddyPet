@@ -1,8 +1,9 @@
-﻿import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { Input } from "./sections/Input";
 import { FooterSub } from "../../components/layouts/FooterSub";
@@ -34,6 +35,7 @@ const breadcrumbs = [
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { register: registerField, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema)
     });
@@ -49,11 +51,16 @@ export const RegisterPage = () => {
             }
 
             toast.success("Đăng ký thành công!");
+            
+            // Invalidate admin queries across the app
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-customer-growth'] });
+            queryClient.invalidateQueries({ queryKey: ['revenue-chart'] });
 
             setTimeout(() => {
                 navigate("/auth/login");
             }, 2000);
-            navigate("/auth/login");
         } catch (error: any) {
             const msg = error?.response?.data?.message || "Đăng ký thất bại";
             toast.error(msg);

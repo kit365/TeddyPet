@@ -8,5 +8,6 @@ import java.util.List;
 public interface BlogCommentService {
     BlogCommentResponse createComment(BlogCommentRequest request);
     List<BlogCommentResponse> getCommentsByBlogPostId(Long blogPostId);
+    List<BlogCommentResponse> getAllComments();
     void deleteComment(Long commentId);
 }

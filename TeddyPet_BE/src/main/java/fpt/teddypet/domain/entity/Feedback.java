@@ -37,8 +37,9 @@ public class Feedback extends BaseEntity {
     @JoinColumn(name = "variant_id")
     private ProductVariant variant;
 
-    @Column(name = "order_id")
-    private UUID orderId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
 
     @Column(nullable = false)
     private Integer rating;

@@ -9,7 +9,8 @@ export interface DashboardStatsResponse {
     totalOrders: number;
     totalCustomers: number;
     totalProducts: number;
-    totalAdminAccounts: number;
+    avgRating: number;
+    completedBookings: number;
     pendingOrders: number;
     confirmedOrders: number;
     processingOrders: number;
@@ -30,19 +31,23 @@ export interface RevenueChartItem {
     orders: number;
 }
 
-export const getDashboardStats = async () => {
-    const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/stats`);
+export const getDashboardStats = async (startDate?: string, endDate?: string) => {
+    const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/stats`, {
+        params: { startDate, endDate }
+    });
     return response.data;
 };
 
-export const getStaffStats = async () => {
-    const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/staff-stats`);
+export const getStaffStats = async (startDate?: string, endDate?: string) => {
+    const response = await apiApp.get<ApiResponse<DashboardStatsResponse>>(`${BASE_PATH}/staff-stats`, {
+        params: { startDate, endDate }
+    });
     return response.data;
 };
 
-export const getRevenueChart = async (days: number = 30) => {
+export const getRevenueChart = async (days: number = 30, startDate?: string, endDate?: string) => {
     const response = await apiApp.get<ApiResponse<RevenueChartItem[]>>(`${BASE_PATH}/revenue-chart`, {
-        params: { days }
+        params: { days, startDate, endDate }
     });
     return response.data;
 };
@@ -54,13 +59,17 @@ export const getRecentOrders = async (limit: number = 10) => {
     return response.data;
 };
 
-export const getSalesByCategory = async () => {
-    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/sales-by-category`);
+export const getSalesByCategory = async (startDate?: string, endDate?: string) => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/sales-by-category`, {
+        params: { startDate, endDate }
+    });
     return response.data;
 };
 
-export const getTopCustomers = async () => {
-    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/top-customers`);
+export const getTopCustomers = async (startDate?: string, endDate?: string) => {
+    const response = await apiApp.get<ApiResponse<any[]>>(`${BASE_PATH}/top-customers`, {
+        params: { startDate, endDate }
+    });
     return response.data;
 };
 

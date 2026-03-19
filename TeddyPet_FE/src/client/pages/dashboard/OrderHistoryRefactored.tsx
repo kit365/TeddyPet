@@ -209,7 +209,13 @@ export const OrderHistoryRefactored = () => {
                     {orders
                         .filter(order => order.orderCode.toLowerCase().includes(searchTerm.toLowerCase()))
                         .slice(0, showLoadMore ? orders.length : ITEMS_PER_PAGE)
-                        .map((order) => (
+                        .map((order) => {
+                            const isExpired = ['PENDING', 'CONFIRMED'].includes(order.status) && 
+                                order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' && 
+                                order.payments?.[0]?.status !== 'COMPLETED' && 
+                                (new Date().getTime() - new Date(order.createdAt).getTime()) > 10 * 60 * 1000;
+                            
+                            return (
                         <div key={order.id} className="grid grid-cols-[minmax(0,1fr)_140px_140px_120px] items-center gap-4 p-5 hover:bg-slate-50 transition-colors">
                             {/* LEFT: Icon + ID + Date */}
                             <div className="flex items-center gap-4 min-w-0">
@@ -276,7 +282,7 @@ export const OrderHistoryRefactored = () => {
                                     </Link>
                                 )}
 
-                                {order.status === "PENDING" && (
+                                {(!isExpired && ["PENDING", "CONFIRMED", "PAID"].includes(order.status)) && (
                                     <button
                                         onClick={() => handleOpenCancelModal(order.id)}
                                         className="h-9 w-9 rounded-xl flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
@@ -287,7 +293,7 @@ export const OrderHistoryRefactored = () => {
                                 )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
 

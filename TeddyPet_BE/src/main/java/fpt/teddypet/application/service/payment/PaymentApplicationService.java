@@ -20,6 +20,7 @@ import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.exception.PaymentDomainException;
+import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
@@ -28,6 +29,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +58,9 @@ public class PaymentApplicationService implements PaymentService {
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
     private Map<PaymentGatewayEnum, PaymentGatewayPort<?>> gatewayMap;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @PostConstruct
     private void initializeGatewayMap() {
         this.gatewayMap = gatewayAdapters.stream()
@@ -73,9 +78,11 @@ public class PaymentApplicationService implements PaymentService {
         OrderValidator.validateForPayment(order);
         PaymentGatewayPort<?> gatewayAdapter = getGatewayAdapter(gateway);
 
-        String paymentUrl;
+        String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
+
+        fpt.teddypet.application.dto.response.payment.BuildPaymentUrlResult urlResult;
         try {
-            paymentUrl = gatewayAdapter.buildPaymentUrl(order, ipAddress, returnUrl);
+            urlResult = gatewayAdapter.buildPaymentUrl(order, ipAddress, effectiveReturnUrl);
         } catch (PaymentException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             // PayOS báo "Đơn thanh toán đã tồn tại" khi user bấm thanh toán lần 2
@@ -95,11 +102,11 @@ public class PaymentApplicationService implements PaymentService {
             throw e;
         }
 
-        // Use orderCode or numericCode as the primary transaction identifier for
-        // searching during callbacks
-        String transactionRef = (order.getNumericCode() != null)
-                ? String.valueOf(order.getNumericCode())
-                : order.getOrderCode();
+        String paymentUrl = urlResult.getCheckoutUrl();
+        // When gateway returns a transactionId (e.g. new PayOS orderCode after cancel), use it for callback lookup
+        String transactionRef = (urlResult.getTransactionId() != null && !urlResult.getTransactionId().isBlank())
+                ? urlResult.getTransactionId()
+                : ((order.getNumericCode() != null) ? String.valueOf(order.getNumericCode()) : order.getOrderCode());
 
         Payment payment = Payment.builder()
                 .order(order)
@@ -119,6 +126,55 @@ public class PaymentApplicationService implements PaymentService {
 
         return paymentUrl;
     }
+
+    @Override
+    @Transactional
+    public boolean cancelPayosPaymentLink(UUID orderId) {
+        Order order = orderService.getById(orderId);
+
+        // Best-effort: ưu tiên cancel theo transactionId của payment PENDING mới nhất (nếu là PayOS orderCode mới),
+        // fallback về order.numericCode.
+        Long orderCodeToCancel = null;
+        try {
+            Optional<Payment> existing = paymentRepositoryPort
+                    .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
+                            orderId, PaymentGatewayEnum.PAYOS.name(), PaymentStatusEnum.PENDING);
+            if (existing.isPresent() && existing.get().getTransactionId() != null && !existing.get().getTransactionId().isBlank()) {
+                orderCodeToCancel = Long.parseLong(existing.get().getTransactionId().trim());
+            }
+        } catch (Exception ignore) {
+            // ignore parsing/lookup issues, fallback below
+        }
+
+        if (orderCodeToCancel == null) {
+            orderCodeToCancel = order.getNumericCode();
+        }
+
+        if (orderCodeToCancel == null) {
+            return false;
+        }
+
+        PaymentGatewayPort<?> gatewayAdapter = getGatewayAdapter(PaymentGatewayEnum.PAYOS);
+        if (!(gatewayAdapter instanceof PayosGatewayAdapter payosGatewayAdapter)) {
+            return false;
+        }
+
+        boolean cancelled = payosGatewayAdapter.cancelPaymentLinkByOrderCode(orderCodeToCancel);
+
+        if (cancelled) {
+            Optional<Payment> pending = paymentRepositoryPort
+                    .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
+                            orderId, PaymentGatewayEnum.PAYOS.name(), PaymentStatusEnum.PENDING);
+            if (pending.isPresent()) {
+                Payment p = pending.get();
+                p.setStatus(PaymentStatusEnum.VOIDED);
+                paymentRepositoryPort.save(p);
+            }
+        }
+
+        return cancelled;
+    }
+
 
     @Override
     @Transactional

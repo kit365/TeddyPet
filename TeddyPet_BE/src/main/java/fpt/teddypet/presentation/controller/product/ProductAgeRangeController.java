@@ -102,4 +102,11 @@ public class ProductAgeRangeController {
         SimpleEntityExcelService.ImportResult result = excelService.importAgeRanges(file);
         return ResponseEntity.ok(ApiResponse.success("Import độ tuổi hoàn tất.", result));
     }
+    @PostMapping("/excel/preview")
+    @Operation(summary = "Xem trước dữ liệu nhập độ tuổi từ file Excel")
+    public ResponseEntity<ApiResponse<List<SimpleEntityExcelService.EntityPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<SimpleEntityExcelService.EntityPreviewRow> result = excelService.previewImportAgeRanges(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview độ tuổi", result));
+    }
 }

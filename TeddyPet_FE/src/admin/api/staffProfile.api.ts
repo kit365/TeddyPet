@@ -127,3 +127,23 @@ export const updateStaffRole = async (staffId: number, roleName: string): Promis
     const res = await apiApp.put(`${BASE}/${staffId}/role`, { roleName }, withAuth());
     return res.data;
 };
+
+export const exportStaffExcel = async (): Promise<Blob> => {
+    const res = await apiApp.get(`${BASE}/excel/export`, { ...withAuth(), responseType: 'blob' });
+    return res.data;
+};
+
+export const downloadStaffTemplate = async (): Promise<Blob> => {
+    const res = await apiApp.get(`${BASE}/excel/template`, { ...withAuth(), responseType: 'blob' });
+    return res.data;
+};
+
+export const importStaffExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiApp.post(`${BASE}/excel/import`, formData, {
+        ...withAuth(),
+        headers: { ...withAuth().headers, 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+};

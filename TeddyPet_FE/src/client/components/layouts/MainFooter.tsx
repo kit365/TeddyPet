@@ -12,8 +12,8 @@ import { toast } from "react-toastify";
 
 
 export const MainFooter = () => {
-    const [shopAddress, setShopAddress] = useState<string>('Đang tải địa chỉ...');
-    const [shopPhone, setShopPhone] = useState<string>('+1234 567 890');
+    const [shopAddress, setShopAddress] = useState<string>('99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam');
+    const [shopPhone, setShopPhone] = useState<string>('096 768 13 28');
     const [shopEmail, setShopEmail] = useState<string>('teddypetfpt@gmail.com');
     const [shopWebsite, setShopWebsite] = useState<string>('teddypet.fpt.edu.vn');
     const [facebookUrl, setFacebookUrl] = useState<string>('#');

@@ -98,4 +98,11 @@ public class ProductTagController {
         SimpleEntityExcelService.ImportResult result = excelService.importTags(file);
         return ResponseEntity.ok(ApiResponse.success("Import tag hoàn tất.", result));
     }
+    @PostMapping("/excel/preview")
+    @Operation(summary = "Xem trước dữ liệu nhập tag từ file Excel")
+    public ResponseEntity<ApiResponse<List<SimpleEntityExcelService.EntityPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<SimpleEntityExcelService.EntityPreviewRow> result = excelService.previewImportTags(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview tag", result));
+    }
 }

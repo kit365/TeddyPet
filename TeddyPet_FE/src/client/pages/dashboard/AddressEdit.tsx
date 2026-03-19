@@ -66,6 +66,12 @@ export const AddressEditPage = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isDefault, setIsDefault] = useState(false);
     const [isNotFound, setIsNotFound] = useState(false);
+    const [isManualMode, setIsManualMode] = useState(false);
+    const [districts, setDistricts] = useState<any[]>([]);
+    const [wards, setWards] = useState<any[]>([]);
+    const [selectedDistrict, setSelectedDistrict] = useState<string>("");
+    const [selectedWard, setSelectedWard] = useState<string>("");
+    const [houseNumber, setHouseNumber] = useState<string>("");
 
     const isManualChange = useRef(false);
 
@@ -120,7 +126,32 @@ export const AddressEditPage = () => {
         if (id) {
             fetchData();
         }
+        fetchDistricts();
     }, [id, navigate]);
+
+    const fetchDistricts = async () => {
+        try {
+            const res = await fetch("https://provinces.open-api.vn/api/p/79?depth=2");
+            const data = await res.json();
+            if (data && data.districts) {
+                setDistricts(data.districts);
+            }
+        } catch (error) {
+            console.error("Lỗi lấy danh sách quận huyện:", error);
+        }
+    };
+
+    const fetchWards = async (districtCode: number) => {
+        try {
+            const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
+            const data = await res.json();
+            if (data && data.wards) {
+                setWards(data.wards);
+            }
+        } catch (error) {
+            console.error("Lỗi lấy danh sách phường xã:", error);
+        }
+    };
 
     const fetchAddressFromCoords = async (lat: number, lon: number) => {
         try {
@@ -254,13 +285,8 @@ export const AddressEditPage = () => {
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!fullName.trim() || !phone.trim() || !address.trim()) {
+        if (!fullName.trim() || !phone.trim() || (!isManualMode && !address.trim())) {
             toast.error("Vui lòng điền đầy đủ thông tin");
-            return;
-        }
-
-        if (!position) {
-            toast.error("Vui lòng chọn vị trí trên bản đồ");
             return;
         }
 
@@ -272,12 +298,30 @@ export const AddressEditPage = () => {
 
         try {
             setSubmitting(true);
+
+            let finalAddress = address.trim();
+            let lat = position?.lat;
+            let lon = position?.lng;
+
+            if (isManualMode) {
+                if (!houseNumber.trim() || !selectedWard || !selectedDistrict) {
+                    toast.error("Vui lòng nhập đầy đủ địa chỉ thủ công");
+                    setSubmitting(false);
+                    return;
+                }
+                finalAddress = `${houseNumber.trim()}, ${selectedWard}, ${selectedDistrict}, Thành phố Hồ Chí Minh`;
+                if (!lat || !lon) {
+                    lat = 10.762622;
+                    lon = 106.660172;
+                }
+            }
+
             await updateAddress(Number(id), {
                 fullName: fullName.trim(),
                 phone: phone.trim(),
-                address: address.trim(),
-                longitude: position.lng,
-                latitude: position.lat,
+                address: finalAddress,
+                longitude: lon,
+                latitude: lat,
                 isDefault
             });
             toast.success("Cập nhật địa chỉ thành công!");
@@ -368,66 +412,134 @@ export const AddressEditPage = () => {
                         </div>
                         {isNotFound && (
                             <p className="text-[10px] text-rose-600 font-bold mt-1">
-                                ⚠️ Không tìm thấy vị trí. Vui lòng chọn trên bản đồ.
+                                ⚠️ Không tìm thấy vị trí. Vui lòng chọn trên bản đồ hoặc <button type="button" onClick={() => setIsManualMode(true)} className="underline">nhập thủ công</button>.
                             </p>
                         )}
+                        <div className="flex justify-end pr-2">
+                             <button 
+                                type="button" 
+                                onClick={() => setIsManualMode(!isManualMode)}
+                                className="text-[11px] font-bold text-client-primary hover:underline"
+                            >
+                                {isManualMode ? "← Quay lại dùng bản đồ" : "Hoặc nhập thủ công (Quận/Phường/Đường)"}
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Map Section */}
-                    <div className="relative min-h-[280px] h-[280px] border border-slate-200 rounded-2xl overflow-hidden bg-white shrink-0">
-                        {/* Search Bar */}
-                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-[92%]">
-                            <div className="relative flex items-center gap-1.5 bg-white shadow-lg rounded-xl border border-slate-200 p-1.5">
-                                <Search size={14} className="text-slate-400 ml-1" />
+                    {isManualMode && (
+                        <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quận / Huyện</label>
+                                    <div className="relative">
+                                        <select
+                                            value={selectedDistrict}
+                                            onChange={(e) => {
+                                                const district = districts.find(d => d.name === e.target.value);
+                                                setSelectedDistrict(e.target.value);
+                                                setSelectedWard("");
+                                                if (district) fetchWards(district.code);
+                                            }}
+                                            className="w-full px-4 py-2.5 text-sm font-semibold bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer pr-10"
+                                        >
+                                            <option value="">Chọn Quận/Huyện</option>
+                                            {districts.map(d => <option key={d.code} value={d.name}>{d.name}</option>)}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phường / Xã</label>
+                                    <div className="relative">
+                                        <select
+                                            value={selectedWard}
+                                            onChange={(e) => setSelectedWard(e.target.value)}
+                                            disabled={!selectedDistrict}
+                                            className="w-full px-4 py-2.5 text-sm font-semibold bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 pr-10"
+                                        >
+                                            <option value="">Chọn Phường/Xã</option>
+                                            {wards.map(w => <option key={w.code} value={w.name}>{w.name}</option>)}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số nhà, tên đường</label>
                                 <input
                                     type="text"
-                                    className="flex-1 border-none bg-transparent px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none placeholder:text-slate-400"
-                                    placeholder="Tìm kiếm..."
-                                    value={searchKeyword}
-                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                    value={houseNumber}
+                                    onChange={(e) => setHouseNumber(e.target.value)}
+                                    className="w-full px-4 py-2.5 text-sm font-semibold bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                                    placeholder="Ví dụ: 123 Đường ABC..."
                                 />
-                                <button
-                                    type="button"
-                                    onClick={handleCurrentLocation}
-                                    className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
-                                    title="Vị trí hiện tại"
-                                >
-                                    <Navigation size={14} />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.preventDefault(); geocodeFromAddress(searchKeyword, true); }}
-                                    className="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-client-primary transition-all active:scale-95"
-                                >
-                                    Tìm
-                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium italic">
+                                * Địa chỉ này sẽ được dùng làm fallback khi hệ thống bản đồ gặp trục trặc.
+                            </p>
+                        </div>
+                    )}
+
+                    {!isManualMode && (
+                        <div className="relative min-h-[280px] h-[280px] border border-slate-200 rounded-2xl overflow-hidden bg-white shrink-0">
+                            {/* Search Bar */}
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-[92%]">
+                                <div className="relative flex items-center gap-1.5 bg-white shadow-lg rounded-xl border border-slate-200 p-1.5">
+                                    <Search size={14} className="text-slate-400 ml-1" />
+                                    <input
+                                        type="text"
+                                        className="flex-1 border-none bg-transparent px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none placeholder:text-slate-400"
+                                        placeholder="Tìm kiếm..."
+                                        value={searchKeyword}
+                                        onChange={(e) => setSearchKeyword(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleCurrentLocation}
+                                        className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+                                        title="Vị trí hiện tại"
+                                    >
+                                        <Navigation size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.preventDefault(); geocodeFromAddress(searchKeyword, true); }}
+                                        className="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-client-primary transition-all active:scale-95"
+                                    >
+                                        Tìm
+                                    </button>
+                                </div>
+
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white/98 border border-slate-100 rounded-xl shadow-xl overflow-y-auto max-h-[220px]">
+                                        {suggestions.map((item, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => handleSelectSuggestion(item)}
+                                                className="px-3 py-2 hover:bg-client-primary/5 cursor-pointer border-b border-slate-50 last:border-none flex items-start gap-2.5 transition-colors"
+                                            >
+                                                <MapPin size={14} className="text-client-secondary shrink-0 mt-0.5" />
+                                                <div className="flex flex-col gap-0.5 min-w-0">
+                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.display_name.split(',')[0]}</span>
+                                                    <span className="text-[11px] text-slate-400 line-clamp-1">{item.display_name}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
-                            {showSuggestions && suggestions.length > 0 && (
-                                <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white/98 border border-slate-100 rounded-xl shadow-xl overflow-y-auto max-h-[220px]">
-                                    {suggestions.map((item, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => handleSelectSuggestion(item)}
-                                            className="px-3 py-2 hover:bg-client-primary/5 cursor-pointer border-b border-slate-50 last:border-none flex items-start gap-2.5 transition-colors"
-                                        >
-                                            <MapPin size={14} className="text-client-secondary shrink-0 mt-0.5" />
-                                            <div className="flex flex-col gap-0.5 min-w-0">
-                                                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.display_name.split(',')[0]}</span>
-                                                <span className="text-[11px] text-slate-400 line-clamp-1">{item.display_name}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <MapContainer center={mapCenter} zoom={15} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+                                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                <LocationMarker position={position} setPosition={setPosition} onLocationSelect={fetchAddressFromCoords} />
+                                <MapController center={mapCenter} />
+                            </MapContainer>
                         </div>
-
-                        <MapContainer center={mapCenter} zoom={15} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-                            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            <LocationMarker position={position} setPosition={setPosition} onLocationSelect={fetchAddressFromCoords} />
-                            <MapController center={mapCenter} />
-                        </MapContainer>
-                    </div>
+                    )}
 
                     {/* Default Address Checkbox */}
                     <div className="flex items-center gap-2.5 pt-1">

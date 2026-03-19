@@ -5,7 +5,7 @@ import { useAuthStore } from "../../../stores/useAuthStore";
 import { setupInitialPassword } from "../../../admin/api/auth.api";
 import { Header } from "../../components/layouts/Header";
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { ArrowRight, Lock, Key, CheckCircle } from "iconoir-react";
+import { ArrowRight, CheckCircle } from "iconoir-react";
 
 export const SetupPasswordPage = () => {
     const navigate = useNavigate();
@@ -86,7 +86,7 @@ export const SetupPasswordPage = () => {
                                         placeholder="Ít nhất 6 ký tự"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full rounded-[8px] border-2 border-slate-100 bg-slate-50/50 px-5 py-[12px] text-[0.875rem] outline-none focus:border-client-primary focus:bg-white transition-all pr-12 text-slate-800"
+                                        className="w-full rounded-[12px] border-2 border-slate-100 bg-slate-50/50 pl-4 pr-10 py-[12px] text-[0.9375rem] outline-none focus:border-client-primary focus:bg-white transition-all text-slate-800 placeholder:text-slate-300"
                                     />
 
                                 </div>
@@ -101,9 +101,9 @@ export const SetupPasswordPage = () => {
                                         placeholder="Nhập lại mật khẩu mới"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full rounded-[8px] border-2 border-slate-100 bg-slate-50/50 px-5 py-[12px] text-[0.875rem] outline-none focus:border-client-primary focus:bg-white transition-all pr-12 text-slate-800"
+                                        className="w-full rounded-[12px] border-2 border-slate-100 bg-slate-50/50 pl-4 pr-10 py-[12px] text-[0.9375rem] outline-none focus:border-client-primary focus:bg-white transition-all text-slate-800 placeholder:text-slate-300"
                                     />
-                                    <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-client-primary transition-colors" />
+                                    <CheckCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 w-[1.15rem] h-[1.15rem] text-slate-200 group-focus-within:text-client-primary transition-colors" />
                                 </div>
                             </div>
 
