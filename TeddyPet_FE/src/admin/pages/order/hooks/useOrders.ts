@@ -95,6 +95,12 @@ export const useOrders = () => {
         fetchPendingCount();
     }, [fetchPendingCount]);
 
+    // When switching status tabs, override any active keyword search immediately.
+    // This prevents a stale `debouncedKeyword` from forcing `searchOrders()` while user expects `getOrdersByStatus()`.
+    useEffect(() => {
+        setDebouncedKeyword('');
+    }, [status]);
+
     return {
         orders,
         loading,

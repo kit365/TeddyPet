@@ -326,7 +326,8 @@ export const ProductFormPage = () => {
         if (isReadOnly) return;
         if (draftAppliedRef.current) return;
         if (mode !== "create" && mode !== "edit") return;
-        if (!isInitializedRef.current) return;
+        // For edit mode, wait until product data is ready; for create mode, restore immediately.
+        if (mode === "edit" && isProductLoading) return;
 
         try {
             const raw = localStorage.getItem(getDraftKey());
@@ -349,7 +350,7 @@ export const ProductFormPage = () => {
         } catch {
             // ignore
         }
-    }, [applyDraftPayload, getDraftKey, id, isReadOnly, mode]);
+    }, [applyDraftPayload, getDraftKey, id, isReadOnly, mode, isProductLoading]);
 
     // Auto-save draft (debounced)
     useEffect(() => {
