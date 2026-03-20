@@ -42,18 +42,27 @@ export const getOrderByCode = async (code: string) => {
 };
 
 export const updateOrderStatus = async (id: string, status: string) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/status?status=${status}`);
+    const response = await apiApp.patch<ApiResponse<void>>(
+        `${BASE_PATH}/${id}/status?status=${encodeURIComponent(status)}`,
+        {}
+    );
     return response.data;
 };
 
 /** Đổi phương thức thanh toán (đơn tại quầy, trạng thái Chờ thanh toán). */
 export const updateOrderPaymentMethod = async (id: string, paymentMethod: 'CASH' | 'BANK_TRANSFER') => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/payment-method?paymentMethod=${paymentMethod}`);
+    const response = await apiApp.patch<ApiResponse<void>>(
+        `${BASE_PATH}/${id}/payment-method?paymentMethod=${encodeURIComponent(paymentMethod)}`,
+        {}
+    );
     return response.data;
 };
 
 export const updateShippingFee = async (id: string, fee: number) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/shipping-fee?finalFee=${fee}`);
+    const response = await apiApp.patch<ApiResponse<void>>(
+        `${BASE_PATH}/${id}/shipping-fee?finalFee=${encodeURIComponent(String(fee))}`,
+        {}
+    );
     return response.data;
 };
 
@@ -76,7 +85,7 @@ export const cancelOrderByAdmin = async (id: string, reason: string) => {
 
 /** Admin xác nhận đã thanh toán cho đơn online (chuyển khoản) – sau đó mới hiện Bắt đầu đóng gói */
 export const confirmPaymentByAdmin = async (id: string) => {
-    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/confirm-payment`);
+    const response = await apiApp.patch<ApiResponse<void>>(`${BASE_PATH}/${id}/confirm-payment`, {});
     return response.data;
 };
 
@@ -105,9 +114,9 @@ export const getOrderRefundRequests = async (orderId: string) => {
 export const handleOrderRefundRequest = async (
     orderId: string,
     refundId: number,
-    payload: { approved: boolean; adminNote?: string; refundTransactionId?: string; adminEvidenceUrls?: string[] }
+    payload: { approved?: boolean; requireMoreInfo?: boolean; adminNote?: string; refundTransactionId?: string; adminEvidenceUrls?: string[] }
 ) => {
-    const response = await apiApp.post<ApiResponse<any>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
+    const response = await apiApp.post<ApiResponse<OrderRefundResponse>>(`${BASE_PATH}/${orderId}/refund-requests/${refundId}/handle`, payload);
     return response.data;
 };
 

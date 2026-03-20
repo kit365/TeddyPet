@@ -1,6 +1,7 @@
 import { apiApp } from "./index";
 import { ApiResponse } from "../types/common.type";
 
+
 export interface FeedbackRequest {
     token?: string;
     orderId?: string;
@@ -23,7 +24,8 @@ export interface FeedbackResponse {
     rating: number;
     comment: string;
     replyComment?: string;
-    repliedAt?: string;
+    repliedAt: string | null;
+    orderCode?: string;
     isEdited: boolean;
     isPurchased: boolean;
     createdAt: string;
@@ -46,6 +48,18 @@ export interface FeedbackTokenResponse {
     customerName: string;
     customerEmail: string;
     items: FeedbackTokenItem[];
+}
+
+export interface FeedbackStatsResponse {
+    totalReviews: number;
+    averageRating: number,
+    todayReviews: number,
+    ratingGrowth: number;
+    ratingDistribution: Record<number, number>;
+    monthlyTrends: {
+        month: string;
+        count: number;
+    }[];
 }
 
 const BASE_PATH = "/api/feedbacks";
@@ -101,3 +115,9 @@ export const getMyFeedbacks = async (): Promise<ApiResponse<FeedbackResponse[]>>
     const response = await apiApp.get(`${BASE_PATH}/me`);
     return response.data;
 };
+
+export const getFeedbackStats = async (): Promise<ApiResponse<FeedbackStatsResponse>> => {
+    const response = await apiApp.get(`${BASE_PATH}/stats`);
+    return response.data;
+};
+

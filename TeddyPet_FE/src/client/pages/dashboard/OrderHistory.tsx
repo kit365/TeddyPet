@@ -230,9 +230,15 @@ export const OrderHistoryPage = () => {
                 </div>
             ) : filteredOrders.length > 0 ? (
                 <div className="space-y-3 pb-24">
-                    {filteredOrders.map((order) => (
+                    {filteredOrders.map((order) => {
+                        const isExpired = ['PENDING', 'CONFIRMED'].includes(order.status) && 
+                            order.payments?.[0]?.paymentMethod === 'BANK_TRANSFER' && 
+                            order.payments?.[0]?.status !== 'COMPLETED' && 
+                            (new Date().getTime() - new Date(order.createdAt).getTime()) > 10 * 60 * 1000;
+                        
+                        return (
                         <div key={order.id} className="group bg-white border border-slate-100 rounded-xl p-4 hover:shadow-lg hover:border-slate-200 transition-all duration-300">
-                            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
+                            <div className="grid grid-cols-[1fr_130px_100px_100px] gap-4 items-center">
                                 {/* Order Code */}
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-client-primary/10 transition-colors">
@@ -245,7 +251,7 @@ export const OrderHistoryPage = () => {
                                 </div>
 
                                 {/* Status Badge */}
-                                <div className="flex justify-center -ml-4">
+                                <div className="flex justify-center">
                                     <StatusBadge status={order.status} />
                                 </div>
 
@@ -257,6 +263,7 @@ export const OrderHistoryPage = () => {
 
                                 {/* Actions */}
                                 <div className="flex items-center justify-end gap-1">
+                                    {/* Thanh toán: đơn đã xác nhận, chọn chuyển khoản, chưa thanh toán — vào chi tiết để thanh toán trước khi hết hạn */}
                                     {order.status === "DELIVERED" && (
                                         <button
                                             onClick={() => handleOpenConfirm(order.id)}
@@ -293,7 +300,7 @@ export const OrderHistoryPage = () => {
                                         </Link>
                                     )}
 
-                                    {order.status === "PENDING" && (
+                                    {(!isExpired && ["PENDING", "CONFIRMED", "PAID"].includes(order.status)) && (
                                         <button
                                             onClick={() => handleOpenCancelModal(order.id)}
                                             className="w-7 h-7 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all flex items-center justify-center"
@@ -305,7 +312,7 @@ export const OrderHistoryPage = () => {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             ) : (
                 <div className="h-[15rem] flex items-center justify-center">

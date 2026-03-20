@@ -19,6 +19,8 @@ import {
     getRatingSummary,
     getTopStaff,
 } from "../../api/dashboard.api";
+import { DashboardDateFilter, DateRangeValue } from "../../components/dashboard/DashboardDateFilter";
+import dayjs from "dayjs";
 import type {
     DashboardStatsResponse,
     RevenueChartItem,
@@ -645,25 +647,52 @@ const ServiceUsageChart = ({
 const SystemStats = ({ stats, chartData }: any) => {
     const statsData = [
         {
-            title: "Tổng người dùng",
+            title: "Khách hàng",
             total: stats?.totalCustomers?.toLocaleString() ?? "0",
+            percent: 8.5,
+            color: "#00a76f",
+            chartData: chartData?.length > 0 ? chartData.map((d: any) => d.orders) : [25, 66, 41, 89, 63, 25, 44, 12],
+            to: `/${prefixAdmin}/user/list`
+        },
+        {
+            title: "Đánh giá TB",
+            total: stats?.avgRating != null ? stats.avgRating.toFixed(1) : "0.0",
+            percent: 0.2,
+            color: "#ffab00",
+            chartData: [4.5, 4.2, 4.8, 4.5, 4.3, 4.7, 4.5, 4.6],
+            to: `/${prefixAdmin}/feedback/list`
+        },
+        {
+            title: "Sản phẩm đã bán",
+            total: stats?.totalProducts?.toLocaleString() ?? "0",
             percent: 2.6,
             color: "#00a76f",
-            chartData: chartData?.length > 0 ? chartData.map((d: any) => d.orders) : [25, 66, 41, 89, 63, 25, 44, 12]
+            chartData: [25, 66, 41, 89, 63, 25, 44, 12],
+            to: "/admin/product/list"
         },
         {
-            title: "Tổng tài khoản quản trị",
-            total: stats?.totalAdminAccounts != null ? stats.totalAdminAccounts.toLocaleString() : "0",
-            percent: 0.2,
+            title: "Đơn hàng HT",
+            total: stats?.completedOrders?.toLocaleString() ?? "0",
+            percent: 5.4,
             color: "#00b8d9",
-            chartData: [15, 32, 45, 32, 56, 32, 44, 55]
+            chartData: [15, 32, 45, 32, 56, 32, 44, 55],
+            to: `/${prefixAdmin}/order/list`
         },
         {
-            title: "Tổng thú cưng (Pets)",
-            total: stats?.totalProducts?.toLocaleString() ?? "0",
-            percent: -0.1,
-            color: "#ff5630",
-            chartData: [56, 44, 32, 45, 32, 15, 25, 12]
+            title: "Lịch đặt HT",
+            total: stats?.completedBookings?.toLocaleString() ?? "0",
+            percent: 12.5,
+            color: "#8e33ff",
+            chartData: [10, 22, 18, 25, 30, 24, 28, 35],
+            to: `/${prefixAdmin}/booking/list`
+        },
+        {
+            title: "Tổng đơn hàng",
+            total: stats?.totalOrders?.toLocaleString() ?? "0",
+            percent: 0.6,
+            color: "#00b8d9",
+            chartData: [25, 66, 41, 89, 63, 25, 44, 12],
+            to: `/${prefixAdmin}/order/list`
         }
     ];
 
@@ -684,6 +713,7 @@ const SystemStats = ({ stats, chartData }: any) => {
                         percent={stat.percent}
                         color={stat.color}
                         chartData={stat.chartData}
+                        to={stat.to}
                     />
                 </Grid>
             ))}
@@ -718,68 +748,35 @@ export function getDaysFromTimeRange(range: TimeRangeLabel): number {
     }
 }
 
-const GlobalFilter = ({ range, onRangeChange }: { range: TimeRangeLabel; onRangeChange: (r: TimeRangeLabel) => void }) => {
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(e.currentTarget);
-    const handleClose = (preset?: string) => {
-        if (preset && TIME_RANGE_OPTIONS.includes(preset as TimeRangeLabel)) onRangeChange(preset as TimeRangeLabel);
-        setAnchorEl(null);
-    };
-
-    return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-            <Box sx={{ flexGrow: 1 }} />
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Thời gian báo cáo:</Typography>
-            <Button
-                variant="outlined"
-                onClick={handleClick}
-                endIcon={<Icon icon="eva:chevron-down-fill" />}
-                sx={{
-                    borderRadius: '12px',
-                    borderColor: 'var(--palette-divider)',
-                    color: 'text.primary',
-                    fontWeight: 700,
-                    px: 2,
-                    height: 40,
-                    textTransform: 'none',
-                    bgcolor: 'white',
-                    '&:hover': { bgcolor: 'var(--palette-background-neutral)', borderColor: 'text.primary' }
-                }}
-            >
-                {range}
-            </Button>
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => handleClose()} PaperProps={{ sx: { mt: 1, borderRadius: '12px', minWidth: 180 } }}>
-                {TIME_RANGE_OPTIONS.map((p) => (
-                    <MenuItem key={p} onClick={() => handleClose(p)} selected={p === range} sx={{ typography: 'body2', fontWeight: p === range ? 700 : 400, borderRadius: '8px', mx: 0.5 }}>
-                        {p}
-                    </MenuItem>
-                ))}
-            </Menu>
-        </Box>
-    );
-};
+// Removed legacy GlobalFilter
 
 
 export const SystemPage = () => {
     const { user } = useAuthStore();
     const [activeIndex, setActiveIndex] = useState(0);
-    const [timeRange, setTimeRange] = useState<TimeRangeLabel>('30 ngày qua');
+    const [dateRange, setDateRange] = useState<DateRangeValue>({
+        label: '30 ngày qua',
+        startDate: dayjs().subtract(30, 'day'),
+        endDate: dayjs()
+    });
     const [serviceStatisticsYear, setServiceStatisticsYear] = useState(new Date().getFullYear());
 
     const queryClient = useQueryClient();
-    const daysForChart = getDaysFromTimeRange(timeRange);
+    
+    const startDateStr = dateRange.startDate?.toISOString();
+    const endDateStr = dateRange.endDate?.toISOString();
 
     const { data: statsRes, refetch: refetchStats } = useQuery({
-        queryKey: ["dashboard-stats"],
-        queryFn: getDashboardStats
+        queryKey: ["dashboard-stats", startDateStr, endDateStr],
+        queryFn: () => getDashboardStats(startDateStr, endDateStr)
     });
     const { data: chartRes, refetch: refetchChart } = useQuery({
-        queryKey: ["revenue-chart", daysForChart],
-        queryFn: () => getRevenueChart(daysForChart)
+        queryKey: ["revenue-chart", startDateStr, endDateStr],
+        queryFn: () => getRevenueChart(30, startDateStr, endDateStr)
     });
     const { data: topCustomersRes } = useQuery({
-        queryKey: ["dashboard-top-customers"],
-        queryFn: getTopCustomers
+        queryKey: ["dashboard-top-customers", startDateStr, endDateStr],
+        queryFn: () => getTopCustomers(startDateStr, endDateStr)
     });
     const { data: latestProductsRes } = useQuery({
         queryKey: ["dashboard-latest-products"],
@@ -854,17 +851,17 @@ export const SystemPage = () => {
     // Mỗi section 1 listener riêng: 1 socket/topic die không ảnh hưởng section khác
     useEffect(() => {
         const handlers: Array<[string, (e: any) => void]> = [
-            ["DASHBOARD_SECTION_STATS", (e) => queryClient.setQueryData(["dashboard-stats"], { success: true, data: e.detail })],
-            ["DASHBOARD_SECTION_REVENUE_CHART", (e) => queryClient.setQueryData(["revenue-chart", daysForChart], { success: true, data: e.detail })],
-            ["DASHBOARD_SECTION_TOP_CUSTOMERS", (e) => queryClient.setQueryData(["dashboard-top-customers"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_STATS", (e) => queryClient.setQueryData(["dashboard-stats", startDateStr, endDateStr], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_REVENUE_CHART", (e) => queryClient.setQueryData(["revenue-chart", startDateStr, endDateStr], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_TOP_CUSTOMERS", (e) => queryClient.setQueryData(["dashboard-top-customers", startDateStr, endDateStr], { success: true, data: e.detail })],
             ["DASHBOARD_SECTION_LATEST_PRODUCTS", (e) => queryClient.setQueryData(["dashboard-latest-products"], { success: true, data: e.detail })],
             ["DASHBOARD_SECTION_PET_DISTRIBUTION", (e) => queryClient.setQueryData(["dashboard-pet-distribution"], { success: true, data: e.detail })],
-            ["DASHBOARD_SECTION_SERVICE_STATISTICS", (e) => queryClient.setQueryData(["dashboard-service-statistics"], { success: true, data: e.detail })],
-            ["DASHBOARD_STATS_UPDATED", (e) => queryClient.setQueryData(["dashboard-stats"], { success: true, data: e.detail })],
+            ["DASHBOARD_SECTION_SERVICE_STATISTICS", (e) => queryClient.setQueryData(["dashboard-service-statistics", serviceStatisticsYear], { success: true, data: e.detail })],
+            ["DASHBOARD_STATS_UPDATED", (e) => queryClient.setQueryData(["dashboard-stats", startDateStr, endDateStr], { success: true, data: e.detail })],
         ];
         handlers.forEach(([name, fn]) => window.addEventListener(name, fn));
         return () => handlers.forEach(([name, fn]) => window.removeEventListener(name, fn));
-    }, [queryClient, daysForChart]);
+    }, [queryClient, startDateStr, endDateStr, serviceStatisticsYear]);
 
     useEffect(() => {
         const onOrdersRefresh = () => {
@@ -906,7 +903,9 @@ export const SystemPage = () => {
             }}
         >
             <Grid sx={{ width: '100%' }}>
-                <GlobalFilter range={timeRange} onRangeChange={setTimeRange} />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                    <DashboardDateFilter value={dateRange} onChange={setDateRange} />
+                </Box>
             </Grid>
 
 
@@ -1056,53 +1055,9 @@ export const SystemPage = () => {
                     </div>
                 </DashboardCard>
             </Grid>
-
-            {/* Ecommerce Stats Cards */}
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, 
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
-                <SummaryWidget
-                    title="Sản phẩm đã bán"
-                    total={stats?.totalProducts?.toString() || "0"}
-                    percent={2.6}
-                    color="#00a76f"
-                    chartData={chartData.map(d => d.orders)}
-                />
-            </Grid>
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, 
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
-                <SummaryWidget
-                    title="Đơn hàng đặt lẻ (Bookings)"
-                    total={stats?.todayBookings?.toString() || "0"}
-                    percent={-0.1}
-                    color="#ffab00"
-                    chartData={chartData.map(d => d.orders)}
-                />
-            </Grid>
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, 
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
-                <SummaryWidget
-                    title="Tổng số đơn hàng"
-                    total={stats?.totalOrders?.toString() || "0"}
-                    percent={0.6}
-                    color="#00b8d9"
-                    chartData={chartData.map(d => d.orders)}
-                />
-            </Grid>
-
             {/* Stats Cards */}
             <SystemStats stats={stats} chartData={chartData} />
+
 
             {/* Sales & Balance Section */}
             <Grid

@@ -18,6 +18,7 @@ public interface FeedbackMapper {
     @Mapping(target = "productImage", expression = "java(feedback.getVariant() != null && feedback.getVariant().getFeaturedImage() != null ? feedback.getVariant().getFeaturedImage().getImageUrl() : (feedback.getProduct().getImages() != null && !feedback.getProduct().getImages().isEmpty() ? feedback.getProduct().getImages().get(0).getImageUrl() : null))")
     @Mapping(target = "variantId", source = "variant.variantId")
     @Mapping(target = "variantName", source = "variant.name")
+    @Mapping(target = "orderCode", source = "order.orderCode")
     @Mapping(target = "isEdited", source = "edited")
     @Mapping(target = "isPurchased", source = "purchased")
     FeedbackResponse toResponse(Feedback feedback);

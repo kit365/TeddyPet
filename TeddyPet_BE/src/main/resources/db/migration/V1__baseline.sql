@@ -328,6 +328,8 @@ CREATE TABLE no_show_config
         order_id uuid,
         user_id uuid,
         comment TEXT,
+        reply_comment TEXT,
+        replied_at TIMESTAMP WITHOUT TIME ZONE,
         created_by varchar(255),
         guest_email varchar(255),
         guest_name varchar(255),

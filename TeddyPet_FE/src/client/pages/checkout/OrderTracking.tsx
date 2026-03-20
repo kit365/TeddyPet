@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
-import { trackOrder, confirmReceived, lookupGuestOrder, createPaymentUrl, createOrderRefundRequest } from "../../../api/order.api";
+import { trackOrder, confirmReceived, lookupGuestOrder, createPaymentUrl, cancelPayosPaymentLink, createOrderRefundRequest, updateOrderRefundRequest, getOrderRefundRequests, cancelOrderByGuest } from "../../../api/order.api";
+import { getOrderShippingFeeLabel } from "../../utils/orderShippingDisplay";
 import { createGuestBankInformationByOrderCode } from "../../../api/bank.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
@@ -10,16 +11,31 @@ import {
     Search, Package, MapPin, CheckCircle, WarningCircle,
     RefreshDouble, ClipboardCheck, Truck, Box as BoxIcon, HomeSimple,
     Mail, Copy, HelpCircle, ChatBubble, Wallet, Calendar,
-    ShieldCheck, InfoCircle, Star, Clock
+    ShieldCheck, InfoCircle, Star, Clock, XmarkCircle
 } from "iconoir-react";
 import { format } from "date-fns";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { RefundRequestModal } from "../dashboard/sections/RefundRequestModal";
+import { CancelOrderModal } from "../dashboard/sections/CancelOrderModal";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
     { label: "Tra cứu đơn hàng", to: "#" },
 ];
+
+/**
+ * PayOS gắn `code=00`/`01` lên returnUrl — trùng tên với query `code` (mã đơn) của tra cứu.
+ * Dùng `tpOrder` cho link thanh toán; vẫn hỗ trợ `code` cũ (mã đơn dạng ORD-...).
+ */
+function resolveTrackingOrderCodeFromSearch(search: string): string | null {
+    const p = new URLSearchParams(search);
+    const tp = p.get("tpOrder")?.trim();
+    if (tp) return tp;
+    const c = p.get("code")?.trim();
+    if (!c) return null;
+    if (/^(0\d|01)$/.test(c)) return null;
+    return c;
+}
 
 // Màu riêng cho từng trạng thái đơn hàng (+ bước ảo Đã thanh toán)
 const STEP_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
@@ -132,6 +148,8 @@ export const OrderTrackingPage = () => {
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
     const [paymentPopupUrl, setPaymentPopupUrl] = useState<string | null>(null);
+    const [showCancelOrderModal, setShowCancelOrderModal] = useState(false);
+    const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
     const paymentPollRef = useRef<number | null>(null);
     const navigate = useNavigate();
 
@@ -142,7 +160,7 @@ export const OrderTrackingPage = () => {
         if (typeof window === "undefined" || window.self === window.top) return;
         const params = new URLSearchParams(window.location.search);
         if (params.get("payment_popup") !== "1") return;
-        const code = params.get("code");
+        const code = resolveTrackingOrderCodeFromSearch(window.location.search);
         const emailParam = params.get("email");
         window.parent.postMessage({ type: "PAYMENT_POPUP_CLOSE", code, email: emailParam }, "*");
     }, []);
@@ -162,7 +180,7 @@ export const OrderTrackingPage = () => {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        const codeFromUrl = urlParams.get("code");
+        const codeFromUrl = resolveTrackingOrderCodeFromSearch(location.search);
         const emailFromUrl = urlParams.get("email");
         if (codeFromUrl && codeFromUrl !== orderCode) setOrderCode(codeFromUrl);
         if (emailFromUrl && emailFromUrl !== email) setEmail(emailFromUrl);
@@ -170,7 +188,7 @@ export const OrderTrackingPage = () => {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        const codeFromUrl = urlParams.get("code");
+        const codeFromUrl = resolveTrackingOrderCodeFromSearch(location.search);
         const emailFromUrl = urlParams.get("email");
         
         if (codeFromUrl && !hasAutoLooked.current && !order) {
@@ -263,8 +281,23 @@ export const OrderTrackingPage = () => {
     // Nút yêu cầu hoàn tiền
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
-    
-    const showRefundButton = order && order.orderType === 'ONLINE' && ['PAID', 'PROCESSING'].includes(order.status);
+    const [refundHistory, setRefundHistory] = useState<Array<{
+        id: number; status: string; adminDecisionNote?: string | null; processedAt?: string | null; createdAt: string; customerReason?: string;
+        evidenceUrls?: string | null; adminEvidenceUrls?: string[]; refundTransactionId?: string | null;
+    }>>([]);
+
+    // Fetch refund history khi mở modal HOẶC khi đơn đã hủy/hoàn trả (để hiển thị block lý do + bằng chứng)
+    useEffect(() => {
+        if (!order?.id) return;
+        if (showCancelModal || order.status === 'CANCELLED' || order.status === 'RETURNED') {
+            getOrderRefundRequests(order.id)
+                .then((res) => { if (res.success && Array.isArray(res.data)) setRefundHistory(res.data); })
+                .catch(() => setRefundHistory([]));
+        }
+    }, [order?.id, order?.status, showCancelModal]);
+
+    const showRefundButton = order && isPaid && ['PAID', 'PROCESSING'].includes(order.status);
+    const showCancelButton = order && !isPaid && ['PENDING', 'CONFIRMED'].includes(order.status);
     const hasPendingRefund = order?.latestRefundStatus === 'PENDING';
 
     // Polling logic
@@ -329,7 +362,7 @@ export const OrderTrackingPage = () => {
         setIsPaymentSubmitting(true);
         try {
             const clientBaseUrl = import.meta.env.VITE_PUBLIC_CLIENT_URL || window.location.origin;
-            const returnUrl = `${clientBaseUrl}/tra-cuu-don-hang?code=${order.orderCode}${order.guestEmail || email ? `&email=${encodeURIComponent(order.guestEmail || email)}` : ""}&payment_popup=1`;
+            const returnUrl = `${clientBaseUrl}/tra-cuu-don-hang?tpOrder=${encodeURIComponent(order.orderCode)}${order.guestEmail || email ? `&email=${encodeURIComponent(order.guestEmail || email)}` : ""}&payment_popup=1`;
             const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
             if (response.success && response.data) {
                 startPaymentPolling(order.orderCode, order.guestEmail || email || undefined);
@@ -344,6 +377,57 @@ export const OrderTrackingPage = () => {
             toast.error(error.response?.data?.message || "Không thể tạo link thanh toán!");
         } finally {
             setIsPaymentSubmitting(false);
+        }
+    };
+
+    const handleClosePaymentPopup = async () => {
+        setPaymentPopupUrl(null);
+        if (!order?.id) return;
+        try {
+            await cancelPayosPaymentLink(order.id);
+        } catch {
+            // best-effort cancel
+        }
+    };
+
+    const handleConfirmCancelOrder = async (reason: string) => {
+        if (!order) return;
+        setIsSubmittingCancel(true);
+        try {
+            // Dùng API guest cancel vì đây là trang tra cứu (thường cho guest)
+            const res = await cancelOrderByGuest(order.orderCode, order.guestEmail || email || "", reason);
+            if (res.success) {
+                toast.success("Đã hủy đơn hàng thành công!");
+                setShowCancelOrderModal(false);
+                doTrackOrder(order.orderCode, order.guestEmail || email || undefined);
+            } else {
+                toast.error(res.message || "Không thể hủy đơn hàng.");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi khi hủy đơn hàng.");
+        } finally {
+            setIsSubmittingCancel(false);
+        }
+    };
+
+    const handleRefundUpdate = async (refundId: number, data: any) => {
+        if (!order) return;
+        setIsSubmittingRefund(true);
+        try {
+            const response = await updateOrderRefundRequest(order.id, refundId, data);
+            if (response.success) {
+                toast.success("Đã cập nhật yêu cầu hoàn tiền!");
+                setShowCancelModal(false);
+                const res = await getOrderRefundRequests(order.id);
+                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
+                doTrackOrder(order.orderCode, order.guestEmail || email || undefined);
+            } else {
+                toast.error(response.message || "Cập nhật thất bại.");
+            }
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Lỗi khi cập nhật.");
+        } finally {
+            setIsSubmittingRefund(false);
         }
     };
 
@@ -376,6 +460,8 @@ export const OrderTrackingPage = () => {
             if (res.success) {
                 toast.success("Đã gửi yêu cầu hoàn tiền thành công!");
                 setShowCancelModal(false);
+                const listRes = await getOrderRefundRequests(order.id);
+                if (listRes.success && Array.isArray(listRes.data)) setRefundHistory(listRes.data);
                 doTrackOrder(order.orderCode, order.guestEmail || email || undefined);
             } else {
                 toast.error(res.message || "Không thể gửi yêu cầu hoàn tiền.");
@@ -481,6 +567,84 @@ export const OrderTrackingPage = () => {
                                 isPaid={order.payments?.[0]?.status === 'COMPLETED'}
                                 cancelReason={order.cancelReason}
                             />
+
+                            {/* Lý do hủy đơn + lịch sử hoàn tiền + bằng chứng (tra cứu đơn) */}
+                            {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                                    <div className="flex items-start gap-3">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${order.status === 'CANCELLED' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
+                                            <WarningCircle width={20} height={20} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-widest mb-1">Lý do {order.status === 'CANCELLED' ? 'hủy đơn' : 'hoàn trả'}</div>
+                                            <div className="text-sm font-bold text-slate-700 leading-tight">"{order.cancelReason}"</div>
+                                            {order.cancelledBy && (
+                                                <div className="text-[0.625rem] text-gray-400 mt-2 font-medium">Thực hiện bởi: <span className="font-bold text-gray-500">{order.cancelledBy}</span></div>
+                                            )}
+                                            {refundHistory.length > 0 && (
+                                                <div className="mt-4 space-y-3">
+                                                    {refundHistory.map((r) => (
+                                                        <div key={r.id} className="p-3 bg-white rounded-xl border border-emerald-100 shadow-sm">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <div className={`w-5 h-5 ${r.status === 'REFUNDED' ? 'bg-emerald-500' : r.status === 'ACTION_REQUIRED' ? 'bg-amber-500' : r.status === 'REJECTED' ? 'bg-rose-500' : 'bg-blue-500'} rounded-full flex items-center justify-center text-white`}>
+                                                                    {r.status === 'REFUNDED' ? <ShieldCheck width={12} height={12} /> : <InfoCircle width={12} height={12} />}
+                                                                </div>
+                                                                <span className={`text-[0.625rem] font-bold ${r.status === 'REFUNDED' ? 'text-emerald-600' : r.status === 'ACTION_REQUIRED' ? 'text-amber-600' : r.status === 'REJECTED' ? 'text-rose-600' : 'text-blue-600'} uppercase tracking-widest`}>
+                                                                    {r.status === 'REFUNDED' ? 'Đã xác nhận hoàn tiền' : r.status === 'ACTION_REQUIRED' ? 'Cần cập nhật thông tin' : r.status === 'REJECTED' ? 'Yêu cầu bị từ chối' : 'Đang xử lý hoàn tiền'}
+                                                                </span>
+                                                            </div>
+                                                            {r.adminDecisionNote && (
+                                                                <div className="text-[11px] font-bold text-slate-600 mb-2 p-2 bg-slate-50 rounded-lg border-l-4 border-slate-300">
+                                                                    Lưu ý từ Admin: "{r.adminDecisionNote}"
+                                                                </div>
+                                                            )}
+                                                            {r.status === 'REFUNDED' && r.refundTransactionId && (
+                                                                <div className="text-[10px] text-slate-400 mb-2">Mã GD: <span className="font-bold text-slate-600 uppercase">{r.refundTransactionId}</span></div>
+                                                            )}
+                                                            {r.evidenceUrls && (() => {
+                                                                const urls = typeof r.evidenceUrls === 'string' ? r.evidenceUrls.split(/[;,]/).map((u: string) => u.trim()).filter(Boolean) : (Array.isArray(r.evidenceUrls) ? r.evidenceUrls : []);
+                                                                return urls.length > 0 ? (
+                                                                    <div className="mt-2">
+                                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bằng chứng bạn gửi</div>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {urls.map((url: string, i: number) => (
+                                                                                <a key={i} href={url} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:scale-105 transition-all hover:border-client-primary">
+                                                                                    <img src={url} alt={`Bằng chứng ${i + 1}`} className="w-full h-full object-cover" />
+                                                                                </a>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : null;
+                                                            })()}
+                                                            {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                                <div className="mt-2">
+                                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bằng chứng từ TeddyPet</div>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {r.adminEvidenceUrls.map((url, i) => (
+                                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-emerald-50 shadow-sm hover:scale-105 transition-all">
+                                                                                <img src={url} alt="Bằng chứng hoàn tiền" className="w-full h-full object-cover" />
+                                                                            </a>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {r.status === 'ACTION_REQUIRED' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowCancelModal(true)}
+                                                                    className="mt-2 w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition-all uppercase"
+                                                                >
+                                                                    Cập nhật thông tin ngay
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Badge đếm ngược thanh toán ngay dưới timeline */}
                             {isOnlineBankTransfer && order.status === 'CONFIRMED' && countdownSeconds !== null && (
@@ -640,7 +804,7 @@ export const OrderTrackingPage = () => {
                                         </div>
                                         <div className="flex justify-between items-center text-xs mb-2">
                                             <span className="text-gray-500 font-semibold uppercase tracking-wide">Phí vận chuyển:</span>
-                                            <span className="font-bold text-client-secondary">{order.shippingFee != null && order.shippingFee > 0 ? `+${order.shippingFee.toLocaleString()}đ` : "Liên hệ sau"}</span>
+                                            <span className="font-bold text-client-secondary">{getOrderShippingFeeLabel(order, { withPlusPrefix: true })}</span>
                                         </div>
                                         <div className="pt-2 border-t-2 border-dashed border-gray-200 flex justify-between items-center">
                                             <span className="text-sm font-bold text-client-secondary uppercase tracking-tight">Tổng cộng:</span>
@@ -667,13 +831,25 @@ export const OrderTrackingPage = () => {
                                     </button>
                                 )}
 
+                                {showCancelButton && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCancelOrderModal(true)}
+                                        className="w-full h-10 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-600 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-95 group"
+                                    >
+                                        <XmarkCircle className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
+                                        Hủy đơn hàng
+                                    </button>
+                                )}
+
                                 {showRefundButton && (
                                     <>
                                         <button
                                             type="button"
                                             onClick={() => setShowCancelModal(true)}
-                                            className="w-full h-10 border border-red-200 bg-red-50/40 hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                                            className="w-full h-10 border border-red-200 bg-red-50/40 hover:bg-red-50 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-95 group"
                                         >
+                                            <RefreshDouble className="w-4 h-4 text-red-400 group-hover:animate-spin-slow" />
                                             Yêu cầu hoàn tiền
                                         </button>
                                         {hasPendingRefund && (
@@ -694,7 +870,7 @@ export const OrderTrackingPage = () => {
                 <div className="fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-4">
                     <div
                         className="absolute inset-0 bg-client-secondary/50 backdrop-blur-md"
-                        onClick={() => setPaymentPopupUrl(null)}
+                        onClick={handleClosePaymentPopup}
                         aria-hidden
                     />
                     <div className="relative z-10 w-full max-w-2xl h-[88vh] sm:h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-scaleUp">
@@ -712,7 +888,7 @@ export const OrderTrackingPage = () => {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setPaymentPopupUrl(null)}
+                                onClick={handleClosePaymentPopup}
                                 className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-client-primary flex items-center justify-center shrink-0 transition-colors"
                                 aria-label="Đóng"
                             >
@@ -736,9 +912,19 @@ export const OrderTrackingPage = () => {
                 isOpen={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
                 onConfirm={handleRefundConfirm}
+                onUpdate={handleRefundUpdate}
                 isSubmitting={isSubmittingRefund}
                 orderCode={order?.orderCode || ""}
                 isLoggedIn={isAuthenticated}
+                refundHistory={refundHistory}
+                initialRefundRequest={refundHistory.find(r => r.status === "ACTION_REQUIRED" || r.status === "PENDING")}
+            />
+
+            <CancelOrderModal
+                isOpen={showCancelOrderModal}
+                onClose={() => setShowCancelOrderModal(false)}
+                onConfirm={handleConfirmCancelOrder}
+                isCancelling={isSubmittingCancel}
             />
 
             {/* Modal Gợi ý Đánh giá */}

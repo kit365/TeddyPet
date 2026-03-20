@@ -1,4 +1,4 @@
-﻿import {
+import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -16,9 +16,9 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Menu, MenuItem, Stack, Chip } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, FileDownload as FileDownloadIcon, FileUpload as FileUploadIcon, SimCardDownload as SimCardDownloadIcon, Description as DescriptionIcon } from "@mui/icons-material";
-import { useProductTags, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useDownloadTagsTemplate, useExportTagsExcel, useImportTagsExcel } from "../hooks/useProduct";
+import { useProductTags, useCreateProductTag, useUpdateProductTag, useDeleteProductTag, useDownloadTagsTemplate, useExportTagsExcel, useImportTagsExcel, usePreviewTagsImportExcel } from "../hooks/useProduct";
 import { toast } from "react-toastify";
-import { ImportExcelModal } from "./ImportExcelModal";
+import { EntityImportWizardModal } from "../../../components/upload/EntityImportWizardModal";
 
 interface ProductTagDialogProps {
     open: boolean;
@@ -45,6 +45,7 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
     const importMutation = useImportTagsExcel();
     const exportMutation = useExportTagsExcel();
     const templateMutation = useDownloadTagsTemplate();
+    const previewMutation = usePreviewTagsImportExcel();
 
     const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
@@ -375,12 +376,14 @@ export const ProductTagDialog = ({ open, onClose }: ProductTagDialogProps) => {
                 </Box>
 
             </DialogContent>
-            <ImportExcelModal
+            <EntityImportWizardModal
                 open={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={(file) => importMutation.mutate(file)}
+                previewMutation={previewMutation}
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
+                entityName="Tag sản phẩm"
             />
         </Dialog>
     );

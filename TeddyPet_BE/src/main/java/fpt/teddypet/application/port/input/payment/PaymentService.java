@@ -10,6 +10,12 @@ public interface PaymentService {
 
     String initiatePayment(UUID orderId, PaymentGatewayEnum gateway, String returnUrl, String ipAddress);
 
+    /**
+     * Hủy link PayOS đang treo cho một đơn hàng (best-effort).
+     * Dùng khi user bấm "hủy/đóng" nhưng PayOS không nhận được cancel (back/tắt trình duyệt).
+     */
+    boolean cancelPayosPaymentLink(UUID orderId);
+
     PaymentResult processPaymentCallback(PaymentGatewayEnum gateway, Object callbackData,
                                          HttpServletRequest request);
 

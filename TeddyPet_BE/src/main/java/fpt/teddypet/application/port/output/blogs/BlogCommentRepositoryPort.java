@@ -8,5 +8,6 @@ public interface BlogCommentRepositoryPort {
     BlogComment save(BlogComment comment);
     Optional<BlogComment> findById(Long id);
     List<BlogComment> findByBlogPostIdAndParentIdIsNullOrderByCreatedAtDesc(Long blogPostId);
+    List<BlogComment> findAllByParentIdIsNullOrderByCreatedAtDesc();
     void delete(BlogComment comment);
 }

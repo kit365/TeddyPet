@@ -1,4 +1,4 @@
-﻿import {
+import {
     Dialog,
     DialogTitle,
     DialogContent,
@@ -16,11 +16,11 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon, ArrowDropDown as ArrowDropDownIcon, Description as DescriptionIcon, FileUpload as FileUploadIcon, FileDownload as FileDownloadIcon, SimCardDownload as SimCardDownloadIcon } from "@mui/icons-material";
-import { useDeleteProductAgeRange, useProductAgeRanges, useDownloadAgeRangesTemplate, useExportAgeRangesExcel, useImportAgeRangesExcel } from "../hooks/useProduct";
+import { useDeleteProductAgeRange, useProductAgeRanges, useDownloadAgeRangesTemplate, useExportAgeRangesExcel, useImportAgeRangesExcel, usePreviewAgeRangesImportExcel } from "../hooks/useProduct";
 import { toast } from "react-toastify";
 import { AgeRangeFormDialog } from "./AgeRangeFormDialog";
 import { Menu, MenuItem } from "@mui/material";
-import { ImportExcelModal } from "./ImportExcelModal";
+import { EntityImportWizardModal } from "../../../components/upload/EntityImportWizardModal";
 
 interface AgeRangeListDialogProps {
     open: boolean;
@@ -42,6 +42,7 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
     const importMutation = useImportAgeRangesExcel();
     const exportMutation = useExportAgeRangesExcel();
     const templateMutation = useDownloadAgeRangesTemplate();
+    const previewMutation = usePreviewAgeRangesImportExcel();
 
     const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
@@ -232,12 +233,14 @@ export const AgeRangeListDialog = ({ open, onClose }: AgeRangeListDialogProps) =
                     editId={editId}
                 />
             )}
-            <ImportExcelModal
+            <EntityImportWizardModal
                 open={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={(file) => importMutation.mutate(file)}
+                previewMutation={previewMutation}
                 isPending={importMutation.isPending}
                 isSuccess={importMutation.isSuccess}
+                entityName="Độ tuổi"
             />
         </>
     );

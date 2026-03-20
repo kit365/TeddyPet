@@ -30,5 +30,7 @@ public interface FeedbackService {
 
     List<FeedbackResponse> getMyFeedbacks();
 
+    fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse getFeedbackStats();
+
     void sendFeedbackEmailsForOrder(UUID orderId);
 }

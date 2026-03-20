@@ -319,6 +319,9 @@ export const ProductFormPage = () => {
     }, []);
 
     // Restore draft once after init for create/edit (so user can jump out to create attributes, then come back)
+    // Draft TTL: 15 minutes
+    const DRAFT_TTL_MS = 15 * 60 * 1000;
+
     useEffect(() => {
         if (isReadOnly) return;
         if (draftAppliedRef.current) return;
@@ -332,6 +335,13 @@ export const ProductFormPage = () => {
             if (!parsed?.data) return;
             // Ensure draft matches current context
             if (mode === "edit" && parsed?.id && parsed.id !== id) return;
+
+            // Auto-expire: if draft is older than 15 minutes, discard it
+            const age = Date.now() - (parsed?.updatedAt ?? 0);
+            if (age > DRAFT_TTL_MS) {
+                localStorage.removeItem(getDraftKey());
+                return;
+            }
 
             applyDraftPayload(parsed);
             draftAppliedRef.current = true;
@@ -1255,7 +1265,7 @@ export const ProductFormPage = () => {
                             <Button
                                 type="button"
                                 variant="outlined"
-                                onClick={() => navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`)}
+                                onClick={() => { clearDraft(); navigate(mode === 'edit' ? `/${prefixAdmin}/product/detail/${id}` : `/${prefixAdmin}/product/list`); }}
                                 sx={{
                                     minHeight: '2.75rem',
                                     minWidth: '6rem',

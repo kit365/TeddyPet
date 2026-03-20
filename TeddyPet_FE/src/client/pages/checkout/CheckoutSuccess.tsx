@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import Cookies from "js-cookie";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneEnabledOutlinedIcon from '@mui/icons-material/PhoneEnabledOutlined';
 import EditLocationAltOutlinedIcon from '@mui/icons-material/EditLocationAltOutlined';
-import { getMyOrderByCode, lookupGuestOrder, trackOrder, cancelOrder, cancelOrderByGuest } from "../../../api/order.api";
+import { getMyOrderByCode, lookupGuestOrder, trackOrder, cancelOrder, cancelOrderByGuest, createPaymentUrl } from "../../../api/order.api";
 import { OrderResponse } from "../../../types/order.type";
 import { toast } from "react-toastify";
 import { Wallet, CheckCircle, Box as BoxIcon, Truck, HomeSimple } from "iconoir-react";
 import { CancelOrderModal } from "../dashboard/sections/CancelOrderModal";
+import { getOrderShippingFeeLabel } from "../../utils/orderShippingDisplay";
 
-const breadcrumbs = [
+const breadcrumbsBase = [
     { label: "Trang chủ", to: "/" },
     { label: "Thanh toán", to: "/checkout" },
-    { label: "Thanh toán thành công", to: "#" },
 ];
 
 const ORDER_TIMELINE_STEPS = [
@@ -40,41 +40,38 @@ function getOrderTimelineStepIndex(order: OrderResponse): number {
 
 export const CheckSuccessPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const orderCode = searchParams.get("orderCode");
+    /**
+     * Dùng `orderRef` (khuyến nghị) để tránh trùng tên query với PayOS: họ gửi `orderCode` (số) và `code` (00/01…).
+     * @see https://payos.vn/docs/du-lieu-tra-ve/return-url/
+     */
+    const resolvedOrderCode = searchParams.get("orderRef") || searchParams.get("orderCode");
+    const payosCancel = searchParams.get("cancel");
+    const payosStatus = searchParams.get("status");
     const [order, setOrder] = useState<OrderResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
-    useEffect(() => {
-        if (orderCode) {
-            fetchOrderDetails();
-        }
-    }, [orderCode]);
-
-    const fetchOrderDetails = async () => {
-        if (!orderCode) return;
+    const fetchOrderDetails = useCallback(async (opts?: { silent?: boolean }) => {
+        const code = searchParams.get("orderRef") || searchParams.get("orderCode");
+        if (!code?.trim()) return;
         try {
-            setLoading(true);
+            if (!opts?.silent) setLoading(true);
             const email = searchParams.get("email");
             const hasToken = !!Cookies.get("token");
             let response;
 
             if (email) {
-                // Tra cứu cho khách vãng lai (có email trong URL)
-                response = await lookupGuestOrder(orderCode, email);
+                response = await lookupGuestOrder(code, email);
             } else if (hasToken) {
-                // User đã đăng nhập: dùng endpoint my-orders
-                response = await getMyOrderByCode(orderCode);
+                response = await getMyOrderByCode(code);
             } else {
-                // Khách không đăng nhập và không có email trong URL: dùng API công khai track (chỉ cần orderCode)
-                response = await trackOrder(orderCode);
+                response = await trackOrder(code);
             }
 
             if (response.success) {
                 setOrder(response.data);
-                // Clean up URL parameters only if email is present (guest checkout)
                 if (email) {
                     const newParams = new URLSearchParams(searchParams);
                     newParams.delete("email");
@@ -87,12 +84,76 @@ export const CheckSuccessPage = () => {
             console.error("Lỗi lấy chi tiết đơn hàng:", error);
             toast.error(error.response?.data?.message || "Không thể tải thông tin đơn hàng. Vui lòng kiểm tra lại mã đơn.");
         } finally {
-            setLoading(false);
+            if (!opts?.silent) setLoading(false);
         }
-    };
+    }, [searchParams, setSearchParams]);
+
+    useEffect(() => {
+        if (!resolvedOrderCode?.trim()) {
+            setLoading(false);
+            setOrder(null);
+            return;
+        }
+        void fetchOrderDetails();
+    }, [resolvedOrderCode, fetchOrderDetails]);
+
+    /** PayOS báo PAID nhưng webhook có thể chưa kịp — poll ngắn để đồng bộ DB */
+    useEffect(() => {
+        if (!order || payosStatus !== "PAID") return;
+        const paid = order.payments?.[0]?.status === "COMPLETED";
+        if (paid) return;
+        let attempts = 0;
+        const id = window.setInterval(() => {
+            attempts += 1;
+            void fetchOrderDetails({ silent: true });
+            if (attempts >= 15) window.clearInterval(id);
+        }, 3000);
+        return () => window.clearInterval(id);
+    }, [payosStatus, order?.id, order?.payments?.[0]?.status, fetchOrderDetails]);
 
     const isPaid = order?.payments?.[0]?.status === "COMPLETED";
+    const payosUserCancelled = payosCancel === "true" || payosStatus === "CANCELLED";
+    const payosSaysPaid = payosStatus === "PAID";
+    const isPollingForPayment = payosSaysPaid && !isPaid;
+
+    const breadcrumbs = [
+        ...breadcrumbsBase,
+        {
+            label: isPaid ? "Thanh toán thành công" : payosUserCancelled ? "Thanh toán đã hủy" : "Trạng thái đơn hàng",
+            to: "#" as const,
+        },
+    ];
+    const bannerTitle = isPaid
+        ? "Đặt hàng thành công"
+        : payosUserCancelled
+            ? "Thanh toán chưa hoàn tất"
+            : payosSaysPaid && !isPaid
+                ? "Đang xác nhận thanh toán…"
+                : "Đặt hàng thành công";
     const timelineStep = order ? getOrderTimelineStepIndex(order) : 0;
+    const isOnlineOrder = order?.orderType === "ONLINE";
+    const isCash = order?.payments?.[0]?.paymentMethod === "CASH";
+    // Chỉ hiện nút thanh toán sau khi admin đã duyệt đơn (CONFIRMED), chưa thanh toán
+    const canPayNow = order && isOnlineOrder && !isCash && !isPaid && order.status === "CONFIRMED";
+
+    const handleGoToPayment = async () => {
+        if (!order || !canPayNow) return;
+        setIsPaymentLoading(true);
+        try {
+            const clientBaseUrl = import.meta.env.VITE_PUBLIC_CLIENT_URL || window.location.origin;
+            const returnUrl = `${clientBaseUrl}/checkout/success?orderRef=${encodeURIComponent(order.orderCode)}${order.guestEmail ? `&email=${encodeURIComponent(order.guestEmail)}` : ""}`;
+            const response = await createPaymentUrl(order.id, "PAYOS", returnUrl);
+            if (response?.success && response?.data) {
+                window.location.href = response.data as string;
+            } else {
+                toast.error(response?.message || "Không thể tạo link thanh toán.");
+            }
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Không thể chuyển đến trang thanh toán.");
+        } finally {
+            setIsPaymentLoading(false);
+        }
+    };
 
     const canCancelOrder =
         order
@@ -102,10 +163,10 @@ export const CheckSuccessPage = () => {
         && order.status !== "RETURNED"
         && order.status !== "RETURN_REQUESTED"
         && (
-            // Hủy đơn chưa thanh toán
-            order.status === "PENDING"
-            // Hủy & hoàn tiền: đơn ONLINE đang PAID hoặc PROCESSING (backend kiểm tra đã thanh toán)
-            || (order.orderType === "ONLINE" && ["PAID", "PROCESSING"].includes(order.status))
+            // Hủy đơn chưa thanh toán hoặc đã xác nhận
+            ["PENDING", "CONFIRMED"].includes(order.status)
+            // Hủy & hoàn tiền: đơn đã thanh toán đang PAID hoặc PROCESSING
+            || (isPaid && ["PAID", "PROCESSING"].includes(order.status))
         );
     const cancelButtonLabel =
         order?.orderType === "ONLINE" && ["PAID", "PROCESSING"].includes(order.status)
@@ -145,6 +206,16 @@ export const CheckSuccessPage = () => {
         );
     }
 
+    if (!resolvedOrderCode?.trim()) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
+                <h2 className="text-[1.5rem] font-bold text-client-secondary text-center">Thiếu mã đơn hàng trên đường dẫn</h2>
+                <p className="text-gray-600 text-center max-w-md text-sm">Vui lòng mở lại link từ email hoặc tra cứu đơn bằng mã đơn.</p>
+                <Link to="/" className="text-client-primary hover:underline text-[1rem]">Quay lại trang chủ</Link>
+            </div>
+        );
+    }
+
     if (!order) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -156,13 +227,26 @@ export const CheckSuccessPage = () => {
 
     return (
         <>
+            {isPollingForPayment && (
+                <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div className="w-20 h-20 border-[4px] border-[#00AB55]/20 border-t-[#00AB55] rounded-full animate-spin mb-6"></div>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">Đang xác nhận thanh toán...</h2>
+                    <p className="text-slate-500 font-medium">Vui lòng không đóng trang, hệ thống đang đồng bộ dữ liệu với ngân hàng.</p>
+                </div>
+            )}
+            
             <ProductBanner
-                pageTitle="Đặt hàng thành công"
+                pageTitle={bannerTitle}
                 breadcrumbs={breadcrumbs}
                 url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-shop-listing.jpg"
                 className="bg-top"
             />
-            <div className="app-container pb-[150px] 2xl:pb-[100px] relative mt-[50px]">
+            <div className={`app-container pb-[150px] 2xl:pb-[100px] relative mt-[50px] ${isPollingForPayment ? 'pointer-events-none overflow-hidden h-screen' : ''}`}>
+                {payosUserCancelled && (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                        <strong>Thanh toán chưa hoàn tất</strong> (đã hủy hoặc giao dịch chưa thành công). Trạng thái bên dưới lấy từ hệ thống TeddyPet — nếu vẫn &quot;Chờ thanh toán&quot;, bạn có thể bấm thanh toán lại.
+                    </div>
+                )}
                 {/* Timeline trạng thái đơn hàng - rộng bằng các ô bên dưới */}
                 <div className="mb-[28px] w-full flex items-center justify-center gap-0 bg-white rounded-[8px] border border-[#10293726] p-[25px] shadow-[0_0_3px_#10293726]">
                         {ORDER_TIMELINE_STEPS.map((step, index) => {
@@ -281,7 +365,7 @@ export const CheckSuccessPage = () => {
                                         <tr>
                                             <td className="text-left py-[15px] text-gray-500">Phí vận chuyển:</td>
                                             <td className="text-right py-[15px] font-bold text-client-secondary">
-                                                {order.shippingFee && order.shippingFee > 0 ? `${order.shippingFee.toLocaleString()}đ` : 'Liên hệ sau'}
+                                                {getOrderShippingFeeLabel(order)}
                                             </td>
                                         </tr>
                                         <tr>
@@ -334,7 +418,33 @@ export const CheckSuccessPage = () => {
                                 )}
                             </div>
                             <div className="mt-4 pt-6 border-t border-[#eee]">
-                                <Link to="/shop" className="w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all block">
+                                {canPayNow && (
+                                    <button
+                                        type="button"
+                                        onClick={handleGoToPayment}
+                                        disabled={isPaymentLoading}
+                                        className="w-full py-[15px] bg-green-600 hover:bg-green-700 text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                                    >
+                                        {isPaymentLoading ? (
+                                            <>
+                                                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Đang chuyển...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Wallet className="w-5 h-5" strokeWidth={2} />
+                                                CHUYỂN ĐẾN TRANG THANH TOÁN
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                {order.guestEmail && (canPayNow || order.status === "CONFIRMED") && (
+                                    <p className="mt-3 text-[0.8125rem] text-gray-500">
+                                        Nếu bạn đóng trang, bạn có thể tra cứu đơn bằng mã <strong>#{order.orderCode}</strong> và email tại{" "}
+                                        <Link to="/tra-cuu-don-hang" className="text-client-primary font-semibold hover:underline">Tra cứu đơn hàng</Link> để thanh toán lại trước khi hết hạn.
+                                    </p>
+                                )}
+                                <Link to="/shop" className={`w-full py-[15px] bg-client-secondary hover:bg-client-primary text-white text-center rounded-[8px] font-bold text-[0.875rem] transition-all block ${canPayNow ? "mt-3" : ""}`}>
                                     TIẾP TỤC MUA SẮM
                                 </Link>
                                 {canCancelOrder && (

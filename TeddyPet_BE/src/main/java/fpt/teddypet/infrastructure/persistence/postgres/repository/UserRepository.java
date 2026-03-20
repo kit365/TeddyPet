@@ -18,4 +18,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /** Số tài khoản quản trị (ADMIN, STAFF, SUPER_ADMIN). */
     long countByRole_NameIn(Collection<String> roleNames);
+
+    /** Đếm người dùng theo tên vai trò. */
+    long countByRole_Name(String roleName);
+
+    /** Đếm người dùng theo vai trò và thời gian. */
+    long countByRole_NameAndCreatedAtBetween(String roleName, java.time.LocalDateTime start, java.time.LocalDateTime end);
+    long countByRole_NameAndCreatedAtAfter(String roleName, java.time.LocalDateTime start);
+    long countByRole_NameAndCreatedAtBefore(String roleName, java.time.LocalDateTime end);
+
+    /** Tìm người dùng theo tên vai trò. */
+    java.util.List<User> findByRole_Name(String roleName);
 }

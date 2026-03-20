@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { CreditCard, BadgeCheck, BadgeX, Pencil, QrCode, X, Info, Search, ChevronDown } from "lucide-react";
+import { CreditCard, Pencil, QrCode, X, Info, Search, ChevronDown, Plus, BadgeCheck } from "lucide-react";
 import { DashboardLayout } from "./sections/DashboardLayout";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import {
@@ -135,20 +135,21 @@ export const BankInformationListPage = () => {
 
   return (
     <DashboardLayout pageTitle="Tài khoản ngân hàng" breadcrumbs={breadcrumbs}>
-      <div className="flex justify-between items-end border-b border-slate-100 pb-6 mb-8">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-[1.5rem] font-bold text-slate-800 tracking-tight italic flex items-center gap-3">
+          <h1 className="text-[1.5rem] font-bold text-slate-800">
             Tài khoản ngân hàng
-          </h3>
-          <p className="text-[0.875rem] text-slate-400 font-medium mt-1 uppercase tracking-widest leading-none">
+          </h1>
+          <p className="text-[0.875rem] text-slate-500 font-medium mt-1 uppercase tracking-widest">
             Dùng cho hoàn tiền/đối soát khi cần
           </p>
         </div>
         <button
           onClick={handleCreateNew}
-          className="flex items-center gap-2 bg-client-primary text-white px-6 py-2.5 rounded-xl font-bold text-[0.9rem] uppercase tracking-widest hover:bg-client-secondary transition-all shadow-lg shadow-client-primary/20 active:scale-95"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-client-primary text-white rounded-xl font-bold text-sm hover:bg-client-secondary hover:shadow-md transition-all shadow-sm"
         >
-          + Thêm tài khoản
+          <Plus size={14} />
+          Thêm tài khoản
         </button>
       </div>
 
@@ -158,20 +159,17 @@ export const BankInformationListPage = () => {
           <p className="text-[1.6rem] font-bold text-slate-300">Đang tải danh sách...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
           {sorted.map((item) => (
             <div
               key={item.id}
-              className="group relative bg-white border border-slate-100 rounded-[1.5rem] p-6 transition-all hover:shadow-xl hover:shadow-client-primary/5 hover:-translate-y-0.5"
+              className={`group flex items-start w-full p-[16px] rounded-[12px] text-left transition-colors border relative ${item.isDefault ? 'border-[#00AB55] bg-[#F0FDF4] shadow-sm' : 'border-[#E5E8EB] bg-white hover:border-[#C4CDD5] hover:bg-[#F9FAFB]'}`}
             >
-              <div className="flex items-start gap-4">
-                <div className="mt-1 shrink-0">
-                  <input
-                    type="radio"
-                    name="bank_default"
-                    className="appearance-none w-5 h-5 border-2 border-slate-200 rounded-full checked:border-client-primary checked:border-[5px] transition-all cursor-pointer bg-white"
-                    checked={item.isDefault}
-                    onChange={async () => {
+              <div className="flex items-start gap-[14px] w-full pr-[70px]">
+                <div 
+                  className="pt-[2px] cursor-pointer shrink-0" 
+                  onClick={async () => {
+                    if (!item.isDefault) {
                       try {
                         await setMyDefaultBankInformation(item.id, true);
                         toast.success("Đã đặt làm mặc định.");
@@ -179,54 +177,52 @@ export const BankInformationListPage = () => {
                       } catch (e: any) {
                         toast.error(e?.message ?? "Không thể đặt mặc định.");
                       }
-                    }}
-                  />
+                    }
+                  }}
+                >
+                  <div className={`w-[20px] h-[20px] rounded-full border-[2px] flex items-center justify-center transition-colors ${item.isDefault ? 'border-[#00AB55]' : 'border-[#DFE3E8]'}`}>
+                    {item.isDefault && (
+                      <div className="w-[10px] h-[10px] rounded-full bg-[#00AB55]" />
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2 pr-2">
-                    <div className="text-[1.1rem] text-slate-800 font-bold truncate">
+                
+                <div className="flex-1 min-w-0 leading-snug">
+                  <div className="flex flex-wrap items-center gap-[6px] mb-[6px]">
+                    <div className={`text-[15px] font-bold uppercase truncate ${item.isDefault ? 'text-[#00AB55]' : 'text-[#1C252E]'}`}>
                       {item.bankName} ({item.bankCode})
                     </div>
                     {item.isDefault && (
-                      <span className="bg-emerald-50 text-emerald-600 text-[0.65rem] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-100">
+                      <span className="bg-[#00AB55]/10 text-[#00AB55] text-[10px] font-black px-2 py-[2px] rounded-full uppercase tracking-widest leading-none">
                         Mặc định
                       </span>
                     )}
-                    <div
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-black uppercase tracking-widest border ${item.isVerify
-                        ? "bg-sky-50 text-sky-700 border-sky-100"
-                        : "bg-amber-50 text-amber-700 border-amber-100"
-                        }`}
-                    >
-                      {item.isVerify ? <BadgeCheck size={12} /> : <BadgeX size={12} />}
-                      {item.isVerify ? "Đã xác thực" : "Chưa xác thực"}
-                    </div>
                   </div>
-                  <div className="text-[0.9rem] text-slate-500 font-medium">
-                    <span className="font-bold text-slate-700">Số TK:</span> {item.accountNumber}
+                  
+                  <div className="text-[13px] text-[#637381] truncate mb-[2px]">
+                    <span className="font-semibold text-slate-800">Số TK:</span> {item.accountNumber} <span className="mx-1.5 text-[#E5E8EB]">|</span> <span className="font-semibold text-slate-800">Chủ TK:</span> <span className="font-semibold uppercase truncate">{item.accountHolderName}</span>
                   </div>
-                  <div className="text-[0.9rem] text-slate-500 font-medium">
-                    <span className="font-bold text-slate-700">Chủ TK:</span> {item.accountHolderName}
-                  </div>
-                  {item.note ? (
-                    <div className="text-[0.8rem] text-slate-400 italic leading-relaxed truncate">
+                  {item.note && (
+                    <div className="text-[12px] text-[#919EAB] italic leading-relaxed truncate">
                       Ghi chú: {item.note}
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute right-[12px] top-[12px] flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                 <button 
                   onClick={() => setQrData(item)}
-                  className="p-2 text-slate-400 hover:text-client-primary hover:bg-blue-50 rounded-lg transition-colors title='Hiện mã QR'"
+                  className="p-1.5 text-[#637381] hover:text-[#00AB55] hover:bg-[#00AB55]/10 rounded-md transition-colors bg-white md:bg-transparent"
+                  title="Hiện mã QR"
                 >
                   <QrCode size={18} />
                 </button>
                 <button 
                   onClick={() => handleEdit(item)}
-                  className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors title='Chỉnh sửa'"
+                  className="p-1.5 text-[#637381] hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors bg-white md:bg-transparent"
+                  title="Chỉnh sửa"
                 >
                   <Pencil size={18} />
                 </button>
@@ -247,13 +243,13 @@ export const BankInformationListPage = () => {
       {openForm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-[720px] rounded-[18px] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.25)] overflow-hidden">
-            <div className="px-5 py-4 bg-[#fff7ed] border-b border-[#fed7aa] flex items-center justify-between">
+            <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <div className="text-[1.25rem] font-black text-[#9a3412] uppercase tracking-tight">
+                <div className="text-[1.125rem] font-bold text-slate-900">
                   {editingItem ? "Chỉnh sửa tài khoản" : "Thêm tài khoản ngân hàng"}
                 </div>
                 <div className="text-[0.875rem] text-slate-500 mt-1 font-medium">
-                  {editingItem ? "Cập nhật thông tin tài khoản của bạn." : "Tài khoản do bạn tạo sẽ cần nhân viên xác thực."}
+                  {editingItem ? "Cập nhật thông tin tài khoản của bạn." : "Vui lòng nhập chính xác để quá trình hoàn tiền diễn ra thuận lợi."}
                 </div>
               </div>
               <button 
@@ -378,14 +374,7 @@ export const BankInformationListPage = () => {
                 />
               </div>
 
-              {editingItem && (
-                <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex gap-3 text-amber-700">
-                  <Info className="shrink-0" size={20} />
-                  <p className="text-[0.85rem] font-medium leading-relaxed">
-                    Lưu ý: Nếu bạn thay đổi số tài khoản hoặc ngân hàng, trạng thái "Đã xác thực" sẽ được đặt lại cho đến khi nhân viên kiểm tra lại.
-                  </p>
-                </div>
-              )}
+
 
               <div className="flex justify-end gap-3 pt-2">
                 <button

@@ -103,6 +103,9 @@ public interface OrderService {
     /** Admin/Staff duyệt hoặc từ chối yêu cầu hoàn tiền. */
     OrderRefundResponse handleOrderRefundRequest(UUID orderId, Long refundId, AdminHandleOrderRefundRequest request, String adminUsername);
 
+    /** Khách hàng cập nhật yêu cầu hoàn tiền khi admin yêu cầu (ACTION_REQUIRED). */
+    OrderRefundResponse updateOrderRefundRequest(UUID orderId, Long refundId, OrderRefundRequest request);
+
     /** Lấy danh sách yêu cầu hoàn tiền của đơn (theo thứ tự mới nhất trước). */
     List<OrderRefundResponse> getOrderRefundRequests(UUID orderId);
 }

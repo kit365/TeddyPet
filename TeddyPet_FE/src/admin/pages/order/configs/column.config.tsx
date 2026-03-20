@@ -11,7 +11,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReplayIcon from '@mui/icons-material/Replay';
-import { getOrderStatus, getPaymentStatus, getRefundStatus } from '../../../../constants/status';
+import { getOrderStatus, getRefundStatus } from '../../../../constants/status';
 import { prefixAdmin } from '../../../constants/routes';
 import { OrderResponse } from '../../../../types/order.type';
 
@@ -148,8 +148,6 @@ export const getOrderColumns = (
             renderCell: (params) => {
                 const payment = params.row.payments[0];
                 const isCOD = payment?.paymentMethod === 'CASH' || !payment;
-                const status = payment?.status;
-                const { label: statusLabel, color: statusColor, bgColor: statusBgColor } = getPaymentStatus(status);
 
                 return (
                     <Stack
@@ -161,30 +159,14 @@ export const getOrderColumns = (
                         {/* Phương thức thanh toán */}
                         <Stack direction="row" spacing={0.5} alignItems="center">
                             {isCOD ? (
-                                <PaymentsIcon sx={{ color: '#637381', fontSize: '0.875rem' }} />
+                                <PaymentsIcon sx={{ color: '#637381', fontSize: '1rem' }} />
                             ) : (
-                                <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '0.875rem' }} />
+                                <AccountBalanceIcon sx={{ color: '#2196F3', fontSize: '1rem' }} />
                             )}
-                            <Typography sx={{ fontWeight: 700, fontSize: '0.6875rem', color: '#1C252E' }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: '0.8125rem', color: '#1C252E' }}>
                                 {isCOD ? 'COD' : 'CK'}
                             </Typography>
                         </Stack>
-                        {/* Badge trạng thái */}
-                        <Box sx={{
-                            px: 1,
-                            py: 0.3,
-                            borderRadius: '6px',
-                            bgcolor: statusBgColor,
-                        }}>
-                            <Typography sx={{
-                                fontSize: '0.5312rem',
-                                fontWeight: 800,
-                                color: statusColor,
-                                whiteSpace: 'nowrap'
-                            }}>
-                                {statusLabel}
-                            </Typography>
-                        </Box>
                     </Stack>
                 );
             }

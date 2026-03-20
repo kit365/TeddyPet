@@ -27,26 +27,35 @@ public class DashboardController {
 
     @GetMapping("/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStats() {
+    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStats(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Dashboard statistics retrieved successfully",
-                dashboardService.getStats()));
+                dashboardService.getStats(startDate, endDate)));
     }
 
     @GetMapping("/staff-stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStaffStats() {
+    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStaffStats(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Staff Dashboard statistics retrieved successfully",
-                dashboardService.getStaffStats()));
+                dashboardService.getStaffStats(startDate, endDate)));
     }
 
     @GetMapping("/revenue-chart")
     public ResponseEntity<ApiResponse<List<RevenueChartItem>>> getRevenueChart(
-            @RequestParam(defaultValue = "30") int days) {
+            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Revenue chart data retrieved successfully",
-                dashboardService.getRevenueChart(days)));
+                dashboardService.getRevenueChart(days, startDate, endDate)));
     }
 
     @GetMapping("/recent-orders")
@@ -60,17 +69,23 @@ public class DashboardController {
     }
 
     @GetMapping("/sales-by-category")
-    public ResponseEntity<ApiResponse<List<SalesByCategoryResponse>>> getSalesByCategory() {
+    public ResponseEntity<ApiResponse<List<SalesByCategoryResponse>>> getSalesByCategory(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Sales by category retrieved successfully",
-                dashboardService.getSalesByCategory()));
+                dashboardService.getSalesByCategory(startDate, endDate)));
     }
 
     @GetMapping("/top-customers")
-    public ResponseEntity<ApiResponse<List<TopCustomerResponse>>> getTopCustomers() {
+    public ResponseEntity<ApiResponse<List<TopCustomerResponse>>> getTopCustomers(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Top customers retrieved successfully",
-                dashboardService.getTopCustomers()));
+                dashboardService.getTopCustomers(startDate, endDate)));
     }
 
     @GetMapping("/latest-products")

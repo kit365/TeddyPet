@@ -42,6 +42,13 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("Link thanh toán được tạo thành công", paymentUrl));
     }
 
+    @PostMapping("/payos/cancel")
+    @Operation(summary = "Hủy link PayOS đang treo", description = "Best-effort cancel link PayOS cho đơn (khi user back/tắt trình duyệt).")
+    public ResponseEntity<ApiResponse<Boolean>> cancelPayosPaymentLink(@RequestParam UUID orderId) {
+        boolean cancelled = paymentService.cancelPayosPaymentLink(orderId);
+        return ResponseEntity.ok(ApiResponse.success("Đã gửi yêu cầu hủy link PayOS", cancelled));
+    }
+
     /**
      * PayOS kiểm tra URL webhook bằng GET (không có body/JSON) khi cấu hình trong dashboard. Trả 200 để PayOS coi URL hoạt động.
      * THỰC TẾ webhook thanh toán sẽ gọi POST JSON và được xử lý ở handlePayosWebhook.

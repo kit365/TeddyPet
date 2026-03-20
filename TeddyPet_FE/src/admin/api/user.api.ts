@@ -26,7 +26,40 @@ export interface IUserProfile {
     fullName?: string; // Virtual property for UI
 }
 
-export const getUsers = async (): Promise<ApiResponse<IUserProfile[]>> => {
-    const res = await apiApp.get(BASE, withAuth());
+export const getUsers = async (role?: string): Promise<ApiResponse<IUserProfile[]>> => {
+    const res = await apiApp.get(BASE, {
+        ...withAuth(),
+        params: { role }
+    });
+    return res.data;
+};
+
+// ─── Excel ───────────────────────────────────────────────────────────────
+
+export const exportUsersExcel = async (): Promise<Blob> => {
+    const res = await apiApp.get(`${BASE}/excel/export`, { ...withAuth(), responseType: 'blob' });
+    return res.data;
+};
+
+export const downloadUsersTemplate = async (): Promise<Blob> => {
+    const res = await apiApp.get(`${BASE}/excel/template`, { ...withAuth(), responseType: 'blob' });
+    return res.data;
+};
+
+export const importUsersExcel = async (file: File): Promise<ApiResponse<{ created: number; updated: number; skipped: number; errors: string[] }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiApp.post(`${BASE}/excel/import`, formData, {
+        headers: { ...withAuth().headers, 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+};
+
+export const previewUsersImportExcel = async (file: File): Promise<ApiResponse<{ rowNumber: number; name: string; action: string; message: string }[]>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiApp.post(`${BASE}/excel/preview`, formData, {
+        headers: { ...withAuth().headers, 'Content-Type': 'multipart/form-data' },
+    });
     return res.data;
 };

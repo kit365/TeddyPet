@@ -80,18 +80,17 @@ public class DashboardService {
         /**
          * Gửi từng section qua STOMP riêng biệt: 1 section chết không ảnh hưởng section khác.
          */
-        public void sendDashboardUpdate() {
-                sendSection("/topic/dashboard/stats", this::getStats);
-                sendSection("/topic/dashboard/staff-stats", this::getStaffStats);
-                sendSection("/topic/dashboard/revenue-chart", () -> getRevenueChart(7));
-                sendSection("/topic/dashboard/sales-by-category", this::getSalesByCategory);
-                sendSection("/topic/dashboard/top-customers", this::getTopCustomers);
-                sendSection("/topic/dashboard/latest-products", this::getLatestProducts);
-                sendSection("/topic/dashboard/pet-distribution", this::getPetDistribution);
-                sendSection("/topic/dashboard/service-statistics", () -> getServiceStatistics(java.time.LocalDate.now().getYear()));
-        }
+    public void sendDashboardUpdate() {
+        sendSection("/topic/dashboard/stats", () -> this.getStats(null, null));
+        sendSection("/topic/dashboard/staff-stats", () -> this.getStaffStats(null, null));
+        sendSection("/topic/dashboard/revenue-chart", () -> getRevenueChart(7, null, null));
+        sendSection("/topic/dashboard/sales-by-category", () -> getSalesByCategory(null, null));
+        sendSection("/topic/dashboard/top-customers", () -> getTopCustomers(null, null));
+        sendSection("/topic/dashboard/latest-products", this::getLatestProducts);
+        sendSection("/topic/dashboard/pet-distribution", this::getPetDistribution);
+        sendSection("/topic/dashboard/service-statistics", () -> getServiceStatistics(java.time.LocalDate.now().getYear()));
+    }
 
-        @SuppressWarnings("unchecked")
         private <T> void sendSection(String topic, java.util.function.Supplier<T> supplier) {
                 try {
                         T payload = supplier.get();
@@ -122,45 +121,67 @@ public class DashboardService {
                 return !instant.isBefore(startOfDay.toInstant()) && !instant.isAfter(endOfDay.toInstant());
         }
 
-        public DashboardStatsResponse getStats() {
-                var allOrders = orderRepository.findAll();
-                BigDecimal orderRevenue = allOrders.stream()
-                                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
-                                                && o.getStatus() != OrderStatusEnum.RETURNED
-                                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
-                                .map(o -> resolveOrderAmount(o))
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    public DashboardStatsResponse getStats(java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime startDate = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        LocalDateTime endDate = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        var allOrders = orderRepository.findAll();
+        BigDecimal orderRevenue = allOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
+                        && o.getStatus() != OrderStatusEnum.RETURNED
+                        && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
+                .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
+                .map(o -> resolveOrderAmount(o))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                var allBookings = bookingRepository.findAll();
-                BigDecimal bookingRevenue = allBookings.stream()
-                                .filter(b -> !"CANCELLED".equalsIgnoreCase(b.getStatus()))
-                                .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var allBookings = bookingRepository.findAll();
+        BigDecimal bookingRevenue = allBookings.stream()
+                .filter(b -> !"CANCELLED".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> isWithinRange(b.getCreatedAt(), startDate, endDate))
+                .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                BigDecimal totalRevenue = orderRevenue.add(bookingRevenue);
+        BigDecimal totalRevenue = orderRevenue.add(bookingRevenue);
 
-                long totalOrders = allOrders.size();
-                long totalCustomers = userRepository.count();
-                long totalAdminAccounts = userRepository.countByRole_NameIn(List.of("ADMIN", "STAFF", "SUPER_ADMIN"));
+        long totalOrders = allOrders.stream()
+                .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
+                .count();
 
-                // Sold products count - include all orders that are not cancelled or returned
-                long totalProductsSold = allOrders.stream()
-                                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
-                                                && o.getStatus() != OrderStatusEnum.RETURNED
-                                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
-                                .flatMap(o -> o.getOrderItems().stream())
-                                .mapToLong(OrderItem::getQuantity)
-                                .sum();
+        long totalCustomers;
+        if (startDate != null && endDate != null) {
+            totalCustomers = userRepository.countByRole_NameAndCreatedAtBetween("USER", startDate, endDate);
+        } else if (startDate != null) {
+            totalCustomers = userRepository.countByRole_NameAndCreatedAtAfter("USER", startDate);
+        } else if (endDate != null) {
+            totalCustomers = userRepository.countByRole_NameAndCreatedAtBefore("USER", endDate);
+        } else {
+            totalCustomers = userRepository.countByRole_Name("USER");
+        }
 
-                // Count by status
-                long pendingOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.PENDING).count();
-                long confirmedOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.CONFIRMED).count();
-                long processingOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.PROCESSING).count();
-                long deliveringOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.DELIVERING).count();
-                long deliveredOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.DELIVERED).count();
-                long completedOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED).count();
-                long cancelledOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.CANCELLED).count();
-                long returnedOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.RETURNED || o.getStatus() == OrderStatusEnum.RETURN_REQUESTED).count();
+        double avgRating = ratingRepository.getAverageScore() != null ? ratingRepository.getAverageScore() : 0.0;
+
+        // Sold products count
+        long totalProductsSold = allOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
+                        && o.getStatus() != OrderStatusEnum.RETURNED
+                        && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
+                .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
+                .flatMap(o -> o.getOrderItems().stream())
+                .mapToLong(OrderItem::getQuantity)
+                .sum();
+
+        // Count by status
+        long pendingOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.PENDING && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long confirmedOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.CONFIRMED && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long processingOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.PROCESSING && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long deliveringOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.DELIVERING && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long deliveredOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.DELIVERED && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long completedOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long completedBookings = allBookings.stream()
+                .filter(b -> ("COMPLETED".equalsIgnoreCase(b.getStatus()) || "FINISHED".equalsIgnoreCase(b.getStatus())) && isWithinRange(b.getCreatedAt(), startDate, endDate))
+                .count();
+        long cancelledOrders = allOrders.stream().filter(o -> o.getStatus() == OrderStatusEnum.CANCELLED && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
+        long returnedOrders = allOrders.stream().filter(o -> (o.getStatus() == OrderStatusEnum.RETURNED || o.getStatus() == OrderStatusEnum.RETURN_REQUESTED) && isWithinRange(o.getCreatedAt(), startDate, endDate)).count();
 
                 // Today stats — múi giờ VN (Asia/Ho_Chi_Minh), coi createdAt trong DB là server default (hoặc UTC)
                 ZoneId vietnam = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -199,68 +220,90 @@ public class DashboardService {
 
                 return new DashboardStatsResponse(
                                 totalRevenue, totalOrders, totalCustomers, totalProductsSold,
-                                totalAdminAccounts,
+                                avgRating, completedBookings,
                                 pendingOrders, confirmedOrders, processingOrders, deliveringOrders,
                                 deliveredOrders, completedOrders, cancelledOrders, returnedOrders,
                                 todayOrders, todayRevenue, lowStockCount, todayBookings);
         }
 
-        public List<RevenueChartItem> getRevenueChart(int days) {
-                List<RevenueChartItem> items = new ArrayList<>();
-                var allOrders = orderRepository.findAll();
-                LocalDate today = LocalDate.now();
-                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
+    public List<RevenueChartItem> getRevenueChart(int days, java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime customStart = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        LocalDateTime customEnd = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        List<RevenueChartItem> items = new ArrayList<>();
+        var allOrders = orderRepository.findAll();
+        var allBookings = bookingRepository.findAll();
 
-                for (int i = days - 1; i >= 0; i--) {
-                        LocalDate date = today.minusDays(i);
-                        LocalDateTime start = date.atStartOfDay();
-                        LocalDateTime end = date.atTime(LocalTime.MAX);
+        LocalDate end;
+        LocalDate start;
 
-                        BigDecimal orderRevenueForDay = allOrders.stream()
-                                        .filter(o -> o.getCreatedAt() != null
-                                                        && !o.getCreatedAt().isBefore(start)
-                                                        && !o.getCreatedAt().isAfter(end)
-                                                        && o.getStatus() != OrderStatusEnum.CANCELLED
-                                                        && o.getStatus() != OrderStatusEnum.RETURNED)
-                                        .map(o -> o.getFinalAmount() != null ? o.getFinalAmount() : BigDecimal.ZERO)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                        var allBookings = bookingRepository.findAll();
-                        BigDecimal bookingRevenueForDay = allBookings.stream()
-                                        .filter(b -> b.getCreatedAt() != null
-                                                        && !b.getCreatedAt().isBefore(start)
-                                                        && !b.getCreatedAt().isAfter(end)
-                                                        && ! "CANCELLED".equalsIgnoreCase(b.getStatus()))
-                                        .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                        BigDecimal revenue = orderRevenueForDay.add(bookingRevenueForDay);
-
-                        long orders = allOrders.stream()
-                                        .filter(o -> o.getCreatedAt() != null
-                                                        && !o.getCreatedAt().isBefore(start)
-                                                        && !o.getCreatedAt().isAfter(end))
-                                        .count() + 
-                                      allBookings.stream()
-                                        .filter(b -> b.getCreatedAt() != null
-                                                        && !b.getCreatedAt().isBefore(start)
-                                                        && !b.getCreatedAt().isAfter(end))
-                                        .count();
-
-                        items.add(new RevenueChartItem(date.format(fmt), revenue, orders));
-                }
-                return items;
+        if (customStart != null && customEnd != null) {
+            start = customStart.toLocalDate();
+            end = customEnd.toLocalDate();
+        } else {
+            end = LocalDate.now();
+            start = end.minusDays(days - 1);
         }
 
-        public DashboardStatsResponse getStaffStats() {
-                DashboardStatsResponse fullStats = getStats();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
+
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            LocalDateTime dayStart = date.atStartOfDay();
+            LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
+            LocalDate finalDate = date;
+
+            BigDecimal orderRevenueForDay = allOrders.stream()
+                    .filter(o -> o.getCreatedAt() != null
+                            && !o.getCreatedAt().isBefore(dayStart)
+                            && !o.getCreatedAt().isAfter(dayEnd)
+                            && o.getStatus() != OrderStatusEnum.CANCELLED
+                            && o.getStatus() != OrderStatusEnum.RETURNED)
+                    .map(o -> resolveOrderAmount(o))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal bookingRevenueForDay = allBookings.stream()
+                    .filter(b -> b.getCreatedAt() != null
+                            && !b.getCreatedAt().isBefore(dayStart)
+                            && !b.getCreatedAt().isAfter(dayEnd)
+                            && !"CANCELLED".equalsIgnoreCase(b.getStatus()))
+                    .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal revenue = orderRevenueForDay.add(bookingRevenueForDay);
+
+            long ordersCount = allOrders.stream()
+                    .filter(o -> o.getCreatedAt() != null
+                            && !o.getCreatedAt().isBefore(dayStart)
+                            && !o.getCreatedAt().isAfter(dayEnd))
+                    .count() +
+                    allBookings.stream()
+                            .filter(b -> b.getCreatedAt() != null
+                                    && !b.getCreatedAt().isBefore(dayStart)
+                                    && !b.getCreatedAt().isAfter(dayEnd))
+                            .count();
+
+            items.add(new RevenueChartItem(finalDate.format(fmt), revenue, ordersCount));
+        }
+        return items;
+    }
+
+    private boolean isWithinRange(LocalDateTime date, LocalDateTime start, LocalDateTime end) {
+        if (date == null) return false;
+        if (start != null && date.isBefore(start)) return false;
+        if (end != null && date.isAfter(end)) return false;
+        return true;
+    }
+
+    public DashboardStatsResponse getStaffStats(java.time.OffsetDateTime startDate, java.time.OffsetDateTime endDate) {
+        DashboardStatsResponse fullStats = getStats(startDate, endDate);
                 // Mask revenue for staff
                 return new DashboardStatsResponse(
                                 BigDecimal.ZERO,
                                 fullStats.totalOrders(),
                                 fullStats.totalCustomers(),
                                 fullStats.totalProducts(),
-                                fullStats.totalAdminAccounts(),
+                                fullStats.avgRating(),
+                                fullStats.completedBookings(),
                                 fullStats.pendingOrders(),
                                 fullStats.confirmedOrders(),
                                 fullStats.processingOrders(),
@@ -275,11 +318,15 @@ public class DashboardService {
                                 fullStats.todayBookings());
         }
 
-        public List<SalesByCategoryResponse> getSalesByCategory() {
-                var allOrders = orderRepository.findAll().stream()
-                                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
-                                                || o.getStatus() == OrderStatusEnum.DELIVERED)
-                                .toList();
+    public List<SalesByCategoryResponse> getSalesByCategory(java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime startDate = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        LocalDateTime endDate = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        var allOrders = orderRepository.findAll().stream()
+                .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
+                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
+                        || o.getStatus() == OrderStatusEnum.DELIVERED)
+                .toList();
 
                 Map<PetTypeEnum, Long> countMap = new HashMap<>();
                 Map<PetTypeEnum, BigDecimal> revenueMap = new HashMap<>();
@@ -311,10 +358,14 @@ public class DashboardService {
                                 .toList();
         }
 
-        public List<TopCustomerResponse> getTopCustomers() {
-                return orderRepository.findAll().stream()
-                                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
-                                                || o.getStatus() == OrderStatusEnum.DELIVERED)
+    public List<TopCustomerResponse> getTopCustomers(java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime startDate = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        LocalDateTime endDate = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
+        return orderRepository.findAll().stream()
+                .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
+                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
+                        || o.getStatus() == OrderStatusEnum.DELIVERED)
                                 .filter(o -> o.getUser() != null)
                                 .collect(Collectors.groupingBy(Order::getUser))
                                 .entrySet().stream()
@@ -344,7 +395,8 @@ public class DashboardService {
                                         ProductResponse r = productMapper.toResponse(p);
                                         StockStatusEnum computed = productApplicationService.computeStockStatus(p.getId());
                                         return new ProductResponse(r.productId(), r.slug(), r.name(), r.minPrice(), r.maxPrice(),
-                                                        r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.brand(), r.images(), r.createdAt(), r.variants());
+                                                        r.status(), r.productType(), computed, p.getPetTypes(), r.categories(), r.tags(), r.ageRanges(), r.brand(), r.images(), 
+                                                        0.0, 0L, r.createdAt(), r.variants());
                                 })
                                 .toList();
         }
@@ -426,7 +478,7 @@ public class DashboardService {
 
         /** Tăng trưởng thành viên theo tháng (năm nay vs năm trước). */
         public CustomerGrowthResponse getCustomerGrowth() {
-                var allUsers = userRepository.findAll();
+                var allUsers = userRepository.findByRole_Name("USER");
                 int currentYear = LocalDate.now().getYear();
                 String[] labels = new String[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12" };
                 List<Long> thisYear = new ArrayList<>();
@@ -456,7 +508,7 @@ public class DashboardService {
                         for (OrderItem item : order.getOrderItems()) {
                                 if (item.getProduct() == null) continue;
                                 Long pid = item.getProduct().getId();
-                                productIdToQty.merge(pid, (long) item.getQuantity(), Long::sum);
+                                productIdToQty.merge(pid, (long) item.getQuantity(), (a, b) -> a + b);
                         }
                 }
                 List<Long> topIds = productIdToQty.entrySet().stream()

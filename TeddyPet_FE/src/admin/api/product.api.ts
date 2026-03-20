@@ -100,6 +100,18 @@ export const importTagsExcel = async (file: File): Promise<ApiResponse<any>> => 
     return response.data;
 };
 
+export const previewTagsImportExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL_TAGS}/excel/preview`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
 // ─── AGE RANGE EXCEL ──────────────────────────────────────────────────────────
 
 const BASE_URL_AGERANGES = '/api/product-age-ranges';
@@ -124,6 +136,18 @@ export const importAgeRangesExcel = async (file: File): Promise<ApiResponse<any>
     const formData = new FormData();
     formData.append('file', file);
     const response = await apiApp.post(`${BASE_URL_AGERANGES}/excel/import`, formData, {
+        headers: {
+            ...withAuth().headers,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const previewAgeRangesImportExcel = async (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiApp.post(`${BASE_URL_AGERANGES}/excel/preview`, formData, {
         headers: {
             ...withAuth().headers,
             'Content-Type': 'multipart/form-data',

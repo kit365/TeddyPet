@@ -180,6 +180,17 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
+    @PatchMapping("/{id}/refund-requests/{refundId}")
+    @Operation(summary = "Cập nhật yêu cầu hoàn tiền (public)", description = "Khách hàng cập nhật lại yêu cầu hoàn tiền khi admin yêu cầu")
+    public ResponseEntity<ApiResponse<OrderRefundResponse>> updateRefundRequest(
+            @PathVariable UUID id,
+            @PathVariable Long refundId,
+            @Valid @RequestBody OrderRefundRequest request
+    ) {
+        OrderRefundResponse data = orderService.updateOrderRefundRequest(id, refundId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     // ========== STAFF/ADMIN ENDPOINTS ==========
 
     @GetMapping("/export")
@@ -295,8 +306,8 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/shipping-fee")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật phí vận chuyển thủ công", description = "Admin cập nhật phí vận chuyển và chốt đơn")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @Operation(summary = "Cập nhật phí vận chuyển thủ công", description = "Nhân viên/Admin cập nhật phí vận chuyển và chốt đơn (PENDING → CONFIRMED)")
     public ResponseEntity<ApiResponse<Void>> updateManualShippingFee(
             @PathVariable UUID id,
             @RequestParam java.math.BigDecimal finalFee) {

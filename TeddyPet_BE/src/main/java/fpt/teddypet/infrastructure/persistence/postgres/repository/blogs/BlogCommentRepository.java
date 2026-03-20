@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface BlogCommentRepository extends JpaRepository<BlogComment, Long> {
     List<BlogComment> findByBlogPostIdAndParentIsNullOrderByCreatedAtDesc(Long blogPostId);
+    List<BlogComment> findAllByParentIsNullOrderByCreatedAtDesc();
 }

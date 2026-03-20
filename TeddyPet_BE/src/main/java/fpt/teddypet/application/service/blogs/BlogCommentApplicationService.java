@@ -65,6 +65,13 @@ public class BlogCommentApplicationService implements BlogCommentService {
     }
 
     @Override
+    public List<BlogCommentResponse> getAllComments() {
+        return blogCommentRepositoryPort.findAllByParentIdIsNullOrderByCreatedAtDesc().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public void deleteComment(Long commentId) {
         BlogComment comment = blogCommentRepositoryPort.findById(commentId)

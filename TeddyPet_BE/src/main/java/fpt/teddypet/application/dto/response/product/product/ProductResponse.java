@@ -1,5 +1,6 @@
 package fpt.teddypet.application.dto.response.product.product;
 
+import fpt.teddypet.application.dto.response.product.agerange.ProductAgeRangeInfo;
 import fpt.teddypet.application.dto.response.product.brand.ProductBrandInfo;
 import fpt.teddypet.application.dto.response.product.category.ProductCategoryInfo;
 import fpt.teddypet.application.dto.response.product.tag.ProductTagInfo;
@@ -24,8 +25,11 @@ public record ProductResponse(
         List<fpt.teddypet.domain.enums.PetTypeEnum> petTypes,
         List<ProductCategoryInfo> categories,
         List<ProductTagInfo> tags,
+        List<ProductAgeRangeInfo> ageRanges,
         ProductBrandInfo brand,
         List<ProductImageInfo> images,
+        Double averageRating,
+        Long reviewCount,
         @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") java.time.LocalDateTime createdAt,
         List<ProductVariantResponse> variants) {
 }

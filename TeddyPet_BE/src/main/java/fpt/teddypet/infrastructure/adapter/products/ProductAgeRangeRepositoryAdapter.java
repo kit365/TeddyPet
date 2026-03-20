@@ -60,7 +60,7 @@ public class ProductAgeRangeRepositoryAdapter implements ProductAgeRangeReposito
 
     @Override
     public boolean existsByNameAndIdNot(String name, Long ageRangeId) {
-        return productAgeRangeRepository.findByName(name).isPresent();
+        return productAgeRangeRepository.existsByNameAndIdNot(name, ageRangeId);
     }
 
     private void checkMissingIds(List<Long> requestedIds, List<ProductAgeRange> foundAgeRange) {

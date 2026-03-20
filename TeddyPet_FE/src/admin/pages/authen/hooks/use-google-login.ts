@@ -67,7 +67,7 @@ export const useGoogleLogin = () => {
             toast.success("Đăng nhập Google thành công!");
             const target = (role === "ADMIN" || role === "SUPER_ADMIN") ? "/admin/dashboard/system" 
                          : role === "STAFF" ? "/admin/staff/dashboard" 
-                         : "/admin/dashboard/analytics";
+                         : "/admin/dashboard/system";
             
             setTimeout(() => navigate(target), 100);
         },

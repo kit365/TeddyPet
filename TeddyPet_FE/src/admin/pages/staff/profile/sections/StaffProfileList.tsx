@@ -26,6 +26,8 @@ import type { IStaffProfile } from '../../../../api/staffProfile.api';
 import { GridRenderCellParams } from '@mui/x-data-grid';
 import { useState, useMemo, useRef } from 'react';
 import { ExportImport } from '../../../../components/ui/ExportImport';
+import { exportStaffExcel, downloadStaffTemplate, importStaffExcel } from '../../../../api/staffProfile.api';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 
@@ -365,6 +367,7 @@ const staffColumns: GridColDef<IStaffProfile>[] = [
 // ─── Main component ───────────────────────────────────────────────────────────
 export const StaffProfileList = () => {
     const { data: profiles = [], isLoading } = useStaffProfiles();
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string[]>([]);
     const [employmentFilter, setEmploymentFilter] = useState<string[]>([]);
@@ -376,6 +379,77 @@ export const StaffProfileList = () => {
     // Local buffer for filters (Staged apply)
     const [localStatus, setLocalStatus] = useState<string[]>([]);
     const [localEmployment, setLocalEmployment] = useState<string[]>([]);
+
+    // Excel Export / Import states
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            const blob = await exportStaffExcel();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'staff_profiles.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            toast.success('Xuất file thành công');
+        } catch (error) {
+            console.error('Lỗi khi xuất file:', error);
+            toast.error('Có lỗi xảy ra khi xuất file');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setIsDownloadingTemplate(true);
+            const blob = await downloadStaffTemplate();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'staff_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            toast.success('Tải template thành công');
+        } catch (error) {
+            console.error('Lỗi khi tải template:', error);
+            toast.error('Có lỗi xảy ra khi tải template');
+        } finally {
+            setIsDownloadingTemplate(false);
+        }
+    };
+
+    const handleImportClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsImporting(true);
+            const res = await importStaffExcel(file);
+            toast.success(res.message || 'Nhập dữ liệu thành công');
+            queryClient.invalidateQueries({ queryKey: ['staffProfiles'] });
+        } catch (error: any) {
+            console.error('Lỗi khi nhập file:', error);
+            toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu');
+        } finally {
+            setIsImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
 
     const handleOpenFilter = () => {
         setLocalStatus(statusFilter);
@@ -504,7 +578,20 @@ export const StaffProfileList = () => {
                     </Stack>
 
                     {/* Export / Import */}
-                    <ExportImport />
+                    <input
+                        type="file"
+                        accept=".xlsx, .xls"
+                        style={{ display: 'none' }}
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                    />
+                    <ExportImport
+                        isExporting={isExporting || isImporting}
+                        isDownloadingTemplate={isDownloadingTemplate}
+                        onExport={handleExport}
+                        onDownloadTemplate={handleDownloadTemplate}
+                        onImport={handleImportClick}
+                    />
                 </Stack>
 
 

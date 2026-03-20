@@ -62,7 +62,7 @@ export const useLogin = () => {
                 } else if (role === "STAFF") {
                     setTimeout(() => navigate("/admin/staff/dashboard"), 100);
                 } else {
-                    setTimeout(() => navigate("/admin/dashboard/analytics"), 100);
+                    setTimeout(() => navigate("/admin/dashboard/system"), 100);
                 }
             } catch {
                 toast.error("Không thể xác thực quyền. Vui lòng thử lại.");

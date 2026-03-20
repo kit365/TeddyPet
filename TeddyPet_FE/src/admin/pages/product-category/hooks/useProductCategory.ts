@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCategories, createCategory, getNestedCategories, getCategoryById, deleteCategory, downloadCategoriesTemplate, exportCategoriesExcel, importCategoriesExcel } from '../../../api/product-category.api';
+import { getCategories, createCategory, getNestedCategories, getCategoryById, deleteCategory, downloadCategoriesTemplate, exportCategoriesExcel, importCategoriesExcel, previewCategoriesImportExcel } from '../../../api/product-category.api';
 import { ApiResponse } from '../../../config/type';
 import { toast } from 'react-toastify';
 
@@ -122,6 +122,15 @@ export const useImportCategoriesExcel = () => {
         },
         onError: (error: any) => {
             toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu từ Excel');
+        }
+    });
+};
+
+export const usePreviewCategoryImportExcel = () => {
+    return useMutation({
+        mutationFn: previewCategoriesImportExcel,
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Không thể kiểm tra dữ liệu Excel');
         }
     });
 };

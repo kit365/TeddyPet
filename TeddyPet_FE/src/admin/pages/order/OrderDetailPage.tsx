@@ -128,6 +128,7 @@ export const OrderDetailPage = () => {
     const [openCashReceivedDialog, setOpenCashReceivedDialog] = useState(false);
     const [cashReceivedAmount, setCashReceivedAmount] = useState('');
     const [cashReceivedError, setCashReceivedError] = useState('');
+    const [openViewRefundDialog, setOpenViewRefundDialog] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -150,47 +151,67 @@ export const OrderDetailPage = () => {
         setEditableCustomerPhone(order.shippingPhone ?? '');
     }, [order?.id, order?.orderType, order?.shippingAddress, order?.notes, order?.guestEmail, order?.user?.email]);
 
-    useEffect(() => {
-        const loadCustomerBankInfo = async () => {
-            if (!order?.id) {
-                setCustomerBankInfo(null);
-                return;
-            }
-            try {
-                const response = await getBankInformationByOrderId(order.id);
-                if (response.success && response.data) {
-                    setCustomerBankInfo({
-                        accountNumber: response.data.accountNumber,
-                        accountHolderName: response.data.accountHolderName,
-                        bankCode: response.data.bankCode,
-                        bankName: response.data.bankName,
-                    });
-                } else {
-                    setCustomerBankInfo(null);
-                }
-            } catch (error) {
-                console.error("Error fetching customer bank info:", error);
+    const loadCustomerBankInfo = async () => {
+        if (!order?.id) {
+            setCustomerBankInfo(null);
+            return;
+        }
+        try {
+            const response = await getBankInformationByOrderId(order.id);
+            if (response.success && response.data) {
+                setCustomerBankInfo({
+                    accountNumber: response.data.accountNumber,
+                    accountHolderName: response.data.accountHolderName,
+                    bankCode: response.data.bankCode,
+                    bankName: response.data.bankName,
+                });
+            } else {
                 setCustomerBankInfo(null);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching customer bank info:", error);
+            setCustomerBankInfo(null);
+        }
+    };
 
+    useEffect(() => {
         loadCustomerBankInfo();
     }, [order?.id]);
 
     useEffect(() => {
-        if (!openCancelDialog || !id) {
+        if (!id) {
             setRefundHistory([]);
             return;
         }
         setLoadingRefundHistory(true);
+        // Luôn fetch lịch sử hoàn tiền khi id thay đổi để hiển thị trên UI chính
         getOrderRefundRequests(id)
             .then((res) => {
-                if (res.success && Array.isArray(res.data)) setRefundHistory(res.data);
+                if (res.success && Array.isArray(res.data)) {
+                    setRefundHistory(res.data);
+                }
             })
             .catch(() => setRefundHistory([]))
             .finally(() => setLoadingRefundHistory(false));
-    }, [openCancelDialog, id]);
+    }, [id]);
 
+    /** Bước 2 (APPROVED): nạp mã GD + bằng chứng đã lưu */
+    useEffect(() => {
+        if (!openCancelDialog || !order?.id) return;
+        if (order.latestRefundStatus !== 'APPROVED') {
+            setRefundTxId('');
+            setAdminEvidenceUrls(['']);
+            return;
+        }
+        const rid = order.latestRefundId;
+        const r = refundHistory.find((x) => x.id === rid && x.status === 'APPROVED')
+            || refundHistory.find((x) => x.status === 'APPROVED');
+        if (r) {
+            setRefundTxId(r.refundTransactionId?.trim() || '');
+            const urls = (r.adminEvidenceUrls || []).filter(Boolean);
+            setAdminEvidenceUrls(urls.length > 0 ? [...urls, ''] : ['']);
+        }
+    }, [openCancelDialog, id, order?.latestRefundStatus, order?.latestRefundId, refundHistory]);
 
     useEffect(() => {
         const fetchSuggestion = async () => {
@@ -371,9 +392,9 @@ export const OrderDetailPage = () => {
             } else {
                 toast.error(response.message || "Cập nhật thất bại");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating status:", error);
-            toast.error("Lỗi khi cập nhật trạng thái");
+            toast.error(error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái");
         } finally {
             setUpdating(false);
         }
@@ -631,6 +652,72 @@ export const OrderDetailPage = () => {
                 {/* Left Side (65%) */}
                 <Box>
                     <Stack spacing={4}>
+                        {/* 1. Refund Summary (Explicit display for evidence) */}
+                        {order.refundTransactionId && (
+                            <Card sx={{
+                                p: 3.5,
+                                borderRadius: '32px',
+                                border: '1px solid #BBF7D0',
+                                bgcolor: '#F0FDF4',
+                                boxShadow: '0 8px 32px rgba(16, 185, 129, 0.1)',
+                            }}>
+                                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                                    <CheckCircleOutlineIcon sx={{ color: '#118D57', fontSize: '2rem' }} />
+                                    <Box>
+                                        <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#118D57', letterSpacing: '-0.5px' }}>
+                                            Đã hoàn tiền thành công
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '0.875rem', color: '#065F46', fontWeight: 600 }}>
+                                            Mã giao dịch: {order.refundTransactionId}
+                                        </Typography>
+                                    </Box>
+                                </Stack>
+
+                                {order.adminRefundNote && (
+                                    <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(255,255,255,0.5)', borderRadius: '16px', border: '1px dashed #BBF7D0' }}>
+                                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#637381', textTransform: 'uppercase', mb: 1 }}>
+                                            Ghi chú hoàn tiền
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '1rem', color: '#1C252E', fontWeight: 500 }}>
+                                            {order.adminRefundNote}
+                                        </Typography>
+                                    </Box>
+                                )}
+
+                                {order.adminRefundEvidenceUrls && order.adminRefundEvidenceUrls.length > 0 && (
+                                    <Box>
+                                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#637381', textTransform: 'uppercase', mb: 1.5 }}>
+                                            Bằng chứng hoàn tiền ({order.adminRefundEvidenceUrls.length})
+                                        </Typography>
+                                        <Stack direction="row" spacing={2} flexWrap="wrap">
+                                            {order.adminRefundEvidenceUrls.map((url, index) => (
+                                                <Box
+                                                    key={index}
+                                                    component="img"
+                                                    src={url}
+                                                    sx={{
+                                                        width: 120,
+                                                        height: 120,
+                                                        borderRadius: '16px',
+                                                        objectFit: 'cover',
+                                                        cursor: 'pointer',
+                                                        border: '2px solid white',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                        '&:hover': {
+                                                            transform: 'scale(1.08) translateY(-4px)',
+                                                            boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                                                        }
+                                                    }}
+                                                    onClick={() => window.open(url, '_blank')}
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+                            </Card>
+                        )}
+
                         {/* Timeline Card - Horizontal */}
                         <Card sx={{ p: 4, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #FFF', overflow: 'hidden' }}>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 3, color: '#1C252E' }}>Trạng thái vận đơn</Typography>
@@ -708,16 +795,16 @@ export const OrderDetailPage = () => {
                                             <Stack spacing={2} alignItems="center" sx={{ width: '25%' }}>
                                                 <Box sx={{
                                                     width: 28, height: 28, borderRadius: '50%',
-                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
+                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
                                                     border: '5px solid white',
-                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
+                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
                                                 }} />
                                                 <Box textAlign="center">
-                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
                                                         Hoàn tất
                                                     </Typography>
                                                     <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
-                                                        {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                        {(['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
                                                             ? new Date(order.updatedAt).toLocaleDateString('vi-VN')
                                                             : 'Sau khi khách thanh toán'}
                                                     </Typography>
@@ -735,7 +822,7 @@ export const OrderDetailPage = () => {
                                                             && order.status === 'CONFIRMED'
                                                             && order.payments?.[0]?.status !== 'COMPLETED')
                                                             ? '#FFAB00'
-                                                            : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                            : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
                                                                 ? '#00AB55'
                                                                 : '#919EAB'),
                                                     border: '5px solid white',
@@ -744,7 +831,7 @@ export const OrderDetailPage = () => {
                                                             && order.status === 'CONFIRMED'
                                                             && order.payments?.[0]?.status !== 'COMPLETED')
                                                             ? '#FFAB00'
-                                                            : (['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                            : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
                                                                 ? '#00AB55'
                                                                 : '#919EAB')
                                                     }`,
@@ -764,7 +851,7 @@ export const OrderDetailPage = () => {
                                                                 && order.status === 'CONFIRMED'
                                                                 && order.payments?.[0]?.status !== 'COMPLETED')
                                                                 ? '#B76E00'
-                                                                : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
+                                                                : (['PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
                                                                     ? '#1C252E'
                                                                     : '#919EAB'),
                                                         mb: 0.5
@@ -776,7 +863,7 @@ export const OrderDetailPage = () => {
                                                             ? (order.status === 'CONFIRMED'
                                                                 ? 'Đang chờ khách chuyển khoản qua PayOS'
                                                                 : ((order.status === 'PAID'
-                                                                    || ['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                                    || ['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
                                                                     ? 'Đã thanh toán online'
                                                                     : 'Sau khi xác nhận'))
                                                             : 'Không áp dụng (COD)'}
@@ -788,16 +875,16 @@ export const OrderDetailPage = () => {
                                             <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
                                                 <Box sx={{
                                                     width: 28, height: 28, borderRadius: '50%',
-                                                    bgcolor: ['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB',
+                                                    bgcolor: (['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt) ? '#00AB55' : '#919EAB',
                                                     border: '5px solid white',
-                                                    boxShadow: `0 0 0 1px ${['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB'}`,
+                                                    boxShadow: `0 0 0 1px ${(['PROCESSING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt) ? '#00AB55' : '#919EAB'}`,
                                                     animation: order.status === 'PROCESSING' ? 'pulse-orange 2s infinite' : 'none'
                                                 }} />
                                                 <Box textAlign="center">
-                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'PROCESSING' ? '#B76E00' : (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'PROCESSING' ? '#B76E00' : (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
                                                         Chờ đóng gói
                                                     </Typography>
-                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                            <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
                                                         {order.status === 'PROCESSING'
                                                             ? 'Nhân viên đang chuẩn bị hàng'
                                                             : (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
@@ -811,16 +898,16 @@ export const OrderDetailPage = () => {
                                             <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
                                                 <Box sx={{
                                                     width: 28, height: 28, borderRadius: '50%',
-                                                    bgcolor: ['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB',
+                                                    bgcolor: (['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt) ? '#00AB55' : '#919EAB',
                                                     border: '5px solid white',
-                                                    boxShadow: `0 0 0 1px ${['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#00AB55' : '#919EAB'}`,
+                                                    boxShadow: `0 0 0 1px ${(['DELIVERING', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt) ? '#00AB55' : '#919EAB'}`,
                                                     animation: order.status === 'DELIVERING' ? 'pulse-blue 2s infinite' : 'none'
                                                 }} />
                                                 <Box textAlign="center">
-                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'DELIVERING' ? '#1064ad' : (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: order.status === 'DELIVERING' ? '#1064ad' : (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) || !!order.deliveredAt ? '#1C252E' : '#919EAB'), mb: 0.5 }}>
                                                         Đang giao hàng
                                                     </Typography>
-                                                    <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
+                                            <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
                                                         {order.status === 'DELIVERING'
                                                             ? 'Đơn hàng đang được vận chuyển'
                                                             : (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)
@@ -834,18 +921,39 @@ export const OrderDetailPage = () => {
                                             <Stack spacing={2} alignItems="center" sx={{ flex: 1 }}>
                                                 <Box sx={{
                                                     width: 28, height: 28, borderRadius: '50%',
-                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB',
+                                                    bgcolor: (['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? (
+                                                        order.status === 'CANCELLED' ? '#FF5630' :
+                                                            (order.status === 'REFUND_PENDING' ? '#FFAB00' :
+                                                                (order.status === 'REFUNDED' ? '#00B8D9' : '#00AB55'))
+                                                    ) : '#919EAB',
                                                     border: '5px solid white',
-                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#00AB55' : '#919EAB'}`
+                                                    boxShadow: `0 0 0 1px ${(['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? (
+                                                        order.status === 'CANCELLED' ? '#FF5630' :
+                                                            (order.status === 'REFUND_PENDING' ? '#FFAB00' :
+                                                                (order.status === 'REFUNDED' ? '#00B8D9' : '#00AB55'))
+                                                    ) : '#919EAB'}`,
                                                 }} />
                                                 <Box textAlign="center">
-                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status)) ? '#1C252E' : '#919EAB', mb: 0.5 }}>
-                                                        Giao hàng & Hoàn tất
+                                            <Typography sx={{
+                                                        fontWeight: 700,
+                                                        fontSize: '0.9375rem',
+                                                        color: ['DELIVERED', 'COMPLETED', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status) ? (
+                                                            order.status === 'CANCELLED' ? '#FF5630' :
+                                                                (order.status === 'REFUND_PENDING' ? '#FFAB00' :
+                                                                    (order.status === 'REFUNDED' ? '#00B8D9' : '#1C252E'))
+                                                        ) : '#919EAB',
+                                                        mb: 0.5
+                                                    }}>
+                                                        {order.status === 'CANCELLED' ? 'Đã hủy đơn' :
+                                                            (order.status === 'REFUND_PENDING' ? 'Chờ hoàn tiền' :
+                                                                (order.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Giao hàng & Hoàn tất'))}
                                                     </Typography>
                                                     <Typography sx={{ fontSize: '0.8125rem', color: '#919EAB' }}>
-                                                        {(['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNED'].includes(order.status))
+                                                        {['DELIVERED', 'COMPLETED'].includes(order.status)
                                                             ? new Date(order.updatedAt).toLocaleDateString('vi-VN')
-                                                            : 'Dự kiến sau khi chốt'}
+                                                            : (['CANCELLED', 'REFUND_PENDING', 'REFUNDED'].includes(order.status)
+                                                                ? (order.cancelledAt ? new Date(order.cancelledAt).toLocaleDateString('vi-VN') : new Date(order.updatedAt).toLocaleDateString('vi-VN'))
+                                                                : 'Dự kiến sau khi chốt')}
                                                     </Typography>
                                                 </Box>
                                             </Stack>
@@ -1002,7 +1110,7 @@ export const OrderDetailPage = () => {
                                 />
                             </Box>
                             {/* Hiển thị lý do hủy/hoàn trả nếu có */}
-                            {(order.status === 'CANCELLED' || order.status === 'RETURNED') && order.cancelReason && (
+                            {(order.status === 'CANCELLED' || order.status === 'RETURNED' || order.status === 'REFUND_PENDING' || order.status === 'REFUNDED') && order.cancelReason && (
                                 <Box sx={{
                                     mt: 3,
                                     p: 2.5,
@@ -1475,6 +1583,106 @@ export const OrderDetailPage = () => {
                                 </Stack>
                             </Stack>
                         </Card>
+                        
+                        {/* Refund History - Admin Side */}
+                        {refundHistory.length > 0 && (
+                            <Card sx={{
+                                p: 3.5,
+                                borderRadius: '32px',
+                                border: '1px solid rgba(255, 255, 255, 0.8)',
+                                boxShadow: '0 8px 32px rgba(145, 158, 171, 0.1), 0 1px 2px rgba(145, 158, 171, 0.2)',
+                                background: 'rgba(255, 255, 255, 0.9)',
+                                backdropFilter: 'blur(10px)',
+                            }}>
+                                <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 2.5, color: '#1C252E', letterSpacing: '-0.3px' }}>
+                                    Lịch sử hoàn tiền ({refundHistory.length})
+                                </Typography>
+
+                                <Stack spacing={2} sx={{ maxHeight: 400, overflow: 'auto', pr: 1 }}>
+                                    {refundHistory.map((r) => (
+                                        <Box
+                                            key={r.id}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '20px',
+                                                border: '1px solid',
+                                                borderColor: r.status === 'PENDING' ? '#FED7AA' : r.status === 'APPROVED' ? '#BBF7D0' : r.status === 'REFUNDED' ? '#E5E8EB' : '#FECACA',
+                                                bgcolor: r.status === 'PENDING' ? '#FFF7ED' : r.status === 'APPROVED' ? '#F0FDF4' : r.status === 'REFUNDED' ? '#F8FAFC' : '#FEF2F2',
+                                            }}
+                                        >
+                                            <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+                                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#637381' }}>
+                                                    {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
+                                                </Typography>
+                                                <Chip
+                                                    label={r.status === 'PENDING' ? 'Chờ xử lý' : 
+                                                           r.status === 'APPROVED' ? 'Chờ hoàn tiền' : 
+                                                           r.status === 'REFUNDED' ? 'Đã hoàn tiền' : 
+                                                           r.status === 'REJECTED' ? 'Từ chối' : 
+                                                           r.status === 'ACTION_REQUIRED' ? 'Cần bổ sung' : r.status}
+                                                    size="small"
+                                                    sx={{
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 800,
+                                                        borderRadius: '8px',
+                                                        bgcolor: r.status === 'PENDING' ? '#FEF3C7' : r.status === 'APPROVED' ? '#D1FAE5' : r.status === 'REFUNDED' ? '#E2E8F0' : '#FEE2E2',
+                                                        color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : r.status === 'REFUNDED' ? '#475569' : '#991B1B',
+                                                    }}
+                                                />
+                                            </Stack>
+
+                                            {r.customerReason && (
+                                                <Box sx={{ mb: 1.5 }}>
+                                                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#919EAB', textTransform: 'uppercase', mb: 0.5 }}>Lý do khách hàng</Typography>
+                                                    <Typography sx={{ fontSize: '0.875rem', color: '#1C252E', fontStyle: 'italic' }}>
+                                                        &quot;{r.customerReason}&quot;
+                                                    </Typography>
+                                                </Box>
+                                            )}
+
+                                            {(r.adminDecisionNote || (r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0)) && (
+                                                <Box sx={{ pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+                                                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#637381', textTransform: 'uppercase', mb: 0.5 }}>
+                                                        Phản hồi admin{r.processedBy ? ` (${r.processedBy})` : ''}
+                                                    </Typography>
+                                                    {r.adminDecisionNote && (
+                                                        <Typography sx={{ fontSize: '0.875rem', color: '#1C252E', fontWeight: 600 }}>
+                                                            {r.adminDecisionNote}
+                                                        </Typography>
+                                                    )}
+                                                    {r.refundTransactionId && (
+                                                        <Typography sx={{ fontSize: '0.85rem', color: '#118D57', fontWeight: 700, mt: 0.5 }}>
+                                                            Mã GD hoàn: {r.refundTransactionId}
+                                                        </Typography>
+                                                    )}
+                                                    {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
+                                                            {r.adminEvidenceUrls.map((url, i) => (
+                                                                <Avatar
+                                                                    key={i}
+                                                                    src={url}
+                                                                    variant="rounded"
+                                                                    sx={{ 
+                                                                        width: 56, 
+                                                                        height: 56, 
+                                                                        borderRadius: '12px', 
+                                                                        border: '1px solid #E5E8EB', 
+                                                                        cursor: 'pointer',
+                                                                        transition: 'transform 0.2s',
+                                                                        '&:hover': { transform: 'scale(1.05)' }
+                                                                    }}
+                                                                    onClick={() => window.open(url, '_blank')}
+                                                                />
+                                                            ))}
+                                                        </Stack>
+                                                    )}
+                                                </Box>
+                                            )}
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Card>
+                        )}
 
                         {/* General Status Steps Support (bao gồm PENDING + đơn tại quầy: Chốt phí & Chuyển sang Chờ thanh toán) */}
                         {(order.status !== 'PENDING' || isCounterOrder) && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(order.status) && (
@@ -1564,7 +1772,6 @@ export const OrderDetailPage = () => {
                                         </Button>
                                     )}
 
-                                    {/* Nút hủy đơn & hoàn tiền: đơn ĐÃ thanh toán (PAID, PROCESSING) */}
                                     {['PAID', 'PROCESSING'].includes(order.status) && (
                                         <Badge
                                             color="error"
@@ -1592,6 +1799,28 @@ export const OrderDetailPage = () => {
                                                 Hủy đơn & yêu cầu hoàn tiền
                                             </Button>
                                         </Badge>
+                                    )}
+
+                                    {order.status === 'REFUND_PENDING' && (
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            color="warning"
+                                            onClick={() => setOpenCancelDialog(true)}
+                                            disabled={updating}
+                                            sx={{
+                                                py: 1.25,
+                                                borderRadius: '12px',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 800,
+                                                textTransform: 'none',
+                                                bgcolor: '#FFAB00',
+                                                boxShadow: '0 8px 16px rgba(255, 171, 0, 0.24)',
+                                                '&:hover': { bgcolor: '#B76E00' }
+                                            }}
+                                        >
+                                            Xử lý hoàn tiền (Bước 2)
+                                        </Button>
                                     )}
 
                                     {/* Nút hoàn trả cho DELIVERING và DELIVERED */}
@@ -1842,17 +2071,17 @@ export const OrderDetailPage = () => {
             {/* Cancel Order Dialog - reuse layout of Hủy đơn / Yêu cầu hoàn tiền */}
             <Dialog
                 open={openCancelDialog}
-                onClose={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }}
+                onClose={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); setAdminEvidenceUrls(['']); }}
                 PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 520, width: '100%' } }}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            {order?.latestRefundStatus === 'APPROVED' ? <CheckCircleOutlineIcon sx={{ fontSize: '1.6rem' }} /> : <ReplayIcon sx={{ fontSize: '1.6rem' }} />}
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: (order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? '#00AB55' : '#FFAB00', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            {(order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? <CheckCircleOutlineIcon sx={{ fontSize: '1.6rem' }} /> : <ReplayIcon sx={{ fontSize: '1.6rem' }} />}
                         </Box>
                         <Box>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>
-                                {order?.latestRefundStatus === 'APPROVED' ? 'Xác nhận Chuyển tiền' : 'Hủy đơn / Yêu cầu hoàn tiền'}
+                                {(order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? 'Xác nhận Chuyển tiền (Bước 2)' : 'Hủy đơn / Yêu cầu hoàn tiền'}
                             </Typography>
                             {order && (
                                 <Typography sx={{ fontSize: '0.8rem', color: '#919EAB', mt: 0.3 }}>
@@ -1861,7 +2090,7 @@ export const OrderDetailPage = () => {
                             )}
                         </Box>
                     </Stack>
-                    <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                    <IconButton onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); setAdminEvidenceUrls(['']); }} size="small" sx={{ bgcolor: '#F4F6F8' }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -1904,7 +2133,7 @@ export const OrderDetailPage = () => {
                                                     color: r.status === 'PENDING' ? '#92400E' : r.status === 'APPROVED' ? '#065F46' : r.status === 'REFUNDED' ? '#475569' : '#991B1B',
                                                 }}
                                             >
-                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Đã duyệt' : r.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Từ chối'}
+                                                {r.status === 'PENDING' ? 'Chờ xử lý' : r.status === 'APPROVED' ? 'Chờ hoàn tiền' : r.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Từ chối'}
                                             </Typography>
                                         </Stack>
                                         {r.customerReason && (
@@ -1958,6 +2187,39 @@ export const OrderDetailPage = () => {
                                 <Typography sx={{ fontSize: '0.85rem', color: '#9A3412', whiteSpace: 'pre-wrap' }}>
                                     {order.cancelReason}
                                 </Typography>
+                                {(() => {
+                                    const latestRefund = refundHistory.find(r => r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED');
+                                    const evidenceStr = latestRefund?.evidenceUrls;
+                                    if (evidenceStr) {
+                                        let urls: string[] = [];
+                                        try {
+                                            if (evidenceStr.startsWith('[') && evidenceStr.endsWith(']')) {
+                                                urls = JSON.parse(evidenceStr);
+                                            } else {
+                                                urls = evidenceStr.split(',').map(s => s.trim()).filter(s => s !== '');
+                                            }
+                                        } catch (e) {
+                                            urls = [evidenceStr];
+                                        }
+
+                                        if (urls.length > 0) {
+                                            return (
+                                                <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
+                                                    {urls.map((url, i) => (
+                                                        <Avatar
+                                                            key={i}
+                                                            src={url}
+                                                            variant="rounded"
+                                                            sx={{ width: 60, height: 60, borderRadius: '8px', border: '1px solid #FED7AA', cursor: 'pointer' }}
+                                                            onClick={() => window.open(url, '_blank')}
+                                                        />
+                                                    ))}
+                                                </Stack>
+                                            );
+                                        }
+                                    }
+                                    return null;
+                                })()}
                             </Box>
                         </Box>
                     )}
@@ -1967,72 +2229,88 @@ export const OrderDetailPage = () => {
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
                             Thông tin ngân hàng khách cung cấp
                         </Typography>
-                        {customerBankInfo ? (
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        p: 1.5,
-                                        bgcolor: '#EFF6FF',
-                                        border: '1px solid #BFDBFE',
-                                        borderRadius: '12px',
-                                    }}
-                                >
-                                    <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                                        Ngân hàng: <strong>{customerBankInfo.bankName || customerBankInfo.bankCode}</strong> ({customerBankInfo.bankCode})
-                                    </Typography>
-                                    <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                                        Số tài khoản: <strong>{customerBankInfo.accountNumber}</strong>
-                                    </Typography>
-                                    <Typography sx={{ fontSize: '0.85rem' }}>
-                                        Chủ TK: <strong>{customerBankInfo.accountHolderName}</strong>
-                                    </Typography>
-                                </Box>
-                                <Box sx={{
-                                    width: { xs: '100%', sm: 120 },
-                                    height: 120,
-                                    p: 1,
-                                    bgcolor: 'white',
-                                    borderRadius: '12px',
-                                    border: '1px solid #E5E8EB',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
-                                    {(() => {
-                                        const found = vietQRBanks.find(b =>
-                                            b.shortName?.toLowerCase() === customerBankInfo.bankCode.toLowerCase() ||
-                                            b.code?.toLowerCase() === customerBankInfo.bankCode.toLowerCase()
-                                        );
-                                        const bin = found?.bin || "";
-                                        const qrUrl = bin
-                                            ? `https://img.vietqr.io/image/${bin}-${customerBankInfo.accountNumber}-compact2.png?accountName=${encodeURIComponent(customerBankInfo.accountHolderName)}&amount=${order?.finalAmount || 0}`
-                                            : null;
+                        {(() => {
+                            const latestPendingRefund = refundHistory.find(r => r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED');
+                            const displayBankInfo = (latestPendingRefund && latestPendingRefund.accountNumber) ? {
+                                accountNumber: latestPendingRefund.accountNumber,
+                                accountHolderName: latestPendingRefund.accountHolderName,
+                                bankCode: latestPendingRefund.bankCode,
+                                bankName: latestPendingRefund.bankName,
+                            } : customerBankInfo;
 
-                                        return qrUrl ? (
-                                            <img
-                                                src={qrUrl}
-                                                alt="VietQR"
-                                                style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' }}
-                                                onClick={() => window.open(qrUrl, '_blank')}
-                                            />
-                                        ) : (
-                                            <Typography sx={{ fontSize: '0.6rem', color: '#919EAB', textAlign: 'center' }}>Không tạo được QR</Typography>
-                                        );
-                                    })()}
-                                </Box>
-                            </Stack>
-                        ) : (
-                            <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>
-                                Không tìm thấy thông tin ngân hàng cho khách hàng này.
-                            </Typography>
-                        )}
+                            return displayBankInfo ? (
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            p: 1.5,
+                                            bgcolor: '#EFF6FF',
+                                            border: '1px solid #BFDBFE',
+                                            borderRadius: '12px',
+                                        }}
+                                    >
+                                        <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                            Ngân hàng: <strong>{displayBankInfo.bankName || displayBankInfo.bankCode}</strong> ({displayBankInfo.bankCode})
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                            Số tài khoản: <strong>{displayBankInfo.accountNumber}</strong>
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '0.85rem' }}>
+                                            Chủ TK: <strong>{displayBankInfo.accountHolderName}</strong>
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{
+                                        width: { xs: '100%', sm: 120 },
+                                        height: 120,
+                                        p: 1,
+                                        bgcolor: 'white',
+                                        borderRadius: '12px',
+                                        border: '1px solid #E5E8EB',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {(() => {
+                                            const found = vietQRBanks.find(b =>
+                                                b.shortName?.toLowerCase() === displayBankInfo.bankCode?.toLowerCase() ||
+                                                b.code?.toLowerCase() === displayBankInfo.bankCode?.toLowerCase()
+                                            );
+                                            const bin = found?.bin || "";
+                                            const qrUrl = bin
+                                                ? `https://img.vietqr.io/image/${bin}-${displayBankInfo.accountNumber}-compact2.png?accountName=${encodeURIComponent(displayBankInfo.accountHolderName || '')}&amount=${order?.finalAmount || 0}`
+                                                : null;
+
+                                            return qrUrl ? (
+                                                <img
+                                                    src={qrUrl}
+                                                    alt="VietQR"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' }}
+                                                    onClick={() => window.open(qrUrl, '_blank')}
+                                                />
+                                            ) : (
+                                                <Typography sx={{ fontSize: '0.6rem', color: '#919EAB', textAlign: 'center' }}>Không tạo được QR</Typography>
+                                            );
+                                        })()}
+                                    </Box>
+                                </Stack>
+                            ) : (
+                                <Typography sx={{ fontSize: '0.8rem', color: '#919EAB' }}>
+                                    Không tìm thấy thông tin ngân hàng cho khách hàng này.
+                                </Typography>
+                            );
+                        })()}
                     </Box>
 
-                    {/* 4. Refund Tx and Evidence (If refund requested) */}
-                    {order?.latestRefundId != null && (
+                    {/* 4. Chỉ bước APPROVED / REFUND_PENDING: mã GD + bằng chứng sau khi chuyển khoản */}
+                    {order?.latestRefundId != null && (order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') && (
                         <>
                             <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
+
+                            <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+                                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#065F46' }}>
+                                    Bước 2 — Đơn đã hủy, thanh toán đang <strong>chờ hoàn tiền</strong>. Sau khi chuyển khoản, điền mã giao dịch và tải bằng chứng rồi bấm &quot;Xác nhận Đã hoàn tiền&quot;.
+                                </Typography>
+                            </Box>
 
                             <Box sx={{ mb: 2 }}>
                                 <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1, color: '#637381' }}>
@@ -2164,49 +2442,51 @@ export const OrderDetailPage = () => {
 
                     <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F4F6F8' }}>
                         <Typography sx={{ fontSize: '0.8rem', color: '#637381' }}>
-                            {order?.latestRefundStatus === 'APPROVED'
-                                ? 'Xác nhận rằng nhân viên đã thực hiện chuyển khoản số tiền hoàn lại cho khách hàng thành công. Trạng thái yêu cầu sẽ chuyển thành ĐÃ HOÀN TIỀN.'
-                                : 'Thao tác này sẽ cập nhật đơn hàng sang trạng thái ĐÃ HỦY. Nhân viên cần thực hiện hoàn tiền cho khách (nếu có) theo đúng quy trình.'}
+                            {(order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING')
+                                ? 'Xác nhận rằng nhân viên đã chuyển khoản hoàn tiền. Hệ thống lưu mã GD & bằng chứng, cập nhật thanh toán sang ĐÃ HOÀN TIỀN.'
+                                : 'Thao tác này sẽ hủy đơn, hoàn kho và chuyển thanh toán sang CHỜ HOÀN TIỀN. Sau đó chuyển khoản và mở lại dialog để điền bằng chứng (bước 2).'}
                         </Typography>
                     </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ p: 3, pt: 1, gap: 2 }}>
+                <DialogActions sx={{ p: 2.5, pt: 1, gap: 1.5 }}>
                     <Button
-                        fullWidth
                         variant="outlined"
-                        onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); }}
-                        sx={{ py: 1.5, borderRadius: '12px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 800 }}
+                        onClick={() => { setOpenCancelDialog(false); setCancelReason(''); setRefundTxId(''); setAdminEvidenceUrls(['']); }}
+                        sx={{ py: 1.25, borderRadius: '10px', color: '#637381', borderColor: '#E5E8EB', fontWeight: 700, fontSize: '0.8125rem', flex: 1 }}
                     >
                         Đóng
                     </Button>
                     {order?.latestRefundStatus === 'PENDING' && order.latestRefundId != null && (
                         <Button
-                            fullWidth
                             variant="outlined"
                             color="error"
                             onClick={handleRejectRefund}
                             disabled={updating}
-                            sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}
+                            sx={{ py: 1.25, borderRadius: '10px', fontWeight: 700, fontSize: '0.8125rem', flex: 1.2 }}
                         >
                             {order?.latestRefundStatus === 'PENDING' ? 'Từ chối (Reject)' : 'Hủy duyệt'}
                         </Button>
                     )}
                     <Button
-                        fullWidth
                         variant="contained"
                         onClick={async () => {
                             if (order?.latestRefundId != null) {
                                 setUpdating(true);
                                 try {
+                                    const step2 = order.latestRefundStatus === 'APPROVED' || order.status === 'REFUND_PENDING';
                                     const response = await handleOrderRefundRequest(order.id, order.latestRefundId, {
                                         approved: true,
                                         adminNote: cancelReason.trim() || undefined,
-                                        refundTransactionId: refundTxId.trim() || undefined,
-                                        adminEvidenceUrls: adminEvidenceUrls.filter(u => u.trim() !== ''),
+                                        ...(step2
+                                            ? {
+                                                refundTransactionId: refundTxId.trim() || undefined,
+                                                adminEvidenceUrls: adminEvidenceUrls.filter((u) => u.trim() !== ''),
+                                            }
+                                            : {}),
                                     });
                                     if (response.success) {
-                                        const msg = order.latestRefundStatus === 'APPROVED' ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt yêu cầu hoàn tiền cho đơn này.";
+                                        const msg = step2 ? "Đã xác nhận chuyển khoản hoàn tiền." : "Đã duyệt — đơn hủy, chờ chuyển khoản hoàn tiền (bước 2).";
                                         toast.success(msg);
                                         setOpenCancelDialog(false);
                                         setCancelReason('');
@@ -2230,14 +2510,14 @@ export const OrderDetailPage = () => {
                             py: 1.5,
                             borderRadius: '12px',
                             fontWeight: 800,
-                            bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#00AB55' : '#FF5630',
-                            boxShadow: `0 8px 16px ${order?.latestRefundStatus === 'APPROVED' ? 'rgba(0, 171, 85, 0.24)' : 'rgba(255, 86, 48, 0.24)'}`,
-                            '&:hover': { bgcolor: order?.latestRefundStatus === 'APPROVED' ? '#007B55' : '#B7211F' },
+                            bgcolor: (order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? '#00AB55' : '#FF5630',
+                            boxShadow: `0 8px 16px ${(order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? 'rgba(0, 171, 85, 0.24)' : 'rgba(255, 86, 48, 0.24)'}`,
+                            '&:hover': { bgcolor: (order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING') ? '#007B55' : '#B7211F' },
                             '&:disabled': { bgcolor: '#E5E8EB' }
                         }}
                     >
                         {updating ? 'Đang xử lý...' : (
-                            order?.latestRefundStatus === 'APPROVED' 
+                            (order?.latestRefundStatus === 'APPROVED' || order?.status === 'REFUND_PENDING')
                                 ? 'Xác nhận Đã hoàn tiền' 
                                 : order?.latestRefundId != null 
                                     ? 'Duyệt Hoàn tiền & Hủy đơn' 
@@ -2502,6 +2782,107 @@ export const OrderDetailPage = () => {
                 isUpdating={updating}
                 statusDisplayLabel="Đã thanh toán"
             />
+            {/* View Refund Info Dialog (Read-only) */}
+            <Dialog
+                open={openViewRefundDialog}
+                onClose={() => setOpenViewRefundDialog(false)}
+                PaperProps={{ sx: { borderRadius: '24px', p: 0, maxWidth: 500, width: '100%' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#00B8D9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <PaymentsIcon sx={{ fontSize: '1.4rem' }} />
+                        </Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1C252E' }}>Chi tiết hoàn tiền</Typography>
+                    </Stack>
+                    <IconButton onClick={() => setOpenViewRefundDialog(false)} size="small" sx={{ bgcolor: '#F4F6F8' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent sx={{ px: 4, py: 2 }}>
+                    {loadingRefundHistory ? (
+                        <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
+                    ) : (
+                        <>
+                            <Box sx={{ mb: 3 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1.5, color: '#637381' }}>Thông tin thụ hưởng (Khách hàng)</Typography>
+                                {(() => {
+                                    const r = refundHistory.find(x => x.accountNumber) || (customerBankInfo ? { ...customerBankInfo } : null);
+                                    if (!r) return <Typography color="textSecondary">Không có thông tin.</Typography>;
+                                    
+                                    const found = vietQRBanks.find(b => 
+                                        b.shortName?.toLowerCase() === r.bankCode?.toLowerCase() || 
+                                        b.code?.toLowerCase() === r.bankCode?.toLowerCase()
+                                    );
+                                    const qrUrl = found?.bin 
+                                        ? `https://img.vietqr.io/image/${found.bin}-${r.accountNumber}-compact2.png?accountName=${encodeURIComponent(r.accountHolderName || '')}&amount=${order?.finalAmount || 0}`
+                                        : null;
+
+                                    return (
+                                        <Stack spacing={2}>
+                                            <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#F0F9FF', border: '1px solid #B9E6FE' }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#0369A1', mb: 1 }}>{r.bankName || r.bankCode}</Typography>
+                                                <Typography variant="h6" sx={{ color: '#0C4A6E', letterSpacing: 1, mb: 0.5 }}>{r.accountNumber}</Typography>
+                                                <Typography variant="body2" sx={{ color: '#0369A1', fontWeight: 700, textTransform: 'uppercase' }}>{r.accountHolderName}</Typography>
+                                            </Box>
+                                            {qrUrl && (
+                                                <Box sx={{ textAlign: 'center' }}>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 1 }}>Quét mã để chuyển khoản nhanh</Typography>
+                                                    <img src={qrUrl} alt="QR" style={{ maxWidth: 200, margin: '0 auto', borderRadius: '12px', border: '1px solid #E5E8EB' }} />
+                                                </Box>
+                                            )}
+                                        </Stack>
+                                    );
+                                })()}
+                            </Box>
+
+                            <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
+
+                            <Box sx={{ mb: 1 }}>
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, mb: 1.5, color: '#637381' }}>Bằng chứng xử lý (Admin)</Typography>
+                                {(() => {
+                                    const r = refundHistory.find(x => x.status === 'REFUNDED');
+                                    if (!r) return <Typography sx={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#919EAB' }}>Admin chưa cập nhật bằng chứng.</Typography>;
+                                    return (
+                                        <Stack spacing={1.5}>
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.75rem', color: '#919EAB' }}>Mã giao dịch:</Typography>
+                                                <Typography sx={{ fontWeight: 700 }}>{r.refundTransactionId || 'N/A'}</Typography>
+                                            </Box>
+                                            {r.adminEvidenceUrls && r.adminEvidenceUrls.length > 0 && (
+                                                <Box>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 1 }}>Hình ảnh chứng từ:</Typography>
+                                                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                                                        {r.adminEvidenceUrls.map((url, i) => (
+                                                            <Avatar 
+                                                                key={i} 
+                                                                src={url} 
+                                                                variant="rounded" 
+                                                                sx={{ width: 80, height: 80, cursor: 'pointer', border: '1px solid #E5E8EB' }}
+                                                                onClick={() => window.open(url, '_blank')}
+                                                            />
+                                                        ))}
+                                                    </Stack>
+                                                </Box>
+                                            )}
+                                            {r.adminDecisionNote && (
+                                                <Box sx={{ p: 1.5, bgcolor: '#F4F6F8', borderRadius: '8px' }}>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 0.5 }}>Ghi chú nội bộ:</Typography>
+                                                    <Typography sx={{ fontSize: '0.85rem' }}>{r.adminDecisionNote}</Typography>
+                                                </Box>
+                                            )}
+                                        </Stack>
+                                    );
+                                })()}
+                            </Box>
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 1 }}>
+                    <Button fullWidth variant="outlined" onClick={() => setOpenViewRefundDialog(false)} sx={{ py: 1.5, borderRadius: '12px', fontWeight: 800 }}>Đóng</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

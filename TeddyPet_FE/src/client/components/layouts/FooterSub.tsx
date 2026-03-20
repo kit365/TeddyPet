@@ -16,8 +16,8 @@ export const FooterSub = () => {
     const [agreeNewsletter, setAgreeNewsletter] = useState(false);
     const [submittingNewsletter, setSubmittingNewsletter] = useState(false);
 
-    const [shopAddress, setShopAddress] = useState("");
-    const [shopPhone, setShopPhone] = useState("");
+    const [shopAddress, setShopAddress] = useState("99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam");
+    const [shopPhone, setShopPhone] = useState("096 768 13 28");
     const [shopEmail, setShopEmail] = useState("");
     const [facebookUrl, setFacebookUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");

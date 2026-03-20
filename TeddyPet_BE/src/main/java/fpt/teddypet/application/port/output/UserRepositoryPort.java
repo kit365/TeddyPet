@@ -22,4 +22,6 @@ public interface UserRepositoryPort {
     User getByUsername(String username);
     User getByUsernameOrEmail(String usernameOrEmail);
     User getById(UUID id);
+
+    List<User> findByRoleName(String roleName);
 }

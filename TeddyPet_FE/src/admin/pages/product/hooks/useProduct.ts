@@ -7,8 +7,8 @@ import {
     getCountries, createProduct, getProductById, updateProduct, deleteProduct,
     getPetTypes, getSalesUnits, getProductStatuses, getProductTypes,
     exportProductsExcel, downloadProductsTemplate, importProductsExcel, type DuplicateResolution,
-    exportTagsExcel, downloadTagsTemplate, importTagsExcel,
-    exportAgeRangesExcel, downloadAgeRangesTemplate, importAgeRangesExcel
+    exportTagsExcel, downloadTagsTemplate, importTagsExcel, previewTagsImportExcel,
+    exportAgeRangesExcel, downloadAgeRangesTemplate, importAgeRangesExcel, previewAgeRangesImportExcel
     , previewProductsExcelImport, confirmCreateMissingForProductsExcel
 } from '../../../api/product.api';
 import { getBrands } from '../../../api/brand.api';
@@ -130,6 +130,15 @@ export const useImportTagsExcel = () => {
     });
 };
 
+export const usePreviewTagsImportExcel = () => {
+    return useMutation({
+        mutationFn: previewTagsImportExcel,
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Không thể kiểm tra dữ liệu Excel');
+        }
+    });
+};
+
 // --- AGE RANGES ---
 export const useProductAgeRanges = () => {
     return useQuery({
@@ -238,6 +247,15 @@ export const useImportAgeRangesExcel = () => {
         },
         onError: (error: any) => {
             toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu từ Excel');
+        }
+    });
+};
+
+export const usePreviewAgeRangesImportExcel = () => {
+    return useMutation({
+        mutationFn: previewAgeRangesImportExcel,
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Không thể kiểm tra dữ liệu Excel');
         }
     });
 };

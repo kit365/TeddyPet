@@ -57,11 +57,11 @@ public class EmailPreviewController {
                 model.addAttribute("total", new BigDecimal("565000"));
 
                 model.addAttribute("phoneNumber", "0987 654 321");
-                model.addAttribute("address", "123 Đường ABC, Quận Cam, TP. Hồ Chí Minh");
+                model.addAttribute("address", "99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam");
                 model.addAttribute("notes", "Giao hàng giờ hành chính giúp mình nhé!");
                 model.addAttribute("paymentMethod", "Tiền mặt (COD)");
                 model.addAttribute("trackOrderUrl", "http://localhost:5173/tracking?code=ORD-TEST-12345");
-                model.addAttribute("hotline", "1900 1234");
+                model.addAttribute("hotline", "096 768 13 28");
 
                 String facebookUrl = appSettingRepository.findBySettingKey("SOCIAL_FACEBOOK")
                                 .map(fpt.teddypet.domain.entity.AppSetting::getSettingValue)

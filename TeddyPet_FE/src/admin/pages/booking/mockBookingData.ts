@@ -10,7 +10,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     customerName: "Nguyễn Văn A",
     customerEmail: "nguyenvana@gmail.com",
     customerPhone: "0901234567",
-    customerAddress: "64 Ung Văn Khiêm, Pleiku, Gia Lai",
+    customerAddress: "99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam",
     bookingType: "HOTEL_DOG",
 
     totalAmount: 450000,

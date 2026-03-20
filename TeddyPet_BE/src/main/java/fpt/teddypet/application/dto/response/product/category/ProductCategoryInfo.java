@@ -9,6 +9,7 @@ public record ProductCategoryInfo(
         Long id,
         String name,
         Long parentId,
+        String parentName,
         ProductCategoryTypeEnum categoryType,
         List<PetTypeEnum> suitablePetTypes,
         boolean isDeleted,

@@ -20,7 +20,7 @@ export const AuthCallback = () => {
 
             // Nếu user này mới tạo từ Google và phải đổi mật khẩu
             if (mustChangePassword === "true") {
-                navigate("/setup-password");
+                navigate("/auth/setup-password");
             } else {
                 // Tự động chuyển hướng về trang chủ hoặc trang quản trị tùy theo role (BE đã redirect về đây rồi)
                 // Dashboard sẽ tự động check auth và redirect tiếp

@@ -14,6 +14,9 @@ public record OrderRefundRequest(
         @NotBlank
         String reason,
         Long bankInformationId,
+        String bankCode,
+        String accountNumber,
+        String accountHolderName,
         List<String> evidenceUrls
 ) {
 }

@@ -9,15 +9,18 @@ import fpt.teddypet.application.dto.response.user.UserAvatarItemResponse;
 import fpt.teddypet.application.port.input.AuthService;
 import fpt.teddypet.application.port.input.UserService;
 import fpt.teddypet.application.port.input.auth.OtpService;
+import fpt.teddypet.application.service.user.UserExcelService;
 import fpt.teddypet.domain.entity.User;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,12 +33,14 @@ public class UserController {
     private final UserService userService;
     private final AuthService authService;
     private final OtpService otpService;
+    private final UserExcelService userExcelService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Danh sách người dùng", description = "Lấy danh sách tất cả user (chỉ ADMIN).")
-    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getAllUsers() {
-        List<UserProfileResponse> list = userService.getAllUsers();
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Danh sách người dùng", description = "Lấy danh sách user (có thể lọc theo role, chỉ ADMIN/SUPER_ADMIN).")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getAllUsers(
+            @RequestParam(required = false) String role) {
+        List<UserProfileResponse> list = userService.getAllUsers(role);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
@@ -84,5 +89,39 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.ok(ApiResponse.success(AuthMessages.MESSAGE_CHANGE_PASSWORD_SUCCESS));
+    }
+
+    // ─── Excel (Admin: danh sách khách hàng) ───────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Xuất danh sách người dùng ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        userExcelService.exportUsers(response);
+    }
+
+    @GetMapping("/excel/template")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Tải template Excel nhập người dùng")
+    public void downloadTemplate(HttpServletResponse response) {
+        userExcelService.downloadTemplate(response);
+    }
+
+    @PostMapping("/excel/preview")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Xem trước file Excel nhập người dùng")
+    public ResponseEntity<ApiResponse<List<UserExcelService.UserPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<UserExcelService.UserPreviewRow> result = userExcelService.previewImport(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview người dùng", result));
+    }
+
+    @PostMapping("/excel/import")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "[Admin] Nhập người dùng từ file Excel")
+    public ResponseEntity<ApiResponse<UserExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        UserExcelService.ImportResult result = userExcelService.importUsers(file);
+        return ResponseEntity.ok(ApiResponse.success("Import người dùng hoàn tất.", result));
     }
 }

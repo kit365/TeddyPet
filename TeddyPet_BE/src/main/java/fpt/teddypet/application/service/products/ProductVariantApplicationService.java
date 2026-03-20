@@ -49,7 +49,7 @@ public class ProductVariantApplicationService implements ProductVariantService {
         this.productAttributeValueRepositoryPort = productAttributeValueRepositoryPort;
     }
 
-    private ProductVariant upsertVariant(ProductVariantRequest request) {
+    private ProductVariant upsertVariant(ProductVariantRequest request, Set<String> usedSkusInBatch) {
         Product product = productService.getById(request.productId());
 
         ProductVariant variant;
@@ -127,15 +127,23 @@ public class ProductVariantApplicationService implements ProductVariantService {
         }
         generateNameFromAttributeValues(variant);
 
-        // Auto-generate SKU
+        // Auto-generate SKU and ensure uniqueness by appending suffix if needed
         String generatedSku = generateSkuForVariant(product, attributeValues);
-        Sku sku = Sku.of(generatedSku);
-
-        // Validate SKU uniqueness only if SKU changed
-        if (!isUpdate || variant.getSku() == null || !variant.getSku().getValue().equals(sku.getValue())) {
-            validateSkuUniqueness(sku.getValue(), variant.getSku() != null ? variant.getSku().getValue() : null,
-                    variant.getVariantId());
+        String finalSku = generatedSku;
+        if (!isUpdate || variant.getSku() == null || !variant.getSku().getValue().equals(finalSku)) {
+            // Deduplicate SKU by appending counter if collision (check DB + current batch)
+            int suffix = 2;
+            while (productVariantRepositoryPort.existsBySku(finalSku) || 
+                   (usedSkusInBatch != null && usedSkusInBatch.contains(finalSku))) {
+                finalSku = generatedSku + "-" + suffix;
+                suffix++;
+            }
         }
+        
+        if (usedSkusInBatch != null) {
+            usedSkusInBatch.add(finalSku);
+        }
+        Sku sku = Sku.of(finalSku);
 
         variant.setSku(sku);
 
@@ -143,8 +151,9 @@ public class ProductVariantApplicationService implements ProductVariantService {
     }
 
     private List<ProductVariant> prepareVariantsForBatch(List<ProductVariantRequest> requests) {
+        Set<String> usedSkusInBatch = new HashSet<>();
         return requests.stream()
-                .map(this::upsertVariant)
+                .map(req -> upsertVariant(req, usedSkusInBatch))
                 .toList();
     }
 
@@ -322,18 +331,6 @@ public class ProductVariantApplicationService implements ProductVariantService {
         return productVariantRepositoryPort.findById(variantId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ProductVariantMessages.MESSAGE_PRODUCT_VARIANT_NOT_FOUND_BY_ID, variantId)));
-    }
-
-    private void validateSkuUniqueness(String newSku, String currentSku, Long variantId) {
-        if (currentSku != null && currentSku.equals(newSku)) {
-            return;
-        }
-
-        ValidationUtils.ensureUnique(
-                () -> variantId != null
-                        ? productVariantRepositoryPort.existsBySkuAndVariantIdNot(newSku, variantId)
-                        : productVariantRepositoryPort.existsBySku(newSku),
-                ProductVariantMessages.MESSAGE_SKU_ALREADY_EXISTS);
     }
 
     /**
