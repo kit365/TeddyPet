@@ -34,6 +34,7 @@ public record AdminBookingPetServiceResponse(
         String beforePhotos,
         String videos,
         Boolean isRequiredRoom,
+        Boolean isOverCheckOutDue,
         List<AdminBookingPetServiceItemResponse> items
 ) {
 }

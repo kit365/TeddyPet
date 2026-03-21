@@ -26,12 +26,22 @@ public interface EmailServicePort {
 
     /**
      * Send email when admin approves refund
-     * 
+     *
      * @param to            recipient email
      * @param bookingCode   the booking code
      * @param refundAmount  the approved refund amount
+     * @param adminResponse optional message to customer (phản hồi gửi khách)
      */
-    void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount);
+    void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount, String adminResponse);
+
+    /**
+     * Send email when admin rejects a booking deposit refund request.
+     *
+     * @param to            recipient email
+     * @param bookingCode   the booking code
+     * @param adminResponse optional message to customer
+     */
+    void sendBookingRefundRejectedEmail(String to, String bookingCode, String adminResponse);
 
     /**
      * Send password reset email with reset link

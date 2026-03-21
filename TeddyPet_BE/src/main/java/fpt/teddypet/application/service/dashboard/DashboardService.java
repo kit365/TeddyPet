@@ -158,7 +158,7 @@ public class DashboardService {
             totalCustomers = userRepository.countByRole_Name("USER");
         }
 
-        double avgRating = ratingRepository.getAverageScore() != null ? ratingRepository.getAverageScore() : 0.0;
+        double avgRating = computeOverallAverageRating();
 
         // Sold products count
         long totalProductsSold = allOrders.stream()
@@ -526,10 +526,25 @@ public class DashboardService {
 
         /** Tổng hợp đánh giá: điểm TB + số lượt đánh giá. */
         public RatingSummaryResponse getRatingSummary() {
-                Double avgVal = ratingRepository.getAverageScore();
-                BigDecimal avg = avgVal != null ? BigDecimal.valueOf(avgVal) : BigDecimal.ZERO;
-                long count = ratingRepository.countByIsDeletedFalse();
-                return new RatingSummaryResponse(avg, count);
+                long productCount = ratingRepository.countByIsDeletedFalse();
+                long bookingCount = bookingPetServiceRepository.countWithCustomerRating();
+                long totalCount = productCount + bookingCount;
+                BigDecimal avg = BigDecimal.valueOf(computeOverallAverageRating());
+                return new RatingSummaryResponse(avg, totalCount);
+        }
+
+        private double computeOverallAverageRating() {
+                Double productAvg = ratingRepository.getAverageScore();
+                long productCount = ratingRepository.countByIsDeletedFalse();
+                Double bookingAvg = bookingPetServiceRepository.getAverageCustomerRating();
+                long bookingCount = bookingPetServiceRepository.countWithCustomerRating();
+                long totalCount = productCount + bookingCount;
+                if (totalCount == 0) {
+                        return 0.0;
+                }
+                double pAvg = productAvg != null ? productAvg : 0.0;
+                double bAvg = bookingAvg != null ? bookingAvg : 0.0;
+                return ((pAvg * productCount) + (bAvg * bookingCount)) / totalCount;
         }
 
         /** Nhân viên tiêu biểu (top 5 theo số task hoàn thành). */

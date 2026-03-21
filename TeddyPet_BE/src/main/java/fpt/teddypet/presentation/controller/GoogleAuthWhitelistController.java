@@ -29,6 +29,9 @@ public class GoogleAuthWhitelistController {
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin-url:http://localhost:5174}")
+    private String adminUrl;
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Lấy danh sách whitelist", description = "Chỉ Admin/SuperAdmin mới có quyền truy cập.")
@@ -70,7 +73,7 @@ public class GoogleAuthWhitelistController {
         AdminGoogleWhitelist saved = whitelistPort.save(newItem);
 
         // Gửi email mời
-        String invitationLink = frontendUrl + "/admin/auth/accept-invitation?token=" + token;
+        String invitationLink = adminUrl + "/admin/auth/accept-invitation?token=" + token;
         emailServicePort.sendAdminInvitationEmail(saved.getEmail(), invitationLink);
 
         return ResponseEntity.ok(ApiResponse.success("Đã gửi lời mời tới " + saved.getEmail(), saved));
@@ -103,7 +106,7 @@ public class GoogleAuthWhitelistController {
         
         AdminGoogleWhitelist saved = whitelistPort.save(whitelist);
 
-        String invitationLink = frontendUrl + "/admin/auth/accept-invitation?token=" + token;
+        String invitationLink = adminUrl + "/admin/auth/accept-invitation?token=" + token;
         emailServicePort.sendAdminInvitationEmail(saved.getEmail(), invitationLink);
 
         return ResponseEntity.ok(ApiResponse.success("Đã gửi lại lời mời tới " + saved.getEmail(), saved));

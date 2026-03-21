@@ -28,6 +28,8 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     out-of-order: true
+    # repair-on-migrate: bật true nếu cần repair trên host từ xa. Localhost vẫn auto-repair trong FlywayConfig.
+    repair-on-migrate: ${SPRING_FLYWAY_REPAIR_ON_MIGRATE:false}
 
   sql:
     init:

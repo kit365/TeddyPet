@@ -20,6 +20,8 @@ public record ClientBookingDetailResponse(
                 String paymentMethod,
                 String status,
                 String internalNotes,
+                Boolean cancelRequested,
+                String cancelledReason,
                 Long depositId,
                 LocalDateTime depositExpiresAt,
                 LocalDateTime bookingCheckInDate,

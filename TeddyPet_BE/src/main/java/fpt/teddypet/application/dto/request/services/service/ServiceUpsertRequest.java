@@ -8,6 +8,7 @@ import java.util.List;
 public record ServiceUpsertRequest(
                 Long serviceId,
                 @NotNull(message = "Danh mục dịch vụ là bắt buộc") Long serviceCategoryId,
+                @NotNull(message = "Kỹ năng là bắt buộc") Long skillId,
                 @NotBlank(message = "Mã dịch vụ là bắt buộc") @Size(max = 50) String code,
                 @NotBlank(message = "Tên dịch vụ là bắt buộc") @Size(max = 255) String serviceName,
                 List<PetTypeEnum> suitablePetTypes,

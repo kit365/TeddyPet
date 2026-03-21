@@ -12,7 +12,7 @@ import { ApiResponse } from '../../../config/type';
 export const useServices = () => {
     return useQuery({
         queryKey: ['services'],
-        queryFn: getServices,
+        queryFn: () => getServices(),
         select: (res: ApiResponse<import('../configs/types').IService[]>) => res.data ?? [],
     });
 };

@@ -14,8 +14,9 @@ import type {
 import { apiApp } from "../../../api";
 import { createBookingDepositPayosUrl } from "../../../api/booking-deposit.api";
 import { cancelBookingFromClient } from "../../../api/booking.api";
+import { getBookingRefundRequestsByBookingCode } from "../../../api/bookingRefund.api";
+import type { BookingRefundResponse } from "../../../api/bookingRefund.api";
 import { CancelBookingModal } from "./components/CancelBookingModal";
-
 /* ─── helpers ─── */
 const formatCurrency = (v?: number | null) =>
     v != null
@@ -156,6 +157,23 @@ export const BookingClientDetailPage = () => {
 
     // Cancel modal state
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [bookingRefunds, setBookingRefunds] = useState<BookingRefundResponse[]>([]);
+
+    const latestRefundWithAdminReply = useMemo(() => {
+        const withReply = bookingRefunds.filter(
+            (r) => r.processedAt != null && String(r.processedAt).trim() !== ""
+        );
+        if (withReply.length === 0) return null;
+        return [...withReply].sort(
+            (a, b) => new Date(b.processedAt!).getTime() - new Date(a.processedAt!).getTime()
+        )[0];
+    }, [bookingRefunds]);
+
+    const refundSeenStorageKey = booking ? `teddypet_br_refund_seen_${booking.id}` : null;
+    const showRefundDot =
+        Boolean(booking?.depositPaid && latestRefundWithAdminReply && refundSeenStorageKey) &&
+        typeof window !== "undefined" &&
+        localStorage.getItem(refundSeenStorageKey!) !== String(latestRefundWithAdminReply!.id);
 
     // Countdown timer
     const expiresAt = booking?.depositExpiresAt ? dayjs(booking.depositExpiresAt) : null;
@@ -167,6 +185,16 @@ export const BookingClientDetailPage = () => {
             const res = await apiApp.get<{ data: ClientBookingDetailResponse }>(`/api/bookings/code/${bookingCode}`);
             const next = res.data.data;
             setBooking(next);
+            if (next?.bookingCode) {
+                try {
+                    const rr = await getBookingRefundRequestsByBookingCode(next.bookingCode);
+                    setBookingRefunds(rr?.data ?? []);
+                } catch {
+                    setBookingRefunds([]);
+                }
+            } else {
+                setBookingRefunds([]);
+            }
             return next;
         } catch (error: any) {
             console.error("Error fetching booking details:", error);
@@ -214,14 +242,33 @@ export const BookingClientDetailPage = () => {
     }, [booking?.depositExpiresAt]);
 
     const isExpired = useMemo(() => remainingSeconds !== null && remainingSeconds <= 0, [remainingSeconds]);
+    const showDepositTimer = booking && !booking.depositPaid && booking.depositId && booking.depositExpiresAt;
+
+    // Poll the backend periodically as long as the timer is showing to catch successful PayOS webhook without redirect
+    useEffect(() => {
+        if (!showDepositTimer || isExpired) return;
+        const pollTimer = setInterval(async () => {
+            try {
+                const next = await fetchData();
+                if (next && (next.depositPaid || next.status !== "PENDING")) {
+                    toast.success("Đã nhận thanh toán cọc tự động.");
+                    setPayosCheckoutUrl(null);
+                    setActiveView("detail");
+                }
+            } catch (e) {
+                // ignore transient errors
+            }
+        }, 5000);
+        return () => clearInterval(pollTimer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showDepositTimer, isExpired, fetchData]);
+
     const formattedRemaining = useMemo(() => {
         if (remainingSeconds == null) return "—";
         const m = Math.floor(remainingSeconds / 60);
         const s = remainingSeconds % 60;
         return `${m}:${s.toString().padStart(2, "0")}`;
     }, [remainingSeconds]);
-
-    const showDepositTimer = booking && !booking.depositPaid && booking.depositId && booking.depositExpiresAt;
     const canEditServices =
         booking &&
         booking.status !== "CANCELLED" &&
@@ -234,6 +281,23 @@ export const BookingClientDetailPage = () => {
         (booking.status === "PENDING" || booking.status === "IN_PROGRESS");
 
     const canEdit = Boolean(canEditServices || canEditContactOnly);
+    const isWalkInBooking = String(booking?.bookingType ?? "").toUpperCase() === "WALK_IN";
+
+    /** Hiển thị "Hủy đơn" / "Yêu cầu hoàn tiền": không giới hạn chỉ CONFIRMED — đơn PENDING sau khi cọc vẫn cần nút (kể cả đã gửi yêu cầu chờ duyệt). */
+    const canRequestRefundOrCancel = useMemo(() => {
+        if (!booking) return false;
+        if (isWalkInBooking) return false;
+        if (!booking.depositPaid) {
+            return booking.status === "PENDING" && !isExpired;
+        }
+        if (booking.status === "CANCELLED" || booking.status === "COMPLETED") return false;
+        return (
+            booking.status === "PENDING" ||
+            booking.status === "CONFIRMED" ||
+            booking.status === "IN_PROGRESS" ||
+            booking.cancelRequested === true
+        );
+    }, [booking, isWalkInBooking, isExpired]);
 
     // Auto-cancel booking when deposit expires (PayOS iframe cannot be controlled cross-origin)
     useEffect(() => {
@@ -593,14 +657,35 @@ export const BookingClientDetailPage = () => {
                                                 Chỉnh sửa thông tin
                                             </button>
                                         )}
-                                        {booking && booking.status === "PENDING" && !isExpired && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCancelModalOpen(true)}
-                                                className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
-                                            >
-                                                Hủy đơn đặt lịch
-                                            </button>
+                                        {canRequestRefundOrCancel && booking && (
+                                            <span className="relative inline-flex">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (
+                                                            latestRefundWithAdminReply &&
+                                                            refundSeenStorageKey &&
+                                                            booking.depositPaid
+                                                        ) {
+                                                            localStorage.setItem(
+                                                                refundSeenStorageKey,
+                                                                String(latestRefundWithAdminReply.id)
+                                                            );
+                                                        }
+                                                        setIsCancelModalOpen(true);
+                                                    }}
+                                                    className="inline-flex items-center justify-center rounded-[8px] bg-white border border-[#ef4444] text-[#ef4444] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#fef2f2] transition-colors"
+                                                >
+                                                    {booking.depositPaid && !isWalkInBooking ? "Yêu cầu hoàn tiền" : "Hủy đơn đặt lịch"}
+                                                </button>
+                                                {booking.depositPaid && !isWalkInBooking && showRefundDot ? (
+                                                    <span
+                                                        className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                                                        title="Admin đã phản hồi yêu cầu hoàn tiền"
+                                                        aria-label="Có phản hồi từ admin"
+                                                    />
+                                                ) : null}
+                                            </span>
                                         )}
                                     </div>
                                 </div>

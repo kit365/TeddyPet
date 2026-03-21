@@ -71,11 +71,13 @@ public class ServicePricingApplicationService implements ServicePricingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ServicePricingResponse getDetail(Long id) {
         return servicePricingMapper.toResponse(getById(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ServicePricing getById(Long id) {
         return servicePricingRepositoryPort.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -83,6 +85,7 @@ public class ServicePricingApplicationService implements ServicePricingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ServicePricingResponse> getByServiceId(Long serviceId) {
         return servicePricingRepositoryPort.findByServiceIdAndActive(serviceId, true).stream()
                 .map(servicePricingMapper::toResponse)

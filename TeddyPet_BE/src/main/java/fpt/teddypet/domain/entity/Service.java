@@ -28,6 +28,10 @@ public class Service extends BaseEntity {
     @JoinColumn(name = "service_category_id", nullable = false)
     private ServiceCategory serviceCategory;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "skill_id")
+    private fpt.teddypet.domain.entity.staff.Skill skill;
+
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 

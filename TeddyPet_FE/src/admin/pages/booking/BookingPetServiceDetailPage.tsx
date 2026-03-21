@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -168,19 +168,24 @@ export const BookingPetServiceDetailPage = () => {
             {service.serviceName ?? `Dịch vụ #${service.id}`} · {petName} · {bookingCode}
           </Typography>
         </Box>
-        {service.status && (
-          <Chip
-            label={service.status}
-            sx={{
-              fontWeight: 700,
-              fontSize: "0.8125rem",
-              bgcolor: "#00a76f18",
-              color: "#00A76F",
-              border: "1px solid #00A76F",
-              borderRadius: "8px",
-            }}
-          />
-        )}
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          {service.isRequiredRoom && service.isOverCheckOutDue ? (
+            <Chip size="small" label="Quá hạn trả phòng" color="warning" sx={{ fontWeight: 700 }} />
+          ) : null}
+          {service.status && (
+            <Chip
+              label={service.status}
+              sx={{
+                fontWeight: 700,
+                fontSize: "0.8125rem",
+                bgcolor: "#00a76f18",
+                color: "#00A76F",
+                border: "1px solid #00A76F",
+                borderRadius: "8px",
+              }}
+            />
+          )}
+        </Stack>
       </Box>
 
       <Box sx={{ px: { xs: 2, md: 5 } }}>
@@ -230,6 +235,12 @@ export const BookingPetServiceDetailPage = () => {
               <Box>
                 <InfoRow label="Check-in thực tế" value={formatDate(service.actualCheckInDate)} />
                 <InfoRow label="Check-out thực tế" value={formatDate(service.actualCheckOutDate)} />
+                {service.isRequiredRoom ? (
+                  <InfoRow
+                    label="Quá hạn trả phòng"
+                    value={service.isOverCheckOutDue ? "Có" : "Không"}
+                  />
+                ) : null}
                 <InfoRow label="Bắt đầu thực tế" value={formatDateTime(service.actualStartTime)} />
                 <InfoRow label="Kết thúc thực tế" value={formatDateTime(service.actualEndTime)} />
               </Box>

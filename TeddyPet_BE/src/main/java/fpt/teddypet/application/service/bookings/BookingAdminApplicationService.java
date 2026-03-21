@@ -21,6 +21,7 @@ import fpt.teddypet.application.dto.response.bookings.AdminCheckInRepricePreview
 import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
 import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
+import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
@@ -46,6 +47,7 @@ import fpt.teddypet.application.service.dashboard.DashboardService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,6 +68,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
         private final BookingRepository bookingRepository;
         private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
         private final ServiceRepositoryPort serviceRepositoryPort;
+        private final RoomRepositoryPort roomRepositoryPort;
         private final ServicePricingRepositoryPort servicePricingRepositoryPort;
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
         private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
@@ -78,6 +81,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         BookingRepository bookingRepository,
                         BookingPetServiceItemRepository bookingPetServiceItemRepository,
                         ServiceRepositoryPort serviceRepositoryPort,
+                        RoomRepositoryPort roomRepositoryPort,
                         ServicePricingRepositoryPort servicePricingRepositoryPort,
                         fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
                         BookingPaymentTransactionRepository bookingPaymentTransactionRepository,
@@ -88,6 +92,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.bookingRepository = bookingRepository;
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
                 this.serviceRepositoryPort = serviceRepositoryPort;
+                this.roomRepositoryPort = roomRepositoryPort;
                 this.servicePricingRepositoryPort = servicePricingRepositoryPort;
                 this.bookingDepositRepository = bookingDepositRepository;
                 this.bookingPaymentTransactionRepository = bookingPaymentTransactionRepository;
@@ -271,19 +276,20 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 try {
                                     String refundAmountFormatted = String.format("%,.0f VND", booking.getRefundAmount());
                                     emailServicePort.sendBookingRefundApprovedEmail(
-                                            booking.getCustomerEmail(), booking.getBookingCode(), refundAmountFormatted);
+                                            booking.getCustomerEmail(), booking.getBookingCode(), refundAmountFormatted, null);
                                 } catch (Exception emailEx) {
                                         System.out.println("Failed to send refund-approved email for booking " + booking.getBookingCode() + ": " + emailEx);
                                 }
                             }
                         }
                 } else {
-                        // Reject cancel request: revert to PENDING and clear cancel fields
-                        booking.setStatus("PENDING");
+                        // Reject cancel request: keep client reason for feedback,
+                        // store staff note for client to read, and revert booking state.
+                        booking.setStatus("CONFIRMED");
                         booking.setCancelRequested(false);
-                        booking.setCancelledAt(null);
-                        booking.setCancelledBy(null);
-                        booking.setCancelledReason(null);
+                        if (request.staffNotes() != null && !request.staffNotes().isBlank()) {
+                                booking.setInternalNotes(request.staffNotes().trim());
+                        }
                 }
 
                 bookingRepository.save(booking);
@@ -425,6 +431,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         .map(fpt.teddypet.domain.entity.staff.StaffProfile::getFullName)
                                         .orElse(null);
                 }
+                Boolean isRequiredRoom = svc.getService() != null ? svc.getService().getIsRequiredRoom() : null;
+                boolean isOverCheckOutDue = computeIsOverCheckOutDue(isRequiredRoom, svc.getEstimatedCheckOutDate(),
+                                svc.getActualCheckOutDate());
                 return new AdminBookingPetServiceResponse(
                                 svc.getId(),
                                 svc.getBookingPet() != null ? svc.getBookingPet().getId() : null,
@@ -453,8 +462,18 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 svc.getAfterPhotos(),
                                 svc.getBeforePhotos(),
                                 svc.getVideos(),
-                                svc.getService() != null ? svc.getService().getIsRequiredRoom() : null,
+                                isRequiredRoom,
+                                isOverCheckOutDue,
                                 items);
+        }
+
+        private static boolean computeIsOverCheckOutDue(Boolean isRequiredRoom, LocalDate estimatedCheckOut,
+                        LocalDate actualCheckOut) {
+                if (!Boolean.TRUE.equals(isRequiredRoom) || estimatedCheckOut == null || actualCheckOut != null) {
+                        return false;
+                }
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+                return estimatedCheckOut.isBefore(today);
         }
 
         private Booking getBookingOrThrow(Long id) {
@@ -528,6 +547,14 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 Booking booking = getBookingOrThrow(bookingId);
                 if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
                         throw new IllegalStateException("Không thể check-in vì booking đã bị hủy.");
+                }
+                booking.setStatus("IN_PROGRESS");
+                for (BookingPet pet : booking.getPets()) {
+                        for (BookingPetService service : pet.getServices()) {
+                                if (service != null && service.isActive() && !"CANCELLED".equalsIgnoreCase(service.getStatus())) {
+                                        service.setStatus("IN_PROGRESS");
+                                }
+                        }
                 }
                 booking.setBookingCheckInDate(LocalDateTime.now());
                 bookingRepository.save(booking);
@@ -608,7 +635,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 BigDecimal oldUnit = bps.getBasePrice() != null ? bps.getBasePrice() : BigDecimal.ZERO;
                                 BigDecimal oldSub = bps.getSubtotal() != null ? bps.getSubtotal() : BigDecimal.ZERO;
 
-                                BigDecimal newUnit = resolveUnitPrice(bps.getService(), newTypeRaw, newWeight);
+                                Long roomTypeId = resolveRoomTypeId(bps);
+                                BigDecimal newUnit = resolveUnitPrice(bps.getService(), newTypeRaw, newWeight, roomTypeId);
                                 SubtotalResult subRes = computeSubtotalPreview(bps, newUnit);
                                 BigDecimal newSub = subRes.subtotal();
                                 newTotal = newTotal.add(newSub);
@@ -636,9 +664,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         for (BookingPetServiceItem item : bps.getItems()) {
                                                 if (item == null || !item.isActive()) continue;
                                                 var itemService = item.getItemService();
-                                                BigDecimal oldItemUnit = resolveUnitPrice(itemService, pet.getPetType(), pet.getWeightAtBooking());
+                                                BigDecimal oldItemUnit = resolveUnitPrice(itemService, pet.getPetType(), pet.getWeightAtBooking(), roomTypeId);
                                                 BigDecimal oldItemSub = computeItemSubtotal(itemService, bps, oldItemUnit);
-                                                BigDecimal newItemUnit = resolveUnitPrice(itemService, newTypeRaw, newWeight);
+                                                BigDecimal newItemUnit = resolveUnitPrice(itemService, newTypeRaw, newWeight, roomTypeId);
                                                 BigDecimal newItemSub = computeItemSubtotal(itemService, bps, newItemUnit);
                                                 newTotal = newTotal.add(newItemSub);
                                                 itemDiffs.add(new AdminCheckInRepricePreviewResponse.ItemPriceDiff(
@@ -714,7 +742,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         BigDecimal effectiveWeight = pet.getWeightAtBooking();
 
                         for (BookingPetService bps : pet.getServices()) {
-                                BigDecimal newUnit = resolveUnitPrice(bps.getService(), effectiveType, effectiveWeight);
+                                Long roomTypeId = resolveRoomTypeId(bps);
+                                BigDecimal newUnit = resolveUnitPrice(bps.getService(), effectiveType, effectiveWeight, roomTypeId);
                                 SubtotalResult subRes = computeSubtotalPreview(bps, newUnit);
                                 bps.setBasePrice(newUnit);
                                 bps.setSubtotal(subRes.subtotal());
@@ -729,6 +758,14 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 // Total = services subtotal + active items subtotal (computed by pricing rules)
                 BigDecimal newItemsTotal = computeActiveItemsTotal(booking);
                 booking.setTotalAmount(newTotalServices.add(newItemsTotal));
+                booking.setStatus("IN_PROGRESS");
+                for (BookingPet pet : booking.getPets()) {
+                        for (BookingPetService service : pet.getServices()) {
+                                if (service != null && service.isActive() && !"CANCELLED".equalsIgnoreCase(service.getStatus())) {
+                                        service.setStatus("IN_PROGRESS");
+                                }
+                        }
+                }
                 booking.setBookingCheckInDate(LocalDateTime.now());
                 bookingRepository.save(booking);
 
@@ -855,7 +892,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 for (BookingPetServiceItem item : parentSvc.getItems()) {
                                         if (item == null || !item.isActive()) continue;
                                         var itemService = item.getItemService();
-                                        BigDecimal unit = resolveUnitPrice(itemService, petType, petWeight);
+                                        Long roomTypeId = resolveRoomTypeId(parentSvc);
+                                        BigDecimal unit = resolveUnitPrice(itemService, petType, petWeight, roomTypeId);
                                         BigDecimal sub = computeItemSubtotal(itemService, parentSvc, unit);
                                         sum = sum.add(sub);
                                 }
@@ -971,7 +1009,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
         }
 
         private BigDecimal resolveUnitPrice(fpt.teddypet.domain.entity.Service service, String petTypeRaw,
-                        BigDecimal petWeight) {
+                        BigDecimal petWeight, Long roomTypeId) {
                 if (service == null || service.getId() == null) {
                         return BigDecimal.ZERO;
                 }
@@ -990,6 +1028,12 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         if (r.getEffectiveFrom() != null && r.getEffectiveFrom().isAfter(now)) continue;
                         if (r.getEffectiveTo() != null && r.getEffectiveTo().isBefore(now)) continue;
                         if (!matchesPetType(r.getSuitablePetTypes(), petTypeKey)) continue;
+                        Long pricingRoomTypeId = r.getRoomType() != null ? r.getRoomType().getId() : null;
+                        if (roomTypeId == null) {
+                                if (pricingRoomTypeId != null) continue;
+                        } else {
+                                if (pricingRoomTypeId != null && !pricingRoomTypeId.equals(roomTypeId)) continue;
+                        }
                         if (petWeight == null) {
                                 if (r.getMinWeight() != null || r.getMaxWeight() != null) continue;
                         } else if (!matchesWeight(r.getMinWeight(), r.getMaxWeight(), petWeight)) {
@@ -1007,6 +1051,13 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         return service.getBasePrice() != null ? service.getBasePrice() : BigDecimal.ZERO;
                 }
                 return best.getPrice();
+        }
+
+        private Long resolveRoomTypeId(BookingPetService bookingPetService) {
+                if (bookingPetService == null || bookingPetService.getRoomId() == null) return null;
+                return roomRepositoryPort.findById(bookingPetService.getRoomId())
+                                .map(room -> room.getRoomType() != null ? room.getRoomType().getId() : null)
+                                .orElse(null);
         }
 
         private Comparator<ServicePricing> bestPricingComparator() {

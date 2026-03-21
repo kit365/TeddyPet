@@ -105,6 +105,8 @@ public class SecurityConfig {
                         // Booking: policy hoàn cọc public cho khách xem khi hủy đơn
                         .requestMatchers(HttpMethod.GET, "/api/booking-deposit-refund-policies", "/api/booking-deposit-refund-policies/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/booking-refund-policies", "/api/booking-refund-policies/**")
+                        .permitAll()
                         // Booking deposits (giữ chỗ + xác nhận cọc): cho phép khách vãng lai
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/deposit-intent/*/confirm").permitAll()

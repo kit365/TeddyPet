@@ -13,6 +13,8 @@ import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.util.ListUtil;
 import fpt.teddypet.application.util.ValidationUtils;
 import fpt.teddypet.domain.entity.ServiceCategory;
+import fpt.teddypet.domain.entity.staff.Skill;
+import fpt.teddypet.application.port.output.staff.SkillRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class ServiceApplicationService implements ServiceService {
 
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final ServiceCategoryRepositoryPort serviceCategoryRepositoryPort;
+    private final SkillRepositoryPort skillRepositoryPort;
     private final ServiceMapper serviceMapper;
 
     @Override
@@ -51,6 +54,10 @@ public class ServiceApplicationService implements ServiceService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(ServiceCategoryMessages.MESSAGE_SERVICE_CATEGORY_NOT_FOUND_BY_ID, request.serviceCategoryId())));
         entity.setServiceCategory(category);
+
+        Skill skill = skillRepositoryPort.findById(request.skillId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỹ năng có id = " + request.skillId()));
+        entity.setSkill(skill);
 
         String code = request.code().trim();
         ValidationUtils.ensureUnique(
@@ -76,11 +83,13 @@ public class ServiceApplicationService implements ServiceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ServiceResponse getDetail(Long id) {
         return serviceMapper.toResponse(getById(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public fpt.teddypet.domain.entity.Service getById(Long id) {
         return serviceRepositoryPort.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -88,11 +97,13 @@ public class ServiceApplicationService implements ServiceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ServiceResponse> getAll() {
         return getAll(null);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ServiceResponse> getAll(Boolean isRequiredRoom) {
         var stream = serviceRepositoryPort.findAllActive().stream();
         if (isRequiredRoom != null && isRequiredRoom) {
@@ -102,6 +113,7 @@ public class ServiceApplicationService implements ServiceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ServiceResponse> getByCategoryId(Long categoryId) {
         return serviceRepositoryPort.findByCategoryId(categoryId).stream()
                 .map(serviceMapper::toResponse)

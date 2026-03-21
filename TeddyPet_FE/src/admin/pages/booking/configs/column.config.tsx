@@ -18,6 +18,7 @@ import {
   PaidTwoTone,
   HistoryTwoTone,
   DeleteTwoTone,
+  ReceiptLongTwoTone,
   MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import {
@@ -65,9 +66,11 @@ export const getBookingColumns = (
   onViewDetail: (row: BookingResponse) => void,
   onEdit?: (row: BookingResponse) => void,
   onRequestCancel?: (row: BookingResponse) => void,
+  onRequestRefund?: (row: BookingResponse) => void,
   onPayment?: (row: BookingResponse) => void,
   onViewTransactionHistory?: (row: BookingResponse) => void,
-  onDelete?: (row: BookingResponse) => void
+  onDelete?: (row: BookingResponse) => void,
+  onExportBill?: (row: BookingResponse) => void
 ): GridColDef[] => [
   {
     field: "bookingCode",
@@ -337,6 +340,11 @@ export const getBookingColumns = (
         onPayment?.(params.row as BookingResponse);
       };
 
+      const handleRequestRefund = () => {
+        handleClose();
+        onRequestRefund?.(params.row as BookingResponse);
+      };
+
       const handleTransactionHistory = () => {
         handleClose();
         onViewTransactionHistory?.(params.row as BookingResponse);
@@ -345,6 +353,11 @@ export const getBookingColumns = (
       const handleDelete = () => {
         handleClose();
         onDelete?.(params.row as BookingResponse);
+      };
+
+      const handleExportBill = () => {
+        handleClose();
+        onExportBill?.(params.row as BookingResponse);
       };
 
       return (
@@ -443,6 +456,19 @@ export const getBookingColumns = (
               </MenuItem>
             )}
 
+            {(params.row as BookingResponse).paymentStatus === "PAID" &&
+              String((params.row as BookingResponse).bookingType ?? "").toUpperCase() !== "WALK_IN" && (
+              <MenuItem onClick={handleRequestRefund}>
+                <ListItemIcon>
+                  <CancelTwoTone sx={{ fontSize: "1.1rem", color: "#FF5630" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Yêu cầu hoàn tiền"
+                  primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
+                />
+              </MenuItem>
+            )}
+
             <MenuItem onClick={handleTransactionHistory}>
               <ListItemIcon>
                 <HistoryTwoTone sx={{ fontSize: "1.1rem", color: "#6366F1" }} />
@@ -452,6 +478,18 @@ export const getBookingColumns = (
                 primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
+
+            {(params.row as BookingResponse).paymentStatus === "PAID" && (
+              <MenuItem onClick={handleExportBill}>
+                <ListItemIcon>
+                  <ReceiptLongTwoTone sx={{ fontSize: "1.1rem", color: "#006C9C" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Xuất bill"
+                  primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
+                />
+              </MenuItem>
+            )}
 
             <MenuItem onClick={handleDelete}>
               <ListItemIcon>

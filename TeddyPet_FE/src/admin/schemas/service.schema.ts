@@ -8,6 +8,12 @@ export const serviceUpsertSchema = z.object({
             return !isNaN(n) && n > 0;
         }, { message: 'Vui lòng chọn danh mục dịch vụ' })
         .transform((val) => Number(val)),
+    skillId: z.any()
+        .refine((val) => {
+            const n = Number(val);
+            return !isNaN(n) && n > 0;
+        }, { message: 'Vui lòng chọn kỹ năng' })
+        .transform((val) => Number(val)),
     code: z.string().max(50).optional(),
     serviceName: z.string().min(1, 'Tên dịch vụ là bắt buộc').max(255),
     suitablePetTypes: z.array(z.string()).optional(),

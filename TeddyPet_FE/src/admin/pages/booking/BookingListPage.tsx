@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { ListHeader } from "../../components/ui/ListHeader";
 import { BookingList } from "./sections/BookingList";
 import { BookingCalendarView } from "./sections/BookingCalendarView";
@@ -29,6 +29,8 @@ export const BookingListPage = () => {
                     { label: "Đặt lịch", to: `/${prefixAdmin}/booking/list` },
                     { label: t("admin.common.list") },
                 ]}
+                addButtonLabel="Đặt lịch tại quầy"
+                addButtonPath={`/${prefixAdmin}/booking/create?mode=counter`}
             />
             <Box sx={{ mb: mainTab === "calendar" ? 1 : 2 }}>
                 <Tabs

@@ -48,6 +48,9 @@ public class StaffProfileApplicationService implements StaffProfileService {
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin-url:http://localhost:5174}")
+    private String adminUrl;
+
     @Override
     @Transactional
     public StaffProfileResponse createProfile(StaffCreationDTO request) {
@@ -337,7 +340,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
             adminGoogleWhitelistPort.save(whitelist);
             
             // Send invitation email
-            String invitationLink = frontendUrl + "/admin/auth/accept-invitation?token=" + token;
+            String invitationLink = adminUrl + "/admin/auth/accept-invitation?token=" + token;
             emailServicePort.sendAdminInvitationEmail(normalizedEmail, invitationLink);
         }
     }

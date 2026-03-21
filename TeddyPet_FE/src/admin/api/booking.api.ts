@@ -238,3 +238,11 @@ export const addBookingPaymentTransaction = async (
     const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-transactions`, body, withAuth());
     return response.data;
 };
+
+export const downloadBookingInvoice = async (bookingId: string | number): Promise<Blob> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/invoice/pdf`, {
+        ...withAuth(),
+        responseType: "blob",
+    });
+    return response.data as Blob;
+};

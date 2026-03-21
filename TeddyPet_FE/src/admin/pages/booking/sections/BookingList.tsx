@@ -60,13 +60,14 @@ import { getBookingColumns } from "../configs/column.config";
 import { BOOKING_STATUS_OPTIONS, getBookingSourceLabel, getPaymentMethodLabel, type BookingStatusFilter } from "../constants";
 import { prefixAdmin } from "../../../constants/routes";
 import { 
-  approveOrRejectAdminCancelRequest, 
   getAdminBookings, 
   getAdminBookingDetail,
   confirmFullPayment,
   getAdminBookingPets,
   getBookingTransactions,
   addBookingPaymentTransaction,
+  cancelAdminBooking,
+  downloadBookingInvoice,
 } from "../../../api/booking.api";
 import { getBankInformationByBookingCode, type BookingBankInformationResponse } from "../../../../api/bank.api";
 import type { 
@@ -74,6 +75,13 @@ import type {
   BookingPetResponse, 
   BookingTransactionItemResponse,
 } from "../../../../types/booking.type";
+import { 
+  getAdminBookingRefundRequests, 
+  handleBookingRefundRequest,
+  type BookingRefundResponse 
+} from "../../../../api/bookingRefund.api";
+import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
@@ -234,11 +242,18 @@ export const BookingList = () => {
   const [selectedCancelBooking, setSelectedCancelBooking] = useState<BookingResponse | null>(null);
   const [cancelActionLoading, setCancelActionLoading] = useState(false);
   const [cancelActionError, setCancelActionError] = useState<string | null>(null);
+  const [cancelDecisionFeedback, setCancelDecisionFeedback] = useState<{
+    approved: boolean;
+    staffNote?: string | null;
+  } | null>(null);
   const [cancelBankInfo, setCancelBankInfo] = useState<BookingBankInformationResponse["data"] | null>(null);
   const [depositStatus, setDepositStatus] = useState<string | null>(null);
   const [staffNotes, setStaffNotes] = useState("");
   const [refundProof, setRefundProof] = useState<string | null>(null);
   const [refundProofFileName, setRefundProofFileName] = useState("");
+
+  const [refundHistory, setRefundHistory] = useState<BookingRefundResponse[]>([]);
+  const [isRefundHistoryLoading, setIsRefundHistoryLoading] = useState(false);
 
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPaymentBooking, setSelectedPaymentBooking] = useState<BookingResponse | null>(null);
@@ -259,13 +274,29 @@ export const BookingList = () => {
   const [addTxReference, setAddTxReference] = useState("");
   const [addTxNote, setAddTxNote] = useState("");
   const [addTxLoading, setAddTxLoading] = useState(false);
+
+  const fetchRefundHistory = async (bookingId: number | string) => {
+    setIsRefundHistoryLoading(true);
+    try {
+      const res = await getAdminBookingRefundRequests(bookingId);
+      if (res.success) {
+        setRefundHistory(res.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch refund history", err);
+    } finally {
+      setIsRefundHistoryLoading(false);
+    }
+  };
   const [addTxError, setAddTxError] = useState<string | null>(null);
   const [confirmAddPaymentOpen, setConfirmAddPaymentOpen] = useState(false);
 
-  const isCancelRequested = (row?: BookingResponse | null) => {
-    if (!row) return false;
-    return row.cancelRequested === true;
-  };
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteBooking, setSelectedDeleteBooking] = useState<BookingResponse | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteActionLoading, setDeleteActionLoading] = useState(false);
+  const [deleteActionError, setDeleteActionError] = useState<string | null>(null);
+
 
   const handleConfirmPayment = async () => {
     if (!selectedPaymentBooking) return;
@@ -385,6 +416,9 @@ export const BookingList = () => {
       return;
     }
     
+    setSelectedCancelBooking(selectedCancelBooking); // Keep it consistent
+    fetchRefundHistory(selectedCancelBooking.id);
+
     // Load bank information
     getBankInformationByBookingCode(selectedCancelBooking.bookingCode)
       .then((res) => {
@@ -436,6 +470,15 @@ export const BookingList = () => {
 
   const bookings = apiData ?? [];
 
+  /** Hiển thị lịch sử hoàn tiền: cũ nhất trên, mới nhất dưới (API thường trả mới trước). */
+  const refundHistoryOldestFirst = useMemo(() => {
+    return [...refundHistory].sort((a, b) => {
+      const ta = a.createdAt ? dayjs(a.createdAt).valueOf() : 0;
+      const tb = b.createdAt ? dayjs(b.createdAt).valueOf() : 0;
+      return ta - tb;
+    });
+  }, [refundHistory]);
+
   const filteredRows = useMemo(() => {
     let list = bookings;
     if (status !== "ALL") {
@@ -458,6 +501,25 @@ export const BookingList = () => {
     [bookings]
   );
 
+  const handleExportBill = async (row: BookingResponse) => {
+    try {
+      toast.info("Đang tạo bill...");
+      const blob = await downloadBookingInvoice(row.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `bill-${row.bookingCode}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Đã tải bill thành công!");
+    } catch (error) {
+      console.error("Lỗi khi tải bill booking:", error);
+      toast.error("Không thể tải bill. Vui lòng thử lại sau.");
+    }
+  };
+
   const columns = useMemo(
     () =>
       getBookingColumns(
@@ -467,6 +529,13 @@ export const BookingList = () => {
           setSelectedCancelBooking(row);
           setCancelDialogOpen(true);
           setCancelActionError(null);
+          setCancelDecisionFeedback(null);
+        },
+        (row) => {
+          setSelectedCancelBooking(row);
+          setCancelDialogOpen(true);
+          setCancelActionError(null);
+          setCancelDecisionFeedback(null);
         },
         (row) => {
           setSelectedPaymentBooking(row);
@@ -486,11 +555,14 @@ export const BookingList = () => {
           setAddTxError(null);
         },
         (row) => {
-          // TODO: Implement delete functionality with confirmation
-          console.log("Delete booking:", row.id);
-        }
+          setSelectedDeleteBooking(row);
+          setDeleteDialogOpen(true);
+          setDeleteReason("");
+          setDeleteActionError(null);
+        },
+        handleExportBill
       ),
-    [navigate]
+    [navigate, handleExportBill]
   );
 
   const localeText = useDataGridLocale();
@@ -1449,125 +1521,419 @@ export const BookingList = () => {
           setCancelDialogOpen(false);
           setSelectedCancelBooking(null);
           setCancelActionError(null);
+          setCancelDecisionFeedback(null);
+          setRefundHistory([]);
         }}
-        maxWidth="sm"
+        maxWidth="lg"
         fullWidth
       >
-        <DialogTitle sx={{ fontSize: "1.6rem", fontWeight: 800 }}>
-          Duyệt yêu cầu hủy đơn
+        <DialogTitle sx={{ py: 2.5, px: 4, bgcolor: "#F8F9FA", borderBottom: "1px solid #E5E7EB" }}>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: "#1C252E" }}>
+            {selectedCancelBooking?.depositPaid ? "Duyệt yêu cầu hoàn tiền" : "Duyệt yêu cầu hủy đơn"}
+          </Typography>
         </DialogTitle>
-        <DialogContent dividers>
-          {cancelActionError && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: "1.35rem" }}>
-              {cancelActionError}
-            </Alert>
-          )}
-          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 1 }}>
-            Booking: <b>{selectedCancelBooking?.bookingCode ?? "—"}</b>
-          </Typography>
-          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 2 }}>
-            Khách hàng: <b>{selectedCancelBooking?.customerName ?? "—"}</b>
-          </Typography>
+        <DialogContent sx={{ p: 0 }}>
+          <Grid container sx={{ height: "calc(90vh - 120px)", minHeight: "600px" }}>
+            {/* Left Column: Form & Details */}
+            <Grid size={{ xs: 12, md: 7 }} sx={{ p: 4, overflowY: "auto", borderRight: "1px solid #F1F3F4" }}>
+              <Stack spacing={3.5}>
+                {cancelActionError && (
+                  <Alert severity="error" sx={{ borderRadius: "12px" }}>
+                    {cancelActionError}
+                  </Alert>
+                )}
+                {cancelDecisionFeedback && !cancelActionError && (
+                  <Alert
+                    severity={cancelDecisionFeedback.approved ? "success" : "error"}
+                    sx={{ borderRadius: "10px" }}
+                  >
+                    {cancelDecisionFeedback.approved ? "Đã duyệt yêu cầu hoàn tiền." : "Từ chối yêu cầu hoàn tiền."}
+                    {cancelDecisionFeedback.staffNote ? ` Lý do: ${cancelDecisionFeedback.staffNote}` : ""}
+                  </Alert>
+                )}
 
-          <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
-            Lý do hủy
-          </Typography>
-          <Box
-            sx={{
-              p: 1.5,
-              bgcolor: "#fff7ed",
-              border: "1px solid #fed7aa",
-              borderRadius: "12px",
-              mb: 1,
-            }}
-          >
-            <Typography sx={{ fontSize: "1.35rem", color: "#9a3412", whiteSpace: "pre-wrap" }}>
-              {selectedCancelBooking?.cancelledReason ?? "—"}
-            </Typography>
-          </Box>
+                <Box sx={{ p: 2.5, bgcolor: "#F4F6F8", borderRadius: "20px" }}>
+                  <Stack direction="row" spacing={3} divider={<Divider orientation="vertical" flexItem />}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>Booking</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 800, color: "#c45a3a" }}>{selectedCancelBooking?.bookingCode}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>Khách hàng</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 800 }}>{selectedCancelBooking?.customerName}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>Trạng thái cọc</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, display: "block", color: "#637381" }}>
+                        {getDepositStatusLabel(depositStatus || undefined)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
 
-          <Typography sx={{ fontSize: "1.25rem", color: "text.secondary", mb: 2 }}>
-            Trạng thái hiện tại:{" "}
-            <b>{getDepositStatusLabel(depositStatus || undefined)}</b>
-          </Typography>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "#1C252E", display: "flex", alignItems: "center", gap: 1 }}>
+                    <NotesIcon sx={{ fontSize: "1.1rem" }} /> {selectedCancelBooking?.depositPaid ? "LÝ DO YÊU CẦU HOÀN TIỀN" : "LÝ DO HỦY"}
+                  </Typography>
+                  <Paper elevation={0} sx={{ p: 2.5, bgcolor: "#FFF5F0", border: "1px solid #F3E0D6", borderRadius: "16px" }}>
+                    <Typography sx={{ color: "#7A4100", fontWeight: 600, lineHeight: 1.6 }}>
+                      {selectedCancelBooking?.cancelledReason || "Không có lý do được cung cấp."}
+                    </Typography>
+                  </Paper>
+                </Box>
 
-          <Box sx={{ mt: 1 }}>
-            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
-              Thông tin ngân hàng khách cung cấp
-            </Typography>
-            {cancelBankInfo ? (
-              <Box
-                sx={{
-                  p: 1.5,
-                  bgcolor: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: "12px",
-                  mb: 2,
-                }}
-              >
-                <Typography sx={{ fontSize: "1.3rem", mb: 0.5 }}>
-                  Ngân hàng: <b>{cancelBankInfo.bankName}</b> ({cancelBankInfo.bankCode})
-                </Typography>
-                <Typography sx={{ fontSize: "1.3rem", mb: 0.5 }}>
-                  Số tài khoản: <b>{cancelBankInfo.accountNumber}</b>
-                </Typography>
-                <Typography sx={{ fontSize: "1.3rem" }}>
-                  Chủ TK: <b>{cancelBankInfo.accountHolderName}</b>
-                </Typography>
+                {selectedCancelBooking?.depositPaid && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "#1C252E", display: "flex", alignItems: "center", gap: 1 }}>
+                      <PaymentsIcon sx={{ fontSize: "1.1rem" }} /> THÔNG TIN NGÂN HÀNG HOÀN TIỀN
+                    </Typography>
+                    {cancelBankInfo ? (
+                      <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #E1F0FF", bgcolor: "#F8FBFF", borderRadius: "20px" }}>
+                        <Grid container spacing={3}>
+                          <Grid size={{ xs: 6 }}>
+                            <Typography variant="caption" color="text.secondary">Ngân hàng</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{cancelBankInfo.bankName} ({cancelBankInfo.bankCode})</Typography>
+                          </Grid>
+                          <Grid size={{ xs: 6 }}>
+                            <Typography variant="caption" color="text.secondary">Số tài khoản</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{cancelBankInfo.accountNumber}</Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="caption" color="text.secondary">Chủ tài khoản</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800, textTransform: "uppercase" }}>{cancelBankInfo.accountHolderName}</Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ) : (
+                      <Paper elevation={0} sx={{ p: 3, textAlign: "center", color: "text.secondary", border: "1px dashed #DFE3E8", borderRadius: "16px" }}>
+                        Chưa cung cấp thông tin ngân hàng.
+                      </Paper>
+                    )}
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "#1C252E" }}>PHẢN HỒI GỬI KHÁCH</Typography>
+                  <TextField
+                    multiline
+                    rows={4}
+                    fullWidth
+                    value={staffNotes}
+                    onChange={(e) => setStaffNotes(e.target.value)}
+                    placeholder="Nhập phản hồi gửi khách về việc phê duyệt/từ chối hoàn tiền..."
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "16px", bgcolor: "#FAFAFA" } }}
+                  />
+                </Box>
+
+                {selectedCancelBooking?.depositPaid === true && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "#1C252E" }}>BẰNG CHỨNG HOÀN TIỀN</Typography>
+                    <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: "text.secondary", fontWeight: 600 }}>
+                      Bắt buộc tải ảnh bằng chứng (chuyển khoản/ủy nhiệm chi) trước khi phê duyệt hoàn tiền.
+                    </Typography>
+                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<StoreIcon />}
+                        sx={{ borderRadius: "12px", textTransform: "none", fontWeight: 700 }}
+                      >
+                        Tải ảnh lên
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => handleRefundProofFileChange(e.target.files?.[0] ?? null)}
+                        />
+                      </Button>
+                      {refundProofFileName ? (
+                        <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
+                          {refundProofFileName}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                    {refundProof && String(refundProof).startsWith("data:image") ? (
+                      <Box
+                        component="img"
+                        src={refundProof}
+                        alt="Bằng chứng hoàn tiền"
+                        sx={{
+                          mt: 2,
+                          display: "block",
+                          maxWidth: "100%",
+                          maxHeight: 280,
+                          objectFit: "contain",
+                          borderRadius: "12px",
+                          border: "1px solid #E5E7EB",
+                          bgcolor: "#fff",
+                        }}
+                      />
+                    ) : null}
+                  </Box>
+                )}
+              </Stack>
+            </Grid>
+
+            {/* Right Column: Refund History */}
+            <Grid size={{ xs: 12, md: 5 }} sx={{ display: "flex", flexDirection: "column", bgcolor: "#F9FAFB" }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "#F4F6F8" }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 900, color: "#1C252E" }}>Lịch sử yêu cầu hoàn tiền</Typography>
+                <Chip label={refundHistory.length} size="small" sx={{ fontWeight: 800, bgcolor: "white" }} />
               </Box>
-            ) : (
-              <Typography sx={{ fontSize: "1.25rem", color: "text.secondary", mb: 2 }}>
-                Không tìm thấy thông tin ngân hàng cho booking này.
-              </Typography>
-            )}
-          </Box>
+              
+              <Box sx={{ flex: 1, p: 3, overflowY: "auto", display: "flex", flexDirection: "column", gap: 3.5 }}>
+                {isRefundHistoryLoading ? (
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, color: "text.secondary" }}>
+                    <CircularProgress size={32} />
+                    <Typography variant="caption" fontWeight={700}>Đang tải dữ liệu...</Typography>
+                  </Box>
+                ) : refundHistoryOldestFirst.length === 0 ? (
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "text.disabled", textAlign: "center", p: 4, gap: 2 }}>
+                    <ReceiptLongIcon sx={{ fontSize: "3rem", opacity: 0.2 }} />
+                    <Typography variant="body2" fontWeight={700}>Chưa có lịch sử yêu cầu hoàn tiền.</Typography>
+                  </Box>
+                ) : (
+                  refundHistoryOldestFirst.map((h) => (
+                    <Box key={h.id} sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                      {/* CLIENT REASON */}
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", pl: 4 }}>
+                        <Paper elevation={0} sx={{ p: 2, bgcolor: "#c45a3a", color: "white", borderRadius: "18px 18px 4px 18px", boxShadow: "0 4px 12px rgba(196, 90, 58, 0.15)" }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5 }}>{h.customerReason || "Gửi yêu cầu hoàn tiền"}</Typography>
+                          <Typography variant="caption" sx={{ mt: 1, display: "block", textAlign: "right", opacity: 0.8, fontWeight: 700 }}>
+                            {dayjs(h.createdAt).format("HH:mm, DD/MM/YYYY")}
+                          </Typography>
+                        </Paper>
+                        <Typography variant="caption" sx={{ mt: 0.5, mr: 1, fontWeight: 800, color: "#919EAB", textTransform: "uppercase", fontSize: "0.65rem" }}>Khách hàng</Typography>
+                      </Box>
 
-          <Box sx={{ mt: 1 }}>
-            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
-              Ghi chú nội bộ
-            </Typography>
-            <TextField
-              multiline
-              minRows={3}
-              fullWidth
-              value={staffNotes}
-              onChange={(e) => setStaffNotes(e.target.value)}
-              placeholder="Ghi chú cho việc hoàn tiền / hủy đơn (chỉ nội bộ nhìn thấy)..."
-              sx={{ "& .MuiInputBase-root": { fontSize: "1.35rem" } }}
-            />
-          </Box>
-
-          <Box sx={{ mt: 2 }}>
-            <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
-              Bằng chứng hoàn tiền (ảnh chuyển khoản)
-            </Typography>
-            <Button
-              variant="outlined"
-              component="label"
-              sx={{ textTransform: "none", fontSize: "1.3rem" }}
-            >
-              Chọn ảnh
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={(e) => handleRefundProofFileChange(e.target.files?.[0] ?? null)}
-              />
-            </Button>
-            {refundProofFileName && (
-              <Typography sx={{ mt: 0.5, fontSize: "1.25rem", color: "text.secondary" }}>
-                Đã chọn: {refundProofFileName}
-              </Typography>
-            )}
-          </Box>
+                      {/* ADMIN RESPONSE */}
+                      {(h.adminDecisionNote ||
+                        h.status !== "PENDING" ||
+                        (h.adminEvidenceUrls && h.adminEvidenceUrls.length > 0)) && (
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", pr: 4 }}>
+                          <Paper elevation={0} sx={{ p: 2, bgcolor: "white", border: "1px solid #E5E7EB", borderRadius: "18px 18px 18px 4px", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                              <Chip 
+                                label={
+                                  h.status === "APPROVED" || h.status === "REFUNDED"
+                                    ? "Đã duyệt"
+                                    : h.status === "REJECTED"
+                                      ? "Từ chối"
+                                      : "Đang xử lý"
+                                }
+                                size="small"
+                                color={
+                                  h.status === "APPROVED" || h.status === "REFUNDED"
+                                    ? "success"
+                                    : h.status === "REJECTED"
+                                      ? "error"
+                                      : "default"
+                                }
+                                sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800 }} 
+                              />
+                              {h.processedAt && (
+                                <Typography variant="caption" sx={{ color: "text.disabled", fontWeight: 600 }}>
+                                  {dayjs(h.processedAt).format("HH:mm, DD/MM")}
+                                </Typography>
+                              )}
+                            </Stack>
+                            {(() => {
+                              const note = h.adminDecisionNote?.trim();
+                              const textBody = note
+                                ? note
+                                : h.status === "APPROVED" || h.status === "REFUNDED"
+                                  ? "Yêu cầu đã được chấp thuận."
+                                  : h.status === "REJECTED"
+                                    ? null
+                                    : "Yêu cầu đang được xem xét.";
+                              return textBody ? (
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: "#1C252E", lineHeight: 1.5 }}>
+                                  {textBody}
+                                </Typography>
+                              ) : null;
+                            })()}
+                            {(h.adminEvidenceUrls ?? []).filter(Boolean).map((url, evIdx) => (
+                              <Box
+                                key={`${h.id}-ev-${evIdx}`}
+                                component="img"
+                                src={url}
+                                alt={`Bằng chứng hoàn tiền ${evIdx + 1}`}
+                                sx={{
+                                  mt: 1.5,
+                                  display: "block",
+                                  maxWidth: "100%",
+                                  maxHeight: 240,
+                                  objectFit: "contain",
+                                  borderRadius: "10px",
+                                  border: "1px solid #E5E7EB",
+                                  bgcolor: "#fafafa",
+                                }}
+                              />
+                            ))}
+                          </Paper>
+                          <Typography variant="caption" sx={{ mt: 0.5, ml: 1, fontWeight: 800, color: "primary.main", textTransform: "uppercase", fontSize: "0.65rem" }}>Admin Support</Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  ))
+                )}
+              </Box>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions sx={{ py: 2.5, px: 4, bgcolor: "#F8F9FA", borderTop: "1px solid #E5E7EB", justifyContent: "space-between" }}>
           <Button
             onClick={() => {
               if (cancelActionLoading) return;
               setCancelDialogOpen(false);
               setSelectedCancelBooking(null);
               setCancelActionError(null);
+              setCancelDecisionFeedback(null);
+              setRefundHistory([]);
+            }}
+            sx={{ textTransform: "none", fontWeight: 700, px: 3, py: 1, borderRadius: "12px", color: "#637381" }}
+          >
+            Đóng
+          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              color="error"
+              variant="outlined"
+              disabled={
+                cancelActionLoading ||
+                !refundHistory.some(h => h.status === "PENDING")
+              }
+              onClick={async () => {
+                if (!selectedCancelBooking) return;
+                const pendingRequest = [...refundHistory].reverse().find(h => h.status === "PENDING");
+                if (!pendingRequest) {
+                  setCancelActionError("Không tìm thấy yêu cầu hoàn tiền đang chờ xử lý.");
+                  return;
+                }
+                
+                setCancelActionLoading(true);
+                setCancelActionError(null);
+                try {
+                  const staffNote = staffNotes.trim() || undefined;
+                  await handleBookingRefundRequest(pendingRequest.id, {
+                    approved: false,
+                    adminNote: staffNote,
+                    adminEvidenceUrls: undefined,
+                  });
+                  await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                  setCancelDecisionFeedback({ approved: false, staffNote: staffNote ?? null });
+                  setRefundProof(null);
+                  setRefundProofFileName("");
+                  fetchRefundHistory(selectedCancelBooking.id); // Refresh history
+                } catch (e) {
+                  console.error(e);
+                  setCancelActionError("Không thể từ chối yêu cầu hoàn tiền.");
+                } finally {
+                  setCancelActionLoading(false);
+                }
+              }}
+              sx={{ textTransform: "none", fontWeight: 800, px: 4, py: 1, borderRadius: "12px" }}
+            >
+              Từ chối yêu cầu
+            </Button>
+            <Button
+              color="success"
+              variant="contained"
+              disabled={
+                cancelActionLoading ||
+                !refundHistory.some(h => h.status === "PENDING") ||
+                (selectedCancelBooking?.depositPaid === true && !refundProof)
+              }
+              onClick={async () => {
+                if (!selectedCancelBooking) return;
+                if (selectedCancelBooking.depositPaid && !refundProof) {
+                  setCancelActionError("Vui lòng tải ảnh bằng chứng hoàn tiền trước khi phê duyệt.");
+                  return;
+                }
+                const pendingRequest = [...refundHistory].reverse().find(h => h.status === "PENDING");
+                if (!pendingRequest) {
+                  setCancelActionError("Không tìm thấy yêu cầu hoàn tiền đang chờ xử lý.");
+                  return;
+                }
+
+                setCancelActionLoading(true);
+                setCancelActionError(null);
+                try {
+                  const staffNote = staffNotes.trim() || undefined;
+                  await handleBookingRefundRequest(pendingRequest.id, {
+                    approved: true,
+                    adminNote: staffNote,
+                    adminEvidenceUrls: refundProof ? [refundProof] : undefined,
+                  });
+                  await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                  setCancelDecisionFeedback({ approved: true, staffNote: staffNote ?? null });
+                  fetchRefundHistory(selectedCancelBooking.id); // Refresh history
+                } catch (e) {
+                  console.error(e);
+                  setCancelActionError("Không thể duyệt yêu cầu hoàn tiền.");
+                } finally {
+                  setCancelActionLoading(false);
+                }
+              }}
+              sx={{ textTransform: "none", fontWeight: 800, px: 5, py: 1, borderRadius: "12px", boxShadow: "0 8px 16px rgba(0, 167, 111, 0.24)" }}
+            >
+              Phê duyệt hoàn tiền
+            </Button>
+          </Stack>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          if (deleteActionLoading) return;
+          setDeleteDialogOpen(false);
+          setSelectedDeleteBooking(null);
+          setDeleteActionError(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "1.6rem", fontWeight: 800 }}>
+          Xóa Đặt Lịch
+        </DialogTitle>
+        <DialogContent dividers>
+          {deleteActionError && (
+            <Alert severity="error" sx={{ mb: 2, fontSize: "1.35rem" }}>
+              {deleteActionError}
+            </Alert>
+          )}
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 1 }}>
+            Booking: <b>{selectedDeleteBooking?.bookingCode ?? "—"}</b>
+          </Typography>
+          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 2 }}>
+            Khách hàng: <b>{selectedDeleteBooking?.customerName ?? "—"}</b>
+          </Typography>
+
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Hành động này sẽ thiết lập trạng thái của tài liệu này thành "Đã Hủy" (CANCELLED). Vui lòng cung cấp lý do.
+          </Alert>
+
+          <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
+            Lý do hủy đơn
+          </Typography>
+          <TextField
+            multiline
+            minRows={3}
+            fullWidth
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            placeholder="Nhập lý do hủy (bắt buộc)..."
+            sx={{ "& .MuiInputBase-root": { fontSize: "1.35rem" } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              if (deleteActionLoading) return;
+              setDeleteDialogOpen(false);
+              setSelectedDeleteBooking(null);
+              setDeleteActionError(null);
             }}
             sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 700 }}
           >
@@ -1575,65 +1941,30 @@ export const BookingList = () => {
           </Button>
           <Button
             color="error"
-            variant="outlined"
-            disabled={
-              cancelActionLoading ||
-              !isCancelRequested(selectedCancelBooking)
-            }
-            onClick={async () => {
-              if (!selectedCancelBooking) return;
-              setCancelActionLoading(true);
-              setCancelActionError(null);
-              try {
-                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, { approved: false });
-                await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-                setCancelDialogOpen(false);
-                setSelectedCancelBooking(null);
-              } catch (e) {
-                console.error(e);
-                setCancelActionError("Không thể từ chối yêu cầu hủy đơn.");
-              } finally {
-                setCancelActionLoading(false);
-              }
-            }}
-            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800, borderRadius: "10px" }}
-          >
-            Từ chối
-          </Button>
-          <Button
-            color="success"
             variant="contained"
-            disabled={
-              cancelActionLoading ||
-              !isCancelRequested(selectedCancelBooking)
-            }
+            disabled={deleteActionLoading || !deleteReason.trim()}
             onClick={async () => {
-              if (!selectedCancelBooking) return;
-              if (selectedCancelBooking.status !== "PENDING") {
-                setCancelActionError("Chỉ có thể hủy đơn khi trạng thái là PENDING.");
-                return;
-              }
-              setCancelActionLoading(true);
-              setCancelActionError(null);
+              if (!selectedDeleteBooking || !deleteReason.trim()) return;
+              setDeleteActionLoading(true);
+              setDeleteActionError(null);
               try {
-                await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, {
-                  approved: true,
-                  staffNotes: staffNotes.trim() || undefined,
-                  refundProof: refundProof || undefined,
+                await cancelAdminBooking(selectedDeleteBooking.id, {
+                  reason: deleteReason.trim()
                 });
                 await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-                setCancelDialogOpen(false);
-                setSelectedCancelBooking(null);
+                setDeleteDialogOpen(false);
+                setSelectedDeleteBooking(null);
               } catch (e) {
-                console.error(e);
-                setCancelActionError("Không thể duyệt yêu cầu hủy đơn.");
+                 console.error(e);
+                 const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                 setDeleteActionError(msg || "Không thể hủy đơn đặt lịch vào lúc này.");
               } finally {
-                setCancelActionLoading(false);
+                setDeleteActionLoading(false);
               }
             }}
             sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800, borderRadius: "10px" }}
           >
-            Duyệt
+            {deleteActionLoading ? "Đang xử lý..." : "Xóa Booking"}
           </Button>
         </DialogActions>
       </Dialog>

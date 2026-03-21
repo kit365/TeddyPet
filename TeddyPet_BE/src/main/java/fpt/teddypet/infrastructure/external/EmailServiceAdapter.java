@@ -236,16 +236,33 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount) {
+    public void sendBookingRefundApprovedEmail(String to, String bookingCode, String refundAmount, String adminResponse) {
         log.info("Sending booking refund approved email to {}", to);
         String subject = String.format("[%s] Yêu cầu hoàn cọc đơn đặt lịch #%s đã được phê duyệt", appName, bookingCode);
 
         Context context = prepareContext();
         context.setVariable("bookingCode", bookingCode);
         context.setVariable("refundAmount", refundAmount);
+        context.setVariable("adminResponse", adminResponse);
         context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
 
         String htmlBody = templateEngine.process("email/bookings/refund-approved", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingRefundRejectedEmail(String to, String bookingCode, String adminResponse) {
+        log.info("Sending booking refund rejected email to {}", to);
+        String subject = String.format("[%s] Yêu cầu hoàn cọc đơn đặt lịch #%s đã bị từ chối", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("adminResponse", adminResponse);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/refund-rejected", context);
         self.sendHtmlEmail(to, subject, htmlBody);
     }
 
@@ -464,6 +481,16 @@ public class EmailServiceAdapter implements EmailServicePort {
             subHeadline = EmailConstants.SUB_HEADLINE_ORDER_RETURN_REQUESTED;
             subject = String.format(EmailConstants.SUBJECT_ORDER_RETURN_REQUESTED, appName, detailedOrder.getOrderCode());
             statusText = EmailConstants.STATUS_TEXT_RETURN_REQUESTED;
+        } else if (detailedOrder.getStatus() == OrderStatusEnum.REFUND_PENDING) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_REFUND_PENDING;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_REFUND_PENDING;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_REFUND_PENDING, appName, detailedOrder.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_REFUND_PENDING;
+        } else if (detailedOrder.getStatus() == OrderStatusEnum.REFUNDED) {
+            emailHeadline = EmailConstants.HEADLINE_ORDER_REFUNDED;
+            subHeadline = EmailConstants.SUB_HEADLINE_ORDER_REFUNDED;
+            subject = String.format(EmailConstants.SUBJECT_ORDER_REFUNDED, appName, detailedOrder.getOrderCode());
+            statusText = EmailConstants.STATUS_TEXT_REFUNDED;
         }
 
         context.setVariable(EmailConstants.VAR_EMAIL_HEADLINE, emailHeadline);

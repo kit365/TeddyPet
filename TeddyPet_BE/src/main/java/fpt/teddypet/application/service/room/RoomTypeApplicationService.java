@@ -65,11 +65,13 @@ public class RoomTypeApplicationService implements RoomTypeService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RoomTypeResponse getById(Long id) {
         return roomTypeMapper.toResponse(getEntityById(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomTypeResponse> getAll(Long serviceId) {
         List<RoomType> list = roomTypeRepositoryPort.findByServiceId(serviceId);
         return list.stream().map(roomTypeMapper::toResponse).toList();

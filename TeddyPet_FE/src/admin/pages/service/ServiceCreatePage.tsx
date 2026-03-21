@@ -6,6 +6,7 @@ import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
 import { useCreateService } from './hooks/useService';
 import { useUpdateService } from './hooks/useService';
 import { useServiceCategories } from './hooks/useServiceCategory';
+import { useSkills } from '../staff/hooks/useSkill';
 import { usePetTypes } from './hooks/useEnums';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller, useWatch } from 'react-hook-form';
@@ -68,6 +69,7 @@ export const ServiceCreatePage = () => {
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
     const { data: categories = [] } = useServiceCategories();
+    const { data: skills = [] } = useSkills();
     const { data: petTypes = [] } = usePetTypes();
     const { data: roomTypes = [] } = useRoomTypes();
     const { data: timeSlots = [] } = useQuery({
@@ -83,6 +85,7 @@ export const ServiceCreatePage = () => {
         resolver: zodResolver(serviceUpsertSchema),
         defaultValues: {
             serviceCategoryId: undefined as unknown as number,
+            skillId: undefined as unknown as number,
             code: '',
             serviceName: '',
             duration: 60,
@@ -130,6 +133,7 @@ export const ServiceCreatePage = () => {
     const buildServicePayload = (data: ServiceUpsertFormValues, existingId: number | null) => ({
         ...(existingId ? { serviceId: existingId } : {}),
         serviceCategoryId: data.serviceCategoryId,
+        skillId: data.skillId,
         code: (data.code || '').trim() || generateServiceCode(data),
         serviceName: data.serviceName,
         suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
@@ -457,6 +461,38 @@ export const ServiceCreatePage = () => {
                                                     {categories.map((c) => (
                                                         <MenuItem key={c.categoryId} value={c.categoryId}>
                                                             {c.categoryName}
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="skillId"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <TextField
+                                                    {...field}
+                                                    id="field-skillId"
+                                                    select
+                                                    label="Kỹ năng yêu cầu"
+                                                    error={!!fieldState.error}
+                                                    helperText={fieldState.error?.message}
+                                                    fullWidth
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value;
+                                                        if (v === '') {
+                                                            field.onChange(undefined);
+                                                        } else {
+                                                            const n = Number(v);
+                                                            field.onChange(Number.isNaN(n) ? undefined : n);
+                                                        }
+                                                    }}
+                                                >
+                                                    <MenuItem value="">-- Chọn kỹ năng --</MenuItem>
+                                                    {skills.map((s: any) => (
+                                                        <MenuItem key={s.id} value={s.id}>
+                                                            {s.name}
                                                         </MenuItem>
                                                     ))}
                                                 </TextField>

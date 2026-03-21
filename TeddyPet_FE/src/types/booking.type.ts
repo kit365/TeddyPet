@@ -258,6 +258,7 @@ export interface BookingPetServiceResponse {
   customerReview?: string;
   serviceName?: string;
   isRequiredRoom?: boolean;
+  isOverCheckOutDue?: boolean;
   items?: BookingPetServiceItemResponse[];
 }
 
@@ -462,4 +463,6 @@ export interface ClientBookingDetailResponse {
   depositExpiresAt?: string;
   createdAt?: string;
   pets?: ClientBookingPetDetail[];
+  cancelRequested?: boolean;
+  cancelledReason?: string | null;
 }

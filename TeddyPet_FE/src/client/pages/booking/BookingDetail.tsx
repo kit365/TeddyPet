@@ -3,7 +3,9 @@ import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import { prefixAdmin } from "../../../admin/constants/routes";
 import type { BookingStep1FormData } from "./Booking";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import PetsIcon from "@mui/icons-material/Pets";
@@ -32,15 +34,16 @@ import type { ServiceCategoryClient, ServiceClient } from "../../../types/bookin
 import { ServiceSelectField } from "../../components/ui/ServiceSelectField";
 import { SESSION_SLOTS, PET_TYPES, FOOD_TYPE_OPTIONS } from "./constants";
 import type { IServicePricing } from "../../../admin/pages/service/configs/types";
-import { getServicePricingsByServiceId } from "../../../admin/api/service-pricing.api";
+import { getServicePricingsByServiceId } from "../../../api/service-pricing.api";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { toast } from "react-toastify";
 import "dayjs/locale/vi";
-import { buildCreateBookingPayload } from "../../../api/booking.api";
+import { buildCreateBookingPayload, createBookingFromClient } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
+import { getAdminBookings } from "../../../admin/api/booking.api";
 import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode, getBankByGuestEmail } from "../../../api/bank.api";
 import type { BankOption, BankInformationPayload } from "../../../types/bank.type";
 import { useAuthStore } from "../../../stores/useAuthStore";
@@ -314,6 +317,7 @@ type AdditionalServiceNonRoomFieldsProps = {
     updateAdditionalService: (petId: string, svcId: string, updates: Partial<BookingPetServiceForm>) => void;
     services: ServiceClient[];
     globalDateFrom: string;
+    enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
 };
@@ -324,6 +328,7 @@ type MainServiceNonRoomFieldsProps = {
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
     services: ServiceClient[];
     globalDateFrom: string;
+    enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
 };
@@ -333,6 +338,7 @@ const MainServiceNonRoomFields = ({
     updatePet,
     services,
     globalDateFrom,
+    enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
 }: MainServiceNonRoomFieldsProps) => {
@@ -378,7 +384,9 @@ const MainServiceNonRoomFields = ({
     if (!pet.serviceId || !isNonRoom) return null;
 
     const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
-    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
+    const minSessionDate = enforceAdvanceBookingHours
+        ? dayjs().add(advanceHours, "hour").startOf("day")
+        : dayjs().startOf("day");
 
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = pet.addonServiceIds ?? [];
@@ -482,6 +490,7 @@ const AdditionalServiceNonRoomFields = ({
     updateAdditionalService,
     services,
     globalDateFrom,
+    enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
 }: AdditionalServiceNonRoomFieldsProps) => {
@@ -527,7 +536,9 @@ const AdditionalServiceNonRoomFields = ({
     if (!asvc.serviceId || !isNonRoom) return null;
 
     const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
-    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
+    const minSessionDate = enforceAdvanceBookingHours
+        ? dayjs().add(advanceHours, "hour").startOf("day")
+        : dayjs().startOf("day");
 
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = asvc.addonServiceIds ?? [];
@@ -662,14 +673,14 @@ const RoomPickerSection = ({
     const showPicker = needsRoom && hasDates && !!pet.serviceId;
 
     const { data: layoutData } = useQuery({
-        queryKey: ["room-layout-config", pet.serviceId, "IN_USE"],
-        queryFn: () => getRoomLayoutConfigsByServiceId(pet.serviceId!, "IN_USE"),
+        queryKey: ["room-layout-config", pet.serviceId],
+        queryFn: () => getRoomLayoutConfigsByServiceId(pet.serviceId!),
         enabled: showPicker && !!pet.serviceId,
         select: (res) => res.data,
     });
 
     const layouts: RoomLayoutConfigClient[] = layoutData ?? [];
-    const activeLayout = layouts[0];
+    const activeLayout = layouts.find(l => l.status === "IN_USE" || l.status === "READY_FOR_USE");
     const layoutId = activeLayout?.id;
 
     const { data: roomsData } = useQuery({
@@ -695,7 +706,30 @@ const RoomPickerSection = ({
 
     const rooms: RoomClient[] = roomsData ?? [];
     const bookedRoomIdSet = useMemo(() => new Set(bookedRoomIdsData ?? []), [bookedRoomIdsData]);
-    const roomTypes: RoomTypeClient[] = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
+
+    const placedRooms = useMemo(
+        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
+        [rooms, layoutId]
+    );
+
+    const roomTypes: RoomTypeClient[] = useMemo(() => {
+        const fetchTypes = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
+        if (fetchTypes.length > 0) return fetchTypes;
+
+        const map = new Map<number, RoomTypeClient>();
+        placedRooms.forEach((r) => {
+            if (r.roomTypeId && !map.has(r.roomTypeId)) {
+                map.set(r.roomTypeId, {
+                    roomTypeId: r.roomTypeId,
+                    typeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
+                    displayTypeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
+                    isActive: true,
+                });
+            }
+        });
+        return Array.from(map.values()).sort((a,b) => a.roomTypeId - b.roomTypeId);
+    }, [roomTypesData, placedRooms]);
+
     const selectedRoomTypeId = pet.selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
     const effectiveRoomTypeId = selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
 
@@ -705,11 +739,6 @@ const RoomPickerSection = ({
         if (!showPicker || firstRoomTypeId == null || pet.selectedRoomTypeId != null) return;
         updatePet(pet.id, { selectedRoomTypeId: firstRoomTypeId });
     }, [showPicker, roomTypes.length, firstRoomTypeId, pet.id, pet.selectedRoomTypeId, updatePet]);
-
-    const placedRooms = useMemo(
-        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
-        [rooms, layoutId]
-    );
 
     const getRoomAt = useCallback(
         (row: number, col: number) => placedRooms.find((r) => r.gridRow === row && r.gridCol === col),
@@ -964,14 +993,14 @@ const RoomPickerSectionForAdditional = ({
     const showPicker = needsRoom && hasDates && !!asvc.serviceId;
 
     const { data: layoutData } = useQuery({
-        queryKey: ["room-layout-config", asvc.serviceId, "IN_USE"],
-        queryFn: () => getRoomLayoutConfigsByServiceId(asvc.serviceId!, "IN_USE"),
+        queryKey: ["room-layout-config", asvc.serviceId],
+        queryFn: () => getRoomLayoutConfigsByServiceId(asvc.serviceId!),
         enabled: showPicker && !!asvc.serviceId,
         select: (res) => res.data,
     });
 
     const layouts: RoomLayoutConfigClient[] = layoutData ?? [];
-    const activeLayout = layouts[0];
+    const activeLayout = layouts.find(l => l.status === "IN_USE" || l.status === "READY_FOR_USE");
     const layoutId = activeLayout?.id;
 
     const { data: roomsData } = useQuery({
@@ -997,7 +1026,30 @@ const RoomPickerSectionForAdditional = ({
 
     const rooms: RoomClient[] = roomsData ?? [];
     const bookedRoomIdSetAdd = useMemo(() => new Set(bookedRoomIdsDataAdd ?? []), [bookedRoomIdsDataAdd]);
-    const roomTypes: RoomTypeClient[] = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
+
+    const placedRooms = useMemo(
+        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
+        [rooms, layoutId]
+    );
+
+    const roomTypes: RoomTypeClient[] = useMemo(() => {
+        const fetchTypes = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
+        if (fetchTypes.length > 0) return fetchTypes;
+
+        const map = new Map<number, RoomTypeClient>();
+        placedRooms.forEach((r) => {
+            if (r.roomTypeId && !map.has(r.roomTypeId)) {
+                map.set(r.roomTypeId, {
+                    roomTypeId: r.roomTypeId,
+                    typeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
+                    displayTypeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
+                    isActive: true,
+                });
+            }
+        });
+        return Array.from(map.values()).sort((a,b) => a.roomTypeId - b.roomTypeId);
+    }, [roomTypesData, placedRooms]);
+
     const selectedRoomTypeId = asvc.selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
     const effectiveRoomTypeId = selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
 
@@ -1006,11 +1058,6 @@ const RoomPickerSectionForAdditional = ({
         if (!showPicker || firstRoomTypeId == null || asvc.selectedRoomTypeId != null) return;
         updateAdditionalService(pet.id, asvc.id, { selectedRoomTypeId: firstRoomTypeId });
     }, [showPicker, roomTypes.length, firstRoomTypeId, pet.id, asvc.id, asvc.selectedRoomTypeId, updateAdditionalService]);
-
-    const placedRooms = useMemo(
-        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
-        [rooms, layoutId]
-    );
 
     const getRoomAt = useCallback(
         (row: number, col: number) => placedRooms.find((r) => r.gridRow === row && r.gridCol === col),
@@ -1435,18 +1482,34 @@ export type BookingDetailDraft = {
     pets: BookingPetForm[];
 };
 
-export const BookingDetailPage = () => {
+type BookingDetailPageMode = "client" | "admin-counter";
+
+type BookingDetailPageProps = {
+    mode?: BookingDetailPageMode;
+};
+
+type ServicePricingQueryResult = {
+    map: Record<number, IServicePricing[]>;
+    failedServiceIds: number[];
+};
+
+export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft; bookingCodeForEdit?: string }) | undefined;
+    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft; bookingCodeForEdit?: string; bookingMode?: BookingDetailPageMode }) | undefined;
+    const searchParams = new URLSearchParams(location.search);
+    const routeMode = searchParams.get("mode") === "counter" ? "admin-counter" : undefined;
+    const currentMode: BookingDetailPageMode = routeMode ?? rawState?.bookingMode ?? mode;
+    const isCounterBooking = currentMode === "admin-counter";
+    const enforceAdvanceBookingHours = !isCounterBooking;
     const draft = rawState?.bookingDraft;
     const step1Data: BookingStep1FormData = draft?.step1Data ?? (rawState as BookingStep1FormData) ?? defaultStep1Data;
 
     useEffect(() => {
         if (!step1Data.fullName?.trim() || !step1Data.phone?.trim()) {
-            navigate("/dat-lich", { replace: true });
+            navigate(isCounterBooking ? "/admin/booking/create?mode=counter" : "/dat-lich", { replace: true });
         }
-    }, [step1Data.fullName, step1Data.phone, navigate]);
+    }, [step1Data.fullName, step1Data.phone, navigate, isCounterBooking]);
 
     const initialPets: BookingPetForm[] = draft?.pets?.length ? draft.pets : [createEmptyPet(step1Data)];
 
@@ -1457,6 +1520,7 @@ export const BookingDetailPage = () => {
     /** Index thú cưng đang xem (story style: chuyển qua lại bên phải) */
     const [activePetIndex, setActivePetIndex] = useState(0);
     const queryClient = useQueryClient();
+    const pricingWarningShownRef = useRef<string>("");
 
     useEffect(() => {
         setActivePetIndex((i) => Math.min(i, Math.max(0, pets.length - 1)));
@@ -1486,9 +1550,9 @@ export const BookingDetailPage = () => {
 
     const minGlobalDateFrom = useMemo(() => {
         const base = dayjs().startOf("day"); // không bao giờ cho chọn ngày quá khứ
-        if (!maxAdvanceBookingHours || maxAdvanceBookingHours <= 0) return base;
+        if (!enforceAdvanceBookingHours || !maxAdvanceBookingHours || maxAdvanceBookingHours <= 0) return base;
         return dayjs().add(maxAdvanceBookingHours, "hour").startOf("day");
-    }, [maxAdvanceBookingHours]);
+    }, [maxAdvanceBookingHours, enforceAdvanceBookingHours]);
 
     // Nếu globalDateFrom đang nhỏ hơn min thì tự đẩy lên mốc tối thiểu để tránh sai logic
     useEffect(() => {
@@ -1502,10 +1566,19 @@ export const BookingDetailPage = () => {
     }, [minGlobalDateFrom?.valueOf()]);
 
     // Map serviceId -> danh sách pricing rule
-    const { data: servicePricingMap } = useQuery({
-        queryKey: ["service-pricings-client", services.map((s) => s.serviceId)],
-        queryFn: async (): Promise<Record<number, IServicePricing[]>> => {
+    const serviceIdsForPricingQuery = useMemo(
+        () => services.map((s) => s.serviceId).sort((a, b) => a - b),
+        [services]
+    );
+
+    const {
+        data: servicePricingData,
+        refetch: refetchServicePricing,
+    } = useQuery({
+        queryKey: ["service-pricings-client", serviceIdsForPricingQuery],
+        queryFn: async (): Promise<ServicePricingQueryResult> => {
             const result: Record<number, IServicePricing[]> = {};
+            const failedServiceIds: number[] = [];
             await Promise.all(
                 services.map(async (s) => {
                     try {
@@ -1513,14 +1586,36 @@ export const BookingDetailPage = () => {
                         result[s.serviceId] = res.data ?? [];
                     } catch {
                         result[s.serviceId] = [];
+                        failedServiceIds.push(s.serviceId);
                     }
                 })
             );
-            return result;
+            return {
+                map: result,
+                failedServiceIds,
+            };
         },
         enabled: services.length > 0,
         staleTime: 5 * 60 * 1000,
     });
+
+    const servicePricingMap = servicePricingData?.map;
+    const failedServiceIds = servicePricingData?.failedServiceIds ?? [];
+
+    useEffect(() => {
+        if (!failedServiceIds.length) {
+            pricingWarningShownRef.current = "";
+            return;
+        }
+
+        const key = failedServiceIds.slice().sort((a, b) => a - b).join(",");
+        if (pricingWarningShownRef.current === key) return;
+
+        pricingWarningShownRef.current = key;
+        toast.warning(
+            "Một số bảng giá chưa tải được. Vui lòng bấm 'Tải lại bảng giá' để cập nhật đầy đủ."
+        );
+    }, [failedServiceIds]);
 
     const petTypeOptions = useMemo(() => {
         const result = new Set<string>();
@@ -2235,7 +2330,24 @@ export const BookingDetailPage = () => {
         if (!validateBeforePayment()) return;
         setIsHolding(true);
         try {
-            const payload = buildCreateBookingPayload(step1Data, pets);
+            const payload = buildCreateBookingPayload(step1Data, pets, isCounterBooking ? "walk-in" : "online");
+            if (isCounterBooking) {
+                const createRes = await createBookingFromClient(payload);
+                const bookingCode = createRes?.data?.bookingCode;
+                if (createRes?.success && bookingCode) {
+                    const adminBookingsRes = await getAdminBookings();
+                    const matched = (adminBookingsRes?.data ?? []).find((b) => b.bookingCode === bookingCode);
+                    toast.success("Đặt lịch tại quầy thành công. Vui lòng ghi nhận thanh toán.");
+                    if (matched?.id != null) {
+                        navigate(`/admin/booking/detail/${matched.id}`, { replace: true });
+                        return;
+                    }
+                    navigate("/admin/booking/list", { replace: true });
+                    return;
+                }
+                toast.error(createRes?.message ?? "Không thể tạo đơn đặt lịch tại quầy.");
+                return;
+            }
             // Attach bank info if provided (guest or newly added)
             const finalPayload = bankPayload
                 ? { ...payload, bankInformation: bankPayload }
@@ -2289,7 +2401,9 @@ export const BookingDetailPage = () => {
             }
         } finally {
             setIsHolding(false);
-            setIsBankInfoOpen(false);
+            if (!isCounterBooking) {
+                setIsBankInfoOpen(false);
+            }
         }
     };
 
@@ -2299,11 +2413,22 @@ export const BookingDetailPage = () => {
             await handleProceedToPayment();
         } else {
             // Guest or adding new: validate form
-            if (!bankForm.accountNumber.trim()) {
+            const accNum = bankForm.accountNumber.trim();
+            if (!accNum) {
                 toast.error("Vui lòng nhập số tài khoản.");
                 return;
             }
-            if (!bankForm.accountHolderName.trim()) {
+            if (!/^[0-9]+$/.test(accNum)) {
+                toast.error("Số tài khoản chỉ được chứa chữ số (0-9).");
+                return;
+            }
+            if (accNum.length < 6 || accNum.length > 19) {
+                toast.error("Số tài khoản phải từ 6 đến 19 chữ số.");
+                return;
+            }
+
+            const holderName = bankForm.accountHolderName.trim();
+            if (!holderName) {
                 toast.error("Vui lòng nhập tên chủ tài khoản.");
                 return;
             }
@@ -2311,40 +2436,51 @@ export const BookingDetailPage = () => {
                 toast.error("Vui lòng chọn ngân hàng.");
                 return;
             }
-            await handleProceedToPayment(bankForm);
+            
+            await handleProceedToPayment({ 
+                ...bankForm, 
+                accountNumber: accNum, 
+                accountHolderName: holderName 
+            });
         }
     };
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
             <>
-                <div className="relative">
-                    <div className="app-container flex py-[100px] bg-white">
-                        <div className="px-[20px] w-[42%] z-[10]">
-                            <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
-                                {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
-                            </p>
-                            <h2 className="text-[3.125rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
-                                Thông tin lịch hẹn cho thú cưng
-                            </h2>
-                            {rawState?.bookingCodeForEdit && (
-                                <p className="mt-[8px] text-[0.9375rem] text-[#c45a3a] font-[600]">
-                                    Mã đặt lịch: <span className="font-[800]">{rawState.bookingCodeForEdit}</span>
+                {!isCounterBooking && (
+                    <div className="relative">
+                        <div className="app-container flex py-[100px] bg-white">
+                            <div className="px-[20px] w-[42%] z-[10]">
+                                <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
+                                    {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
                                 </p>
-                            )}
-                            <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
-                                Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
-                            </p>
+                                <h2 className="text-[3.125rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
+                                    Thông tin lịch hẹn cho thú cưng
+                                </h2>
+                                {rawState?.bookingCodeForEdit && (
+                                    <p className="mt-[8px] text-[0.9375rem] text-[#c45a3a] font-[600]">
+                                        Mã đặt lịch: <span className="font-[800]">{rawState.bookingCodeForEdit}</span>
+                                    </p>
+                                )}
+                                <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
+                                    Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
+                                </p>
+                            </div>
                         </div>
+                        <img
+                            className="absolute right-[0%] max-w-[58%] top-[-20%] 2xl:top-[-17%]"
+                            src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/hero_image_13-1.png"
+                            alt=""
+                        />
                     </div>
-                    <img
-                        className="absolute right-[0%] max-w-[58%] top-[-20%] 2xl:top-[-17%]"
-                        src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/hero_image_13-1.png"
-                        alt=""
-                    />
-                </div>
+                )}
 
-                <div ref={formSectionRef} className="app-container flex py-[60px] gap-[48px] justify-center">
+                <div
+                    ref={formSectionRef}
+                    className={`app-container flex gap-[48px] justify-center ${isCounterBooking ? "py-8 bg-[#fbfbf9]" : "py-[60px]"}`}
+                >
+                    {!isCounterBooking && (
                     <aside className="w-[320px] shrink-0 hidden lg:block">
                         <h2 className="text-[1.5rem] font-third text-[#181818] mb-[24px]">Thông tin</h2>
                         <div className="space-y-[20px]">
@@ -2377,8 +2513,37 @@ export const BookingDetailPage = () => {
                             </div>
                         </div>
                     </aside>
+                    )}
 
                     <main className="w-full max-w-[800px]">
+                        {isCounterBooking && (
+                            <div className="mb-6">
+                                <Link
+                                    to={`/${prefixAdmin}/booking/list`}
+                                    className="inline-flex items-center gap-2 text-[0.9375rem] font-[600] text-[#c45a3a] hover:text-[#a04330] transition-colors"
+                                >
+                                    <ArrowBackIosNewIcon sx={{ fontSize: 18 }} aria-hidden />
+                                    Quay lại danh sách đặt lịch
+                                </Link>
+                            </div>
+                        )}
+                        {failedServiceIds.length > 0 && (
+                            <div className="mb-[20px] rounded-[12px] border border-[#ffd7a8] bg-[#fff7ed] px-[16px] py-[12px]">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <p className="text-[0.875rem] text-[#9a3412]">
+                                        Một số quy tắc giá chưa tải được ({failedServiceIds.length} dịch vụ). Bạn có thể tải lại để đồng bộ giá.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => void refetchServicePricing()}
+                                        className="self-start rounded-[8px] border border-[#fb923c] bg-white px-[12px] py-[6px] text-[0.8125rem] font-[600] text-[#c2410c] transition hover:bg-[#fff1e6]"
+                                    >
+                                        Tải lại bảng giá
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* ========== PHẦN 1: Thông tin cơ bản khách ========== */}
                         <section className="mb-[40px]">
                             <div className="flex items-center gap-2 mb-[16px]">
@@ -2673,10 +2838,7 @@ export const BookingDetailPage = () => {
                                                                                     fullWidth: true,
                                                                                     color: "warning",
                                                                                     sx: bookingDatePickerTextFieldSx,
-                                                                                    helperText:
-                                                                                        maxAdvanceBookingHours > 0
-                                                                                            ? `Ngày gửi tối thiểu = hôm nay + ${maxAdvanceBookingHours} giờ (theo yêu cầu đặt trước của các dịch vụ).`
-                                                                                            : "Ngày gửi này sẽ áp dụng cho tất cả dịch vụ của mọi thú cưng trong đơn.",
+                                                                                    helperText: "Ngày gửi này sẽ áp dụng cho tất cả dịch vụ của mọi thú cưng trong đơn.",
                                                                                 },
                                                                                 popper: { sx: bookingDatePickerPopperSx },
                                                                             }}
@@ -3188,6 +3350,7 @@ export const BookingDetailPage = () => {
                                                             updatePet={updatePet}
                                                             services={services}
                                                             globalDateFrom={globalDateFrom}
+                                                            enforceAdvanceBookingHours={enforceAdvanceBookingHours}
                                                             bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                             getServicePriceForWeight={getServicePriceForWeight}
                                                             // id để scroll tới phần session
@@ -3510,7 +3673,8 @@ export const BookingDetailPage = () => {
                                                                                                     asvc={asvc}
                                                                                                     updateAdditionalService={updateAdditionalService}
                                                                                                     services={services}
-                                                                                                        globalDateFrom={globalDateFrom}
+                                                                                                    globalDateFrom={globalDateFrom}
+                                                                                                    enforceAdvanceBookingHours={enforceAdvanceBookingHours}
                                                                                                     bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                                                                     getServicePriceForWeight={getServicePriceForWeight}
                                                                                                     // @ts-ignore
@@ -3538,7 +3702,7 @@ export const BookingDetailPage = () => {
                             <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
                                 <button
                                     type="button"
-                                    onClick={() => navigate("/dat-lich", {
+                                    onClick={() => navigate(isCounterBooking ? "/admin/booking/create?mode=counter" : "/dat-lich", {
                                         state: {
                                             ...step1Data,
                                             bookingDraft: {
@@ -3562,7 +3726,7 @@ export const BookingDetailPage = () => {
                                         disabled={isHolding || isSubmitting}
                                         className="py-[14px] px-[28px] rounded-[12px] border border-[#ffbaa0] bg-[#fff7f3] hover:bg-[#ffe9dd] text-[#c45a3a] font-[700] text-[0.9375rem] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
-                                        {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
+                                        {isHolding ? (isCounterBooking ? "Đang tạo đơn..." : "Đang giữ chỗ...") : (isCounterBooking ? "Tạo đơn tại quầy" : "Tiếp tục thanh toán")}
                                     </button>
                                 </div>
                             </section>
@@ -3577,7 +3741,9 @@ export const BookingDetailPage = () => {
                                 <div>
                                     <h3 className="text-[1.3125rem] font-[800] text-[#181818]">Xác nhận thông tin đặt lịch</h3>
                                     <p className="text-[0.875rem] text-[#6b7280] mt-0.5">
-                                        Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc.
+                                        {isCounterBooking
+                                            ? "Vui lòng kiểm tra lại thông tin trước khi tạo đơn tại quầy."
+                                            : "Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc."}
                                     </p>
                                 </div>
                                 <button
@@ -4098,11 +4264,15 @@ export const BookingDetailPage = () => {
                                     disabled={isHolding}
                                     onClick={() => {
                                         setIsSummaryOpen(false);
+                                        if (isCounterBooking) {
+                                            handleProceedToPayment();
+                                            return;
+                                        }
                                         openBankInfoModal();
                                     }}
                                     className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[0.9375rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    Tiếp tục thanh toán
+                                    {isCounterBooking ? "Tạo đơn tại quầy" : "Tiếp tục thanh toán"}
                                 </button>
                             </div>
                         </div>
@@ -4312,52 +4482,56 @@ export const BookingDetailPage = () => {
                     </div>
                 )}
 
-                <div className="app-container flex gap-[30px] pb-[100px]">
-                    <div className="w-[413px] px-[20px]">
-                        <div className="w-full h-[206px]">
-                            <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+                {!isCounterBooking && (
+                    <>
+                        <div className="app-container flex gap-[30px] pb-[100px]">
+                            <div className="w-[413px] px-[20px]">
+                                <div className="w-full h-[206px]">
+                                    <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+                                </div>
+                                <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
+                                    <div className="flex mb-[32px]">
+                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                            <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
+                                        </div>
+                                        <div className="pl-[20px]">
+                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
+                                            <p className="text-[#181818]">99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex mb-[32px]">
+                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                            <PhoneEnabledOutlinedIcon style={{ fontSize: "2.5rem" }} />
+                                        </div>
+                                        <div className="pl-[20px]">
+                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
+                                            <p className="text-[#181818]">096 768 13 28</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex mb-[32px]">
+                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                            <MailOutlineOutlinedIcon style={{ fontSize: "2.5rem" }} />
+                                        </div>
+                                        <div className="pl-[20px]">
+                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
+                                            <p className="text-[#181818]">teddypet@gmail.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <iframe
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
+                                    width="100%"
+                                    height="100%"
+                                    loading="lazy"
+                                />
+                            </div>
                         </div>
-                        <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
-                            <div className="flex mb-[32px]">
-                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                    <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
-                                </div>
-                                <div className="pl-[20px]">
-                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
-                                    <p className="text-[#181818]">99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam</p>
-                                </div>
-                            </div>
-                            <div className="flex mb-[32px]">
-                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                    <PhoneEnabledOutlinedIcon style={{ fontSize: "2.5rem" }} />
-                                </div>
-                                <div className="pl-[20px]">
-                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
-                                    <p className="text-[#181818]">096 768 13 28</p>
-                                </div>
-                            </div>
-                            <div className="flex mb-[32px]">
-                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                    <MailOutlineOutlinedIcon style={{ fontSize: "2.5rem" }} />
-                                </div>
-                                <div className="pl-[20px]">
-                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
-                                    <p className="text-[#181818]">teddypet@gmail.com</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex-1">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
-                            width="100%"
-                            height="100%"
-                            loading="lazy"
-                        />
-                    </div>
-                </div>
 
-                <FooterSub />
+                        <FooterSub />
+                    </>
+                )}
             </>
         </LocalizationProvider>
     );

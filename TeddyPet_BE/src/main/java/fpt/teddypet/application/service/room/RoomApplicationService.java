@@ -66,16 +66,19 @@ public class RoomApplicationService implements RoomService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RoomResponse getById(Long id) {
         return roomMapper.toResponse(getEntityById(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomResponse> getAll(Long roomTypeId) {
         return getAll(roomTypeId, null);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomResponse> getAll(Long roomTypeId, Long roomLayoutConfigId) {
         List<Room> list;
         if (roomLayoutConfigId != null) {

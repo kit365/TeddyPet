@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { useCartStore } from "../../../stores/useCartStore";
@@ -18,6 +18,7 @@ export const CartPage = () => {
     const toggleAll = useCartStore((state) => state.toggleAll);
     const totalAmountChecked = useCartStore((state) => state.totalAmountChecked());
     const syncWithBackend = useCartStore((state) => state.syncWithBackend);
+    const setBuyNowItem = useCartStore((state) => state.setBuyNowItem);
 
     useEffect(() => {
         syncWithBackend(true);
@@ -271,6 +272,7 @@ export const CartPage = () => {
                                     {/* Checkout Button */}
                                     <Link
                                         to="/checkout"
+                                        onClick={() => setBuyNowItem(null)}
                                         className={`block w-full py-[16px] px-[30px] text-white font-secondary text-center rounded-[50px] transition-default ${selectedItemsData.length > 0
                                             ? 'bg-client-primary hover:bg-client-secondary cursor-pointer'
                                             : 'bg-gray-300 cursor-not-allowed pointer-events-none'

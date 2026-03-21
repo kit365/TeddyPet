@@ -1,0 +1,14 @@
+---
+description: Quy ước tạo file Flyway SQL cho TeddyPet_BE để tránh trùng version
+globs: TeddyPet_BE/src/main/resources/db/migration/**/*.sql
+alwaysApply: false
+---
+
+# Flyway migrations (TeddyPet BE)
+
+- **New migrations** (after existing sequential `V1`…`V13` in repo): use **timestamp version** in the filename to avoid duplicate versions across branches:
+  - `V{yyyyMMddHHmmss}__short_snake_case_description.sql`
+  - Example: `V20260321143000__add_index_on_bookings_status.sql`
+- Put an optional first-line comment in the SQL file with human creation date / ticket, e.g. `-- Created: 2026-03-21 | EXE-123`.
+- Do **not** rename or change the version prefix of migrations already applied in shared environments.
+- See `TeddyPet_BE/src/main/resources/db/migration/README.md` for full convention (Vietnamese).

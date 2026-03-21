@@ -27,6 +27,11 @@
                                 <p style="margin: 8px 0 0; font-size: 13px; color: #558b2f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Số tiền này sẽ được chuyển vào tài khoản ngân hàng của bạn trong 3-5 ngày làm việc.</p>
                             </div>
 
+                            <div th:if="${adminResponse != null and !#strings.isEmpty(adminResponse)}" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                                <p style="margin: 0 0 8px; font-size: 13px; color: #64748b; font-weight: 600; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Phản hồi từ TeddyPet</p>
+                                <p style="margin: 0; color: #334155; white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;" th:text="${adminResponse}"></p>
+                            </div>
+
                             <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Cảm ơn bạn đã sử dụng dịch vụ của <strong style="color: #4f46e5;" th:text="${appName}">TeddyPet</strong>. Chúng tôi rất mong được phục vụ bạn trong những lần tiếp theo.</p>
 
                             <div style="text-align: center; margin: 30px 0;">

@@ -5,12 +5,13 @@ import { useEmployeeDashboard } from "../../../hooks/useEmployeeDashboard";
 import { StatusHeader } from "../../../components/staff/dashboard/StatusHeader";
 import { CareTaskList } from "../../../components/staff/dashboard/CareTaskList";
 import { SpaTaskList } from "../../../components/staff/dashboard/SpaTaskList";
-import type { EmployeeTask, EmployeeUser } from "../../../types/employeeDashboard";
+import type { EmployeeUser } from "../../../types/employeeDashboard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyStaffProfile } from "../../../api/staffProfile.api";
 // removed unused CheckSquare, Plus
 import { toast } from "react-toastify";
 import { getStaffStats } from "../../../api/dashboard.api";
+import { getTodayStaffTasks } from "../../../api/staffTask.api";
 import { useEffect } from "react";
 import WelcomeWidget from "../../../components/dashboard/WelcomeWidget";
 import SummaryWidget from "../../../components/dashboard/SummaryWidget";
@@ -19,41 +20,7 @@ import SystemAlerts from "../../../components/dashboard/SystemAlerts";
 
 // removed StaffPerformanceChart
 
-const mockTasks: EmployeeTask[] = [
-    {
-        id: 1,
-        type: "CARE",
-        title: "Dọn chuồng & cho ăn sáng",
-        description: "Dọn sạch chuồng, thay nước, cho ăn sáng đầy đủ.",
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-        cageNumber: "C-12",
-        petName: "Milu",
-        petSpecies: "Chó Poodle",
-        notes: null,
-        scheduledStart: null,
-        scheduledEnd: null,
-        startedAt: null,
-        finishedAt: null,
-    },
-    {
-        id: 2,
-        type: "SPA",
-        title: "Combo tắm & cắt tỉa lông",
-        description: "Gói combo tiêu chuẩn cho thú cưng lần đầu đến spa.",
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-        petName: "Miu",
-        petSpecies: "Mèo Anh lông ngắn",
-        serviceType: "COMBO",
-        bookingTime: new Date().toISOString(),
-        durationMinutes: 60,
-        scheduledStart: null,
-        scheduledEnd: null,
-        startedAt: null,
-        finishedAt: null,
-    },
-];
+// Removed mock tasks
 
 export const EmployeeDashboardPage = () => {
     const { data: myProfileRes, isLoading: loadingProfile } = useQuery({
@@ -61,6 +28,12 @@ export const EmployeeDashboardPage = () => {
         queryFn: getMyStaffProfile,
     });
     const myProfile = myProfileRes?.data;
+
+    const { data: todayTasksRes, isLoading: loadingTasks } = useQuery({
+        queryKey: ["staff-today-tasks"],
+        queryFn: getTodayStaffTasks,
+    });
+    const serverTasks = todayTasksRes?.data || [];
 
     const initialUser: EmployeeUser | null = myProfile
         ? {
@@ -100,7 +73,7 @@ export const EmployeeDashboardPage = () => {
             todayCheckedIn: false,
             globalStatus: "OFF",
         },
-        initialTasks: mockTasks,
+        initialTasks: serverTasks,
     });
 
     const queryClient = useQueryClient();
@@ -139,7 +112,7 @@ export const EmployeeDashboardPage = () => {
         toast.success("Đã mở tạo nhiệm vụ (sẽ tích hợp sau).");
     };
 
-    if (loadingProfile || !myProfile) {
+    if (loadingProfile || loadingTasks || !myProfile) {
         return (
             <>
                 <ListHeader
@@ -152,7 +125,7 @@ export const EmployeeDashboardPage = () => {
                 />
                 <div className="w-full min-h-screen bg-gray-50/50 p-6 sm:p-10">
                     <div className="w-full rounded-2xl border border-gray-100 bg-white px-6 py-6 text-base text-slate-500 shadow-sm">
-                        Đang tải thông tin nhân viên...
+                        Đang tải thông tin bảng điều khiển...
                     </div>
                 </div>
             </>

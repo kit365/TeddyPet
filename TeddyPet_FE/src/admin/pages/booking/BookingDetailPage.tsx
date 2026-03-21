@@ -179,6 +179,13 @@ export const BookingDetailPage = () => {
     return activeServices.length + activeItems.length;
   }, [booking?.pets]);
 
+  const allActiveServicesCompleted = useMemo(() => {
+    const services = (booking?.pets ?? []).flatMap((p) => p.services ?? []);
+    const active = services.filter((s) => (s?.status ?? "").toUpperCase() !== "CANCELLED");
+    if (active.length === 0) return false;
+    return active.every((s) => (s?.status ?? "").toUpperCase() === "COMPLETED");
+  }, [booking?.pets]);
+
   const canCancelLineItem = activeLineItems > 1;
 
   const openCancelDialog = (target: { type: "service" | "item"; id: number; label: string }) => {
@@ -475,15 +482,19 @@ export const BookingDetailPage = () => {
             >
               {actionLoading ? "Đang xử lý..." : "Check-in"}
             </Button>
-            <Button
-              variant="contained"
-              color="success"
-              disabled={actionLoading || booking.status === "CANCELLED"}
-              sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
-              onClick={() => openCheckOutDialog()}
-            >
-              {actionLoading ? "Đang xử lý..." : "Check-out"}
-            </Button>
+            {allActiveServicesCompleted &&
+              !booking.bookingCheckOutDate &&
+              booking.status !== "CANCELLED" &&
+              !actionLoading && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
+                  onClick={() => openCheckOutDialog()}
+                >
+                  Check-out
+                </Button>
+              )}
           </Box>
 
           {/* Dialog: Check-in + xác nhận loại thú / cân nặng + preview chênh lệch giá */}
@@ -1206,7 +1217,19 @@ export const BookingDetailPage = () => {
                 <TableBody>
                   {allServices.map(({ service, petName, petId }) => (
                     <TableRow key={service.id}>
-                      <TableCell sx={{ fontSize: "0.9375rem", fontWeight: 600, py: 2 }}>{service.serviceName ?? `#${service.id}`}</TableCell>
+                      <TableCell sx={{ fontSize: "0.9375rem", fontWeight: 600, py: 2 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                          <span>{service.serviceName ?? `#${service.id}`}</span>
+                          {service.isRequiredRoom && service.isOverCheckOutDue ? (
+                            <Chip
+                              size="small"
+                              label="Quá hạn trả phòng"
+                              color="warning"
+                              sx={{ fontWeight: 700, fontSize: "0.75rem" }}
+                            />
+                          ) : null}
+                        </Stack>
+                      </TableCell>
                       <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>{petName}</TableCell>
                       <TableCell sx={{ fontSize: "0.9375rem", py: 2 }}>
                         {formatDateTime(service.scheduledStartTime)} –{" "}
