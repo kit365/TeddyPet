@@ -419,6 +419,8 @@ export const OrderList = () => {
     const localeText = useDataGridLocale();
 
     const handleTabChange = (_: any, newValue: string) => {
+        // Reset keyword so status tab has immediate effect (avoid "bấm tab không thấy đổi").
+        setKeyword('');
         setStatus(newValue);
         setPage(0);
     };

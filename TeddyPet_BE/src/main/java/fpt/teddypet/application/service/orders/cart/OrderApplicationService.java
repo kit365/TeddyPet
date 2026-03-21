@@ -458,15 +458,23 @@ public class OrderApplicationService implements OrderService {
 
             // Chỉ bắt buộc hoàn tất thanh toán nếu đơn hàng có hình thức thanh toán là BANK_TRANSFER.
             // Nếu đơn hàng là COD (CASH), cho phép bắt đầu đóng gói ngay.
+            //
+            // Lưu ý: cùng một đơn có thể phát sinh nhiều record `Payment` (ví dụ bấm tạo lại link PayOS),
+            // webhook sẽ chỉ "complete" đúng record khớp transactionId mới nhất.
+            // Vì vậy chỉ cần "có ít nhất 1" payment BANK_TRANSFER (ORDER_PAYMENT) đã COMPLETED là cho phép chuyển PROCESSING.
             boolean hasBankTransfer = order.getPayments().stream()
-                    .anyMatch(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER);
+                    .anyMatch(p ->
+                            p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER
+                                    && p.getPaymentType() == PaymentTypeEnum.ORDER_PAYMENT);
 
             if (hasBankTransfer) {
-                boolean allBankTransfersCompleted = order.getPayments().stream()
-                        .filter(p -> p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER)
-                        .allMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
+                boolean anyBankTransferCompleted = order.getPayments().stream()
+                        .filter(p ->
+                                p.getPaymentMethod() == PaymentMethodEnum.BANK_TRANSFER
+                                        && p.getPaymentType() == PaymentTypeEnum.ORDER_PAYMENT)
+                        .anyMatch(p -> p.getStatus() == PaymentStatusEnum.COMPLETED);
 
-                if (!allBankTransfersCompleted) {
+                if (!anyBankTransferCompleted) {
                     throw new IllegalStateException(
                             "Đơn hàng thanh toán online qua chuyển khoản chưa được PayOS xác nhận. Vui lòng đợi khách hàng thanh toán (tối đa 10 phút) hoặc kiểm tra lại giao dịch.");
                 }
