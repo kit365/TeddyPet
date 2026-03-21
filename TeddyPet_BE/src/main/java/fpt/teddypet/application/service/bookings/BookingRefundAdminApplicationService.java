@@ -6,7 +6,9 @@ import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.service.dashboard.DashboardService;
 import fpt.teddypet.application.util.SecurityUtil;
 import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.BookingPaymentTransaction;
 import fpt.teddypet.domain.entity.BookingRefund;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPaymentTransactionRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRefundRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
@@ -30,6 +32,7 @@ public class BookingRefundAdminApplicationService {
     private final BookingRepository bookingRepository;
     private final EmailServicePort emailServicePort;
     private final BookingDepositRepository bookingDepositRepository;
+    private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
     private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final DashboardService dashboardService;
 
@@ -75,6 +78,21 @@ public class BookingRefundAdminApplicationService {
                 }
             });
             timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+
+            // Tạo bản ghi lịch sử giao dịch cho nghiệp vụ hoàn cọc
+            BookingPaymentTransaction refundTx = BookingPaymentTransaction.builder()
+                    .bookingId(booking.getId())
+                    .transactionType("REFUND")
+                    .amount(refund.getRequestedAmount())
+                    .paymentMethod("BANK_TRANSFER")
+                    .transactionReference(request.refundTransactionId())
+                    .paidByName(booking.getCustomerName())
+                    .paidAt(LocalDateTime.now())
+                    .receivedBy(adminId)
+                    .status("COMPLETED")
+                    .note("Hoàn lại tiền đặt cọc")
+                    .build();
+            bookingPaymentTransactionRepository.save(refundTx);
         } else {
             refund.setStatus("REJECTED");
             booking.setCancelRequested(false);

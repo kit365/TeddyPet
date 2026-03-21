@@ -3,6 +3,7 @@ package fpt.teddypet.application.port.input.staff;
 import fpt.teddypet.application.dto.request.staff.OpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
@@ -89,4 +90,13 @@ public interface WorkShiftService {
 
     /** Admin: Hủy xếp ca – xóa bản ghi đăng ký (PENDING hoặc APPROVED) để nhả slot. */
     void cancelAdminRegistration(Long shiftId, Long registrationId);
+
+    /** Admin: Lấy danh sách booking_pet_service đủ điều kiện để kéo vào ca và danh sách chờ theo tuần đang xem. */
+    WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(LocalDateTime from, LocalDateTime to);
+
+    /** Admin: Gán booking_pet_service vào ca bằng scheduledStartTime/scheduledEndTime của ca OPEN. */
+    void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId);
+
+    /** Admin: Bỏ gán booking_pet_service khỏi ca (clear scheduledStartTime/scheduledEndTime). */
+    void unassignBookingPetService(Long bookingPetServiceId);
 }

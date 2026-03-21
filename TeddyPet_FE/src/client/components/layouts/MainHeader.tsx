@@ -310,6 +310,12 @@ export const MainHeader = () => {
                                     <Link to="/dashboard/profile" className="block px-[20px] py-[10px] text-[0.875rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
                                         Hồ sơ cá nhân
                                     </Link>
+                                    <Link to="/dashboard/orders" className="block px-[20px] py-[10px] text-[0.875rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
+                                        Lịch sử đơn hàng
+                                    </Link>
+                                    <Link to="/dashboard/bookings" className="block px-[20px] py-[10px] text-[0.875rem] text-client-text hover:bg-gray-50 hover:text-client-primary transition-colors">
+                                        Lịch sử đặt lịch
+                                    </Link>
                                     <div
                                         onClick={handleLogout}
                                         className="block px-[20px] py-[10px] text-[0.875rem] text-red-500 hover:bg-red-50 cursor-pointer transition-colors"

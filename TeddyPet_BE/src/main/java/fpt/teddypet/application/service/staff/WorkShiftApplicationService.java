@@ -5,6 +5,8 @@ import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
 import fpt.teddypet.application.dto.response.staff.RoleSlotInfoResponse;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServiceItemResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 import fpt.teddypet.application.port.input.staff.WorkShiftService;
@@ -15,6 +17,8 @@ import fpt.teddypet.application.port.output.staff.StaffProfileRepositoryPort;
 import fpt.teddypet.application.port.output.staff.WorkShiftRegistrationRepositoryPort;
 import fpt.teddypet.application.port.output.staff.WorkShiftRepositoryPort;
 import fpt.teddypet.domain.entity.staff.ShiftRoleConfig;
+import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.staff.StaffFixedSchedule;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
 import fpt.teddypet.domain.entity.staff.StaffPosition;
@@ -35,6 +39,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -56,6 +61,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
     private final StaffFixedScheduleRepositoryPort staffFixedScheduleRepositoryPort;
     private final StaffPositionRepositoryPort staffPositionRepositoryPort;
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
+    private final BookingPetServiceRepository bookingPetServiceRepository;
 
     /**
      * Template định mức cơ bản cho một ca theo 3 nhóm vai trò:
@@ -862,5 +868,74 @@ public class WorkShiftApplicationService implements WorkShiftService {
         }
         reg.setStatus(RegistrationStatus.REJECTED);
         registrationRepositoryPort.save(reg);
+    }
+
+    @Override
+    public WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(LocalDateTime from, LocalDateTime to) {
+        if (from == null || to == null) {
+            return new WorkShiftBookingPetServicePoolResponse(List.of(), List.of());
+        }
+        LocalDate weekStart = from.toLocalDate();
+        LocalDate weekEnd = to.toLocalDate();
+        List<WorkShiftBookingPetServiceItemResponse> inWeek = new ArrayList<>();
+        List<WorkShiftBookingPetServiceItemResponse> waiting = new ArrayList<>();
+
+        for (BookingPetService bps : bookingPetServiceRepository.findAssignableForWorkShift()) {
+            Booking booking = bps.getBookingPet() != null ? bps.getBookingPet().getBooking() : null;
+            if (booking == null) continue;
+
+            LocalDate bookingDateFrom = booking.getBookingDateFrom();
+            WorkShiftBookingPetServiceItemResponse item = new WorkShiftBookingPetServiceItemResponse(
+                    bps.getId(),
+                    booking.getBookingCode(),
+                    booking.getId(),
+                    booking.getCustomerName(),
+                    bps.getBookingPet() != null ? bps.getBookingPet().getPetName() : null,
+                    bps.getServiceCombo() != null
+                            ? bps.getServiceCombo().getComboName()
+                            : (bps.getService() != null ? bps.getService().getServiceName() : null),
+                    bookingDateFrom,
+                    bps.getScheduledStartTime(),
+                    bps.getScheduledEndTime()
+            );
+
+            if (bookingDateFrom != null && !bookingDateFrom.isBefore(weekStart) && !bookingDateFrom.isAfter(weekEnd)) {
+                inWeek.add(item);
+            } else {
+                waiting.add(item);
+            }
+        }
+
+        return new WorkShiftBookingPetServicePoolResponse(inWeek, waiting);
+    }
+
+    @Override
+    @Transactional
+    public void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId) {
+        WorkShift shift = getShiftOrThrow(shiftId);
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "gán booking_pet_service vào ca");
+        }
+        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId)) {
+            throw new IllegalStateException("booking_pet_service không đủ điều kiện để xếp ca.");
+        }
+        BookingPetService bps = bookingPetServiceRepository.findById(bookingPetServiceId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking_pet_service #" + bookingPetServiceId));
+        bps.setScheduledStartTime(shift.getStartTime());
+        bps.setScheduledEndTime(shift.getEndTime());
+        bookingPetServiceRepository.save(bps);
+    }
+
+    @Override
+    @Transactional
+    public void unassignBookingPetService(Long bookingPetServiceId) {
+        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId)) {
+            throw new IllegalStateException("booking_pet_service không đủ điều kiện thao tác.");
+        }
+        BookingPetService bps = bookingPetServiceRepository.findById(bookingPetServiceId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking_pet_service #" + bookingPetServiceId));
+        bps.setScheduledStartTime(null);
+        bps.setScheduledEndTime(null);
+        bookingPetServiceRepository.save(bps);
     }
 }

@@ -13,4 +13,6 @@ public interface PetProfileRepository extends JpaRepository<PetProfile, Long> {
     List<PetProfile> findByUserId(UUID userId);
 
     Optional<PetProfile> findByIdAndUserId(Long id, UUID userId);
+
+    boolean existsByUserIdAndNameIgnoreCaseAndPetType(UUID userId, String name, fpt.teddypet.domain.enums.PetTypeEnum petType);
 }

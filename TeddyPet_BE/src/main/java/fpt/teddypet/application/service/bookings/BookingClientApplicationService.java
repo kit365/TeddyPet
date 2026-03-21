@@ -1068,6 +1068,12 @@ public class BookingClientApplicationService implements BookingClientService {
      * DB.
      */
     private fpt.teddypet.domain.entity.User ensureUserForBooking(CreateBookingRequest request) {
+        if (request.bookingType() != null
+                && fpt.teddypet.domain.enums.bookings.BookingTypeEnum.WALK_IN.name()
+                .equalsIgnoreCase(request.bookingType().trim())) {
+            return null;
+        }
+
         String email = request.customerEmail();
         if (email == null || email.isBlank()) {
             return null;

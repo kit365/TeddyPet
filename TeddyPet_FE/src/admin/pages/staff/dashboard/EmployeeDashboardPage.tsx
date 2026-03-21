@@ -105,8 +105,6 @@ export const EmployeeDashboardPage = () => {
     }, [queryClient, refetchStaffStats]);
 
     const activeTasks = [...pendingTasks, ...inProgressTasks];
-    const careTasks = activeTasks.filter((t) => t.type === "CARE");
-    const spaTasks = activeTasks.filter((t) => t.type === "SPA");
 
     const handleAddTask = () => {
         toast.success("Đã mở tạo nhiệm vụ (sẽ tích hợp sau).");
@@ -292,13 +290,13 @@ export const EmployeeDashboardPage = () => {
                     
                     {user.role === "CARE" ? (
                         <CareTaskList
-                            tasks={careTasks as any}
+                            tasks={activeTasks as any}
                             onStart={startTask}
                             onFinish={finishTask}
                         />
                     ) : (
                         <SpaTaskList
-                            tasks={spaTasks as any}
+                            tasks={activeTasks as any}
                             onStart={startTask}
                             onFinish={finishTask}
                         />

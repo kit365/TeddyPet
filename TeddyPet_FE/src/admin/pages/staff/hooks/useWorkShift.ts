@@ -15,6 +15,9 @@ import {
     runAutoFillForShift,
     finalizeShiftApprovals,
     cancelAdminRegistration,
+    getAssignableBookingPetServices,
+    assignBookingPetServiceToShift,
+    unassignBookingPetService,
     getAvailableShifts,
     getShiftsForAdminByDateRange,
     registerForShift,
@@ -221,6 +224,35 @@ export const useShiftsForAdmin = (from?: string | null, to?: string | null) => {
         queryFn: () => getShiftsForAdminByDateRange(from, to),
         select: (res: ApiResponse<any>) => res.data ?? [],
         staleTime: 2 * 60 * 1000, // 2 phút: vào lại trang không refetch, dùng cache
+    });
+};
+
+export const useAssignableBookingPetServices = (from?: string | null, to?: string | null) => {
+    return useQuery({
+        queryKey: ['work-shift-booking-pet-services', from, to],
+        queryFn: () => getAssignableBookingPetServices(from, to),
+        select: (res: ApiResponse<any>) => res.data ?? { inWeek: [], waiting: [] },
+    });
+};
+
+export const useAssignBookingPetServiceToShift = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ shiftId, bookingPetServiceId }: { shiftId: number; bookingPetServiceId: number }) =>
+            assignBookingPetServiceToShift(shiftId, bookingPetServiceId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
+        },
+    });
+};
+
+export const useUnassignBookingPetService = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (bookingPetServiceId: number) => unassignBookingPetService(bookingPetServiceId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
+        },
     });
 };
 

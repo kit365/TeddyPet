@@ -53,6 +53,8 @@ public interface BookingAdminService {
 
     BookingPaymentTransactionResponse addPaymentTransaction(Long bookingId, CreateBookingPaymentTransactionRequest request);
 
+    String createPayosPaymentLink(Long bookingId, String returnUrl);
+
     List<BookingPaymentTransactionResponse> getPaymentTransactions(Long bookingId);
 
     /** Danh sách giao dịch chi tiết: cọc (booking_deposits) + thanh toán hóa đơn (booking_payment_transactions), sắp xếp theo thời gian. */
