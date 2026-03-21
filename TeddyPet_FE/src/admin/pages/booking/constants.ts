@@ -19,6 +19,8 @@ export const BOOKING_SERVICE_LABELS: Record<string, string> = {
   HOTEL_DOG: "Khách sạn cho chó",
   HOTEL_CAT: "Khách sạn cho mèo",
   SPA_CARE: "Spa & Chăm sóc thú cưng",
+  WALK_IN: "Tại quầy",
+  ONLINE: "Online",
 };
 
 export const PAYMENT_STATUS_OPTIONS: { label: string; value: PaymentStatus; color: string }[] = [

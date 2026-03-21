@@ -2,6 +2,7 @@ package fpt.teddypet.presentation.controller.feedback;
 
 import fpt.teddypet.application.constants.feedback.FeedbackMessages;
 import fpt.teddypet.application.dto.request.feedback.FeedbackRequest;
+import fpt.teddypet.application.dto.response.feedback.BookingReviewResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackTokenResponse;
 import fpt.teddypet.application.dto.common.ApiResponse;
@@ -101,5 +102,19 @@ public class FeedbackController {
     @Operation(summary = "Lấy thống kê đánh giá (Admin)", description = "Lấy các chỉ số thống kê về đánh giá/feedback.")
     public ResponseEntity<ApiResponse<fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse>> getFeedbackStats() {
         return ResponseEntity.ok(ApiResponse.success(feedbackService.getFeedbackStats()));
+    }
+
+    @GetMapping("/bookings")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @Operation(summary = "Lấy danh sách đánh giá booking", description = "Lấy danh sách đánh giá cho dịch vụ đặt lịch/booking.")
+    public ResponseEntity<ApiResponse<List<BookingReviewResponse>>> getBookingReviews() {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.getAllBookingReviews()));
+    }
+
+    @GetMapping("/bookings/stats")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @Operation(summary = "Lấy thống kê đánh giá booking", description = "Lấy các chỉ số thống kê review booking.")
+    public ResponseEntity<ApiResponse<fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse>> getBookingReviewStats() {
+        return ResponseEntity.ok(ApiResponse.success(feedbackService.getBookingReviewStats()));
     }
 }

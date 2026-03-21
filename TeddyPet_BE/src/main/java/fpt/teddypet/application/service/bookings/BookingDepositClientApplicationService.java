@@ -20,6 +20,7 @@ import fpt.teddypet.domain.entity.BookingDeposit;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
+import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
@@ -62,6 +63,10 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     public CreateBookingDepositIntentResponse createDepositIntent(CreateBookingRequest request) {
         if (request.pets() == null || request.pets().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất một thú cưng và dịch vụ.");
+        }
+        if (request.bookingType() != null
+                && BookingTypeEnum.WALK_IN.name().equalsIgnoreCase(request.bookingType().trim())) {
+            throw new IllegalArgumentException("Đặt lịch tại quầy không áp dụng giữ chỗ/thanh toán cọc.");
         }
 
         // validate service active (main + add-on)
@@ -294,10 +299,16 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                             .orElseThrow(
                                     () -> new EntityNotFoundException("Không tìm thấy phòng với id: " + sr.roomId()));
                     if (room.getStatus() != RoomStatusEnum.AVAILABLE) {
-                        throw new BookingValidationException(
-                                BookingValidationException.ROOM_ALREADY_BOOKED,
-                                "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
-                                petIdx, svcIdx, svcIdx > 0, sr.roomId());
+                        if (room.getStatus() == RoomStatusEnum.OCCUPIED
+                                && !bookingPetServiceRepository.existsActiveAssignmentForRoom(sr.roomId())) {
+                            room.setStatus(RoomStatusEnum.AVAILABLE);
+                            roomRepositoryPort.save(room);
+                        } else {
+                            throw new BookingValidationException(
+                                    BookingValidationException.ROOM_ALREADY_BOOKED,
+                                    "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
+                                    petIdx, svcIdx, svcIdx > 0, sr.roomId());
+                        }
                     }
                     room.setStatus(RoomStatusEnum.OCCUPIED);
                     roomRepositoryPort.save(room);

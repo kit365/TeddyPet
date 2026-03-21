@@ -22,11 +22,13 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
     private final ServiceRepository serviceRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomLayoutConfigResponse> getAll() {
         return repositoryPort.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomLayoutConfigResponse> getAll(Long serviceId, String status) {
         if (serviceId == null) {
             return getAll();
@@ -46,6 +48,7 @@ public class RoomLayoutConfigApplicationService implements RoomLayoutConfigServi
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RoomLayoutConfigResponse getById(Long id) {
         return toResponse(getEntityById(id));
     }

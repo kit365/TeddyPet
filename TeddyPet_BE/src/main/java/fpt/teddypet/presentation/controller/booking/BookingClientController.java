@@ -5,8 +5,10 @@ import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
 import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
+import fpt.teddypet.application.dto.response.bookings.BookingRefundResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
+import fpt.teddypet.application.service.bookings.BookingRefundClientApplicationService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(ApiConstants.API_BOOKINGS)
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class BookingClientController {
 
     private final BookingClientService bookingClientService;
+    private final BookingRefundClientApplicationService bookingRefundClientApplicationService;
 
     @PostMapping
     @Operation(summary = "Tạo booking từ form đặt lịch của khách hàng (client)")
@@ -38,6 +43,14 @@ public class BookingClientController {
     @Operation(summary = "Tra cứu đơn đặt lịch theo mã (client)")
     public ResponseEntity<ApiResponse<ClientBookingDetailResponse>> getByCode(@PathVariable String bookingCode) {
         ClientBookingDetailResponse data = bookingClientService.getClientBookingDetailByCode(bookingCode);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/code/{bookingCode}/refunds")
+    @Operation(summary = "Lịch sử yêu cầu hoàn tiền theo mã đặt lịch (public, không cần đăng nhập)")
+    public ResponseEntity<ApiResponse<List<BookingRefundResponse>>> listRefundsByBookingCode(
+            @PathVariable String bookingCode) {
+        List<BookingRefundResponse> data = bookingRefundClientApplicationService.listRefundsByBookingCodePublic(bookingCode);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 

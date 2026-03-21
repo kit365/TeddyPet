@@ -1,7 +1,9 @@
 package fpt.teddypet.application.port.input.feedback;
 
 import fpt.teddypet.application.dto.request.feedback.FeedbackRequest;
+import fpt.teddypet.application.dto.response.feedback.BookingReviewResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackResponse;
+import fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackTokenResponse;
 
 import java.util.List;
@@ -31,6 +33,10 @@ public interface FeedbackService {
     List<FeedbackResponse> getMyFeedbacks();
 
     fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse getFeedbackStats();
+
+    List<BookingReviewResponse> getAllBookingReviews();
+
+    FeedbackStatsResponse getBookingReviewStats();
 
     void sendFeedbackEmailsForOrder(UUID orderId);
 }

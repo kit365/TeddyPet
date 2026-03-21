@@ -3,9 +3,13 @@ import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import { prefixAdmin } from "../../../admin/constants/routes";
+
+type BookingPageMode = "client" | "admin-counter";
 
 export interface BookingStep1FormData {
     fullName: string;
@@ -23,7 +27,12 @@ const defaultFormData: BookingStep1FormData = {
     message: "",
 };
 
-export const BookingPage = () => {
+type BookingPageProps = {
+    mode?: BookingPageMode;
+    nextPath?: string;
+};
+
+export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => {
     const navigate = useNavigate();
     const location = useLocation();
     // Preserve existing draft data if user navigates back from step 2
@@ -54,14 +63,145 @@ export const BookingPage = () => {
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
-        navigate("/dat-lich/chi-tiet", {
+        navigate(nextPath ?? "/dat-lich/chi-tiet", {
             state: {
                 ...formData,
                 bookingDraft: rawState?.bookingDraft,
-                bookingCodeForEdit: rawState?.bookingCodeForEdit
+                bookingCodeForEdit: rawState?.bookingCodeForEdit,
+                bookingMode: mode,
             }
         });
     };
+
+    const step1ContactForm = (
+        <form
+            onSubmit={handleNext}
+            className="w-full max-w-[520px] bg-white rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-[#eee] overflow-hidden"
+        >
+            <div className="bg-gradient-to-r from-[#ffbaa0]/20 to-[#e67e2026] px-[32px] py-[24px] border-b border-[#eee]">
+                <div className="flex items-center gap-3">
+                    <div className="w-[48px] h-[48px] rounded-full bg-[#ffbaa0]/30 flex items-center justify-center">
+                        <PersonOutlineOutlinedIcon sx={{ fontSize: 28, color: "#c45a3a" }} />
+                    </div>
+                    <div>
+                        <h3 className="text-[1.25rem] font-[700] text-[#181818]">Thông tin liên hệ</h3>
+                        <p className="text-[0.875rem] text-[#505050] mt-[4px]">Phần 1/3 — Thông tin cơ bản khách hàng</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-[32px] space-y-[24px]">
+                <div>
+                    <label htmlFor="fullname" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
+                        Họ và tên <span className="text-[#e67e20]">*</span>
+                    </label>
+                    <input
+                        id="fullname"
+                        type="text"
+                        placeholder="Nguyễn Văn A"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        required
+                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-[20px]">
+                    <div>
+                        <label htmlFor="email" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
+                            Email <span className="text-[#e67e20]">*</span>
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            placeholder="email@example.com"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="phone" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
+                            Số điện thoại <span className="text-[#e67e20]">*</span>
+                        </label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            placeholder="0900 000 000"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            required
+                            className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
+                        Địa chỉ
+                    </label>
+                    <input
+                        id="address"
+                        type="text"
+                        placeholder="Số nhà, đường, phường/xã, quận/huyện..."
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
+                    />
+                </div>
+
+                <div>
+                    <label htmlFor="message" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
+                        Lời nhắn
+                    </label>
+                    <textarea
+                        id="message"
+                        name="message"
+                        maxLength={2000}
+                        placeholder="Ghi chú hoặc yêu cầu đặc biệt (nếu có)..."
+                        rows={4}
+                        value={formData.message}
+                        onChange={handleChange}
+                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px] resize-none"
+                    />
+                    <p className="text-[0.75rem] text-[#888] mt-[6px]">{formData.message.length}/2000</p>
+                </div>
+
+                <div className="pt-[8px]">
+                    <button
+                        type="submit"
+                        className="w-full py-[16px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1rem] transition-colors duration-200 shadow-sm hover:shadow-md"
+                    >
+                        Tiếp theo
+                    </button>
+                </div>
+            </div>
+        </form>
+    );
+
+    if (mode === "admin-counter") {
+        return (
+            <div className="min-h-screen bg-[#fbfbf9]">
+                <div className="app-container px-4 sm:px-6 lg:px-8 pt-6 pb-16">
+                    <Link
+                        to={`/${prefixAdmin}/booking/list`}
+                        className="inline-flex items-center gap-2 text-[0.9375rem] font-[600] text-[#c45a3a] hover:text-[#a04330] transition-colors"
+                    >
+                        <ArrowBackIosNewIcon sx={{ fontSize: 18 }} aria-hidden />
+                        Quay lại danh sách đặt lịch
+                    </Link>
+                    <div ref={formSectionRef} className="flex justify-center pt-8">
+                        {step1ContactForm}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -138,114 +278,7 @@ export const BookingPage = () => {
                 </div>
 
                 <div ref={formSectionRef} className="w-[50%] px-[30px] py-[50px] flex justify-start">
-                    <form
-                        onSubmit={handleNext}
-                        className="w-full max-w-[520px] bg-white rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-[#eee] overflow-hidden"
-                    >
-                        <div className="bg-gradient-to-r from-[#ffbaa0]/20 to-[#e67e2026] px-[32px] py-[24px] border-b border-[#eee]">
-                            <div className="flex items-center gap-3">
-                                <div className="w-[48px] h-[48px] rounded-full bg-[#ffbaa0]/30 flex items-center justify-center">
-                                    <PersonOutlineOutlinedIcon sx={{ fontSize: 28, color: "#c45a3a" }} />
-                                </div>
-                                <div>
-                                    <h3 className="text-[1.25rem] font-[700] text-[#181818]">Thông tin liên hệ</h3>
-                                    <p className="text-[0.875rem] text-[#505050] mt-[4px]">Phần 1/3 — Thông tin cơ bản khách hàng</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-[32px] space-y-[24px]">
-                            <div>
-                                <label htmlFor="fullname" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                                    Họ và tên <span className="text-[#e67e20]">*</span>
-                                </label>
-                                <input
-                                    id="fullname"
-                                    type="text"
-                                    placeholder="Nguyễn Văn A"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-[20px]">
-                                <div>
-                                    <label htmlFor="email" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                                        Email <span className="text-[#e67e20]">*</span>
-                                    </label>
-                                    <input
-                                        id="email"
-                                        type="email"
-                                        placeholder="email@example.com"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="phone" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                                        Số điện thoại <span className="text-[#e67e20]">*</span>
-                                    </label>
-                                    <input
-                                        id="phone"
-                                        type="tel"
-                                        placeholder="0900 000 000"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                                    Địa chỉ
-                                </label>
-                                <input
-                                    id="address"
-                                    type="text"
-                                    placeholder="Số nhà, đường, phường/xã, quận/huyện..."
-                                    name="address"
-                                    value={formData.address}
-                                    onChange={handleChange}
-                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px]"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="message" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                                    Lời nhắn
-                                </label>
-                                <textarea
-                                    id="message"
-                                    name="message"
-                                    maxLength={2000}
-                                    placeholder="Ghi chú hoặc yêu cầu đặc biệt (nếu có)..."
-                                    rows={4}
-                                    value={formData.message}
-                                    onChange={handleChange}
-                                    className="w-full py-[14px] px-[20px] text-[0.9375rem] text-[#181818] outline-none border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 transition-all duration-200 rounded-[12px] resize-none"
-                                />
-                                <p className="text-[0.75rem] text-[#888] mt-[6px]">{formData.message.length}/2000</p>
-                            </div>
-
-                            <div className="pt-[8px]">
-                                <button
-                                    type="submit"
-                                    className="w-full py-[16px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] font-[600] text-[1rem] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                >
-                                    Tiếp theo
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                    {step1ContactForm}
                 </div>
             </div>
 

@@ -7,12 +7,13 @@ spring:
   application:
     name: teddypet
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   jackson:
     time-zone: Asia/Ho_Chi_Minh
     serialization:
       write-dates-as-timestamps: false
   flyway:
+    # DB local lệch checksum: profile dev (repair-on-migrate), hoặc prod+local, hoặc SPRING_FLYWAY_REPAIR_ON_MIGRATE=true
     repair-on-migrate: ${SPRING_FLYWAY_REPAIR_ON_MIGRATE:false}
   security:
     oauth2:
@@ -64,6 +65,7 @@ app:
     allowed-admin-emails: ${ADMIN_GOOGLE_EMAILS:}
     redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
   frontend-url: ${APP_FRONTEND_URL:https://teddypet.id.vn}
+  admin-url: ${APP_ADMIN_URL:http://localhost:5174}
   password-reset:
     token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
   slot:

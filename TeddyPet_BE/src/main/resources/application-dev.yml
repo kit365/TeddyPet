@@ -28,6 +28,8 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     out-of-order: true
+    # Đồng bộ checksum trong flyway_schema_history khi file V1/V* đã apply bị sửa (tránh Validate failed).
+    repair-on-migrate: true
   
   data:
     mongodb:

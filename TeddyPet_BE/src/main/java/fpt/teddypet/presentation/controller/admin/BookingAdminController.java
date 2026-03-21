@@ -17,12 +17,16 @@ import fpt.teddypet.application.dto.response.bookings.AdminCheckInRepricePreview
 import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
 import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
+import fpt.teddypet.application.port.input.pdf.PdfService;
 import fpt.teddypet.presentation.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,6 +38,7 @@ import java.util.List;
 public class BookingAdminController {
 
     private final BookingAdminService bookingAdminService;
+    private final PdfService pdfService;
 
     @GetMapping
     @Operation(summary = "Danh sách booking (admin)")
@@ -47,6 +52,23 @@ public class BookingAdminController {
     public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> getBooking(@PathVariable Long id) {
         AdminBookingListItemResponse data = bookingAdminService.getBookingBasic(id);
         return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/{id}/invoice/pdf")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
+    @Operation(summary = "Tải PDF bill của booking (admin/staff)")
+    public ResponseEntity<byte[]> downloadBookingInvoicePdf(@PathVariable Long id) {
+        byte[] pdfBytes = pdfService.generateBookingInvoicePdf(id);
+        String fileName = "bill-booking-" + id + ".pdf";
+        AdminBookingListItemResponse booking = bookingAdminService.getBookingBasic(id);
+        if (booking != null && booking.bookingCode() != null && !booking.bookingCode().isBlank()) {
+            fileName = "bill-" + booking.bookingCode() + ".pdf";
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", fileName);
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 
     @GetMapping("/{id}/pets")

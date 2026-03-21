@@ -332,6 +332,26 @@ public class PaymentApplicationService implements PaymentService {
                         booking.setPaidAmount(depositAmount);
                         booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
                         booking.setIsTemporary(false);
+
+                        if ("CANCELLED".equals(booking.getStatus())) {
+                            booking.setCancelledAt(null);
+                            booking.setCancelledBy(null);
+                            booking.setCancelledReason(null);
+                            for (fpt.teddypet.domain.entity.BookingPet pet : booking.getPets()) {
+                                if ("CANCELLED".equals(pet.getStatus())) {
+                                    pet.setStatus("PENDING");
+                                }
+                                for (fpt.teddypet.domain.entity.BookingPetService svc : pet.getServices()) {
+                                    if ("CANCELLED".equals(svc.getStatus())) {
+                                        svc.setStatus("PENDING");
+                                    }
+                                }
+                            }
+                        }
+
+                        booking.setStatus("CONFIRMED");
+                        booking.setPaymentStatus(booking.getRemainingAmount().compareTo(BigDecimal.ZERO) <= 0 ? "PAID" : "PARTIAL");
+
                         bookingRepository.save(booking);
 
                         deposit.setStatus("PAID");

@@ -72,15 +72,15 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: teddypet-redis
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    container_name: teddypet-redis
     volumes:
       - teddypet-redis-data:/data
     networks:
       - teddypet-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "if [ -n \"${REDIS_PASSWORD}\" ]; then redis-cli -a \"${REDIS_PASSWORD}\" ping; else redis-cli ping; fi" ]
       interval: 10s
       timeout: 10s
       retries: 5

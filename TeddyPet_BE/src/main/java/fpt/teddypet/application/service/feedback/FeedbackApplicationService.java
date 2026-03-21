@@ -2,6 +2,8 @@ package fpt.teddypet.application.service.feedback;
 
 import fpt.teddypet.application.constants.feedback.FeedbackMessages;
 import fpt.teddypet.application.dto.request.feedback.FeedbackRequest;
+import fpt.teddypet.application.dto.response.feedback.BookingReviewResponse;
+import fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackItemResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackResponse;
 import fpt.teddypet.application.dto.response.feedback.FeedbackTokenResponse;
@@ -18,6 +20,7 @@ import fpt.teddypet.domain.entity.*;
 import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.application.port.output.NotificationPublisherPort;
 import fpt.teddypet.application.dto.response.notification.NotificationResponse;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,6 +50,7 @@ public class FeedbackApplicationService implements FeedbackService {
     private final FeedbackMapper feedbackMapper;
     private final EmailServicePort emailServicePort;
     private final NotificationPublisherPort notificationPublisherPort;
+    private final BookingPetServiceRepository bookingPetServiceRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -357,6 +364,72 @@ public class FeedbackApplicationService implements FeedbackService {
 
         return new fpt.teddypet.application.dto.response.feedback.FeedbackStatsResponse(
                 total, avg != null ? avg : 0.0, today, growth, distribution, trends);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingReviewResponse> getAllBookingReviews() {
+        return bookingPetServiceRepository.findAllBookingReviews().stream().map(row -> new BookingReviewResponse(
+                (Long) row[0],
+                (String) row[1],
+                (String) row[2],
+                (String) row[3],
+                (Integer) row[4],
+                (String) row[5],
+                (java.time.LocalDateTime) row[6]
+        )).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FeedbackStatsResponse getBookingReviewStats() {
+        List<BookingReviewResponse> reviews = getAllBookingReviews();
+        long total = reviews.size();
+        double average = total == 0 ? 0.0 : reviews.stream()
+                .mapToInt(r -> r.rating() != null ? r.rating() : 0)
+                .average()
+                .orElse(0.0);
+        java.time.LocalDate today = java.time.LocalDate.now();
+        long todayReviews = reviews.stream()
+                .filter(r -> r.createdAt() != null && r.createdAt().toLocalDate().isEqual(today))
+                .count();
+
+        java.util.Map<Integer, Long> distribution = new java.util.HashMap<>();
+        for (int i = 1; i <= 5; i++) distribution.put(i, 0L);
+        reviews.forEach(r -> {
+            Integer rating = r.rating();
+            if (rating != null && rating >= 1 && rating <= 5) {
+                distribution.put(rating, distribution.getOrDefault(rating, 0L) + 1);
+            }
+        });
+
+        LinkedHashMap<String, Long> monthCounts = reviews.stream()
+                .filter(r -> r.createdAt() != null)
+                .collect(Collectors.groupingBy(
+                        r -> String.format("%d-%02d", r.createdAt().getYear(), r.createdAt().getMonthValue()),
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
+
+        List<FeedbackStatsResponse.MonthlyReviewCount> trends = new ArrayList<>();
+        monthCounts.entrySet().stream()
+                .sorted(Comparator.comparing(java.util.Map.Entry<String, Long>::getKey).reversed())
+                .limit(12)
+                .forEach(e -> trends.add(new FeedbackStatsResponse.MonthlyReviewCount(e.getKey(), e.getValue())));
+
+        java.math.BigDecimal growth = java.math.BigDecimal.ZERO;
+        if (trends.size() >= 2) {
+            long currentMonth = trends.get(0).count();
+            long lastMonth = trends.get(1).count();
+            if (lastMonth > 0) {
+                growth = java.math.BigDecimal.valueOf((double) (currentMonth - lastMonth) / lastMonth * 100)
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
+            } else if (currentMonth > 0) {
+                growth = java.math.BigDecimal.valueOf(100);
+            }
+        }
+
+        return new FeedbackStatsResponse(total, average, todayReviews, growth, distribution, trends);
     }
 
     @Override

@@ -105,7 +105,7 @@ public class EmailPreviewController {
         @GetMapping("/admin-invitation")
         public String previewAdminInvitation(Model model) {
                 model.addAttribute("appName", "TeddyPet");
-                model.addAttribute("invitationLink", "http://localhost:5173/accept-invitation?token=test-token");
+                model.addAttribute("invitationLink", "http://localhost:5174/admin/auth/accept-invitation?token=test-token");
                 return "email/auth/admin-invitation";
         }
 

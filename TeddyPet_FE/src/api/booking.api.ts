@@ -54,6 +54,8 @@ export interface CreateBookingRequest {
     bankInformation?: BankInformationPayload | null;
 }
 
+export type CreateBookingMode = "online" | "walk-in";
+
 export type CreateBookingResponse = ApiResponse<{
     bookingCode: string;
 }>;
@@ -141,7 +143,8 @@ function toPetServicePayload(svc: {
 
 export const buildCreateBookingPayload = (
     customer: BookingStep1FormData,
-    pets: BookingPetForm[]
+    pets: BookingPetForm[],
+    mode: CreateBookingMode = "online"
 ): CreateBookingRequest => {
     const bookingPets: CreateBookingPetPayload[] = pets
         .map((pet) => {
@@ -205,7 +208,7 @@ export const buildCreateBookingPayload = (
         customerPhone: customer.phone,
         customerAddress: customer.address || null,
         note: customer.message || null,
-        bookingType: "ONLINE",
+        bookingType: mode === "walk-in" ? "WALK_IN" : "ONLINE",
         pets: bookingPets,
     };
 };

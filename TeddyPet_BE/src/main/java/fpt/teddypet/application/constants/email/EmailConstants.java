@@ -15,6 +15,8 @@ public final class EmailConstants {
     public static final String SUBJECT_ORDER_RETURNED = "[%s] Thông báo hoàn trả đơn hàng #%s";
     public static final String SUBJECT_ORDER_RETURN_REQUESTED = "[%s] Tiếp nhận yêu cầu trả hàng đơn #%s";
     public static final String SUBJECT_ORDER_RETURN_REJECTED = "[%s] Từ chối yêu cầu trả hàng đơn #%s";
+    public static final String SUBJECT_ORDER_REFUND_PENDING = "[%s] Đơn hàng #%s đã hủy và đang chờ hoàn tiền";
+    public static final String SUBJECT_ORDER_REFUNDED = "[%s] Đơn hàng #%s đã được hoàn tiền";
     public static final String SUBJECT_ORDER_REFUND_REJECTED = "[%s] Yêu cầu hoàn tiền đơn #%s đã bị từ chối";
     public static final String SUBJECT_PASSWORD_RESET = "[%s] Yêu cầu đặt lại mật khẩu";
     public static final String SUBJECT_ACCOUNT_VERIFICATION = "[%s] Xác thực tài khoản của bạn";
@@ -35,6 +37,8 @@ public final class EmailConstants {
     public static final String HEADLINE_ORDER_RETURNED = "Đơn hàng đã hoàn trả";
     public static final String HEADLINE_ORDER_RETURN_REQUESTED = "Yêu cầu trả hàng đã được tiếp nhận";
     public static final String HEADLINE_ORDER_RETURN_REJECTED = "Yêu cầu trả hàng bị từ chối";
+    public static final String HEADLINE_ORDER_REFUND_PENDING = "Đơn hàng đã hủy, đang chờ hoàn tiền";
+    public static final String HEADLINE_ORDER_REFUNDED = "Đơn hàng đã được hoàn tiền";
     public static final String HEADLINE_ORDER_REFUND_REJECTED = "Yêu cầu hoàn tiền đã bị từ chối";
 
     // Email Sub-headlines
@@ -48,6 +52,8 @@ public final class EmailConstants {
     public static final String SUB_HEADLINE_ORDER_RETURNED = "Đơn hàng của bạn đã được ghi nhận hoàn trả về hệ thống. Chúng tôi rất tiếc về sự bất tiện này!";
     public static final String SUB_HEADLINE_ORDER_RETURN_REQUESTED = "TeddyPet đã nhận được yêu cầu trả hàng của bạn. Chúng tôi sẽ xem xét và phản hồi trong thời gian sớm nhất.";
     public static final String SUB_HEADLINE_ORDER_RETURN_REJECTED = "Rất tiếc, yêu cầu trả hàng của bạn không được chấp nhận. Vui lòng xem chi tiết lý do bên dưới hoặc liên hệ CSKH.";
+    public static final String SUB_HEADLINE_ORDER_REFUND_PENDING = "Yêu cầu hủy đơn của bạn đã được duyệt. TeddyPet đang xử lý chuyển khoản hoàn tiền trong thời gian sớm nhất.";
+    public static final String SUB_HEADLINE_ORDER_REFUNDED = "Khoản tiền của đơn hàng đã được chuyển hoàn thành công. Vui lòng kiểm tra tài khoản ngân hàng của bạn.";
     public static final String SUB_HEADLINE_ORDER_REFUND_REJECTED = "Yêu cầu hoàn tiền của bạn không được chấp nhận. Đơn hàng vẫn giữ nguyên trạng thái. Vui lòng xem phản hồi từ Admin bên dưới hoặc liên hệ CSKH.";
 
     // Status Texts (Friendly)
@@ -61,6 +67,8 @@ public final class EmailConstants {
     public static final String STATUS_TEXT_RETURNED = "Đã hoàn trả";
     public static final String STATUS_TEXT_RETURN_REQUESTED = "Đang xử lý yêu cầu trả hàng";
     public static final String STATUS_TEXT_RETURN_REJECTED = "Yêu cầu trả hàng bị từ chối";
+    public static final String STATUS_TEXT_REFUND_PENDING = "Chờ hoàn tiền";
+    public static final String STATUS_TEXT_REFUNDED = "Đã hoàn tiền";
     public static final String STATUS_TEXT_REFUND_REJECTED = "Yêu cầu hoàn tiền bị từ chối";
 
     // Log Messages

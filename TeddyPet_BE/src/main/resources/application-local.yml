@@ -1,0 +1,10 @@
+# Bật kèm profile khác, ví dụ: SPRING_PROFILES_ACTIVE=prod,local
+# Dùng khi Postgres local đã từng migrate nhưng repo đổi nội dung file cũ (V1 baseline, V10, …) → Flyway báo checksum mismatch.
+spring:
+  datasource:
+    # Ưu tiên dùng URL prod override khi chạy local để trỏ đúng DB mong muốn.
+    # Fallback sang SPRING_DATASOURCE_URL nếu biến _PROD chưa được set.
+    url: ${SPRING_DATASOURCE_URL_PROD:${SPRING_DATASOURCE_URL:}}
+  flyway:
+    repair-on-migrate: true
+

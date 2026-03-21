@@ -11,6 +11,8 @@ public interface ServiceMapper {
 
     @Mapping(target = "serviceId", source = "id")
     @Mapping(target = "serviceCategoryId", source = "serviceCategory.id")
+    @Mapping(target = "skillId", source = "skill.id")
+    @Mapping(target = "skillName", source = "skill.name")
     @Mapping(target = "serviceName", source = "serviceName")
     @Mapping(target = "imageURL", source = "imageURL")
     @Mapping(target = "isActive", source = "active")

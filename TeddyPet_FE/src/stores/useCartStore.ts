@@ -213,8 +213,14 @@ export const useCartStore = create<CartState>()(
                 }),
                 {
                     name: "cart-storage",
+                    partialize: (state) => ({
+                        items: state.items,
+                        lastSync: state.lastSync,
+                    }),
                     onRehydrateStorage: () => (state) => {
                         if (state) {
+                            // Buy-now item should be ephemeral (not cache between sessions/routes).
+                            state.set({ buyNowItem: null });
                             state.set({ isHydrated: true });
                             // Always sync to validate stock/price, regardless of token
                             state.syncWithBackend();

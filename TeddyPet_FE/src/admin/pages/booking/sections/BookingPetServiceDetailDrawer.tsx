@@ -1,4 +1,4 @@
-﻿import {
+import {
   Drawer,
   Typography,
   Box,
@@ -6,6 +6,7 @@
   Stack,
   Divider,
   useTheme,
+  Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import type { BookingPetServiceResponse } from "../../../../types/booking.type";
@@ -72,10 +73,15 @@ export const BookingPetServiceDetailDrawer = ({
           </IconButton>
         </Stack>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1C252E", mb: 2 }}>
-          {service.serviceName || `Dịch vụ #${service.id}`}
-          {petName && ` · ${petName}`}
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1C252E" }}>
+            {service.serviceName || `Dịch vụ #${service.id}`}
+            {petName && ` · ${petName}`}
+          </Typography>
+          {service.isRequiredRoom && service.isOverCheckOutDue ? (
+            <Chip size="small" label="Quá hạn trả phòng" color="warning" sx={{ fontWeight: 700 }} />
+          ) : null}
+        </Stack>
         <Divider sx={{ my: 2 }} />
 
         <InfoRow label="Nhân viên phụ trách" value={service.assignedStaffId} />
@@ -87,6 +93,12 @@ export const BookingPetServiceDetailDrawer = ({
         <InfoRow label="Check-out dự kiến" value={formatDate(service.estimatedCheckOutDate)} />
         <InfoRow label="Check-in thực tế" value={formatDate(service.actualCheckInDate)} />
         <InfoRow label="Check-out thực tế" value={formatDate(service.actualCheckOutDate)} />
+        {service.isRequiredRoom ? (
+          <InfoRow
+            label="Quá hạn trả phòng"
+            value={service.isOverCheckOutDue ? "Có" : "Không"}
+          />
+        ) : null}
         <InfoRow label="Số đêm" value={service.numberOfNights} />
         <InfoRow label="Bắt đầu dự kiến" value={formatDateTime(service.scheduledStartTime)} />
         <InfoRow label="Kết thúc dự kiến" value={formatDateTime(service.scheduledEndTime)} />

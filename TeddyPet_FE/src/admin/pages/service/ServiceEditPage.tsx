@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
 import { useServiceDetail, useUpdateService } from './hooks/useService';
 import { useServiceCategories } from './hooks/useServiceCategory';
+import { useSkills } from '../staff/hooks/useSkill';
 import { usePetTypes } from './hooks/useEnums';
 import { useServicePricings } from './hooks/useService';
 import { useCreateServicePricing, useUpdateServicePricing, useDeleteServicePricing } from './hooks/useServicePricing';
@@ -53,6 +54,7 @@ export const ServiceEditPage = () => {
     const localTheme = getServiceTheme(theme);
     const { data: detailRes, isLoading } = useServiceDetail(id);
     const { data: categories = [] } = useServiceCategories();
+    const { data: skills = [] } = useSkills();
     const { data: petTypes = [] } = usePetTypes();
     const { data: pricings = [] } = useServicePricings(serviceId);
     const { data: roomTypes = [] } = useRoomTypes();
@@ -67,6 +69,7 @@ export const ServiceEditPage = () => {
         resolver: zodResolver(serviceUpsertSchema) as any,
         defaultValues: {
             serviceCategoryId: 0,
+            skillId: undefined as unknown as number,
             code: '',
             serviceName: '',
             duration: 60,
@@ -100,6 +103,7 @@ export const ServiceEditPage = () => {
             reset({
                 serviceId: d.serviceId,
                 serviceCategoryId: d.serviceCategoryId,
+                skillId: d.skillId ?? undefined,
                 code: d.code ?? '',
                 serviceName: d.serviceName ?? '',
                 suitablePetTypes: d.suitablePetTypes ?? [],
@@ -132,6 +136,7 @@ export const ServiceEditPage = () => {
         const payload = {
             serviceId: serviceId,
             serviceCategoryId: data.serviceCategoryId,
+            skillId: data.skillId,
             code: data.code,
             serviceName: data.serviceName,
             suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
@@ -245,6 +250,28 @@ export const ServiceEditPage = () => {
                                                 {categories.map((c) => (
                                                     <MenuItem key={c.categoryId} value={c.categoryId}>
                                                         {c.categoryName}
+                                                    </MenuItem>
+                                                ))}
+                                            </TextField>
+                                        )}
+                                    />
+                                    <Controller
+                                        name="skillId"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                select
+                                                label="Kỹ năng yêu cầu"
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
+                                                fullWidth
+                                                value={field.value ?? ''}
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                            >
+                                                {skills.map((s: any) => (
+                                                    <MenuItem key={s.id} value={s.id}>
+                                                        {s.name}
                                                     </MenuItem>
                                                 ))}
                                             </TextField>

@@ -8,7 +8,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { getAllFeedbacks, deleteFeedback, replyFeedback, editFeedbackAsAdmin, getFeedbackStats, FeedbackResponse, FeedbackStatsResponse } from '../../../../api/feedback.api';
+import { getAllFeedbacks, deleteFeedback, replyFeedback, editFeedbackAsAdmin, getFeedbackStats, FeedbackResponse, FeedbackStatsResponse, getAllBookingReviews, getBookingReviewStats, BookingReviewResponse } from '../../../../api/feedback.api';
 import { toast } from 'react-toastify';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -24,13 +24,16 @@ const dataGridCardStyles = {
 };
 
 export const FeedbackList = () => {
+    const [reviewSource, setReviewSource] = useState<"product" | "booking">("product");
     const [feedbacks, setFeedbacks] = useState<FeedbackResponse[]>([]);
+    const [bookingReviews, setBookingReviews] = useState<BookingReviewResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState("");
     const [ratingFilter, setRatingFilter] = useState<number | "all">("all");
     const [tabFilter, setTabFilter] = useState<"all" | "unreplied" | "replied">("all");
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
     const [stats, setStats] = useState<FeedbackStatsResponse | null>(null);
+    const [bookingStats, setBookingStats] = useState<FeedbackStatsResponse | null>(null);
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [page, setPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
@@ -77,6 +80,25 @@ export const FeedbackList = () => {
         }
     };
 
+    const fetchBookingReviews = async () => {
+        try {
+            const response = await getAllBookingReviews();
+            setBookingReviews(response.data || []);
+        } catch (error) {
+            console.error("Error fetching booking reviews:", error);
+            setBookingReviews([]);
+        }
+    };
+
+    const fetchBookingStats = async () => {
+        try {
+            const response = await getBookingReviewStats();
+            setBookingStats(response.data);
+        } catch (error) {
+            console.error("Error fetching booking review stats:", error);
+        }
+    };
+
     const fetchAllProductsList = async () => {
         try {
             const response = await getAllProducts();
@@ -90,6 +112,8 @@ export const FeedbackList = () => {
     useEffect(() => {
         fetchFeedbacks();
         fetchStats();
+        fetchBookingReviews();
+        fetchBookingStats();
         fetchAllProductsList();
     }, []);
 
@@ -176,9 +200,22 @@ export const FeedbackList = () => {
         return matchesKeyword && matchesRating && matchesProduct && matchesTab;
     });
 
+    const filteredBookingReviews = bookingReviews.filter((r) => {
+        const keyword = searchKeyword.toLowerCase();
+        const matchesKeyword =
+            (r.customerName || "").toLowerCase().includes(keyword) ||
+            (r.bookingCode || "").toLowerCase().includes(keyword) ||
+            (r.serviceName || "").toLowerCase().includes(keyword) ||
+            (r.comment || "").toLowerCase().includes(keyword);
+        const matchesRating = ratingFilter === "all" || r.rating === ratingFilter;
+        return matchesKeyword && matchesRating;
+    });
+
     // Pagination logic
-    const totalPages = Math.ceil(filteredFeedbacks.length / ITEMS_PER_PAGE);
+    const activeRowsCount = reviewSource === "product" ? filteredFeedbacks.length : filteredBookingReviews.length;
+    const totalPages = Math.ceil(activeRowsCount / ITEMS_PER_PAGE);
     const paginatedFeedbacks = filteredFeedbacks.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+    const paginatedBookingReviews = filteredBookingReviews.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
     // Reset page when filters change
     useEffect(() => {
@@ -188,11 +225,23 @@ export const FeedbackList = () => {
     const handleTabChange = (_: React.SyntheticEvent, newValue: any) => {
         setTabFilter(newValue);
     };
+    const activeStats = reviewSource === "product" ? stats : bookingStats;
 
 
 
     return (
         <Stack spacing={3}>
+            <Card sx={{ p: 1, borderRadius: '12px', boxShadow: 'none', border: '1px solid rgba(145, 158, 171, 0.2)' }}>
+                <Tabs
+                    value={reviewSource}
+                    onChange={(_, v) => setReviewSource(v)}
+                    sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 700 } }}
+                >
+                    <Tab value="product" label="Đánh giá sản phẩm" />
+                    <Tab value="booking" label="Đánh giá đơn booking" />
+                </Tabs>
+            </Card>
+
             {/* Stats Overview */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>
                 <Card sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 2.5, borderRadius: '16px', boxShadow: 'none', border: '1px solid rgba(145, 158, 171, 0.2)' }}>
@@ -200,7 +249,7 @@ export const FeedbackList = () => {
                         <StarIcon sx={{ fontSize: '1.6rem' }} />
                     </Box>
                     <Box>
-                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>{stats?.averageRating?.toFixed(1) || '0.0'}</Typography>
+                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>{activeStats?.averageRating?.toFixed(1) || '0.0'}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Điểm trung bình</Typography>
                     </Box>
                 </Card>
@@ -210,7 +259,7 @@ export const FeedbackList = () => {
                         <RateReviewIcon sx={{ fontSize: '1.6rem' }} />
                     </Box>
                     <Box>
-                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>{stats?.totalReviews || 0}</Typography>
+                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>{activeStats?.totalReviews || 0}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Tổng đánh giá</Typography>
                     </Box>
                 </Card>
@@ -220,7 +269,7 @@ export const FeedbackList = () => {
                         <TrendingUpIcon sx={{ fontSize: '1.6rem' }} />
                     </Box>
                     <Box>
-                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>+{stats?.todayReviews || 0}</Typography>
+                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.15rem', lineHeight: 1.2 }}>+{activeStats?.todayReviews || 0}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Mới hôm nay</Typography>
                     </Box>
                 </Card>
@@ -270,27 +319,27 @@ export const FeedbackList = () => {
                             </Button>
                         </Stack>
 
-                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        {reviewSource === "product" && <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                             <Tabs value={tabFilter} onChange={handleTabChange} sx={{ '& .MuiTab-root': { fontSize: '0.9375rem', fontWeight: 700, textTransform: 'none', minWidth: 100, color: '#637381' }, '& .Mui-selected': { color: '#00AB55 !important' }, '& .MuiTabs-indicator': { backgroundColor: '#00AB55' } }}>
                                 <Tab label="Tất cả" value="all" />
                                 <Tab label="Chưa phản hồi" value="unreplied" />
                                 <Tab label="Đã phản hồi" value="replied" />
                             </Tabs>
-                        </Box>
+                        </Box>}
                     </Stack>
                 </Box>
 
                 <Box sx={{ flex: 1, overflow: 'auto', p: 2, backgroundColor: '#f9fafb' }}>
                     {loading ? (
                         <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress sx={{ color: '#00AB55' }} /></Box>
-                    ) : filteredFeedbacks.length === 0 ? (
+                    ) : activeRowsCount === 0 ? (
                         <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%" color="text.secondary">
                             <FilterListIcon sx={{ fontSize: '3rem', opacity: 0.2, mb: 1 }} />
                             <Typography fontSize="0.9375rem" fontWeight={600}>Không tìm thấy đánh giá</Typography>
                         </Box>
                     ) : (
                         <Stack spacing={3}>
-                            {paginatedFeedbacks.map((fb) => (
+                            {reviewSource === "product" && paginatedFeedbacks.map((fb) => (
                                 <Card key={fb.id} sx={{ p: 2.5, borderRadius: '16px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
                                     <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={{ xs: 2, md: 4 }}>
                                         <Box flexShrink={0} sx={{ width: { xs: '100%', md: '280px' }, borderRight: { md: '1px solid #f0f0f0' }, pr: { md: 2 } }}>
@@ -354,6 +403,21 @@ export const FeedbackList = () => {
                                                 </Box>
                                             </Box>
                                         </Box>
+                                    </Box>
+                                </Card>
+                            ))}
+                            {reviewSource === "booking" && paginatedBookingReviews.map((rv) => (
+                                <Card key={rv.id} sx={{ p: 2.5, borderRadius: '16px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+                                    <Box display="flex" flexDirection="column" gap={1.2}>
+                                        <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                                            <Typography fontWeight={800} fontSize="0.95rem">#{rv.bookingCode} - {rv.customerName || "Khách hàng"}</Typography>
+                                            <Typography fontSize="0.75rem" color="text.secondary">
+                                                {rv.createdAt ? new Date(rv.createdAt).toLocaleString("vi-VN") : "-"}
+                                            </Typography>
+                                        </Box>
+                                        <Typography fontSize="0.875rem" color="text.secondary">{rv.serviceName || "Dịch vụ booking"}</Typography>
+                                        <Box display="flex">{[...Array(5)].map((_, i) => <StarIcon key={i} sx={{ color: i < rv.rating ? '#FFAB00' : '#dfe3e8', fontSize: '1.5rem' }} />)}</Box>
+                                        <Typography fontSize="0.875rem" sx={{ wordBreak: 'break-word' }}>{rv.comment || "Không có nội dung bình luận."}</Typography>
                                     </Box>
                                 </Card>
                             ))}

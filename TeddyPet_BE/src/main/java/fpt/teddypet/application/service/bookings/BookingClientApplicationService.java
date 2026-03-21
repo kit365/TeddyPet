@@ -21,6 +21,7 @@ import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.domain.entity.BookingRefund;
 import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
@@ -66,6 +67,7 @@ public class BookingClientApplicationService implements BookingClientService {
     private final UserRepository userRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository;
     private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository;
+    private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRefundRepository bookingRefundRepository;
     private final EmailServicePort emailServicePort;
     private final DashboardService dashboardService;
     private final BookingHoldReleaseService bookingHoldReleaseService;
@@ -82,6 +84,7 @@ public class BookingClientApplicationService implements BookingClientService {
             UserRepository userRepository,
             fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository bankInformationRepository,
             fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRefundPolicyRepository bookingDepositRefundPolicyRepository,
+            fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRefundRepository bookingRefundRepository,
             EmailServicePort emailServicePort,
             @Lazy DashboardService dashboardService,
             BookingHoldReleaseService bookingHoldReleaseService) {
@@ -96,6 +99,7 @@ public class BookingClientApplicationService implements BookingClientService {
         this.userRepository = userRepository;
         this.bankInformationRepository = bankInformationRepository;
         this.bookingDepositRefundPolicyRepository = bookingDepositRefundPolicyRepository;
+        this.bookingRefundRepository = bookingRefundRepository;
         this.emailServicePort = emailServicePort;
         this.dashboardService = dashboardService;
         this.bookingHoldReleaseService = bookingHoldReleaseService;
@@ -240,6 +244,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getPaymentMethod(),
                 booking.getStatus(),
                 booking.getInternalNotes(),
+                booking.getCancelRequested(),
+                booking.getCancelledReason(),
                 depositId,
                 depositExpiresAt,
                 booking.getBookingCheckInDate(),
@@ -289,13 +295,25 @@ public class BookingClientApplicationService implements BookingClientService {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
 
-        if (!"PENDING".equals(booking.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể hủy đơn đặt lịch ở trạng thái chờ xử lý hoặc chưa thanh toán cọc.");
-        }
-
         boolean depositPaid = bookingDepositRepository.findByBookingId(booking.getId()).stream()
                 .map(fpt.teddypet.domain.entity.BookingDeposit::getDepositPaid).filter(Boolean.TRUE::equals)
                 .findFirst().orElse(false);
+        boolean walkInBooking = booking.getBookingType() == fpt.teddypet.domain.enums.bookings.BookingTypeEnum.WALK_IN;
+        if (walkInBooking) {
+            // Counter bookings do not support refund-request/deposit flow.
+            depositPaid = false;
+        }
+
+        String status = booking.getStatus() != null ? booking.getStatus().toUpperCase() : "";
+        // Đã cọc: cho phép yêu cầu hủy/hoàn khi đơn còn xử lý được (PENDING/CONFIRMED/IN_PROGRESS) — không bắt CONFIRMED;
+        // nhiều đơn đã thanh toán cọc nhưng booking vẫn PENDING cho tới khi admin xác nhận.
+        boolean allowRequestCancel = !walkInBooking && depositPaid
+                && ("PENDING".equals(status) || "CONFIRMED".equals(status) || "IN_PROGRESS".equals(status));
+        boolean allowInstantCancel = !depositPaid && "PENDING".equals(status);
+        if (!allowRequestCancel && !allowInstantCancel) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể gửi yêu cầu hủy/hoàn tiền khi đã thanh toán cọc và đơn ở trạng thái Chờ xác nhận, Đã xác nhận hoặc Đang thực hiện; hoặc hủy trực tiếp khi chưa thanh toán cọc và đơn đang Chờ xác nhận.");
+        }
 
         BigDecimal refundAmount = BigDecimal.ZERO;
 
@@ -332,6 +350,7 @@ public class BookingClientApplicationService implements BookingClientService {
                 }
             }
 
+            Long refundBankInformationId = null;
             if (request.bankInformation() != null && refundAmount.compareTo(BigDecimal.ZERO) > 0) {
                 fpt.teddypet.domain.entity.BankInformation bankInfo = new fpt.teddypet.domain.entity.BankInformation();
                 bankInfo.setUserId(booking.getUser() != null ? booking.getUser().getId() : null);
@@ -348,6 +367,7 @@ public class BookingClientApplicationService implements BookingClientService {
                 bankInfo.setActive(true);
                 bankInfo.setDeleted(false);
                 bankInformationRepository.save(bankInfo);
+                refundBankInformationId = bankInfo.getId();
                 booking.setRefundMethod("BANK_TRANSFER");
             }
 
@@ -356,7 +376,30 @@ public class BookingClientApplicationService implements BookingClientService {
             // Nếu có số tiền hoàn > 0 → đây là yêu cầu hủy cần nhân viên duyệt.
             // Giữ status ở PENDING và set cờ cancelRequested=true để hiển thị trong admin.
             if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+                booking.setStatus("PENDING");
                 booking.setCancelRequested(true);
+
+                boolean hasRefundRequestAlready = bookingRefundRepository.findByBookingId(booking.getId()).stream()
+                        .anyMatch(r ->
+                                "PENDING".equalsIgnoreCase(r.getStatus())
+                                || "APPROVED".equalsIgnoreCase(r.getStatus())
+                                || "REFUNDED".equalsIgnoreCase(r.getStatus()));
+                if (hasRefundRequestAlready) {
+                    throw new IllegalStateException("Yêu cầu hoàn tiền đã được gửi hoặc đã được duyệt cho booking này.");
+                }
+
+                BookingRefund refundRequest = BookingRefund.builder()
+                        .booking(booking)
+                        .requestedAmount(refundAmount)
+                        .currency("VND")
+                        .bankInformationId(refundBankInformationId)
+                        .customerReason(request.reason() != null && !request.reason().isBlank()
+                                ? request.reason().trim()
+                                : "Yêu cầu hoàn tiền")
+                        .status("PENDING")
+                        .build();
+                bookingRefundRepository.save(refundRequest);
+
                 // Yêu cầu hoàn cọc → thông báo khách hàng
                 if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                     String refundAmountFormatted = String.format("%,.0f VND", refundAmount);
@@ -434,7 +477,13 @@ public class BookingClientApplicationService implements BookingClientService {
         if (checkIn == null || checkOut == null) {
             return Collections.emptyList();
         }
-        return bookingPetServiceRepository.findDistinctRoomIdsWithOverlappingDates(checkIn, checkOut);
+        List<Long> overlapRoomIds = bookingPetServiceRepository.findDistinctRoomIdsWithOverlappingDates(checkIn, checkOut);
+        List<Long> occupiedRoomIds = bookingPetServiceRepository.findDistinctOccupiedRoomIdsForActiveStay();
+        return java.util.stream.Stream.concat(
+                        overlapRoomIds.stream(),
+                        occupiedRoomIds.stream())
+                .distinct()
+                .toList();
     }
 
     private CreateBookingResponse createBookingInternal(CreateBookingRequest request,

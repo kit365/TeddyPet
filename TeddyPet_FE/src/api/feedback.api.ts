@@ -62,6 +62,16 @@ export interface FeedbackStatsResponse {
     }[];
 }
 
+export interface BookingReviewResponse {
+    id: number;
+    bookingCode: string;
+    customerName: string;
+    serviceName: string;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+}
+
 const BASE_PATH = "/api/feedbacks";
 
 export const submitFeedback = async (data: FeedbackRequest): Promise<ApiResponse<FeedbackResponse>> => {
@@ -118,6 +128,16 @@ export const getMyFeedbacks = async (): Promise<ApiResponse<FeedbackResponse[]>>
 
 export const getFeedbackStats = async (): Promise<ApiResponse<FeedbackStatsResponse>> => {
     const response = await apiApp.get(`${BASE_PATH}/stats`);
+    return response.data;
+};
+
+export const getAllBookingReviews = async (): Promise<ApiResponse<BookingReviewResponse[]>> => {
+    const response = await apiApp.get(`${BASE_PATH}/bookings`);
+    return response.data;
+};
+
+export const getBookingReviewStats = async (): Promise<ApiResponse<FeedbackStatsResponse>> => {
+    const response = await apiApp.get(`${BASE_PATH}/bookings/stats`);
     return response.data;
 };
 

@@ -10,6 +10,8 @@ import java.util.List;
 public record ServiceResponse(
                 Long serviceId,
                 Long serviceCategoryId,
+                Long skillId,
+                String skillName,
                 String code,
                 String serviceName,
                 List<PetTypeEnum> suitablePetTypes,

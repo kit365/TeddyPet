@@ -31,3 +31,8 @@ export const getActiveBookingDepositRefundPolicies = async (): Promise<GetActive
     const response = await apiApp.get<GetActiveBookingDepositRefundPoliciesResponse>("/api/booking-deposit-refund-policies");
     return response.data;
 };
+
+export const getActiveBookingRefundPolicies = async (): Promise<GetActiveBookingDepositRefundPoliciesResponse> => {
+    const response = await apiApp.get<GetActiveBookingDepositRefundPoliciesResponse>("/api/booking-refund-policies");
+    return response.data;
+};

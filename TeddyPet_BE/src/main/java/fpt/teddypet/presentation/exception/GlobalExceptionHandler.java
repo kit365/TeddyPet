@@ -3,6 +3,7 @@ package fpt.teddypet.presentation.exception;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
@@ -95,6 +96,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    /** Method security / @PreAuthorize — tránh map nhầm sang 500 qua RuntimeException handler. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Access denied";
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(msg, HttpStatus.FORBIDDEN.value()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
