@@ -65,7 +65,7 @@ app:
     allowed-admin-emails: ${ADMIN_GOOGLE_EMAILS:}
     redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
   frontend-url: ${APP_FRONTEND_URL:https://teddypet.id.vn}
-  admin-url: ${APP_ADMIN_URL:http://localhost:5174}
+  admin-url: ${APP_ADMIN_URL:${APP_FRONTEND_URL:https://teddypet.id.vn}}
   password-reset:
     token-expiration-minutes: ${APP_PASSWORD_RESET_TOKEN_EXPIRATION:15}
   slot:

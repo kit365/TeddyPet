@@ -18,6 +18,7 @@ import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
 import Paper from "@mui/material/Paper";
 import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -39,6 +40,8 @@ import StoreIcon from "@mui/icons-material/Store";
 import HotelIcon from "@mui/icons-material/Hotel";
 import SpaIcon from "@mui/icons-material/Spa";
 import NightlightIcon from "@mui/icons-material/Nightlight";
+import CancelIcon from "@mui/icons-material/Cancel";
+import CloseIcon from "@mui/icons-material/Close";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -62,10 +65,10 @@ import { prefixAdmin } from "../../../constants/routes";
 import { 
   getAdminBookings, 
   getAdminBookingDetail,
-  confirmFullPayment,
   getAdminBookingPets,
   getBookingTransactions,
   addBookingPaymentTransaction,
+  createBookingPayosPaymentLink,
   cancelAdminBooking,
   downloadBookingInvoice,
 } from "../../../api/booking.api";
@@ -258,9 +261,12 @@ export const BookingList = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPaymentBooking, setSelectedPaymentBooking] = useState<BookingResponse | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [cashCollectedAmount, setCashCollectedAmount] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
   const [paymentActionError, setPaymentActionError] = useState<string | null>(null);
+  const [payosLinkLoading, setPayosLinkLoading] = useState(false);
+  const [payosOpened, setPayosOpened] = useState(false);
   
   const [detailedPets, setDetailedPets] = useState<BookingPetResponse[]>([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
@@ -303,11 +309,41 @@ export const BookingList = () => {
     setPaymentActionLoading(true);
     setPaymentActionError(null);
     try {
-      await confirmFullPayment(selectedPaymentBooking.id, {
-        paymentMethod,
-        notes: paymentNotes.trim() || undefined,
-      });
+      if (paymentMethod === "CASH") {
+        const amount = Number(cashCollectedAmount.replace(/\D/g, ""));
+        if (!amount || amount <= 0) {
+          setPaymentActionError("Vui lòng nhập số tiền đã thu hợp lệ.");
+          setPaymentActionLoading(false);
+          return;
+        }
+        await addBookingPaymentTransaction(selectedPaymentBooking.id, {
+          transactionType: "FINAL_PAYMENT",
+          amount,
+          paymentMethod: "CASH",
+          paidAt: new Date().toISOString(),
+          status: "COMPLETED",
+          note: paymentNotes.trim() || undefined,
+        });
+      } else {
+        if (!payosOpened) {
+          setPaymentActionError("Vui lòng mở trang thanh toán PayOS trước khi xác nhận.");
+          setPaymentActionLoading(false);
+          return;
+        }
+        await addBookingPaymentTransaction(selectedPaymentBooking.id, {
+          transactionType: "FINAL_PAYMENT",
+          amount: Number(selectedPaymentBooking.remainingAmount ?? 0),
+          paymentMethod: "BANK_TRANSFER",
+          paidAt: new Date().toISOString(),
+          status: "COMPLETED",
+          note: paymentNotes.trim() || "Thanh toán chuyển khoản qua PayOS",
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      if (selectedPaymentBooking?.id) {
+        const refreshed = await getAdminBookingDetail(selectedPaymentBooking.id);
+        if (refreshed?.data) setSelectedPaymentBooking(refreshed.data as BookingResponse);
+      }
       setPaymentDialogOpen(false);
       setSelectedPaymentBooking(null);
     } catch (e) {
@@ -542,7 +578,9 @@ export const BookingList = () => {
           setPaymentDialogOpen(true);
           setPaymentActionError(null);
           setPaymentMethod("CASH");
+          setCashCollectedAmount("");
           setPaymentNotes("");
+          setPayosOpened(false);
         },
         (row) => {
           console.log("Opening history for booking:", row.bookingCode);
@@ -1017,7 +1055,13 @@ export const BookingList = () => {
                       select
                       fullWidth
                       value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      onChange={(e) => {
+                        setPaymentMethod(e.target.value);
+                        setPaymentActionError(null);
+                        if (e.target.value !== "BANK_TRANSFER") {
+                          setPayosOpened(false);
+                        }
+                      }}
                       SelectProps={{
                         displayEmpty: false,
                         renderValue: (v) => (v === "CASH" ? "Tiền mặt (Cash)" : "Chuyển khoản (Bank)"),
@@ -1070,6 +1114,56 @@ export const BookingList = () => {
                       <MenuItem value="BANK_TRANSFER">Chuyển khoản (Bank)</MenuItem>
                     </TextField>
                   </Box>
+
+                  {paymentMethod === "CASH" ? (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: "#637381" }}>Số tiền đã thu</Typography>
+                      <TextField
+                        fullWidth
+                        value={cashCollectedAmount}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setCashCollectedAmount(val ? Number(val).toLocaleString("vi-VN") : "");
+                        }}
+                        placeholder="Nhập số tiền tiền mặt đã thu"
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start"><Typography sx={{ fontWeight: 800, color: "#00A76F", fontSize: "0.8rem" }}>₫</Typography></InputAdornment>,
+                        }}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "#FAFAFA", fontWeight: 700 } }}
+                      />
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: "#637381" }}>Thanh toán QR PayOS</Typography>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        disabled={payosLinkLoading}
+                        onClick={async () => {
+                          if (!selectedPaymentBooking) return;
+                          try {
+                            setPayosLinkLoading(true);
+                            setPaymentActionError(null);
+                            const res = await createBookingPayosPaymentLink(selectedPaymentBooking.id, window.location.href);
+                            if (res?.data) {
+                              window.open(res.data, "_blank", "noopener,noreferrer");
+                              setPayosOpened(true);
+                            } else {
+                              setPaymentActionError("Không tạo được link thanh toán PayOS.");
+                            }
+                          } catch (error) {
+                            console.error(error);
+                            setPaymentActionError("Không tạo được link thanh toán PayOS.");
+                          } finally {
+                            setPayosLinkLoading(false);
+                          }
+                        }}
+                        sx={{ height: 44, borderRadius: "12px", textTransform: "none", fontWeight: 800 }}
+                      >
+                        {payosLinkLoading ? "Đang tạo QR..." : "Mở trang thanh toán PayOS"}
+                      </Button>
+                    </Box>
+                  )}
 
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: "#637381" }}>Ghi chú thu ngân</Typography>
@@ -1130,7 +1224,11 @@ export const BookingList = () => {
               "&:hover": { bgcolor: "#007B55", boxShadow: "none" }
             }}
           >
-            {paymentActionLoading ? "Đang xử lý..." : "Xác nhận và Hoàn tất"}
+            {paymentActionLoading
+              ? "Đang xử lý..."
+              : paymentMethod === "CASH"
+                ? "Xác nhận thu tiền mặt"
+                : "Xác nhận đã nhận chuyển khoản"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1893,29 +1991,81 @@ export const BookingList = () => {
         }}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+            overflow: "hidden"
+          }
+        }}
+        TransitionProps={{
+          timeout: 400
+        }}
       >
-        <DialogTitle sx={{ fontSize: "1.6rem", fontWeight: 800 }}>
-          Xóa Đặt Lịch
-        </DialogTitle>
-        <DialogContent dividers>
+        <Box sx={{ p: 4 }}>
+          {/* Header */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box sx={{ 
+                width: 48, height: 48, borderRadius: "50%", 
+                backgroundColor: "#fee2e2", display: "flex", 
+                alignItems: "center", justifyContent: "center",
+                color: "#dc2626"
+              }}>
+                <CancelIcon sx={{ fontSize: 28 }} />
+              </Box>
+              <Typography sx={{ fontSize: "1.75rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>
+                Hủy Đặt Lịch
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={() => {
+                if (deleteActionLoading) return;
+                setDeleteDialogOpen(false);
+                setSelectedDeleteBooking(null);
+                setDeleteActionError(null);
+              }}
+              sx={{ color: "#9ca3af", "&:hover": { backgroundColor: "#f3f4f6", color: "#4b5563" } }}
+            >
+              <CloseIcon sx={{ fontSize: 24 }} />
+            </IconButton>
+          </Box>
+
           {deleteActionError && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: "1.35rem" }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: "12px", "& .MuiAlert-message": { fontSize: "1.35rem" } }}>
               {deleteActionError}
             </Alert>
           )}
-          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 1 }}>
-            Booking: <b>{selectedDeleteBooking?.bookingCode ?? "—"}</b>
-          </Typography>
-          <Typography sx={{ fontSize: "1.35rem", color: "text.secondary", mb: 2 }}>
-            Khách hàng: <b>{selectedDeleteBooking?.customerName ?? "—"}</b>
-          </Typography>
 
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            Hành động này sẽ thiết lập trạng thái của tài liệu này thành "Đã Hủy" (CANCELLED). Vui lòng cung cấp lý do.
+          {/* Info Block */}
+          <Box sx={{ backgroundColor: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: "16px", p: 3, mb: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+              <Typography sx={{ fontSize: "1.25rem", color: "#6b7280", fontWeight: 600 }}>Cấp mã Booking</Typography>
+              <Typography sx={{ fontSize: "1.25rem", color: "#111827", fontWeight: 800 }}>{selectedDeleteBooking?.bookingCode ?? "—"}</Typography>
+            </Box>
+            <Divider sx={{ my: 1.5, borderColor: "#e5e7eb" }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography sx={{ fontSize: "1.25rem", color: "#6b7280", fontWeight: 600 }}>Tên Khách hàng</Typography>
+              <Typography sx={{ fontSize: "1.25rem", color: "#111827", fontWeight: 800 }}>{selectedDeleteBooking?.customerName ?? "—"}</Typography>
+            </Box>
+          </Box>
+
+          <Alert 
+            severity="warning" 
+            sx={{ 
+              mb: 3, 
+              borderRadius: "12px", 
+              backgroundColor: "#fffbea", 
+              color: "#92400e",
+              "& .MuiAlert-icon": { color: "#d97706" },
+              "& .MuiAlert-message": { fontSize: "1.3rem", fontWeight: 500 } 
+            }}
+          >
+            Lưu ý: Hành động này sẽ thiết lập trạng thái của tài liệu này thành <b>"Đã Hủy"</b>.
           </Alert>
 
-          <Typography sx={{ fontSize: "1.35rem", fontWeight: 700, mb: 1 }}>
-            Lý do hủy đơn
+          <Typography sx={{ fontSize: "1.25rem", fontWeight: 700, mb: 1.5, color: "#374151" }}>
+            Lý do hủy đơn <span style={{ color: "#ef4444" }}>*</span>
           </Typography>
           <TextField
             multiline
@@ -1923,50 +2073,84 @@ export const BookingList = () => {
             fullWidth
             value={deleteReason}
             onChange={(e) => setDeleteReason(e.target.value)}
-            placeholder="Nhập lý do hủy (bắt buộc)..."
-            sx={{ "& .MuiInputBase-root": { fontSize: "1.35rem" } }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => {
-              if (deleteActionLoading) return;
-              setDeleteDialogOpen(false);
-              setSelectedDeleteBooking(null);
-              setDeleteActionError(null);
+            placeholder="Vui lòng cung cấp lý do hủy đơn (bắt buộc)..."
+            sx={{ 
+              "& .MuiOutlinedInput-root": { 
+                fontSize: "1.35rem", 
+                borderRadius: "12px",
+                backgroundColor: "#f9fafb",
+                "& fieldset": { borderColor: "#e5e7eb" },
+                "&:hover fieldset": { borderColor: "#d1d5db" },
+                "&.Mui-focused fieldset": { borderColor: "#dc2626", borderWidth: "2px" }
+              } 
             }}
-            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 700 }}
-          >
-            Đóng
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            disabled={deleteActionLoading || !deleteReason.trim()}
-            onClick={async () => {
-              if (!selectedDeleteBooking || !deleteReason.trim()) return;
-              setDeleteActionLoading(true);
-              setDeleteActionError(null);
-              try {
-                await cancelAdminBooking(selectedDeleteBooking.id, {
-                  reason: deleteReason.trim()
-                });
-                await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+          />
+
+          {/* Actions */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 4 }}>
+            <Button
+              onClick={() => {
+                if (deleteActionLoading) return;
                 setDeleteDialogOpen(false);
                 setSelectedDeleteBooking(null);
-              } catch (e) {
-                 console.error(e);
-                 const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                 setDeleteActionError(msg || "Không thể hủy đơn đặt lịch vào lúc này.");
-              } finally {
-                setDeleteActionLoading(false);
-              }
-            }}
-            sx={{ textTransform: "none", fontSize: "1.35rem", fontWeight: 800, borderRadius: "10px" }}
-          >
-            {deleteActionLoading ? "Đang xử lý..." : "Xóa Booking"}
-          </Button>
-        </DialogActions>
+                setDeleteActionError(null);
+              }}
+              disabled={deleteActionLoading}
+              sx={{ 
+                textTransform: "none", 
+                fontSize: "1.35rem", 
+                fontWeight: 700,
+                color: "#4b5563",
+                backgroundColor: "#f3f4f6",
+                borderRadius: "10px",
+                px: 3,
+                py: 1,
+                "&:hover": { backgroundColor: "#e5e7eb" }
+              }}
+            >
+              Đóng
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              disabled={deleteActionLoading || !deleteReason.trim()}
+              onClick={async () => {
+                if (!selectedDeleteBooking || !deleteReason.trim()) return;
+                setDeleteActionLoading(true);
+                setDeleteActionError(null);
+                try {
+                  await cancelAdminBooking(selectedDeleteBooking.id, {
+                    reason: deleteReason.trim()
+                  });
+                  await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                  setDeleteDialogOpen(false);
+                  setSelectedDeleteBooking(null);
+                } catch (e: any) {
+                  console.error(e);
+                  const msg = e?.response?.data?.message;
+                  setDeleteActionError(msg || "Không thể hủy đơn đặt lịch vào lúc này.");
+                } finally {
+                  setDeleteActionLoading(false);
+                }
+              }}
+              sx={{ 
+                textTransform: "none", 
+                fontSize: "1.35rem", 
+                fontWeight: 800, 
+                borderRadius: "10px",
+                px: 3,
+                py: 1,
+                boxShadow: "0 4px 14px 0 rgba(239, 68, 68, 0.39)",
+                "&:hover": {
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.23)",
+                  backgroundColor: "#dc2626"
+                }
+              }}
+            >
+              {deleteActionLoading ? "Đang xử lý..." : "Xóa Booking"}
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
     </>
   );

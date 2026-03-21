@@ -8,6 +8,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import { prefixAdmin } from "../../../admin/constants/routes";
+import { useAuthStore } from "../../../stores/useAuthStore";
+import { getAllAddresses } from "../../../api/address.api";
+import type { UserAddressResponse } from "../../../types/address.type";
 
 type BookingPageMode = "client" | "admin-counter";
 
@@ -35,10 +38,26 @@ type BookingPageProps = {
 export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const user = useAuthStore((state) => state.user);
+    const isCounterBooking = mode === "admin-counter";
     // Preserve existing draft data if user navigates back from step 2
     const rawState = location.state as (BookingStep1FormData & { bookingDraft?: any; bookingCodeForEdit?: string }) | undefined;
 
     const [formData, setFormData] = useState<BookingStep1FormData>(() => {
+        if (isCounterBooking) {
+            const fromDraft = rawState?.bookingDraft?.step1Data as BookingStep1FormData | undefined;
+            // Màn hình đặt tại quầy không tự điền data admin;
+            // chỉ giữ lại dữ liệu khi quay lại từ bước chi tiết.
+            return fromDraft
+                ? {
+                    fullName: fromDraft.fullName ?? "",
+                    email: fromDraft.email ?? "",
+                    phone: fromDraft.phone ?? "",
+                    address: fromDraft.address ?? "",
+                    message: fromDraft.message ?? "",
+                }
+                : defaultFormData;
+        }
         return rawState && typeof rawState === "object"
             ? {
                 fullName: rawState.fullName ?? "",
@@ -49,6 +68,9 @@ export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => 
             }
             : defaultFormData;
     });
+    const [savedAddresses, setSavedAddresses] = useState<UserAddressResponse[]>([]);
+    const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+    const addressDropdownRef = useRef<HTMLDivElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -60,6 +82,67 @@ export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => 
     useEffect(() => {
         formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        // Màn tạo đơn tại quầy: không tự điền thông tin tài khoản admin.
+        if (isCounterBooking || (user.role ?? "").toUpperCase() === "ADMIN") return;
+        const profileFullName = `${user.lastName ?? ""} ${user.firstName ?? ""}`.trim();
+        setFormData((prev) => ({
+            ...prev,
+            fullName: prev.fullName || profileFullName,
+            email: prev.email || user.email || "",
+            phone: prev.phone || user.phoneNumber || "",
+        }));
+    }, [user, isCounterBooking]);
+
+    useEffect(() => {
+        if (!user) {
+            setSavedAddresses([]);
+            setShowAddressDropdown(false);
+            return;
+        }
+        if (isCounterBooking) {
+            setSavedAddresses([]);
+            setShowAddressDropdown(false);
+            return;
+        }
+
+        let mounted = true;
+        getAllAddresses()
+            .then((res) => {
+                if (!mounted) return;
+                const list = Array.isArray(res?.data) ? res.data : [];
+                setSavedAddresses(list);
+
+                // Prefill địa chỉ mặc định nếu form đang trống, nhưng vẫn cho phép đổi bằng dropdown.
+                const defaultAddress = list.find((addr) => addr.isDefault)?.address?.trim();
+                if (defaultAddress) {
+                    setFormData((prev) => (prev.address.trim() ? prev : { ...prev, address: defaultAddress }));
+                }
+            })
+            .catch(() => {
+                if (!mounted) return;
+                setSavedAddresses([]);
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [user, isCounterBooking]);
+
+    useEffect(() => {
+        if (!showAddressDropdown) return;
+        const onClickOutside = (event: MouseEvent) => {
+            if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node)) {
+                setShowAddressDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", onClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", onClickOutside);
+        };
+    }, [showAddressDropdown]);
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
@@ -141,9 +224,40 @@ export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => 
                 </div>
 
                 <div>
-                    <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818] mb-[10px]">
-                        Địa chỉ
-                    </label>
+                    <div className="flex items-center justify-between mb-[10px]">
+                        <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818]">
+                            Địa chỉ
+                        </label>
+                        {!isCounterBooking && user && savedAddresses.length > 0 && (
+                            <div className="relative" ref={addressDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddressDropdown((prev) => !prev)}
+                                    className="px-[12px] py-[7px] text-[0.75rem] font-[600] rounded-[10px] border border-[#ffbaa0] text-[#c45a3a] hover:bg-[#fff4ef] transition-colors"
+                                >
+                                    Chọn địa chỉ cũ
+                                </button>
+                                {showAddressDropdown && (
+                                    <div className="absolute right-0 top-[calc(100%+8px)] z-[20] w-[320px] max-h-[240px] overflow-y-auto bg-white border border-[#eee] rounded-[12px] shadow-[0_10px_24px_rgba(0,0,0,0.12)] p-[6px]">
+                                        {savedAddresses.map((addr) => (
+                                            <button
+                                                key={addr.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData((prev) => ({ ...prev, address: addr.address || "" }));
+                                                    setShowAddressDropdown(false);
+                                                }}
+                                                className="w-full text-left px-[10px] py-[8px] rounded-[10px] hover:bg-[#fff4ef] transition-colors"
+                                            >
+                                                <p className="text-[0.8125rem] text-[#181818] font-[600] line-clamp-2">{addr.address}</p>
+                                                <p className="text-[0.6875rem] text-[#888] mt-[2px]">{addr.fullName} - {addr.phone}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <input
                         id="address"
                         type="text"

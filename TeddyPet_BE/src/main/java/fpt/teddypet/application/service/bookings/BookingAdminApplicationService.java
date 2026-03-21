@@ -24,6 +24,7 @@ import fpt.teddypet.application.port.input.bookings.BookingAdminService;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
+import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPaymentTransaction;
@@ -38,6 +39,7 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Time
 import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffProfileRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -76,6 +78,10 @@ public class BookingAdminApplicationService implements BookingAdminService {
         private final StaffProfileRepository staffProfileRepository;
         private final EmailServicePort emailServicePort;
         private final DashboardService dashboardService;
+        private final PayosGatewayAdapter payosGatewayAdapter;
+
+        @Value("${app.frontend-url}")
+        private String frontendUrl;
 
         public BookingAdminApplicationService(
                         BookingRepository bookingRepository,
@@ -88,7 +94,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         TimeSlotBookingRepository timeSlotBookingRepository,
                         StaffProfileRepository staffProfileRepository,
                         EmailServicePort emailServicePort,
-                        @Lazy DashboardService dashboardService) {
+                        @Lazy DashboardService dashboardService,
+                        PayosGatewayAdapter payosGatewayAdapter) {
                 this.bookingRepository = bookingRepository;
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
                 this.serviceRepositoryPort = serviceRepositoryPort;
@@ -100,6 +107,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.staffProfileRepository = staffProfileRepository;
                 this.emailServicePort = emailServicePort;
                 this.dashboardService = dashboardService;
+                this.payosGatewayAdapter = payosGatewayAdapter;
         }
 
         @Override
@@ -1152,6 +1160,11 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         }
                 }
                 for (BookingPaymentTransaction t : bookingPaymentTransactionRepository.findByBookingIdOrderByPaidAtAsc(bookingId)) {
+                        String txType = t.getTransactionType() != null ? t.getTransactionType().trim().toUpperCase() : "";
+                        String label = "Thanh toán hóa đơn";
+                        if ("REFUND".equals(txType) || "DEPOSIT_REFUND".equals(txType)) {
+                                label = "Hoàn lại tiền đặt cọc";
+                        }
                         list.add(new BookingTransactionItemResponse(
                                         "INVOICE_PAYMENT",
                                         t.getId(),
@@ -1159,7 +1172,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         t.getPaymentMethod(),
                                         t.getPaidAt(),
                                         t.getStatus(),
-                                        "Thanh toán hóa đơn",
+                                        label,
                                         t.getTransactionReference(),
                                         t.getPaidByName(),
                                         t.getNote()
@@ -1207,6 +1220,26 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         recomputeBookingFromTransactions(bookingId);
                 }
                 return toTransactionResponse(tx);
+        }
+
+        @Override
+        public String createPayosPaymentLink(Long bookingId, String returnUrl) {
+                Booking booking = getBookingOrThrow(bookingId);
+                BigDecimal remaining = booking.getRemainingAmount() != null ? booking.getRemainingAmount() : BigDecimal.ZERO;
+                if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new IllegalStateException("Booking đã thanh toán đủ, không cần tạo link PayOS.");
+                }
+
+                // Dùng dải mã riêng cho booking invoice payment (khác deposit 900...).
+                long payosOrderCode = 800_000_000_000L + bookingId;
+                String description = "Thanh toan " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + bookingId));
+                String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
+                return payosGatewayAdapter.buildPaymentUrlByOrderCode(
+                        payosOrderCode,
+                        remaining.longValue(),
+                        description,
+                        effectiveReturnUrl
+                );
         }
 
         /** Cập nhật booking: paid_amount = tổng COMPLETED transactions (+ deposit đã trả), remaining_amount, payment_method = JSON array, payment_status = PAID khi remaining = 0. */

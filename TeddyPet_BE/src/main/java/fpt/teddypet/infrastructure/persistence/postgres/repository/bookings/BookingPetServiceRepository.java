@@ -97,6 +97,38 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
            "AND b.bookingDateFrom = :today")
     List<BookingPetService> findTodayTasksForStaff(@Param("today") LocalDate today);
 
+    /**
+     * Lấy booking_pet_services cho nhân viên theo ca đã khóa (ASSIGNED) trong ngày.
+     * booking_pet_services được coi là thuộc ca khi scheduledStart/End trùng start/end của ca.
+     */
+    @Query("SELECT DISTINCT bps FROM BookingPetService bps " +
+            "JOIN FETCH bps.bookingPet bp " +
+            "JOIN FETCH bp.booking b " +
+            "LEFT JOIN FETCH bps.service s " +
+            "LEFT JOIN FETCH bps.serviceCombo c " +
+            "WHERE bps.scheduledStartTime IS NOT NULL " +
+            "AND bps.scheduledEndTime IS NOT NULL " +
+            "AND bps.scheduledStartTime >= :dayStart " +
+            "AND bps.scheduledStartTime < :dayEnd " +
+            "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
+            "AND EXISTS (" +
+            "   SELECT 1 FROM WorkShiftRegistration reg " +
+            "   JOIN reg.workShift ws " +
+            "   WHERE reg.staff.id = :staffId " +
+            "   AND reg.status = :registrationStatus " +
+            "   AND ws.status = :shiftStatus " +
+            "   AND ws.startTime = bps.scheduledStartTime " +
+            "   AND ws.endTime = bps.scheduledEndTime" +
+            ") " +
+            "ORDER BY bps.scheduledStartTime ASC, bps.id ASC")
+    List<BookingPetService> findTasksForStaffByAssignedShiftsInDay(
+            @Param("staffId") Long staffId,
+            @Param("dayStart") java.time.LocalDateTime dayStart,
+            @Param("dayEnd") java.time.LocalDateTime dayEnd,
+            @Param("registrationStatus") fpt.teddypet.domain.enums.staff.RegistrationStatus registrationStatus,
+            @Param("shiftStatus") fpt.teddypet.domain.enums.staff.ShiftStatus shiftStatus
+    );
+
     @Query("SELECT COALESCE(AVG(bps.customerRating), 0) FROM BookingPetService bps " +
             "WHERE bps.customerRating IS NOT NULL AND bps.customerRating > 0")
     Double getAverageCustomerRating();
@@ -115,4 +147,28 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
             "WHERE bps.customerRating IS NOT NULL AND bps.customerRating > 0 " +
             "ORDER BY bps.updatedAt DESC")
     List<Object[]> findAllBookingReviews();
+
+    @Query("SELECT DISTINCT bps FROM BookingPetService bps " +
+            "JOIN FETCH bps.bookingPet bp " +
+            "JOIN FETCH bp.booking b " +
+            "LEFT JOIN FETCH bps.service s " +
+            "LEFT JOIN FETCH bps.serviceCombo c " +
+            "WHERE b.status = 'CONFIRMED' " +
+            "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
+            "AND EXISTS (" +
+            "  SELECT 1 FROM BookingDeposit bd WHERE bd.bookingId = b.id AND bd.depositPaid = true" +
+            ") " +
+            "ORDER BY b.createdAt DESC")
+    List<BookingPetService> findAssignableForWorkShift();
+
+    @Query("SELECT COUNT(bps) > 0 FROM BookingPetService bps " +
+            "JOIN bps.bookingPet bp " +
+            "JOIN bp.booking b " +
+            "WHERE bps.id = :bookingPetServiceId " +
+            "AND b.status = 'CONFIRMED' " +
+            "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
+            "AND EXISTS (" +
+            "  SELECT 1 FROM BookingDeposit bd WHERE bd.bookingId = b.id AND bd.depositPaid = true" +
+            ")")
+    boolean isEligibleForWorkShiftAssignment(@Param("bookingPetServiceId") Long bookingPetServiceId);
 }
