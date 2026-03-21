@@ -48,7 +48,7 @@ public class StaffProfileApplicationService implements StaffProfileService {
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
-    @org.springframework.beans.factory.annotation.Value("${app.admin-url:http://localhost:5174}")
+    @org.springframework.beans.factory.annotation.Value("${app.admin-url:${app.frontend-url:http://localhost:5173}}")
     private String adminUrl;
 
     @Override

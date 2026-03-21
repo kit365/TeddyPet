@@ -144,7 +144,15 @@ export const cancelAdminBooking = async (
     bookingId: string | number,
     body?: CancelAdminBookingRequest
 ): Promise<ApiResponse<BookingResponse>> => {
-    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/cancel`, body || {}, withAuth());
+    // BE không có endpoint /cancel; dùng /cancel-request với approved=true để hủy.
+    const response = await apiApp.patch(
+        `${BASE_URL}/${bookingId}/cancel-request`,
+        {
+            approved: true,
+            staffNotes: body?.reason?.trim() || undefined,
+        },
+        withAuth()
+    );
     return response.data;
 };
 
@@ -236,6 +244,17 @@ export const addBookingPaymentTransaction = async (
     body: CreateBookingPaymentTransactionRequest
 ): Promise<ApiResponse<BookingPaymentTransactionResponse>> => {
     const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-transactions`, body, withAuth());
+    return response.data;
+};
+
+export const createBookingPayosPaymentLink = async (
+    bookingId: string | number,
+    returnUrl?: string
+): Promise<ApiResponse<string>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-link/payos`, null, {
+        ...withAuth(),
+        params: returnUrl ? { returnUrl } : undefined,
+    });
     return response.data;
 };
 

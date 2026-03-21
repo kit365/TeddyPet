@@ -64,6 +64,23 @@ export interface IOpenShiftRequest {
     endTime: string;
 }
 
+export interface IWorkShiftBookingPetServiceItem {
+    bookingPetServiceId: number;
+    bookingCode: string;
+    bookingId: number;
+    customerName?: string | null;
+    petName?: string | null;
+    serviceName?: string | null;
+    bookingDateFrom?: string | null;
+    scheduledStartTime?: string | null;
+    scheduledEndTime?: string | null;
+}
+
+export interface IWorkShiftBookingPetServicePool {
+    inWeek: IWorkShiftBookingPetServiceItem[];
+    waiting: IWorkShiftBookingPetServiceItem[];
+}
+
 /** Admin: create open shift */
 export const createOpenShift = async (data: IOpenShiftRequest): Promise<ApiResponse<IWorkShift>> => {
     const res = await apiApp.post(ADMIN_BASE, data, withAuth());
@@ -103,6 +120,17 @@ export const getShiftsForAdminByDateRange = async (
     if (from) params.from = from;
     if (to) params.to = to;
     const res = await apiApp.get(ADMIN_BASE, { ...withAuth(), params });
+    return res.data;
+};
+
+export const getAssignableBookingPetServices = async (
+    from?: string | null,
+    to?: string | null
+): Promise<ApiResponse<IWorkShiftBookingPetServicePool>> => {
+    const params: Record<string, string> = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const res = await apiApp.get(`${ADMIN_BASE}/booking-pet-services`, { ...withAuth(), params });
     return res.data;
 };
 
@@ -177,6 +205,21 @@ export const finalizeShiftApprovals = async (shiftId: number): Promise<ApiRespon
 /** Admin: Hủy xếp ca – xóa đăng ký khỏi ca để nhả slot. */
 export const cancelAdminRegistration = async (shiftId: number, registrationId: number): Promise<ApiResponse<void>> => {
     const res = await apiApp.delete(`${ADMIN_BASE}/${shiftId}/registrations/${registrationId}`, withAuth());
+    return res.data;
+};
+
+export const assignBookingPetServiceToShift = async (
+    shiftId: number,
+    bookingPetServiceId: number
+): Promise<ApiResponse<void>> => {
+    const res = await apiApp.put(`${ADMIN_BASE}/${shiftId}/booking-pet-services/${bookingPetServiceId}/assign`, {}, withAuth());
+    return res.data;
+};
+
+export const unassignBookingPetService = async (
+    bookingPetServiceId: number
+): Promise<ApiResponse<void>> => {
+    const res = await apiApp.put(`${ADMIN_BASE}/booking-pet-services/${bookingPetServiceId}/unassign`, {}, withAuth());
     return res.data;
 };
 

@@ -5,6 +5,7 @@ import fpt.teddypet.application.dto.request.staff.BatchOpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.OpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 import fpt.teddypet.application.port.input.staff.WorkShiftService;
@@ -91,6 +92,16 @@ public class AdminWorkShiftController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @GetMapping("/booking-pet-services")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Danh sách booking_pet_service đủ điều kiện xếp ca + danh sách chờ theo tuần đang xem")
+    public ResponseEntity<ApiResponse<WorkShiftBookingPetServicePoolResponse>> getAssignableBookingPetServices(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        WorkShiftBookingPetServicePoolResponse response = workShiftService.getAssignableBookingPetServices(from, to);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/{shiftId}/role-configs")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Lấy định mức theo vai trò của ca (số slot tối đa mỗi chức vụ)")
@@ -172,6 +183,25 @@ public class AdminWorkShiftController {
             @PathVariable Long registrationId) {
         workShiftService.cancelAdminRegistration(shiftId, registrationId);
         return ResponseEntity.ok(ApiResponse.success("Đã hủy xếp ca."));
+    }
+
+    @PutMapping("/{shiftId}/booking-pet-services/{bookingPetServiceId}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Gán booking_pet_service vào ca bằng scheduledStartTime/scheduledEndTime")
+    public ResponseEntity<ApiResponse<Void>> assignBookingPetServiceToShift(
+            @PathVariable Long shiftId,
+            @PathVariable Long bookingPetServiceId) {
+        workShiftService.assignBookingPetServiceToShift(shiftId, bookingPetServiceId);
+        return ResponseEntity.ok(ApiResponse.success("Đã thêm booking_pet_service vào ca."));
+    }
+
+    @PutMapping("/booking-pet-services/{bookingPetServiceId}/unassign")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Bỏ booking_pet_service khỏi ca (clear scheduledStartTime/scheduledEndTime)")
+    public ResponseEntity<ApiResponse<Void>> unassignBookingPetService(
+            @PathVariable Long bookingPetServiceId) {
+        workShiftService.unassignBookingPetService(bookingPetServiceId);
+        return ResponseEntity.ok(ApiResponse.success("Đã đưa booking_pet_service về danh sách."));
     }
 
     @GetMapping("/{shiftId}")

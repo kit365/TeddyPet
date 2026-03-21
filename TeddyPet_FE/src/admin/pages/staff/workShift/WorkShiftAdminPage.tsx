@@ -7,9 +7,9 @@ import DialogActions from '@mui/material/DialogActions';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals, useCancelAdminRegistration } from '../hooks/useWorkShift';
+import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals, useCancelAdminRegistration, useAssignableBookingPetServices, useAssignBookingPetServiceToShift, useUnassignBookingPetService } from '../hooks/useWorkShift';
 import { toast } from 'react-toastify';
-import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff } from '../../../api/workShift.api';
+import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff, IWorkShiftBookingPetServiceItem } from '../../../api/workShift.api';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -220,6 +220,9 @@ export const WorkShiftAdminPage = () => {
     const { mutate: rejectLeave, isPending: rejectingLeave } = useRejectLeaveRequest();
     const { mutate: finalizeApprovals, isPending: finalizing } = useFinalizeShiftApprovals();
     const { mutate: cancelAssignment } = useCancelAdminRegistration();
+    const { data: bookingPetServicePool } = useAssignableBookingPetServices(from, to);
+    const { mutate: assignBookingPetService, isPending: assigningBookingPetService } = useAssignBookingPetServiceToShift();
+    const { mutate: unassignBookingPetService, isPending: unassigningBookingPetService } = useUnassignBookingPetService();
 
     // Hiển thị lỗi từ mutation (đảm bảo toast hiện khi backend trả 400, kể cả khi onError không chạy)
     useEffect(() => {
@@ -838,6 +841,139 @@ export const WorkShiftAdminPage = () => {
                                 })}
                                 </tr>
                             ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
+                <div className="mb-2">
+                    <div className="text-base font-semibold text-gray-900">Danh sách booking dịch vụ để xếp ca</div>
+                    <div className="text-sm text-gray-500">
+                        Điều kiện: booking đã thanh toán cọc và trạng thái đã xác nhận.
+                    </div>
+                </div>
+
+                <div className="mt-3 rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <table className="w-full table-fixed border-collapse">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Booking</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Khách / Thú cưng</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Dịch vụ</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Ngày booking</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Đang xếp ca</th>
+                                <th className="p-3 text-right text-sm font-semibold text-gray-700">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="p-4 text-sm text-gray-500 text-center">Không có booking_pet_service trong tuần này.</td>
+                                </tr>
+                            ) : (
+                                ((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
+                                    <tr key={item.bookingPetServiceId} className="border-b border-gray-100 last:border-b-0">
+                                        <td className="p-3 text-sm font-semibold text-gray-800">{item.bookingCode}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.customerName || '-'} / {item.petName || '-'}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.serviceName || '-'}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</td>
+                                        <td className="p-3 text-sm text-gray-700">
+                                            {item.scheduledStartTime && item.scheduledEndTime
+                                                ? `${dayjs(item.scheduledStartTime).format('ddd DD/MM HH:mm')} - ${dayjs(item.scheduledEndTime).format('HH:mm')}`
+                                                : 'Chưa xếp'}
+                                        </td>
+                                        <td className="p-3">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={!selectedShiftId || assigningBookingPetService}
+                                                    onClick={() => {
+                                                        if (!selectedShiftId) {
+                                                            toast.error('Vui lòng chọn một ca trong tuần trước khi thêm.');
+                                                            return;
+                                                        }
+                                                        assignBookingPetService(
+                                                            { shiftId: selectedShiftId, bookingPetServiceId: item.bookingPetServiceId },
+                                                            {
+                                                                onSuccess: (res: any) => {
+                                                                    if (res?.success !== false) {
+                                                                        toast.success('Đã thêm booking_pet_service vào ca.');
+                                                                    } else {
+                                                                        toast.error(res?.message ?? 'Có lỗi khi thêm vào ca.');
+                                                                    }
+                                                                },
+                                                                onError: (err: any) =>
+                                                                    toast.error(err?.response?.data?.message ?? err?.message ?? 'Thêm vào ca thất bại'),
+                                                            }
+                                                        );
+                                                    }}
+                                                    className="h-8 rounded-md border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Thêm vào ca đã chọn
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={unassigningBookingPetService}
+                                                    onClick={() => {
+                                                        unassignBookingPetService(item.bookingPetServiceId, {
+                                                            onSuccess: (res: any) => {
+                                                                if (res?.success !== false) {
+                                                                    toast.success('Đã đưa booking_pet_service về danh sách.');
+                                                                } else {
+                                                                    toast.error(res?.message ?? 'Có lỗi khi đưa về danh sách.');
+                                                                }
+                                                            },
+                                                            onError: (err: any) =>
+                                                                toast.error(err?.response?.data?.message ?? err?.message ?? 'Thao tác thất bại'),
+                                                        });
+                                                    }}
+                                                    className="h-8 rounded-md border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Đưa xuống danh sách
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
+                <div className="mb-2">
+                    <div className="text-base font-semibold text-gray-900">Danh sách đợi xếp lịch ca làm</div>
+                    <div className="text-sm text-gray-500">
+                        Booking có ngày đặt không thuộc tuần đang tạo ca.
+                    </div>
+                </div>
+                <div className="mt-3 rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <table className="w-full table-fixed border-collapse">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Booking</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Khách / Thú cưng</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Dịch vụ</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Ngày booking</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="p-4 text-sm text-gray-500 text-center">Không có booking_pet_service chờ xếp lịch.</td>
+                                </tr>
+                            ) : (
+                                ((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
+                                    <tr key={item.bookingPetServiceId} className="border-b border-gray-100 last:border-b-0">
+                                        <td className="p-3 text-sm font-semibold text-gray-800">{item.bookingCode}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.customerName || '-'} / {item.petName || '-'}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.serviceName || '-'}</td>
+                                        <td className="p-3 text-sm text-gray-700">{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

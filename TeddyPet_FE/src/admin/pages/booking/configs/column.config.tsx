@@ -102,6 +102,33 @@ export const getBookingColumns = (
     ),
   },
   {
+    field: "bookingType",
+    headerName: "Loại đặt lịch",
+    minWidth: 110,
+    flex: 0.55,
+    align: "center",
+    headerAlign: "center",
+    renderCell: (params) => {
+      const type = params.value as string;
+      const isWalkIn = type === "WALK_IN";
+      return (
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <Chip
+            label={isWalkIn ? "Tại quầy" : "Online"}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.75rem",
+              bgcolor: isWalkIn ? "#e0f2fe" : "#f0fdf4",
+              color: isWalkIn ? "#0369a1" : "#15803d",
+              border: `1px solid ${isWalkIn ? "#bae6fd" : "#bbf7d0"}`,
+            }}
+          />
+        </Box>
+      );
+    },
+  },
+  {
     field: "customerName",
     headerName: "Khách hàng",
     minWidth: 92,
@@ -109,7 +136,7 @@ export const getBookingColumns = (
     align: "center",
     headerAlign: "center",
     renderCell: (params) => (
-      <Typography sx={{ fontWeight: 600, fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center" }}>{params.value}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: "0.9062rem", color: "#1C252E", width: "100%", textAlign: "center", whiteSpace: "nowrap" }}>{params.value}</Typography>
     ),
   },
   {
@@ -172,32 +199,7 @@ export const getBookingColumns = (
       </Typography>
     ),
   },
-  {
-    field: "depositPaid",
-    headerName: "TT Cọc",
-    minWidth: 100,
-    flex: 0.5,
-    align: "center",
-    headerAlign: "center",
-    renderCell: (params) => {
-      const isPaid = params.row.depositPaid === true;
-      return (
-        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-          <Chip
-            label={isPaid ? "Đã TT cọc" : "Chưa TT cọc"}
-            size="small"
-            sx={{
-              fontWeight: 600,
-              fontSize: "0.75rem",
-              bgcolor: isPaid ? "#dcfce7" : "#ffe4e6",
-              color: isPaid ? "#166534" : "#9f1239",
-              border: `1px solid ${isPaid ? "#bbf7d0" : "#fecdd3"}`,
-            }}
-          />
-        </Box>
-      );
-    },
-  },
+
   {
     field: "remainingAmount",
     headerName: "Còn",

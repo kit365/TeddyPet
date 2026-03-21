@@ -1,6 +1,6 @@
 import {
     User, MapPin, PawPrint, Package,
-    LogOut, Camera, ShieldCheck, Loader2, ImagePlus, History, X, Check, CreditCard
+    LogOut, Camera, ShieldCheck, Loader2, ImagePlus, History, X, Check, CreditCard, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -408,6 +408,12 @@ export const Sidebar = () => {
                         icon={Package}
                         label="Lịch sử đơn hàng"
                         active={pathname === "/dashboard/orders" || (pathname.startsWith("/dashboard/order/") && !pathname.includes("v2"))}
+                    />
+                    <SidebarItem
+                        to="/dashboard/bookings"
+                        icon={Calendar}
+                        label="Lịch sử đặt lịch"
+                        active={pathname.startsWith("/dashboard/bookings")}
                     />
                 </div>
 

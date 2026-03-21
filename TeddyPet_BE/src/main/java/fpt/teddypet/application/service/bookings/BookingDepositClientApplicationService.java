@@ -17,15 +17,21 @@ import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingDeposit;
+import fpt.teddypet.domain.entity.BookingPet;
+import fpt.teddypet.domain.entity.PetProfile;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.TimeSlot;
+import fpt.teddypet.domain.entity.UserAddress;
+import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
 import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.PetProfileRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.user.UserAddressRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +43,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +62,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
     private final PayosGatewayAdapter payosGatewayAdapter;
+    private final UserAddressRepository userAddressRepository;
+    private final PetProfileRepository petProfileRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -155,6 +164,10 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             deposit.setDepositAmount(depositAmount);
             deposit.setBookingCode(booking.getBookingCode());
             bookingDepositRepository.save(deposit);
+
+            // Sau khi cọc thành công: đồng bộ dữ liệu hồ sơ cho user đã đăng nhập.
+            // Guest booking (không có user_id) sẽ bỏ qua.
+            syncUserAddressAndPetProfiles(booking, deposit);
 
             if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                 emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
@@ -277,6 +290,9 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         ArrayNode timeSlots = objectMapper.createArrayNode();
         payload.set("rooms", rooms);
         payload.set("timeSlots", timeSlots);
+        if (request.customerAddress() != null && !request.customerAddress().isBlank()) {
+            payload.put("customerAddress", request.customerAddress().trim());
+        }
 
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
@@ -352,6 +368,101 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             case "BANK_TRANSFER" -> "Chuyển khoản";
             case "VIETQR" -> "VietQR";
             default -> method;
+        };
+    }
+
+    private void syncUserAddressAndPetProfiles(Booking booking, BookingDeposit deposit) {
+        if (booking == null || booking.getUser() == null || booking.getUser().getId() == null) {
+            return;
+        }
+
+        String customerAddress = extractCustomerAddressFromHoldPayload(deposit);
+        createUserAddressIfNeeded(booking, customerAddress);
+        createPetProfilesIfNeeded(booking);
+    }
+
+    private String extractCustomerAddressFromHoldPayload(BookingDeposit deposit) {
+        if (deposit == null || deposit.getHoldPayloadJson() == null || deposit.getHoldPayloadJson().isBlank()) {
+            return null;
+        }
+        try {
+            var root = objectMapper.readTree(deposit.getHoldPayloadJson());
+            if (root == null) return null;
+            String address = root.path("customerAddress").asText(null);
+            return (address == null || address.isBlank()) ? null : address.trim();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void createUserAddressIfNeeded(Booking booking, String customerAddress) {
+        if (customerAddress == null || customerAddress.isBlank()) {
+            return;
+        }
+        String normalizedAddress = customerAddress.trim();
+        String phone = booking.getCustomerPhone() == null ? "" : booking.getCustomerPhone().trim();
+        String fullName = booking.getCustomerName() == null || booking.getCustomerName().isBlank()
+                ? "Khách hàng"
+                : booking.getCustomerName().trim();
+
+        boolean exists = userAddressRepository.existsByUserIdAndAddressIgnoreCaseAndPhone(
+                booking.getUser().getId(),
+                normalizedAddress,
+                phone
+        );
+        if (exists) {
+            return;
+        }
+
+        List<UserAddress> existingAddresses = userAddressRepository.findAllByUserId(booking.getUser().getId());
+        UserAddress address = UserAddress.builder()
+                .user(booking.getUser())
+                .fullName(fullName)
+                .phone(phone)
+                .address(normalizedAddress)
+                .defaultAddress(existingAddresses.isEmpty())
+                .build();
+        userAddressRepository.save(address);
+    }
+
+    private void createPetProfilesIfNeeded(Booking booking) {
+        if (booking.getPets() == null || booking.getPets().isEmpty()) {
+            return;
+        }
+
+        for (BookingPet bookingPet : booking.getPets()) {
+            if (bookingPet == null || bookingPet.getPetName() == null || bookingPet.getPetName().isBlank()) {
+                continue;
+            }
+
+            PetTypeEnum petType = toPetTypeEnum(bookingPet.getPetType());
+            String petName = bookingPet.getPetName().trim();
+            boolean existed = petProfileRepository.existsByUserIdAndNameIgnoreCaseAndPetType(
+                    booking.getUser().getId(),
+                    petName,
+                    petType
+            );
+            if (existed) {
+                continue;
+            }
+
+            PetProfile petProfile = PetProfile.builder()
+                    .user(booking.getUser())
+                    .name(petName)
+                    .petType(petType)
+                    .weight(bookingPet.getWeightAtBooking())
+                    .healthNote(bookingPet.getPetConditionNotes())
+                    .build();
+            petProfileRepository.save(petProfile);
+        }
+    }
+
+    private PetTypeEnum toPetTypeEnum(String raw) {
+        if (raw == null) return PetTypeEnum.OTHER;
+        return switch (raw.trim().toUpperCase()) {
+            case "DOG", "CHO" -> PetTypeEnum.DOG;
+            case "CAT", "MEO" -> PetTypeEnum.CAT;
+            default -> PetTypeEnum.OTHER;
         };
     }
 }

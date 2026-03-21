@@ -237,6 +237,16 @@ public class BookingAdminController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
+    @PostMapping("/{bookingId}/payment-link/payos")
+    @Operation(summary = "Tạo link PayOS cho phần tiền còn lại của booking")
+    public ResponseEntity<ApiResponse<String>> createPayosPaymentLink(
+            @PathVariable Long bookingId,
+            @RequestParam(required = false) String returnUrl
+    ) {
+        String data = bookingAdminService.createPayosPaymentLink(bookingId, returnUrl);
+        return ResponseEntity.ok(ApiResponse.success("Đã tạo link PayOS", data));
+    }
+
     @PatchMapping("/{bookingId}/internal-notes")
     @Operation(summary = "Cập nhật ghi chú nội bộ của booking (admin)")
     public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> updateInternalNotes(

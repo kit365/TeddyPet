@@ -21,6 +21,7 @@ import {
   TextField,
   Divider,
   MenuItem,
+  Alert,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -307,17 +308,16 @@ export const BookingDetailPage = () => {
   };
 
   const handleCancelLineItem = async () => {
-    if (!id || !cancelTarget || !cancelReason.trim()) return;
+    if (!id || !cancelDialog.id || !cancelDialog.reason.trim()) return;
     setCancelSubmitting(true);
     try {
-      if (cancelTarget.type === "service") {
-        await cancelBookingPetService(id, cancelTarget.id, cancelReason);
+      if (cancelDialog.type === "service") {
+        await cancelBookingPetService(id, cancelDialog.id, cancelDialog.reason);
       } else {
-        await cancelBookingPetServiceItem(id, cancelTarget.id, cancelReason);
+        await cancelBookingPetServiceItem(id, cancelDialog.id, cancelDialog.reason);
       }
       toast.success("Hủy dịch vụ thành công!");
-      setCancelDialogOpen(false);
-      setCancelReason("");
+      setCancelDialog(prev => ({ ...prev, open: false, reason: "" }));
       
       // Reload current data
       await fetchBooking();
@@ -392,6 +392,25 @@ export const BookingDetailPage = () => {
 
       <Box sx={{ px: { xs: 2, md: 5 } }}>
         <Stack spacing={4}>
+          {booking.status === "CANCELLED" && booking.cancelledReason && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                borderRadius: "16px",
+                backgroundColor: "#fff1f0",
+                color: "#b71d18",
+                border: "1px solid #ffccc7",
+                "& .MuiAlert-icon": { color: "#ff4d4f" },
+                "& .MuiAlert-message": { fontSize: "0.9375rem", width: "100%" } 
+              }}
+            >
+              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Lý do hủy đơn:</Typography>
+              <Typography sx={{ fontSize: "0.9375rem" }}>
+                {booking.cancelledReason}
+              </Typography>
+            </Alert>
+          )}
+
           {/* Card 1: Thông tin chung Booking */}
           <Card
             sx={{

@@ -2,11 +2,14 @@ package fpt.teddypet.application.service.staff;
 
 import fpt.teddypet.application.dto.response.staff.EmployeeTaskResponse;
 import fpt.teddypet.domain.entity.BookingPetService;
+import fpt.teddypet.domain.enums.staff.RegistrationStatus;
+import fpt.teddypet.domain.enums.staff.ShiftStatus;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,9 +19,19 @@ public class StaffTaskApplicationService {
 
     private final BookingPetServiceRepository bookingPetServiceRepository;
 
-    public List<EmployeeTaskResponse> getTodayTasks() {
+    public List<EmployeeTaskResponse> getTodayTasks(Long staffId) {
         LocalDate today = LocalDate.now();
-        List<BookingPetService> services = bookingPetServiceRepository.findTodayTasksForStaff(today);
+        LocalDate weekStartDate = today.with(java.time.DayOfWeek.MONDAY);
+        LocalDate weekEndDateExclusive = weekStartDate.plusDays(7);
+        LocalDateTime dayStart = weekStartDate.atStartOfDay();
+        LocalDateTime dayEnd = weekEndDateExclusive.atStartOfDay();
+        List<BookingPetService> services = bookingPetServiceRepository.findTasksForStaffByAssignedShiftsInDay(
+                staffId,
+                dayStart,
+                dayEnd,
+                RegistrationStatus.APPROVED,
+                ShiftStatus.ASSIGNED
+        );
 
         return services.stream().map(bps -> {
             String type = "CARE";
