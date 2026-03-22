@@ -9,6 +9,7 @@ import {
     RenderCategoryTypeCell,
     RenderSuitablePetTypesCell,
 } from '../utils/render-cells';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 /** Cột danh sách: Ảnh, Tên, categoryType, suitablePetTypes, Trạng thái; tùy chọn thêm cột Danh mục cha (tab Tất cả). */
 export const useProductCategoryColumns = (showParentColumn: boolean = false) => {
@@ -32,7 +33,7 @@ export const useProductCategoryColumns = (showParentColumn: boolean = false) => 
                 minWidth: 220,
                 hideable: false,
                 resizable: false,
-                renderCell: RenderCategoryNameCell,
+                renderCell: mountGridCell(RenderCategoryNameCell),
             },
             {
                 field: 'categoryType',
@@ -77,7 +78,7 @@ export const useProductCategoryColumns = (showParentColumn: boolean = false) => 
             filterable: false,
             align: 'right',
             resizable: false,
-            renderCell: RenderActionsCell,
+            renderCell: mountGridCell(RenderActionsCell),
         });
         return cols;
     }, [t, showParentColumn]);

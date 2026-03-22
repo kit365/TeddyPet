@@ -84,7 +84,10 @@ export const BookingPetServiceDetailDrawer = ({
         </Stack>
         <Divider sx={{ my: 2 }} />
 
-        <InfoRow label="Nhân viên phụ trách" value={service.assignedStaffId} />
+        <InfoRow
+          label="Nhân viên phụ trách"
+          value={service.assignedStaffNames || (service.assignedStaffIds?.length ? service.assignedStaffIds.map((id) => `#${id}`).join(", ") : "—")}
+        />
         <InfoRow label="Phòng" value={service.roomId} />
         <InfoRow label="Slot giờ" value={service.timeSlotId} />
 

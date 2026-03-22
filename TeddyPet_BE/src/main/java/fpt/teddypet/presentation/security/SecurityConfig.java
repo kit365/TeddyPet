@@ -99,6 +99,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/room-types", "/api/room-types/**").permitAll()
                         // Booking: cho phép khách đặt lịch và tra cứu booking
                         .requestMatchers(HttpMethod.POST, "/api/bookings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bookings/shift-coverage").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/bookings/code/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/bookings/code/*/contact").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/code/*/cancel").permitAll()

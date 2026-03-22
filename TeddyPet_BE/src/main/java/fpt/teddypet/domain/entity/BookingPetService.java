@@ -8,7 +8,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import fpt.teddypet.domain.entity.staff.StaffProfile;
 
 @Entity
 @Table(name = "booking_pet_services")
@@ -29,8 +33,14 @@ public class BookingPetService extends BaseEntity {
     @EqualsAndHashCode.Exclude
     private BookingPet bookingPet;
 
-    @Column(name = "assigned_staff_id")
-    private Long assignedStaffId;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "booking_pet_service_staff",
+            joinColumns = @JoinColumn(name = "booking_pet_service_id"),
+            inverseJoinColumns = @JoinColumn(name = "staff_id")
+    )
+    @Builder.Default
+    private Set<StaffProfile> assignedStaff = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id")

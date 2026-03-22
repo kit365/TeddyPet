@@ -74,11 +74,43 @@ export interface IWorkShiftBookingPetServiceItem {
     bookingDateFrom?: string | null;
     scheduledStartTime?: string | null;
     scheduledEndTime?: string | null;
+    /** Dịch vụ đơn có isRequiredRoom — UI hiển thị theo bookingCheckInDate */
+    serviceRequiresRoom?: boolean | null;
+    bookingCheckInDate?: string | null;
+    /** Từ service.required_staff_count */
+    requiredStaffCount?: number | null;
+}
+
+/** Preview: NV trong ca đích + SL yêu cầu (GET assign-options) */
+export interface IStaffShiftOption {
+    staffId: number;
+    fullName: string;
+    positionName?: string | null;
+}
+
+export interface IWorkShiftAssignOptions {
+    requiredStaffCount: number;
+    shiftId: number;
+    shortage: boolean;
+    participatingStaff: IStaffShiftOption[];
 }
 
 export interface IWorkShiftBookingPetServicePool {
     inWeek: IWorkShiftBookingPetServiceItem[];
     waiting: IWorkShiftBookingPetServiceItem[];
+}
+
+/** Booking dịch vụ đã xếp lịch trùng khung ca (GET .../assigned-booking-pet-services) */
+export interface IWorkShiftAssignedBookingPetServiceItem {
+    bookingPetServiceId: number;
+    bookingCode?: string | null;
+    customerName?: string | null;
+    petName?: string | null;
+    serviceName?: string | null;
+    scheduledStartTime?: string | null;
+    scheduledEndTime?: string | null;
+    /** Tên nhân viên được gán xử lý (cách nhau bởi dấu phẩy) */
+    assignedStaffNames?: string | null;
 }
 
 /** Admin: create open shift */
@@ -123,6 +155,14 @@ export const getShiftsForAdminByDateRange = async (
     return res.data;
 };
 
+/** Ca: danh sách BPS đã có scheduled overlap với [start,end] ca */
+export const getAssignedBookingPetServicesForShift = async (
+    shiftId: number
+): Promise<ApiResponse<IWorkShiftAssignedBookingPetServiceItem[]>> => {
+    const res = await apiApp.get(`${ADMIN_BASE}/${shiftId}/assigned-booking-pet-services`, withAuth());
+    return res.data;
+};
+
 export const getAssignableBookingPetServices = async (
     from?: string | null,
     to?: string | null
@@ -131,6 +171,17 @@ export const getAssignableBookingPetServices = async (
     if (from) params.from = from;
     if (to) params.to = to;
     const res = await apiApp.get(`${ADMIN_BASE}/booking-pet-services`, { ...withAuth(), params });
+    return res.data;
+};
+
+/** Admin: xem trước ca đích + danh sách NV trong ca (không ghi DB) */
+export const getAssignOptionsForBookingPetService = async (
+    bookingPetServiceId: number
+): Promise<ApiResponse<IWorkShiftAssignOptions>> => {
+    const res = await apiApp.get(
+        `${ADMIN_BASE}/booking-pet-services/${bookingPetServiceId}/assign-options`,
+        withAuth()
+    );
     return res.data;
 };
 
@@ -210,9 +261,27 @@ export const cancelAdminRegistration = async (shiftId: number, registrationId: n
 
 export const assignBookingPetServiceToShift = async (
     shiftId: number,
-    bookingPetServiceId: number
+    bookingPetServiceId: number,
+    staffIds: number[]
 ): Promise<ApiResponse<void>> => {
-    const res = await apiApp.put(`${ADMIN_BASE}/${shiftId}/booking-pet-services/${bookingPetServiceId}/assign`, {}, withAuth());
+    const res = await apiApp.put(
+        `${ADMIN_BASE}/${shiftId}/booking-pet-services/${bookingPetServiceId}/assign`,
+        { staffIds },
+        withAuth()
+    );
+    return res.data;
+};
+
+/** Tự tìm ca ASSIGNED phù hợp (phòng: buổi theo check-in; không phòng: overlap khung giờ) + gán nhân viên. */
+export const assignBookingPetServiceToShiftAuto = async (
+    bookingPetServiceId: number,
+    staffIds: number[]
+): Promise<ApiResponse<void>> => {
+    const res = await apiApp.put(
+        `${ADMIN_BASE}/booking-pet-services/${bookingPetServiceId}/assign-auto`,
+        { staffIds },
+        withAuth()
+    );
     return res.data;
 };
 

@@ -48,7 +48,7 @@ public interface BankInformationRepository extends JpaRepository<BankInformation
             """)
     List<BankInformation> findAllUserCreatedByVerify(@Param("isVerify") boolean isVerify);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update BankInformation b
             set b.isDefault = false

@@ -24,13 +24,7 @@ export const useEmployeeDashboard = (options: UseEmployeeDashboardOptions) => {
     const staffId = typeof user.id === "number" ? user.id : Number(user.id);
 
     useEffect(() => {
-        if (options.initialTasks) {
-            setTasks(() => {
-                // To avoid overriding optimistic updates immediately, we could do a smart merge
-                // but for simplicity, just overriding when the server data changes is enough.
-                return options.initialTasks;
-            });
-        }
+        setTasks(options.initialTasks ?? []);
     }, [options.initialTasks]);
 
     const { mutate: setRealtimeAvailable } = useSetRealtimeAvailable();

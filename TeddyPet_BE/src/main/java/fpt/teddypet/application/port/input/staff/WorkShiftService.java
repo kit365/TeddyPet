@@ -3,11 +3,16 @@ package fpt.teddypet.application.port.input.staff;
 import fpt.teddypet.application.dto.request.staff.OpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignedBookingPetServiceResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignOptionsResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftCoverageDayResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,8 +39,11 @@ public interface WorkShiftService {
      */
     void deleteAllWorkShifts();
 
-    /** Admin: Lấy tất cả ca trong khoảng (OPEN + ASSIGNED) để hiển thị grid, kể cả ca đã khóa sau Duyệt lần cuối */
-    List<WorkShiftResponse> getShiftsForAdminByDateRange(LocalDateTime from, LocalDateTime to);
+    /**
+     * Admin: Lấy tất cả ca trong khoảng (OPEN + ASSIGNED) để hiển thị grid, kể cả ca đã khóa sau Duyệt lần cuối.
+     * {@code from}/{@code to} là mốc thời gian tuyệt đối (ISO-8601, thường từ {@code Date.toISOString()}), được quy đổi sang giờ VN khi so với {@code startTime} trong DB.
+     */
+    List<WorkShiftResponse> getShiftsForAdminByDateRange(Instant from, Instant to);
 
     /** Staff: Lấy danh sách ca trống có thể đăng ký */
     List<WorkShiftResponse> getAvailableShifts(LocalDateTime from, LocalDateTime to);
@@ -91,12 +99,33 @@ public interface WorkShiftService {
     /** Admin: Hủy xếp ca – xóa bản ghi đăng ký (PENDING hoặc APPROVED) để nhả slot. */
     void cancelAdminRegistration(Long shiftId, Long registrationId);
 
-    /** Admin: Lấy danh sách booking_pet_service đủ điều kiện để kéo vào ca và danh sách chờ theo tuần đang xem. */
-    WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(LocalDateTime from, LocalDateTime to);
+    /**
+     * Admin: Lấy danh sách booking_pet_service đủ điều kiện để kéo vào ca và danh sách chờ theo tuần đang xem.
+     * Biên "tuần" (so với {@code booking.bookingDateFrom}) lấy theo lịch {@link java.time.ZoneId#of(String) Asia/Ho_Chi_Minh}.
+     * {@code inWeek}: ngày đặt trong khoảng tuần đang xem. {@code waiting}: ngày đặt sau ngày cuối tuần đang xem (tuần tương lai). Booking có ngày đặt trước tuần đang xem không nằm trong hai danh sách này.
+     */
+    WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(Instant from, Instant to);
 
-    /** Admin: Gán booking_pet_service vào ca bằng scheduledStartTime/scheduledEndTime của ca OPEN. */
-    void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId);
+    /** Admin: Gán booking_pet_service vào một ca cụ thể (đã ASSIGNED), theo rule phòng / không phòng + nhân viên. */
+    void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId, java.util.List<Long> staffIds);
+
+    /**
+     * Admin: Tự tìm ca đã khóa (ASSIGNED) khớp ngày + buổi (phòng) hoặc khung giờ (không phòng) rồi gán + gán nhân viên.
+     */
+    void assignBookingPetServiceToShiftAuto(Long bookingPetServiceId, java.util.List<Long> staffIds);
+
+    /** Admin: Xem trước ca đích + SL NV yêu cầu + danh sách NV trong ca (không ghi DB). */
+    WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId);
+
+    /** Admin: Danh sách booking_pet_service đã xếp lịch (overlap thời gian với ca). */
+    List<WorkShiftAssignedBookingPetServiceResponse> getBookingPetServicesAssignedToShift(Long shiftId);
 
     /** Admin: Bỏ gán booking_pet_service khỏi ca (clear scheduledStartTime/scheduledEndTime). */
     void unassignBookingPetService(Long bookingPetServiceId);
+
+    /**
+     * Public (đặt lịch): theo từng ngày trong [from, to], có ít nhất một ca giao với nửa sáng / nửa chiều hay không.
+     * Chỉ tính ca không CANCELLED, active, chưa xóa.
+     */
+    List<WorkShiftCoverageDayResponse> getShiftCoverageForBookingForm(LocalDate from, LocalDate to);
 }

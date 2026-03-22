@@ -7,7 +7,8 @@ import java.util.List;
 
 public record ClientBookingPetServiceDetailResponse(
         Long id,
-        Long assignedStaffId,
+        List<Long> assignedStaffIds,
+        String assignedStaffNames,
         String serviceName,
         String timeSlotName,
         LocalDate estimatedCheckInDate,

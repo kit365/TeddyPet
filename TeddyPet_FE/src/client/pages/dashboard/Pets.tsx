@@ -41,10 +41,13 @@ function formatAge(birthDate?: string): string {
     return `${years} tuổi`;
 }
 
-function formatBreed(pet: PetProfileResponse): string {
-    const type = pet.petType === "DOG" ? "Chó" : pet.petType === "CAT" ? "Mèo" : "Khác";
-    const breed = pet.breed?.trim() || "";
-    return breed ? `${breed}` : type;
+/** Nhãn hiển thị: Chó / Mèo / Khác (hỗ trợ giá trị BE lệch chữ hoa). */
+function getPetTypeLabel(petType?: string | null): string {
+    const t = (petType ?? "").trim().toUpperCase();
+    if (t === "DOG" || t === "CHO") return "Chó";
+    if (t === "CAT" || t === "MEO") return "Mèo";
+    if (t === "OTHER" || t === "KHAC") return "Khác";
+    return t || "—";
 }
 
 export const PetsPage = () => {
@@ -137,14 +140,24 @@ export const PetsPage = () => {
 
                                         {/* Pet Info */}
                                         <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                            {/* Name & Breed */}
+                                            {/* Name, loại thú cưng & giống */}
                                             <div>
                                                 <h3 className="text-[1.125rem] font-bold text-slate-800 truncate">
                                                     {pet.name}
                                                 </h3>
-                                                <p className="text-[0.75rem] font-bold text-client-primary uppercase tracking-wider mt-0.5">
-                                                    {formatBreed(pet)}
+                                                <p className="text-[0.75rem] mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                                    <span className="font-bold uppercase tracking-wider text-slate-500">
+                                                        Loại thú cưng
+                                                    </span>
+                                                    <span className="font-bold text-slate-800">
+                                                        {getPetTypeLabel(pet.petType)}
+                                                    </span>
                                                 </p>
+                                                {pet.breed?.trim() ? (
+                                                    <p className="text-[0.75rem] font-bold text-client-primary uppercase tracking-wider mt-0.5">
+                                                        Giống · {pet.breed.trim()}
+                                                    </p>
+                                                ) : null}
                                             </div>
 
                                             {/* Age & Weight */}

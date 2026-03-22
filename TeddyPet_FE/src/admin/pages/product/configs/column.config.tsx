@@ -1,6 +1,7 @@
 import { GridColDef } from "@mui/x-data-grid";
 import { RenderActionsCell, RenderCreatedAtCell, RenderProductCell, RenderStatusCell, RenderStockCell } from '../utils/render-cells';
 import { IProduct } from "../../../../types/products.type";
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 export const columnsConfig: GridColDef<IProduct>[] = [
     {
@@ -24,7 +25,7 @@ export const columnsConfig: GridColDef<IProduct>[] = [
         headerName: "Tình trạng",
         width: 160,
         filterable: false,
-        renderCell: RenderStockCell,
+        renderCell: mountGridCell(RenderStockCell),
     },
     {
         field: "price",
@@ -37,7 +38,7 @@ export const columnsConfig: GridColDef<IProduct>[] = [
         headerName: "Trạng thái",
         width: 120,
         filterable: false,
-        renderCell: RenderStatusCell,
+        renderCell: mountGridCell(RenderStatusCell),
     },
     {
         field: 'actions',
@@ -48,7 +49,7 @@ export const columnsConfig: GridColDef<IProduct>[] = [
         disableColumnMenu: true,
         width: 64,
         align: 'right',
-        renderCell: RenderActionsCell,
+        renderCell: mountGridCell(RenderActionsCell),
     },
 ];
 

@@ -25,6 +25,9 @@ export interface BaseTask {
     scheduledEnd?: string | null;
     startedAt?: string | null;
     finishedAt?: string | null;
+    /** Từ booking sau khi xếp ca & check-in */
+    bookingCode?: string;
+    customerName?: string;
 }
 
 export interface CareTask extends BaseTask {

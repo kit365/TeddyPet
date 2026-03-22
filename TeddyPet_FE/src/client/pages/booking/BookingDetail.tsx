@@ -39,9 +39,10 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
 import { toast } from "react-toastify";
 import "dayjs/locale/vi";
-import { buildCreateBookingPayload, createBookingFromClient } from "../../../api/booking.api";
+import { buildCreateBookingPayload, createBookingFromClient, getBookingShiftCoverage } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
 import { getAdminBookings } from "../../../admin/api/booking.api";
 import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode, getBankByGuestEmail } from "../../../api/bank.api";
@@ -56,7 +57,41 @@ const defaultStep1Data: BookingStep1FormData = {
     message: "",
 };
 
+dayjs.extend(isoWeek);
 dayjs.locale("vi");
+
+/** Ngày gửi nằm trong ISO tuần hiện tại hoặc tuần kế tiếp → áp dụng ràng buộc theo ca làm (chỉ cần admin đã tạo ca OPEN/ASSIGNED). */
+function isCheckInInCurrentOrNextIsoWeek(d: Dayjs): boolean {
+    if (!d || !d.isValid()) return false;
+    const wStart = dayjs().startOf("isoWeek");
+    const wEnd = dayjs().endOf("isoWeek").add(1, "week");
+    const ge = d.isAfter(wStart, "day") || d.isSame(wStart, "day");
+    const le = d.isBefore(wEnd, "day") || d.isSame(wEnd, "day");
+    return ge && le;
+}
+
+/** Dịch vụ theo buổi (không phòng): khóa khung giờ AM/PM theo phủ ca trong cùng khoảng 2 tuần ISO với ô Ngày gửi. */
+function getShiftCoverageFlagsForSessionDate(
+    dateYmd: string | undefined,
+    shiftCoverageLoading: boolean,
+    rangeStart: Dayjs,
+    rangeEnd: Dayjs,
+    shiftCoverageMap: Map<string, { morning: boolean; afternoon: boolean }>
+): { apply: boolean; morning: boolean; afternoon: boolean } {
+    const ymd = dateYmd?.trim();
+    if (!ymd || shiftCoverageLoading) {
+        return { apply: false, morning: true, afternoon: true };
+    }
+    const d = dayjs(ymd);
+    if (!d.isValid() || d.isBefore(rangeStart, "day") || d.isAfter(rangeEnd, "day")) {
+        return { apply: false, morning: true, afternoon: true };
+    }
+    const cov = shiftCoverageMap.get(ymd);
+    if (!cov) {
+        return { apply: true, morning: false, afternoon: false };
+    }
+    return { apply: true, morning: cov.morning, afternoon: cov.afternoon };
+}
 
 const OTHER_BRAND_VALUE = "__OTHER__";
 
@@ -201,7 +236,7 @@ const PetTypeDropdown = ({ isOpen, value, options, onToggle, onChange, renderLab
     );
 };
 
-type GenericDropdownOption = { value: string; label: string };
+type GenericDropdownOption = { value: string; label: string; disabled?: boolean };
 
 type GenericDropdownGroup = {
     groupLabel: string;
@@ -242,21 +277,27 @@ const GenericDropdown = ({ isOpen, value, onToggle, onChange, options, groups, p
 
     const renderOption = (opt: GenericDropdownOption) => {
         const isSelected = opt.value === value;
+        const isDisabled = opt.disabled === true;
         return (
             <button
                 key={opt.value}
                 type="button"
+                disabled={isDisabled}
+                title={isDisabled ? "Không có ca làm cho buổi này trong ngày đã chọn" : undefined}
                 onClick={() => {
+                    if (isDisabled) return;
                     onChange(opt.value, opt.label);
                     onToggle();
                 }}
-                className={`w-full text-left rounded-[12px] px-[14px] py-[11px] transition-all flex items-center justify-between ${isSelected
-                    ? "bg-[#fff7f3] text-[#c45a3a]"
-                    : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
+                className={`w-full text-left rounded-[12px] px-[14px] py-[11px] transition-all flex items-center justify-between ${isDisabled
+                    ? "cursor-not-allowed opacity-45 text-[#9ca3af]"
+                    : isSelected
+                      ? "bg-[#fff7f3] text-[#c45a3a]"
+                      : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
                     }`}
             >
-                <span className={`text-[0.9062rem] whitespace-nowrap ${isSelected ? "font-[700]" : "font-[500]"}`}>{opt.label}</span>
-                {isSelected && (
+                <span className={`text-[0.9062rem] whitespace-nowrap ${isSelected && !isDisabled ? "font-[700]" : "font-[500]"}`}>{opt.label}</span>
+                {isSelected && !isDisabled && (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#ffbaa0]"><path d="M20 6L9 17l-5-5" /></svg>
                 )}
             </button>
@@ -320,6 +361,8 @@ type AdditionalServiceNonRoomFieldsProps = {
     enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
+    /** Trong 2 tuần ISO: khóa khung giờ sáng/chiều theo ca OPEN/ASSIGNED */
+    sessionShiftCoverage: { apply: boolean; morning: boolean; afternoon: boolean };
 };
 
 /** Ô Ngày gửi + Khung giờ cho dịch vụ chính khi isRequiredRoom = false (dùng time_slots của dịch vụ). */
@@ -331,6 +374,7 @@ type MainServiceNonRoomFieldsProps = {
     enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
+    sessionShiftCoverage: { apply: boolean; morning: boolean; afternoon: boolean };
 };
 
 const MainServiceNonRoomFields = ({
@@ -341,6 +385,7 @@ const MainServiceNonRoomFields = ({
     enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
+    sessionShiftCoverage,
 }: MainServiceNonRoomFieldsProps) => {
     const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = pet.serviceId ? services.find((s) => s.serviceId === pet.serviceId) : undefined;
@@ -354,6 +399,27 @@ const MainServiceNonRoomFields = ({
     });
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
+
+    useEffect(() => {
+        if (!sessionShiftCoverage.apply || pet.sessionTimeSlotId == null) return;
+        const ts = timeSlots.find((t) => t.id === pet.sessionTimeSlotId);
+        if (!ts) return;
+        const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : String(ts.startTime ?? "").slice(0, 5);
+        const isPm = start && start >= "12:00";
+        const allowed = isPm ? sessionShiftCoverage.afternoon : sessionShiftCoverage.morning;
+        if (!allowed) {
+            updatePet(pet.id, { sessionTimeSlotId: undefined, sessionSlotLabel: undefined, sessionSlot: undefined });
+        }
+    }, [
+        sessionShiftCoverage.apply,
+        sessionShiftCoverage.morning,
+        sessionShiftCoverage.afternoon,
+        pet.sessionTimeSlotId,
+        pet.id,
+        timeSlots,
+        updatePet,
+    ]);
+
     const slotGroups = useMemo(() => {
         const am: GenericDropdownOption[] = [];
         const pm: GenericDropdownOption[] = [];
@@ -365,10 +431,12 @@ const MainServiceNonRoomFields = ({
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                const option = { value: String(ts.id), label };
+                const isPm = !!(start && start >= "12:00");
+                const shiftBlocked = sessionShiftCoverage.apply && (isPm ? !sessionShiftCoverage.afternoon : !sessionShiftCoverage.morning);
+                const option: GenericDropdownOption = { value: String(ts.id), label, disabled: shiftBlocked };
 
                 // Determine AM or PM based on start time (HH:mm)
-                if (start && start >= "12:00") {
+                if (isPm) {
                     pm.push(option);
                 } else {
                     am.push(option);
@@ -379,7 +447,7 @@ const MainServiceNonRoomFields = ({
         if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
         if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
-    }, [timeSlots]);
+    }, [timeSlots, sessionShiftCoverage.apply, sessionShiftCoverage.morning, sessionShiftCoverage.afternoon]);
 
     if (!pet.serviceId || !isNonRoom) return null;
 
@@ -441,6 +509,11 @@ const MainServiceNonRoomFields = ({
                     placeholder="— Chọn khung giờ —"
                     twoColumns={true}
                 />
+                {sessionShiftCoverage.apply && (!sessionShiftCoverage.morning || !sessionShiftCoverage.afternoon) && (
+                    <p className="mt-1 text-[0.75rem] text-[#888]">
+                        Khung giờ được lọc theo ca làm đã xếp trong ngày (chỉ chọn được buổi có ca sáng hoặc ca chiều tương ứng).
+                    </p>
+                )}
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -493,6 +566,7 @@ const AdditionalServiceNonRoomFields = ({
     enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
+    sessionShiftCoverage,
 }: AdditionalServiceNonRoomFieldsProps) => {
     const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = asvc.serviceId ? services.find((s) => s.serviceId === asvc.serviceId) : undefined;
@@ -507,6 +581,31 @@ const AdditionalServiceNonRoomFields = ({
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
 
+    useEffect(() => {
+        if (!sessionShiftCoverage.apply || asvc.sessionTimeSlotId == null) return;
+        const ts = timeSlots.find((t) => t.id === asvc.sessionTimeSlotId);
+        if (!ts) return;
+        const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : String(ts.startTime ?? "").slice(0, 5);
+        const isPm = start && start >= "12:00";
+        const allowed = isPm ? sessionShiftCoverage.afternoon : sessionShiftCoverage.morning;
+        if (!allowed) {
+            updateAdditionalService(petId, asvc.id, {
+                sessionTimeSlotId: undefined,
+                sessionSlotLabel: undefined,
+                sessionSlot: undefined,
+            });
+        }
+    }, [
+        sessionShiftCoverage.apply,
+        sessionShiftCoverage.morning,
+        sessionShiftCoverage.afternoon,
+        asvc.sessionTimeSlotId,
+        asvc.id,
+        petId,
+        timeSlots,
+        updateAdditionalService,
+    ]);
+
     const slotGroups = useMemo(() => {
         const am: GenericDropdownOption[] = [];
         const pm: GenericDropdownOption[] = [];
@@ -518,9 +617,11 @@ const AdditionalServiceNonRoomFields = ({
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                const option = { value: String(ts.id), label };
+                const isPm = !!(start && start >= "12:00");
+                const shiftBlocked = sessionShiftCoverage.apply && (isPm ? !sessionShiftCoverage.afternoon : !sessionShiftCoverage.morning);
+                const option: GenericDropdownOption = { value: String(ts.id), label, disabled: shiftBlocked };
 
-                if (start && start >= "12:00") {
+                if (isPm) {
                     pm.push(option);
                 } else {
                     am.push(option);
@@ -531,7 +632,7 @@ const AdditionalServiceNonRoomFields = ({
         if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
         if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
-    }, [timeSlots]);
+    }, [timeSlots, sessionShiftCoverage.apply, sessionShiftCoverage.morning, sessionShiftCoverage.afternoon]);
 
     if (!asvc.serviceId || !isNonRoom) return null;
 
@@ -593,6 +694,11 @@ const AdditionalServiceNonRoomFields = ({
                     placeholder="— Chọn khung giờ —"
                     twoColumns={true}
                 />
+                {sessionShiftCoverage.apply && (!sessionShiftCoverage.morning || !sessionShiftCoverage.afternoon) && (
+                    <p className="mt-1 text-[0.75rem] text-[#888]">
+                        Khung giờ được lọc theo ca làm đã xếp trong ngày (chỉ chọn được buổi có ca sáng hoặc ca chiều tương ứng).
+                    </p>
+                )}
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -1602,6 +1708,100 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
     const servicePricingMap = servicePricingData?.map;
     const failedServiceIds = servicePricingData?.failedServiceIds ?? [];
 
+    /** Khoảng 2 tuần ISO (tuần này + tuần sau) để lấy phủ ca từ BE */
+    const shiftCoverageRange = useMemo(() => {
+        const start = dayjs().startOf("isoWeek");
+        const end = dayjs().endOf("isoWeek").add(1, "week");
+        return {
+            start,
+            end,
+            fromStr: start.format("YYYY-MM-DD"),
+            toStr: end.format("YYYY-MM-DD"),
+        };
+    }, []);
+
+    /** Cần hiển thị gợi ý ràng buộc ca (ngày trả) khi ngày gửi thuộc 2 tuần ISO gần nhất */
+    const needsShiftCoverageForCheckout = useMemo(() => {
+        if (globalDateFrom && isCheckInInCurrentOrNextIsoWeek(dayjs(globalDateFrom))) return true;
+        return pets.some((p) => p.dateFrom && isCheckInInCurrentOrNextIsoWeek(dayjs(p.dateFrom)));
+    }, [globalDateFrom, pets]);
+
+    /** Luôn tải phủ ca 2 tuần để khóa ô Ngày gửi chung + ngày trả trong khoảng đó (tuần xa hơn không ràng buộc). */
+    const { data: shiftCoverageApi, isLoading: shiftCoverageLoading } = useQuery({
+        queryKey: ["booking-shift-coverage", shiftCoverageRange.fromStr, shiftCoverageRange.toStr],
+        queryFn: () => getBookingShiftCoverage(shiftCoverageRange.fromStr, shiftCoverageRange.toStr),
+        staleTime: 120_000,
+    });
+
+    const shiftCoverageMap = useMemo(() => {
+        const m = new Map<string, { morning: boolean; afternoon: boolean }>();
+        const rows = shiftCoverageApi?.data ?? [];
+        rows.forEach((row) => m.set(row.date, { morning: row.morning, afternoon: row.afternoon }));
+        return m;
+    }, [shiftCoverageApi]);
+
+    /** Khung giờ dịch vụ không phòng: theo ca sáng/chiều của ngày gửi chung (cùng khoảng 2 tuần ISO). */
+    const sessionShiftCoverageFlags = useMemo(
+        () =>
+            getShiftCoverageFlagsForSessionDate(
+                globalDateFrom,
+                shiftCoverageLoading,
+                shiftCoverageRange.start,
+                shiftCoverageRange.end,
+                shiftCoverageMap
+            ),
+        [globalDateFrom, shiftCoverageLoading, shiftCoverageRange.start, shiftCoverageRange.end, shiftCoverageMap]
+    );
+
+    /**
+     * Trong [tuần ISO hiện tại, tuần ISO kế]: khóa ngày nếu cả buổi sáng và chiều đều không có ca (OPEN/ASSIGNED).
+     * Ngoài khoảng đó → không khóa (tuần xa admin sẽ xếp ca sau; nếu trùng ngày nghỉ có thể báo khách đổi sau).
+     */
+    const isDateWithNoShiftInNearWeeks = useCallback(
+        (d: Dayjs | null) => {
+            if (!d || !d.isValid()) return false;
+            if (shiftCoverageLoading) return false;
+            if (d.isBefore(shiftCoverageRange.start, "day") || d.isAfter(shiftCoverageRange.end, "day")) return false;
+            const cov = shiftCoverageMap.get(d.format("YYYY-MM-DD"));
+            if (!cov) return true;
+            return !cov.morning && !cov.afternoon;
+        },
+        [shiftCoverageLoading, shiftCoverageMap, shiftCoverageRange.start, shiftCoverageRange.end]
+    );
+
+    const isReturnDateDisabledByShift = useCallback(
+        (checkInYmd: string | undefined, d: Dayjs | null) => {
+            const cin = checkInYmd?.trim();
+            if (!cin) return false;
+            const checkIn = dayjs(cin);
+            if (!checkIn.isValid() || !isCheckInInCurrentOrNextIsoWeek(checkIn)) return false;
+            return isDateWithNoShiftInNearWeeks(d);
+        },
+        [isDateWithNoShiftInNearWeeks]
+    );
+
+    /**
+     * Ngày trả: dịch vụ cần phòng → cùng quy tắc ca như ô Ngày gửi (2 tuần ISO gần nhất).
+     * Dịch vụ không cần phòng → chỉ áp khi ngày gửi thuộc 2 tuần đó (logic cũ).
+     */
+    const shouldDisableReturnDateByShift = useCallback(
+        (checkInYmd: string | undefined, d: Dayjs | null, requiresRoom: boolean) => {
+            if (requiresRoom) return isDateWithNoShiftInNearWeeks(d);
+            return isReturnDateDisabledByShift(checkInYmd, d);
+        },
+        [isDateWithNoShiftInNearWeeks, isReturnDateDisabledByShift]
+    );
+
+    const helperTextReturnDateShift = (requiresRoom: boolean) => {
+        if (requiresRoom) {
+            return "Tuần này & tuần sau: chỉ chọn được ngày có ít nhất một ca làm (sáng hoặc chiều). Các tuần sau không giới hạn theo lịch ca.";
+        }
+        if (needsShiftCoverageForCheckout) {
+            return "Tuần này & tuần sau: không chọn được ngày trả nếu cả ca sáng và ca chiều đều trống (khi ngày gửi cũng trong 2 tuần đó).";
+        }
+        return undefined;
+    };
+
     useEffect(() => {
         if (!failedServiceIds.length) {
             pricingWarningShownRef.current = "";
@@ -2294,6 +2494,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
         bankCode: "",
         note: "",
     });
+    /** Remount dropdown "chọn TK để điền" sau mỗi lần chọn để có thể chọn lại cùng một dòng. */
+    const [bankQuickFillKey, setBankQuickFillKey] = useState(0);
 
     const openBankInfoModal = async () => {
         // Reset bank form when opening
@@ -2306,6 +2508,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
             setSelectedBankAccountId(null);
         }
         setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
+        setBankQuickFillKey((k) => k + 1);
         setIsBankInfoOpen(true);
         // Pre-fill bank form theo email khách đã lưu (khi guest hoặc đang thêm mới)
         const email = step1Data?.email?.trim();
@@ -2437,10 +2640,12 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                 return;
             }
             
-            await handleProceedToPayment({ 
-                ...bankForm, 
-                accountNumber: accNum, 
-                accountHolderName: holderName 
+            const bankMeta = banks.find((b) => b.bankCode === bankForm.bankCode);
+            await handleProceedToPayment({
+                ...bankForm,
+                accountNumber: accNum,
+                accountHolderName: holderName,
+                bankName: bankForm.bankName ?? bankMeta?.bankName ?? null,
             });
         }
     };
@@ -2830,6 +3035,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                 applyGlobalDateFromToAll(next);
                                                                             }}
                                                                             minDate={minGlobalDateFrom}
+                                                                            shouldDisableDate={(d) => isDateWithNoShiftInNearWeeks(d)}
                                                                             format="DD/MM/YYYY"
                                                                             slotProps={{
                                                                                 textField: {
@@ -2838,7 +3044,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                     fullWidth: true,
                                                                                     color: "warning",
                                                                                     sx: bookingDatePickerTextFieldSx,
-                                                                                    helperText: "Ngày gửi này sẽ áp dụng cho tất cả dịch vụ của mọi thú cưng trong đơn.",
+                                                                                    helperText:
+                                                                                        "Ngày gửi áp dụng cho mọi dịch vụ. Tuần này & tuần sau: chỉ chọn được ngày có ít nhất một ca làm (sáng hoặc chiều). Các tuần sau không giới hạn theo lịch ca.",
                                                                                 },
                                                                                 popper: { sx: bookingDatePickerPopperSx },
                                                                             }}
@@ -3273,6 +3480,13 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             ? dayjs(pet.dateFrom || globalDateFrom).add(1, "day")
                                                                                             : dayjs().add(1, "day")
                                                                                     }
+                                                                                    shouldDisableDate={(d) =>
+                                                                                        shouldDisableReturnDateByShift(
+                                                                                            globalDateFrom || pet.dateFrom,
+                                                                                            d,
+                                                                                            mainService?.isRequiredRoom === true
+                                                                                        )
+                                                                                    }
                                                                                     slotProps={{
                                                                                         textField: {
                                                                                             placeholder: "DD/MM/YYYY",
@@ -3280,10 +3494,14 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             fullWidth: true,
                                                                                             color: "warning",
                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                            helperText:
+                                                                                            helperText: [
                                                                                                 pet.dateFrom && !pet.dateTo
                                                                                                     ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
-                                                                                                    : undefined,
+                                                                                                    : null,
+                                                                                                helperTextReturnDateShift(mainService?.isRequiredRoom === true) ?? null,
+                                                                                            ]
+                                                                                                .filter(Boolean)
+                                                                                                .join(" ") || undefined,
                                                                                         },
                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                     }}
@@ -3353,6 +3571,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                             enforceAdvanceBookingHours={enforceAdvanceBookingHours}
                                                             bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                             getServicePriceForWeight={getServicePriceForWeight}
+                                                            sessionShiftCoverage={sessionShiftCoverageFlags}
                                                             // id để scroll tới phần session
                                                             // @ts-ignore
                                                             id={`pet-${pet.id}-main-session`}
@@ -3607,13 +3826,27 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             ? dayjs(asvc.dateFrom || globalDateFrom || pet.dateFrom).add(1, "day")
                                                                                             : dayjs().add(1, "day")
                                                                                     }
+                                                                                                                    shouldDisableDate={(d) =>
+                                                                                                                        shouldDisableReturnDateByShift(
+                                                                                                                            globalDateFrom || asvc.dateFrom || pet.dateFrom,
+                                                                                                                            d,
+                                                                                                                            isAdditionalRoom
+                                                                                                                        )
+                                                                                                                    }
                                                                                                                     slotProps={{
                                                                                                                         textField: {
                                                                                                                             placeholder: "DD/MM/YYYY",
                                                                                                                             required: true,
                                                                                                                             fullWidth: true,
                                                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                                                            helperText: asvc.dateFrom && !asvc.dateTo ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)" : undefined,
+                                                                                                                            helperText: [
+                                                                                                                                asvc.dateFrom && !asvc.dateTo
+                                                                                                                                    ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
+                                                                                                                                    : null,
+                                                                                                                                helperTextReturnDateShift(isAdditionalRoom) ?? null,
+                                                                                                                            ]
+                                                                                                                                .filter(Boolean)
+                                                                                                                                .join(" ") || undefined,
                                                                                                                         },
                                                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                                                     }}
@@ -3677,6 +3910,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                                     enforceAdvanceBookingHours={enforceAdvanceBookingHours}
                                                                                                     bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                                                                     getServicePriceForWeight={getServicePriceForWeight}
+                                                                                                    sessionShiftCoverage={sessionShiftCoverageFlags}
                                                                                                     // @ts-ignore
                                                                                                     id={`pet-${pet.id}-${asvc.id}-session`}
                                                                                                 />
@@ -4373,6 +4607,73 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                         >
                                             ← Quay lại danh sách tài khoản
                                         </button>
+                                    )}
+
+                                    {isLoggedIn && bankFormMode === "add-new" && myBankAccounts.length > 0 && (
+                                        <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f9fafb] p-4 space-y-3">
+                                            <div className="text-[0.8125rem] font-[700] text-[#374151]">
+                                                Điền nhanh từ tài khoản đã lưu
+                                            </div>
+                                            <p className="text-[0.75rem] text-[#6b7280] -mt-1">
+                                                Chọn một tài khoản để tự điền form bên dưới — bạn vẫn có thể chỉnh sửa trước khi xác nhận.
+                                            </p>
+                                            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const acc =
+                                                            myBankAccounts.find((a) => a.isDefault) ?? myBankAccounts[0];
+                                                        if (!acc) return;
+                                                        setBankForm({
+                                                            accountNumber: acc.accountNumber || "",
+                                                            accountHolderName: (acc.accountHolderName || "").toUpperCase(),
+                                                            bankCode: acc.bankCode || "",
+                                                            note: acc.note ?? "",
+                                                            bankName: acc.bankName ?? undefined,
+                                                        });
+                                                        toast.success("Đã điền từ tài khoản mặc định.");
+                                                    }}
+                                                    className="inline-flex items-center justify-center rounded-[12px] border-2 border-[#ffbaa0] bg-white px-4 py-2.5 text-[0.8125rem] font-[700] text-[#c45a3a] hover:bg-[#fff7f3] transition-colors"
+                                                >
+                                                    Điền tài khoản mặc định
+                                                </button>
+                                                <div className="flex-1 min-w-[200px]">
+                                                    <label htmlFor="booking-bank-quick-fill" className="sr-only">
+                                                        Chọn tài khoản đã lưu để điền form
+                                                    </label>
+                                                    <select
+                                                        key={bankQuickFillKey}
+                                                        id="booking-bank-quick-fill"
+                                                        defaultValue=""
+                                                        className="w-full py-[11px] px-[14px] text-[0.8438rem] text-[#111827] outline-none border border-[#d1d5db] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 rounded-[12px] bg-white"
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value;
+                                                            if (!raw) return;
+                                                            const id = Number(raw);
+                                                            const acc = myBankAccounts.find((a) => a.id === id);
+                                                            if (!acc) return;
+                                                            setBankForm({
+                                                                accountNumber: acc.accountNumber || "",
+                                                                accountHolderName: (acc.accountHolderName || "").toUpperCase(),
+                                                                bankCode: acc.bankCode || "",
+                                                                note: acc.note ?? "",
+                                                                bankName: acc.bankName ?? undefined,
+                                                            });
+                                                            setBankQuickFillKey((k) => k + 1);
+                                                            toast.success("Đã điền thông tin từ tài khoản đã chọn.");
+                                                        }}
+                                                    >
+                                                        <option value="">— Hoặc chọn tài khoản trong danh sách —</option>
+                                                        {myBankAccounts.map((acc) => (
+                                                            <option key={acc.id} value={acc.id}>
+                                                                {acc.bankName} · {acc.accountNumber}
+                                                                {acc.isDefault ? " (Mặc định)" : ""}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
 
                                     <div className="space-y-4">
