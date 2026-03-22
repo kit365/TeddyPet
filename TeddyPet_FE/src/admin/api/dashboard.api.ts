@@ -23,6 +23,14 @@ export interface DashboardStatsResponse {
     todayRevenue: number;
     lowStockCount: number;
     todayBookings: number;
+    /** Khách đặt lịch (phân biệt user / SĐT+email), không tính hủy & booking tạm — theo bộ lọc ngày */
+    bookingCustomersExcludingCancelled?: number;
+    /** Booking đã thanh toán đủ (PAID), không hủy */
+    bookingFullyPaidCount?: number;
+    /** Số lượt cọc đã thanh toán */
+    bookingDepositsPaidCount?: number;
+    /** Tổng tiền cọc đã hoàn */
+    bookingDepositsRefundedTotal?: number;
 }
 
 export interface RevenueChartItem {
@@ -45,9 +53,9 @@ export const getStaffStats = async (startDate?: string, endDate?: string) => {
     return response.data;
 };
 
-export const getRevenueChart = async (days: number = 30, startDate?: string, endDate?: string) => {
+export const getRevenueChart = async (days: number = 30, startDate?: string, endDate?: string, type?: 'DAY' | 'MONTH') => {
     const response = await apiApp.get<ApiResponse<RevenueChartItem[]>>(`${BASE_PATH}/revenue-chart`, {
-        params: { days, startDate, endDate }
+        params: { days, startDate, endDate, type }
     });
     return response.data;
 };
@@ -83,7 +91,14 @@ export const getPetDistribution = async () => {
     return response.data;
 };
 
+export interface ServiceStatisticsSeriesInfo {
+    serviceId: number;
+    name: string;
+}
+
 export interface ServiceStatisticsWithComparisonResponse {
+    /** Dịch vụ đang hoạt động; serviceCounts dùng key = String(serviceId). */
+    services: ServiceStatisticsSeriesInfo[];
     months: Array<{ month: string; serviceCounts: Record<string, number> }>;
     totalThisYear: number;
     totalLastYear: number;
@@ -159,6 +174,38 @@ export interface TopStaffResponse {
 
 export const getTopStaff = async () => {
     const response = await apiApp.get<ApiResponse<TopStaffResponse[]>>(`${BASE_PATH}/top-staff`);
+    return response.data;
+};
+
+export interface TodayRevenueOrderDto {
+    orderId: string;
+    orderCode: string;
+    customerName: string;
+    finalAmount: number;
+    status: string;
+    createdAt: string;
+}
+
+export interface TodayRevenueBookingDto {
+    bookingId: number;
+    bookingCode: string;
+    customerName: string;
+    totalAmount: number;
+    status: string;
+    paymentStatus: string;
+    createdAt: string;
+}
+
+export interface TodayRevenueDetailsResponse {
+    totalRevenue: number;
+    completedOrdersCount: number;
+    completedBookingsCount: number;
+    orders: TodayRevenueOrderDto[];
+    bookings: TodayRevenueBookingDto[];
+}
+
+export const getTodayRevenueDetails = async () => {
+    const response = await apiApp.get<ApiResponse<TodayRevenueDetailsResponse>>(`${BASE_PATH}/today-revenue-details`);
     return response.data;
 };
 

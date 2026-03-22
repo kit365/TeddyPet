@@ -6,6 +6,7 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffSk
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,14 @@ public class StaffSkillRepositoryAdapter implements StaffSkillRepositoryPort {
     @Override
     public List<StaffSkill> findByStaffId(Long staffId) {
         return staffSkillRepository.findByStaff_Id(staffId);
+    }
+
+    @Override
+    public List<Long> findStaffIdsHavingSkill(Long skillId, Collection<Long> staffIds) {
+        if (staffIds == null || staffIds.isEmpty()) {
+            return List.of();
+        }
+        return staffSkillRepository.findStaffIdsHavingSkill(skillId, staffIds);
     }
 }
 

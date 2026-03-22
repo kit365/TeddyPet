@@ -36,8 +36,8 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffProfileRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
+import fpt.teddypet.domain.entity.staff.StaffProfile;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -59,7 +59,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -75,7 +77,6 @@ public class BookingAdminApplicationService implements BookingAdminService {
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
         private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
         private final TimeSlotBookingRepository timeSlotBookingRepository;
-        private final StaffProfileRepository staffProfileRepository;
         private final EmailServicePort emailServicePort;
         private final DashboardService dashboardService;
         private final PayosGatewayAdapter payosGatewayAdapter;
@@ -92,7 +93,6 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository,
                         BookingPaymentTransactionRepository bookingPaymentTransactionRepository,
                         TimeSlotBookingRepository timeSlotBookingRepository,
-                        StaffProfileRepository staffProfileRepository,
                         EmailServicePort emailServicePort,
                         @Lazy DashboardService dashboardService,
                         PayosGatewayAdapter payosGatewayAdapter) {
@@ -104,7 +104,6 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.bookingDepositRepository = bookingDepositRepository;
                 this.bookingPaymentTransactionRepository = bookingPaymentTransactionRepository;
                 this.timeSlotBookingRepository = timeSlotBookingRepository;
-                this.staffProfileRepository = staffProfileRepository;
                 this.emailServicePort = emailServicePort;
                 this.dashboardService = dashboardService;
                 this.payosGatewayAdapter = payosGatewayAdapter;
@@ -433,11 +432,20 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 : Collections.<BookingPetServiceItem>emptyList()).stream()
                                 .map(this::toItemResponse)
                                 .toList();
-                String assignedStaffName = null;
-                if (svc.getAssignedStaffId() != null) {
-                        assignedStaffName = staffProfileRepository.findById(svc.getAssignedStaffId())
-                                        .map(fpt.teddypet.domain.entity.staff.StaffProfile::getFullName)
-                                        .orElse(null);
+                List<Long> assignedStaffIds = List.of();
+                String assignedStaffNames = null;
+                if (svc.getAssignedStaff() != null && !svc.getAssignedStaff().isEmpty()) {
+                        assignedStaffIds = svc.getAssignedStaff().stream()
+                                        .sorted(Comparator.comparing(StaffProfile::getId,
+                                                        Comparator.nullsLast(Long::compareTo)))
+                                        .map(StaffProfile::getId)
+                                        .toList();
+                        assignedStaffNames = svc.getAssignedStaff().stream()
+                                        .sorted(Comparator.comparing(StaffProfile::getId,
+                                                        Comparator.nullsLast(Long::compareTo)))
+                                        .map(StaffProfile::getFullName)
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.joining(", "));
                 }
                 Boolean isRequiredRoom = svc.getService() != null ? svc.getService().getIsRequiredRoom() : null;
                 boolean isOverCheckOutDue = computeIsOverCheckOutDue(isRequiredRoom, svc.getEstimatedCheckOutDate(),
@@ -445,8 +453,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 return new AdminBookingPetServiceResponse(
                                 svc.getId(),
                                 svc.getBookingPet() != null ? svc.getBookingPet().getId() : null,
-                                svc.getAssignedStaffId(),
-                                assignedStaffName,
+                                assignedStaffIds,
+                                assignedStaffNames,
                                 svc.getService() != null ? svc.getService().getId() : null,
                                 svc.getServiceCombo() != null ? svc.getServiceCombo().getId() : null,
                                 svc.getService() != null ? svc.getService().getServiceName() : null,
@@ -564,7 +572,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 }
                         }
                 }
-                booking.setBookingCheckInDate(LocalDateTime.now());
+                LocalDateTime checkInAt = LocalDateTime.now();
+                booking.setBookingCheckInDate(checkInAt);
+                applyActualCheckInDateToActiveBookingPetServices(booking, checkInAt.toLocalDate());
                 bookingRepository.save(booking);
                 return toListItem(booking);
         }
@@ -597,7 +607,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         }
                 }
 
-                booking.setBookingCheckOutDate(LocalDateTime.now());
+                LocalDateTime checkOutAt = LocalDateTime.now();
+                booking.setBookingCheckOutDate(checkOutAt);
+                applyActualCheckOutDateToActiveBookingPetServices(booking, checkOutAt.toLocalDate());
                 bookingRepository.save(booking);
                 return toListItem(booking);
         }
@@ -774,7 +786,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                 }
                         }
                 }
-                booking.setBookingCheckInDate(LocalDateTime.now());
+                LocalDateTime checkInAt = LocalDateTime.now();
+                booking.setBookingCheckInDate(checkInAt);
+                applyActualCheckInDateToActiveBookingPetServices(booking, checkInAt.toLocalDate());
                 bookingRepository.save(booking);
 
                 // recompute paid/remaining/credit based on new total (deposit stays as-is)
@@ -1330,6 +1344,30 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         return OBJECT_MAPPER.writeValueAsString(urls);
                 } catch (JsonProcessingException e) {
                         throw new IllegalStateException("Không thể serialize danh sách ảnh.", e);
+                }
+        }
+
+        /** Ghi nhận ngày check-in thực tế trên từng booking_pet_service còn hiệu lực. */
+        private void applyActualCheckInDateToActiveBookingPetServices(Booking booking, LocalDate checkInDate) {
+                if (booking.getPets() == null) return;
+                for (BookingPet pet : booking.getPets()) {
+                        if (pet == null || pet.getServices() == null) continue;
+                        for (BookingPetService bps : pet.getServices()) {
+                                if (bps == null || !bps.isActive() || "CANCELLED".equalsIgnoreCase(bps.getStatus())) continue;
+                                bps.setActualCheckInDate(checkInDate);
+                        }
+                }
+        }
+
+        /** Ghi nhận ngày check-out thực tế trên từng booking_pet_service còn hiệu lực. */
+        private void applyActualCheckOutDateToActiveBookingPetServices(Booking booking, LocalDate checkOutDate) {
+                if (booking.getPets() == null) return;
+                for (BookingPet pet : booking.getPets()) {
+                        if (pet == null || pet.getServices() == null) continue;
+                        for (BookingPetService bps : pet.getServices()) {
+                                if (bps == null || !bps.isActive() || "CANCELLED".equalsIgnoreCase(bps.getStatus())) continue;
+                                bps.setActualCheckOutDate(checkOutDate);
+                        }
                 }
         }
 }

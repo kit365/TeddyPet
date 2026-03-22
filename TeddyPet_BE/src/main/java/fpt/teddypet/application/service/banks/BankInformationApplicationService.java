@@ -105,9 +105,11 @@ public class BankInformationApplicationService implements BankInformationService
             throw new AccessDeniedException("Không có quyền.");
         }
         if (Boolean.TRUE.equals(request.isDefault())) {
+            // Phải gỡ default các TK khác TRƯỚC khi set default=true cho bản ghi này,
+            // vì index uq_bank_information_default_per_user chỉ cho tối đa 1 dòng is_default=true / user_id.
+            bankInformationRepository.unsetOtherDefaults(userId, entity.getId());
             entity.setDefault(true);
             entity = bankInformationRepository.save(entity);
-            bankInformationRepository.unsetOtherDefaults(userId, entity.getId());
         } else {
             entity.setDefault(false);
             entity = bankInformationRepository.save(entity);

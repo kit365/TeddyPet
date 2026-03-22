@@ -5,6 +5,7 @@ import {
     RenderStatusCell,
     RenderCreatedAtCell
 } from '../utils/render-cells';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 export const columnsConfig: GridColDef<any>[] = [
     {
@@ -13,7 +14,7 @@ export const columnsConfig: GridColDef<any>[] = [
         flex: 1,
         minWidth: 250,
         hideable: false,
-        renderCell: RenderTitleCell,
+        renderCell: mountGridCell(RenderTitleCell),
     },
     {
         field: "websiteUrl",
@@ -53,7 +54,7 @@ export const columnsConfig: GridColDef<any>[] = [
         filterable: false,
         align: 'right',
         headerAlign: 'right',
-        renderCell: RenderActionsCell,
+        renderCell: mountGridCell(RenderActionsCell),
     },
 ];
 

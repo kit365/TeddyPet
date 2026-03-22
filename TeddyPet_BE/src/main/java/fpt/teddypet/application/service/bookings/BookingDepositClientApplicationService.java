@@ -15,6 +15,7 @@ import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
+import fpt.teddypet.domain.entity.BankInformation;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingDeposit;
 import fpt.teddypet.domain.entity.BookingPet;
@@ -28,6 +29,7 @@ import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.PetProfileRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
@@ -44,6 +46,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +67,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final PayosGatewayAdapter payosGatewayAdapter;
     private final UserAddressRepository userAddressRepository;
     private final PetProfileRepository petProfileRepository;
+    private final BankInformationRepository bankInformationRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -165,9 +169,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             deposit.setBookingCode(booking.getBookingCode());
             bookingDepositRepository.save(deposit);
 
-            // Sau khi cọc thành công: đồng bộ dữ liệu hồ sơ cho user đã đăng nhập.
-            // Guest booking (không có user_id) sẽ bỏ qua.
-            syncUserAddressAndPetProfiles(booking, deposit);
+            // Sau khi cọc thành công: đồng bộ địa chỉ / pet / ngân hàng cho user đã đăng nhập.
+            runAfterDepositPaidSuccessfully(booking, deposit);
 
             if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                 emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
@@ -371,6 +374,15 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         };
     }
 
+    @Override
+    public void runAfterDepositPaidSuccessfully(Booking booking, BookingDeposit deposit) {
+        if (booking == null || deposit == null) {
+            return;
+        }
+        syncUserAddressAndPetProfiles(booking, deposit);
+        syncBankInformationToUser(booking);
+    }
+
     private void syncUserAddressAndPetProfiles(Booking booking, BookingDeposit deposit) {
         if (booking == null || booking.getUser() == null || booking.getUser().getId() == null) {
             return;
@@ -379,6 +391,51 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         String customerAddress = extractCustomerAddressFromHoldPayload(deposit);
         createUserAddressIfNeeded(booking, customerAddress);
         createPetProfilesIfNeeded(booking);
+    }
+
+    /**
+     * Bản ghi bank do FE tạo qua /bank-information/booking/code (GUEST, user_id null).
+     * Khi booking gắn USER và cọc đã thành công → gắn vào ví ngân hàng của khách.
+     */
+    private void syncBankInformationToUser(Booking booking) {
+        if (booking == null || booking.getId() == null) {
+            return;
+        }
+        if (booking.getUser() == null || booking.getUser().getId() == null) {
+            return;
+        }
+        UUID userId = booking.getUser().getId();
+        List<BankInformation> rows = bankInformationRepository.findByBookingIdNotDeleted(booking.getId());
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        List<BankInformation> userBanksBefore = bankInformationRepository.findByUserIdNotDeleted(userId);
+        boolean userHadNoBanks = userBanksBefore.isEmpty();
+        int attachedCount = 0;
+
+        for (BankInformation row : rows) {
+            if (row.getUserId() != null) {
+                continue;
+            }
+            if (!BankInformation.ACCOUNT_TYPE_GUEST.equalsIgnoreCase(row.getAccountType())) {
+                continue;
+            }
+            List<BankInformation> dup = bankInformationRepository.findByAccountNumberAndBankCodeAndUserIdAndIsDeletedFalse(
+                    row.getAccountNumber(), row.getBankCode(), userId);
+            if (!dup.isEmpty()) {
+                row.setDeleted(true);
+                bankInformationRepository.save(row);
+                continue;
+            }
+            row.setUserId(userId);
+            row.setAccountType(BankInformation.ACCOUNT_TYPE_CUSTOMER);
+            if (userHadNoBanks && attachedCount == 0) {
+                row.setDefault(true);
+            }
+            bankInformationRepository.save(row);
+            attachedCount++;
+        }
     }
 
     private String extractCustomerAddressFromHoldPayload(BookingDeposit deposit) {

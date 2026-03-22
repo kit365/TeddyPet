@@ -961,7 +961,7 @@ export const BookingList = () => {
                                     <DetailInfo label="Thời gian lưu trú" value={`${svc.numberOfNights || 0} đêm`} icon={<NightlightIcon sx={{ fontSize: "1rem" }} />} />
                                   </Grid>
                                   <Grid size={{ xs: 12 }}>
-                                    <DetailInfo label="Nhân viên phụ trách" value={svc.assignedStaffName || (svc.assignedStaffId ? `#${svc.assignedStaffId}` : "Chưa gán nhân viên")} icon={<AssignmentIndIcon sx={{ fontSize: "1rem" }} />} />
+                                    <DetailInfo label="Nhân viên phụ trách" value={svc.assignedStaffNames || (svc.assignedStaffIds?.length ? svc.assignedStaffIds.map((id) => `#${id}`).join(", ") : "Chưa gán nhân viên")} icon={<AssignmentIndIcon sx={{ fontSize: "1rem" }} />} />
                                   </Grid>
                                 </>
                               ) : (
@@ -973,7 +973,7 @@ export const BookingList = () => {
                                     <DetailInfo label="Thời gian bắt đầu" value={formatDateTimeFull(svc.scheduledStartTime)} />
                                   </Grid>
                                   <Grid size={{ xs: 12 }}>
-                                    <DetailInfo label="Nhân viên phụ trách" value={svc.assignedStaffName || (svc.assignedStaffId ? `#${svc.assignedStaffId}` : "Chưa gán nhân viên")} icon={<AssignmentIndIcon sx={{ fontSize: "1rem" }} />} />
+                                    <DetailInfo label="Nhân viên phụ trách" value={svc.assignedStaffNames || (svc.assignedStaffIds?.length ? svc.assignedStaffIds.map((id) => `#${id}`).join(", ") : "Chưa gán nhân viên")} icon={<AssignmentIndIcon sx={{ fontSize: "1rem" }} />} />
                                   </Grid>
                                 </>
                               )}

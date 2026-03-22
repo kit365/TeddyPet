@@ -60,6 +60,13 @@ export const CareTaskList = ({ tasks, loading, onStart, onFinish, onEdit, onDele
                             >
                                 {task.title}
                             </div>
+                            {(task.bookingCode || task.customerName) && (
+                                <div className="text-sm font-medium text-emerald-700 mt-0.5">
+                                    {task.bookingCode ? <span>{task.bookingCode}</span> : null}
+                                    {task.bookingCode && task.customerName ? " · " : null}
+                                    {task.customerName ?? ""}
+                                </div>
+                            )}
                             <div className="text-base text-gray-500 mt-1">
                                 Chuồng {task.cageNumber} • {task.petName} • {task.petSpecies}
                             </div>

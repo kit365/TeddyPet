@@ -75,9 +75,19 @@ export const SpaTaskList = ({ tasks, loading, onStart, onFinish, onEdit, onDelet
                                     isCompleted ? "line-through text-gray-400 group-hover:text-gray-400" : ""
                                 }`}
                             >
-                                {task.petName} • {task.petSpecies}
+                                {task.title}
                             </div>
                             <div className="text-base text-gray-500 mt-1">
+                                {task.petName} • {task.petSpecies}
+                            </div>
+                            {(task.bookingCode || task.customerName) && (
+                                <div className="text-sm font-medium text-emerald-700 mt-0.5">
+                                    {task.bookingCode ? <span>{task.bookingCode}</span> : null}
+                                    {task.bookingCode && task.customerName ? " · " : null}
+                                    {task.customerName ?? ""}
+                                </div>
+                            )}
+                            <div className="text-base text-gray-500 mt-1.5">
                                 {formatService(task.serviceType)} • {task.durationMinutes} phút
                             </div>
 

@@ -22,6 +22,7 @@ import {
   Divider,
   MenuItem,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -261,6 +262,10 @@ export const BookingDetailPage = () => {
     (p.services ?? []).map((s) => ({ service: s, petName: p.petName, petId: p.id }))
   );
 
+  const hasCheckedIn = Boolean(booking.bookingCheckInDate);
+  const hasCheckedOut = Boolean(booking.bookingCheckOutDate);
+  const checkOutDisabled = actionLoading || !allActiveServicesCompleted;
+
   // (moved hooks above conditional returns)
 
   const openCheckInDialog = () => {
@@ -491,29 +496,40 @@ export const BookingDetailPage = () => {
           </Card>
 
           {/* Actions: Check-in / Check-out — ghi nhận thời gian vào/ra (bookingCheckInDate, bookingCheckOutDate) */}
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button
-              variant="outlined"
-              color="primary"
-              disabled={actionLoading || booking.status === "CANCELLED"}
-              sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
-              onClick={openCheckInDialog}
-            >
-              {actionLoading ? "Đang xử lý..." : "Check-in"}
-            </Button>
-            {allActiveServicesCompleted &&
-              !booking.bookingCheckOutDate &&
-              booking.status !== "CANCELLED" &&
-              !actionLoading && (
-                <Button
-                  variant="contained"
-                  color="success"
-                  sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
-                  onClick={() => openCheckOutDialog()}
-                >
-                  Check-out
-                </Button>
-              )}
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2, flexWrap: "wrap" }}>
+            {!hasCheckedIn && booking.status !== "CANCELLED" && (
+              <Button
+                variant="outlined"
+                color="primary"
+                disabled={actionLoading}
+                sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
+                onClick={openCheckInDialog}
+              >
+                {actionLoading ? "Đang xử lý..." : "Check-in"}
+              </Button>
+            )}
+            {booking.status !== "CANCELLED" && !hasCheckedOut && (
+              <Tooltip
+                title={
+                  !allActiveServicesCompleted
+                    ? "Cần hoàn thành tất cả dịch vụ (booking_pet_service) trước khi check-out."
+                    : ""
+                }
+                disableHoverListener={allActiveServicesCompleted}
+              >
+                <span style={{ display: "inline-flex" }}>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    disabled={checkOutDisabled}
+                    sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5 }}
+                    onClick={() => openCheckOutDialog()}
+                  >
+                    {actionLoading ? "Đang xử lý..." : "Check-out"}
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
           </Box>
 
           {/* Dialog: Check-in + xác nhận loại thú / cân nặng + preview chênh lệch giá */}

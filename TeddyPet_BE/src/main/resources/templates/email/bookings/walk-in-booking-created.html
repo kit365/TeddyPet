@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{email/fragments/head :: head(title='Đặt lịch tại quầy thành công')}">
+    <title>Đặt lịch tại quầy thành công</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;" bgcolor="#f1f5f9">
+    <table class="email-outer" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9;" bgcolor="#f1f5f9">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table class="email-card" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 600px; width: 100%;" bgcolor="#ffffff">
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 16px 16px 0 0;">
+                            <div th:replace="~{email/fragments/header :: header}"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 40px 40px; background-color: #ffffff; line-height: 1.6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155;">
+                            <h2 style="color: #2563eb; font-size: 24px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Đặt lịch dịch vụ thành công (tại quầy)</h2>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Xin chào <strong th:text="${walkIn.customerName}">Khách hàng</strong>,</p>
+                            <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                Cảm ơn bạn đã lựa chọn <strong style="color: #4f46e5;" th:text="${appName}">TeddyPet</strong>.
+                                Đơn đặt lịch của bạn đã được tạo thành công tại quầy với mã
+                                <strong style="color: #334155;" th:text="${walkIn.bookingCode}">BK-XXX</strong>.
+                            </p>
+
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <p style="margin: 0 0 8px 0;"><strong>Số điện thoại:</strong> <span th:text="${walkIn.customerPhone}">—</span></p>
+                                        <p style="margin: 0 0 8px 0;" th:if="${walkIn.bookingDateFormatted != null and !#strings.isEmpty(walkIn.bookingDateFormatted)}">
+                                            <strong>Ngày đặt lịch:</strong> <span th:text="${walkIn.bookingDateFormatted}">—</span>
+                                        </p>
+                                        <p style="margin: 0;"><strong>Tổng tiền dự kiến:</strong> <span style="color: #059669; font-weight: 700;" th:text="${walkIn.totalFormatted}">0 đ</span></p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">Thú cưng &amp; dịch vụ đã chọn</h3>
+
+                            <div th:each="petBlock : ${walkIn.pets}" style="margin-bottom: 20px;">
+                                <p style="margin: 0 0 10px 0; font-weight: 700; color: #0f172a;" th:text="${petBlock.petLabel}">Pet</p>
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; font-size: 14px;">
+                                    <thead>
+                                        <tr style="background-color: #e2e8f0;">
+                                            <th align="left" style="padding: 10px 12px; border: 1px solid #cbd5e1;">Dịch vụ</th>
+                                            <th align="left" style="padding: 10px 12px; border: 1px solid #cbd5e1;">Lịch / thời gian</th>
+                                            <th align="right" style="padding: 10px 12px; border: 1px solid #cbd5e1;">Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="line : ${petBlock.services}">
+                                            <td style="padding: 10px 12px; border: 1px solid #e2e8f0; vertical-align: top;">
+                                                <span th:text="${line.serviceName}">—</span>
+                                                <ul th:if="${line.addonNames != null and !line.addonNames.isEmpty()}" style="margin: 8px 0 0 18px; padding: 0; color: #64748b;">
+                                                    <li th:each="addon : ${line.addonNames}" th:text="|Add-on: ${addon}|">Add-on</li>
+                                                </ul>
+                                            </td>
+                                            <td style="padding: 10px 12px; border: 1px solid #e2e8f0; vertical-align: top; color: #475569;" th:text="${line.scheduleSummary}">—</td>
+                                            <td style="padding: 10px 12px; border: 1px solid #e2e8f0; vertical-align: top; text-align: right; font-weight: 600;" th:text="${line.subtotalFormatted}">—</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p style="color: #334155; margin: 20px 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                Bạn có thể xem đầy đủ chi tiết đơn đặt lịch (thanh toán, trạng thái…) bằng nút bên dưới:
+                            </p>
+
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a th:href="${detailUrl}" style="display: inline-block; padding: 16px 36px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                    <span style="color: #ffffff;">Xem chi tiết đơn đặt lịch</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #ffffff; border-radius: 0 0 16px 16px;">
+                            <div th:replace="~{email/fragments/footer :: footer}"></div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

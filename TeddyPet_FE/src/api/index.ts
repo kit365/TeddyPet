@@ -23,11 +23,31 @@ const apiApp = axios.create({
     }
 })
 
+/** Chỉ các endpoint bank dành cho khách/booking; KHÔNG gồm /bank-information/me (cần JWT khách). */
+function isBankInformationGuestPublicUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    return (
+        url.includes("/api/bank-information/booking/code/") ||
+        url.includes("/api/bank-information/guest-by-email") ||
+        (url.includes("/api/bank-information/order/") && !url.includes("/me"))
+    );
+}
+
 apiApp.interceptors.request.use(
     (config) => {
         const isAdmin = window.location.pathname.startsWith("/admin");
-        const token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
+        let token = isAdmin ? Cookies.get("tokenAdmin") : Cookies.get("token");
 
+        // Cookie token có thể mất (xóa tay / trình duyệt) nhưng Zustand persist còn — khách vẫn thấy đã đăng nhập
+        if (!token && !isAdmin) {
+            const { user: u, token: storeToken } = useAuthStore.getState();
+            const role = (u?.role ?? "").toUpperCase();
+            const isStaffOrAdmin = role.includes("ADMIN") || role.includes("STAFF");
+            if (storeToken && !isStaffOrAdmin) {
+                token = storeToken;
+                Cookies.set("token", storeToken, { expires: 1, sameSite: "lax", secure: false });
+            }
+        }
 
         // Only add authorization header if token exists and it's not already set
         if (token && !config.headers.Authorization) {
@@ -93,7 +113,7 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/bookings') || // This includes /api/bookings/deposit-intent and /api/bookings/code/
                     originalRequest.url?.includes('/api/bookings/code/') || // Specific booking detail endpoint
                     originalRequest.url?.includes('/api/time-slots') ||
-                    originalRequest.url?.includes('/api/bank-information') ||
+                    isBankInformationGuestPublicUrl(originalRequest.url) ||
                     originalRequest.url?.includes('/api/banks') ||
                     originalRequest.url?.includes('/api/booking-deposit-refund-policies') ||
                     originalRequest.url?.includes('/api/settings') ||

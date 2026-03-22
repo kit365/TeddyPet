@@ -5,6 +5,7 @@ import {
     RenderStatusCell,
     RenderCreatedAtCell
 } from '../utils/render-cells';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 import { IBlogCategory } from "./types";
 
 export const columnsConfig: GridColDef<IBlogCategory>[] = [
@@ -14,7 +15,7 @@ export const columnsConfig: GridColDef<IBlogCategory>[] = [
         flex: 1,
         minWidth: 200,
         hideable: false,
-        renderCell: RenderTitleCell,
+        renderCell: mountGridCell(RenderTitleCell),
     },
     {
         field: "parentName",
@@ -50,7 +51,7 @@ export const columnsConfig: GridColDef<IBlogCategory>[] = [
         sortable: false,
         filterable: false,
         align: 'right',
-        renderCell: RenderActionsCell,
+        renderCell: mountGridCell(RenderActionsCell),
     },
 ];
 

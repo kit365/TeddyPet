@@ -14,7 +14,9 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.products.Prod
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.RatingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.services.ServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.StaffProfileRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.staff.TaskHistoryRepository;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
@@ -42,6 +44,7 @@ public class DashboardService {
         private final ProductRepository productRepository;
         private final BookingPetServiceRepository bookingPetServiceRepository;
         private final BookingRepository bookingRepository;
+        private final BookingDepositRepository bookingDepositRepository;
         private final BookingPetRepository bookingPetRepository;
         private final ProductMapper productMapper;
         private final ProductApplicationService productApplicationService;
@@ -49,6 +52,7 @@ public class DashboardService {
         private final RatingRepository ratingRepository;
         private final StaffProfileRepository staffProfileRepository;
         private final TaskHistoryRepository taskHistoryRepository;
+        private final ServiceRepository serviceRepository;
 
         public DashboardService(
                         OrderRepository orderRepository,
@@ -56,18 +60,21 @@ public class DashboardService {
                         ProductRepository productRepository,
                         BookingPetServiceRepository bookingPetServiceRepository,
                         BookingRepository bookingRepository,
+                        BookingDepositRepository bookingDepositRepository,
                         BookingPetRepository bookingPetRepository,
                         ProductMapper productMapper,
                         ProductApplicationService productApplicationService,
                         org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate,
                         RatingRepository ratingRepository,
                         StaffProfileRepository staffProfileRepository,
-                        TaskHistoryRepository taskHistoryRepository) {
+                        TaskHistoryRepository taskHistoryRepository,
+                        ServiceRepository serviceRepository) {
                 this.orderRepository = orderRepository;
                 this.userRepository = userRepository;
                 this.productRepository = productRepository;
                 this.bookingPetServiceRepository = bookingPetServiceRepository;
                 this.bookingRepository = bookingRepository;
+                this.bookingDepositRepository = bookingDepositRepository;
                 this.bookingPetRepository = bookingPetRepository;
                 this.productMapper = productMapper;
                 this.productApplicationService = productApplicationService;
@@ -75,6 +82,7 @@ public class DashboardService {
                 this.ratingRepository = ratingRepository;
                 this.staffProfileRepository = staffProfileRepository;
                 this.taskHistoryRepository = taskHistoryRepository;
+                this.serviceRepository = serviceRepository;
         }
 
         /**
@@ -83,7 +91,7 @@ public class DashboardService {
     public void sendDashboardUpdate() {
         sendSection("/topic/dashboard/stats", () -> this.getStats(null, null));
         sendSection("/topic/dashboard/staff-stats", () -> this.getStaffStats(null, null));
-        sendSection("/topic/dashboard/revenue-chart", () -> getRevenueChart(7, null, null));
+        sendSection("/topic/dashboard/revenue-chart", () -> getRevenueChart(7, null, null, null));
         sendSection("/topic/dashboard/sales-by-category", () -> getSalesByCategory(null, null));
         sendSection("/topic/dashboard/top-customers", () -> getTopCustomers(null, null));
         sendSection("/topic/dashboard/latest-products", this::getLatestProducts);
@@ -218,15 +226,82 @@ public class DashboardService {
                                 .filter(b -> isInToday(b.getCreatedAt(), startOfDay, endOfDay, serverZone))
                                 .count();
 
+                var allDeposits = bookingDepositRepository.findAll();
+
+                Set<String> bookingCustomerKeys = new HashSet<>();
+                for (Booking b : allBookings) {
+                        if (!isWithinRange(b.getCreatedAt(), startDate, endDate)) {
+                                continue;
+                        }
+                        if (isBookingCancelled(b)) {
+                                continue;
+                        }
+                        if (Boolean.TRUE.equals(b.getIsTemporary())) {
+                                continue;
+                        }
+                        User user = b.getUser();
+                        if (user != null && user.getId() != null) {
+                                bookingCustomerKeys.add("u:" + user.getId());
+                        } else {
+                                String phone = b.getCustomerPhone() == null ? "" : b.getCustomerPhone().trim().toLowerCase(Locale.ROOT);
+                                String email = b.getCustomerEmail() == null ? "" : b.getCustomerEmail().trim().toLowerCase(Locale.ROOT);
+                                if (!phone.isEmpty() || !email.isEmpty()) {
+                                        bookingCustomerKeys.add("g:" + phone + "|" + email);
+                                } else {
+                                        bookingCustomerKeys.add("b:" + b.getId());
+                                }
+                        }
+                }
+                long bookingCustomersExcludingCancelled = bookingCustomerKeys.size();
+
+                long bookingFullyPaidCount = allBookings.stream()
+                                .filter(b -> isWithinRange(b.getCreatedAt(), startDate, endDate))
+                                .filter(b -> !isBookingCancelled(b))
+                                .filter(b -> b.getPaymentStatus() != null
+                                                && "PAID".equalsIgnoreCase(b.getPaymentStatus().trim()))
+                                .count();
+
+                long bookingDepositsPaidCount = allDeposits.stream()
+                                .filter(d -> !d.isDeleted())
+                                .filter(d -> Boolean.TRUE.equals(d.getDepositPaid())
+                                                || (d.getStatus() != null && "PAID".equalsIgnoreCase(d.getStatus().trim())))
+                                .filter(d -> {
+                                        LocalDateTime t = d.getDepositPaidAt() != null ? d.getDepositPaidAt() : d.getCreatedAt();
+                                        return isWithinRange(t, startDate, endDate);
+                                })
+                                .count();
+
+                BigDecimal bookingDepositsRefundedTotal = allDeposits.stream()
+                                .filter(d -> !d.isDeleted())
+                                .filter(d -> Boolean.TRUE.equals(d.getRefunded()))
+                                .filter(d -> {
+                                        LocalDateTime t = d.getRefundedAt() != null ? d.getRefundedAt()
+                                                        : (d.getUpdatedAt() != null ? d.getUpdatedAt() : d.getCreatedAt());
+                                        return isWithinRange(t, startDate, endDate);
+                                })
+                                .map(d -> d.getRefundAmount() != null ? d.getRefundAmount() : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                long bookingCancelledCount = allBookings.stream()
+                                .filter(DashboardService::isBookingCancelled)
+                                .filter(b -> {
+                                        LocalDateTime t = b.getCancelledAt() != null ? b.getCancelledAt()
+                                                        : (b.getUpdatedAt() != null ? b.getUpdatedAt() : b.getCreatedAt());
+                                        return isWithinRange(t, startDate, endDate);
+                                })
+                                .count();
+
                 return new DashboardStatsResponse(
                                 totalRevenue, totalOrders, totalCustomers, totalProductsSold,
                                 avgRating, completedBookings,
                                 pendingOrders, confirmedOrders, processingOrders, deliveringOrders,
                                 deliveredOrders, completedOrders, cancelledOrders, returnedOrders,
-                                todayOrders, todayRevenue, lowStockCount, todayBookings);
+                                todayOrders, todayRevenue, lowStockCount, todayBookings,
+                                bookingCustomersExcludingCancelled, bookingFullyPaidCount, bookingDepositsPaidCount,
+                                bookingDepositsRefundedTotal, bookingCancelledCount);
         }
 
-    public List<RevenueChartItem> getRevenueChart(int days, java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
+    public List<RevenueChartItem> getRevenueChart(int days, java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT, String type) {
         ZoneId zone = ZoneId.systemDefault();
         LocalDateTime customStart = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
         LocalDateTime customEnd = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
@@ -245,45 +320,81 @@ public class DashboardService {
             start = end.minusDays(days - 1);
         }
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
+        if ("MONTH".equalsIgnoreCase(type)) {
+            java.time.YearMonth startMonth = java.time.YearMonth.from(start);
+            java.time.YearMonth endMonth = java.time.YearMonth.from(end);
+            DateTimeFormatter fmtMonth = DateTimeFormatter.ofPattern("MM/yyyy");
 
-        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-            LocalDateTime dayStart = date.atStartOfDay();
-            LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
-            LocalDate finalDate = date;
+            for (java.time.YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
+                LocalDateTime monthStart = ym.atDay(1).atStartOfDay();
+                LocalDateTime monthEnd = ym.atEndOfMonth().atTime(LocalTime.MAX);
 
-            BigDecimal orderRevenueForDay = allOrders.stream()
-                    .filter(o -> o.getCreatedAt() != null
-                            && !o.getCreatedAt().isBefore(dayStart)
-                            && !o.getCreatedAt().isAfter(dayEnd)
-                            && o.getStatus() != OrderStatusEnum.CANCELLED
-                            && o.getStatus() != OrderStatusEnum.RETURNED)
-                    .map(o -> resolveOrderAmount(o))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal orderRevenueForMonth = allOrders.stream()
+                        .filter(o -> o.getCreatedAt() != null
+                                && !o.getCreatedAt().isBefore(monthStart)
+                                && !o.getCreatedAt().isAfter(monthEnd)
+                                && o.getStatus() != OrderStatusEnum.CANCELLED
+                                && o.getStatus() != OrderStatusEnum.RETURNED)
+                        .map(o -> resolveOrderAmount(o))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            BigDecimal bookingRevenueForDay = allBookings.stream()
-                    .filter(b -> b.getCreatedAt() != null
-                            && !b.getCreatedAt().isBefore(dayStart)
-                            && !b.getCreatedAt().isAfter(dayEnd)
-                            && !"CANCELLED".equalsIgnoreCase(b.getStatus()))
-                    .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal bookingRevenueForMonth = allBookings.stream()
+                        .filter(b -> b.getCreatedAt() != null
+                                && !b.getCreatedAt().isBefore(monthStart)
+                                && !b.getCreatedAt().isAfter(monthEnd)
+                                && !"CANCELLED".equalsIgnoreCase(b.getStatus()))
+                        .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            BigDecimal revenue = orderRevenueForDay.add(bookingRevenueForDay);
+                BigDecimal revenue = orderRevenueForMonth.add(bookingRevenueForMonth);
 
-            long ordersCount = allOrders.stream()
-                    .filter(o -> o.getCreatedAt() != null
-                            && !o.getCreatedAt().isBefore(dayStart)
-                            && !o.getCreatedAt().isAfter(dayEnd))
-                    .count() +
-                    allBookings.stream()
-                            .filter(b -> b.getCreatedAt() != null
-                                    && !b.getCreatedAt().isBefore(dayStart)
-                                    && !b.getCreatedAt().isAfter(dayEnd))
-                            .count();
+                long ordersCount = allOrders.stream()
+                        .filter(o -> o.getCreatedAt() != null
+                                && !o.getCreatedAt().isBefore(monthStart)
+                                && !o.getCreatedAt().isAfter(monthEnd)
+                                && o.getStatus() != OrderStatusEnum.CANCELLED)
+                        .count();
 
-            items.add(new RevenueChartItem(finalDate.format(fmt), revenue, ordersCount));
+                items.add(new RevenueChartItem(ym.format(fmtMonth), revenue, ordersCount));
+            }
+        } else {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
+
+            for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+                LocalDateTime dayStart = date.atStartOfDay();
+                LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
+                LocalDate finalDate = date;
+
+                BigDecimal orderRevenueForDay = allOrders.stream()
+                        .filter(o -> o.getCreatedAt() != null
+                                && !o.getCreatedAt().isBefore(dayStart)
+                                && !o.getCreatedAt().isAfter(dayEnd)
+                                && o.getStatus() != OrderStatusEnum.CANCELLED
+                                && o.getStatus() != OrderStatusEnum.RETURNED)
+                        .map(o -> resolveOrderAmount(o))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal bookingRevenueForDay = allBookings.stream()
+                        .filter(b -> b.getCreatedAt() != null
+                                && !b.getCreatedAt().isBefore(dayStart)
+                                && !b.getCreatedAt().isAfter(dayEnd)
+                                && !"CANCELLED".equalsIgnoreCase(b.getStatus()))
+                        .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal revenue = orderRevenueForDay.add(bookingRevenueForDay);
+
+                long ordersCount = allOrders.stream()
+                        .filter(o -> o.getCreatedAt() != null
+                                && !o.getCreatedAt().isBefore(dayStart)
+                                && !o.getCreatedAt().isAfter(dayEnd)
+                                && o.getStatus() != OrderStatusEnum.CANCELLED)
+                        .count();
+
+                items.add(new RevenueChartItem(date.format(fmt), revenue, ordersCount));
+            }
         }
+
         return items;
     }
 
@@ -293,6 +404,10 @@ public class DashboardService {
         if (end != null && date.isAfter(end)) return false;
         return true;
     }
+
+        private static boolean isBookingCancelled(Booking b) {
+                return b.getStatus() != null && "CANCELLED".equalsIgnoreCase(b.getStatus().trim());
+        }
 
     public DashboardStatsResponse getStaffStats(java.time.OffsetDateTime startDate, java.time.OffsetDateTime endDate) {
         DashboardStatsResponse fullStats = getStats(startDate, endDate);
@@ -315,7 +430,12 @@ public class DashboardService {
                                 fullStats.todayOrders(),
                                 BigDecimal.ZERO,
                                 fullStats.lowStockCount(),
-                                fullStats.todayBookings());
+                                fullStats.todayBookings(),
+                                fullStats.bookingCustomersExcludingCancelled(),
+                                fullStats.bookingFullyPaidCount(),
+                                fullStats.bookingDepositsPaidCount(),
+                                fullStats.bookingDepositsRefundedTotal(),
+                                fullStats.bookingCancelledCount());
         }
 
     public List<SalesByCategoryResponse> getSalesByCategory(java.time.OffsetDateTime startODT, java.time.OffsetDateTime endODT) {
@@ -417,7 +537,7 @@ public class DashboardService {
                                 new PetDistributionResponse("Khác", distribution.getOrDefault("Khác", 0L), "#1a3b32"));
         }
 
-        /** Thống kê dịch vụ theo năm + so sánh với năm trước (dịch vụ được tạo trong năm đó). */
+        /** Thống kê dịch vụ theo năm + so sánh với năm trước (theo booking_pet_services, nhóm theo dịch vụ đang hoạt động). */
         public ServiceStatisticsWithComparisonResponse getServiceStatistics(Integer year) {
                 int y = year != null ? year : LocalDate.now().getYear();
                 List<ServiceStatisticsResponse> stats = new ArrayList<>();
@@ -426,32 +546,44 @@ public class DashboardService {
                 long totalThisYear = 0;
                 long totalLastYear = 0;
 
+                // Tránh trùng tên với org.springframework.stereotype.Service
+                List<fpt.teddypet.domain.entity.Service> activeServices = serviceRepository.findByIsActiveTrueAndIsDeletedFalse()
+                                .stream()
+                                .sorted(Comparator.comparing(
+                                                s -> s.getServiceName() != null ? s.getServiceName() : "",
+                                                String.CASE_INSENSITIVE_ORDER))
+                                .toList();
+                List<ServiceStatisticsSeriesInfo> seriesInfos = new ArrayList<>();
+                for (fpt.teddypet.domain.entity.Service svc : activeServices) {
+                        String label = svc.getServiceName() != null && !svc.getServiceName().isBlank()
+                                        ? svc.getServiceName()
+                                        : ("Dịch vụ #" + svc.getId());
+                        seriesInfos.add(new ServiceStatisticsSeriesInfo(svc.getId(), label));
+                }
+
                 for (int month = 1; month <= 12; month++) {
                         LocalDate monthDate = LocalDate.of(y, month, 1);
                         LocalDateTime start = monthDate.atStartOfDay();
                         LocalDateTime end = monthDate.withDayOfMonth(monthDate.lengthOfMonth()).atTime(LocalTime.MAX);
 
-                        Map<String, Long> serviceCounts = new HashMap<>();
-                        serviceCounts.put("Cắt tỉa", 0L);
-                        serviceCounts.put("Khám bệnh", 0L);
-                        serviceCounts.put("Huấn luyện", 0L);
+                        Map<String, Long> serviceCounts = new LinkedHashMap<>();
+                        for (fpt.teddypet.domain.entity.Service svc : activeServices) {
+                                serviceCounts.put(String.valueOf(svc.getId()), 0L);
+                        }
 
                         for (BookingPetService bps : allServiceBookings) {
                                 if (bps.getCreatedAt() == null || bps.getCreatedAt().isBefore(start) || bps.getCreatedAt().isAfter(end))
                                         continue;
-                                String serviceName = bps.getService() != null ? bps.getService().getServiceName().toLowerCase() : "";
-                                long add = 1;
-                                if (serviceName.contains("cắt tỉa") || serviceName.contains("grooming")) {
-                                        serviceCounts.put("Cắt tỉa", serviceCounts.get("Cắt tỉa") + add);
-                                } else if (serviceName.contains("khám") || serviceName.contains("clinic")) {
-                                        serviceCounts.put("Khám bệnh", serviceCounts.get("Khám bệnh") + add);
-                                } else if (serviceName.contains("huấn luyện") || serviceName.contains("training")) {
-                                        serviceCounts.put("Huấn luyện", serviceCounts.get("Huấn luyện") + add);
-                                }
+                                if (bps.getService() == null || bps.getService().getId() == null)
+                                        continue;
+                                String key = String.valueOf(bps.getService().getId());
+                                if (!serviceCounts.containsKey(key))
+                                        continue;
+                                serviceCounts.put(key, serviceCounts.get(key) + 1);
                         }
                         long monthTotal = serviceCounts.values().stream().mapToLong(Long::longValue).sum();
                         totalThisYear += monthTotal;
-                        stats.add(new ServiceStatisticsResponse(monthDate.format(fmt), new HashMap<>(serviceCounts)));
+                        stats.add(new ServiceStatisticsResponse(monthDate.format(fmt), new LinkedHashMap<>(serviceCounts)));
                 }
 
                 for (int month = 1; month <= 12; month++) {
@@ -468,7 +600,7 @@ public class DashboardService {
                         ? ((double) (totalThisYear - totalLastYear) / totalLastYear) * 100.0
                         : (totalThisYear > 0 ? 100.0 : 0.0);
 
-                return new ServiceStatisticsWithComparisonResponse(stats, totalThisYear, totalLastYear, percentChange);
+                return new ServiceStatisticsWithComparisonResponse(seriesInfos, stats, totalThisYear, totalLastYear, percentChange);
         }
 
         /** Lượt truy cập theo vùng — stub, sẽ nối Redis/tracking sau. */
@@ -566,5 +698,72 @@ public class DashboardService {
                         s.getPosition() != null ? s.getPosition().getName() : "",
                         staffIdToCount.getOrDefault(s.getId(), 0L)))
                         .toList();
+        }
+
+        public TodayRevenueDetailsResponse getTodayRevenueDetails() {
+                ZoneId vietnam = ZoneId.of("Asia/Ho_Chi_Minh");
+                LocalDate today = LocalDate.now(vietnam);
+                ZonedDateTime startOfDay = today.atStartOfDay(vietnam);
+                ZonedDateTime endOfDay = today.atTime(LocalTime.MAX).atZone(vietnam);
+                ZoneId serverZone = ZoneId.systemDefault();
+
+                var allOrders = orderRepository.findAll();
+                var allBookings = bookingRepository.findAll();
+
+                List<Order> todayOrdersList = allOrders.stream()
+                        .filter(o -> isInToday(o.getCreatedAt(), startOfDay, endOfDay, serverZone))
+                        .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
+                                && o.getStatus() != OrderStatusEnum.RETURNED
+                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
+                        .toList();
+
+                List<Booking> todayBookingsList = allBookings.stream()
+                        .filter(b -> isInToday(b.getCreatedAt(), startOfDay, endOfDay, serverZone))
+                        .filter(b -> "COMPLETED".equalsIgnoreCase(b.getStatus()) || "FINISHED".equalsIgnoreCase(b.getStatus()))
+                        .toList();
+
+                BigDecimal todayOrderRevenue = todayOrdersList.stream()
+                        .map(this::resolveOrderAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal todayBookingRevenue = todayBookingsList.stream()
+                        .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal totalRevenue = todayOrderRevenue.add(todayBookingRevenue);
+
+                List<TodayRevenueOrderDto> orderDtos = todayOrdersList.stream()
+                        .map(o -> new TodayRevenueOrderDto(
+                                o.getId(),
+                                o.getOrderCode(),
+                                o.getUser() != null ? (o.getUser().getFirstName() + " " + o.getUser().getLastName()) : "Khách vãng lai",
+                                resolveOrderAmount(o),
+                                o.getStatus() != null ? o.getStatus().name() : "",
+                                o.getCreatedAt()
+                        ))
+                        .toList();
+
+                List<TodayRevenueBookingDto> bookingDtos = todayBookingsList.stream()
+                        .map(b -> {
+                                String custName = b.getUser() != null ? (b.getUser().getFirstName() + " " + b.getUser().getLastName()) : b.getCustomerName();
+                                return new TodayRevenueBookingDto(
+                                        b.getId(),
+                                        b.getBookingCode(),
+                                        custName,
+                                        b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO,
+                                        b.getStatus(),
+                                        b.getPaymentStatus(),
+                                        b.getCreatedAt()
+                                );
+                        })
+                        .toList();
+
+                return new TodayRevenueDetailsResponse(
+                        totalRevenue,
+                        todayOrdersList.size(),
+                        todayBookingsList.size(),
+                        orderDtos,
+                        bookingDtos
+                );
         }
 }

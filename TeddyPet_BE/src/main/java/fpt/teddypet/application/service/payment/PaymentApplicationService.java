@@ -6,6 +6,7 @@ import fpt.teddypet.application.constants.payments.PaymentConstants;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.application.dto.response.payment.PaymentResult;
 import fpt.teddypet.application.exception.PaymentException;
+import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
 import fpt.teddypet.application.port.input.payment.PaymentService;
 import fpt.teddypet.application.port.output.payment.PaymentGatewayPort;
@@ -53,6 +54,7 @@ public class PaymentApplicationService implements PaymentService {
     private final BankInformationRepository bankInformationRepository;
     private final BookingDepositRepository bookingDepositRepository;
     private final BookingRepository bookingRepository;
+    private final BookingDepositClientService bookingDepositClientService;
     private final EmailServicePort emailServicePort;
     private final ObjectMapper objectMapper;
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
@@ -365,6 +367,13 @@ public class PaymentApplicationService implements PaymentService {
 
                         if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                             emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
+                        }
+
+                        try {
+                            bookingDepositClientService.runAfterDepositPaidSuccessfully(booking, deposit);
+                        } catch (Exception syncEx) {
+                            log.warn("Post-deposit sync (address/pet/bank) failed for booking {}: {}",
+                                    booking.getBookingCode(), syncEx.getMessage());
                         }
                     } catch (Exception e) {
                         log.error("Failed to finalize booking deposit for payosOrderCode={}", orderCode, e);

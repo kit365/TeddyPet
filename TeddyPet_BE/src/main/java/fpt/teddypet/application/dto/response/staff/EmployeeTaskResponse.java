@@ -13,18 +13,27 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class EmployeeTaskResponse {
     private Long id;
-    private String type; // "CARE" or "SPA"
+    /** CARE = dịch vụ phòng; SPA = dịch vụ không phòng / combo spa. */
+    private String type;
     private String title;
     private String description;
     private String status;
     private LocalDateTime createdAt;
-    
+
+    /** Mã booking (hiển thị trên dashboard nhân viên). */
+    private String bookingCode;
+    private String customerName;
+
     private String cageNumber;
     private String petName;
     private String petSpecies;
     private String notes;
-    
-    private String serviceType; // "SINGLE" or "COMBO"
+
+    /**
+     * Với type=SPA: SHOWER | HAIRCUT | NAIL | COMBO (khớp FE SpaTask).
+     * Với type=CARE: có thể null hoặc ROOM.
+     */
+    private String serviceType;
     private LocalDateTime bookingTime;
     private Integer durationMinutes;
     

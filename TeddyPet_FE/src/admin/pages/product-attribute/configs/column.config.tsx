@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { prefixAdmin } from "../../../constants/routes";
 import { toast } from "react-toastify";
 import Chip from '@mui/material/Chip';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 
 // Render Tên thuộc tính
@@ -191,7 +192,7 @@ export const columnsConfig: GridColDef<any>[] = [
         flex: 1,
         minWidth: 200,
         hideable: false,
-        renderCell: RenderNameCell,
+        renderCell: mountGridCell(RenderNameCell),
     },
     {
         field: "displayType",
@@ -213,7 +214,7 @@ export const columnsConfig: GridColDef<any>[] = [
         filterable: false,
         align: 'right',
         headerAlign: 'right',
-        renderCell: RenderActionsCell,
+        renderCell: mountGridCell(RenderActionsCell),
     },
 ];
 

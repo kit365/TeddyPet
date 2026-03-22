@@ -1,10 +1,13 @@
 package fpt.teddypet.presentation.controller.admin;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.request.staff.AssignBookingPetServiceStaffRequest;
 import fpt.teddypet.application.dto.request.staff.BatchOpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.OpenShiftRequest;
 import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignedBookingPetServiceResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignOptionsResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
@@ -17,10 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -86,8 +88,8 @@ public class AdminWorkShiftController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Lấy danh sách ca trong khoảng (OPEN + ASSIGNED) để hiển thị grid, kể cả ca đã khóa")
     public ResponseEntity<ApiResponse<List<WorkShiftResponse>>> getShiftsByDateRange(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to) {
         List<WorkShiftResponse> responses = workShiftService.getShiftsForAdminByDateRange(from, to);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
@@ -96,10 +98,30 @@ public class AdminWorkShiftController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Danh sách booking_pet_service đủ điều kiện xếp ca + danh sách chờ theo tuần đang xem")
     public ResponseEntity<ApiResponse<WorkShiftBookingPetServicePoolResponse>> getAssignableBookingPetServices(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to) {
         WorkShiftBookingPetServicePoolResponse response = workShiftService.getAssignableBookingPetServices(from, to);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/booking-pet-services/{bookingPetServiceId}/assign-options")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Xem trước: SL NV yêu cầu + danh sách NV trong ca đích (không ghi DB)")
+    public ResponseEntity<ApiResponse<WorkShiftAssignOptionsResponse>> getAssignOptionsForBookingPetService(
+            @PathVariable Long bookingPetServiceId) {
+        WorkShiftAssignOptionsResponse response =
+                workShiftService.getAssignOptionsForBookingPetService(bookingPetServiceId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/booking-pet-services/{bookingPetServiceId}/assign-auto")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Tự tìm ca đã khóa (ASSIGNED) khớp lịch rồi gán booking_pet_service + nhân viên đã chọn")
+    public ResponseEntity<ApiResponse<Void>> assignBookingPetServiceToShiftAuto(
+            @PathVariable Long bookingPetServiceId,
+            @Valid @RequestBody AssignBookingPetServiceStaffRequest body) {
+        workShiftService.assignBookingPetServiceToShiftAuto(bookingPetServiceId, body.staffIds());
+        return ResponseEntity.ok(ApiResponse.success("Đã thêm booking_pet_service vào ca phù hợp."));
     }
 
     @GetMapping("/{shiftId}/role-configs")
@@ -126,6 +148,16 @@ public class AdminWorkShiftController {
     public ResponseEntity<ApiResponse<List<WorkShiftRegistrationResponse>>> getRegistrations(
             @PathVariable Long shiftId) {
         List<WorkShiftRegistrationResponse> responses = workShiftService.getRegistrationsForShift(shiftId);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/{shiftId}/assigned-booking-pet-services")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Danh sách booking_pet_service đã xếp lịch (overlap thời gian với ca)")
+    public ResponseEntity<ApiResponse<List<WorkShiftAssignedBookingPetServiceResponse>>> getAssignedBookingPetServices(
+            @PathVariable Long shiftId) {
+        List<WorkShiftAssignedBookingPetServiceResponse> responses =
+                workShiftService.getBookingPetServicesAssignedToShift(shiftId);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -187,11 +219,12 @@ public class AdminWorkShiftController {
 
     @PutMapping("/{shiftId}/booking-pet-services/{bookingPetServiceId}/assign")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Gán booking_pet_service vào ca bằng scheduledStartTime/scheduledEndTime")
+    @Operation(summary = "Gán booking_pet_service vào ca cụ thể + nhân viên đã chọn")
     public ResponseEntity<ApiResponse<Void>> assignBookingPetServiceToShift(
             @PathVariable Long shiftId,
-            @PathVariable Long bookingPetServiceId) {
-        workShiftService.assignBookingPetServiceToShift(shiftId, bookingPetServiceId);
+            @PathVariable Long bookingPetServiceId,
+            @Valid @RequestBody AssignBookingPetServiceStaffRequest body) {
+        workShiftService.assignBookingPetServiceToShift(shiftId, bookingPetServiceId, body.staffIds());
         return ResponseEntity.ok(ApiResponse.success("Đã thêm booking_pet_service vào ca."));
     }
 
