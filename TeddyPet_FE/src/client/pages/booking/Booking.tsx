@@ -8,7 +8,8 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import { prefixAdmin } from "../../../admin/constants/routes";
-import { useAuthStore } from "../../../stores/useAuthStore";
+import Cookies from "js-cookie";
+import { getMe } from "../../../api/auth.api";
 import { getAllAddresses } from "../../../api/address.api";
 import type { UserAddressResponse } from "../../../types/address.type";
 
@@ -35,10 +36,14 @@ type BookingPageProps = {
     nextPath?: string;
 };
 
+/** Chỉ điền form đặt lịch từ hồ sơ khi đúng role khách (USER). Tránh dùng useAuthStore.user vì AdminGuard có adminLoginSync → store có thể đang là admin/staff. */
+function isBookingPrefillRole(role?: string | null): boolean {
+    return (role ?? "").trim().toUpperCase() === "USER";
+}
+
 export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const user = useAuthStore((state) => state.user);
     const isCounterBooking = mode === "admin-counter";
     // Preserve existing draft data if user navigates back from step 2
     const rawState = location.state as (BookingStep1FormData & { bookingDraft?: any; bookingCodeForEdit?: string }) | undefined;
@@ -83,53 +88,65 @@ export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => 
         formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
+    /**
+     * Điền form & địa chỉ từ API /me với cookie `token` (phiên khách), không dùng user trong Zustand
+     * (có thể bị ghi đè khi mở trang admin cùng trình duyệt).
+     */
     useEffect(() => {
-        if (!user) return;
-        // Màn tạo đơn tại quầy: không tự điền thông tin tài khoản admin.
-        if (isCounterBooking || (user.role ?? "").toUpperCase() === "ADMIN") return;
-        const profileFullName = `${user.lastName ?? ""} ${user.firstName ?? ""}`.trim();
-        setFormData((prev) => ({
-            ...prev,
-            fullName: prev.fullName || profileFullName,
-            email: prev.email || user.email || "",
-            phone: prev.phone || user.phoneNumber || "",
-        }));
-    }, [user, isCounterBooking]);
-
-    useEffect(() => {
-        if (!user) {
-            setSavedAddresses([]);
-            setShowAddressDropdown(false);
-            return;
-        }
         if (isCounterBooking) {
             setSavedAddresses([]);
             setShowAddressDropdown(false);
             return;
         }
 
+        const token = Cookies.get("token");
+        if (!token) {
+            setSavedAddresses([]);
+            setShowAddressDropdown(false);
+            return;
+        }
+
         let mounted = true;
-        getAllAddresses()
-            .then((res) => {
+
+        (async () => {
+            try {
+                const meRes = await getMe(token);
+                const me = meRes?.data;
                 if (!mounted) return;
-                const list = Array.isArray(res?.data) ? res.data : [];
+
+                if (me && isBookingPrefillRole(me.role)) {
+                    const profileFullName = `${me.lastName ?? ""} ${me.firstName ?? ""}`.trim();
+                    setFormData((prev) => ({
+                        ...prev,
+                        fullName: prev.fullName || profileFullName,
+                        email: prev.email || me.email || "",
+                        phone: prev.phone || me.phoneNumber || "",
+                    }));
+                }
+
+                if (!me || !isBookingPrefillRole(me.role)) {
+                    setSavedAddresses([]);
+                    return;
+                }
+
+                const addrRes = await getAllAddresses();
+                if (!mounted) return;
+                const list = Array.isArray(addrRes?.data) ? addrRes.data : [];
                 setSavedAddresses(list);
 
-                // Prefill địa chỉ mặc định nếu form đang trống, nhưng vẫn cho phép đổi bằng dropdown.
                 const defaultAddress = list.find((addr) => addr.isDefault)?.address?.trim();
                 if (defaultAddress) {
                     setFormData((prev) => (prev.address.trim() ? prev : { ...prev, address: defaultAddress }));
                 }
-            })
-            .catch(() => {
-                if (!mounted) return;
-                setSavedAddresses([]);
-            });
+            } catch {
+                if (mounted) setSavedAddresses([]);
+            }
+        })();
 
         return () => {
             mounted = false;
         };
-    }, [user, isCounterBooking]);
+    }, [isCounterBooking]);
 
     useEffect(() => {
         if (!showAddressDropdown) return;
@@ -228,7 +245,7 @@ export const BookingPage = ({ mode = "client", nextPath }: BookingPageProps) => 
                         <label htmlFor="address" className="block text-[0.875rem] font-[600] text-[#181818]">
                             Địa chỉ
                         </label>
-                        {!isCounterBooking && user && savedAddresses.length > 0 && (
+                        {!isCounterBooking && savedAddresses.length > 0 && (
                             <div className="relative" ref={addressDropdownRef}>
                                 <button
                                     type="button"

@@ -8,8 +8,8 @@ import java.util.List;
 public record AdminBookingPetServiceResponse(
         Long id,
         Long bookingPetId,
-        Long assignedStaffId,
-        String assignedStaffName,
+        List<Long> assignedStaffIds,
+        String assignedStaffNames,
         Long serviceId,
         Long serviceComboId,
         String serviceName,

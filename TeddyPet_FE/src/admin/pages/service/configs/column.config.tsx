@@ -10,6 +10,7 @@ import {
     RenderComboActionsCell,
 } from '../utils/render-cells';
 import type { IService, IServiceCombo, CategoryInfoMap } from './types';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 const HEX6 = /^#[0-9A-Fa-f]{6}$/;
 
@@ -44,7 +45,7 @@ export const getServiceColumns = (
             flex: 1,
             minWidth: 200,
             hideable: false,
-            renderCell: RenderServiceTitleCell,
+            renderCell: mountGridCell(RenderServiceTitleCell),
         },
         {
             field: 'code',
@@ -148,7 +149,7 @@ export const getServiceColumns = (
             sortable: false,
             filterable: false,
             align: 'right',
-            renderCell: RenderServiceActionsCell,
+            renderCell: mountGridCell(RenderServiceActionsCell),
         },
     ];
 
@@ -164,7 +165,7 @@ export const getServiceComboColumns = (): GridColDef<IServiceCombo>[] => [
         flex: 1,
         minWidth: 200,
         hideable: false,
-        renderCell: RenderComboTitleCell,
+        renderCell: mountGridCell(RenderComboTitleCell),
     },
     {
         field: 'code',
@@ -220,7 +221,7 @@ export const getServiceComboColumns = (): GridColDef<IServiceCombo>[] => [
         sortable: false,
         filterable: false,
         align: 'right',
-        renderCell: RenderComboActionsCell,
+        renderCell: mountGridCell(RenderComboActionsCell),
     },
 ];
 

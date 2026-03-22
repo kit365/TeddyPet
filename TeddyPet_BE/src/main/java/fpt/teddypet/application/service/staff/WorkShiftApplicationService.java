@@ -5,8 +5,11 @@ import fpt.teddypet.application.dto.request.staff.ShiftRoleConfigItemRequest;
 import fpt.teddypet.application.dto.response.staff.AvailableShiftForStaffResponse;
 import fpt.teddypet.application.dto.response.staff.RoleSlotInfoResponse;
 import fpt.teddypet.application.dto.response.staff.ShiftRoleConfigResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignOptionsResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftBookingPetServicePoolResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftAssignedBookingPetServiceResponse;
+import fpt.teddypet.application.dto.response.staff.WorkShiftCoverageDayResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftRegistrationResponse;
 import fpt.teddypet.application.dto.response.staff.WorkShiftResponse;
 import fpt.teddypet.application.port.input.staff.WorkShiftService;
@@ -24,6 +27,7 @@ import fpt.teddypet.domain.entity.staff.StaffProfile;
 import fpt.teddypet.domain.entity.staff.StaffPosition;
 import fpt.teddypet.domain.entity.staff.WorkShift;
 import fpt.teddypet.domain.entity.staff.WorkShiftRegistration;
+import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.enums.staff.EmploymentTypeEnum;
 import fpt.teddypet.domain.enums.staff.RegistrationStatus;
 import fpt.teddypet.domain.enums.staff.ShiftStatus;
@@ -42,13 +46,18 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +71,9 @@ public class WorkShiftApplicationService implements WorkShiftService {
     private final StaffPositionRepositoryPort staffPositionRepositoryPort;
     private final StaffProfileRepositoryPort staffProfileRepositoryPort;
     private final BookingPetServiceRepository bookingPetServiceRepository;
+    private final WorkShiftBookingAssignmentHelper workShiftBookingAssignmentHelper;
+
+    private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
 
     /**
      * Template định mức cơ bản cho một ca theo 3 nhóm vai trò:
@@ -296,11 +308,13 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
-    public List<WorkShiftResponse> getShiftsForAdminByDateRange(LocalDateTime from, LocalDateTime to) {
+    public List<WorkShiftResponse> getShiftsForAdminByDateRange(Instant from, Instant to) {
         if (from == null || to == null) {
             return List.of();
         }
-        List<WorkShift> shifts = workShiftRepositoryPort.findByStartTimeBetween(from, to);
+        LocalDateTime fromLdt = LocalDateTime.ofInstant(from, VIETNAM);
+        LocalDateTime toLdt = LocalDateTime.ofInstant(to, VIETNAM);
+        List<WorkShift> shifts = workShiftRepositoryPort.findByStartTimeBetween(fromLdt, toLdt);
         return shifts.stream().map(this::toResponse).toList();
     }
 
@@ -871,20 +885,30 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
-    public WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(LocalDateTime from, LocalDateTime to) {
+    public WorkShiftBookingPetServicePoolResponse getAssignableBookingPetServices(Instant from, Instant to) {
         if (from == null || to == null) {
             return new WorkShiftBookingPetServicePoolResponse(List.of(), List.of());
         }
-        LocalDate weekStart = from.toLocalDate();
-        LocalDate weekEnd = to.toLocalDate();
+        LocalDate weekStart = from.atZone(VIETNAM).toLocalDate();
+        LocalDate weekEnd = to.atZone(VIETNAM).toLocalDate();
         List<WorkShiftBookingPetServiceItemResponse> inWeek = new ArrayList<>();
         List<WorkShiftBookingPetServiceItemResponse> waiting = new ArrayList<>();
 
-        for (BookingPetService bps : bookingPetServiceRepository.findAssignableForWorkShift()) {
+        for (BookingPetService bps : bookingPetServiceRepository.findAssignableForWorkShift(BookingTypeEnum.WALK_IN)) {
             Booking booking = bps.getBookingPet() != null ? bps.getBookingPet().getBooking() : null;
-            if (booking == null) continue;
+            if (booking == null) {
+                continue;
+            }
 
-            LocalDate bookingDateFrom = booking.getBookingDateFrom();
+            LocalDate bookingWeekDate = booking.getBookingDateFrom();
+            if (bookingWeekDate == null) {
+                continue;
+            }
+
+            boolean serviceRequiresRoom =
+                    bps.getService() != null && Boolean.TRUE.equals(bps.getService().getIsRequiredRoom());
+            Integer requiredStaffCount =
+                    bps.getService() != null ? bps.getService().getRequiredStaffCount() : null;
             WorkShiftBookingPetServiceItemResponse item = new WorkShiftBookingPetServiceItemResponse(
                     bps.getId(),
                     booking.getBookingCode(),
@@ -894,14 +918,16 @@ public class WorkShiftApplicationService implements WorkShiftService {
                     bps.getServiceCombo() != null
                             ? bps.getServiceCombo().getComboName()
                             : (bps.getService() != null ? bps.getService().getServiceName() : null),
-                    bookingDateFrom,
+                    bookingWeekDate,
                     bps.getScheduledStartTime(),
-                    bps.getScheduledEndTime()
-            );
+                    bps.getScheduledEndTime(),
+                    serviceRequiresRoom,
+                    booking.getBookingCheckInDate(),
+                    requiredStaffCount);
 
-            if (bookingDateFrom != null && !bookingDateFrom.isBefore(weekStart) && !bookingDateFrom.isAfter(weekEnd)) {
+            if (!bookingWeekDate.isBefore(weekStart) && !bookingWeekDate.isAfter(weekEnd)) {
                 inWeek.add(item);
-            } else {
+            } else if (bookingWeekDate.isAfter(weekEnd)) {
                 waiting.add(item);
             }
         }
@@ -911,31 +937,109 @@ public class WorkShiftApplicationService implements WorkShiftService {
 
     @Override
     @Transactional
-    public void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId) {
+    public void assignBookingPetServiceToShift(Long shiftId, Long bookingPetServiceId, List<Long> staffIds) {
+        workShiftBookingAssignmentHelper.assignBookingPetServiceToShift(shiftId, bookingPetServiceId, staffIds);
+    }
+
+    @Override
+    @Transactional
+    public void assignBookingPetServiceToShiftAuto(Long bookingPetServiceId, List<Long> staffIds) {
+        workShiftBookingAssignmentHelper.assignBookingPetServiceToShiftAuto(bookingPetServiceId, staffIds);
+    }
+
+    @Override
+    public WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId) {
+        return workShiftBookingAssignmentHelper.getAssignOptionsForBookingPetService(bookingPetServiceId);
+    }
+
+    @Override
+    public List<WorkShiftAssignedBookingPetServiceResponse> getBookingPetServicesAssignedToShift(Long shiftId) {
         WorkShift shift = getShiftOrThrow(shiftId);
-        if (shift.getStatus() != ShiftStatus.OPEN) {
-            throw new InvalidShiftStatusException(shiftId, shift.getStatus(), "gán booking_pet_service vào ca");
-        }
-        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId)) {
-            throw new IllegalStateException("booking_pet_service không đủ điều kiện để xếp ca.");
-        }
-        BookingPetService bps = bookingPetServiceRepository.findById(bookingPetServiceId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking_pet_service #" + bookingPetServiceId));
-        bps.setScheduledStartTime(shift.getStartTime());
-        bps.setScheduledEndTime(shift.getEndTime());
-        bookingPetServiceRepository.save(bps);
+        List<BookingPetService> overlapping =
+                bookingPetServiceRepository.findScheduledOverlappingShift(shift.getStartTime(), shift.getEndTime());
+        return overlapping.stream()
+                .map(bps -> {
+                    Booking booking = bps.getBookingPet() != null ? bps.getBookingPet().getBooking() : null;
+                    String assignedNames = null;
+                    if (bps.getAssignedStaff() != null && !bps.getAssignedStaff().isEmpty()) {
+                        assignedNames = bps.getAssignedStaff().stream()
+                                .map(s -> s.getFullName())
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.joining(", "));
+                    }
+                    return new WorkShiftAssignedBookingPetServiceResponse(
+                            bps.getId(),
+                            booking != null ? booking.getBookingCode() : null,
+                            booking != null ? booking.getCustomerName() : null,
+                            bps.getBookingPet() != null ? bps.getBookingPet().getPetName() : null,
+                            bps.getServiceCombo() != null
+                                    ? bps.getServiceCombo().getComboName()
+                                    : (bps.getService() != null ? bps.getService().getServiceName() : null),
+                            bps.getScheduledStartTime(),
+                            bps.getScheduledEndTime(),
+                            assignedNames);
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
     public void unassignBookingPetService(Long bookingPetServiceId) {
-        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId)) {
+        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId, BookingTypeEnum.WALK_IN)) {
             throw new IllegalStateException("booking_pet_service không đủ điều kiện thao tác.");
         }
-        BookingPetService bps = bookingPetServiceRepository.findById(bookingPetServiceId)
+        BookingPetService bps = bookingPetServiceRepository.findByIdWithRelationsForWorkShiftAssign(bookingPetServiceId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking_pet_service #" + bookingPetServiceId));
         bps.setScheduledStartTime(null);
         bps.setScheduledEndTime(null);
+        bps.getAssignedStaff().clear();
         bookingPetServiceRepository.save(bps);
+    }
+
+    @Override
+    public List<WorkShiftCoverageDayResponse> getShiftCoverageForBookingForm(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("Tham số from và to là bắt buộc.");
+        }
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
+        }
+        long spanDays = ChronoUnit.DAYS.between(from, to) + 1;
+        if (spanDays > 62) {
+            throw new IllegalArgumentException("Khoảng ngày tối đa 62 ngày.");
+        }
+
+        LocalDateTime rangeStart = from.atStartOfDay();
+        LocalDateTime rangeEnd = to.plusDays(1).atStartOfDay();
+        List<WorkShift> shifts = workShiftRepositoryPort.findOverlapping(rangeStart, rangeEnd, null);
+
+        List<WorkShiftCoverageDayResponse> result = new ArrayList<>();
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            LocalDateTime morningStart = d.atStartOfDay();
+            LocalDateTime morningEnd = d.atTime(12, 0);
+            LocalDateTime afternoonStart = d.atTime(12, 0);
+            LocalDateTime afternoonEnd = d.plusDays(1).atStartOfDay();
+
+            boolean morning = false;
+            boolean afternoon = false;
+            for (WorkShift ws : shifts) {
+                if (ws.getStartTime() == null || ws.getEndTime() == null) {
+                    continue;
+                }
+                LocalDateTime s = ws.getStartTime();
+                LocalDateTime e = ws.getEndTime();
+                if (s.isBefore(morningEnd) && e.isAfter(morningStart)) {
+                    morning = true;
+                }
+                if (s.isBefore(afternoonEnd) && e.isAfter(afternoonStart)) {
+                    afternoon = true;
+                }
+                if (morning && afternoon) {
+                    break;
+                }
+            }
+            result.add(new WorkShiftCoverageDayResponse(d.toString(), morning, afternoon));
+        }
+        return result;
     }
 }

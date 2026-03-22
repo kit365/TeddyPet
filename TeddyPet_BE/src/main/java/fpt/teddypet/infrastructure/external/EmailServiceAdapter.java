@@ -2,6 +2,7 @@ package fpt.teddypet.infrastructure.external;
 
 import fpt.teddypet.application.constants.common.GeneralConstants;
 import fpt.teddypet.application.constants.email.EmailConstants;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppSettingRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -184,6 +185,25 @@ public class EmailServiceAdapter implements EmailServicePort {
         context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
 
         String htmlBody = templateEngine.process("email/bookings/deposit-success", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendWalkInBookingCreatedEmail(String to, WalkInBookingEmailModel model) {
+        if (model == null || model.bookingCode() == null || model.bookingCode().isBlank()) {
+            log.warn("Skip walk-in booking email: invalid model");
+            return;
+        }
+        log.info("Sending walk-in booking created email to {} for {}", to, model.bookingCode());
+        String subject = String.format("[%s] Đã tạo đơn đặt lịch tại quầy #%s", appName, model.bookingCode());
+
+        Context context = prepareContext();
+        context.setVariable("walkIn", model);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + model.bookingCode());
+
+        String htmlBody = templateEngine.process("email/bookings/walk-in-booking-created", context);
         self.sendHtmlEmail(to, subject, htmlBody);
     }
 

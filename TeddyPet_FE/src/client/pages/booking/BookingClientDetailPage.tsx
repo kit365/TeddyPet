@@ -419,6 +419,12 @@ export const BookingClientDetailPage = () => {
                     {svc.timeSlotName && (
                         <InfoRow label="Khung giờ" value={svc.timeSlotName} />
                     )}
+                    {(svc.assignedStaffNames || svc.assignedStaffIds?.length) ? (
+                        <InfoRow
+                            label="Nhân viên phụ trách"
+                            value={svc.assignedStaffNames || svc.assignedStaffIds?.map((id) => `#${id}`).join(", ")}
+                        />
+                    ) : null}
                     <InfoRow label="Đơn giá" value={formatCurrency(svc.basePrice)} />
                     <InfoRow label="Thành tiền" value={<span className="font-[700] text-[#c45a3a]">{formatCurrency(svc.subtotal)}</span>} />
                 </div>

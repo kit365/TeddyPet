@@ -1,5 +1,8 @@
 package fpt.teddypet.application.service.bookings;
 
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel.WalkInBookingEmailPetBlock;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel.WalkInBookingEmailServiceLine;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
@@ -21,6 +24,7 @@ import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.domain.entity.staff.StaffProfile;
 import fpt.teddypet.domain.entity.BookingRefund;
 import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
@@ -28,6 +32,7 @@ import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.entity.TimeSlotBooking;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
+import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
@@ -36,6 +41,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.context.annotation.Lazy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
@@ -50,10 +56,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class BookingClientApplicationService implements BookingClientService {
 
     private final BookingRepository bookingRepository;
@@ -175,9 +184,24 @@ public class BookingClientApplicationService implements BookingClientService {
                             item.getItemService() != null ? item.getItemService().getBasePrice() : null);
                 }).toList();
 
+                List<Long> assignedStaffIds = List.of();
+                String assignedStaffNames = null;
+                if (svc.getAssignedStaff() != null && !svc.getAssignedStaff().isEmpty()) {
+                    assignedStaffIds = svc.getAssignedStaff().stream()
+                            .sorted(Comparator.comparing(StaffProfile::getId, Comparator.nullsLast(Long::compareTo)))
+                            .map(StaffProfile::getId)
+                            .toList();
+                    assignedStaffNames = svc.getAssignedStaff().stream()
+                            .sorted(Comparator.comparing(StaffProfile::getId, Comparator.nullsLast(Long::compareTo)))
+                            .map(StaffProfile::getFullName)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.joining(", "));
+                }
+
                 return new ClientBookingPetServiceDetailResponse(
                         svc.getId(),
-                        svc.getAssignedStaffId(),
+                        assignedStaffIds,
+                        assignedStaffNames,
                         svc.getService() != null ? svc.getService().getServiceName() : null,
                         timeSlotName,
                         svc.getEstimatedCheckInDate(),
@@ -605,7 +629,118 @@ public class BookingClientApplicationService implements BookingClientService {
         }
 
         dashboardService.sendDashboardUpdate();
+
+        if (isWalkInBookingRequest(request)) {
+            String custEmail = saved.getCustomerEmail();
+            if (custEmail != null && !custEmail.isBlank()) {
+                try {
+                    WalkInBookingEmailModel walkInModel = buildWalkInBookingEmailModel(saved);
+                    emailServicePort.sendWalkInBookingCreatedEmail(custEmail.trim(), walkInModel);
+                } catch (Exception e) {
+                    log.warn("Could not send walk-in booking confirmation email for booking {}", saved.getBookingCode(), e);
+                }
+            } else {
+                log.debug("Skip walk-in booking email: no customer email for booking {}", saved.getBookingCode());
+            }
+        }
+
         return new CreateBookingResponse(saved.getBookingCode());
+    }
+
+    private static boolean isWalkInBookingRequest(CreateBookingRequest request) {
+        String t = request.bookingType();
+        return t != null && BookingTypeEnum.WALK_IN.name().equalsIgnoreCase(t.trim());
+    }
+
+    private WalkInBookingEmailModel buildWalkInBookingEmailModel(Booking saved) {
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String bookingDateStr = saved.getBookingDateFrom() != null ? dateFmt.format(saved.getBookingDateFrom()) : "";
+
+        List<WalkInBookingEmailPetBlock> petBlocks = new ArrayList<>();
+        for (BookingPet pet : saved.getPets()) {
+            String petLabel = buildPetLabelForWalkInEmail(pet);
+            List<WalkInBookingEmailServiceLine> lines = new ArrayList<>();
+            for (BookingPetService bps : pet.getServices()) {
+                String svcName = (bps.getService() != null && bps.getService().getServiceName() != null)
+                        ? bps.getService().getServiceName()
+                        : "Dịch vụ";
+                String schedule = buildScheduleSummaryForWalkInEmail(bps);
+                String sub = formatMoneyVndWalkIn(bps.getSubtotal());
+                List<String> addons = new ArrayList<>();
+                if (bps.getItems() != null) {
+                    for (BookingPetServiceItem it : bps.getItems()) {
+                        if (it.getItemType() != null && "ADDON".equalsIgnoreCase(it.getItemType().trim())
+                                && it.getItemService() != null
+                                && it.getItemService().getServiceName() != null) {
+                            addons.add(it.getItemService().getServiceName());
+                        }
+                    }
+                }
+                lines.add(new WalkInBookingEmailServiceLine(svcName, schedule, sub, addons));
+            }
+            petBlocks.add(new WalkInBookingEmailPetBlock(petLabel, lines));
+        }
+
+        return new WalkInBookingEmailModel(
+                saved.getBookingCode(),
+                blankToDash(saved.getCustomerName()),
+                blankToDash(saved.getCustomerPhone()),
+                bookingDateStr,
+                formatMoneyVndWalkIn(saved.getTotalAmount()),
+                petBlocks);
+    }
+
+    private static String blankToDash(String s) {
+        return (s != null && !s.isBlank()) ? s.trim() : "—";
+    }
+
+    private static String buildPetLabelForWalkInEmail(BookingPet pet) {
+        String name = (pet.getPetName() != null && !pet.getPetName().isBlank()) ? pet.getPetName().trim() : "Thú cưng";
+        String typeVi = petTypeLabelVi(pet.getPetType());
+        return name + " (" + typeVi + ")";
+    }
+
+    private static String petTypeLabelVi(String petTypeRaw) {
+        if (petTypeRaw == null || petTypeRaw.isBlank()) {
+            return "—";
+        }
+        return switch (petTypeRaw.trim().toLowerCase(Locale.ROOT)) {
+            case "dog" -> "Chó";
+            case "cat" -> "Mèo";
+            default -> petTypeRaw.trim();
+        };
+    }
+
+    private static String buildScheduleSummaryForWalkInEmail(BookingPetService bps) {
+        DateTimeFormatter d = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter dt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        boolean room = bps.getService() != null && Boolean.TRUE.equals(bps.getService().getIsRequiredRoom());
+        if (room) {
+            LocalDate in = bps.getEstimatedCheckInDate();
+            LocalDate out = bps.getEstimatedCheckOutDate();
+            if (in != null && out != null) {
+                return "Gửi: " + d.format(in) + " — Nhận: " + d.format(out);
+            }
+            if (in != null) {
+                return "Ngày gửi: " + d.format(in);
+            }
+        }
+        LocalDateTime st = bps.getScheduledStartTime();
+        LocalDateTime en = bps.getScheduledEndTime();
+        if (st != null && en != null) {
+            return dt.format(st) + " — " + dt.format(en);
+        }
+        if (bps.getEstimatedCheckInDate() != null) {
+            return "Ngày: " + d.format(bps.getEstimatedCheckInDate());
+        }
+        return "—";
+    }
+
+    private static String formatMoneyVndWalkIn(BigDecimal amount) {
+        if (amount == null) {
+            return "0 đ";
+        }
+        return String.format(Locale.forLanguageTag("vi-VN"), "%,.0f đ", amount.doubleValue());
     }
 
     /**

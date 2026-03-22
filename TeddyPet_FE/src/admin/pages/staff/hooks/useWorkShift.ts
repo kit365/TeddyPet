@@ -16,7 +16,7 @@ import {
     finalizeShiftApprovals,
     cancelAdminRegistration,
     getAssignableBookingPetServices,
-    assignBookingPetServiceToShift,
+    assignBookingPetServiceToShiftAuto,
     unassignBookingPetService,
     getAvailableShifts,
     getShiftsForAdminByDateRange,
@@ -223,7 +223,9 @@ export const useShiftsForAdmin = (from?: string | null, to?: string | null) => {
         queryKey: ['admin-shifts', from, to],
         queryFn: () => getShiftsForAdminByDateRange(from, to),
         select: (res: ApiResponse<any>) => res.data ?? [],
-        staleTime: 2 * 60 * 1000, // 2 phút: vào lại trang không refetch, dùng cache
+        // Luôn coi là stale: sau khi insert SQL / đổi DB ngoài app, F5 hoặc focus tab sẽ thấy ca mới
+        staleTime: 0,
+        refetchOnWindowFocus: true,
     });
 };
 
@@ -238,10 +240,12 @@ export const useAssignableBookingPetServices = (from?: string | null, to?: strin
 export const useAssignBookingPetServiceToShift = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ shiftId, bookingPetServiceId }: { shiftId: number; bookingPetServiceId: number }) =>
-            assignBookingPetServiceToShift(shiftId, bookingPetServiceId),
+        mutationFn: ({ bookingPetServiceId, staffIds }: { bookingPetServiceId: number; staffIds: number[] }) =>
+            assignBookingPetServiceToShiftAuto(bookingPetServiceId, staffIds),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
+            qc.invalidateQueries({ queryKey: ['bps-assign-options'] });
+            qc.invalidateQueries({ queryKey: ['shift-assigned-bookings'] });
         },
     });
 };
@@ -252,6 +256,7 @@ export const useUnassignBookingPetService = () => {
         mutationFn: (bookingPetServiceId: number) => unassignBookingPetService(bookingPetServiceId),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
+            qc.invalidateQueries({ queryKey: ['shift-assigned-bookings'] });
         },
     });
 };

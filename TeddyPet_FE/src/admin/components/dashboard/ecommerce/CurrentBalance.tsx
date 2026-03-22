@@ -14,11 +14,12 @@ interface CurrentBalanceProps {
     isLoading: boolean;
     hideWithdraw?: boolean;
     hideLowStock?: boolean;
+    onOpenStats?: () => void;
 }
 
 const toNum = (v: unknown): number => (typeof v === 'number' && !Number.isNaN(v)) ? v : Number(v) || 0;
 
-export const CurrentBalance = ({ stats, isLoading, hideWithdraw, hideLowStock }: CurrentBalanceProps) => {
+export const CurrentBalance = ({ stats, isLoading, hideWithdraw, hideLowStock, onOpenStats }: CurrentBalanceProps) => {
     const todayRevenue = toNum(stats?.todayRevenue);
     const todayOrders = toNum(stats?.todayOrders);
     const todayBookings = toNum(stats?.todayBookings);
@@ -80,6 +81,7 @@ export const CurrentBalance = ({ stats, isLoading, hideWithdraw, hideLowStock }:
                         borderRadius: '8px',
                         '&:hover': { bgcolor: '#008b5c', boxShadow: 'none' }
                     }}
+                    onClick={onOpenStats}
                 >
                     Thống kê
                 </Button>

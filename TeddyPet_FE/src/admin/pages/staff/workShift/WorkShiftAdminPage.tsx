@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography, Grid, Paper, Chip, alpha } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -7,7 +7,25 @@ import DialogActions from '@mui/material/DialogActions';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateOpenShift, useCreateOpenShiftsBatch, useUpdateOpenShift, useCancelOpenShift, useDeleteAllWorkShifts, useShiftsForAdmin, useRegistrationsForShift, useShiftRoleConfigs, useSetShiftRoleConfigs, useApproveRegistration, useSetRegistrationOnLeave, useRejectLeaveRequest, useFinalizeShiftApprovals, useCancelAdminRegistration, useAssignableBookingPetServices, useAssignBookingPetServiceToShift, useUnassignBookingPetService } from '../hooks/useWorkShift';
+import { 
+    useCreateOpenShift, 
+    useCreateOpenShiftsBatch, 
+    useUpdateOpenShift, 
+    useCancelOpenShift, 
+    useDeleteAllWorkShifts, 
+    useShiftsForAdmin, 
+    useRegistrationsForShift, 
+    useShiftRoleConfigs, 
+    useSetShiftRoleConfigs, 
+    useApproveRegistration, 
+    useSetRegistrationOnLeave, 
+    useRejectLeaveRequest, 
+    useFinalizeShiftApprovals, 
+    useCancelAdminRegistration, 
+    useAssignableBookingPetServices, 
+    useAssignBookingPetServiceToShift, 
+    useUnassignBookingPetService 
+} from '../hooks/useWorkShift';
 import { toast } from 'react-toastify';
 import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff, IWorkShiftBookingPetServiceItem } from '../../../api/workShift.api';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -22,9 +40,61 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { AlertTriangle, CalendarClock, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { AlertTriangle, CalendarClock, UserPlus } from 'lucide-react';
 import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
-const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+import DashboardCard from '../../../components/dashboard/DashboardCard';
+import { Icon } from '@iconify/react';
+
+/** Số cột ngày trên lưới (= số ngày tối đa trong khoảng Từ–Đến). */
+const VIEW_DAY_COUNT = 7;
+
+/** Cột trạng thái xếp ca: dịch vụ cần phòng → hiển thị thời điểm check-in booking; không thì khung giờ đã xếp ca. */
+function renderBookingPetServiceShiftStatusChip(item: IWorkShiftBookingPetServiceItem) {
+    if (item.serviceRequiresRoom) {
+        if (item.bookingCheckInDate) {
+            return (
+                <Tooltip title="Dịch vụ phòng: lấy theo thời điểm check-in booking">
+                    <Chip
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        label={dayjs(item.bookingCheckInDate).format('DD/MM/YYYY HH:mm')}
+                        sx={{ fontWeight: 700, fontSize: '11px' }}
+                    />
+                </Tooltip>
+            );
+        }
+        return (
+            <Chip
+                size="small"
+                variant="outlined"
+                color="warning"
+                label="Chưa check-in"
+                sx={{ fontWeight: 700, fontSize: '11px' }}
+            />
+        );
+    }
+    if (item.scheduledStartTime && item.scheduledEndTime) {
+        return (
+            <Chip
+                size="small"
+                variant="outlined"
+                color="success"
+                label={`${dayjs(item.scheduledStartTime).format('HH:mm')} - ${dayjs(item.scheduledEndTime).format('HH:mm')}`}
+                sx={{ fontWeight: 700, fontSize: '11px' }}
+            />
+        );
+    }
+    return <Chip size="small" variant="outlined" color="default" label="Chưa xếp" sx={{ fontWeight: 700, fontSize: '11px' }} />;
+}
+
+/** Nhãn thứ theo lịch JS: 0=CN, 1=T2, …, 6=T7 */
+const VN_WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'] as const;
+
+function vnWeekdayShort(d: dayjs.Dayjs): string {
+    return VN_WEEKDAY_SHORT[d.day()];
+}
+
 const ROW_LABELS = ['Sáng', 'Chiều'];
 
 function getInitials(name: string): string {
@@ -198,6 +268,13 @@ export const WorkShiftAdminPage = () => {
 
     const queryClient = useQueryClient();
     const { data: shifts = [], isLoading } = useShiftsForAdmin(from, to);
+
+    /** Dịch khoảng Từ–Đến ±7 ngày (xem tuần trước / tuần sau). */
+    const shiftDateRangeByWeek = (deltaWeeks: number) => {
+        if (!from || !to) return;
+        setFrom(dayjs(from).add(deltaWeeks * 7, 'day').toISOString());
+        setTo(dayjs(to).add(deltaWeeks * 7, 'day').toISOString());
+    };
     const { data: registrations = [], isLoading: regLoading } = useRegistrationsForShift(selectedShiftId);
     const { data: roleConfigs = [] } = useShiftRoleConfigs(selectedShiftId);
     const { data: positionsData } = useQuery({
@@ -512,21 +589,41 @@ export const WorkShiftAdminPage = () => {
         [shifts, selectedShiftId]
     );
 
-    /** Lưới thời khóa biểu: grid[slotIndex][dayIndex] = IWorkShift | null */
+    /** Mốc cuối cho ô Đến: đúng 7 ngày lịch kể từ 00:00 của ngày Từ (Từ + 6 ngày, hết ngày). */
+    const maxToDateTime = useMemo(() => {
+        if (!from) return null;
+        return dayjs(from).startOf('day').add(VIEW_DAY_COUNT - 1, 'day').endOf('day');
+    }, [from]);
+
+    /** Tiêu đề cột: thứ + ngày DD/MM theo lần lượt từ ngày Từ */
+    const timetableColumnHeaders = useMemo(() => {
+        if (!from) return [];
+        const start = dayjs(from).startOf('day');
+        return Array.from({ length: VIEW_DAY_COUNT }, (_, i) => {
+            const d = start.add(i, 'day');
+            return {
+                key: d.format('YYYY-MM-DD'),
+                weekday: vnWeekdayShort(d),
+                dateStr: d.format('DD/MM'),
+            };
+        });
+    }, [from]);
+
+    /** Lưới thời khóa biểu: grid[slotIndex][dayOffset] = IWorkShift | null; cột = ngày liên tiếp từ Từ */
     const timetableGrid = useMemo(() => {
         const grid: (IWorkShift | null)[][] = [
             [null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null],
         ];
         const weekStart = dayjs(from).startOf('day');
-        const weekEnd = weekStart.add(7, 'day');
+        const weekEnd = weekStart.add(VIEW_DAY_COUNT, 'day');
         for (const shift of shifts) {
-            const shiftDay = dayjs(shift.startTime);
+            const shiftDay = dayjs(shift.startTime).startOf('day');
             if (shiftDay.isBefore(weekStart) || !shiftDay.isBefore(weekEnd)) continue;
-            const dayIndex = getDayIndex(shift.startTime);
+            const dayOffset = shiftDay.diff(weekStart, 'day');
             const slotIndex = getSlotIndex(shift.startTime);
-            if (dayIndex >= 0 && dayIndex <= 6 && slotIndex >= 0 && slotIndex <= 1) {
-                grid[slotIndex][dayIndex] = shift;
+            if (dayOffset >= 0 && dayOffset < VIEW_DAY_COUNT && slotIndex >= 0 && slotIndex <= 1) {
+                grid[slotIndex][dayOffset] = shift;
             }
         }
         return grid;
@@ -534,7 +631,8 @@ export const WorkShiftAdminPage = () => {
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <ListHeader
+            <Box sx={{ display: 'contents' }}>
+                <ListHeader
                 title="Ca làm việc (Admin)"
                 breadcrumbItems={[
                     { label: 'Trang chủ', to: '/' },
@@ -542,442 +640,585 @@ export const WorkShiftAdminPage = () => {
                     { label: 'Ca làm việc' },
                 ]}
             />
-            <div className="px-4 sm:px-6 lg:px-8 mt-3 mb-6 max-w-full overflow-hidden">
-                {/* Top Bar: 1 hàng — Từ, Đến, 3 nút (gọn để cùng nằm một hàng, không tràn) */}
-                <div className="flex flex-row w-full flex-wrap items-end justify-between gap-3 rounded-md border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-end gap-3 flex-nowrap min-w-0">
-                        <div className="min-w-[140px] sm:min-w-[180px]">
-                            <DateTimePicker
-                                label="Từ"
-                                value={from ? dayjs(from) : null}
-                                onChange={(d) => setFrom(d?.toISOString() ?? '')}
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        InputProps: { className: 'h-9 rounded-md bg-white' },
-                                        className: 'w-full',
-                                    } as any,
+            <Box sx={{ px: { xs: 2, sm: 3, md: 5 }, py: 3, bgcolor: 'background.default' }}>
+                {/* Header & Global Actions */}
+                <DashboardCard sx={{ mb: 2, p: 2.5 }}>
+                    <Stack
+                        direction={{ xs: 'column', lg: 'row' }}
+                        spacing={3}
+                        alignItems={{ xs: 'stretch', lg: 'center' }}
+                        justifyContent="space-between"
+                    >
+                        {/* Date Navigation & Selection */}
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                            <IconButton
+                                onClick={() => shiftDateRangeByWeek(-1)}
+                                disabled={!from || !to}
+                                sx={{ 
+                                    bgcolor: alpha('#919EAB', 0.08),
+                                    borderRadius: '12px',
+                                    color: 'text.secondary', 
+                                    '&:hover': { bgcolor: alpha('#919EAB', 0.16) } 
                                 }}
-                            />
-                        </div>
-                        <div className="min-w-[140px] sm:min-w-[180px]">
-                            <DateTimePicker
-                                label="Đến"
-                                value={to ? dayjs(to) : null}
-                                onChange={(d) => setTo(d?.toISOString() ?? '')}
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        InputProps: { className: 'h-9 rounded-md bg-white' },
-                                        className: 'w-full',
-                                    } as any,
-                                }}
-                            />
-                        </div>
-                    </div>
+                            >
+                                <Icon icon="eva:chevron-left-fill" width={24} />
+                            </IconButton>
 
-                    {isAdminRole && (
-                        <div className="flex items-center gap-2 flex-nowrap shrink-0">
-                            <button
-                                type="button"
-                                onClick={handleAutoGenerate}
-                                disabled={creatingBatch}
-                                className="h-9 shrink-0 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-slate-100 disabled:opacity-60 disabled:pointer-events-none whitespace-nowrap"
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mx: 0.5 }}>
+                                <DateTimePicker
+                                    label="Từ ngày"
+                                    value={from ? dayjs(from) : null}
+                                    onChange={(d) => {
+                                        const nextFrom = d?.toISOString() ?? '';
+                                        setFrom(nextFrom);
+                                        if (!nextFrom) return;
+                                        const maxT = dayjs(nextFrom).startOf('day').add(VIEW_DAY_COUNT - 1, 'day').endOf('day');
+                                        if (to && dayjs(to).isAfter(maxT)) {
+                                            setTo(maxT.toISOString());
+                                        }
+                                    }}
+                                    slotProps={{
+                                        textField: {
+                                            size: 'small',
+                                            sx: { 
+                                                width: 230,
+                                                '& .MuiOutlinedInput-root': { 
+                                                    borderRadius: '12px',
+                                                    '&:hover': { bgcolor: alpha('#919EAB', 0.04) },
+                                                    '&.Mui-focused': { boxShadow: (theme) => `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}` }
+                                                }
+                                            }
+                                        } as any,
+                                    }}
+                                />
+                                <Box sx={{ color: 'text.disabled', fontWeight: 700 }}>—</Box>
+                                <DateTimePicker
+                                    label="Đến ngày"
+                                    value={to ? dayjs(to) : null}
+                                    onChange={(d) => {
+                                        if (!d) {
+                                            setTo('');
+                                            return;
+                                        }
+                                        let v = d;
+                                        if (from) {
+                                            const minT = dayjs(from);
+                                            const maxT = dayjs(from).startOf('day').add(VIEW_DAY_COUNT - 1, 'day').endOf('day');
+                                            if (v.isAfter(maxT)) v = maxT;
+                                            if (v.isBefore(minT)) v = minT;
+                                        }
+                                        setTo(v.toISOString());
+                                    }}
+                                    minDateTime={from ? dayjs(from) : undefined}
+                                    maxDateTime={maxToDateTime ?? undefined}
+                                    slotProps={{
+                                        textField: {
+                                            size: 'small',
+                                            sx: { 
+                                                width: 230,
+                                                '& .MuiOutlinedInput-root': { 
+                                                    borderRadius: '12px',
+                                                    '&:hover': { bgcolor: alpha('#919EAB', 0.04) },
+                                                    '&.Mui-focused': { boxShadow: (theme) => `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}` }
+                                                }
+                                            },
+                                            helperText: undefined,
+                                        } as any,
+                                    }}
+                                />
+                            </Stack>
+
+                            <IconButton
+                                onClick={() => shiftDateRangeByWeek(1)}
+                                disabled={!from || !to}
+                                sx={{ 
+                                    bgcolor: alpha('#919EAB', 0.08),
+                                    borderRadius: '12px',
+                                    color: 'text.secondary', 
+                                    '&:hover': { bgcolor: alpha('#919EAB', 0.16) } 
+                                }}
                             >
-                                Tạo ca tự động
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowCreate(true)}
-                                className="h-9 shrink-0 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 whitespace-nowrap"
-                            >
-                                Tạo ca trống
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDeleteAllConfirmOpen(true)}
-                                className="h-9 shrink-0 inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 whitespace-nowrap"
-                            >
-                                Xóa tất cả ca
-                            </button>
-                        </div>
+                                <Icon icon="eva:chevron-right-fill" width={24} />
+                            </IconButton>
+                        </Stack>
+                        {/* Global Actions */}
+                        {isAdminRole && (
+                            <Stack direction="row" spacing={1.5}>
+                                <Button
+                                    variant="outlined"
+                                    color="info"
+                                    startIcon={<Icon icon="solar:magic-stick-3-bold-duotone" width={20} />}
+                                    onClick={handleAutoGenerate}
+                                    disabled={creatingBatch}
+                                    sx={{ borderRadius: '10px', height: 48, px: 2.5, fontWeight: 700 }}
+                                >
+                                    Tạo ca tự động
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<Icon icon="solar:add-circle-bold-duotone" width={20} />}
+                                    onClick={() => setShowCreate(true)}
+                                    sx={{ 
+                                        borderRadius: '10px', 
+                                        height: 48, 
+                                        px: 2.5, 
+                                        fontWeight: 700,
+                                        bgcolor: 'text.primary',
+                                        color: 'background.paper',
+                                        '&:hover': { bgcolor: 'grey.800' }
+                                    }}
+                                >
+                                    Tạo ca trống
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<Icon icon="solar:trash-bin-trash-bold-duotone" width={20} />}
+                                    onClick={() => setDeleteAllConfirmOpen(true)}
+                                    sx={{ borderRadius: '10px', height: 48, px: 2.5, fontWeight: 700 }}
+                                >
+                                    Xóa tất cả ca
+                                </Button>
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    {/* Quick Create Form (Inside Header Card) */}
+                    {isAdminRole && showCreate && (
+                        <Box sx={{ mt: 3, pt: 3, borderTop: (theme) => `dashed 1px ${theme.palette.divider}` }}>
+                            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Icon icon="solar:pen-new-square-bold-duotone" width={20} />
+                                Tạo ca làm việc mới
+                            </Typography>
+                            
+                            <Grid container spacing={2} alignItems="center">
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <DateTimePicker
+                                        label="Giờ bắt đầu"
+                                        value={createStart ? dayjs(createStart) : null}
+                                        onChange={(d) => setCreateStart(d?.toISOString() ?? '')}
+                                        minDateTime={dayjs(nextWeek.start)}
+                                        maxDateTime={dayjs(nextWeek.end)}
+                                        slotProps={{
+                                            textField: {
+                                                fullWidth: true,
+                                                sx: { '& .MuiOutlinedInput-root': { borderRadius: '10px' } }
+                                            } as any,
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <DateTimePicker
+                                        label="Giờ kết thúc"
+                                        value={createEnd ? dayjs(createEnd) : null}
+                                        onChange={(d) => setCreateEnd(d?.toISOString() ?? '')}
+                                        minDateTime={dayjs(nextWeek.start)}
+                                        maxDateTime={dayjs(nextWeek.end)}
+                                        slotProps={{
+                                            textField: {
+                                                fullWidth: true,
+                                                sx: { '& .MuiOutlinedInput-root': { borderRadius: '10px' } }
+                                            } as any,
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <Stack direction="row" spacing={1}>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={handleCreate}
+                                            disabled={creating}
+                                            sx={{ borderRadius: '10px', height: 44, fontWeight: 700 }}
+                                        >
+                                            {creating ? 'Đang tạo...' : 'Xác nhận tạo'}
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            color="inherit"
+                                            onClick={() => setShowCreate(false)}
+                                            sx={{ borderRadius: '10px', height: 44, px: 3 }}
+                                        >
+                                            Hủy
+                                        </Button>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </Box>
                     )}
-                </div>
+                </DashboardCard>
 
-                {isAdminRole && showCreate && (
-                    <div className="mt-4 max-w-[560px] rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="mb-3">
-                            <div className="text-base font-semibold text-slate-900">Tạo ca trống (thủ công)</div>
-                            <div className="text-sm text-slate-500">Chỉ tạo ca trống cho tuần tiếp theo</div>
-                        </div>
+                {/* Timetable Section */}
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: 'text.primary' }}>
+                    Ca làm trong tuần
+                </Typography>
 
-                        <div className="grid grid-cols-1 gap-3">
-                            <DateTimePicker
-                                label="Giờ bắt đầu"
-                                value={createStart ? dayjs(createStart) : null}
-                                onChange={(d) => setCreateStart(d?.toISOString() ?? '')}
-                                minDateTime={dayjs(nextWeek.start)}
-                                maxDateTime={dayjs(nextWeek.end)}
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        InputProps: { className: 'h-10 rounded-md bg-white' },
-                                        className: 'w-full',
-                                    } as any,
-                                }}
-                            />
-                            <DateTimePicker
-                                label="Giờ kết thúc"
-                                value={createEnd ? dayjs(createEnd) : null}
-                                onChange={(d) => setCreateEnd(d?.toISOString() ?? '')}
-                                minDateTime={dayjs(nextWeek.start)}
-                                maxDateTime={dayjs(nextWeek.end)}
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        InputProps: { className: 'h-10 rounded-md bg-white' },
-                                        className: 'w-full',
-                                    } as any,
-                                }}
-                            />
-                        </div>
+                <DashboardCard sx={{ overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                    <Box sx={{ minWidth: 1000 }}>
+                        {/* Header Row */}
+                        <Box sx={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '100px repeat(7, 1fr)',
+                            bgcolor: 'background.neutral',
+                            borderBottom: (theme) => `1px solid ${theme.palette.divider}`
+                        }}>
+                            <Box sx={{ p: 2, textAlign: 'center', fontWeight: 700, borderRight: (theme) => `1px solid ${theme.palette.divider}` }}>
+                                Buổi
+                            </Box>
+                            {timetableColumnHeaders.map((col) => (
+                                <Box key={col.key} sx={{ p: 2, textAlign: 'center', borderRight: (theme) => `1px solid ${theme.palette.divider}`, '&:last-of-type': { borderRight: 0 } }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{col.weekday}</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{col.dateStr}</Typography>
+                                </Box>
+                            ))}
+                        </Box>
 
-                        <div className="mt-4 flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleCreate}
-                                disabled={creating}
-                                className="h-10 inline-flex items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 disabled:pointer-events-none"
-                            >
-                                Tạo ca
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowCreate(false)}
-                                className="h-10 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-                            >
-                                Hủy
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
+                        {/* Body Rows */}
+                        {ROW_LABELS.map((rowLabel, slotIndex) => (
+                            <Box key={rowLabel} sx={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: '100px repeat(7, 1fr)',
+                                borderBottom: slotIndex === 0 ? (theme) => `1px solid ${theme.palette.divider}` : 0
+                            }}>
+                                {/* Label Column */}
+                                <Box sx={{ 
+                                    p: 2, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    bgcolor: 'background.neutral',
+                                    fontWeight: 700,
+                                    borderRight: (theme) => `1px solid ${theme.palette.divider}`,
+                                    color: 'text.secondary',
+                                    fontSize: '0.875rem'
+                                }}>
+                                    {rowLabel}
+                                </Box>
 
-            {/* Thời khóa biểu ca làm */}
-            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
-                <div className="mb-2">
-                    <div className="text-base font-semibold text-gray-900">Ca làm trong tuần</div>
-                </div>
-
-                <div className="mt-4 w-full rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <table className="w-full table-fixed border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="w-24 p-3 text-sm font-semibold text-gray-700 text-center border-r border-gray-200">
-                                    Buổi
-                                </th>
-                                {DAY_LABELS.map((label) => (
-                                    <th
-                                        key={label}
-                                        className="p-3 text-sm font-semibold text-gray-700 text-center border-r border-gray-200 last:border-r-0"
-                                    >
-                                        {label}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ROW_LABELS.map((rowLabel, slotIndex) => (
-                                <tr key={rowLabel} className="border-b border-gray-200 last:border-b-0">
-                                    <td className="w-24 p-3 text-sm font-semibold text-gray-700 text-center bg-gray-50/50 border-r border-gray-200 align-middle">
-                                        {rowLabel}
-                                    </td>
-                                    {DAY_LABELS.map((_, dayIndex) => {
-                                    const weekStart = dayjs(from).startOf('day');
-                                    const cellDate = weekStart.add(dayIndex, 'day').format('YYYY-MM-DD');
+                                {/* Day Columns */}
+                                {timetableColumnHeaders.map((col, dayIndex) => {
+                                    const cellDate = col.key;
                                     const cellKey = `${cellDate}-${slotIndex}`;
                                     const shift = timetableGrid[slotIndex]?.[dayIndex];
 
-                                        if (isLoading) {
-                                            return (
-                                                <td
-                                                    key={dayIndex}
-                                                    className="h-[152px] w-auto min-w-0 border-r border-gray-200 text-sm text-gray-500 p-[5px] text-center align-top last:border-r-0"
-                                                >
-                                                    <div className="h-full w-full flex items-center justify-center">
-                                                        Đang tải...
-                                                    </div>
-                                                </td>
-                                            );
-                                        }
+                                    if (isLoading) {
+                                        return (
+                                            <Box key={cellKey} sx={{ p: 1, height: 125, borderRight: (theme) => `1px solid ${theme.palette.divider}`, '&:last-of-type': { borderRight: 0 } }}>
+                                                <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid', borderColor: 'primary.main', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+                                                    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                                                </Stack>
+                                            </Box>
+                                        );
+                                    }
 
-                                        // Không có ca trong ô này → placeholder rất nhẹ
-                                        if (!shift) {
+                                    if (!shift) {
                                         const tz = '+07:00';
-                                        const startTimeDefault =
-                                            slotIndex === 0
-                                                ? `${cellDate}T08:00:00${tz}`
-                                                : `${cellDate}T13:00:00${tz}`;
-                                        const endTimeDefault =
-                                            slotIndex === 0
-                                                ? `${cellDate}T12:00:00${tz}`
-                                                : `${cellDate}T17:00:00${tz}`;
-
+                                        const startTimeDefault = slotIndex === 0 ? `${cellDate}T08:00:00${tz}` : `${cellDate}T13:00:00${tz}`;
+                                        const endTimeDefault = slotIndex === 0 ? `${cellDate}T12:00:00${tz}` : `${cellDate}T17:00:00${tz}`;
                                         const isRecentlyDeleted = recentlyDeletedCells.includes(cellKey);
 
                                         return (
-                                            <td
-                                                key={dayIndex}
-                                                className="h-[152px] w-auto min-w-0 border-r border-gray-200 p-[5px] align-top last:border-r-0"
-                                            >
-                                                <button
-                                                    type="button"
+                                            <Box key={cellKey} sx={{ p: 1, height: 125, borderRight: (theme) => `1px solid ${theme.palette.divider}`, '&:last-of-type': { borderRight: 0 } }}>
+                                                <Button
+                                                    fullWidth
                                                     onClick={() => {
-                                                        if (!isRecentlyDeleted) return;
                                                         createShift(
                                                             { startTime: startTimeDefault, endTime: endTimeDefault },
                                                             {
                                                                 onSuccess: (res: any) => {
                                                                     if (res?.success) {
-                                                                        toast.success(res?.message ?? 'Đã tạo lại ca mặc định');
-                                                                        setRecentlyDeletedCells((prev) =>
-                                                                            prev.filter((k) => k !== cellKey)
+                                                                        const newShift = res?.data;
+                                                                        if (newShift) {
+                                                                            queryClient.setQueryData(
+                                                                                ['admin-shifts', from, to],
+                                                                                (prev: unknown) =>
+                                                                                    Array.isArray(prev) ? [...prev, newShift] : [newShift]
+                                                                            );
+                                                                        }
+                                                                        toast.success(
+                                                                            isRecentlyDeleted
+                                                                                ? 'Khôi phục ca thành công'
+                                                                                : res.message ?? 'Tạo ca trống thành công'
                                                                         );
-                                                                        queryClient.invalidateQueries({
-                                                                            queryKey: ['admin-shifts', from, to],
-                                                                        });
-                                                                    } else toast.error(res?.message ?? 'Có lỗi');
+                                                                        if (isRecentlyDeleted) {
+                                                                            setRecentlyDeletedCells((prev) => prev.filter((k) => k !== cellKey));
+                                                                        }
+                                                                        queryClient.invalidateQueries({ queryKey: ['admin-shifts', from, to] });
+                                                                    } else {
+                                                                        toast.error(res?.message ?? 'Không tạo được ca');
+                                                                    }
                                                                 },
                                                                 onError: (err: any) => {
                                                                     toast.error(
-                                                                        getErrorMessage(err, 'Tạo lại ca mặc định thất bại')
+                                                                        err?.response?.data?.message ?? err?.message ?? 'Tạo ca thất bại'
                                                                     );
                                                                 },
                                                             }
                                                         );
                                                     }}
-                                                    className="h-full w-full flex items-center justify-center rounded-none"
+                                                    sx={{ 
+                                                        height: '100%', 
+                                                        borderRadius: '12px', 
+                                                        border: '2px dashed', 
+                                                        borderColor: 'divider',
+                                                        bgcolor: alpha('#919EAB', 0.04),
+                                                        transition: 'all 0.2s',
+                                                        '&:hover': { bgcolor: alpha('#919EAB', 0.08), borderColor: 'text.disabled' }
+                                                    }}
                                                 >
-                                                    <div className="h-full w-full rounded-md border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center text-sm text-gray-500 hover:bg-gray-50 min-h-0">
-                                                        <span className="text-2xl font-semibold">+</span>
-                                                    </div>
-                                                </button>
-                                            </td>
+                                                    <Icon icon="solar:add-circle-linear" width={24} style={{ color: 'var(--palette-text-disabled)' }} />
+                                                </Button>
+                                            </Box>
                                         );
                                     }
 
                                     const isOpen = shift.status === 'OPEN';
-                                    const statusLabel = isOpen ? 'Trống' : 'Đã khóa';
-                                    const borderClasses = isOpen
-                                        ? 'border border-red-100/80 border-l-2 border-l-red-400 hover:border-red-200'
-                                        : 'border border-gray-100/80 border-l-2 border-l-gray-400 hover:border-gray-200';
-                                    const dotClass = isOpen ? 'bg-red-500' : 'bg-gray-500';
-                                    const textClass = isOpen ? 'text-red-600' : 'text-gray-600';
-
+                                    const statusColor = isOpen ? 'error' : 'success';
+                                    const statusLabel = isOpen ? 'Đang tuyển' : 'Đã khóa';
+                                    
                                     return (
-                                        <td
-                                            key={dayIndex}
-                                            className="h-[152px] w-auto min-w-0 border-r border-gray-200 p-[5px] align-top last:border-r-0"
-                                        >
-                                            <div
-                                                className={[
-                                                    'group relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-md bg-white shadow-sm transition-all hover:shadow-md px-1 pt-0.5 pb-0.5',
-                                                    borderClasses,
-                                                ].join(' ')}
+                                        <Box key={shift.shiftId} sx={{ p: 1, height: 125, borderRight: (theme) => `1px solid ${theme.palette.divider}`, '&:last-of-type': { borderRight: 0 } }}>
+                                            <Paper
+                                                elevation={0}
+                                                sx={{
+                                                    p: 1.5,
+                                                    height: '100%',
+                                                    borderRadius: '12px',
+                                                    position: 'relative',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'space-between',
+                                                    bgcolor: 'background.paper',
+                                                    border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    '&:hover': {
+                                                        boxShadow: (theme) => theme.shadows?.[12] ?? '0 12px 24px -4px rgba(145, 158, 171, 0.12)',
+                                                        transform: 'translateY(-2px)',
+                                                        borderColor: (theme) => theme.palette[statusColor].main
+                                                    }
+                                                }}
                                             >
-                                                {/* Nút Sửa trên, Xóa dưới - góc trên phải */}
+                                                {/* Card Actions (Hover only) */}
                                                 {isOpen && (
-                                                    <div className="absolute top-1 right-1 z-10 flex flex-col items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEditDialog(shift)}
-                                                            title="Sửa ca"
-                                                            className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                                                    <Stack 
+                                                        direction="row" 
+                                                        spacing={0.5} 
+                                                        sx={{ 
+                                                            position: 'absolute', 
+                                                            top: 8, 
+                                                            right: 8, 
+                                                            opacity: 0, 
+                                                            transition: 'opacity 0.2s',
+                                                            '.MuiPaper-root:hover &': { opacity: 1 }
+                                                        }}
+                                                    >
+                                                        <IconButton 
+                                                            size="small" 
+                                                            onClick={(e) => { e.stopPropagation(); openEditDialog(shift); }}
+                                                            sx={{ bgcolor: 'background.paper', boxShadow: (theme) => theme.shadows?.[8] }}
                                                         >
-                                                            <Pencil className="h-1.5 w-1.5" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteConfirmShiftId(shift.shiftId)}
-                                                            title="Xóa ca"
-                                                            className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-slate-200 bg-white text-slate-400 shadow-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                                                            <Icon icon="solar:pen-bold" width={14} />
+                                                        </IconButton>
+                                                        <IconButton 
+                                                            size="small" 
+                                                            color="error"
+                                                            onClick={(e) => { e.stopPropagation(); setDeleteConfirmShiftId(shift.shiftId); }}
+                                                            sx={{ bgcolor: 'background.paper', boxShadow: (theme) => theme.shadows?.[8] }}
                                                         >
-                                                            <Trash2 className="h-1.5 w-1.5" />
-                                                        </button>
-                                                    </div>
+                                                            <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                                                        </IconButton>
+                                                    </Stack>
                                                 )}
 
-                                                {/* Nội dung: khung giờ + trạng thái */}
-                                                <div className="flex min-h-0 flex-1 flex-col items-stretch justify-between gap-1.5 overflow-hidden text-left">
-                                                    <div className="flex shrink-0 flex-col gap-0 min-w-0">
-                                                        {/* Khung giờ - to hơn, đậm hơn, cách cạnh trên ~10px */}
-                                                        <div className="flex shrink-0 items-center justify-start overflow-visible min-w-0 mt-2">
-                                                            <span className="text-sm tracking-tight font-extrabold text-gray-900 whitespace-nowrap leading-tight">
-                                                                {formatTimeRange(shift.startTime, shift.endTime)}
-                                                            </span>
-                                                        </div>
-                                                        {/* Chấm + Trống/Đã khóa - hạ xuống một chút */}
-                                                        <div className={`flex shrink-0 items-center justify-start gap-0.5 text-[9px] font-medium leading-none mt-2 ${textClass}`}>
-                                                            <span className={`h-1 w-1 shrink-0 rounded-full ${dotClass}`} />
-                                                            <span className="truncate">{statusLabel}</span>
-                                                        </div>
-                                                    </div>
+                                                <Box>
+                                                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1 }}>
+                                                        <Icon icon="solar:clock-circle-bold-duotone" width={16} style={{ color: 'var(--palette-text-disabled)' }} />
+                                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                                            {formatTimeRange(shift.startTime, shift.endTime)}
+                                                        </Typography>
+                                                    </Stack>
 
-                                                    {/* Chi tiết - cách đáy card khoảng 10px */}
-                                                    <div className="flex w-full shrink-0 justify-center mt-2 mb-2.5">
-                                                        <button
-                                                            type="button"
-                                                            title="Xem chi tiết"
-                                                            onClick={() => setSelectedShiftId(shift.shiftId)}
-                                                            className="flex shrink-0 items-center justify-center py-0 text-[11px] font-medium leading-none text-blue-600 transition-colors hover:text-blue-700 bg-transparent border-0 cursor-pointer"
-                                                        >
-                                                            <span className="truncate">Xem chi tiết -&gt;</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
+                                                    <Chip 
+                                                        label={statusLabel} 
+                                                        size="small" 
+                                                        color={statusColor}
+                                                        variant="outlined"
+                                                        sx={{ 
+                                                            height: 20, 
+                                                            fontSize: '10px', 
+                                                            fontWeight: 800,
+                                                            borderRadius: '6px'
+                                                        }} 
+                                                    />
+                                                </Box>
+
+                                                <Stack spacing={1} sx={{ mt: 'auto' }}>
+                                                    <Button
+                                                        fullWidth
+                                                        size="small"
+                                                        variant="text"
+                                                        onClick={() => setSelectedShiftId(shift.shiftId)}
+                                                        endIcon={<Icon icon="eva:arrow-forward-fill" />}
+                                                        sx={{ 
+                                                            justifyContent: 'space-between', 
+                                                            px: 0, 
+                                                            fontSize: '11px', 
+                                                            fontWeight: 700,
+                                                            '&:hover': { bgcolor: 'transparent', color: 'primary.main' }
+                                                        }}
+                                                    >
+                                                        Xem chi tiết
+                                                    </Button>
+                                                </Stack>
+                                            </Paper>
+                                        </Box>
                                     );
                                 })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            </Box>
+                        ))}
+                    </Box>
+                </DashboardCard>
+            </Box>
 
-            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
-                <div className="mb-2">
-                    <div className="text-base font-semibold text-gray-900">Danh sách booking dịch vụ để xếp ca</div>
-                    <div className="text-sm text-gray-500">
-                        Điều kiện: booking đã thanh toán cọc và trạng thái đã xác nhận.
-                    </div>
-                </div>
+            <Box sx={{ mt: 2 }}>
+                <Grid container spacing={3}>
+                    {/* Booking Service In Week */}
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                        <DashboardCard sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                    Danh sách booking dịch vụ trong tuần
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                    Điều kiện: đặt online — đã cọc và đã xác nhận; đặt tại quầy (Walk-in) hoặc loại trống — chỉ cần đã check-in (không bắt cọc).
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                                    &quot;Trong tuần&quot; = theo <strong>actualCheckInDate</strong> (ngày check-in thực tế trên từng booking_pet_service, ghi khi xác nhận check-in); nếu chưa có thì fallback ngày đặt / dự kiến. Ngày này nằm trong khoảng <strong>Từ — Đến</strong>.
+                                </Typography>
+                            </Box>
 
-                <div className="mt-3 rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <table className="w-full table-fixed border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Booking</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Khách / Thú cưng</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Dịch vụ</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Ngày booking</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Đang xếp ca</th>
-                                <th className="p-3 text-right text-sm font-semibold text-gray-700">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="p-4 text-sm text-gray-500 text-center">Không có booking_pet_service trong tuần này.</td>
-                                </tr>
-                            ) : (
-                                ((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
-                                    <tr key={item.bookingPetServiceId} className="border-b border-gray-100 last:border-b-0">
-                                        <td className="p-3 text-sm font-semibold text-gray-800">{item.bookingCode}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.customerName || '-'} / {item.petName || '-'}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.serviceName || '-'}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</td>
-                                        <td className="p-3 text-sm text-gray-700">
-                                            {item.scheduledStartTime && item.scheduledEndTime
-                                                ? `${dayjs(item.scheduledStartTime).format('ddd DD/MM HH:mm')} - ${dayjs(item.scheduledEndTime).format('HH:mm')}`
-                                                : 'Chưa xếp'}
-                                        </td>
-                                        <td className="p-3">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    disabled={!selectedShiftId || assigningBookingPetService}
-                                                    onClick={() => {
-                                                        if (!selectedShiftId) {
-                                                            toast.error('Vui lòng chọn một ca trong tuần trước khi thêm.');
-                                                            return;
-                                                        }
-                                                        assignBookingPetService(
-                                                            { shiftId: selectedShiftId, bookingPetServiceId: item.bookingPetServiceId },
-                                                            {
-                                                                onSuccess: (res: any) => {
-                                                                    if (res?.success !== false) {
-                                                                        toast.success('Đã thêm booking_pet_service vào ca.');
-                                                                    } else {
-                                                                        toast.error(res?.message ?? 'Có lỗi khi thêm vào ca.');
-                                                                    }
-                                                                },
-                                                                onError: (err: any) =>
-                                                                    toast.error(err?.response?.data?.message ?? err?.message ?? 'Thêm vào ca thất bại'),
-                                                            }
-                                                        );
-                                                    }}
-                                                    className="h-8 rounded-md border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    Thêm vào ca đã chọn
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={unassigningBookingPetService}
-                                                    onClick={() => {
-                                                        unassignBookingPetService(item.bookingPetServiceId, {
-                                                            onSuccess: (res: any) => {
-                                                                if (res?.success !== false) {
-                                                                    toast.success('Đã đưa booking_pet_service về danh sách.');
-                                                                } else {
-                                                                    toast.error(res?.message ?? 'Có lỗi khi đưa về danh sách.');
-                                                                }
-                                                            },
-                                                            onError: (err: any) =>
-                                                                toast.error(err?.response?.data?.message ?? err?.message ?? 'Thao tác thất bại'),
-                                                        });
-                                                    }}
-                                                    className="h-8 rounded-md border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    Đưa xuống danh sách
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            <Box sx={{ overflowX: 'auto', flex: 1 }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                                    <thead style={{ backgroundColor: alpha('#919EAB', 0.08) }}>
+                                        <tr>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700, borderRadius: '8px 0 0 8px' }}>Booking</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Dịch vụ</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Trạng thái xếp ca</th>
+                                            <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 700, borderRadius: '0 8px 8px 0' }}>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking trong tuần này.</td>
+                                            </tr>
+                                        ) : (
+                                            ((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
+                                                <tr key={item.bookingPetServiceId} style={{ borderBottom: `1px dashed ${alpha('#919EAB', 0.2)}` }}>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.bookingCode}</Typography>
+                                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{item.customerName || '-'}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.serviceName || '-'}</Typography>
+                                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{item.petName || '-'}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>{renderBookingPetServiceShiftStatusChip(item)}</td>
+                                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                                                            <Tooltip title="Thêm vào ca đã chọn">
+                                                                <IconButton 
+                                                                    size="small" 
+                                                                    color="primary"
+                                                                    disabled={!selectedShiftId || assigningBookingPetService}
+                                                                    onClick={() => {
+                                                                        assignBookingPetService(
+                                                                            { shiftId: selectedShiftId!, bookingPetServiceId: item.bookingPetServiceId },
+                                                                            { onSuccess: (res: any) => res?.success !== false ? toast.success('Đã thêm vào ca.') : toast.error(res?.message ?? 'Lỗi.') }
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <Icon icon="solar:add-circle-bold-duotone" width={20} />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Gỡ khỏi ca">
+                                                                <IconButton 
+                                                                    size="small" 
+                                                                    color="error"
+                                                                    disabled={unassigningBookingPetService}
+                                                                    onClick={() => {
+                                                                        unassignBookingPetService(item.bookingPetServiceId, {
+                                                                            onSuccess: (res: any) => res?.success !== false ? toast.success('Đã gỡ khỏi ca.') : toast.error(res?.message ?? 'Lỗi.')
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <Icon icon="solar:minus-circle-bold-duotone" width={20} />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Stack>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </Box>
+                        </DashboardCard>
+                    </Grid>
 
-            <div className="px-4 sm:px-6 lg:px-8 mb-6 max-w-full">
-                <div className="mb-2">
-                    <div className="text-base font-semibold text-gray-900">Danh sách đợi xếp lịch ca làm</div>
-                    <div className="text-sm text-gray-500">
-                        Booking có ngày đặt không thuộc tuần đang tạo ca.
-                    </div>
-                </div>
-                <div className="mt-3 rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <table className="w-full table-fixed border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Booking</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Khách / Thú cưng</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Dịch vụ</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Ngày booking</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-4 text-sm text-gray-500 text-center">Không có booking_pet_service chờ xếp lịch.</td>
-                                </tr>
-                            ) : (
-                                ((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
-                                    <tr key={item.bookingPetServiceId} className="border-b border-gray-100 last:border-b-0">
-                                        <td className="p-3 text-sm font-semibold text-gray-800">{item.bookingCode}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.customerName || '-'} / {item.petName || '-'}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.serviceName || '-'}</td>
-                                        <td className="p-3 text-sm text-gray-700">{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                    {/* Waiting List */}
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                        <DashboardCard sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                    Danh sách đợi xếp lịch (Tuần khác)
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Đủ điều kiện nhưng <strong>actualCheckInDate</strong> (hoặc ngày fallback) <strong>ngoài</strong> khoảng Từ — Đến.
+                                </Typography>
+                            </Box>
+
+                            <Box sx={{ overflowX: 'auto', flex: 1 }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                                    <thead style={{ backgroundColor: alpha('#919EAB', 0.08) }}>
+                                        <tr>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700, borderRadius: '8px 0 0 8px' }}>Booking</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Khách / Thú cưng</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Dịch vụ</th>
+                                            <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 700, borderRadius: '0 8px 8px 0' }}>Ngày (check-in DV)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking chờ xếp lịch.</td>
+                                            </tr>
+                                        ) : (
+                                            ((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
+                                                <tr key={item.bookingPetServiceId} style={{ borderBottom: `1px dashed ${alpha('#919EAB', 0.2)}` }}>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.bookingCode}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2">{item.customerName || '-'} / {item.petName || '-'}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2">{item.serviceName || '-'}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</Typography>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </Box>
+                        </DashboardCard>
+                    </Grid>
+                </Grid>
+            </Box>
 
             <Box sx={{ px: { xs: 2, sm: 3, lg: 4 } }}>
                 {/* Dialog xem đăng ký ca – popup giữa trang */}
@@ -1678,6 +1919,7 @@ export const WorkShiftAdminPage = () => {
                     </DialogActions>
                 </Dialog>
             </Box>
+        </Box>
         </LocalizationProvider>
     );
 };

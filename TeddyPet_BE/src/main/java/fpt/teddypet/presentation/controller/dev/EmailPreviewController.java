@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel.WalkInBookingEmailPetBlock;
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel.WalkInBookingEmailServiceLine;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.settings.AppSettingRepository;
 
 @Controller
@@ -138,5 +141,38 @@ public class EmailPreviewController {
                 model.addAttribute("bookingCode", "BK-TEST-123");
                 model.addAttribute("detailUrl", "http://localhost:5173/bookings/BK-TEST-123");
                 return "email/bookings/booking-cancelled";
+        }
+
+        @GetMapping("/walk-in-booking-created")
+        public String previewWalkInBookingCreated(Model model) {
+                model.addAttribute("appName", "TeddyPet");
+                model.addAttribute("detailUrl", "http://localhost:5173/dat-lich/chi-tiet-don/BK-TEST-WALKIN");
+
+                List<String> addons = List.of("Tắm sấy premium", "Cắt móng");
+                WalkInBookingEmailServiceLine line1 = new WalkInBookingEmailServiceLine(
+                                "Spa & grooming",
+                                "22/03/2026 09:00 — 22/03/2026 11:00",
+                                "350.000 đ",
+                                addons);
+                WalkInBookingEmailServiceLine line2 = new WalkInBookingEmailServiceLine(
+                                "Lưu trú phòng VIP",
+                                "Gửi: 25/03/2026 — Nhận: 28/03/2026",
+                                "900.000 đ",
+                                List.of());
+
+                WalkInBookingEmailPetBlock petBlock = new WalkInBookingEmailPetBlock(
+                                "Bông (Chó)",
+                                List.of(line1, line2));
+
+                WalkInBookingEmailModel walkIn = new WalkInBookingEmailModel(
+                                "BK-TEST-WALKIN",
+                                "Nguyễn Văn A",
+                                "0909 123 456",
+                                "22/03/2026",
+                                "1.250.000 đ",
+                                List.of(petBlock));
+
+                model.addAttribute("walkIn", walkIn);
+                return "email/bookings/walk-in-booking-created";
         }
 }

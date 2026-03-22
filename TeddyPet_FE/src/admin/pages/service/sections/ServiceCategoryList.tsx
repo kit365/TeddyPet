@@ -1,4 +1,4 @@
-﻿import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -10,6 +10,7 @@ import { useServiceCategories } from '../hooks/useServiceCategory';
 import { GridColDef } from '@mui/x-data-grid';
 import type { IServiceCategory } from '../configs/types';
 import { RenderCreatedAtCell, RenderStatusCell, RenderCategoryActionsCell } from '../utils/render-cells';
+import { mountGridCell } from '../../../utils/muiDataGridRenderCell';
 
 const categoryColumns: GridColDef<IServiceCategory>[] = [
     { field: 'categoryName', headerName: 'Tên danh mục', flex: 1, minWidth: 200 },
@@ -45,7 +46,7 @@ const categoryColumns: GridColDef<IServiceCategory>[] = [
         renderCell: (params) => <RenderCreatedAtCell value={params.value} />,
     },
     { field: 'isActive', headerName: 'Trạng thái', width: 120, renderCell: RenderStatusCell },
-    { field: 'actions', headerName: '', width: 80, sortable: false, renderCell: RenderCategoryActionsCell },
+    { field: 'actions', headerName: '', width: 80, sortable: false, renderCell: mountGridCell(RenderCategoryActionsCell) },
 ];
 
 export const ServiceCategoryList = () => {

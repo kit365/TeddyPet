@@ -51,11 +51,12 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<List<RevenueChartItem>>> getRevenueChart(
             @RequestParam(defaultValue = "30") int days,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime startDate,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.OffsetDateTime endDate,
+            @RequestParam(required = false) String type
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Revenue chart data retrieved successfully",
-                dashboardService.getRevenueChart(days, startDate, endDate)));
+                dashboardService.getRevenueChart(days, startDate, endDate, type)));
     }
 
     @GetMapping("/recent-orders")
@@ -144,5 +145,12 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Top staff retrieved successfully",
                 dashboardService.getTopStaff()));
+    }
+
+    @GetMapping("/today-revenue-details")
+    public ResponseEntity<ApiResponse<TodayRevenueDetailsResponse>> getTodayRevenueDetails() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Today's revenue details retrieved successfully",
+                dashboardService.getTodayRevenueDetails()));
     }
 }

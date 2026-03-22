@@ -231,8 +231,8 @@ export interface BookingPetServiceItemResponse {
 export interface BookingPetServiceResponse {
   id: number;
   bookingPetId: number;
-  assignedStaffId?: number;
-  assignedStaffName?: string;
+  assignedStaffIds?: number[];
+  assignedStaffNames?: string;
   serviceId?: number;
   serviceComboId?: number;
   timeSlotId?: number;
@@ -397,7 +397,8 @@ export interface ClientPetFoodBroughtDetail {
 /** Service attached to a pet (booking_pet_services) */
 export interface ClientBookingPetServiceDetail {
   id: number;
-  assignedStaffId?: number;
+  assignedStaffIds?: number[];
+  assignedStaffNames?: string;
   serviceName?: string;
   timeSlotName?: string;
   estimatedCheckInDate?: string;

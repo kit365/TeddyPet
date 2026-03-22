@@ -1,5 +1,6 @@
 package fpt.teddypet.application.port.output;
 
+import fpt.teddypet.application.dto.email.WalkInBookingEmailModel;
 import fpt.teddypet.domain.entity.Order;
 
 public interface EmailServicePort {
@@ -17,6 +18,11 @@ public interface EmailServicePort {
     void sendBookingDepositReminderEmail(String to, String bookingCode);
 
     void sendBookingDepositSuccessEmail(String to, String bookingCode);
+
+    /**
+     * Email sau khi tạo đơn đặt lịch tại quầy (WALK_IN) thành công — tóm tắt dịch vụ + link chi tiết cho khách.
+     */
+    void sendWalkInBookingCreatedEmail(String to, WalkInBookingEmailModel model);
 
     void sendBookingCancelledEmail(String to, String bookingCode);
 

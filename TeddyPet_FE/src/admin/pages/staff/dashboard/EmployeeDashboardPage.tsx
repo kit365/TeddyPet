@@ -1,4 +1,5 @@
 import { Grid, Box, Typography, Button, Container, Stack } from "@mui/material";
+import type { CareTask, SpaTask } from "../../../types/employeeDashboard";
 import { ListHeader } from "../../../components/ui/ListHeader";
 import { prefixAdmin } from "../../../constants/routes";
 import { useEmployeeDashboard } from "../../../hooks/useEmployeeDashboard";
@@ -17,6 +18,7 @@ import WelcomeWidget from "../../../components/dashboard/WelcomeWidget";
 import SummaryWidget from "../../../components/dashboard/SummaryWidget";
 import DashboardCard from "../../../components/dashboard/DashboardCard";
 import SystemAlerts from "../../../components/dashboard/SystemAlerts";
+import { TaskEmptyState } from "../../../components/staff/dashboard/TaskEmptyState";
 
 // removed StaffPerformanceChart
 
@@ -105,6 +107,8 @@ export const EmployeeDashboardPage = () => {
     }, [queryClient, refetchStaffStats]);
 
     const activeTasks = [...pendingTasks, ...inProgressTasks];
+    const careTasks = activeTasks.filter((t): t is CareTask => t.type === "CARE");
+    const spaTasks = activeTasks.filter((t): t is SpaTask => t.type === "SPA");
 
     const handleAddTask = () => {
         toast.success("Đã mở tạo nhiệm vụ (sẽ tích hợp sau).");
@@ -258,7 +262,7 @@ export const EmployeeDashboardPage = () => {
                     { title: "Đơn hàng", total: (staffStats?.confirmedOrders ?? 0 + (staffStats?.pendingOrders ?? 0)).toString(), color: "#22c55e" },
                     { title: "Lịch Spa", total: (staffStats?.todayBookings ?? 0).toString(), color: "#ffab00" },
                     { title: "Kho hàng", total: (staffStats?.lowStockCount ?? 0).toString(), color: "#ff5630" },
-                    { title: "Nhiệm vụ", total: activeTasks.length.toString(), color: "#00b8d9" }
+                    { title: "Nhiệm vụ", total: (careTasks.length + spaTasks.length).toString(), color: "#00b8d9" }
                 ].map((stat, idx) => (
                     <Grid 
                         key={idx}
@@ -288,18 +292,30 @@ export const EmployeeDashboardPage = () => {
                         <Typography variant="body2" color="text.secondary">Bắt đầu hoàn thành các nhiệm vụ được giao trong ngày</Typography>
                     </Box>
                     
-                    {user.role === "CARE" ? (
-                        <CareTaskList
-                            tasks={activeTasks as any}
-                            onStart={startTask}
-                            onFinish={finishTask}
+                    {careTasks.length === 0 && spaTasks.length === 0 ? (
+                        <TaskEmptyState
+                            title="Chưa có nhiệm vụ được giao hôm nay"
+                            description="Khi admin xếp ca, gán bạn vào booking_pet_service và booking đã check-in, nhiệm vụ sẽ hiển thị tại đây (chăm sóc/phòng hoặc Spa)."
                         />
                     ) : (
-                        <SpaTaskList
-                            tasks={activeTasks as any}
-                            onStart={startTask}
-                            onFinish={finishTask}
-                        />
+                        <Stack spacing={3}>
+                            {careTasks.length > 0 && (
+                                <Box>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+                                        Chăm sóc & phòng
+                                    </Typography>
+                                    <CareTaskList tasks={careTasks} onStart={startTask} onFinish={finishTask} />
+                                </Box>
+                            )}
+                            {spaTasks.length > 0 && (
+                                <Box>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+                                        Spa & Grooming
+                                    </Typography>
+                                    <SpaTaskList tasks={spaTasks} onStart={startTask} onFinish={finishTask} />
+                                </Box>
+                            )}
+                        </Stack>
                     )}
                 </Grid>
 

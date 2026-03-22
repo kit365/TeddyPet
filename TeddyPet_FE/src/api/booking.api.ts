@@ -212,3 +212,19 @@ export const buildCreateBookingPayload = (
         pets: bookingPets,
     };
 };
+
+/** Phủ ca làm theo ngày (public) — dùng để khóa ngày trả khi không có ca sáng/chiều */
+export interface ShiftCoverageDay {
+    date: string;
+    morning: boolean;
+    afternoon: boolean;
+}
+
+export type BookingShiftCoverageResponse = ApiResponse<ShiftCoverageDay[]>;
+
+export const getBookingShiftCoverage = async (from: string, to: string): Promise<BookingShiftCoverageResponse> => {
+    const response = await apiApp.get<BookingShiftCoverageResponse>("/api/bookings/shift-coverage", {
+        params: { from, to },
+    });
+    return response.data;
+};
