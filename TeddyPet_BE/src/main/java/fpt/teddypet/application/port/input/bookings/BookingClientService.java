@@ -1,6 +1,7 @@
 package fpt.teddypet.application.port.input.bookings;
 
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.ClientServiceReviewUpsertRequest;
 import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
@@ -35,6 +36,11 @@ public interface BookingClientService {
      * Khách hàng gửi yêu cầu hủy booking
      */
     ClientBookingDetailResponse cancelBooking(String bookingCode, fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest request);
+
+    /**
+     * Khách hàng đánh giá từng booking_pet_service sau khi check-out.
+     */
+    ClientBookingDetailResponse upsertServiceReview(String bookingCode, Long bookingPetServiceId, ClientServiceReviewUpsertRequest request);
 
     /**
      * Danh sách roomId đã có đặt phòng trùng khoảng ngày (dùng cho sơ đồ phòng làm mờ phòng đã đặt).

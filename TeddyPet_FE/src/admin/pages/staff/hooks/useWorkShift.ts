@@ -16,7 +16,8 @@ import {
     finalizeShiftApprovals,
     cancelAdminRegistration,
     getAssignableBookingPetServices,
-    assignBookingPetServiceToShiftAuto,
+    getAssignedBookingPetServicesForShift,
+    assignBookingPetServiceToShift,
     unassignBookingPetService,
     getAvailableShifts,
     getShiftsForAdminByDateRange,
@@ -237,15 +238,34 @@ export const useAssignableBookingPetServices = (from?: string | null, to?: strin
     });
 };
 
+/** Ca: booking_pet_service đã có lịch trùng khung giờ ca (overlap scheduled) */
+export const useAssignedBookingPetServicesForShift = (shiftId?: number | null) => {
+    return useQuery({
+        queryKey: ['shift-assigned-bookings', shiftId],
+        queryFn: () => getAssignedBookingPetServicesForShift(shiftId!),
+        enabled: shiftId != null && shiftId > 0,
+        select: (res: ApiResponse<any>) => res.data ?? [],
+    });
+};
+
 export const useAssignBookingPetServiceToShift = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ bookingPetServiceId, staffIds }: { bookingPetServiceId: number; staffIds: number[] }) =>
-            assignBookingPetServiceToShiftAuto(bookingPetServiceId, staffIds),
+        mutationFn: ({
+            shiftId,
+            bookingPetServiceId,
+            staffIds,
+        }: {
+            shiftId: number;
+            bookingPetServiceId: number;
+            staffIds: number[];
+        }) => assignBookingPetServiceToShift(shiftId, bookingPetServiceId, staffIds),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
             qc.invalidateQueries({ queryKey: ['bps-assign-options'] });
             qc.invalidateQueries({ queryKey: ['shift-assigned-bookings'] });
+            qc.invalidateQueries({ queryKey: ['admin-shifts'] });
+            qc.invalidateQueries({ queryKey: ['staff-today-tasks'] });
         },
     });
 };
@@ -257,6 +277,7 @@ export const useUnassignBookingPetService = () => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['work-shift-booking-pet-services'] });
             qc.invalidateQueries({ queryKey: ['shift-assigned-bookings'] });
+            qc.invalidateQueries({ queryKey: ['staff-today-tasks'] });
         },
     });
 };

@@ -9,10 +9,13 @@ import fpt.teddypet.application.dto.request.bookings.AdminCheckInRepricePetInput
 import fpt.teddypet.application.dto.request.bookings.AdminCheckInRepricePreviewRequest;
 import fpt.teddypet.application.dto.request.bookings.AdminCheckOutConfirmPetInput;
 import fpt.teddypet.application.dto.request.bookings.AdminCheckOutConfirmRequest;
+import fpt.teddypet.application.dto.request.bookings.AdminCheckOutOvertimeInput;
 import fpt.teddypet.application.dto.request.bookings.ApproveBookingCancelRequest;
 import fpt.teddypet.application.dto.request.bookings.ApproveChargeItemRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
+import fpt.teddypet.application.dto.response.bookings.AdminBookingNoShowPreviewResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
+import fpt.teddypet.application.dto.response.bookings.AdminNoShowLinePreview;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceResponse;
@@ -21,23 +24,30 @@ import fpt.teddypet.application.dto.response.bookings.AdminCheckInRepricePreview
 import fpt.teddypet.application.dto.response.bookings.BookingPaymentTransactionResponse;
 import fpt.teddypet.application.dto.response.bookings.BookingTransactionItemResponse;
 import fpt.teddypet.application.port.input.bookings.BookingAdminService;
+import fpt.teddypet.application.port.output.shop.ShopOperationHourRepositoryPort;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
+import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPaymentTransaction;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.domain.entity.BookingPetServiceItem;
+import fpt.teddypet.domain.entity.NoShowConfig;
 import fpt.teddypet.domain.entity.ServicePricing;
+import fpt.teddypet.domain.entity.ShopOperationHour;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingNoShowEvaluationRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPaymentTransactionRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceItemRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.domain.entity.staff.StaffProfile;
+import org.hibernate.Hibernate;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -47,8 +57,10 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -68,24 +80,32 @@ import java.util.stream.Collectors;
 public class BookingAdminApplicationService implements BookingAdminService {
 
         private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+        private static final ZoneId NO_SHOW_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
         private final BookingRepository bookingRepository;
+        private final BookingPetServiceRepository bookingPetServiceRepository;
         private final BookingPetServiceItemRepository bookingPetServiceItemRepository;
         private final ServiceRepositoryPort serviceRepositoryPort;
         private final RoomRepositoryPort roomRepositoryPort;
         private final ServicePricingRepositoryPort servicePricingRepositoryPort;
         private final fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository bookingDepositRepository;
         private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
+        private final BookingNoShowEvaluationRepository bookingNoShowEvaluationRepository;
         private final TimeSlotBookingRepository timeSlotBookingRepository;
         private final EmailServicePort emailServicePort;
         private final DashboardService dashboardService;
         private final PayosGatewayAdapter payosGatewayAdapter;
+        private final BookingNoShowCheckInService bookingNoShowCheckInService;
+        private final ShopOperationHourRepositoryPort shopOperationHourRepositoryPort;
+        private final BookingNoShowCancellationExecutor bookingNoShowCancellationExecutor;
+        private final NoShowAppointmentStartResolver noShowAppointmentStartResolver;
 
         @Value("${app.frontend-url}")
         private String frontendUrl;
 
         public BookingAdminApplicationService(
                         BookingRepository bookingRepository,
+                        BookingPetServiceRepository bookingPetServiceRepository,
                         BookingPetServiceItemRepository bookingPetServiceItemRepository,
                         ServiceRepositoryPort serviceRepositoryPort,
                         RoomRepositoryPort roomRepositoryPort,
@@ -95,8 +115,14 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         TimeSlotBookingRepository timeSlotBookingRepository,
                         EmailServicePort emailServicePort,
                         @Lazy DashboardService dashboardService,
-                        PayosGatewayAdapter payosGatewayAdapter) {
+                        PayosGatewayAdapter payosGatewayAdapter,
+                        BookingNoShowCheckInService bookingNoShowCheckInService,
+                        BookingNoShowEvaluationRepository bookingNoShowEvaluationRepository,
+                        ShopOperationHourRepositoryPort shopOperationHourRepositoryPort,
+                        BookingNoShowCancellationExecutor bookingNoShowCancellationExecutor,
+                        NoShowAppointmentStartResolver noShowAppointmentStartResolver) {
                 this.bookingRepository = bookingRepository;
+                this.bookingPetServiceRepository = bookingPetServiceRepository;
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
                 this.serviceRepositoryPort = serviceRepositoryPort;
                 this.roomRepositoryPort = roomRepositoryPort;
@@ -107,6 +133,11 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.emailServicePort = emailServicePort;
                 this.dashboardService = dashboardService;
                 this.payosGatewayAdapter = payosGatewayAdapter;
+                this.bookingNoShowCheckInService = bookingNoShowCheckInService;
+                this.bookingNoShowEvaluationRepository = bookingNoShowEvaluationRepository;
+                this.shopOperationHourRepositoryPort = shopOperationHourRepositoryPort;
+                this.bookingNoShowCancellationExecutor = bookingNoShowCancellationExecutor;
+                this.noShowAppointmentStartResolver = noShowAppointmentStartResolver;
         }
 
         @Override
@@ -568,7 +599,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 for (BookingPet pet : booking.getPets()) {
                         for (BookingPetService service : pet.getServices()) {
                                 if (service != null && service.isActive() && !"CANCELLED".equalsIgnoreCase(service.getStatus())) {
-                                        service.setStatus("IN_PROGRESS");
+                                        service.setStatus("WAITING_STAFF");
                                 }
                         }
                 }
@@ -576,7 +607,16 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 booking.setBookingCheckInDate(checkInAt);
                 applyActualCheckInDateToActiveBookingPetServices(booking, checkInAt.toLocalDate());
                 bookingRepository.save(booking);
-                return toListItem(booking);
+
+                BigDecimal noShowPenalty = bookingNoShowCheckInService.evaluateAndPersist(booking, checkInAt);
+                if (noShowPenalty.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal curTotal = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+                        booking.setTotalAmount(curTotal.add(noShowPenalty));
+                        bookingRepository.save(booking);
+                }
+                recomputeBookingFromTransactionsWithCredit(bookingId);
+                dashboardService.sendDashboardUpdate();
+                return toListItem(getBookingOrThrow(bookingId));
         }
 
         @Override
@@ -586,6 +626,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
                         throw new IllegalStateException("Không thể check-out vì booking đã bị hủy.");
                 }
+
+                List<BookingPetService> activeServices = getActiveBookingPetServices(booking);
+                validateCheckoutEligibility(activeServices);
 
                 Map<Long, AdminCheckOutConfirmPetInput> confirmedByPetId = new HashMap<>();
                 if (request != null && request.pets() != null) {
@@ -607,11 +650,73 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         }
                 }
 
+                Map<Long, String> overtimeNoteByServiceId = new HashMap<>();
+                if (request != null && request.overtimeAdjustments() != null) {
+                        for (AdminCheckOutOvertimeInput overtime : request.overtimeAdjustments()) {
+                                if (overtime == null || overtime.bookingPetServiceId() == null) continue;
+                                String note = overtime.note() != null ? overtime.note().trim() : null;
+                                overtimeNoteByServiceId.put(overtime.bookingPetServiceId(), (note == null || note.isBlank()) ? null : note);
+                        }
+                }
+
+                LocalDate today = LocalDate.now();
+                LocalDateTime now = LocalDateTime.now();
+                for (BookingPetService svc : activeServices) {
+                        if (!isRoomService(svc)) continue;
+                        if (svc.getEstimatedCheckOutDate() == null || !svc.getEstimatedCheckOutDate().isBefore(today)) continue;
+
+                        long overdueNights = ChronoUnit.DAYS.between(svc.getEstimatedCheckOutDate(), today);
+                        if (overdueNights < 1) continue;
+
+                        int currentNights = svc.getNumberOfNights() != null ? Math.max(svc.getNumberOfNights(), 1) : 1;
+                        int newNights = currentNights + Math.toIntExact(overdueNights);
+                        svc.setNumberOfNights(newNights);
+
+                        BigDecimal unitPrice = svc.getBasePrice() != null ? svc.getBasePrice() : BigDecimal.ZERO;
+                        BigDecimal extraAmount = unitPrice.multiply(BigDecimal.valueOf(overdueNights));
+                        BigDecimal newSubtotal = unitPrice.multiply(BigDecimal.valueOf(newNights));
+                        svc.setSubtotal(newSubtotal);
+
+                        String customNote = overtimeNoteByServiceId.get(svc.getId());
+                        String systemNote = String.format(
+                                "Quá hạn %d đêm × %s/đêm = %s. %s",
+                                overdueNights,
+                                formatVnd(unitPrice),
+                                formatVnd(extraAmount),
+                                customNote != null ? customNote : ""
+                        ).trim();
+                        bookingPaymentTransactionRepository.save(BookingPaymentTransaction.builder()
+                                .bookingId(bookingId)
+                                .transactionType("OVERTIME_NIGHT_ADJUSTMENT")
+                                .amount(extraAmount)
+                                .paymentMethod("SYSTEM")
+                                .paidAt(now)
+                                .status("RECORDED")
+                                .paidByName(getCurrentAdminIdentity())
+                                .note(systemNote)
+                                .build());
+                }
+
+                // Khi check-out booking, các dịch vụ yêu cầu phòng đang ở PET_IN_HOTEL
+                // phải đóng trạng thái sang COMPLETED.
+                for (BookingPetService svc : activeServices) {
+                        if (!isRoomService(svc)) continue;
+                        if ("PET_IN_HOTEL".equalsIgnoreCase(svc.getStatus())) {
+                                svc.setStatus("COMPLETED");
+                        }
+                }
+
                 LocalDateTime checkOutAt = LocalDateTime.now();
                 booking.setBookingCheckOutDate(checkOutAt);
+                booking.setStatus("COMPLETED");
                 applyActualCheckOutDateToActiveBookingPetServices(booking, checkOutAt.toLocalDate());
                 bookingRepository.save(booking);
-                return toListItem(booking);
+                recomputeBookingTotalFromActiveLinesWithCredit(bookingId);
+                if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                        emailServicePort.sendBookingCheckOutThankYouEmail(booking.getCustomerEmail(), booking.getBookingCode());
+                }
+                dashboardService.sendDashboardUpdate();
+                return toListItem(getBookingOrThrow(bookingId));
         }
 
         @Override
@@ -782,7 +887,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 for (BookingPet pet : booking.getPets()) {
                         for (BookingPetService service : pet.getServices()) {
                                 if (service != null && service.isActive() && !"CANCELLED".equalsIgnoreCase(service.getStatus())) {
-                                        service.setStatus("IN_PROGRESS");
+                                        service.setStatus("WAITING_STAFF");
                                 }
                         }
                 }
@@ -790,6 +895,13 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 booking.setBookingCheckInDate(checkInAt);
                 applyActualCheckInDateToActiveBookingPetServices(booking, checkInAt.toLocalDate());
                 bookingRepository.save(booking);
+
+                BigDecimal noShowPenalty = bookingNoShowCheckInService.evaluateAndPersist(booking, checkInAt);
+                if (noShowPenalty.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal curTotal = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+                        booking.setTotalAmount(curTotal.add(noShowPenalty));
+                        bookingRepository.save(booking);
+                }
 
                 // recompute paid/remaining/credit based on new total (deposit stays as-is)
                 recomputeBookingFromTransactionsWithCredit(bookingId);
@@ -889,6 +1001,49 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         }
                 }
                 return count;
+        }
+
+        private List<BookingPetService> getActiveBookingPetServices(Booking booking) {
+                if (booking == null || booking.getPets() == null) return List.of();
+                List<BookingPetService> list = new ArrayList<>();
+                for (BookingPet pet : booking.getPets()) {
+                        if (pet == null || pet.getServices() == null) continue;
+                        for (BookingPetService svc : pet.getServices()) {
+                                if (svc == null || !svc.isActive()) continue;
+                                if ("CANCELLED".equalsIgnoreCase(svc.getStatus())) continue;
+                                list.add(svc);
+                        }
+                }
+                return list;
+        }
+
+        private static boolean isRoomService(BookingPetService svc) {
+                return svc != null
+                                && svc.getService() != null
+                                && Boolean.TRUE.equals(svc.getService().getIsRequiredRoom());
+        }
+
+        private static void validateCheckoutEligibility(List<BookingPetService> activeServices) {
+                if (activeServices == null || activeServices.isEmpty()) {
+                        throw new IllegalStateException("Không có dịch vụ đang hoạt động để check-out.");
+                }
+                boolean hasRoomService = activeServices.stream().anyMatch(BookingAdminApplicationService::isRoomService);
+                if (hasRoomService) {
+                        return;
+                }
+                boolean allNonRoomCompleted = activeServices.stream()
+                                .filter(svc -> !isRoomService(svc))
+                                .allMatch(svc -> "COMPLETED".equalsIgnoreCase(svc.getStatus()));
+                if (!allNonRoomCompleted) {
+                        throw new IllegalStateException(
+                                        "Booking không có dịch vụ phòng: cần hoàn thành tất cả dịch vụ không phòng trước khi check-out.");
+                }
+        }
+
+        private static String formatVnd(BigDecimal amount) {
+                BigDecimal safe = amount != null ? amount : BigDecimal.ZERO;
+                NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+                return nf.format(safe);
         }
 
         private String getCurrentAdminIdentity() {
@@ -1176,11 +1331,15 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 for (BookingPaymentTransaction t : bookingPaymentTransactionRepository.findByBookingIdOrderByPaidAtAsc(bookingId)) {
                         String txType = t.getTransactionType() != null ? t.getTransactionType().trim().toUpperCase() : "";
                         String label = "Thanh toán hóa đơn";
+                        String transactionType = "INVOICE_PAYMENT";
                         if ("REFUND".equals(txType) || "DEPOSIT_REFUND".equals(txType)) {
                                 label = "Hoàn lại tiền đặt cọc";
+                        } else if ("OVERTIME_NIGHT_ADJUSTMENT".equals(txType)) {
+                                label = "Cộng thêm đêm quá hạn";
+                                transactionType = "OVERTIME_NIGHT_ADJUSTMENT";
                         }
                         list.add(new BookingTransactionItemResponse(
-                                        "INVOICE_PAYMENT",
+                                        transactionType,
                                         t.getId(),
                                         t.getAmount(),
                                         t.getPaymentMethod(),
@@ -1192,6 +1351,25 @@ public class BookingAdminApplicationService implements BookingAdminService {
                                         t.getNote()
                         ));
                 }
+                bookingNoShowEvaluationRepository.findByBookingIdAndIsDeletedFalse(bookingId).ifPresent(ev -> {
+                        BigDecimal amt = ev.getTotalPenaltyApplied() != null ? ev.getTotalPenaltyApplied() : BigDecimal.ZERO;
+                        String note = ev.getDetailJson();
+                        if (note != null && note.length() > 4000) {
+                                note = note.substring(0, 4000) + "…";
+                        }
+                        list.add(new BookingTransactionItemResponse(
+                                        "NO_SHOW_EVALUATION",
+                                        ev.getId(),
+                                        amt,
+                                        "SYSTEM",
+                                        ev.getEvaluatedAt() != null ? ev.getEvaluatedAt() : ev.getCheckInAt(),
+                                        "RECORDED",
+                                        "Đánh giá no-show khi check-in",
+                                        null,
+                                        null,
+                                        note
+                        ));
+                });
                 list.sort(Comparator.comparing(BookingTransactionItemResponse::paidAt, Comparator.nullsLast(Comparator.naturalOrder())));
                 return list;
         }
@@ -1345,6 +1523,175 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 } catch (JsonProcessingException e) {
                         throw new IllegalStateException("Không thể serialize danh sách ảnh.", e);
                 }
+        }
+
+        /**
+         * Hai bước: (1) fetch {@code Booking.pets} (2) fetch toàn bộ {@code BookingPetService} + service + noShowConfig.
+         * Hibernate không cho join fetch đồng thời hai collection List (bag): pets và services.
+         */
+        private Booking loadBookingGraphForNoShowPreview(Long bookingId) {
+                Booking booking = bookingRepository.findByIdWithPetsFetch(bookingId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Không tìm thấy booking với id: " + bookingId));
+                bookingPetServiceRepository.findAllByBookingIdWithServiceAndNoShow(bookingId);
+                if (booking.getPets() != null) {
+                        for (BookingPet p : booking.getPets()) {
+                                if (p != null) {
+                                        Hibernate.initialize(p.getServices());
+                                }
+                        }
+                }
+                return booking;
+        }
+
+        @Override
+        public AdminBookingNoShowPreviewResponse getNoShowPreview(Long bookingId) {
+                Booking booking = loadBookingGraphForNoShowPreview(bookingId);
+                return buildNoShowPreviewInternal(booking);
+        }
+
+        @Override
+        @Transactional
+        public AdminBookingListItemResponse markManualNoShow(Long bookingId) {
+                Booking booking = loadBookingGraphForNoShowPreview(bookingId);
+                if (booking.getBookingType() == BookingTypeEnum.WALK_IN) {
+                        throw new IllegalStateException(
+                                        "Không áp dụng đánh dấu no-show cho đơn đặt tại quầy (walk-in).");
+                }
+                if (!isEligibleForNoShowActions(booking)) {
+                        throw new IllegalStateException("Không thể đánh dấu no-show cho đơn đặt tại quy định này.");
+                }
+                boolean hasManual = false;
+                for (BookingPet pet : booking.getPets()) {
+                        if (pet == null || pet.getServices() == null) {
+                                continue;
+                        }
+                        for (BookingPetService bps : pet.getServices()) {
+                                if (bps == null || !bps.isActive() || "CANCELLED".equalsIgnoreCase(bps.getStatus())) {
+                                        continue;
+                                }
+                                fpt.teddypet.domain.entity.Service svc = bps.getService();
+                                if (svc == null) {
+                                        continue;
+                                }
+                                NoShowConfig cfg = svc.getNoShowConfig();
+                                if (cfg == null || cfg.isDeleted() || !cfg.isActive()) {
+                                        continue;
+                                }
+                                if (!Boolean.TRUE.equals(cfg.getAutoMarkNoShow())) {
+                                        hasManual = true;
+                                        break;
+                                }
+                        }
+                        if (hasManual) {
+                                break;
+                        }
+                }
+                if (!hasManual) {
+                        throw new IllegalStateException(
+                                        "Không có dịch vụ nào dùng cấu hình no-show thủ công (hoặc tất cả đều bật tự động).");
+                }
+                String reason = "Đơn đặt lịch bị hủy do nhân viên xác nhận khách không đến (no-show).\n"
+                                + "Xác nhận bởi: " + getCurrentAdminIdentity();
+                bookingNoShowCancellationExecutor.cancelBookingForNoShow(booking, "STAFF_NO_SHOW", reason);
+                return toListItem(getBookingOrThrow(bookingId));
+        }
+
+        private AdminBookingNoShowPreviewResponse buildNoShowPreviewInternal(Booking booking) {
+                LocalDateTime now = LocalDateTime.now(NO_SHOW_ZONE);
+                List<AdminNoShowLinePreview> lines = new ArrayList<>();
+                if (booking.getBookingType() == BookingTypeEnum.WALK_IN || Boolean.TRUE.equals(booking.isDeleted())) {
+                        return new AdminBookingNoShowPreviewResponse(false, false, lines, null);
+                }
+                boolean eligible = isEligibleForNoShowActions(booking);
+                if (!eligible) {
+                        return new AdminBookingNoShowPreviewResponse(false, false, lines, null);
+                }
+                boolean showManual = false;
+                LocalDateTime earliestRef = null;
+                for (BookingPet pet : booking.getPets()) {
+                        if (pet == null || pet.getServices() == null) {
+                                continue;
+                        }
+                        for (BookingPetService bps : pet.getServices()) {
+                                if (bps == null || !bps.isActive() || "CANCELLED".equalsIgnoreCase(bps.getStatus())) {
+                                        continue;
+                                }
+                                fpt.teddypet.domain.entity.Service svc = bps.getService();
+                                if (svc == null) {
+                                        continue;
+                                }
+                                NoShowConfig cfg = svc.getNoShowConfig();
+                                if (cfg == null || cfg.isDeleted() || !cfg.isActive()) {
+                                        continue;
+                                }
+                                if (!Boolean.TRUE.equals(cfg.getAutoMarkNoShow())) {
+                                        showManual = true;
+                                }
+                                LocalDate est = bps.getEstimatedCheckInDate();
+                                LocalTime shopOpen = resolveShopOpenForNoShow(est);
+                                LocalDateTime appointmentStart = noShowAppointmentStartResolver.resolve(bps, svc, shopOpen);
+                                if (appointmentStart != null) {
+                                        if (earliestRef == null || appointmentStart.isBefore(earliestRef)) {
+                                                earliestRef = appointmentStart;
+                                        }
+                                }
+                                NoShowCheckInEvaluator.LineResult lr = NoShowCheckInEvaluator.evaluateLine(
+                                                now,
+                                                appointmentStart,
+                                                cfg,
+                                                bps.getId(),
+                                                svc.getCode(),
+                                                svc.getServiceName());
+                                LocalDateTime t0 = lr.appointmentStart();
+                                int graceMin = cfg.getGracePeriodMinutes() != null ? cfg.getGracePeriodMinutes() : 0;
+                                LocalDateTime graceEnd = t0 != null ? t0.plusMinutes(graceMin) : null;
+                                long minutesLate = 0L;
+                                if (t0 != null && now.isAfter(t0)) {
+                                        minutesLate = ChronoUnit.MINUTES.between(t0, now);
+                                }
+                                String appStartStr = t0 != null ? t0.atZone(NO_SHOW_ZONE).toOffsetDateTime().toString() : null;
+                                String graceEndStr = graceEnd != null ? graceEnd.atZone(NO_SHOW_ZONE).toOffsetDateTime().toString() : null;
+                                lines.add(new AdminNoShowLinePreview(
+                                                bps.getId(),
+                                                svc.getServiceName(),
+                                                cfg.getName(),
+                                                Boolean.TRUE.equals(cfg.getAutoMarkNoShow()),
+                                                graceMin,
+                                                Boolean.TRUE.equals(cfg.getAllowLateCheckin()),
+                                                cfg.getLateCheckinMinutes() != null ? cfg.getLateCheckinMinutes() : 0,
+                                                appStartStr,
+                                                graceEndStr,
+                                                minutesLate,
+                                                lr.outcome().name(),
+                                                lr.note()));
+                        }
+                }
+                String earliestStr = earliestRef != null
+                                ? earliestRef.atZone(NO_SHOW_ZONE).toOffsetDateTime().toString()
+                                : null;
+                return new AdminBookingNoShowPreviewResponse(eligible, showManual, lines, earliestStr);
+        }
+
+        private boolean isEligibleForNoShowActions(Booking booking) {
+                if (booking.getBookingCheckInDate() != null) {
+                        return false;
+                }
+                String st = booking.getStatus() != null ? booking.getStatus().toUpperCase() : "";
+                return List.of("PENDING", "CONFIRMED", "READY").contains(st);
+        }
+
+        private LocalTime resolveShopOpenForNoShow(LocalDate serviceDate) {
+                if (serviceDate == null) {
+                        return NoShowCheckInEvaluator.DEFAULT_SHOP_OPEN;
+                }
+                int dow = serviceDate.getDayOfWeek().getValue();
+                return shopOperationHourRepositoryPort
+                                .findByDayOfWeek(dow)
+                                .filter(h -> !Boolean.TRUE.equals(h.getIsDayOff()))
+                                .map(ShopOperationHour::getOpenTime)
+                                .filter(Objects::nonNull)
+                                .orElse(NoShowCheckInEvaluator.DEFAULT_SHOP_OPEN);
         }
 
         /** Ghi nhận ngày check-in thực tế trên từng booking_pet_service còn hiệu lực. */

@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -74,6 +75,54 @@ public class WorkShiftApplicationService implements WorkShiftService {
     private final WorkShiftBookingAssignmentHelper workShiftBookingAssignmentHelper;
 
     private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
+
+    /** Ngày để xếp &quot;trong tuần&quot; / tuần khác: actual check-in DV → ngày gửi dự kiến → ngày booking. */
+    private static LocalDate resolveWorkShiftWeekDate(BookingPetService bps, Booking booking) {
+        if (bps.getActualCheckInDate() != null) {
+            return bps.getActualCheckInDate();
+        }
+        if (bps.getEstimatedCheckInDate() != null) {
+            return bps.getEstimatedCheckInDate();
+        }
+        return booking != null ? booking.getBookingDateFrom() : null;
+    }
+
+    /**
+     * Tên nhân viên đã gán xử lý dòng dịch vụ (null nếu chưa có) — dùng để phân biệt lịch từ đặt chỗ vs. đã xếp NV vào ca.
+     */
+    private static String formatAssignedStaffNames(BookingPetService bps) {
+        if (bps.getAssignedStaff() == null || bps.getAssignedStaff().isEmpty()) {
+            return null;
+        }
+        return bps.getAssignedStaff().stream()
+                .map(StaffProfile::getFullName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+    }
+
+    /**
+     * Chỉ cho nút &quot;thêm vào ca&quot;: {@code booking_pet_service} ở {@code PENDING} hoặc {@code IN_PROGRESS}
+     * (không bắt check-in booking). Booking CANCELLED/COMPLETED hoặc dịch vụ không còn PENDING/IN_PROGRESS → false.
+     */
+    private static boolean canAssignBookingPetServiceToShift(BookingPetService bps, Booking booking) {
+        if (booking == null || bps == null) {
+            return false;
+        }
+        String bSt = booking.getStatus();
+        if (bSt == null) {
+            return false;
+        }
+        String bu = bSt.trim().toUpperCase(Locale.ROOT);
+        if ("CANCELLED".equals(bu) || "COMPLETED".equals(bu)) {
+            return false;
+        }
+        String ps = bps.getStatus();
+        if (ps == null || ps.isBlank()) {
+            return true;
+        }
+        String pu = ps.trim().toUpperCase(Locale.ROOT);
+        return "PENDING".equals(pu) || "IN_PROGRESS".equals(pu);
+    }
 
     /**
      * Template định mức cơ bản cho một ca theo 3 nhóm vai trò:
@@ -900,7 +949,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 continue;
             }
 
-            LocalDate bookingWeekDate = booking.getBookingDateFrom();
+            LocalDate bookingWeekDate = resolveWorkShiftWeekDate(bps, booking);
             if (bookingWeekDate == null) {
                 continue;
             }
@@ -909,6 +958,8 @@ public class WorkShiftApplicationService implements WorkShiftService {
                     bps.getService() != null && Boolean.TRUE.equals(bps.getService().getIsRequiredRoom());
             Integer requiredStaffCount =
                     bps.getService() != null ? bps.getService().getRequiredStaffCount() : null;
+            boolean canAssign = canAssignBookingPetServiceToShift(bps, booking);
+            String assignedStaffNames = formatAssignedStaffNames(bps);
             WorkShiftBookingPetServiceItemResponse item = new WorkShiftBookingPetServiceItemResponse(
                     bps.getId(),
                     booking.getBookingCode(),
@@ -923,7 +974,13 @@ public class WorkShiftApplicationService implements WorkShiftService {
                     bps.getScheduledEndTime(),
                     serviceRequiresRoom,
                     booking.getBookingCheckInDate(),
-                    requiredStaffCount);
+                    requiredStaffCount,
+                    booking.getStatus(),
+                    canAssign,
+                    booking.getBookingType() != null ? booking.getBookingType().name() : null,
+                    bps.getStatus(),
+                    booking.getBookingDateFrom(),
+                    assignedStaffNames);
 
             if (!bookingWeekDate.isBefore(weekStart) && !bookingWeekDate.isAfter(weekEnd)) {
                 inWeek.add(item);
@@ -948,8 +1005,8 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
-    public WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId) {
-        return workShiftBookingAssignmentHelper.getAssignOptionsForBookingPetService(bookingPetServiceId);
+    public WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId, Long shiftId) {
+        return workShiftBookingAssignmentHelper.getAssignOptionsForBookingPetService(bookingPetServiceId, shiftId);
     }
 
     @Override
@@ -958,6 +1015,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
         List<BookingPetService> overlapping =
                 bookingPetServiceRepository.findScheduledOverlappingShift(shift.getStartTime(), shift.getEndTime());
         return overlapping.stream()
+                .filter(bps -> bps.getAssignedStaff() != null && !bps.getAssignedStaff().isEmpty())
                 .map(bps -> {
                     Booking booking = bps.getBookingPet() != null ? bps.getBookingPet().getBooking() : null;
                     String assignedNames = null;
@@ -985,11 +1043,11 @@ public class WorkShiftApplicationService implements WorkShiftService {
     @Override
     @Transactional
     public void unassignBookingPetService(Long bookingPetServiceId) {
-        if (!bookingPetServiceRepository.isEligibleForWorkShiftAssignment(bookingPetServiceId, BookingTypeEnum.WALK_IN)) {
-            throw new IllegalStateException("booking_pet_service không đủ điều kiện thao tác.");
-        }
         BookingPetService bps = bookingPetServiceRepository.findByIdWithRelationsForWorkShiftAssign(bookingPetServiceId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking_pet_service #" + bookingPetServiceId));
+        if (bps.getStatus() != null && "CANCELLED".equalsIgnoreCase(bps.getStatus())) {
+            throw new IllegalStateException("Dịch vụ dòng này đã hủy, không thể gỡ xếp ca.");
+        }
         bps.setScheduledStartTime(null);
         bps.setScheduledEndTime(null);
         bps.getAssignedStaff().clear();

@@ -18,6 +18,7 @@ public interface ServiceMapper {
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     @Mapping(target = "isRequiredRoom", source = "isRequiredRoom")
+    @Mapping(target = "noShowConfigId", source = "noShowConfig.id")
     ServiceResponse toResponse(Service entity);
 
     @Mapping(target = "serviceId", source = "id")
@@ -35,6 +36,7 @@ public interface ServiceMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "comboItems", ignore = true)
     @Mapping(target = "pricingRules", ignore = true)
+    @Mapping(target = "noShowConfig", ignore = true)
     // basePrice is derived from ServicePricing (min active price) and should not be manually set via upsert
     @Mapping(target = "basePrice", ignore = true)
     @Mapping(target = "shortDescription", source = "shortDescription")

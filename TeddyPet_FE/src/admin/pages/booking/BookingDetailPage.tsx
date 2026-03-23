@@ -40,6 +40,8 @@ import {
   confirmCheckInWithReprice,
   cancelBookingPetService,
   cancelBookingPetServiceItem,
+  getAdminBookingNoShowPreview,
+  markAdminBookingManualNoShow,
 } from "../../api/booking.api";
 import {
   getBookingStatusLabel,
@@ -54,6 +56,8 @@ import type {
   AdminCheckInRepricePetInput,
   AdminCheckInRepricePreviewResponse,
   AdminCheckOutConfirmPetInput,
+  AdminCheckOutOvertimeInput,
+  AdminBookingNoShowPreviewResponse,
 } from "../../../types/booking.type";
 
 const formatCurrency = (v: number) =>
@@ -154,6 +158,7 @@ export const BookingDetailPage = () => {
 
   const [checkOutDialogOpen, setCheckOutDialogOpen] = useState(false);
   const [checkOutPets, setCheckOutPets] = useState<AdminCheckOutConfirmPetInput[]>([]);
+  const [checkOutOvertimeAdjustments, setCheckOutOvertimeAdjustments] = useState<AdminCheckOutOvertimeInput[]>([]);
   const [checkOutConfirmLoading, setCheckOutConfirmLoading] = useState(false);
 
   const [cancelDialog, setCancelDialog] = useState<{
@@ -171,6 +176,7 @@ export const BookingDetailPage = () => {
   });
 
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [noShowPreview, setNoShowPreview] = useState<AdminBookingNoShowPreviewResponse | null>(null);
 
   const activeLineItems = useMemo(() => {
     const services = (booking?.pets ?? []).flatMap((p) => (p.services ?? []));
@@ -187,6 +193,102 @@ export const BookingDetailPage = () => {
     if (active.length === 0) return false;
     return active.every((s) => (s?.status ?? "").toUpperCase() === "COMPLETED");
   }, [booking?.pets]);
+  const hasAnyActiveRoomService = useMemo(() => {
+    const services = (booking?.pets ?? []).flatMap((p) => p.services ?? []);
+    return services.some((s) => (s?.status ?? "").toUpperCase() !== "CANCELLED" && s?.isRequiredRoom === true);
+  }, [booking?.pets]);
+  const overdueRoomServices = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (booking?.pets ?? []).flatMap((pet) =>
+      (pet.services ?? [])
+        .filter((service) => {
+          if (!service || (service.status ?? "").toUpperCase() === "CANCELLED") return false;
+          if (!service.isRequiredRoom) return false;
+          if (!service.estimatedCheckOutDate) return false;
+          const d = new Date(service.estimatedCheckOutDate);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime() < today.getTime();
+        })
+        .map((service) => ({ pet, service }))
+    );
+  }, [booking?.pets]);
+
+  const checkoutPriceRows = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayMs = 1000 * 60 * 60 * 24;
+
+    const toMidnight = (v?: string) => {
+      if (!v) return null;
+      const d = new Date(v);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+
+    const nightsFromEstimated = (start?: string, end?: string) => {
+      const a = toMidnight(start);
+      const b = toMidnight(end);
+      if (!a || !b) return 1;
+      const diff = Math.floor((b.getTime() - a.getTime()) / dayMs);
+      return diff >= 1 ? diff : 1;
+    };
+
+    const activeServices = (booking?.pets ?? [])
+      .flatMap((p) => p.services ?? [])
+      .filter((s) => s && (s.status ?? "").toUpperCase() !== "CANCELLED");
+
+    return activeServices.map((service) => {
+      const beforeSubtotal = Number(service.subtotal ?? 0);
+      let afterSubtotal = beforeSubtotal;
+      let delta = 0;
+      let overdueNights = 0;
+
+      const requiredRoom = service.isRequiredRoom === true;
+      if (requiredRoom && service.estimatedCheckOutDate) {
+        const estimatedOut = toMidnight(service.estimatedCheckOutDate);
+        if (estimatedOut && estimatedOut.getTime() < today.getTime()) {
+          overdueNights = Math.max(0, Math.floor((today.getTime() - estimatedOut.getTime()) / dayMs));
+
+          const currentNights =
+            Number(service.numberOfNights ?? 0) >= 1
+              ? Number(service.numberOfNights)
+              : nightsFromEstimated(service.estimatedCheckInDate, service.estimatedCheckOutDate);
+
+          // Backend overtime uses unitPrice * newNights.
+          const unitPriceFromSubtotal = currentNights > 0 ? beforeSubtotal / currentNights : 0;
+          const unitPrice =
+            Number.isFinite(unitPriceFromSubtotal) && unitPriceFromSubtotal >= 0
+              ? unitPriceFromSubtotal
+              : Number(service.unitPrice ?? 0);
+
+          const newNights = currentNights + overdueNights;
+          afterSubtotal = unitPrice * newNights;
+          delta = afterSubtotal - beforeSubtotal;
+        }
+      }
+
+      const additionalChargeItems = (service.items ?? []).filter(
+        (i) => i && i.isActive !== false && String(i.itemType ?? "").toUpperCase() === "CHARGE"
+      );
+
+      return {
+        serviceId: Number(service.id),
+        serviceName: service.serviceName ?? "Dịch vụ",
+        requiredRoom,
+        beforeSubtotal,
+        afterSubtotal,
+        delta,
+        overdueNights,
+        additionalChargeCount: additionalChargeItems.length,
+      };
+    });
+  }, [booking?.pets]);
+
+  const manualNoShowLines = useMemo(
+    () => (noShowPreview?.lines ?? []).filter((l) => !l.autoMarkNoShow),
+    [noShowPreview]
+  );
 
   const canCancelLineItem = activeLineItems > 1;
 
@@ -221,16 +323,46 @@ export const BookingDetailPage = () => {
         const petsRes = await getAdminBookingPets(id);
         const pets = (petsRes.data ?? []) as any[];
         setBooking({ ...basic, pets } as any);
+        try {
+          const ns = await getAdminBookingNoShowPreview(id);
+          setNoShowPreview((ns.data as AdminBookingNoShowPreviewResponse | undefined) ?? null);
+        } catch {
+          setNoShowPreview(null);
+        }
       } else {
         setBooking(null);
+        setNoShowPreview(null);
       }
     } catch (error) {
       console.error(error);
       setBooking(null);
+      setNoShowPreview(null);
     } finally {
       setLoading(false);
     }
   }, [id]);
+
+  const handleMarkManualNoShow = useCallback(async () => {
+    if (!id) return;
+    if (
+      !window.confirm(
+        "Xác nhận đánh dấu no-show và hủy đơn đặt lịch này? Khách sẽ nhận email thông báo."
+      )
+    ) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await markAdminBookingManualNoShow(id);
+      toast.success("Đã hủy đơn do no-show.");
+      await fetchBooking();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.response?.data?.message || "Không thể đánh dấu no-show.");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [id, fetchBooking]);
 
   useEffect(() => {
     if (id) fetchBooking();
@@ -263,8 +395,12 @@ export const BookingDetailPage = () => {
   );
 
   const hasCheckedIn = Boolean(booking.bookingCheckInDate);
-  const hasCheckedOut = Boolean(booking.bookingCheckOutDate);
-  const checkOutDisabled = actionLoading || !allActiveServicesCompleted;
+  // Some records can carry bookingCheckOutDate while status is still IN_PROGRESS.
+  // Treat checkout as completed only when status is COMPLETED/CANCELLED.
+  const hasCheckedOut =
+    Boolean(booking.bookingCheckOutDate) &&
+    ["COMPLETED", "CANCELLED"].includes((booking.status ?? "").toUpperCase());
+  const checkOutDisabled = actionLoading || (!hasAnyActiveRoomService && !allActiveServicesCompleted);
 
   // (moved hooks above conditional returns)
 
@@ -305,11 +441,25 @@ export const BookingDetailPage = () => {
       departurePhotos: parsePhotoUrls(p.departurePhotos),
     }));
     setCheckOutPets(initialPets);
+    const overtimeInit: AdminCheckOutOvertimeInput[] = overdueRoomServices.map(({ service }) => ({
+      bookingPetServiceId: Number(service.id),
+      note: "",
+    }));
+    setCheckOutOvertimeAdjustments(overtimeInit);
     setCheckOutDialogOpen(true);
   };
 
   const setCheckOutPetInput = (petId: number, patch: Partial<AdminCheckOutConfirmPetInput>) => {
     setCheckOutPets((prev) => prev.map((p) => (p.petId === petId ? { ...p, ...patch } : p)));
+  };
+  const setCheckOutOvertimeInput = (bookingPetServiceId: number, note: string) => {
+    setCheckOutOvertimeAdjustments((prev) => {
+      const found = prev.find((x) => x.bookingPetServiceId === bookingPetServiceId);
+      if (found) {
+        return prev.map((x) => (x.bookingPetServiceId === bookingPetServiceId ? { ...x, note } : x));
+      }
+      return [...prev, { bookingPetServiceId, note }];
+    });
   };
 
   const handleCancelLineItem = async () => {
@@ -495,8 +645,53 @@ export const BookingDetailPage = () => {
             </Box>
           </Card>
 
-          {/* Actions: Check-in / Check-out — ghi nhận thời gian vào/ra (bookingCheckInDate, bookingCheckOutDate) */}
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2, flexWrap: "wrap" }}>
+          {/* Actions: No-show thủ công / Check-in / Check-out — ghi nhận thời gian vào/ra (bookingCheckInDate, bookingCheckOutDate) */}
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+            {!hasCheckedIn && booking.status !== "CANCELLED" && noShowPreview?.showManualNoShowButton && manualNoShowLines.length > 0 && (
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1.5}
+                alignItems={{ xs: "stretch", sm: "center" }}
+                sx={{
+                  mr: { sm: 1 },
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "warning.light",
+                  bgcolor: "rgba(255, 183, 77, 0.12)",
+                  maxWidth: { xs: "100%", sm: 520 },
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: "warning.dark", display: "block", mb: 0.5 }}>
+                    No-show (thủ công)
+                  </Typography>
+                  {noShowPreview?.earliestNoShowReferenceStartOffset && manualNoShowLines.length > 1 ? (
+                    <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mb: 0.75 }}>
+                      Mốc hẹn sớm nhất (nhiều dịch vụ):{" "}
+                      <strong>{formatDateTime(noShowPreview.earliestNoShowReferenceStartOffset)}</strong>
+                    </Typography>
+                  ) : null}
+                  {manualNoShowLines.map((line) => (
+                    <Typography key={line.bookingPetServiceId} variant="body2" sx={{ color: "text.secondary", fontSize: "0.8125rem" }}>
+                      <strong>{line.serviceName}</strong>
+                      {" — "}
+                      Trễ hiện tại: <strong>{line.minutesLateNow}</strong> phút · Grace tối đa: <strong>{line.gracePeriodMinutes}</strong> phút
+                      {line.allowLateCheckin ? ` · Cho phép muộn: ${line.lateCheckinMinutes} phút` : ""}
+                    </Typography>
+                  ))}
+                </Box>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  disabled={actionLoading}
+                  sx={{ minHeight: "2.75rem", fontSize: "0.875rem", fontWeight: 600, textTransform: "none", px: 2.5, whiteSpace: "nowrap" }}
+                  onClick={handleMarkManualNoShow}
+                >
+                  Đánh No-show
+                </Button>
+              </Stack>
+            )}
             {!hasCheckedIn && booking.status !== "CANCELLED" && (
               <Button
                 variant="outlined"
@@ -511,11 +706,11 @@ export const BookingDetailPage = () => {
             {booking.status !== "CANCELLED" && !hasCheckedOut && (
               <Tooltip
                 title={
-                  !allActiveServicesCompleted
-                    ? "Cần hoàn thành tất cả dịch vụ (booking_pet_service) trước khi check-out."
+                  !hasAnyActiveRoomService && !allActiveServicesCompleted
+                    ? "Booking không có dịch vụ phòng: cần hoàn thành tất cả dịch vụ không phòng trước khi check-out."
                     : ""
                 }
-                disableHoverListener={allActiveServicesCompleted}
+                disableHoverListener={hasAnyActiveRoomService || allActiveServicesCompleted}
               >
                 <span style={{ display: "inline-flex" }}>
                   <Button
@@ -992,6 +1187,113 @@ export const BookingDetailPage = () => {
                 <Typography sx={{ fontSize: "0.9375rem", color: "text.secondary", mb: 3, lineHeight: 1.6 }}>
                   Vui lòng cập nhật <b>Tình trạng khi về</b> và <b>Ảnh khi về</b>. Ảnh đồ đạc mang theo sẽ được hiển thị lại (không chỉnh sửa ở bước check-out).
                 </Typography>
+                {overdueRoomServices.length > 0 && (
+                  <Box sx={{ mb: 3, p: 2.5, borderRadius: "14px", border: "1px solid #FED7AA", bgcolor: "#FFFBEB" }}>
+                    <Typography sx={{ fontSize: "0.95rem", fontWeight: 800, color: "#9A3412", mb: 1.5 }}>
+                      Dịch vụ phòng quá hạn trả — xác nhận nội dung cộng thêm số đêm
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {overdueRoomServices.map(({ pet, service }) => {
+                        const estimated = service.estimatedCheckOutDate ? new Date(service.estimatedCheckOutDate) : null;
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const beforeSubtotal = Number(service.subtotal ?? 0);
+
+                        const dayMs = 1000 * 60 * 60 * 24;
+                        const overdueNights = (() => {
+                          if (!estimated) return 0;
+                          estimated.setHours(0, 0, 0, 0);
+                          return Math.max(0, Math.floor((today.getTime() - estimated.getTime()) / dayMs));
+                        })();
+
+                        const currentNights =
+                          Number(service.numberOfNights ?? 0) >= 1
+                            ? Number(service.numberOfNights)
+                            : (() => {
+                                if (!service.estimatedCheckInDate || !service.estimatedCheckOutDate) return 1;
+                                const checkIn = new Date(service.estimatedCheckInDate);
+                                const checkOut = new Date(service.estimatedCheckOutDate);
+                                checkIn.setHours(0, 0, 0, 0);
+                                checkOut.setHours(0, 0, 0, 0);
+                                const diff = Math.floor((checkOut.getTime() - checkIn.getTime()) / dayMs);
+                                return diff >= 1 ? diff : 1;
+                              })();
+
+                        const unitPrice = currentNights > 0 ? beforeSubtotal / currentNights : Number(service.unitPrice ?? 0);
+                        const overtimeAmount = overdueNights * unitPrice;
+                        const noteValue =
+                          checkOutOvertimeAdjustments.find((x) => x.bookingPetServiceId === Number(service.id))?.note ?? "";
+                        return (
+                          <Box key={service.id} sx={{ p: 1.5, borderRadius: "10px", border: "1px solid #FDE68A", bgcolor: "white" }}>
+                            <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: "#7C2D12", mb: 0.75 }}>
+                              {pet.petName} — {service.serviceName ?? "Dịch vụ phòng"} (#{service.id})
+                            </Typography>
+                            <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary", mb: 1 }}>
+                              Quá hạn {overdueNights} đêm × {formatCurrency(base)} = <strong>{formatCurrency(overtimeAmount)}</strong>
+                            </Typography>
+                            <TextField
+                              label="Nội dung thông báo cho dòng quá hạn này"
+                              value={noteValue}
+                              onChange={(e) => setCheckOutOvertimeInput(Number(service.id), e.target.value)}
+                              placeholder="Ví dụ: Khách lưu trú quá ngày so với dự kiến, cộng thêm số đêm quá hạn."
+                              fullWidth
+                              size="small"
+                            />
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                )}
+
+                <Box sx={{ mb: 3, p: 2.5, borderRadius: "14px", border: "1px solid rgba(145, 158, 171, 0.20)", bgcolor: "#FFFFFF" }}>
+                  <Typography sx={{ fontSize: "0.95rem", fontWeight: 900, color: "#1C252E", mb: 1.5 }}>
+                    Bảng giá dịch vụ (trước / sau check-out)
+                  </Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Dịch vụ</TableCell>
+                        <TableCell>Loại</TableCell>
+                        <TableCell align="right">Trước</TableCell>
+                        <TableCell align="right">Sau</TableCell>
+                        <TableCell align="right">Chênh lệch</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {checkoutPriceRows.map((row) => (
+                        <TableRow key={row.serviceId}>
+                          <TableCell>
+                            <Typography sx={{ fontWeight: 800, color: "#1C252E", fontSize: "0.9rem" }}>{row.serviceName}</Typography>
+                            {row.requiredRoom ? (
+                              row.overdueNights > 0 ? (
+                                <Typography sx={{ fontSize: "0.78rem", color: "#9A3412", fontWeight: 700 }}>
+                                  Phát sinh quá hạn: +{row.overdueNights} đêm
+                                </Typography>
+                              ) : (
+                                <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>Không có cộng thêm đêm</Typography>
+                              )
+                            ) : (
+                              <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                                Additional charge hiện có: {row.additionalChargeCount}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>{row.requiredRoom ? "isRequiredRoom=true" : "isRequiredRoom=false"}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.beforeSubtotal)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.afterSubtotal)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 900, color: row.delta > 0 ? "#B71D18" : "text.secondary" }}>
+                            {row.delta >= 0 ? "+" : ""}
+                            {formatCurrency(row.delta)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <Typography sx={{ mt: 1, fontSize: "0.78rem", color: "text.secondary" }}>
+                    Phần cộng thêm áp dụng cho dịch vụ yêu cầu phòng khi ngày trả dự kiến sớm hơn ngày hiện tại.
+                  </Typography>
+                </Box>
 
                 <Stack spacing={2.5}>
                   {(booking.pets ?? []).map((p) => {
@@ -1062,7 +1364,10 @@ export const BookingDetailPage = () => {
                   if (!id) return;
                   setCheckOutConfirmLoading(true);
                   try {
-                    await checkOutBooking(id, { pets: checkOutPets });
+                    await checkOutBooking(id, {
+                      pets: checkOutPets,
+                      overtimeAdjustments: checkOutOvertimeAdjustments,
+                    });
                     setCheckOutDialogOpen(false);
                     await fetchBooking();
                   } catch (e) {

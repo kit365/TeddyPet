@@ -211,11 +211,19 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendBookingCancelledEmail(String to, String bookingCode) {
+        sendBookingCancelledEmail(to, bookingCode, null);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingCancelledEmail(String to, String bookingCode, String cancellationReason) {
         log.info("Sending booking cancelled email to {}", to);
         String subject = String.format("[%s] Đơn đặt lịch #%s đã bị hủy", appName, bookingCode);
 
         Context context = prepareContext();
         context.setVariable("bookingCode", bookingCode);
+        context.setVariable("cancellationReason", cancellationReason);
         context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
 
         String htmlBody = templateEngine.process("email/bookings/booking-cancelled", context);
@@ -283,6 +291,21 @@ public class EmailServiceAdapter implements EmailServicePort {
         context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
 
         String htmlBody = templateEngine.process("email/bookings/refund-rejected", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendBookingCheckOutThankYouEmail(String to, String bookingCode) {
+        log.info("Sending booking checkout thank-you email to {}", to);
+        String subject = String.format("[%s] Cảm ơn bạn đã sử dụng dịch vụ - Booking #%s", appName, bookingCode);
+
+        Context context = prepareContext();
+        context.setVariable("bookingCode", bookingCode);
+        context.setVariable("detailUrl", frontendUrl + "/dat-lich/chi-tiet-don/" + bookingCode);
+
+        String htmlBody = templateEngine.process("email/bookings/checkout-thank-you", context);
         self.sendHtmlEmail(to, subject, htmlBody);
     }
 

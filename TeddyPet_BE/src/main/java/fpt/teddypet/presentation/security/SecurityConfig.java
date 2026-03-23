@@ -102,8 +102,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/bookings/shift-coverage").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/bookings/code/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/bookings/code/*/contact").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/bookings/code/*/services/*/review").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings/code/*/cancel").permitAll()
                         // Booking: policy hoàn cọc public cho khách xem khi hủy đơn
+                        .requestMatchers(HttpMethod.GET, "/api/no-show-config/by-service/*")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/booking-deposit-refund-policies", "/api/booking-deposit-refund-policies/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/booking-refund-policies", "/api/booking-refund-policies/**")

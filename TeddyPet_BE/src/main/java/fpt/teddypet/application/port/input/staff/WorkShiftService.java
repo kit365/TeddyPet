@@ -114,8 +114,11 @@ public interface WorkShiftService {
      */
     void assignBookingPetServiceToShiftAuto(Long bookingPetServiceId, java.util.List<Long> staffIds);
 
-    /** Admin: Xem trước ca đích + SL NV yêu cầu + danh sách NV trong ca (không ghi DB). */
-    WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId);
+    /**
+     * Admin: Xem trước ca đích + SL NV yêu cầu + danh sách NV trong ca (không ghi DB).
+     * {@code shiftId} null: tự resolve ca; có giá trị: admin chọn ca (phải khớp ngày + buổi / overlap).
+     */
+    WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId, Long shiftId);
 
     /** Admin: Danh sách booking_pet_service đã xếp lịch (overlap thời gian với ca). */
     List<WorkShiftAssignedBookingPetServiceResponse> getBookingPetServicesAssignedToShift(Long shiftId);

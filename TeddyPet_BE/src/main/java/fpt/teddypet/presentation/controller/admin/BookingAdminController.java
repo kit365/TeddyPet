@@ -9,6 +9,7 @@ import fpt.teddypet.application.dto.request.bookings.AdminCheckInRepricePreviewR
 import fpt.teddypet.application.dto.request.bookings.AdminCheckOutConfirmRequest;
 import fpt.teddypet.application.dto.request.bookings.CancelBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
+import fpt.teddypet.application.dto.response.bookings.AdminBookingNoShowPreviewResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
@@ -254,6 +255,22 @@ public class BookingAdminController {
             @Valid @RequestBody fpt.teddypet.application.dto.request.bookings.UpdateBookingInternalNotesRequest request
     ) {
         AdminBookingListItemResponse data = bookingAdminService.updateInternalNotes(bookingId, request);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/{bookingId}/no-show/preview")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
+    @Operation(summary = "Preview no-show: phút trễ / grace (màn chi tiết đặt lịch)")
+    public ResponseEntity<ApiResponse<AdminBookingNoShowPreviewResponse>> getNoShowPreview(@PathVariable Long bookingId) {
+        AdminBookingNoShowPreviewResponse data = bookingAdminService.getNoShowPreview(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{bookingId}/no-show/mark")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
+    @Operation(summary = "Đánh dấu no-show thủ công (khi không bật tự động đánh dấu)")
+    public ResponseEntity<ApiResponse<AdminBookingListItemResponse>> markManualNoShow(@PathVariable Long bookingId) {
+        AdminBookingListItemResponse data = bookingAdminService.markManualNoShow(bookingId);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 }

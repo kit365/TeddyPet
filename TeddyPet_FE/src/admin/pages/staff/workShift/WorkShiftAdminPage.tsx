@@ -22,12 +22,20 @@ import {
     useRejectLeaveRequest, 
     useFinalizeShiftApprovals, 
     useCancelAdminRegistration, 
-    useAssignableBookingPetServices, 
+    useAssignableBookingPetServices,
+    useAssignedBookingPetServicesForShift,
     useAssignBookingPetServiceToShift, 
     useUnassignBookingPetService 
 } from '../hooks/useWorkShift';
 import { toast } from 'react-toastify';
-import type { IWorkShift, IWorkShiftRegistration, IOpenShiftRequest, IAvailableShiftForStaff, IWorkShiftBookingPetServiceItem } from '../../../api/workShift.api';
+import type {
+    IWorkShift,
+    IWorkShiftRegistration,
+    IOpenShiftRequest,
+    IAvailableShiftForStaff,
+    IWorkShiftBookingPetServiceItem,
+    IWorkShiftAssignedBookingPetServiceItem,
+} from '../../../api/workShift.api';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -39,17 +47,32 @@ import { getStaffPositions } from '../../../api/staffPosition.api';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import CircularProgress from '@mui/material/CircularProgress';
 import CloseIcon from '@mui/icons-material/Close';
 import { AlertTriangle, CalendarClock, UserPlus } from 'lucide-react';
-import type { IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
+import { getAssignOptionsForBookingPetService, type IShiftRoleConfigItemRequest } from '../../../api/workShift.api';
 import DashboardCard from '../../../components/dashboard/DashboardCard';
 import { Icon } from '@iconify/react';
 
 /** Số cột ngày trên lưới (= số ngày tối đa trong khoảng Từ–Đến). */
 const VIEW_DAY_COUNT = 7;
 
-/** Cột trạng thái xếp ca: dịch vụ cần phòng → hiển thị thời điểm check-in booking; không thì khung giờ đã xếp ca. */
+/** Đã xếp nhân viên vào ca (booking_pet_service_staff) — khác với chỉ có khung giờ từ đặt lịch. */
+function isWorkShiftStaffAssigned(item: IWorkShiftBookingPetServiceItem): boolean {
+    return !!(item.assignedStaffNames && String(item.assignedStaffNames).trim());
+}
+
+/** Cột trạng thái: check-in / lịch đặt / đã xếp NV vào ca (xanh chỉ khi đã có NV). */
 function renderBookingPetServiceShiftStatusChip(item: IWorkShiftBookingPetServiceItem) {
+    const hasSlot = !!(item.scheduledStartTime && item.scheduledEndTime);
+    const staffOk = isWorkShiftStaffAssigned(item);
+    const slotLabel =
+        hasSlot
+            ? `${dayjs(item.scheduledStartTime).format('HH:mm')} - ${dayjs(item.scheduledEndTime).format('HH:mm')}`
+            : '';
+
     if (item.serviceRequiresRoom) {
         if (item.bookingCheckInDate) {
             return (
@@ -59,6 +82,32 @@ function renderBookingPetServiceShiftStatusChip(item: IWorkShiftBookingPetServic
                         variant="outlined"
                         color="primary"
                         label={dayjs(item.bookingCheckInDate).format('DD/MM/YYYY HH:mm')}
+                        sx={{ fontWeight: 700, fontSize: '11px' }}
+                    />
+                </Tooltip>
+            );
+        }
+        if (hasSlot && staffOk) {
+            return (
+                <Tooltip title="Đã xếp nhân viên vào ca (chờ khách check-in tại lễ tân nếu cần)">
+                    <Chip
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        label={slotLabel}
+                        sx={{ fontWeight: 700, fontSize: '11px' }}
+                    />
+                </Tooltip>
+            );
+        }
+        if (hasSlot && !staffOk) {
+            return (
+                <Tooltip title="Có khung giờ (từ đặt lịch / hệ thống) — chưa xếp nhân viên vào ca làm">
+                    <Chip
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        label={`${slotLabel} · chưa xếp NV`}
                         sx={{ fontWeight: 700, fontSize: '11px' }}
                     />
                 </Tooltip>
@@ -74,18 +123,54 @@ function renderBookingPetServiceShiftStatusChip(item: IWorkShiftBookingPetServic
             />
         );
     }
-    if (item.scheduledStartTime && item.scheduledEndTime) {
+    if (hasSlot && staffOk) {
         return (
-            <Chip
-                size="small"
-                variant="outlined"
-                color="success"
-                label={`${dayjs(item.scheduledStartTime).format('HH:mm')} - ${dayjs(item.scheduledEndTime).format('HH:mm')}`}
-                sx={{ fontWeight: 700, fontSize: '11px' }}
-            />
+            <Tooltip title="Đã xếp nhân viên vào ca">
+                <Chip
+                    size="small"
+                    variant="outlined"
+                    color="success"
+                    label={slotLabel}
+                    sx={{ fontWeight: 700, fontSize: '11px' }}
+                />
+            </Tooltip>
+        );
+    }
+    if (hasSlot && !staffOk) {
+        return (
+            <Tooltip title="Khung giờ từ đặt lịch — bấm + để xếp nhân viên vào ca">
+                <Chip
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    label={`${slotLabel} · chưa xếp NV`}
+                    sx={{ fontWeight: 700, fontSize: '11px' }}
+                />
+            </Tooltip>
         );
     }
     return <Chip size="small" variant="outlined" color="default" label="Chưa xếp" sx={{ fontWeight: 700, fontSize: '11px' }} />;
+}
+
+/** Nhãn hiển thị loại đặt chỗ (Booking.bookingType) */
+function formatBookingTypeLabel(t?: string | null): string {
+    if (!t) return '—';
+    const map: Record<string, string> = {
+        ONLINE: 'Online',
+        WALK_IN: 'Tại quầy',
+        PHONE: 'Điện thoại',
+        APP: 'App',
+        ON_WEBSITE: 'Website',
+        SPA_CARE: 'Spa care',
+        HOTEL_DOG: 'Khách sạn chó',
+        HOTEL_CAT: 'Khách sạn mèo',
+    };
+    return map[t] ?? t;
+}
+
+function formatBookingPetServiceStatusLabel(s?: string | null): string {
+    if (s == null || String(s).trim() === '') return '—';
+    return String(s).trim();
 }
 
 /** Nhãn thứ theo lịch JS: 0=CN, 1=T2, …, 6=T7 */
@@ -191,6 +276,27 @@ function formatTimeRange(start: string, end: string): string {
     return `${dayjs(start).format('HH:mm')}-${dayjs(end).format('HH:mm')}`;
 }
 
+/** Ngày đặt / ngày xếp tuần để ghép ca sáng–chiều */
+function resolveBookingDayForAssign(item: IWorkShiftBookingPetServiceItem): string | null {
+    return item.bookingPlacedDate || item.bookingDateFrom || null;
+}
+
+/** Ca sáng (slot 0) & chiều (slot 1) trong ngày — theo danh sách ca admin */
+function partitionShiftsBySlotForDay(allShifts: IWorkShift[], dayIso: string | null | undefined) {
+    const empty = { morning: null as IWorkShift | null, afternoon: null as IWorkShift | null };
+    if (!dayIso) return empty;
+    const d = dayjs(dayIso).format('YYYY-MM-DD');
+    const list = allShifts.filter((s) => dayjs(s.startTime).format('YYYY-MM-DD') === d);
+    let morning: IWorkShift | null = null;
+    let afternoon: IWorkShift | null = null;
+    for (const s of list) {
+        const si = getSlotIndex(s.startTime);
+        if (si === 0 && !morning) morning = s;
+        if (si === 1 && !afternoon) afternoon = s;
+    }
+    return { morning, afternoon };
+}
+
 /** Lấy thông báo lỗi từ response 4xx/5xx (backend trả ApiResponse với field message) */
 function getErrorMessage(err: any, fallback: string): string {
     const data = err?.response?.data;
@@ -254,7 +360,9 @@ export const WorkShiftAdminPage = () => {
     const [createStart, setCreateStart] = useState<string>('');
     const [createEnd, setCreateEnd] = useState<string>('');
     const [showCreate, setShowCreate] = useState(false);
+    /** Ca đang chọn để xếp booking (giữ sau khi đóng popup — không gộp với trạng thái mở modal). */
     const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
+    const [shiftDetailDialogOpen, setShiftDetailDialogOpen] = useState(false);
     const [editShift, setEditShift] = useState<{ shiftId: number; startTime: string; endTime: string } | null>(null);
     const [editStart, setEditStart] = useState<string>('');
     const [editEnd, setEditEnd] = useState<string>('');
@@ -264,7 +372,18 @@ export const WorkShiftAdminPage = () => {
     const [roleConfigSlots, setRoleConfigSlots] = useState<Record<number, number>>({});
     /** Chế độ chỉnh sửa định mức: false = read-only, true = cho phép sửa và hiện "Lưu định mức" */
     const [isEditingQuota, setIsEditingQuota] = useState(false);
+    /** Xác nhận khi đặt định mức về 0 để loại vai trò khỏi ca */
+    const [pendingRemoveRole, setPendingRemoveRole] = useState<{ positionId: number; positionName: string } | null>(
+        null
+    );
     const [recentlyDeletedCells, setRecentlyDeletedCells] = useState<string[]>([]);
+    /** Popup xếp BPS: chọn buổi → chọn NV (theo kỹ năng từ API) */
+    const [assignBpsDialog, setAssignBpsDialog] = useState<{
+        item: IWorkShiftBookingPetServiceItem;
+        step: 'slot' | 'staff';
+        shiftId?: number;
+    } | null>(null);
+    const [assignStaffSelection, setAssignStaffSelection] = useState<number[]>([]);
 
     const queryClient = useQueryClient();
     const { data: shifts = [], isLoading } = useShiftsForAdmin(from, to);
@@ -276,6 +395,8 @@ export const WorkShiftAdminPage = () => {
         setTo(dayjs(to).add(deltaWeeks * 7, 'day').toISOString());
     };
     const { data: registrations = [], isLoading: regLoading } = useRegistrationsForShift(selectedShiftId);
+    const { data: shiftAssignedBps = [], isLoading: shiftAssignedBpsLoading } =
+        useAssignedBookingPetServicesForShift(shiftDetailDialogOpen ? selectedShiftId : null);
     const { data: roleConfigs = [] } = useShiftRoleConfigs(selectedShiftId);
     const { data: positionsData } = useQuery({
         queryKey: ['staff-positions'],
@@ -300,6 +421,32 @@ export const WorkShiftAdminPage = () => {
     const { data: bookingPetServicePool } = useAssignableBookingPetServices(from, to);
     const { mutate: assignBookingPetService, isPending: assigningBookingPetService } = useAssignBookingPetServiceToShift();
     const { mutate: unassignBookingPetService, isPending: unassigningBookingPetService } = useUnassignBookingPetService();
+
+    const {
+        data: assignOptionsPayload,
+        isLoading: assignOptionsLoading,
+        isError: assignOptionsIsError,
+        error: assignOptionsErrObj,
+    } = useQuery({
+        queryKey: ['bps-assign-options', assignBpsDialog?.item?.bookingPetServiceId, assignBpsDialog?.shiftId],
+        queryFn: async () => {
+            const res = await getAssignOptionsForBookingPetService(
+                assignBpsDialog!.item!.bookingPetServiceId,
+                assignBpsDialog!.shiftId!
+            );
+            if (!res.success || res.data == null) {
+                throw new Error(res.message || 'Không tải được danh sách nhân viên');
+            }
+            return res.data;
+        },
+        enabled: !!assignBpsDialog && assignBpsDialog.step === 'staff' && assignBpsDialog.shiftId != null,
+    });
+
+    const assignDayPartition = useMemo(() => {
+        if (!assignBpsDialog) return { morning: null as IWorkShift | null, afternoon: null as IWorkShift | null };
+        const day = resolveBookingDayForAssign(assignBpsDialog.item);
+        return partitionShiftsBySlotForDay(shifts as IWorkShift[], day);
+    }, [assignBpsDialog, shifts]);
 
     // Hiển thị lỗi từ mutation (đảm bảo toast hiện khi backend trả 400, kể cả khi onError không chạy)
     useEffect(() => {
@@ -352,7 +499,18 @@ export const WorkShiftAdminPage = () => {
     /** Khi mở/đổi ca khác: luôn về chế độ read-only */
     useEffect(() => {
         setIsEditingQuota(false);
+        setPendingRemoveRole(null);
     }, [selectedShiftId]);
+
+    /** Đổi tuần / xóa ca: nếu ca đã chọn không còn trong danh sách thì bỏ chọn */
+    useEffect(() => {
+        if (selectedShiftId == null) return;
+        const exists = (shifts as IWorkShift[]).some((s: IWorkShift) => s.shiftId === selectedShiftId);
+        if (!exists) {
+            setSelectedShiftId(null);
+            setShiftDetailDialogOpen(false);
+        }
+    }, [shifts, selectedShiftId]);
 
     /** Số nhân viên đã duyệt (APPROVED) theo tên vai trò – hiển thị "Đã duyệt: X/Y"; trước khi Duyệt lần cuối thì = 0. */
     const approvedCountByRoleName = useMemo(() => {
@@ -430,10 +588,10 @@ export const WorkShiftAdminPage = () => {
         return approvedCount + pendingLeaveCount < maxSlots;
     };
 
-    const handleSaveRoleConfigs = () => {
+    const submitRoleConfigs = (slots: Record<number, number>) => {
         if (!selectedShiftId) return;
-        const configs: IShiftRoleConfigItemRequest[] = Object.entries(roleConfigSlots)
-            .filter(([, slots]) => slots >= 1)
+        const configs: IShiftRoleConfigItemRequest[] = Object.entries(slots)
+            .filter(([, s]) => s >= 1)
             .map(([positionId, maxSlots]) => ({ positionId: Number(positionId), maxSlots }));
         setRoleConfigs(
             { shiftId: selectedShiftId, configs },
@@ -449,6 +607,37 @@ export const WorkShiftAdminPage = () => {
                 },
             }
         );
+    };
+
+    const handleSaveRoleConfigs = () => {
+        submitRoleConfigs(roleConfigSlots);
+    };
+
+    /** Đặt định mức về 0: nếu trước đó ≥1 thì hỏi xác nhận loại vai trò khỏi ca (không cập nhật state cho đến khi xác nhận). */
+    const handleRoleQuotaInputChange = (p: { id: number; name: string }, rawValue: string) => {
+        const prev = roleConfigSlots[p.id] ?? 0;
+        if (rawValue === '') {
+            return;
+        }
+        const v = parseInt(rawValue, 10);
+        if (Number.isNaN(v)) return;
+        const clamped = Math.min(99, Math.max(0, v));
+        if (clamped === 0 && prev >= 1) {
+            setPendingRemoveRole({ positionId: p.id, positionName: p.name });
+            return;
+        }
+        setRoleConfigSlots((prevState) => ({
+            ...prevState,
+            [p.id]: clamped,
+        }));
+    };
+
+    const handleConfirmRemoveRoleFromShift = () => {
+        if (!pendingRemoveRole) return;
+        const next = { ...roleConfigSlots, [pendingRemoveRole.positionId]: 0 };
+        setPendingRemoveRole(null);
+        setRoleConfigSlots(next);
+        submitRoleConfigs(next);
     };
 
     const handleCreate = () => {
@@ -581,6 +770,54 @@ export const WorkShiftAdminPage = () => {
                 toast.error(getErrorMessage(err, 'Hủy ca thất bại'));
             },
         });
+    };
+
+    const toggleAssignStaff = (staffId: number) => {
+        setAssignStaffSelection((prev) =>
+            prev.includes(staffId) ? prev.filter((x) => x !== staffId) : [...prev, staffId]
+        );
+    };
+
+    const handleConfirmAssignBpsToShift = () => {
+        const data = assignOptionsPayload;
+        if (!assignBpsDialog || !data) return;
+        const required = data.requiredStaffCount;
+        const participating = data.participatingStaff ?? [];
+        const shortage = data.shortage;
+        const sel = assignStaffSelection;
+        let ok = false;
+        if (shortage) {
+            ok = sel.length === participating.length && participating.length > 0;
+        } else {
+            ok = sel.length === required;
+        }
+        if (!ok) {
+            toast.error(
+                shortage
+                    ? `Cần chọn đủ ${participating.length} nhân viên trong ca (thiếu so với định mức dịch vụ).`
+                    : `Cần chọn đúng ${required} nhân viên.`
+            );
+            return;
+        }
+        assignBookingPetService(
+            {
+                shiftId: assignBpsDialog.shiftId!,
+                bookingPetServiceId: assignBpsDialog.item.bookingPetServiceId,
+                staffIds: sel,
+            },
+            {
+                onSuccess: (res: any) => {
+                    if (res?.success !== false) {
+                        toast.success('Đã thêm vào ca.');
+                        setAssignBpsDialog(null);
+                        setAssignStaffSelection([]);
+                    } else toast.error(res?.message ?? 'Lỗi');
+                },
+                onError: (err: any) => {
+                    toast.error(err?.response?.data?.message ?? err?.message ?? 'Xếp ca thất bại');
+                },
+            }
+        );
     };
 
     /** Trạng thái ca đang xem trong modal (OPEN = còn duyệt lần cuối được, ASSIGNED = đã khóa) */
@@ -981,6 +1218,15 @@ export const WorkShiftAdminPage = () => {
                                         <Box key={shift.shiftId} sx={{ p: 1, height: 125, borderRight: (theme) => `1px solid ${theme.palette.divider}`, '&:last-of-type': { borderRight: 0 } }}>
                                             <Paper
                                                 elevation={0}
+                                                onClick={() => setSelectedShiftId(shift.shiftId)}
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        setSelectedShiftId(shift.shiftId);
+                                                    }
+                                                }}
                                                 sx={{
                                                     p: 1.5,
                                                     height: '100%',
@@ -990,13 +1236,21 @@ export const WorkShiftAdminPage = () => {
                                                     flexDirection: 'column',
                                                     justifyContent: 'space-between',
                                                     bgcolor: 'background.paper',
-                                                    border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                                                    cursor: 'pointer',
+                                                    outline: 'none',
+                                                    border: (theme) =>
+                                                        selectedShiftId === shift.shiftId
+                                                            ? `2px solid ${theme.palette.primary.main}`
+                                                            : `1px solid ${alpha(theme.palette.divider, 0.8)}`,
                                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                                     '&:hover': {
                                                         boxShadow: (theme) => theme.shadows?.[12] ?? '0 12px 24px -4px rgba(145, 158, 171, 0.12)',
                                                         transform: 'translateY(-2px)',
-                                                        borderColor: (theme) => theme.palette[statusColor].main
-                                                    }
+                                                        borderColor: (theme) =>
+                                                            selectedShiftId === shift.shiftId
+                                                                ? theme.palette.primary.main
+                                                                : theme.palette[statusColor].main,
+                                                    },
                                                 }}
                                             >
                                                 {/* Card Actions (Hover only) */}
@@ -1058,7 +1312,11 @@ export const WorkShiftAdminPage = () => {
                                                         fullWidth
                                                         size="small"
                                                         variant="text"
-                                                        onClick={() => setSelectedShiftId(shift.shiftId)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedShiftId(shift.shiftId);
+                                                            setShiftDetailDialogOpen(true);
+                                                        }}
                                                         endIcon={<Icon icon="eva:arrow-forward-fill" />}
                                                         sx={{ 
                                                             justifyContent: 'space-between', 
@@ -1091,19 +1349,25 @@ export const WorkShiftAdminPage = () => {
                                     Danh sách booking dịch vụ trong tuần
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                                    Điều kiện: đặt online — đã cọc và đã xác nhận; đặt tại quầy (Walk-in) hoặc loại trống — chỉ cần đã check-in (không bắt cọc).
+                                    Điều kiện hiển thị: đặt online — <strong>thanh toán cọc thành công</strong>; đặt tại quầy (Walk-in) hoặc loại trống — booking chưa hủy / hoàn thành (không bắt cọc).
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                    &quot;Trong tuần&quot; = theo <strong>actualCheckInDate</strong> (ngày check-in thực tế trên từng booking_pet_service, ghi khi xác nhận check-in); nếu chưa có thì fallback ngày đặt / dự kiến. Ngày này nằm trong khoảng <strong>Từ — Đến</strong>.
+                                    &quot;Trong tuần&quot; = theo <strong>actualCheckInDate</strong> trên dịch vụ → <strong>estimatedCheckInDate</strong> → ngày booking; nằm trong khoảng <strong>Từ — Đến</strong>. Nút thêm vào ca chỉ áp dụng khi dịch vụ (booking_pet_service) đang <strong>PENDING</strong> hoặc <strong>IN_PROGRESS</strong> (không bắt check-in booking).
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', mt: 0.75, fontWeight: 600 }}>
+                                    Bấm <strong>+</strong>: hệ thống lấy <strong>ngày đặt</strong> của booking để ghép ca sáng/chiều trên lưới, sau đó chọn nhân viên có kỹ năng phù hợp dịch vụ (ca <strong>Đang tuyển</strong> hoặc <strong>Đã khóa</strong>).
                                 </Typography>
                             </Box>
 
                             <Box sx={{ overflowX: 'auto', flex: 1 }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
                                     <thead style={{ backgroundColor: alpha('#919EAB', 0.08) }}>
                                         <tr>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700, borderRadius: '8px 0 0 8px' }}>Booking</th>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Dịch vụ</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Loại đặt</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Ngày đặt</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Trạng thái DV</th>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Trạng thái xếp ca</th>
                                             <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 700, borderRadius: '0 8px 8px 0' }}>Thao tác</th>
                                         </tr>
@@ -1111,10 +1375,12 @@ export const WorkShiftAdminPage = () => {
                                     <tbody>
                                         {((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking trong tuần này.</td>
+                                                <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking trong tuần này.</td>
                                             </tr>
                                         ) : (
-                                            ((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
+                                            ((bookingPetServicePool?.inWeek ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => {
+                                                const isAssignedToShift = isWorkShiftStaffAssigned(item);
+                                                return (
                                                 <tr key={item.bookingPetServiceId} style={{ borderBottom: `1px dashed ${alpha('#919EAB', 0.2)}` }}>
                                                     <td style={{ padding: '12px' }}>
                                                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.bookingCode}</Typography>
@@ -1124,29 +1390,60 @@ export const WorkShiftAdminPage = () => {
                                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.serviceName || '-'}</Typography>
                                                         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{item.petName || '-'}</Typography>
                                                     </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                                            {formatBookingTypeLabel(item.bookingType)}
+                                                        </Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                                                            {item.bookingPlacedDate ? dayjs(item.bookingPlacedDate).format('DD/MM/YYYY') : '—'}
+                                                        </Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                                            {formatBookingPetServiceStatusLabel(item.bookingPetServiceStatus)}
+                                                        </Typography>
+                                                    </td>
                                                     <td style={{ padding: '12px' }}>{renderBookingPetServiceShiftStatusChip(item)}</td>
                                                     <td style={{ padding: '12px', textAlign: 'right' }}>
                                                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                                                            <Tooltip title="Thêm vào ca đã chọn">
+                                                            {!isAssignedToShift && (
+                                                            <Tooltip title={
+                                                                item.canAssignToShift === false
+                                                                    ? 'Chỉ thêm được khi dịch vụ (booking_pet_service) đang PENDING hoặc IN_PROGRESS'
+                                                                    : 'Xếp vào ca (chọn buổi sáng/chiều theo ngày đặt, rồi chọn nhân viên)'
+                                                            }>
                                                                 <IconButton 
                                                                     size="small" 
                                                                     color="primary"
-                                                                    disabled={!selectedShiftId || assigningBookingPetService}
+                                                                    disabled={assigningBookingPetService}
                                                                     onClick={() => {
-                                                                        assignBookingPetService(
-                                                                            { shiftId: selectedShiftId!, bookingPetServiceId: item.bookingPetServiceId },
-                                                                            { onSuccess: (res: any) => res?.success !== false ? toast.success('Đã thêm vào ca.') : toast.error(res?.message ?? 'Lỗi.') }
-                                                                        );
+                                                                        if (item.canAssignToShift === false) {
+                                                                            toast.warning(
+                                                                                'Đơn dịch vụ đã bị hủy hoặc hoàn thành trước đó nên không thể thêm vào ca làm được.'
+                                                                            );
+                                                                            return;
+                                                                        }
+                                                                        const day = resolveBookingDayForAssign(item);
+                                                                        if (!day) {
+                                                                            toast.error('Không có ngày đặt để ghép ca. Kiểm tra ngày đặt trên booking.');
+                                                                            return;
+                                                                        }
+                                                                        setAssignStaffSelection([]);
+                                                                        setAssignBpsDialog({ item, step: 'slot' });
                                                                     }}
                                                                 >
                                                                     <Icon icon="solar:add-circle-bold-duotone" width={20} />
                                                                 </IconButton>
                                                             </Tooltip>
-                                                            <Tooltip title="Gỡ khỏi ca">
+                                                            )}
+                                                            <Tooltip title={isAssignedToShift ? 'Gỡ khỏi ca' : 'Chưa xếp ca — không có gì để gỡ'}>
+                                                                <span>
                                                                 <IconButton 
                                                                     size="small" 
                                                                     color="error"
-                                                                    disabled={unassigningBookingPetService}
+                                                                    disabled={unassigningBookingPetService || !isAssignedToShift}
                                                                     onClick={() => {
                                                                         unassignBookingPetService(item.bookingPetServiceId, {
                                                                             onSuccess: (res: any) => res?.success !== false ? toast.success('Đã gỡ khỏi ca.') : toast.error(res?.message ?? 'Lỗi.')
@@ -1155,11 +1452,13 @@ export const WorkShiftAdminPage = () => {
                                                                 >
                                                                     <Icon icon="solar:minus-circle-bold-duotone" width={20} />
                                                                 </IconButton>
+                                                                </span>
                                                             </Tooltip>
                                                         </Stack>
                                                     </td>
                                                 </tr>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
@@ -1174,25 +1473,28 @@ export const WorkShiftAdminPage = () => {
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                                     Danh sách đợi xếp lịch (Tuần khác)
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    Đủ điều kiện nhưng <strong>actualCheckInDate</strong> (hoặc ngày fallback) <strong>ngoài</strong> khoảng Từ — Đến.
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                    Cùng điều kiện lọc với bảng bên; ngày xếp tuần (actual → dự kiến → booking) <strong>ngoài</strong> khoảng Từ — Đến.
                                 </Typography>
                             </Box>
 
                             <Box sx={{ overflowX: 'auto', flex: 1 }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
                                     <thead style={{ backgroundColor: alpha('#919EAB', 0.08) }}>
                                         <tr>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700, borderRadius: '8px 0 0 8px' }}>Booking</th>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Khách / Thú cưng</th>
                                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Dịch vụ</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Loại đặt</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Ngày đặt</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: 700 }}>Trạng thái DV</th>
                                             <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 700, borderRadius: '0 8px 8px 0' }}>Ngày (check-in DV)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking chờ xếp lịch.</td>
+                                                <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>Không có booking chờ xếp lịch.</td>
                                             </tr>
                                         ) : (
                                             ((bookingPetServicePool?.waiting ?? []) as IWorkShiftBookingPetServiceItem[]).map((item) => (
@@ -1205,6 +1507,21 @@ export const WorkShiftAdminPage = () => {
                                                     </td>
                                                     <td style={{ padding: '12px' }}>
                                                         <Typography variant="body2">{item.serviceName || '-'}</Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                                            {formatBookingTypeLabel(item.bookingType)}
+                                                        </Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                                                            {item.bookingPlacedDate ? dayjs(item.bookingPlacedDate).format('DD/MM/YYYY') : '—'}
+                                                        </Typography>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                                            {formatBookingPetServiceStatusLabel(item.bookingPetServiceStatus)}
+                                                        </Typography>
                                                     </td>
                                                     <td style={{ padding: '12px', textAlign: 'right' }}>
                                                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>{item.bookingDateFrom ? dayjs(item.bookingDateFrom).format('DD/MM/YYYY') : '-'}</Typography>
@@ -1220,11 +1537,156 @@ export const WorkShiftAdminPage = () => {
                 </Grid>
             </Box>
 
+            {/* Xếp BPS: chọn buổi (theo ngày đặt) → NV có kỹ năng khớp dịch vụ */}
+            <Dialog
+                open={assignBpsDialog !== null}
+                onClose={() => {
+                    if (assigningBookingPetService) return;
+                    setAssignBpsDialog(null);
+                    setAssignStaffSelection([]);
+                }}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 800 }}>Xếp dịch vụ vào ca làm</DialogTitle>
+                <DialogContent dividers>
+                    {assignBpsDialog && assignBpsDialog.step === 'slot' && (
+                        <Stack spacing={2}>
+                            <Typography variant="body2" color="text.secondary">
+                                Booking <strong>{assignBpsDialog.item.bookingCode}</strong> — {assignBpsDialog.item.serviceName}
+                            </Typography>
+                            <Typography variant="body2">
+                                Ngày đặt:{' '}
+                                <strong>
+                                    {(() => {
+                                        const ad = resolveBookingDayForAssign(assignBpsDialog.item);
+                                        return ad ? dayjs(ad).format('DD/MM/YYYY') : '—';
+                                    })()}
+                                </strong>
+                                . Chọn buổi ca trùng ngày này (theo lưới ca Sáng / Chiều):
+                            </Typography>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                                <Button
+                                    variant="contained"
+                                    disabled={!assignDayPartition.morning}
+                                    fullWidth
+                                    onClick={() => {
+                                        const s = assignDayPartition.morning;
+                                        if (!s) return;
+                                        setAssignStaffSelection([]);
+                                        setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
+                                    }}
+                                >
+                                    Ca sáng (08:00–12:00)
+                                    {!assignDayPartition.morning ? ' — chưa có ca' : ''}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    disabled={!assignDayPartition.afternoon}
+                                    fullWidth
+                                    onClick={() => {
+                                        const s = assignDayPartition.afternoon;
+                                        if (!s) return;
+                                        setAssignStaffSelection([]);
+                                        setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
+                                    }}
+                                >
+                                    Ca chiều (13:00–17:00)
+                                    {!assignDayPartition.afternoon ? ' — chưa có ca' : ''}
+                                </Button>
+                            </Stack>
+                            {!assignDayPartition.morning && !assignDayPartition.afternoon && (
+                                <Typography color="error" variant="body2">
+                                    Không tìm thấy ca sáng/chiều cho ngày này trong khoảng Từ–Đến. Hãy tạo ca hoặc mở rộng khoảng ngày.
+                                </Typography>
+                            )}
+                        </Stack>
+                    )}
+                    {assignBpsDialog && assignBpsDialog.step === 'staff' && (
+                        <Stack spacing={2}>
+                            <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => {
+                                    setAssignBpsDialog({ item: assignBpsDialog.item, step: 'slot' });
+                                    setAssignStaffSelection([]);
+                                }}
+                            >
+                                ← Quay lại chọn buổi
+                            </Button>
+                            {assignOptionsLoading && (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                    <CircularProgress size={32} />
+                                </Box>
+                            )}
+                            {assignOptionsIsError && (
+                                <Typography color="error">
+                                    {getErrorMessage(assignOptionsErrObj as any, 'Không tải được danh sách nhân viên')}
+                                </Typography>
+                            )}
+                            {assignOptionsPayload && !assignOptionsLoading && (
+                                <>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Ca #{assignOptionsPayload.shiftId} · Cần <strong>{assignOptionsPayload.requiredStaffCount}</strong> nhân viên
+                                        {assignOptionsPayload.shortage && ' (thiếu người trong ca — chọn hết danh sách dưới)'}
+                                    </Typography>
+                                    <Stack spacing={0.5}>
+                                        {(assignOptionsPayload.participatingStaff ?? []).map((p) => (
+                                            <FormControlLabel
+                                                key={p.staffId}
+                                                control={
+                                                    <Checkbox
+                                                        checked={assignStaffSelection.includes(p.staffId)}
+                                                        onChange={() => toggleAssignStaff(p.staffId)}
+                                                    />
+                                                }
+                                                label={`${p.fullName}${p.positionName ? ` — ${p.positionName}` : ''}`}
+                                            />
+                                        ))}
+                                    </Stack>
+                                    {(assignOptionsPayload.participatingStaff ?? []).length === 0 && (
+                                        <Typography color="warning.main" variant="body2">
+                                            Không có nhân viên trong ca có kỹ năng phù hợp với dịch vụ này.
+                                        </Typography>
+                                    )}
+                                </>
+                            )}
+                        </Stack>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            setAssignBpsDialog(null);
+                            setAssignStaffSelection([]);
+                        }}
+                        disabled={assigningBookingPetService}
+                    >
+                        Hủy
+                    </Button>
+                    {assignBpsDialog?.step === 'staff' && (
+                        <Button
+                            variant="contained"
+                            onClick={handleConfirmAssignBpsToShift}
+                            disabled={
+                                assigningBookingPetService ||
+                                assignOptionsLoading ||
+                                !assignOptionsPayload ||
+                                assignOptionsIsError
+                            }
+                        >
+                            Xác nhận xếp ca
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
+
             <Box sx={{ px: { xs: 2, sm: 3, lg: 4 } }}>
                 {/* Dialog xem đăng ký ca – popup giữa trang */}
                 <Dialog
-                    open={selectedShiftId !== null}
-                    onClose={() => setSelectedShiftId(null)}
+                    open={shiftDetailDialogOpen}
+                    onClose={() => setShiftDetailDialogOpen(false)}
                     maxWidth="md"
                     fullWidth
                     PaperProps={{
@@ -1258,7 +1720,7 @@ export const WorkShiftAdminPage = () => {
                                 Quản lý định mức theo vai trò và duyệt đăng ký nhân viên.
                             </Typography>
                         </Box>
-                        <IconButton aria-label="Đóng" onClick={() => setSelectedShiftId(null)} sx={{ position: 'absolute', right: 8, top: 8 }} size="small">
+                        <IconButton aria-label="Đóng" onClick={() => setShiftDetailDialogOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }} size="small">
                             <CloseIcon />
                         </IconButton>
                     </DialogTitle>
@@ -1274,8 +1736,87 @@ export const WorkShiftAdminPage = () => {
                                 return order(a.status) - order(b.status);
                             });
                             const isInitialRegLoading = regLoading && registrationList.length === 0;
+                            const assignedRows = (shiftAssignedBps ?? []) as IWorkShiftAssignedBookingPetServiceItem[];
                             return (
                                 <>
+                                {/* Booking dịch vụ đã xếp lịch trùng khung ca */}
+                                <Typography className="text-base font-semibold text-gray-800 mb-1.5">
+                                    Booking dịch vụ trong ca
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                                    Dịch vụ đã gán khung giờ trùng với ca làm (và nhân viên phụ trách xử lý).
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        mb: 3,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: 2,
+                                        overflow: 'hidden',
+                                        bgcolor: 'background.paper',
+                                    }}
+                                >
+                                    {shiftAssignedBpsLoading ? (
+                                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                                            <CircularProgress size={26} />
+                                        </Box>
+                                    ) : assignedRows.length === 0 ? (
+                                        <Typography sx={{ p: 2, color: 'text.secondary', fontSize: '0.875rem' }}>
+                                            Chưa có booking nào được xếp lịch trùng khung giờ ca này.
+                                        </Typography>
+                                    ) : (
+                                        <Box sx={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+                                                <thead style={{ backgroundColor: 'rgba(145, 158, 171, 0.08)' }}>
+                                                    <tr>
+                                                        <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px', fontWeight: 700 }}>
+                                                            Booking
+                                                        </th>
+                                                        <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px', fontWeight: 700 }}>
+                                                            Dịch vụ
+                                                        </th>
+                                                        <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px', fontWeight: 700 }}>
+                                                            Khung giờ
+                                                        </th>
+                                                        <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px', fontWeight: 700 }}>
+                                                            NV phụ trách
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {assignedRows.map((row) => (
+                                                        <tr
+                                                            key={row.bookingPetServiceId}
+                                                            style={{ borderTop: '1px dashed rgba(145,158,171,0.25)' }}
+                                                        >
+                                                            <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                                                                <span className="font-semibold text-gray-900">{row.bookingCode ?? '—'}</span>
+                                                                {row.customerName ? (
+                                                                    <span className="block text-gray-500 text-xs">{row.customerName}</span>
+                                                                ) : null}
+                                                            </td>
+                                                            <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                                                                <span>{row.serviceName ?? '—'}</span>
+                                                                {row.petName ? (
+                                                                    <span className="block text-gray-500 text-xs">{row.petName}</span>
+                                                                ) : null}
+                                                            </td>
+                                                            <td style={{ padding: '10px 12px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                                                {row.scheduledStartTime && row.scheduledEndTime
+                                                                    ? `${dayjs(row.scheduledStartTime).format('HH:mm')} – ${dayjs(row.scheduledEndTime).format('HH:mm')}`
+                                                                    : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                                                                {row.assignedStaffNames?.trim() ? row.assignedStaffNames : '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </Box>
+                                    )}
+                                </Box>
+
                                 {/* Section: Định mức theo vai trò */}
                                 <Typography className="text-base font-semibold text-gray-800 mb-1.5">
                                     Định mức theo vai trò
@@ -1323,13 +1864,9 @@ export const WorkShiftAdminPage = () => {
                                                                     size="small"
                                                                     inputProps={{ min: 0, max: 99, style: { fontSize: '0.9rem' } }}
                                                                     value={roleConfigSlots[p.id] ?? 0}
-                                                                    onChange={(e) => {
-                                                                        const v = parseInt(e.target.value, 10);
-                                                                        setRoleConfigSlots((prev) => ({
-                                                                            ...prev,
-                                                                            [p.id]: isNaN(v) ? 0 : Math.max(0, v),
-                                                                        }));
-                                                                    }}
+                                                                    onChange={(e) =>
+                                                                        handleRoleQuotaInputChange(p, e.target.value)
+                                                                    }
                                                                     sx={{ width: 72, '& .MuiInputBase-input': { fontSize: '0.9rem' } }}
                                                                 />
                                                             ) : (
@@ -1892,6 +2429,31 @@ export const WorkShiftAdminPage = () => {
                     </DialogActions>
                 </Dialog>
 
+                {/* Xác nhận loại vai trò khỏi ca khi đặt định mức về 0 */}
+                <Dialog
+                    open={pendingRemoveRole !== null}
+                    onClose={() => !savingRoleConfigs && setPendingRemoveRole(null)}
+                >
+                    <DialogTitle>Loại vai trò khỏi ca làm?</DialogTitle>
+                    <DialogContent>
+                        Bạn có chắc muốn loại vai trò <strong>{pendingRemoveRole?.positionName}</strong> khỏi ca này?
+                        Định mức sẽ được lưu và ca sẽ không còn yêu cầu số người cho vai trò này.
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setPendingRemoveRole(null)} disabled={savingRoleConfigs}>
+                            Hủy
+                        </Button>
+                        <Button
+                            color="primary"
+                            variant="contained"
+                            onClick={handleConfirmRemoveRoleFromShift}
+                            disabled={savingRoleConfigs}
+                        >
+                            Xác nhận
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
                 {/* Dialog xác nhận xóa ca trống */}
                 <Dialog open={deleteConfirmShiftId !== null} onClose={() => setDeleteConfirmShiftId(null)}>
                     <DialogTitle>Xác nhận hủy ca</DialogTitle>
@@ -1913,7 +2475,7 @@ export const WorkShiftAdminPage = () => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setDeleteAllConfirmOpen(false)} disabled={deletingAll}>Không</Button>
-                        <Button color="error" variant="contained" onClick={() => deleteAllShifts(undefined, { onSuccess: () => { toast.success('Đã xóa tất cả ca làm.'); setDeleteAllConfirmOpen(false); setSelectedShiftId(null); }, onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Xóa thất bại') })} disabled={deletingAll}>
+                        <Button color="error" variant="contained" onClick={() => deleteAllShifts(undefined, { onSuccess: () => { toast.success('Đã xóa tất cả ca làm.'); setDeleteAllConfirmOpen(false); setSelectedShiftId(null); setShiftDetailDialogOpen(false); }, onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Xóa thất bại') })} disabled={deletingAll}>
                             Xóa tất cả
                         </Button>
                     </DialogActions>

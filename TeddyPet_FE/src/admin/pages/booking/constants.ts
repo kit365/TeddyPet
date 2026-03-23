@@ -34,11 +34,13 @@ export const PAYMENT_STATUS_OPTIONS: { label: string; value: PaymentStatus; colo
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: "Tiền mặt",
   BANK_TRANSFER: "Chuyển khoản",
+  SYSTEM: "Hệ thống (check-in)",
 };
 
 export const PAYMENT_METHOD_COLORS: Record<string, string> = {
   BANK_TRANSFER: "#1976d2",
   CASH: "#2e7d32",
+  SYSTEM: "#7c3aed",
 };
 
 export const BOOKING_SOURCE_LABELS: Record<string, string> = {

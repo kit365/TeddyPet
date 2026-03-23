@@ -20,6 +20,35 @@ export const getTodayStaffTasks = async (): Promise<ApiResponse<EmployeeTask[]>>
     };
 };
 
+export const postStartStaffTask = async (bookingPetServiceId: number | string): Promise<ApiResponse<unknown>> => {
+    const res = await apiApp.post(`${BASE}/${bookingPetServiceId}/start`, {}, withAuth());
+    return res.data as ApiResponse<unknown>;
+};
+
+export const postCompleteStaffTask = async (bookingPetServiceId: number | string): Promise<ApiResponse<unknown>> => {
+    const res = await apiApp.post(`${BASE}/${bookingPetServiceId}/complete`, {}, withAuth());
+    return res.data as ApiResponse<unknown>;
+};
+
+export type StaffTaskServicePhotosPayload = {
+    beforePhotos?: string[];
+    duringPhotos?: string[];
+    afterPhotos?: string[];
+};
+
+export const postUpdateStaffTaskPhotos = async (
+    bookingPetServiceId: number | string,
+    payload: StaffTaskServicePhotosPayload,
+): Promise<ApiResponse<unknown>> => {
+    const res = await apiApp.post(`${BASE}/${bookingPetServiceId}/service-photos`, payload, withAuth());
+    return res.data as ApiResponse<unknown>;
+};
+
+export const postPetInHotelStaffTask = async (bookingPetServiceId: number | string): Promise<ApiResponse<unknown>> => {
+    const res = await apiApp.post(`${BASE}/${bookingPetServiceId}/pet-in-hotel`, {}, withAuth());
+    return res.data as ApiResponse<unknown>;
+};
+
 function toIsoString(v: unknown): string | undefined {
     if (v == null) return undefined;
     if (typeof v === 'string') return v;
@@ -30,7 +59,9 @@ function normalizeStatus(s: unknown): TaskBaseStatus {
     const u = String(s ?? '')
         .trim()
         .toUpperCase();
-    if (u === 'IN_PROGRESS' || u === 'COMPLETED' || u === 'PENDING') return u as TaskBaseStatus;
+    if (u === 'IN_PROGRESS' || u === 'COMPLETED' || u === 'PENDING' || u === 'WAITING_STAFF' || u === 'PET_IN_HOTEL') {
+        return u as TaskBaseStatus;
+    }
     return 'PENDING';
 }
 
@@ -51,6 +82,17 @@ export function mapServerTaskToEmployeeTask(item: unknown): EmployeeTask | null 
 
     const status = normalizeStatus(o.status);
     const createdAt = toIsoString(o.createdAt) ?? new Date().toISOString();
+    const bookingCheckedIn =
+        typeof o.bookingCheckedIn === 'boolean' ? o.bookingCheckedIn : false;
+    const serviceRequiresRoom =
+        typeof o.serviceRequiresRoom === 'boolean' ? o.serviceRequiresRoom : undefined;
+    const hasBeforePhotos =
+        typeof o.hasBeforePhotos === 'boolean' ? o.hasBeforePhotos : undefined;
+    const hasDuringPhotos =
+        typeof o.hasDuringPhotos === 'boolean' ? o.hasDuringPhotos : undefined;
+    const hasAfterPhotos =
+        typeof o.hasAfterPhotos === 'boolean' ? o.hasAfterPhotos : undefined;
+
     const base = {
         id,
         title: String(o.title ?? ''),
@@ -63,6 +105,13 @@ export function mapServerTaskToEmployeeTask(item: unknown): EmployeeTask | null 
         finishedAt: toIsoString(o.finishedAt) ?? null,
         bookingCode: o.bookingCode != null ? String(o.bookingCode) : undefined,
         customerName: o.customerName != null ? String(o.customerName) : undefined,
+        bookingId: typeof o.bookingId === 'number' ? o.bookingId : undefined,
+        bookingPetId: typeof o.bookingPetId === 'number' ? o.bookingPetId : undefined,
+        bookingCheckedIn,
+        serviceRequiresRoom,
+        hasBeforePhotos,
+        hasDuringPhotos,
+        hasAfterPhotos,
     };
 
     const type = String(o.type ?? '')
