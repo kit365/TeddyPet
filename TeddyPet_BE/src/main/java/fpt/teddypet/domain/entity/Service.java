@@ -32,6 +32,13 @@ public class Service extends BaseEntity {
     @JoinColumn(name = "skill_id")
     private fpt.teddypet.domain.entity.staff.Skill skill;
 
+    /** Cấu hình No-Show áp dụng cho dịch vụ này (tối đa một cấu hình / dịch vụ). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "no_show_config_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private NoShowConfig noShowConfig;
+
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 

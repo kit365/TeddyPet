@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.email.WalkInBookingEmailModel.WalkInBookingE
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.ClientServiceReviewUpsertRequest;
 import fpt.teddypet.application.dto.request.bookings.PetFoodBroughtItemRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
@@ -216,6 +217,10 @@ public class BookingClientApplicationService implements BookingClientService {
                         svc.getBasePrice(),
                         svc.getSubtotal(),
                         svc.getStatus(),
+                        svc.getStaffNotes(),
+                        svc.getBeforePhotos(),
+                        svc.getDuringPhotos(),
+                        svc.getAfterPhotos(),
                         svc.getCustomerRating(),
                         svc.getCustomerReview(),
                         svc.getRoomId(),
@@ -493,6 +498,30 @@ public class BookingClientApplicationService implements BookingClientService {
 
         bookingRepository.save(booking);
         dashboardService.sendDashboardUpdate();
+        return getClientBookingDetailByCode(bookingCode);
+    }
+
+    @Override
+    public ClientBookingDetailResponse upsertServiceReview(String bookingCode, Long bookingPetServiceId, ClientServiceReviewUpsertRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+        if (!"COMPLETED".equalsIgnoreCase(booking.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể đánh giá sau khi đơn đã check-out.");
+        }
+
+        BookingPetService target = booking.getPets().stream()
+                .flatMap(p -> p.getServices().stream())
+                .filter(svc -> bookingPetServiceId.equals(svc.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy dịch vụ cần đánh giá trong đơn này."));
+        if (!target.isActive() || "CANCELLED".equalsIgnoreCase(target.getStatus())) {
+            throw new IllegalStateException("Không thể đánh giá dịch vụ đã hủy.");
+        }
+
+        target.setCustomerRating(request.customerRating());
+        String review = request.customerReview() != null ? request.customerReview().trim() : null;
+        target.setCustomerReview(review == null || review.isBlank() ? null : review);
+        bookingRepository.save(booking);
         return getClientBookingDetailByCode(bookingCode);
     }
 

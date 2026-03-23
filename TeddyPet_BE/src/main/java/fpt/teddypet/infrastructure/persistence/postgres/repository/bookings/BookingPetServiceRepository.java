@@ -18,6 +18,19 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
     List<BookingPetService> findByBookingPet_Id(Long bookingPetId);
 
     /**
+     * Toàn bộ {@code booking_pet_services} của booking kèm service + noShowConfig.
+     * Dùng sau {@link fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository#findByIdWithPetsFetch}
+     * để tránh MultipleBagFetchException (không fetch đồng thời hai List bag).
+     */
+    @Query("""
+            select distinct bps from BookingPetService bps
+            join fetch bps.service svc
+            left join fetch svc.noShowConfig
+            where bps.bookingPet.booking.id = :bookingId
+            """)
+    List<BookingPetService> findAllByBookingIdWithServiceAndNoShow(@Param("bookingId") Long bookingId);
+
+    /**
      * Kiểm tra phòng đã có đặt trùng ngày chưa (giao nhau check-in/check-out).
      * Dùng khi khách bấm hoàn tất: nếu có bản ghi khác đã đặt phòng này trong khoảng ngày đó thì không cho đặt.
      */
@@ -101,7 +114,9 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
     List<BookingPetService> findTodayTasksForStaff(@Param("today") LocalDate today);
 
     /**
-     * Lấy booking_pet_service đã gán nhân viên, booking đã check-in, khung giờ trong ngày (theo lịch).
+     * Lấy booking_pet_service đã gán nhân viên, có {@code scheduledStartTime} trong khoảng thời gian
+     * {@code [rangeStart, rangeEnd)} (thường: vài ngày qua + lịch tới — không chỉ đúng “hôm nay”).
+     * Booking có thể chưa check-in; FE dùng {@code bookingCheckedIn} để khóa "Bắt đầu".
      */
     @Query("SELECT DISTINCT bps FROM BookingPetService bps " +
             "JOIN FETCH bps.bookingPet bp " +
@@ -110,18 +125,17 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
             "LEFT JOIN FETCH bps.serviceCombo c " +
             "JOIN bps.assignedStaff ast " +
             "WHERE ast.id = :staffId " +
-            "AND b.bookingCheckInDate IS NOT NULL " +
-            "AND b.status IN ('IN_PROGRESS', 'READY') " +
+            "AND UPPER(COALESCE(b.status, '')) <> 'CANCELLED' " +
             "AND bps.scheduledStartTime IS NOT NULL " +
             "AND bps.scheduledEndTime IS NOT NULL " +
-            "AND bps.scheduledStartTime >= :dayStart " +
-            "AND bps.scheduledStartTime < :dayEnd " +
+            "AND bps.scheduledStartTime >= :rangeStart " +
+            "AND bps.scheduledStartTime < :rangeEnd " +
             "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
             "ORDER BY bps.scheduledStartTime ASC, bps.id ASC")
-    List<BookingPetService> findTasksForStaffByAssignedShiftsInDay(
+    List<BookingPetService> findTasksForStaffByAssignedShiftsInRange(
             @Param("staffId") Long staffId,
-            @Param("dayStart") java.time.LocalDateTime dayStart,
-            @Param("dayEnd") java.time.LocalDateTime dayEnd
+            @Param("rangeStart") java.time.LocalDateTime rangeStart,
+            @Param("rangeEnd") java.time.LocalDateTime rangeEnd
     );
 
     @Query("SELECT COALESCE(AVG(bps.customerRating), 0) FROM BookingPetService bps " +
@@ -144,46 +158,39 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
     List<Object[]> findAllBookingReviews();
 
     /**
-     * Walk-in / loại null: đã check-in — không bắt cọc.
-     * Khác walk-in (online, app, phone…): đã cọc + (CONFIRMED hoặc đã check-in IN_PROGRESS/READY).
+     * Danh sách xếp ca (2 panel):<ul>
+     *     <li>Đặt online (không walk-in): đã thanh toán cọc thành công.</li>
+     *     <li>Walk-in / bookingType null: booking chưa hủy / hoàn thành — không bắt check-in.</li>
+     * </ul>
+     * Điều kiện được phép gán vào ca (nút +) xử lý ở tầng ứng dụng theo {@code booking_pet_service.status}.
      */
     @Query("SELECT DISTINCT bps FROM BookingPetService bps " +
             "JOIN FETCH bps.bookingPet bp " +
             "JOIN FETCH bp.booking b " +
             "LEFT JOIN FETCH bps.service s " +
             "LEFT JOIN FETCH bps.serviceCombo c " +
-            "WHERE (" +
-            "  ((b.bookingType = :walkIn OR b.bookingType IS NULL) " +
-            "   AND b.status = 'IN_PROGRESS' AND b.bookingCheckInDate IS NOT NULL) " +
-            "  OR (" +
-            "    b.bookingType IS NOT NULL AND b.bookingType <> :walkIn " +
-            "    AND EXISTS (SELECT 1 FROM BookingDeposit bd WHERE bd.bookingId = b.id AND bd.depositPaid = true) " +
-            "    AND (b.status = 'CONFIRMED' " +
-            "         OR (b.status IN ('IN_PROGRESS', 'READY') AND b.bookingCheckInDate IS NOT NULL)) " +
-            "  )" +
+            "LEFT JOIN FETCH bps.assignedStaff " +
+            "WHERE UPPER(b.status) NOT IN ('CANCELLED', 'COMPLETED') " +
+            "AND (" +
+            "  (b.bookingType IS NOT NULL AND b.bookingType <> :walkIn " +
+            "   AND EXISTS (SELECT 1 FROM BookingDeposit bd WHERE bd.bookingId = b.id AND bd.depositPaid = true)) " +
+            "  OR (b.bookingType = :walkIn OR b.bookingType IS NULL)" +
             ") " +
             "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
             "ORDER BY b.createdAt DESC")
     List<BookingPetService> findAssignableForWorkShift(@Param("walkIn") BookingTypeEnum walkIn);
 
+    /**
+     * Cho phép gán vào ca khi {@code booking_pet_service} còn xử lý:
+     * PENDING / WAITING_STAFF / IN_PROGRESS (null coi như PENDING); booking không CANCELLED/COMPLETED.
+     */
     @Query("SELECT COUNT(bps) > 0 FROM BookingPetService bps " +
             "JOIN bps.bookingPet bp " +
             "JOIN bp.booking b " +
             "WHERE bps.id = :bookingPetServiceId " +
-            "AND (bps.status IS NULL OR UPPER(bps.status) <> 'CANCELLED') " +
-            "AND (" +
-            "  ((b.bookingType = :walkIn OR b.bookingType IS NULL) " +
-            "   AND b.status = 'IN_PROGRESS' AND b.bookingCheckInDate IS NOT NULL) " +
-            "  OR (" +
-            "    b.bookingType IS NOT NULL AND b.bookingType <> :walkIn " +
-            "    AND EXISTS (SELECT 1 FROM BookingDeposit bd WHERE bd.bookingId = b.id AND bd.depositPaid = true) " +
-            "    AND (b.status = 'CONFIRMED' " +
-            "         OR (b.status IN ('IN_PROGRESS', 'READY') AND b.bookingCheckInDate IS NOT NULL)) " +
-            "  )" +
-            ")")
-    boolean isEligibleForWorkShiftAssignment(
-            @Param("bookingPetServiceId") Long bookingPetServiceId,
-            @Param("walkIn") BookingTypeEnum walkIn);
+            "AND UPPER(b.status) NOT IN ('CANCELLED', 'COMPLETED') " +
+            "AND (bps.status IS NULL OR bps.status = '' OR UPPER(bps.status) IN ('PENDING', 'WAITING_STAFF', 'IN_PROGRESS'))")
+    boolean isEligibleForWorkShiftAssignment(@Param("bookingPetServiceId") Long bookingPetServiceId);
 
     /** JOIN FETCH service/booking/assignedStaff để xếp ca không lỗi lazy. */
     @Query("SELECT DISTINCT bps FROM BookingPetService bps " +

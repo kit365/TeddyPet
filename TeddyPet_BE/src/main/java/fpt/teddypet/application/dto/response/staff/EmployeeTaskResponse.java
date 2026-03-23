@@ -22,6 +22,9 @@ public class EmployeeTaskResponse {
 
     /** Mã booking (hiển thị trên dashboard nhân viên). */
     private String bookingCode;
+    /** Để mở trang chi tiết: /admin/booking/detail/{bookingId}/pet/{bookingPetId}/service/{id}. */
+    private Long bookingId;
+    private Long bookingPetId;
     private String customerName;
 
     private String cageNumber;
@@ -41,4 +44,19 @@ public class EmployeeTaskResponse {
     private LocalDateTime scheduledEnd;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
+
+    /**
+     * {@code true} khi booking đã check-in tại lễ tân — nhân viên mới được phép bắt đầu xử lý dịch vụ này.
+     */
+    private boolean bookingCheckedIn;
+
+    /**
+     * {@code true} khi dịch vụ gắn phòng ({@code service.isRequiredRoom}) — FE chỉ hiển thị "Bắt đầu", không có "Hoàn thành".
+     */
+    private Boolean serviceRequiresRoom;
+
+    /** FE dùng để bật nút "Hoàn thành" Spa khi đã có đủ 3 nhóm ảnh. */
+    private Boolean hasBeforePhotos;
+    private Boolean hasDuringPhotos;
+    private Boolean hasAfterPhotos;
 }

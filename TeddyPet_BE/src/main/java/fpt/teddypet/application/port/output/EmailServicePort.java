@@ -26,6 +26,11 @@ public interface EmailServicePort {
 
     void sendBookingCancelledEmail(String to, String bookingCode);
 
+    /**
+     * Email hủy đơn kèm lý do (ví dụ hủy tự động no-show).
+     */
+    void sendBookingCancelledEmail(String to, String bookingCode, String cancellationReason);
+
     void sendBookingRefundRequestedEmail(String to, String bookingCode, String refundAmount);
 
     void sendBookingDepositExpiredEmail(String to, String bookingCode);
@@ -48,6 +53,11 @@ public interface EmailServicePort {
      * @param adminResponse optional message to customer
      */
     void sendBookingRefundRejectedEmail(String to, String bookingCode, String adminResponse);
+
+    /**
+     * Send thank-you email after booking check-out, with CTA to review services.
+     */
+    void sendBookingCheckOutThankYouEmail(String to, String bookingCode);
 
     /**
      * Send password reset email with reset link

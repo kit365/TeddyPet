@@ -140,6 +140,9 @@ public class EmailPreviewController {
                 model.addAttribute("appName", "TeddyPet");
                 model.addAttribute("bookingCode", "BK-TEST-123");
                 model.addAttribute("detailUrl", "http://localhost:5173/bookings/BK-TEST-123");
+                model.addAttribute("cancellationReason",
+                                "Đơn đặt lịch bị hủy tự động do không đến (no-show) sau thời gian chờ theo quy định của cửa hàng.\n"
+                                                + "Dịch vụ \"Spa\": đã quá 15 phút sau giờ hẹn (24/03/2026 08:00, cấu hình \"No-Show mặc định\").");
                 return "email/bookings/booking-cancelled";
         }
 

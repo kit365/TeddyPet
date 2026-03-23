@@ -20,6 +20,10 @@
                             <h2 style="color: #e53935; font-size: 24px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">❌ Đơn đặt lịch đã bị hủy</h2>
                             <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Xin chào,</p>
                             <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Đơn đặt lịch của bạn với mã <strong style="color: #334155;" th:text="${bookingCode}"></strong> tại <strong style="color: #4f46e5;" th:text="${appName}">TeddyPet</strong> đã được hủy thành công.</p>
+                            <div th:if="${cancellationReason != null and !cancellationReason.isBlank()}" style="margin: 0 0 18px 0; padding: 16px 18px; background-color: #fff7ed; border-left: 4px solid #ea580c; border-radius: 8px;">
+                                <p style="color: #9a3412; margin: 0 0 8px 0; font-weight: 700; font-size: 14px;">Lý do hủy</p>
+                                <p style="color: #334155; margin: 0; font-size: 15px; white-space: pre-wrap;" th:text="${cancellationReason}"></p>
+                            </div>
                             <p style="color: #334155; margin: 0 0 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Nếu bạn không thực hiện yêu cầu hủy này hoặc cần hỗ trợ, vui lòng liên hệ với chúng tôi.</p>
 
                             <div style="text-align: center; margin: 30px 0;">

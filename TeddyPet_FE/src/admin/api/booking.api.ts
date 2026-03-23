@@ -12,6 +12,7 @@ import type {
     AdminCheckInRepricePreviewRequest,
     AdminCheckInRepricePreviewResponse,
   AdminCheckOutConfirmRequest,
+  AdminBookingNoShowPreviewResponse,
 } from '../../types/booking.type';
 
 const BASE_URL = '/api/admin/bookings';
@@ -264,4 +265,18 @@ export const downloadBookingInvoice = async (bookingId: string | number): Promis
         responseType: "blob",
     });
     return response.data as Blob;
+};
+
+export const getAdminBookingNoShowPreview = async (
+    bookingId: string | number
+): Promise<ApiResponse<AdminBookingNoShowPreviewResponse>> => {
+    const response = await apiApp.get(`${BASE_URL}/${bookingId}/no-show/preview`, withAuth());
+    return response.data;
+};
+
+export const markAdminBookingManualNoShow = async (
+    bookingId: string | number
+): Promise<ApiResponse<BookingResponse>> => {
+    const response = await apiApp.post(`${BASE_URL}/${bookingId}/no-show/mark`, {}, withAuth());
+    return response.data;
 };

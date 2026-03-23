@@ -106,11 +106,12 @@ public class AdminWorkShiftController {
 
     @GetMapping("/booking-pet-services/{bookingPetServiceId}/assign-options")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Xem trước: SL NV yêu cầu + danh sách NV trong ca đích (không ghi DB)")
+    @Operation(summary = "Xem trước: SL NV yêu cầu + danh sách NV trong ca đích (không ghi DB). shiftId optional.")
     public ResponseEntity<ApiResponse<WorkShiftAssignOptionsResponse>> getAssignOptionsForBookingPetService(
-            @PathVariable Long bookingPetServiceId) {
+            @PathVariable Long bookingPetServiceId,
+            @RequestParam(required = false) Long shiftId) {
         WorkShiftAssignOptionsResponse response =
-                workShiftService.getAssignOptionsForBookingPetService(bookingPetServiceId);
+                workShiftService.getAssignOptionsForBookingPetService(bookingPetServiceId, shiftId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -79,6 +79,17 @@ export interface IWorkShiftBookingPetServiceItem {
     bookingCheckInDate?: string | null;
     /** Từ service.required_staff_count */
     requiredStaffCount?: number | null;
+    bookingStatus?: string | null;
+    /** true khi booking_pet_service PENDING hoặc IN_PROGRESS (và booking chưa hủy/hoàn thành) */
+    canAssignToShift?: boolean | null;
+    /** Loại đặt (ONLINE, WALK_IN, …) — từ booking */
+    bookingType?: string | null;
+    /** Trạng thái booking_pet_service */
+    bookingPetServiceStatus?: string | null;
+    /** Ngày đặt chỗ (Booking.bookingDateFrom) — ISO date */
+    bookingPlacedDate?: string | null;
+    /** Nhân viên đã gán xử lý (sau khi admin xếp vào ca). Rỗng = chưa xếp NV dù có thể đã có khung giờ từ đặt lịch. */
+    assignedStaffNames?: string | null;
 }
 
 /** Preview: NV trong ca đích + SL yêu cầu (GET assign-options) */
@@ -174,14 +185,17 @@ export const getAssignableBookingPetServices = async (
     return res.data;
 };
 
-/** Admin: xem trước ca đích + danh sách NV trong ca (không ghi DB) */
+/** Admin: xem trước ca đích + danh sách NV trong ca (không ghi DB). shiftId: ca admin chọn (sáng/chiều). */
 export const getAssignOptionsForBookingPetService = async (
-    bookingPetServiceId: number
+    bookingPetServiceId: number,
+    shiftId?: number | null
 ): Promise<ApiResponse<IWorkShiftAssignOptions>> => {
-    const res = await apiApp.get(
-        `${ADMIN_BASE}/booking-pet-services/${bookingPetServiceId}/assign-options`,
-        withAuth()
-    );
+    const params: Record<string, string> = {};
+    if (shiftId != null) params.shiftId = String(shiftId);
+    const res = await apiApp.get(`${ADMIN_BASE}/booking-pet-services/${bookingPetServiceId}/assign-options`, {
+        ...withAuth(),
+        params,
+    });
     return res.data;
 };
 

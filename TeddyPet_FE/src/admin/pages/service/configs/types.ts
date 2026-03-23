@@ -51,6 +51,8 @@ export interface IService {
     isActive: boolean;
     isRequiredRoom?: boolean;
     isDeleted?: boolean;
+    /** Cấu hình No-Show đang gán (mỗi dịch vụ tối đa một) */
+    noShowConfigId?: number | null;
     createdAt?: string;
     updatedAt?: string;
 }
