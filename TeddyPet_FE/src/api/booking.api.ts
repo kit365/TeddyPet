@@ -82,6 +82,25 @@ export const cancelBookingFromClient = async (
     return response.data;
 };
 
+export interface ClientServiceReviewUpsertRequest {
+    customerRating: number;
+    customerReview?: string;
+}
+
+export type UpsertServiceReviewResponse = ApiResponse<ClientBookingDetailResponse>;
+
+export const upsertServiceReviewFromClient = async (
+    bookingCode: string,
+    bookingPetServiceId: number,
+    payload: ClientServiceReviewUpsertRequest
+): Promise<UpsertServiceReviewResponse> => {
+    const response = await apiApp.put<UpsertServiceReviewResponse>(
+        `/api/bookings/code/${bookingCode}/services/${bookingPetServiceId}/review`,
+        payload
+    );
+    return response.data;
+};
+
 function buildPetFoodItems(pet: BookingPetForm): CreateBookingPetFoodItemPayload[] {
     if (pet.foodItems && pet.foodItems.length > 0) {
         return pet.foodItems

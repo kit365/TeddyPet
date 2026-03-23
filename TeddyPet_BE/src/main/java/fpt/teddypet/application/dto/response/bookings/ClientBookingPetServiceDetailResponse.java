@@ -23,6 +23,10 @@ public record ClientBookingPetServiceDetailResponse(
         BigDecimal basePrice,
         BigDecimal subtotal,
         String status,
+        String staffNotes,
+        String beforePhotos,
+        String duringPhotos,
+        String afterPhotos,
         Integer customerRating,
         String customerReview,
 

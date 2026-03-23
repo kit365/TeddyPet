@@ -303,6 +303,14 @@ export const BookingList = () => {
   const [deleteActionLoading, setDeleteActionLoading] = useState(false);
   const [deleteActionError, setDeleteActionError] = useState<string | null>(null);
 
+  // ===== Print booking invoice (PDF) =====
+  const [invoicePrintDialogOpen, setInvoicePrintDialogOpen] = useState(false);
+  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<BookingResponse | null>(null);
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [invoicePreviewLoading, setInvoicePreviewLoading] = useState(false);
+  const [invoicePreviewError, setInvoicePreviewError] = useState<string | null>(null);
+  const [invoicePrinting, setInvoicePrinting] = useState(false);
+
 
   const handleConfirmPayment = async () => {
     if (!selectedPaymentBooking) return;
@@ -538,22 +546,91 @@ export const BookingList = () => {
   );
 
   const handleExportBill = async (row: BookingResponse) => {
+    const bookingStatus = String(row.status ?? "").toUpperCase();
+    if (bookingStatus !== "COMPLETED") {
+      toast.error("Chỉ có thể in hóa đơn khi booking ở trạng thái COMPLETED.");
+      return;
+    }
+
+    // reset preview (revoke previous url to avoid memory leak)
+    if (invoicePreviewUrl) {
+      window.URL.revokeObjectURL(invoicePreviewUrl);
+    }
+
+    setSelectedInvoiceBooking(row);
+    setInvoicePrintDialogOpen(true);
+    setInvoicePreviewError(null);
+    setInvoicePrinting(false);
+    setInvoicePreviewLoading(true);
+    setInvoicePreviewUrl(null);
+
     try {
-      toast.info("Đang tạo bill...");
+      toast.info("Đang tạo preview hóa đơn...");
       const blob = await downloadBookingInvoice(row.id);
       const url = window.URL.createObjectURL(blob);
+      setInvoicePreviewUrl(url);
+    } catch (error) {
+      console.error("Lỗi khi tải bill booking:", error);
+      setInvoicePreviewError("Không thể tạo preview hóa đơn. Vui lòng thử lại sau.");
+    } finally {
+      setInvoicePreviewLoading(false);
+    }
+  };
+
+  const handleCloseInvoicePrintDialog = () => {
+    if (invoicePreviewUrl) window.URL.revokeObjectURL(invoicePreviewUrl);
+    setInvoicePrintDialogOpen(false);
+    setSelectedInvoiceBooking(null);
+    setInvoicePreviewUrl(null);
+    setInvoicePreviewError(null);
+    setInvoicePreviewLoading(false);
+    setInvoicePrinting(false);
+  };
+
+  const handleConfirmPrintInvoice = () => {
+    if (!selectedInvoiceBooking) return;
+    if (!invoicePreviewUrl) {
+      toast.error("Hóa đơn PDF chưa sẵn sàng.");
+      return;
+    }
+    setInvoicePrinting(true);
+    try {
+      const urlToDownload = invoicePreviewUrl;
+      const fileName = `bill-${selectedInvoiceBooking.bookingCode}.pdf`;
+
       const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `bill-${row.bookingCode}.pdf`);
+      link.href = urlToDownload;
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("Đã tải bill thành công!");
+
+      toast.success("Đã tải hóa đơn PDF!");
+
+      // Close modal and revoke URL a bit later (so browser has time to download).
+      setInvoicePrintDialogOpen(false);
+      setSelectedInvoiceBooking(null);
+      setInvoicePreviewUrl(null);
+      setInvoicePreviewError(null);
+      setInvoicePreviewLoading(false);
+      setInvoicePrinting(false);
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(urlToDownload);
+      }, 1000);
     } catch (error) {
-      console.error("Lỗi khi tải bill booking:", error);
-      toast.error("Không thể tải bill. Vui lòng thử lại sau.");
+      console.error("Lỗi khi in hóa đơn:", error);
+      toast.error("Không thể in hóa đơn. Vui lòng thử lại sau.");
+      setInvoicePrinting(false);
     }
+  };
+
+  const handleOpenInvoiceInNewTab = () => {
+    if (!invoicePreviewUrl) {
+      toast.error("Hóa đơn PDF chưa sẵn sàng.");
+      return;
+    }
+    window.open(invoicePreviewUrl, "_blank", "noopener,noreferrer");
   };
 
   const columns = useMemo(
@@ -1359,7 +1436,8 @@ export const BookingList = () => {
                               </TableCell>
                               <TableCell>
                                 <Typography variant="body2" sx={{ fontWeight: 600, color: "#637381" }}>
-                                  {tx.transactionType === "DEPOSIT" ? "📦 " : "💳 "}{tx.label}
+                                  {tx.transactionType === "DEPOSIT" ? "📦 " : tx.transactionType === "NO_SHOW_EVALUATION" ? "⏱️ " : "💳 "}
+                                  {tx.label}
                                 </Typography>
                                 {tx.transactionReference && (
                                   <Typography variant="caption" sx={{ color: "#919EAB", display: "block", mt: 0.5 }}>Ref: {tx.transactionReference}</Typography>
@@ -1367,20 +1445,31 @@ export const BookingList = () => {
                                 {tx.paidByName && (
                                   <Typography variant="caption" sx={{ color: "#919EAB", display: "block", mt: 0.25 }}>Người trả: {tx.paidByName}</Typography>
                                 )}
+                                {tx.transactionType === "NO_SHOW_EVALUATION" && tx.note && (
+                                  <Typography variant="caption" sx={{ color: "#919EAB", display: "block", mt: 0.5, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "auto" }}>
+                                    {tx.note.length > 500 ? `${tx.note.slice(0, 500)}…` : tx.note}
+                                  </Typography>
+                                )}
                               </TableCell>
                               <TableCell>
-                                <Typography variant="body1" sx={{ fontWeight: 900, color: "#00A76F" }}>+{formatCurrency(tx.amount)}</Typography>
+                                {tx.transactionType === "NO_SHOW_EVALUATION" ? (
+                                  <Typography variant="body1" sx={{ fontWeight: 900, color: tx.amount > 0 ? "#ed6c02" : "#637381" }}>
+                                    {tx.amount > 0 ? `Phạt +${formatCurrency(tx.amount)}` : "Ghi nhận (0đ)"}
+                                  </Typography>
+                                ) : (
+                                  <Typography variant="body1" sx={{ fontWeight: 900, color: "#00A76F" }}>+{formatCurrency(tx.amount)}</Typography>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                   <Box sx={{ 
                                     width: 32, height: 32, borderRadius: "10px", 
-                                    bgcolor: tx.paymentMethod === "BANK_TRANSFER" ? "#E1F0FF" : tx.paymentMethod === "VIETQR" ? "#FFF3E0" : "#E1FFED",
+                                    bgcolor: tx.paymentMethod === "SYSTEM" ? "#F3E8FF" : tx.paymentMethod === "BANK_TRANSFER" ? "#E1F0FF" : tx.paymentMethod === "VIETQR" ? "#FFF3E0" : "#E1FFED",
                                     display: "flex", alignItems: "center", justifyContent: "center"
                                   }}>
                                     <PaymentsIcon sx={{ 
                                       fontSize: "1rem", 
-                                      color: tx.paymentMethod === "BANK_TRANSFER" ? "#006C9C" : tx.paymentMethod === "VIETQR" ? "#E65100" : "#00A76F" 
+                                      color: tx.paymentMethod === "SYSTEM" ? "#7c3aed" : tx.paymentMethod === "BANK_TRANSFER" ? "#006C9C" : tx.paymentMethod === "VIETQR" ? "#E65100" : "#00A76F" 
                                     }} />
                                   </Box>
                                   <Typography variant="body2" sx={{ fontWeight: 700, color: "#1C252E" }}>
@@ -1390,15 +1479,15 @@ export const BookingList = () => {
                               </TableCell>
                               <TableCell align="center">
                                 <Chip 
-                                  label={tx.status === "COMPLETED" || tx.status === "PAID" ? "Thành công" : tx.status === "PENDING" ? "Chờ xử lý" : tx.status} 
+                                  label={tx.status === "RECORDED" ? "Đã ghi nhận" : tx.status === "COMPLETED" || tx.status === "PAID" ? "Thành công" : tx.status === "PENDING" ? "Chờ xử lý" : tx.status} 
                                   size="small" 
                                   sx={{ 
                                     height: 28,
                                     px: 1,
                                     fontWeight: 800,
                                     fontSize: "0.75rem",
-                                    bgcolor: (tx.status === "COMPLETED" || tx.status === "PAID") ? "#E8F5E9" : "#FFF5F5",
-                                    color: (tx.status === "COMPLETED" || tx.status === "PAID") ? "#22C55E" : "#FF5630",
+                                    bgcolor: tx.status === "RECORDED" ? "#E3F2FD" : (tx.status === "COMPLETED" || tx.status === "PAID") ? "#E8F5E9" : "#FFF5F5",
+                                    color: tx.status === "RECORDED" ? "#1565c0" : (tx.status === "COMPLETED" || tx.status === "PAID") ? "#22C55E" : "#FF5630",
                                     borderRadius: "10px"
                                   }} 
                                 />
@@ -1978,6 +2067,133 @@ export const BookingList = () => {
               Phê duyệt hoàn tiền
             </Button>
           </Stack>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Xem trước & xác nhận in hóa đơn (PDF) */}
+      <Dialog
+        open={invoicePrintDialogOpen}
+        onClose={() => {
+          if (invoicePrinting) return;
+          handleCloseInvoicePrintDialog();
+        }}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "18px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+            overflow: "hidden",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 900, color: "#1C252E", pb: 0.5 }}>
+          Xem trước hóa đơn (PDF)
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1.5, pb: 2.5 }}>
+          {invoicePreviewError && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: "12px" }}>
+              {invoicePreviewError}
+            </Alert>
+          )}
+
+          {selectedInvoiceBooking && (
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 2,
+                mb: 2,
+                border: "1px solid rgba(145, 158, 171, 0.2)",
+                borderRadius: "16px",
+                bgcolor: "#F8FAFC",
+                p: 2,
+              }}
+            >
+              <Box sx={{ minWidth: 220 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 700 }}>
+                  Mã booking
+                </Typography>
+                <Typography sx={{ fontWeight: 900, color: "#1C252E" }}>{selectedInvoiceBooking.bookingCode}</Typography>
+              </Box>
+              <Box sx={{ minWidth: 220 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 700 }}>
+                  Khách hàng
+                </Typography>
+                <Typography sx={{ fontWeight: 900, color: "#1C252E" }}>
+                  {selectedInvoiceBooking.customerName} {selectedInvoiceBooking.customerPhone ? `(${selectedInvoiceBooking.customerPhone})` : ""}
+                </Typography>
+              </Box>
+              <Box sx={{ minWidth: 220 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 700 }}>
+                  Tổng tiền
+                </Typography>
+                <Typography sx={{ fontWeight: 900, color: "#1C252E" }}>
+                  {formatCurrency(selectedInvoiceBooking.totalAmount)}
+                </Typography>
+              </Box>
+              <Box sx={{ minWidth: 220 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 700 }}>
+                  Đã thanh toán / Còn lại
+                </Typography>
+                <Typography sx={{ fontWeight: 900, color: "#1C252E" }}>
+                  {formatCurrency(selectedInvoiceBooking.paidAmount)} / {formatCurrency(selectedInvoiceBooking.remainingAmount)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {invoicePreviewLoading && (
+            <Box display="flex" justifyContent="center" alignItems="center" py={6}>
+              <CircularProgress sx={{ color: "#1C252E" }} />
+            </Box>
+          )}
+
+          {!invoicePreviewLoading && invoicePreviewUrl && (
+            <Box
+              sx={{
+                borderRadius: "14px",
+                overflow: "hidden",
+                border: "1px solid rgba(145, 158, 171, 0.3)",
+                bgcolor: "#fff",
+              }}
+            >
+              <iframe
+                title="Invoice PDF preview"
+                src={invoicePreviewUrl}
+                style={{ width: "100%", height: 560, border: "none", display: "block" }}
+              />
+            </Box>
+          )}
+
+          {!invoicePreviewLoading && !invoicePreviewUrl && !invoicePreviewError && (
+            <Typography sx={{ color: "text.secondary" }}>Đang chờ tải preview...</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, pt: 0 }}>
+          <Button
+            onClick={handleCloseInvoicePrintDialog}
+            disabled={invoicePrinting}
+            sx={{ textTransform: "none", fontWeight: 800, color: "#637381" }}
+          >
+            Đóng
+          </Button>
+          <Button
+            variant="outlined"
+            disabled={invoicePrinting || invoicePreviewLoading || !invoicePreviewUrl}
+            onClick={handleOpenInvoiceInNewTab}
+            sx={{ textTransform: "none", fontWeight: 800 }}
+          >
+            Mở bill ở tab mới
+          </Button>
+          <Button
+            variant="contained"
+            disabled={invoicePrinting || invoicePreviewLoading || !invoicePreviewUrl}
+            onClick={handleConfirmPrintInvoice}
+            sx={{ textTransform: "none", fontWeight: 900, px: 3.5, boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)" }}
+          >
+            {invoicePrinting ? "Đang in..." : "Xác nhận in hóa đơn"}
+          </Button>
         </DialogActions>
       </Dialog>
 

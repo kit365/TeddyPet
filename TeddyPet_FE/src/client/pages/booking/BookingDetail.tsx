@@ -32,6 +32,7 @@ import { getFoodBrandOptions, type ProductBrandOption } from "../../../api/home.
 import type { BookingPetForm, BookingPetServiceForm, PetFoodBroughtItemForm } from "../../../types/booking.type";
 import type { ServiceCategoryClient, ServiceClient } from "../../../types/booking.type";
 import { ServiceSelectField } from "../../components/ui/ServiceSelectField";
+import { BookingNoShowNotice } from "./components/BookingNoShowNotice";
 import { SESSION_SLOTS, PET_TYPES, FOOD_TYPE_OPTIONS } from "./constants";
 import type { IServicePricing } from "../../../admin/pages/service/configs/types";
 import { getServicePricingsByServiceId } from "../../../api/service-pricing.api";
@@ -1794,7 +1795,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
 
     const helperTextReturnDateShift = (requiresRoom: boolean) => {
         if (requiresRoom) {
-            return "Tuần này & tuần sau: chỉ chọn được ngày có ít nhất một ca làm (sáng hoặc chiều). Các tuần sau không giới hạn theo lịch ca.";
+            return undefined;
         }
         if (needsShiftCoverageForCheckout) {
             return "Tuần này & tuần sau: không chọn được ngày trả nếu cả ca sáng và ca chiều đều trống (khi ngày gửi cũng trong 2 tuần đó).";
@@ -3045,7 +3046,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                     color: "warning",
                                                                                     sx: bookingDatePickerTextFieldSx,
                                                                                     helperText:
-                                                                                        "Ngày gửi áp dụng cho mọi dịch vụ. Tuần này & tuần sau: chỉ chọn được ngày có ít nhất một ca làm (sáng hoặc chiều). Các tuần sau không giới hạn theo lịch ca.",
+                                                                                        "Ngày gửi áp dụng cho mọi dịch vụ.",
                                                                                 },
                                                                                 popper: { sx: bookingDatePickerPopperSx },
                                                                             }}
@@ -3144,6 +3145,11 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                 }
                                                             />
                                                         </div>
+
+                                                        <BookingNoShowNotice
+                                                            globalDateFrom={globalDateFrom}
+                                                            serviceId={pet.serviceId ?? undefined}
+                                                        />
 
                                                         {/* Dịch vụ add-on kèm theo: luôn hiển thị ô input khi đã chọn dịch vụ chính; add-on cùng category với dịch vụ đang chọn */}
                                                         {pet.serviceId && (() => {

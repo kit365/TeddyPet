@@ -55,6 +55,8 @@ public record ServiceResponse(
                 BigDecimal forceMajeureRefundPct,
                 */
                 boolean isDeleted,
+                /** Cấu hình No-Show đang gán (null = chưa gán). */
+                Long noShowConfigId,
                 LocalDateTime createdAt,
                 LocalDateTime updatedAt,
                 String createdBy,

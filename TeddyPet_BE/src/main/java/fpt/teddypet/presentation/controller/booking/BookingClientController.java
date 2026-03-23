@@ -2,6 +2,7 @@ package fpt.teddypet.presentation.controller.booking;
 
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
+import fpt.teddypet.application.dto.request.bookings.ClientServiceReviewUpsertRequest;
 import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.request.bookings.ClientCancelBookingRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
@@ -70,5 +71,15 @@ public class BookingClientController {
             @RequestBody ClientCancelBookingRequest request) {
         ClientBookingDetailResponse data = bookingClientService.cancelBooking(bookingCode, request);
         return ResponseEntity.ok(ApiResponse.success("Hủy đơn thành công", data));
+    }
+
+    @PutMapping("/code/{bookingCode}/services/{bookingPetServiceId}/review")
+    @Operation(summary = "Khách hàng đánh giá dịch vụ booking_pet_service")
+    public ResponseEntity<ApiResponse<ClientBookingDetailResponse>> upsertServiceReview(
+            @PathVariable String bookingCode,
+            @PathVariable Long bookingPetServiceId,
+            @Valid @RequestBody ClientServiceReviewUpsertRequest request) {
+        ClientBookingDetailResponse data = bookingClientService.upsertServiceReview(bookingCode, bookingPetServiceId, request);
+        return ResponseEntity.ok(ApiResponse.success("Đánh giá dịch vụ thành công", data));
     }
 }

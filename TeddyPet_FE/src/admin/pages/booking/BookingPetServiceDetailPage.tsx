@@ -38,23 +38,59 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 const formatDate = (v?: string) => (v ? new Date(v).toLocaleDateString("vi-VN") : "—");
 const formatDateTime = (v?: string) => (v ? new Date(v).toLocaleString("vi-VN") : "—");
+const parsePhotoUrls = (value?: string | null): string[] => {
+  if (!value) return [];
+  const s = String(value).trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+  } catch {
+    // fallback for legacy single URL
+  }
+  return [s];
+};
 
 const InfoRow = ({
   label,
   value,
 }: {
   label: string;
-  value?: string | number | null;
+  value?: React.ReactNode;
 }) => (
   <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
     <Typography sx={{ color: "text.secondary", minWidth: 200, fontWeight: 600, fontSize: "0.875rem" }}>
       {label}
     </Typography>
-    <Typography sx={{ fontSize: "0.9375rem", color: "text.primary", fontWeight: 500 }}>
-      {value !== undefined && value !== null && value !== "" ? String(value) : "—"}
-    </Typography>
+    <Box sx={{ fontSize: "0.9375rem", color: "text.primary", fontWeight: 500 }}>
+      {value !== undefined && value !== null && value !== "" ? value : "—"}
+    </Box>
   </Stack>
 );
+
+const PhotoThumbnails = ({ photos }: { photos: string[] }) => {
+  if (!photos.length) return <Typography sx={{ fontSize: "0.9375rem", color: "text.primary", fontWeight: 500 }}>—</Typography>;
+  return (
+    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+      {photos.map((url, idx) => (
+        <Box
+          key={`${url}-${idx}`}
+          component="img"
+          src={url}
+          alt={`Ảnh ${idx + 1}`}
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: "10px",
+            objectFit: "cover",
+            border: "1px solid rgba(145, 158, 171, 0.22)",
+            backgroundColor: "white",
+          }}
+        />
+      ))}
+    </Box>
+  );
+};
 
 export const BookingPetServiceDetailPage = () => {
   const { id, petId, serviceId } = useParams<{ id: string; petId: string; serviceId: string }>();
@@ -133,6 +169,20 @@ export const BookingPetServiceDetailPage = () => {
     );
   }
 
+  const isRoomRequired = service.isRequiredRoom === true;
+  const slotDisplay =
+    service.timeSlotId != null
+      ? String(service.timeSlotId)
+      : service.scheduledStartTime && service.scheduledEndTime
+        ? `${new Date(service.scheduledStartTime).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${new Date(service.scheduledEndTime).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`
+        : "—";
+
   const backUrl = `/${prefixAdmin}/booking/detail/${id}/pet/${petId}`;
 
   return (
@@ -208,8 +258,8 @@ export const BookingPetServiceDetailPage = () => {
                   label="Nhân viên phụ trách"
                   value={service.assignedStaffNames || (service.assignedStaffIds?.length ? service.assignedStaffIds.map((id) => `#${id}`).join(", ") : "—")}
                 />
-                <InfoRow label="Phòng" value={service.roomId} />
-                <InfoRow label="Slot giờ" value={service.timeSlotId} />
+                {isRoomRequired ? <InfoRow label="Phòng" value={service.roomId} /> : null}
+                <InfoRow label="Slot giờ" value={slotDisplay} />
               </Box>
               <Box />
             </Box>
@@ -231,7 +281,7 @@ export const BookingPetServiceDetailPage = () => {
               <Box>
                 <InfoRow label="Check-in dự kiến" value={formatDate(service.estimatedCheckInDate)} />
                 <InfoRow label="Check-out dự kiến" value={formatDate(service.estimatedCheckOutDate)} />
-                <InfoRow label="Số đêm" value={service.numberOfNights} />
+                {isRoomRequired ? <InfoRow label="Số đêm" value={service.numberOfNights} /> : null}
                 <InfoRow label="Bắt đầu dự kiến" value={formatDateTime(service.scheduledStartTime)} />
                 <InfoRow label="Kết thúc dự kiến" value={formatDateTime(service.scheduledEndTime)} />
               </Box>
@@ -262,17 +312,18 @@ export const BookingPetServiceDetailPage = () => {
             <Typography sx={{ fontWeight: 800, fontSize: "1rem", mb: 3, color: "#1C252E" }}>
               Thanh toán
             </Typography>
-            <InfoRow
-              label="Đơn giá"
-              value={service.unitPrice != null ? formatCurrency(service.unitPrice) : "—"}
-            />
+            {isRoomRequired ? (
+              <InfoRow
+                label="Đơn giá"
+                value={service.unitPrice != null ? formatCurrency(service.unitPrice) : "—"}
+              />
+            ) : null}
             <InfoRow
               label="Thành tiền"
               value={service.subtotal != null ? formatCurrency(service.subtotal) : "—"}
             />
           </Card>
 
-          {/* Card 4: Hình ảnh & Video */}
           <Card
             sx={{
               p: 4,
@@ -285,10 +336,10 @@ export const BookingPetServiceDetailPage = () => {
               Hình ảnh & Video
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-              <InfoRow label="Ảnh trước" value={service.beforePhotos ? "Đã có" : "—"} />
-              <InfoRow label="Ảnh trong" value={service.duringPhotos ? "Đã có" : "—"} />
-              <InfoRow label="Ảnh sau" value={service.afterPhotos ? "Đã có" : "—"} />
-              <InfoRow label="Video" value={service.videos ? "Đã có" : "—"} />
+              <InfoRow label="Ảnh trước" value={<PhotoThumbnails photos={parsePhotoUrls(service.beforePhotos)} />} />
+              <InfoRow label="Ảnh trong" value={<PhotoThumbnails photos={parsePhotoUrls(service.duringPhotos)} />} />
+              <InfoRow label="Ảnh sau" value={<PhotoThumbnails photos={parsePhotoUrls(service.afterPhotos)} />} />
+              <InfoRow label="Video" value={<PhotoThumbnails photos={parsePhotoUrls(service.videos)} />} />
             </Box>
           </Card>
 
@@ -322,24 +373,6 @@ export const BookingPetServiceDetailPage = () => {
               <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#1C252E" }}>
                 Dịch vụ add-on / Additional charge
               </Typography>
-              {chargeServices.length > 0 && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => {
-                    setChargeForm({
-                      itemServiceId: chargeServices[0]?.serviceId ?? 0,
-                      chargeReason: "",
-                      chargeEvidence: "",
-                      chargedBy: "",
-                    });
-                    setAddChargeOpen(true);
-                  }}
-                  sx={{ bgcolor: "#00A76F", "&:hover": { bgcolor: "#007B55" } }}
-                >
-                  Thêm additional charge
-                </Button>
-              )}
             </Box>
             {(!service.items || service.items.length === 0) && (
               <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>

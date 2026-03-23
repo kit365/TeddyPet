@@ -481,13 +481,13 @@ export const getBookingColumns = (
               />
             </MenuItem>
 
-            {(params.row as BookingResponse).paymentStatus === "PAID" && (
+            {String((params.row as BookingResponse).status ?? "").toUpperCase() === "COMPLETED" && (
               <MenuItem onClick={handleExportBill}>
                 <ListItemIcon>
                   <ReceiptLongTwoTone sx={{ fontSize: "1.1rem", color: "#006C9C" }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Xuất bill"
+                  primary="In hóa đơn"
                   primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
                 />
               </MenuItem>

@@ -7,6 +7,7 @@ import fpt.teddypet.application.dto.request.bookings.AdminCheckInRepricePreviewR
 import fpt.teddypet.application.dto.request.bookings.AdminCheckOutConfirmRequest;
 import fpt.teddypet.application.dto.request.bookings.CancelBookingPetServiceRequest;
 import fpt.teddypet.application.dto.request.bookings.CreateBookingPaymentTransactionRequest;
+import fpt.teddypet.application.dto.response.bookings.AdminBookingNoShowPreviewResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingListItemResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetResponse;
 import fpt.teddypet.application.dto.response.bookings.AdminBookingPetServiceItemResponse;
@@ -61,5 +62,11 @@ public interface BookingAdminService {
     List<BookingTransactionItemResponse> getBookingTransactions(Long bookingId);
 
     AdminBookingListItemResponse updateInternalNotes(Long bookingId, fpt.teddypet.application.dto.request.bookings.UpdateBookingInternalNotesRequest request);
+
+    /** Preview no-show (thời gian trễ / grace) cho màn admin chi tiết đặt lịch. */
+    AdminBookingNoShowPreviewResponse getNoShowPreview(Long bookingId);
+
+    /** Hủy đơn với lý do no-show (khi cấu hình không bật tự động đánh dấu). */
+    AdminBookingListItemResponse markManualNoShow(Long bookingId);
 }
 

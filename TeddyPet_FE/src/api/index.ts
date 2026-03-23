@@ -129,10 +129,13 @@ apiApp.interceptors.response.use(
                     originalRequest.url?.includes('/api/tags') ||
                     originalRequest.url?.includes('/api/notifications'));
 
+            // Public booking APIs should not trigger refresh-token flow.
+            // Otherwise, an expired refresh token can mask the real API error.
+            if (isBookingPublicApi || isOptionalAuthApi) {
+                return Promise.reject(error);
+            }
+
             if (!refreshToken) {
-                if (isBookingPublicApi || isOptionalAuthApi) {
-                    return Promise.reject(error);
-                }
                 if (isAdmin) {
                     Cookies.remove(tokenKey);
                     Cookies.remove(refreshTokenKey);
@@ -170,13 +173,7 @@ apiApp.interceptors.response.use(
 
             } catch (err) {
                 processQueue(err, null);
-                
-                // For public booking APIs, don't redirect even if refresh fails
-                if (isBookingPublicApi || isOptionalAuthApi) {
-                    isRefreshing = false;
-                    return Promise.reject(err);
-                }
-                
+
                 if (isAdmin) {
                     Cookies.remove(tokenKey);
                     Cookies.remove(refreshTokenKey);

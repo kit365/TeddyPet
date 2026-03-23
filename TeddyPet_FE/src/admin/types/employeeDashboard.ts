@@ -13,7 +13,7 @@ export interface EmployeeUser {
     globalStatus: EmployeeGlobalStatus;
 }
 
-export type TaskBaseStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED";
+export type TaskBaseStatus = "PENDING" | "WAITING_STAFF" | "IN_PROGRESS" | "COMPLETED" | "PET_IN_HOTEL";
 
 export interface BaseTask {
     id: number | string;
@@ -27,7 +27,22 @@ export interface BaseTask {
     finishedAt?: string | null;
     /** Từ booking sau khi xếp ca & check-in */
     bookingCode?: string;
+    /** Mở chi tiết: booking/detail/:bookingId/pet/:bookingPetId/service/:id (id = booking_pet_service) */
+    bookingId?: number;
+    bookingPetId?: number;
     customerName?: string;
+    /**
+     * Booking đã check-in tại lễ tân — chỉ khi true thì được bấm "Bắt đầu" xử lý dịch vụ.
+     */
+    bookingCheckedIn?: boolean;
+    /** Từ BE: dịch vụ gắn phòng — chỉ "Bắt đầu", không "Hoàn thành" trên dashboard. */
+    serviceRequiresRoom?: boolean;
+    hasBeforePhotos?: boolean;
+    hasDuringPhotos?: boolean;
+    hasAfterPhotos?: boolean;
+    beforePhotos?: string[];
+    duringPhotos?: string[];
+    afterPhotos?: string[];
 }
 
 export interface CareTask extends BaseTask {

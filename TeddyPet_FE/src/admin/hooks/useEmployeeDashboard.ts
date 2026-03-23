@@ -11,6 +11,24 @@ import {
     useSetRealtimeOffline,
     useUpdateRealtimeStatus,
 } from "../pages/staff/hooks/useStaffRealtime";
+import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+    postCompleteStaffTask,
+    postPetInHotelStaffTask,
+    postStartStaffTask,
+    postUpdateStaffTaskPhotos,
+    StaffTaskServicePhotosPayload,
+} from "../api/staffTask.api";
+
+function getApiErrorMessage(e: unknown): string {
+    if (typeof e === "object" && e !== null && "response" in e) {
+        const data = (e as { response?: { data?: { message?: string } } }).response?.data;
+        const m = data?.message;
+        if (typeof m === "string" && m.trim()) return m;
+    }
+    return "Đã có lỗi xảy ra. Vui lòng thử lại.";
+}
 
 interface UseEmployeeDashboardOptions {
     initialUser: EmployeeUser;
@@ -18,6 +36,7 @@ interface UseEmployeeDashboardOptions {
 }
 
 export const useEmployeeDashboard = (options: UseEmployeeDashboardOptions) => {
+    const queryClient = useQueryClient();
     const [user, setUser] = useState<EmployeeUser>(options.initialUser);
     const [tasks, setTasks] = useState<EmployeeTask[]>(options.initialTasks || []);
     const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -101,60 +120,94 @@ export const useEmployeeDashboard = (options: UseEmployeeDashboardOptions) => {
     }, [setRealtimeOffline, staffId]);
 
     const startTask = useCallback(
-        (taskId: number | string) => {
-            const now = new Date().toISOString();
-            setTasks((prev) =>
-                prev.map((t) =>
-                    t.id === taskId
-                        ? {
-                              ...t,
-                              status: "IN_PROGRESS" as TaskBaseStatus,
-                              startedAt: now,
-                          }
-                        : t,
-                ),
-            );
-            if (user.todayCheckedIn) {
-                if (!Number.isNaN(staffId)) {
-                    updateRealtimeStatus({ staffId, status: "BUSY" });
+        async (taskId: number | string): Promise<boolean> => {
+            const target = tasks.find((t) => t.id === taskId);
+            if (target && target.bookingCheckedIn === false) {
+                toast.error(
+                    "Booking chưa check-in tại lễ tân. Vui lòng chờ check-in trước khi bắt đầu xử lý dịch vụ.",
+                );
+                return false;
+            }
+            try {
+                await postStartStaffTask(taskId);
+                await queryClient.invalidateQueries({ queryKey: ["staff-today-tasks"] });
+                toast.success("Đã bắt đầu xử lý dịch vụ.");
+                if (user.todayCheckedIn) {
+                    if (!Number.isNaN(staffId)) {
+                        updateRealtimeStatus({ staffId, status: "BUSY" });
+                    }
+                    setGlobalStatus("BUSY");
                 }
-                setGlobalStatus("BUSY");
+                return true;
+            } catch (e) {
+                toast.error(getApiErrorMessage(e));
+                return false;
             }
         },
-        [setGlobalStatus, staffId, updateRealtimeStatus, user.todayCheckedIn],
+        [setGlobalStatus, queryClient, staffId, tasks, updateRealtimeStatus, user.todayCheckedIn],
     );
 
     const finishTask = useCallback(
-        (taskId: number | string) => {
-            const now = new Date().toISOString();
-            setTasks((prev) =>
-                prev.map((t) =>
-                    t.id === taskId
-                        ? {
-                              ...t,
-                              status: "COMPLETED" as TaskBaseStatus,
-                              finishedAt: now,
-                          }
-                        : t,
-                ),
-            );
-            if (user.todayCheckedIn) {
-                if (!Number.isNaN(staffId)) {
-                    updateRealtimeStatus({ staffId, status: "AVAILABLE" });
+        async (taskId: number | string): Promise<boolean> => {
+            try {
+                await postCompleteStaffTask(taskId);
+                await queryClient.invalidateQueries({ queryKey: ["staff-today-tasks"] });
+                toast.success("Đã hoàn thành dịch vụ.");
+                if (user.todayCheckedIn) {
+                    if (!Number.isNaN(staffId)) {
+                        updateRealtimeStatus({ staffId, status: "AVAILABLE" });
+                    }
+                    setGlobalStatus("READY");
+                } else {
+                    if (!Number.isNaN(staffId)) {
+                        updateRealtimeStatus({ staffId, status: "OFFLINE" });
+                    }
+                    setGlobalStatus("OFF");
                 }
-                setGlobalStatus("READY");
-            } else {
-                if (!Number.isNaN(staffId)) {
-                    updateRealtimeStatus({ staffId, status: "OFFLINE" });
-                }
-                setGlobalStatus("OFF");
+                return true;
+            } catch (e) {
+                toast.error(getApiErrorMessage(e));
+                return false;
             }
         },
-        [setGlobalStatus, staffId, updateRealtimeStatus, user.todayCheckedIn],
+        [setGlobalStatus, queryClient, staffId, updateRealtimeStatus, user.todayCheckedIn],
+    );
+
+    const updateTaskPhotos = useCallback(
+        async (taskId: number | string, payload: StaffTaskServicePhotosPayload): Promise<boolean> => {
+            try {
+                await postUpdateStaffTaskPhotos(taskId, payload);
+                await queryClient.invalidateQueries({ queryKey: ["staff-today-tasks"] });
+                return true;
+            } catch (e) {
+                toast.error(getApiErrorMessage(e));
+                return false;
+            }
+        },
+        [queryClient],
+    );
+
+    const markTaskPetInHotel = useCallback(
+        async (taskId: number | string): Promise<boolean> => {
+            try {
+                await postPetInHotelStaffTask(taskId);
+                await queryClient.invalidateQueries({ queryKey: ["staff-today-tasks"] });
+                toast.success("Đã cập nhật thú cưng vào hotel.");
+                if (user.todayCheckedIn && !Number.isNaN(staffId)) {
+                    updateRealtimeStatus({ staffId, status: "AVAILABLE" });
+                    setGlobalStatus("READY");
+                }
+                return true;
+            } catch (e) {
+                toast.error(getApiErrorMessage(e));
+                return false;
+            }
+        },
+        [queryClient, setGlobalStatus, staffId, updateRealtimeStatus, user.todayCheckedIn],
     );
 
     const pendingTasks = useMemo(
-        () => tasks.filter((t) => t.status === "PENDING"),
+        () => tasks.filter((t) => t.status === "PENDING" || t.status === "WAITING_STAFF"),
         [tasks],
     );
 
@@ -168,17 +221,25 @@ export const useEmployeeDashboard = (options: UseEmployeeDashboardOptions) => {
         [tasks],
     );
 
+    const petInHotelTasks = useMemo(
+        () => tasks.filter((t) => t.status === "PET_IN_HOTEL"),
+        [tasks],
+    );
+
     return {
         user,
         tasks,
         pendingTasks,
         inProgressTasks,
         completedTasks,
+        petInHotelTasks,
         isCheckingIn,
         checkIn,
         checkOut,
         startTask,
         finishTask,
+        updateTaskPhotos,
+        markTaskPetInHotel,
     };
 };
 

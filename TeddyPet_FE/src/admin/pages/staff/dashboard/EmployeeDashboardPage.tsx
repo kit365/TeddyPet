@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { getStaffStats } from "../../../api/dashboard.api";
 import { getTodayStaffTasks } from "../../../api/staffTask.api";
 import { useEffect } from "react";
+import dayjs from "dayjs";
 import WelcomeWidget from "../../../components/dashboard/WelcomeWidget";
 import SummaryWidget from "../../../components/dashboard/SummaryWidget";
 import DashboardCard from "../../../components/dashboard/DashboardCard";
@@ -34,6 +35,8 @@ export const EmployeeDashboardPage = () => {
     const { data: todayTasksRes, isLoading: loadingTasks } = useQuery({
         queryKey: ["staff-today-tasks"],
         queryFn: getTodayStaffTasks,
+        staleTime: 30_000,
+        refetchOnWindowFocus: true,
     });
     const serverTasks = todayTasksRes?.data || [];
 
@@ -57,13 +60,18 @@ export const EmployeeDashboardPage = () => {
 
     const {
         user,
+        tasks,
         pendingTasks,
         inProgressTasks,
+        completedTasks,
+        petInHotelTasks,
         isCheckingIn,
         checkIn,
         checkOut,
         startTask,
         finishTask,
+        updateTaskPhotos,
+        markTaskPetInHotel,
     } = useEmployeeDashboard({
         initialUser: initialUser ?? {
             id: 0,
@@ -106,9 +114,79 @@ export const EmployeeDashboardPage = () => {
         };
     }, [queryClient, refetchStaffStats]);
 
-    const activeTasks = [...pendingTasks, ...inProgressTasks];
+    const activeTasks = [...pendingTasks, ...inProgressTasks, ...petInHotelTasks, ...completedTasks];
     const careTasks = activeTasks.filter((t): t is CareTask => t.type === "CARE");
     const spaTasks = activeTasks.filter((t): t is SpaTask => t.type === "SPA");
+    const groupedByBooking = activeTasks.reduce<
+        Array<{
+            key: string;
+            bookingCode?: string;
+            customerName?: string;
+            careTasks: CareTask[];
+            spaTasks: SpaTask[];
+            earliestStart?: string | null;
+        }>
+    >((acc, task) => {
+        const bookingKey =
+            task.bookingId != null
+                ? `booking-${task.bookingId}`
+                : task.bookingCode
+                  ? `code-${task.bookingCode}`
+                  : `task-${task.id}`;
+        let found = acc.find((g) => g.key === bookingKey);
+        if (!found) {
+            found = {
+                key: bookingKey,
+                bookingCode: task.bookingCode,
+                customerName: task.customerName,
+                careTasks: [],
+                spaTasks: [],
+                earliestStart: task.scheduledStart ?? null,
+            };
+            acc.push(found);
+        }
+        const candidateStart = task.scheduledStart ?? null;
+        if (candidateStart) {
+            if (!found.earliestStart || dayjs(candidateStart).isBefore(dayjs(found.earliestStart))) {
+                found.earliestStart = candidateStart;
+            }
+        }
+        if (task.type === "CARE") {
+            found.careTasks.push(task);
+        } else {
+            found.spaTasks.push(task);
+        }
+        return acc;
+    }, []).map((group) => ({
+        ...group,
+        careTasks: [...group.careTasks].sort((a, b) => {
+            const ta = a.scheduledStart ? dayjs(a.scheduledStart).valueOf() : Number.MAX_SAFE_INTEGER;
+            const tb = b.scheduledStart ? dayjs(b.scheduledStart).valueOf() : Number.MAX_SAFE_INTEGER;
+            return ta - tb;
+        }),
+        spaTasks: [...group.spaTasks].sort((a, b) => {
+            const ta = a.scheduledStart ? dayjs(a.scheduledStart).valueOf() : Number.MAX_SAFE_INTEGER;
+            const tb = b.scheduledStart ? dayjs(b.scheduledStart).valueOf() : Number.MAX_SAFE_INTEGER;
+            return ta - tb;
+        }),
+    })).sort((a, b) => {
+        const ta = a.earliestStart ? dayjs(a.earliestStart).valueOf() : Number.MAX_SAFE_INTEGER;
+        const tb = b.earliestStart ? dayjs(b.earliestStart).valueOf() : Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+    });
+    const spaTasksThisWeek = tasks.filter((t) => {
+        if (t.type !== "SPA") return false;
+        const d = t.scheduledStart ?? t.createdAt;
+        if (!d) return false;
+        const date = dayjs(d);
+        if (!date.isValid()) return false;
+        return date.isSame(dayjs(), "week");
+    });
+    const completedSpaTasksThisWeek = spaTasksThisWeek.filter((t) => t.status === "COMPLETED").length;
+    const weeklyEfficiencyPercent =
+        spaTasksThisWeek.length > 0
+            ? Math.round((completedSpaTasksThisWeek / spaTasksThisWeek.length) * 100)
+            : 0;
 
     const handleAddTask = () => {
         toast.success("Đã mở tạo nhiệm vụ (sẽ tích hợp sau).");
@@ -292,29 +370,52 @@ export const EmployeeDashboardPage = () => {
                         <Typography variant="body2" color="text.secondary">Bắt đầu hoàn thành các nhiệm vụ được giao trong ngày</Typography>
                     </Box>
                     
-                    {careTasks.length === 0 && spaTasks.length === 0 ? (
+                    {groupedByBooking.length === 0 ? (
                         <TaskEmptyState
-                            title="Chưa có nhiệm vụ được giao hôm nay"
-                            description="Khi admin xếp ca, gán bạn vào booking_pet_service và booking đã check-in, nhiệm vụ sẽ hiển thị tại đây (chăm sóc/phòng hoặc Spa)."
+                            title="Chưa có nhiệm vụ được giao trong khoảng lịch này"
+                            description="Khi admin xếp ca và chọn bạn làm nhân viên phụ trách trên booking_pet_service, nhiệm vụ sẽ hiển thị tại đây (Care/Spa). Nếu vừa mới xếp, hãy tải lại trang hoặc chuyển tab rồi quay lại."
                         />
                     ) : (
                         <Stack spacing={3}>
-                            {careTasks.length > 0 && (
-                                <Box>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
-                                        Chăm sóc & phòng
+                            {groupedByBooking.map((group) => (
+                                <Box key={group.key} sx={{ p: 2, border: "1px solid #e5e7eb", borderRadius: 2, bgcolor: "white" }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>
+                                        Booking {group.bookingCode ?? "—"}
                                     </Typography>
-                                    <CareTaskList tasks={careTasks} onStart={startTask} onFinish={finishTask} />
-                                </Box>
-                            )}
-                            {spaTasks.length > 0 && (
-                                <Box>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
-                                        Spa & Grooming
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        Khách hàng: {group.customerName ?? "—"}
                                     </Typography>
-                                    <SpaTaskList tasks={spaTasks} onStart={startTask} onFinish={finishTask} />
+
+                                    {group.careTasks.length > 0 && (
+                                        <Box sx={{ mb: group.spaTasks.length > 0 ? 2 : 0 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                                                Chăm sóc & phòng
+                                            </Typography>
+                                            <CareTaskList
+                                                tasks={group.careTasks}
+                                                loading={loadingTasks}
+                                                onStart={startTask}
+                                                onSetUpDone={markTaskPetInHotel}
+                                            />
+                                        </Box>
+                                    )}
+
+                                    {group.spaTasks.length > 0 && (
+                                        <Box>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                                                Spa & Grooming
+                                            </Typography>
+                                            <SpaTaskList
+                                                tasks={group.spaTasks}
+                                                loading={loadingTasks}
+                                                onStart={startTask}
+                                                onFinish={finishTask}
+                                                onSavePhotos={updateTaskPhotos}
+                                            />
+                                        </Box>
+                                    )}
                                 </Box>
-                            )}
+                            ))}
                         </Stack>
                     )}
                 </Grid>
@@ -348,9 +449,11 @@ export const EmployeeDashboardPage = () => {
                                 <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1.5, border: '1px solid var(--palette-divider)' }}>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>HIỆU SUẤT TRỰC TUẦN</Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                                        <Typography variant="h4" fontWeight={800}>92%</Typography>
+                                        <Typography variant="h4" fontWeight={800}>{weeklyEfficiencyPercent}%</Typography>
                                     </Box>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Bạn đã hoàn thành 24/26 nhiệm vụ được giao tuần này.</Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                        Bạn đã hoàn thành {completedSpaTasksThisWeek}/{spaTasksThisWeek.length} dịch vụ Spa tuần này.
+                                    </Typography>
                                 </Box>
                             </Stack>
                         </DashboardCard>

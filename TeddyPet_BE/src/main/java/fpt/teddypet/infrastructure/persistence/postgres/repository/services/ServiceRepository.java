@@ -23,4 +23,8 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     List<Service> findByIsActiveTrueAndIsDeletedFalse();
 
     List<Service> findByServiceCategory_IdAndIsActiveTrueAndIsDeletedFalse(Long serviceCategoryId);
+
+    List<Service> findByNoShowConfig_Id(Long noShowConfigId);
+
+    long countByNoShowConfig_Id(Long noShowConfigId);
 }
