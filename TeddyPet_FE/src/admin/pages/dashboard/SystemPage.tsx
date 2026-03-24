@@ -329,10 +329,7 @@ const COLORS = ['#ffab00', '#00b8d9', '#8e33ff', '#00a76f', '#ff5630'];
 const TopCustomers = ({ data }: { data?: Array<{ name: string; totalSpent: number; orderCount: number; bookingCount: number; avatarUrl?: string }> }) => {
     const list = data ?? [];
     const formatMoney = (v: number) => {
-        if (v < 100000 && v > 0) {
-            return new Intl.NumberFormat('vi-VN').format(v) + 'đ';
-        }
-        return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(v) + 'đ';
+        return new Intl.NumberFormat('vi-VN').format(v) + 'đ';
     };
     return (
         <DashboardCard sx={{ p: 3 }}>
