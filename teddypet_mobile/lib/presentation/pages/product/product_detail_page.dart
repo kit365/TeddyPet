@@ -1070,15 +1070,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final variant = _findVariantBySelection(product, tempSelected);
-            final previewVariant =
-              variant ?? _findPreviewVariantByPartialSelection(product, tempSelected);
+            // Nếu chưa chọn đủ phân loại (variant == null), để giá là 0 theo yêu cầu của user
+            final previewDisplayPrice = variant?.displayPrice ?? 0;
+            final previewOriginalPrice = (variant != null && variant.hasSale) ? variant.price : null;
+            
+            final previewVariant = variant ?? _findPreviewVariantByPartialSelection(product, tempSelected);
             final previewImageUrl = previewVariant?.featuredImageUrl ??
               (product.images.isNotEmpty ? product.images.first.imageUrl : 'https://placehold.co/300x300');
-            final previewDisplayPrice = previewVariant?.displayPrice ?? product.minPrice;
-            final previewOriginalPrice = previewVariant?.hasSale == true
-              ? previewVariant!.price
-              : (product.maxPrice > product.minPrice ? product.maxPrice : null);
-            final previewStock = previewVariant?.stockQuantity ?? 0;
+            final previewStock = variant?.stockQuantity ?? (previewVariant?.stockQuantity ?? 0);
             final stock = variant?.stockQuantity ?? 0;
             final canSubmit = variant != null && stock > 0;
 
