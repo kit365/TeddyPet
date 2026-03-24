@@ -716,10 +716,7 @@ const formatVnd = (value: unknown) => {
 
 const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardStatsResponse; chartData?: RevenueChartItem[]; ratingSummary?: RatingSummaryResponse }) => {
     const formatMoney = (v: number) => {
-        if (v < 100000 && v > 0) {
-            return new Intl.NumberFormat('vi-VN').format(v) + 'đ';
-        }
-        return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(v) + 'đ';
+        return new Intl.NumberFormat('vi-VN').format(v) + 'đ';
     };
 
     return (
