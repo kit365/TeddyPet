@@ -9,7 +9,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   Future<List<CategoryResponse>> getCategories() async {
     try {
       final response = await _apiClient.get<List<CategoryResponse>>(
-        '/product-categories/nested', // Đúng với route bên BE
+        'product-categories/nested', // Đúng với route bên BE
         fromJson: (json) {
           if (json is List) {
             return json.map((e) => CategoryResponse.fromJson(e)).toList();

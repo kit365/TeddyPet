@@ -14,4 +14,12 @@ class AppColors {
   static const Color textBlack = Color(0xFF102937); // Dùng màu xanh đen làm màu chữ chính cho sang
   static const Color bgLight = Color(0xFFF8F9FA);
   static const Color white = Colors.white;
+
+  // Trạng thái
+  static const Color success = Color(0xFF28A745);
+  static const Color error = Color(0xFFDC3545);
+
+  // Văn bản
+  static const Color textPrimary = Color(0xFF102937);
+  static const Color textSecondary = Color(0xFF6C757D);
 }

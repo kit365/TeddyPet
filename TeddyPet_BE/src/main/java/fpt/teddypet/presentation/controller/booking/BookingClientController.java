@@ -10,7 +10,7 @@ import fpt.teddypet.application.dto.response.bookings.BookingRefundResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.service.bookings.BookingRefundClientApplicationService;
-import fpt.teddypet.presentation.constants.ApiConstants;
+import fpt.teddypet.application.util.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,9 +20,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiConstants.API_BOOKINGS)
+@RequestMapping("/api/bookings")
 @RequiredArgsConstructor
 @Tag(name = "Booking (Client)", description = "API cho khách hàng đặt lịch dịch vụ")
 public class BookingClientController {
@@ -38,6 +39,15 @@ public class BookingClientController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Đặt lịch thành công", response));
+    }
+
+    @GetMapping("/my")
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy danh sách các đơn đặt lịch của người dùng hiện tại")
+    public ResponseEntity<ApiResponse<List<ClientBookingDetailResponse>>> getMyBookings() {
+        UUID userId = SecurityUtil.getCurrentUserId();
+        List<ClientBookingDetailResponse> data = bookingClientService.getMyBookings(userId);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 
     @GetMapping("/code/{bookingCode}")

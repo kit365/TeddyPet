@@ -5,7 +5,7 @@ import 'user_address_repository.dart';
 
 class UserAddressRepositoryImpl implements UserAddressRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/user-addresses';
+  final String _baseEndpoint = 'user-addresses';
 
   @override
   Future<List<UserAddressResponse>> getAll() async {

@@ -42,10 +42,6 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2C3E50), size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: (authProvider.isLoading || userProvider.isLoading) && user == null
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
@@ -69,6 +65,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         _showLoginRequired();
                       } else {
                         Navigator.pushNamed(context, AppRoutes.myPurchases);
+                      }
+                    }),
+                    const Divider(height: 1, indent: 60, endIndent: 20, color: Color(0xFFF1F1F1)),
+                    _buildMenuItem(Icons.calendar_month_outlined, 'Lịch sử đặt lịch', () {
+                      if (!isLoggedIn) {
+                        _showLoginRequired();
+                      } else {
+                        Navigator.pushNamed(context, AppRoutes.bookingHistory);
+                      }
+                    }),
+                    const Divider(height: 1, indent: 60, endIndent: 20, color: Color(0xFFF1F1F1)),
+                    _buildMenuItem(Icons.add_shopping_cart_outlined, 'Đặt lịch mới', () {
+                      if (!isLoggedIn) {
+                        _showLoginRequired();
+                      } else {
+                        Navigator.pushNamed(context, AppRoutes.bookingWizard);
                       }
                     }),
                     const Divider(height: 1, indent: 60, endIndent: 20, color: Color(0xFFF1F1F1)),

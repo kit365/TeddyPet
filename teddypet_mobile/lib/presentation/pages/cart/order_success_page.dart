@@ -3,6 +3,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/entities/order/order_entity.dart';
 import '../../../core/utils/format_utils.dart';
+import '../../providers/common/navigation_provider.dart';
+import 'package:provider/provider.dart';
 
 class OrderSuccessPage extends StatelessWidget {
   final OrderEntity order;
@@ -91,11 +93,13 @@ class OrderSuccessPage extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Reset về Home trước, sau đó có thể điều hướng đi đâu tùy ý
+                    // Reset về Home (Tab 0) và đi tới chi tiết đơn hàng
+                    context.read<NavigationProvider>().setTab(0);
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      AppRoutes.home,
-                      (route) => false,
+                      AppRoutes.orderDetail,
+                      (route) => route.isFirst,
+                      arguments: order,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -115,6 +119,7 @@ class OrderSuccessPage extends StatelessWidget {
                 height: 52,
                 child: OutlinedButton(
                   onPressed: () {
+                    context.read<NavigationProvider>().setTab(0);
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       AppRoutes.home,

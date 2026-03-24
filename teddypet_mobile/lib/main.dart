@@ -38,6 +38,16 @@ import 'package:teddypet_mobile/data/api/wishlist.api.dart';
 import 'package:teddypet_mobile/core/routes/app_routes.dart';
 import 'core/routes/app_router.dart';
 import 'package:teddypet_mobile/presentation/providers/home/home_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/payment/payment_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/notification/notification_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/service/service_provider.dart';
+import 'package:teddypet_mobile/data/repositories/service/service_repository_impl.dart';
+import 'package:teddypet_mobile/application/service/service_app_service_impl.dart';
+import 'package:teddypet_mobile/presentation/controllers/service/service_controller.dart';
+import 'package:teddypet_mobile/presentation/providers/booking/booking_provider.dart';
+import 'package:teddypet_mobile/data/repositories/booking/booking_repository_impl.dart';
+import 'package:teddypet_mobile/application/booking/booking_app_service_impl.dart';
+import 'package:teddypet_mobile/presentation/controllers/booking/booking_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -111,6 +121,22 @@ Future<void> main() async {
             context.read<ProductController>(),
             CategoryController(
               CategoryAppServiceImpl(CategoryRepositoryImpl()),
+            ),
+          ),
+        ),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ServiceProvider(
+            ServiceController(
+              ServiceAppServiceImpl(ServiceRepositoryImpl(ApiClient())),
+            ),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BookingProvider(
+            BookingController(
+              BookingAppServiceImpl(BookingRepositoryImpl(ApiClient())),
             ),
           ),
         ),
