@@ -20,7 +20,7 @@ class CartRepositoryImpl implements CartRepository {
       }
       return null;
     } catch (e) {
-      print("Lỗi khi fetch giỏ hàng: \$e");
+      print("Lỗi khi fetch giỏ hàng: $e");
       return null;
     }
   }
@@ -37,7 +37,7 @@ class CartRepositoryImpl implements CartRepository {
       );
       return response.success;
     } catch (e) {
-      print("Lỗi khi addToCart: \$e");
+      print("Lỗi khi addToCart: $e");
       return false;
     }
   }
@@ -54,7 +54,7 @@ class CartRepositoryImpl implements CartRepository {
       );
       return response.success;
     } catch (e) {
-      print("Lỗi khi updateCartItem: \$e");
+      print("Lỗi khi updateCartItem: $e");
       return false;
     }
   }
@@ -67,7 +67,7 @@ class CartRepositoryImpl implements CartRepository {
       );
       return response.success;
     } catch (e) {
-      print("Lỗi khi removeMyCartItem: \$e");
+      print("Lỗi khi removeMyCartItem: $e");
       return false;
     }
   }

@@ -23,8 +23,11 @@ const dataGridCardStyles = {
     flexDirection: 'column',
 };
 
-export const FeedbackList = () => {
-    const [reviewSource, setReviewSource] = useState<"product" | "booking">("product");
+interface FeedbackListProps {
+    reviewSource: "product" | "booking";
+}
+
+export const FeedbackList = ({ reviewSource }: FeedbackListProps) => {
     const [feedbacks, setFeedbacks] = useState<FeedbackResponse[]>([]);
     const [bookingReviews, setBookingReviews] = useState<BookingReviewResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -220,7 +223,7 @@ export const FeedbackList = () => {
     // Reset page when filters change
     useEffect(() => {
         setPage(1);
-    }, [searchKeyword, ratingFilter, tabFilter, selectedProducts]);
+    }, [searchKeyword, ratingFilter, tabFilter, selectedProducts, reviewSource]);
 
     const handleTabChange = (_: React.SyntheticEvent, newValue: any) => {
         setTabFilter(newValue);
@@ -231,16 +234,6 @@ export const FeedbackList = () => {
 
     return (
         <Stack spacing={3}>
-            <Card sx={{ p: 1, borderRadius: '12px', boxShadow: 'none', border: '1px solid rgba(145, 158, 171, 0.2)' }}>
-                <Tabs
-                    value={reviewSource}
-                    onChange={(_, v) => setReviewSource(v)}
-                    sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 700 } }}
-                >
-                    <Tab value="product" label="Đánh giá sản phẩm" />
-                    <Tab value="booking" label="Đánh giá đơn booking" />
-                </Tabs>
-            </Card>
 
             {/* Stats Overview */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>

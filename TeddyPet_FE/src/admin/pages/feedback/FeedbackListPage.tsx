@@ -42,13 +42,15 @@ export const FeedbackListPage = () => {
                     }}
                 >
                     <Tab label="Đánh giá sản phẩm" />
+                    <Tab label="Đánh giá đơn booking" />
                     <Tab label="Bình luận Blog" />
                 </Tabs>
             </Box>
 
             <div className="mt-6 px-3">
-                {currentTab === 0 && <FeedbackList />}
-                {currentTab === 1 && <BlogCommentList />}
+                {currentTab === 0 && <FeedbackList reviewSource="product" />}
+                {currentTab === 1 && <FeedbackList reviewSource="booking" />}
+                {currentTab === 2 && <BlogCommentList />}
             </div>
         </div>
     )

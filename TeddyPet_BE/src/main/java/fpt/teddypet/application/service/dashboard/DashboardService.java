@@ -11,7 +11,7 @@ import fpt.teddypet.domain.enums.orders.OrderStatusEnum;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.orders.OrderRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.products.ProductRepository;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.products.RatingRepository;
+import fpt.teddypet.infrastructure.persistence.postgres.repository.feedback.FeedbackRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
@@ -46,10 +46,10 @@ public class DashboardService {
         private final BookingRepository bookingRepository;
         private final BookingDepositRepository bookingDepositRepository;
         private final BookingPetRepository bookingPetRepository;
+        private final FeedbackRepository feedbackRepository;
         private final ProductMapper productMapper;
         private final ProductApplicationService productApplicationService;
         private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
-        private final RatingRepository ratingRepository;
         private final StaffProfileRepository staffProfileRepository;
         private final TaskHistoryRepository taskHistoryRepository;
         private final ServiceRepository serviceRepository;
@@ -62,10 +62,10 @@ public class DashboardService {
                         BookingRepository bookingRepository,
                         BookingDepositRepository bookingDepositRepository,
                         BookingPetRepository bookingPetRepository,
+                        FeedbackRepository feedbackRepository,
                         ProductMapper productMapper,
                         ProductApplicationService productApplicationService,
                         org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate,
-                        RatingRepository ratingRepository,
                         StaffProfileRepository staffProfileRepository,
                         TaskHistoryRepository taskHistoryRepository,
                         ServiceRepository serviceRepository) {
@@ -76,10 +76,10 @@ public class DashboardService {
                 this.bookingRepository = bookingRepository;
                 this.bookingDepositRepository = bookingDepositRepository;
                 this.bookingPetRepository = bookingPetRepository;
+                this.feedbackRepository = feedbackRepository;
                 this.productMapper = productMapper;
                 this.productApplicationService = productApplicationService;
                 this.messagingTemplate = messagingTemplate;
-                this.ratingRepository = ratingRepository;
                 this.staffProfileRepository = staffProfileRepository;
                 this.taskHistoryRepository = taskHistoryRepository;
                 this.serviceRepository = serviceRepository;
@@ -482,31 +482,53 @@ public class DashboardService {
         ZoneId zone = ZoneId.systemDefault();
         LocalDateTime startDate = startODT != null ? startODT.atZoneSameInstant(zone).toLocalDateTime() : null;
         LocalDateTime endDate = endODT != null ? endODT.atZoneSameInstant(zone).toLocalDateTime() : null;
-        return orderRepository.findAll().stream()
+
+        Map<User, BigDecimal> userRevenue = new HashMap<>();
+        Map<User, Long> userOrderCount = new HashMap<>();
+        Map<User, Long> userBookingCount = new HashMap<>();
+
+        // Process Orders
+        orderRepository.findAll().stream()
                 .filter(o -> isWithinRange(o.getCreatedAt(), startDate, endDate))
-                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED
-                        || o.getStatus() == OrderStatusEnum.DELIVERED)
-                                .filter(o -> o.getUser() != null)
-                                .collect(Collectors.groupingBy(Order::getUser))
-                                .entrySet().stream()
-                                .map(e -> {
-                                        User u = e.getKey();
-                                        List<Order> userOrders = e.getValue();
-                                        BigDecimal totalSpent = userOrders.stream()
-                                                        .map(o -> o.getFinalAmount() != null ? o.getFinalAmount()
-                                                                        : BigDecimal.ZERO)
-                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                                        return new TopCustomerResponse(
-                                                        u.getFirstName() + " " + u.getLastName(),
-                                                        u.getEmail(),
-                                                        u.getAvatarUrl(),
-                                                        userOrders.size(),
-                                                        totalSpent);
-                                })
-                                .sorted(Comparator.comparing(TopCustomerResponse::totalSpent).reversed())
-                                .limit(5)
-                                .toList();
-        }
+                .filter(o -> o.getStatus() == OrderStatusEnum.COMPLETED || o.getStatus() == OrderStatusEnum.DELIVERED)
+                .filter(o -> o.getUser() != null)
+                .forEach(o -> {
+                    User u = o.getUser();
+                    BigDecimal amount = resolveOrderAmount(o);
+                    userRevenue.merge(u, amount, BigDecimal::add);
+                    userOrderCount.merge(u, 1L, Long::sum);
+                });
+
+        // Process Bookings
+        bookingRepository.findAll().stream()
+                .filter(b -> isWithinRange(b.getCreatedAt(), startDate, endDate))
+                .filter(b -> "COMPLETED".equalsIgnoreCase(b.getStatus()) || "FINISHED".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> b.getUser() != null)
+                .forEach(b -> {
+                    User u = b.getUser();
+                    BigDecimal amount = b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO;
+                    userRevenue.merge(u, amount, BigDecimal::add);
+                    userBookingCount.merge(u, 1L, Long::sum);
+                });
+
+        return userRevenue.entrySet().stream()
+                .map(e -> {
+                    User u = e.getKey();
+                    BigDecimal totalSpent = e.getValue();
+                    long orderCount = userOrderCount.getOrDefault(u, 0L);
+                    long bookingCount = userBookingCount.getOrDefault(u, 0L);
+                    return new TopCustomerResponse(
+                            u.getFirstName() + " " + u.getLastName(),
+                            u.getEmail(),
+                            u.getAvatarUrl(),
+                            orderCount,
+                            bookingCount,
+                            totalSpent);
+                })
+                .sorted(Comparator.comparing(TopCustomerResponse::totalSpent).reversed())
+                .limit(5)
+                .toList();
+    }
 
         public List<ProductResponse> getLatestProducts() {
                 return productRepository.findAll(PageRequest.of(0, 5, Sort.by("createdAt").descending()))
@@ -658,7 +680,7 @@ public class DashboardService {
 
         /** Tổng hợp đánh giá: điểm TB + số lượt đánh giá. */
         public RatingSummaryResponse getRatingSummary() {
-                long productCount = ratingRepository.countByIsDeletedFalse();
+                long productCount = feedbackRepository.countByIsDeletedFalse();
                 long bookingCount = bookingPetServiceRepository.countWithCustomerRating();
                 long totalCount = productCount + bookingCount;
                 BigDecimal avg = BigDecimal.valueOf(computeOverallAverageRating());
@@ -666,8 +688,8 @@ public class DashboardService {
         }
 
         private double computeOverallAverageRating() {
-                Double productAvg = ratingRepository.getAverageScore();
-                long productCount = ratingRepository.countByIsDeletedFalse();
+                Double productAvg = feedbackRepository.getAverageRating();
+                long productCount = feedbackRepository.countByIsDeletedFalse();
                 Double bookingAvg = bookingPetServiceRepository.getAverageCustomerRating();
                 long bookingCount = bookingPetServiceRepository.countWithCustomerRating();
                 long totalCount = productCount + bookingCount;

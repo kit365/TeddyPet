@@ -20,7 +20,7 @@ public class OrderScheduler {
     private final OrderRepositoryPort orderRepositoryPort;
 
     /**
-     * Tự động hoàn thành đơn hàng nếu đã giao thành công quá 3 ngày mà khách không
+     * Tự động hoàn thành đơn hàng nếu đã giao thành công quá 1 ngày mà khách không
      * bấm nhận
      * Chạy mỗi ngày lúc 00:00 để tiết kiệm tài nguyên
      */
@@ -29,9 +29,9 @@ public class OrderScheduler {
     public void autoCompleteDeliveredOrders() {
         log.info("Starting auto-complete delivered orders task...");
 
-        LocalDateTime threshold = LocalDateTime.now().minusDays(3);
+        LocalDateTime threshold = LocalDateTime.now().minusDays(1);
 
-        // Tìm các đơn đã giao thành công (DELIVERED) quá 3 ngày
+        // Tìm các đơn đã giao thành công (DELIVERED) quá 1 ngày
         List<Order> deliveredOrders = orderRepositoryPort.findByStatusAndDeliveredAtBefore(
                 OrderStatusEnum.DELIVERED, threshold);
 

@@ -6,6 +6,7 @@ public record TopCustomerResponse(
     String fullName,
     String email,
     String avatarUrl,
-    long totalOrders,
+    long orderCount,
+    long bookingCount,
     BigDecimal totalSpent
 ) {}
