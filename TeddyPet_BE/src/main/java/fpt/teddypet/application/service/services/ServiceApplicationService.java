@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.response.service.service.ServiceInfo;
 import fpt.teddypet.application.dto.response.service.service.ServiceResponse;
 import fpt.teddypet.application.mapper.services.ServiceMapper;
 import fpt.teddypet.application.port.input.services.ServiceService;
+import fpt.teddypet.application.port.output.room.ServiceRoomTypeRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceCategoryRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.util.ListUtil;
@@ -31,6 +32,7 @@ public class ServiceApplicationService implements ServiceService {
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final ServiceCategoryRepositoryPort serviceCategoryRepositoryPort;
     private final SkillRepositoryPort skillRepositoryPort;
+    private final ServiceRoomTypeRepositoryPort serviceRoomTypeRepositoryPort;
     private final ServiceMapper serviceMapper;
 
     @Override
@@ -129,6 +131,14 @@ public class ServiceApplicationService implements ServiceService {
         entity.setActive(false);
         serviceRepositoryPort.save(entity);
         log.info(ServiceLogMessages.LOG_SERVICE_DELETE_SUCCESS, id);
+    }
+
+    @Override
+    @Transactional
+    public void setRoomTypesForService(Long serviceId, List<Long> roomTypeIds) {
+        getById(serviceId);
+        List<Long> ids = roomTypeIds == null ? List.of() : roomTypeIds.stream().distinct().toList();
+        serviceRoomTypeRepositoryPort.setRoomTypesForService(serviceId, ids);
     }
 
     @Override

@@ -21,7 +21,14 @@ public interface ServiceRoomTypeRepository extends JpaRepository<ServiceRoomType
     @Query("SELECT srt.id.serviceId FROM ServiceRoomType srt WHERE srt.id.roomTypeId = :roomTypeId")
     List<Long> findServiceIdsByRoomTypeId(@Param("roomTypeId") Long roomTypeId);
 
+    @Query("SELECT CASE WHEN COUNT(srt) > 0 THEN true ELSE false END FROM ServiceRoomType srt WHERE srt.id.serviceId = :serviceId AND srt.id.roomTypeId = :roomTypeId")
+    boolean existsByServiceIdAndRoomTypeId(@Param("serviceId") Long serviceId, @Param("roomTypeId") Long roomTypeId);
+
     @Modifying
     @Query("DELETE FROM ServiceRoomType srt WHERE srt.id.serviceId = :serviceId")
     void deleteByServiceId(@Param("serviceId") Long serviceId);
+
+    @Modifying
+    @Query("DELETE FROM ServiceRoomType srt WHERE srt.id.roomTypeId = :roomTypeId")
+    void deleteByRoomTypeId(@Param("roomTypeId") Long roomTypeId);
 }
