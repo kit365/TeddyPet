@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Facebook, Instagram } from "iconoir-react";
 
 export const SocialIcon = ({ facebookUrl = "#", instagramUrl = "#" }: { facebookUrl?: string, instagramUrl?: string }) => {

@@ -1,4 +1,4 @@
-﻿import { SectionHeader } from "../../../components/ui/SectionHeader"
+import { SectionHeader } from "../../../components/ui/SectionHeader"
 import { ServiceCard } from "../../../components/ui/ServiceCard";
 
 const services = [

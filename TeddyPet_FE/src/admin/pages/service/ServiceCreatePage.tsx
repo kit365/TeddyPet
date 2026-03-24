@@ -613,7 +613,7 @@ export const ServiceCreatePage = () => {
                                         <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                             <Box sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.5 }}>Loại phòng gắn với dịch vụ này</Box>
                                             <Box sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
-                                                Chọn các loại phòng sẽ được sử dụng cho dịch vụ này. Một loại phòng chỉ có thể gắn với một dịch vụ. (Gắn sau khi tạo thành công)
+                                                Chọn các loại phòng cho dịch vụ này. Cùng một loại phòng có thể dùng chung cho nhiều dịch vụ. (Gắn sau khi tạo thành công)
                                             </Box>
                                             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
                                                 {roomTypes.map((rt) => {

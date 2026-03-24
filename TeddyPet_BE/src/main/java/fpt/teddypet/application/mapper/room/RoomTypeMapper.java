@@ -11,6 +11,8 @@ public interface RoomTypeMapper {
     @Mapping(target = "roomTypeId", source = "id")
     @Mapping(target = "serviceId", ignore = true)
     @Mapping(target = "serviceName", ignore = true)
+    @Mapping(target = "linkedServiceIds", ignore = true)
+    @Mapping(target = "linkedServiceNames", ignore = true)
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isDeleted", source = "deleted")
     RoomTypeResponse toResponse(RoomType entity);

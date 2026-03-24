@@ -1,4 +1,4 @@
-﻿interface SectionHeaderProps {
+interface SectionHeaderProps {
     subtitle?: string;
     title: string;
     desc?: string;

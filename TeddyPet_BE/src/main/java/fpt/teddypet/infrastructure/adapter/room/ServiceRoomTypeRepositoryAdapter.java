@@ -26,8 +26,25 @@ public class ServiceRoomTypeRepositoryAdapter implements ServiceRoomTypeReposito
     }
 
     @Override
+    public boolean existsLink(Long serviceId, Long roomTypeId) {
+        return repository.existsByServiceIdAndRoomTypeId(serviceId, roomTypeId);
+    }
+
+    @Override
     public void deleteByServiceId(Long serviceId) {
         repository.deleteByServiceId(serviceId);
+    }
+
+    @Override
+    public void deleteByRoomTypeId(Long roomTypeId) {
+        repository.deleteByRoomTypeId(roomTypeId);
+    }
+
+    @Override
+    public void addLink(Long serviceId, Long roomTypeId) {
+        repository.save(ServiceRoomType.builder()
+                .id(ServiceRoomTypeId.builder().serviceId(serviceId).roomTypeId(roomTypeId).build())
+                .build());
     }
 
     @Override

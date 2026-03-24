@@ -47,4 +47,5 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     List<Object[]> getMonthlyTrends();
 
     long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
+    long countByIsDeletedFalse();
 }

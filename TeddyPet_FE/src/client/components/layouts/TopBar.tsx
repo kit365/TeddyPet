@@ -1,4 +1,4 @@
-﻿import { MailSolid } from "iconoir-react";
+import { MailSolid } from "iconoir-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom"
 import { SocialIcon } from "../ui/SocialIcon";

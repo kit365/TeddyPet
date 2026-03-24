@@ -37,7 +37,7 @@ export const SalesOverview = ({ stats, isLoading, hideCosts }: SalesOverviewProp
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.label}</Typography>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                {formatCurrency(item.value)} 
+                                {formatCurrency(item.value)}
                             </Typography>
                         </Box>
                         <Box sx={{ height: 8, bgcolor: 'rgba(145, 158, 171, 0.16)', borderRadius: 1, overflow: 'hidden' }}>

@@ -40,3 +40,12 @@ export const deleteService = async (id: string | number): Promise<ApiResponse<un
     const response = await apiApp.delete(`${BASE_URL}/${id}`, withAuth());
     return response.data;
 };
+
+/** Thay thế toàn bộ loại phòng gắn với dịch vụ (bảng service_room_types). */
+export const setServiceRoomTypes = async (
+    serviceId: number,
+    roomTypeIds: number[]
+): Promise<ApiResponse<unknown>> => {
+    const response = await apiApp.put(`${BASE_URL}/${serviceId}/room-types`, roomTypeIds, withAuth());
+    return response.data;
+};

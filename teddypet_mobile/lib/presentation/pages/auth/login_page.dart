@@ -166,9 +166,13 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: () async {
                   try {
                     // 1. Initialize Google Sign In
+                    // On iOS, clientId is usually not needed if GoogleService-Info.plist is present.
+                    // Passing a placeholder/wrong clientId can cause a crash (SIGABRT).
                     final googleSignIn = google_auth.GoogleSignIn(
-                      clientId: dotenv.get('GOOGLE_CLIENT_ID'),
-                      serverClientId: dotenv.get('GOOGLE_SERVER_CLIENT_ID'), // Lấy từ .env
+                      clientId: (Theme.of(context).platform == TargetPlatform.iOS) 
+                          ? null 
+                          : dotenv.get('GOOGLE_CLIENT_ID'),
+                      serverClientId: dotenv.get('GOOGLE_SERVER_CLIENT_ID'),
                       scopes: ['email', 'profile'],
                     );
 
