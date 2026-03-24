@@ -8,7 +8,13 @@ public interface ServiceRoomTypeRepositoryPort {
 
     List<Long> findServiceIdsByRoomTypeId(Long roomTypeId);
 
+    boolean existsLink(Long serviceId, Long roomTypeId);
+
     void deleteByServiceId(Long serviceId);
+
+    void deleteByRoomTypeId(Long roomTypeId);
+
+    void addLink(Long serviceId, Long roomTypeId);
 
     void setRoomTypesForService(Long serviceId, List<Long> roomTypeIds);
 }

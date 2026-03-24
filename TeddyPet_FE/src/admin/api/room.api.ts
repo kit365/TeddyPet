@@ -15,6 +15,9 @@ export interface IRoomType {
     roomTypeId: number;
     serviceId?: number | null;
     serviceName?: string | null;
+    /** Cùng loại phòng có thể gắn nhiều dịch vụ (bảng service_room_types). */
+    linkedServiceIds?: number[] | null;
+    linkedServiceNames?: string[] | null;
     typeName: string;
     displayTypeName?: string | null;
     slug?: string | null;

@@ -68,4 +68,13 @@ public class ServiceController {
         serviceService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(ServiceMessages.MESSAGE_SERVICE_DELETED_SUCCESS));
     }
+
+    @PutMapping("/{id}/room-types")
+    @Operation(summary = "Set room types for service", description = "Replaces all rows in service_room_types for this service. The same room type may be linked to multiple services.")
+    public ResponseEntity<ApiResponse<Void>> setRoomTypes(
+            @PathVariable Long id,
+            @RequestBody List<Long> roomTypeIds) {
+        serviceService.setRoomTypesForService(id, roomTypeIds);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật loại phòng cho dịch vụ."));
+    }
 }

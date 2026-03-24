@@ -6,6 +6,7 @@ import fpt.teddypet.application.dto.response.room.RoomTypeResponse;
 import fpt.teddypet.application.mapper.room.RoomTypeMapper;
 import fpt.teddypet.application.port.input.room.RoomTypeService;
 import fpt.teddypet.application.port.output.room.RoomTypeRepositoryPort;
+import fpt.teddypet.application.port.output.room.ServiceRoomTypeRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.util.SlugUtil;
 import fpt.teddypet.application.util.ValidationUtils;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,6 +24,7 @@ import java.util.List;
 public class RoomTypeApplicationService implements RoomTypeService {
 
     private final RoomTypeRepositoryPort roomTypeRepositoryPort;
+    private final ServiceRoomTypeRepositoryPort serviceRoomTypeRepositoryPort;
     private final ServiceRepositoryPort serviceRepositoryPort;
     private final RoomTypeMapper roomTypeMapper;
 
@@ -61,27 +64,33 @@ public class RoomTypeApplicationService implements RoomTypeService {
         }
 
         RoomType saved = roomTypeRepositoryPort.save(entity);
-        return roomTypeMapper.toResponse(saved);
+        return enrichWithService(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public RoomTypeResponse getById(Long id) {
-        return roomTypeMapper.toResponse(getEntityById(id));
+        return enrichWithService(getEntityById(id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RoomTypeResponse> getAll(Long serviceId) {
         List<RoomType> list = roomTypeRepositoryPort.findByServiceId(serviceId);
-        return list.stream().map(roomTypeMapper::toResponse).toList();
+        return list.stream().map(this::enrichWithService).toList();
     }
 
     @Override
     @Transactional
     public void updateServiceId(Long roomTypeId, Long serviceId) {
-        RoomType entity = getEntityById(roomTypeId);
-        // Service mapping is now many-to-many via ServiceRoomType, handled elsewhere.
+        getEntityById(roomTypeId);
+        if (serviceId == null) {
+            serviceRoomTypeRepositoryPort.deleteByRoomTypeId(roomTypeId);
+            return;
+        }
+        if (!serviceRoomTypeRepositoryPort.existsLink(serviceId, roomTypeId)) {
+            serviceRoomTypeRepositoryPort.addLink(serviceId, roomTypeId);
+        }
     }
 
     @Override
@@ -97,5 +106,17 @@ public class RoomTypeApplicationService implements RoomTypeService {
         return roomTypeRepositoryPort.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format(RoomTypeMessages.MESSAGE_ROOM_TYPE_NOT_FOUND_BY_ID, id)));
+    }
+
+    private RoomTypeResponse enrichWithService(RoomType entity) {
+        RoomTypeResponse base = roomTypeMapper.toResponse(entity);
+        List<Long> sids = serviceRoomTypeRepositoryPort.findServiceIdsByRoomTypeId(entity.getId());
+        List<String> names = new ArrayList<>();
+        for (Long sid : sids) {
+            serviceRepositoryPort.findById(sid)
+                    .map(fpt.teddypet.domain.entity.Service::getServiceName)
+                    .ifPresent(names::add);
+        }
+        return base.withLinkedServices(sids, names);
     }
 }

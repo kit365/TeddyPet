@@ -24,6 +24,9 @@ public interface ServiceService {
 
     void delete(Long id);
 
+    /** Thay thế toàn bộ loại phòng gắn với dịch vụ (bảng service_room_types). */
+    void setRoomTypesForService(Long serviceId, List<Long> roomTypeIds);
+
     ServiceInfo toInfo(Service service);
 
     List<ServiceInfo> toInfos(List<Service> services);
