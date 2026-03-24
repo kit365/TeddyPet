@@ -28,7 +28,7 @@ export const SalesOverview = ({ stats, isLoading, hideCosts }: SalesOverviewProp
 
     return (
         <DashboardCard sx={{ p: 3, pb: 4, height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem', mb: 4 }}>Doanh số tổng quan hôm nay</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.125rem', mb: 4 }}>Doanh số tổng quan</Typography>
             <Stack spacing={4}>
                 {isLoading ? (
                     <Typography color="textSecondary">Đang tải...</Typography>
