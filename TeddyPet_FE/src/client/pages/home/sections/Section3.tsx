@@ -1,4 +1,4 @@
-﻿import { SectionHeader } from "../../../components/ui/SectionHeader";
+import { SectionHeader } from "../../../components/ui/SectionHeader";
 import AssistantOutlinedIcon from "@mui/icons-material/AssistantOutlined";
 import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
 import EnergySavingsLeafOutlinedIcon from "@mui/icons-material/EnergySavingsLeafOutlined";

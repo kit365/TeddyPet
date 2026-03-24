@@ -29,7 +29,6 @@ Nền tảng quản lý thú cưng toàn diện với Backend Spring Boot và Fr
 ![Redis](https://img.shields.io/badge/Redis-Cache-red?logo=redis)
 
 ### Messaging & Giao tiếp
-![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-Event%20Streaming-orange?logo=apache-kafka)
 ![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-blue?logo=socket.io)
 
 ### Công cụ Phát triển
@@ -61,7 +60,6 @@ Dự án này tuân theo mô hình **Clean Architecture**, được xây dựng 
 ├── 📋 application/      # Use Cases Layer - Logic nghiệp vụ, ports
 ├── 🔌 infrastructure/   # Frameworks & Drivers - Adapters thực thi
 │   ├── persistence/     # PostgreSQL, MongoDB, Redis
-│   ├── messaging/       # Kafka producers/consumers
 │   └── external/        # External API adapters
 └── 🌐 presentation/     # Interface Adapters - REST APIs, security
 ```
@@ -87,7 +85,6 @@ Dự án này tuân theo mô hình **Clean Architecture**, được xây dựng 
 - **Phụ thuộc**: Application & Domain Layers
 - **Chứa**: 
   - Database Repositories (PostgreSQL, MongoDB, Redis) - Adapters cho persistence
-  - Kafka Producers/Consumers - Adapters cho messaging
   - External API Clients - Adapters cho external services
 
 #### 🌐 Presentation Layer (Interface Adapters)
@@ -123,9 +120,6 @@ Infrastructure → Application → Domain
   - MongoDB cho lưu trữ document
   - Redis cho cache
 
-- 📨 **Kiến trúc Hướng Sự kiện**
-  - Kafka cho messaging không đồng bộ
-  - Xuất bản và tiêu thụ sự kiện
 
 - 💬 **Giao tiếp Real-time**
   - Hỗ trợ WebSocket cho cập nhật trực tiếp
@@ -154,7 +148,6 @@ Infrastructure → Application → Domain
 - PostgreSQL
 - MongoDB
 - Redis
-- Kafka
 
 **Frontend:**
 - Node.js 18+
@@ -226,7 +219,6 @@ teddypet/
 │   │   │   │   └── valueobject/ # Value objects
 │   │   │   ├── infrastructure/  # Tầng hạ tầng
 │   │   │   │   ├── persistence/ # Database repositories
-│   │   │   │   ├── messaging/   # Kafka messaging
 │   │   │   │   └── external/    # External adapters
 │   │   │   └── presentation/    # Tầng trình bày
 │   │   │       ├── controller/  # REST controllers
