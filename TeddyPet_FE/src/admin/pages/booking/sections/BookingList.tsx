@@ -70,6 +70,7 @@ import {
   addBookingPaymentTransaction,
   createBookingPayosPaymentLink,
   cancelAdminBooking,
+  approveOrRejectAdminCancelRequest,
   downloadBookingInvoice,
 } from "../../../api/booking.api";
 import { getBankInformationByBookingCode, type BookingBankInformationResponse } from "../../../../api/bank.api";
@@ -248,6 +249,7 @@ export const BookingList = () => {
   const [cancelDecisionFeedback, setCancelDecisionFeedback] = useState<{
     approved: boolean;
     staffNote?: string | null;
+    kind?: "refund" | "admin-cancel";
   } | null>(null);
   const [cancelBankInfo, setCancelBankInfo] = useState<BookingBankInformationResponse["data"] | null>(null);
   const [depositStatus, setDepositStatus] = useState<string | null>(null);
@@ -522,6 +524,24 @@ export const BookingList = () => {
       return ta - tb;
     });
   }, [refundHistory]);
+
+  /** Luồng phê duyệt hoàn tiền (có yêu cầu PENDING) vs admin tự hủy (không có yêu cầu). Walk-in: không bắt buộc ảnh bằng chứng cọc. */
+  const cancelApprovalMeta = useMemo(() => {
+    if (!selectedCancelBooking) {
+      return {
+        isWalkIn: false,
+        hasPendingRefund: false,
+        depositPaid: false,
+        requiresRefundProof: false,
+      };
+    }
+    const bt = (selectedCancelBooking.bookingType ?? "").toUpperCase().replace(/-/g, "_");
+    const isWalkIn = bt === "WALK_IN" || bt === "WALKIN";
+    const hasPendingRefund = refundHistory.some((h) => h.status === "PENDING");
+    const depositPaid = selectedCancelBooking.depositPaid === true;
+    const requiresRefundProof = depositPaid && !isWalkIn;
+    return { isWalkIn, hasPendingRefund, depositPaid, requiresRefundProof };
+  }, [selectedCancelBooking, refundHistory]);
 
   const filteredRows = useMemo(() => {
     let list = bookings;
@@ -1716,7 +1736,11 @@ export const BookingList = () => {
       >
         <DialogTitle sx={{ py: 2.5, px: 4, bgcolor: "#F8F9FA", borderBottom: "1px solid #E5E7EB" }}>
           <Typography variant="h5" sx={{ fontWeight: 900, color: "#1C252E" }}>
-            {selectedCancelBooking?.depositPaid ? "Duyệt yêu cầu hoàn tiền" : "Duyệt yêu cầu hủy đơn"}
+            {cancelApprovalMeta.hasPendingRefund
+              ? cancelApprovalMeta.depositPaid
+                ? "Duyệt yêu cầu hoàn tiền"
+                : "Duyệt yêu cầu hủy đơn"
+              : "Xác nhận hủy đơn"}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
@@ -1734,7 +1758,11 @@ export const BookingList = () => {
                     severity={cancelDecisionFeedback.approved ? "success" : "error"}
                     sx={{ borderRadius: "10px" }}
                   >
-                    {cancelDecisionFeedback.approved ? "Đã duyệt yêu cầu hoàn tiền." : "Từ chối yêu cầu hoàn tiền."}
+                    {cancelDecisionFeedback.approved
+                      ? cancelDecisionFeedback.kind === "admin-cancel"
+                        ? "Đã xác nhận hủy đơn."
+                        : "Đã duyệt yêu cầu hoàn tiền."
+                      : "Từ chối yêu cầu hoàn tiền."}
                     {cancelDecisionFeedback.staffNote ? ` Lý do: ${cancelDecisionFeedback.staffNote}` : ""}
                   </Alert>
                 )}
@@ -1807,16 +1835,22 @@ export const BookingList = () => {
                     fullWidth
                     value={staffNotes}
                     onChange={(e) => setStaffNotes(e.target.value)}
-                    placeholder="Nhập phản hồi gửi khách về việc phê duyệt/từ chối hoàn tiền..."
+                    placeholder={
+                      cancelApprovalMeta.hasPendingRefund
+                        ? "Nhập phản hồi gửi khách về việc phê duyệt/từ chối hoàn tiền..."
+                        : "Nhập phản hồi gửi khách về việc hủy đơn..."
+                    }
                     sx={{ "& .MuiOutlinedInput-root": { borderRadius: "16px", bgcolor: "#FAFAFA" } }}
                   />
                 </Box>
 
-                {selectedCancelBooking?.depositPaid === true && (
+                {cancelApprovalMeta.requiresRefundProof && (
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "#1C252E" }}>BẰNG CHỨNG HOÀN TIỀN</Typography>
                     <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: "text.secondary", fontWeight: 600 }}>
-                      Bắt buộc tải ảnh bằng chứng (chuyển khoản/ủy nhiệm chi) trước khi phê duyệt hoàn tiền.
+                      {cancelApprovalMeta.hasPendingRefund
+                        ? "Bắt buộc tải ảnh bằng chứng (chuyển khoản/ủy nhiệm chi) trước khi phê duyệt hoàn tiền."
+                        : "Bắt buộc tải ảnh bằng chứng đã chuyển khoản hoàn cọc trước khi xác nhận hủy đơn (đã thu cọc)."}
                     </Typography>
                     <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                       <Button
@@ -2028,18 +2062,46 @@ export const BookingList = () => {
               variant="contained"
               disabled={
                 cancelActionLoading ||
-                !refundHistory.some(h => h.status === "PENDING") ||
-                (selectedCancelBooking?.depositPaid === true && !refundProof)
+                (cancelApprovalMeta.requiresRefundProof && !refundProof) ||
+                (cancelApprovalMeta.hasPendingRefund && !refundHistory.some((h) => h.status === "PENDING"))
               }
               onClick={async () => {
                 if (!selectedCancelBooking) return;
-                if (selectedCancelBooking.depositPaid && !refundProof) {
-                  setCancelActionError("Vui lòng tải ảnh bằng chứng hoàn tiền trước khi phê duyệt.");
+                const { hasPendingRefund, requiresRefundProof } = cancelApprovalMeta;
+                if (requiresRefundProof && !refundProof) {
+                  setCancelActionError(
+                    hasPendingRefund
+                      ? "Vui lòng tải ảnh bằng chứng hoàn tiền trước khi phê duyệt."
+                      : "Vui lòng tải ảnh bằng chứng chuyển khoản hoàn cọc trước khi xác nhận hủy đơn."
+                  );
                   return;
                 }
-                const pendingRequest = [...refundHistory].reverse().find(h => h.status === "PENDING");
-                if (!pendingRequest) {
-                  setCancelActionError("Không tìm thấy yêu cầu hoàn tiền đang chờ xử lý.");
+
+                if (hasPendingRefund) {
+                  const pendingRequest = [...refundHistory].reverse().find((h) => h.status === "PENDING");
+                  if (!pendingRequest) {
+                    setCancelActionError("Không tìm thấy yêu cầu hoàn tiền đang chờ xử lý.");
+                    return;
+                  }
+                  setCancelActionLoading(true);
+                  setCancelActionError(null);
+                  try {
+                    const staffNote = staffNotes.trim() || undefined;
+                    await handleBookingRefundRequest(pendingRequest.id, {
+                      approved: true,
+                      adminNote: staffNote,
+                      adminEvidenceUrls: refundProof ? [refundProof] : undefined,
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+                    setCancelDecisionFeedback({ approved: true, staffNote: staffNote ?? null, kind: "refund" });
+                    fetchRefundHistory(selectedCancelBooking.id);
+                  } catch (e: unknown) {
+                    console.error(e);
+                    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    setCancelActionError(msg || "Không thể duyệt yêu cầu hoàn tiền.");
+                  } finally {
+                    setCancelActionLoading(false);
+                  }
                   return;
                 }
 
@@ -2047,24 +2109,30 @@ export const BookingList = () => {
                 setCancelActionError(null);
                 try {
                   const staffNote = staffNotes.trim() || undefined;
-                  await handleBookingRefundRequest(pendingRequest.id, {
+                  await approveOrRejectAdminCancelRequest(selectedCancelBooking.id, {
                     approved: true,
-                    adminNote: staffNote,
-                    adminEvidenceUrls: refundProof ? [refundProof] : undefined,
+                    staffNotes: staffNote,
+                    refundProof: requiresRefundProof && refundProof ? refundProof : undefined,
+                    forceAdminCancel: true,
                   });
                   await queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-                  setCancelDecisionFeedback({ approved: true, staffNote: staffNote ?? null });
-                  fetchRefundHistory(selectedCancelBooking.id); // Refresh history
-                } catch (e) {
+                  setCancelDecisionFeedback({ approved: true, staffNote: staffNote ?? null, kind: "admin-cancel" });
+                  fetchRefundHistory(selectedCancelBooking.id);
+                } catch (e: unknown) {
                   console.error(e);
-                  setCancelActionError("Không thể duyệt yêu cầu hoàn tiền.");
+                  const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                  setCancelActionError(msg || "Không thể xác nhận hủy đơn.");
                 } finally {
                   setCancelActionLoading(false);
                 }
               }}
               sx={{ textTransform: "none", fontWeight: 800, px: 5, py: 1, borderRadius: "12px", boxShadow: "0 8px 16px rgba(0, 167, 111, 0.24)" }}
             >
-              Phê duyệt hoàn tiền
+              {cancelApprovalMeta.hasPendingRefund
+                ? cancelApprovalMeta.depositPaid
+                  ? "Phê duyệt hoàn tiền"
+                  : "Phê duyệt yêu cầu"
+                : "Xác nhận hủy đơn"}
             </Button>
           </Stack>
         </DialogActions>

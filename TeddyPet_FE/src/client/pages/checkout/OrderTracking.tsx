@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useLocation, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { FooterSub } from "../../components/layouts/FooterSub";
 import { trackOrder, confirmReceived, lookupGuestOrder, createPaymentUrl, cancelPayosPaymentLink, createOrderRefundRequest, updateOrderRefundRequest, getOrderRefundRequests, cancelOrderByGuest } from "../../../api/order.api";
@@ -17,11 +17,9 @@ import { format } from "date-fns";
 import { useAuthStore } from "../../../stores/useAuthStore";
 import { RefundRequestModal } from "../dashboard/sections/RefundRequestModal";
 import { CancelOrderModal } from "../dashboard/sections/CancelOrderModal";
-
-const breadcrumbs = [
-    { label: "Trang chủ", to: "/" },
-    { label: "Tra cứu đơn hàng", to: "#" },
-];
+import { apiApp } from "../../../api";
+import type { ApiResponse } from "../../../types/common.type";
+import type { ClientBookingDetailResponse } from "../../../types/booking.type";
 
 /**
  * PayOS gắn `code=00`/`01` lên returnUrl — trùng tên với query `code` (mã đơn) của tra cứu.
@@ -34,7 +32,46 @@ function resolveTrackingOrderCodeFromSearch(search: string): string | null {
     const c = p.get("code")?.trim();
     if (!c) return null;
     if (/^(0\d|01)$/.test(c)) return null;
+    if (/^BK-/i.test(c)) return null;
     return c;
+}
+
+/** Mã đặt lịch từ URL (ưu tiên bookingCode / tpBooking; hoặc code nếu dạng BK-...). */
+function resolveBookingCodeFromSearch(search: string): string | null {
+    const p = new URLSearchParams(search);
+    const b = p.get("bookingCode")?.trim() || p.get("tpBooking")?.trim();
+    if (b) return b;
+    const c = p.get("code")?.trim();
+    if (c && /^BK-/i.test(c)) return c;
+    return null;
+}
+
+function digitsOnly(s: string): string {
+    return s.replace(/\D/g, "");
+}
+
+/** Khớp email hoặc SĐT với đơn đặt lịch — cùng tinh thần với tra cứu đơn hàng (guest). */
+function contactMatchesBookingLookup(
+    customerEmail: string | null | undefined,
+    customerPhone: string | null | undefined,
+    input: string
+): boolean {
+    const id = input.trim();
+    if (!id) return false;
+
+    const em = (customerEmail ?? "").trim().toLowerCase();
+    if (em && id.toLowerCase() === em) return true;
+
+    const ph = (customerPhone ?? "").trim();
+    if (ph && id === ph) return true;
+
+    const dIn = digitsOnly(id);
+    const dPh = digitsOnly(ph);
+    if (dIn.length >= 9 && dPh.length >= 9) {
+        if (dIn === dPh) return true;
+        if (dIn.endsWith(dPh.slice(-9)) || dPh.endsWith(dIn.slice(-9))) return true;
+    }
+    return false;
 }
 
 // Màu riêng cho từng trạng thái đơn hàng (+ bước ảo Đã thanh toán)
@@ -136,6 +173,28 @@ const OrderStepper = ({ status, isPaid = false, cancelReason }: { status: string
 
 export const OrderTrackingPage = () => {
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const lookupMode = searchParams.get("mode") === "booking" ? "booking" : "order";
+    const setLookupMode = (mode: "order" | "booking") => {
+        setSearchParams(
+            (prev) => {
+                const next = new URLSearchParams(prev);
+                if (mode === "booking") next.set("mode", "booking");
+                else next.delete("mode");
+                return next;
+            },
+            { replace: true }
+        );
+    };
+
+    const breadcrumbs = useMemo(
+        () => [
+            { label: "Trang chủ", to: "/" },
+            { label: lookupMode === "booking" ? "Tra cứu đơn đặt lịch" : "Tra cứu đơn hàng", to: "#" },
+        ],
+        [lookupMode]
+    );
+
     const { user } = useAuthStore();
     const isAuthenticated = !!user;
 
@@ -154,6 +213,16 @@ export const OrderTrackingPage = () => {
     const navigate = useNavigate();
 
     const hasAutoLooked = useRef(false);
+    const hasAutoBookingLooked = useRef(false);
+
+    // Mã đặt lịch trong ?code=BK-... → chuyển tab tra cứu đặt lịch (không cần ?mode=booking)
+    useEffect(() => {
+        const p = new URLSearchParams(location.search);
+        const c = p.get("code")?.trim();
+        if (c && /^BK-/i.test(c) && p.get("mode") !== "booking") {
+            setLookupMode("booking");
+        }
+    }, [location.search]);
 
     // Khi trang được load trong iframe sau khi PayOS redirect (returnUrl có payment_popup=1) → báo parent đóng popup và refresh
     useEffect(() => {
@@ -180,17 +249,23 @@ export const OrderTrackingPage = () => {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        const codeFromUrl = resolveTrackingOrderCodeFromSearch(location.search);
         const emailFromUrl = urlParams.get("email");
-        if (codeFromUrl && codeFromUrl !== orderCode) setOrderCode(codeFromUrl);
         if (emailFromUrl && emailFromUrl !== email) setEmail(emailFromUrl);
-    }, [location.search]);
+
+        if (lookupMode === "booking") {
+            const bc = resolveBookingCodeFromSearch(location.search);
+            if (bc && bc !== orderCode) setOrderCode(bc);
+        } else {
+            const codeFromUrl = resolveTrackingOrderCodeFromSearch(location.search);
+            if (codeFromUrl && codeFromUrl !== orderCode) setOrderCode(codeFromUrl);
+        }
+    }, [location.search, lookupMode]);
 
     useEffect(() => {
-        const urlParams = new URLSearchParams(location.search);
+        if (lookupMode !== "order") return;
         const codeFromUrl = resolveTrackingOrderCodeFromSearch(location.search);
-        const emailFromUrl = urlParams.get("email");
-        
+        const emailFromUrl = new URLSearchParams(location.search).get("email");
+
         if (codeFromUrl && !hasAutoLooked.current && !order) {
             const targetEmail = emailFromUrl || email;
             if (isAuthenticated || targetEmail) {
@@ -198,7 +273,7 @@ export const OrderTrackingPage = () => {
                 doTrackOrder(codeFromUrl, targetEmail);
             }
         }
-    }, [location.search, isAuthenticated, email, order]);
+    }, [location.search, isAuthenticated, email, order, lookupMode]);
 
     const doTrackOrder = async (code: string, emailInput?: string) => {
         if (!code) return;
@@ -236,6 +311,52 @@ export const OrderTrackingPage = () => {
         }
     };
 
+    const doTrackBooking = useCallback(async (code: string, contactInput?: string) => {
+        if (!code.trim()) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiApp.get<ApiResponse<ClientBookingDetailResponse>>(
+                `/api/bookings/code/${encodeURIComponent(code.trim())}`
+            );
+            const payload = res.data;
+            if (!payload.success || !payload.data) {
+                setError(payload.message || "Không tìm thấy đơn đặt lịch.");
+                return;
+            }
+            const b = payload.data;
+            if (!isAuthenticated) {
+                if (!contactInput?.trim()) {
+                    setError("Vui lòng nhập Email/SĐT để bảo mật.");
+                    return;
+                }
+                if (!contactMatchesBookingLookup(b.customerEmail, b.customerPhone, contactInput)) {
+                    setError("Email/SĐT không khớp với đơn đặt lịch. Vui lòng kiểm tra lại.");
+                    return;
+                }
+            }
+            navigate(`/dat-lich/chi-tiet-don/${encodeURIComponent(b.bookingCode)}`);
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Không tìm thấy đơn đặt lịch. Vui lòng kiểm tra lại thông tin.");
+        } finally {
+            setLoading(false);
+        }
+    }, [isAuthenticated, navigate]);
+
+    useEffect(() => {
+        if (lookupMode !== "booking") return;
+        const bc = resolveBookingCodeFromSearch(location.search);
+        const emailFromUrl = new URLSearchParams(location.search).get("email");
+
+        if (bc && !hasAutoBookingLooked.current) {
+            const targetEmail = emailFromUrl || email;
+            if (isAuthenticated || targetEmail) {
+                hasAutoBookingLooked.current = true;
+                void doTrackBooking(bc, targetEmail);
+            }
+        }
+    }, [location.search, isAuthenticated, email, lookupMode, doTrackBooking]);
+
     const handleConfirmReceived = async () => {
         if (!order) return;
         setIsSubmitting(true);
@@ -253,10 +374,17 @@ export const OrderTrackingPage = () => {
 
     const handleManualLookup = (e: React.FormEvent) => {
         e.preventDefault();
+        if (lookupMode === "booking") {
+            if (!orderCode.trim()) { toast.error("Nhập mã đặt lịch!"); return; }
+            if (!email.trim()) { toast.error("Nhập Email/SĐT bảo mật!"); return; }
+            hasAutoBookingLooked.current = true;
+            void doTrackBooking(orderCode, email);
+            return;
+        }
         if (!orderCode) { toast.error("Nhập mã đơn hàng!"); return; }
         if (!email) { toast.error("Nhập Email/SĐT bảo mật!"); return; }
         hasAutoLooked.current = true;
-        doTrackOrder(orderCode, email);
+        void doTrackOrder(orderCode, email);
     };
 
     const copyToClipboard = (text: string) => {
@@ -489,15 +617,60 @@ export const OrderTrackingPage = () => {
                     {(!order || error) && !loading && (
                         <div className="w-full flex justify-center">
                             <div className="bg-white p-[24px] rounded-[22px] shadow-sm border border-[#eee] animate-fadeIn text-center w-full max-w-[980px] mx-auto origin-top scale-[0.9] md:scale-[0.94] lg:scale-[0.96]">
-                                <h2 className="text-[2.08rem] font-black text-client-secondary mb-2 uppercase tracking-tight">Kiểm tra đơn hàng</h2>
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center mb-5 max-w-[620px] mx-auto">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setLookupMode("order");
+                                            setError(null);
+                                        }}
+                                        className={`flex-1 min-h-[48px] px-4 rounded-[14px] text-[0.95rem] sm:text-[1.05rem] font-black uppercase tracking-tight transition-all border-2 ${
+                                            lookupMode === "order"
+                                                ? "bg-client-secondary text-white border-client-secondary shadow-md"
+                                                : "bg-gray-50 text-gray-500 border-gray-100 hover:border-client-primary/40 hover:text-client-secondary"
+                                        }`}
+                                    >
+                                        Tra cứu đơn hàng
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setLookupMode("booking");
+                                            setError(null);
+                                        }}
+                                        className={`flex-1 min-h-[48px] px-4 rounded-[14px] text-[0.95rem] sm:text-[1.05rem] font-black uppercase tracking-tight transition-all border-2 ${
+                                            lookupMode === "booking"
+                                                ? "bg-client-secondary text-white border-client-secondary shadow-md"
+                                                : "bg-gray-50 text-gray-500 border-gray-100 hover:border-client-primary/40 hover:text-client-secondary"
+                                        }`}
+                                    >
+                                        Tra cứu đơn đặt lịch
+                                    </button>
+                                </div>
+
+                                <h2 className="text-[2.08rem] font-black text-client-secondary mb-2 uppercase tracking-tight">
+                                    {lookupMode === "booking" ? "Kiểm tra đơn đặt lịch" : "Kiểm tra đơn hàng"}
+                                </h2>
                                 <p className="text-[1.201rem] text-gray-400 font-medium mb-7 italic">
-                                    {isAuthenticated ? "Chỉ cần nhập mã đơn hàng của bạn" : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
+                                    {isAuthenticated
+                                        ? lookupMode === "booking"
+                                            ? "Chỉ cần nhập mã đặt lịch của bạn"
+                                            : "Chỉ cần nhập mã đơn hàng của bạn"
+                                        : "Vui lòng nhập mã đơn và email/SĐT chính chủ"}
                                 </p>
 
-                                {isAuthenticated && (
+                                {isAuthenticated && lookupMode === "order" && (
                                     <div className="mb-6 p-3 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
                                         <p className="text-[1.039rem] text-client-secondary font-bold">
                                             💡 Bạn có thể vào <Link to="/dashboard/orders" className="text-client-primary underline">Lịch sử đơn hàng</Link> để xem danh sách trọn vẹn nhất.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {isAuthenticated && lookupMode === "booking" && (
+                                    <div className="mb-6 p-3 bg-client-primary/5 rounded-2xl border border-dashed border-client-primary/20 animate-fadeIn">
+                                        <p className="text-[1.039rem] text-client-secondary font-bold">
+                                            💡 Bạn có thể vào <Link to="/dashboard/bookings" className="text-client-primary underline">Lịch sử đặt lịch</Link> để xem danh sách trọn vẹn nhất.
                                         </p>
                                     </div>
                                 )}
@@ -507,7 +680,11 @@ export const OrderTrackingPage = () => {
                                         <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                                         <input
                                             type="text"
-                                            placeholder="Mã đơn hàng (ORD-XXXXXX)"
+                                            placeholder={
+                                                lookupMode === "booking"
+                                                    ? "Mã đặt lịch (BK-XXXXXX)"
+                                                    : "Mã đơn hàng (ORD-XXXXXX)"
+                                            }
                                             value={orderCode}
                                             onChange={(e) => setOrderCode(e.target.value)}
                                             className="w-full h-[56px] pl-12 pr-5 rounded-[14px] border-2 border-gray-50 focus:border-client-primary outline-none text-[1.28rem] bg-gray-50/50 font-black transition-all"
@@ -539,7 +716,9 @@ export const OrderTrackingPage = () => {
                     {loading && (
                         <div className="bg-white p-6 rounded-xl text-center shadow-sm">
                             <div className="w-9 h-9 border-2 border-client-primary/10 border-t-client-primary rounded-full animate-spin mx-auto mb-3"></div>
-                            <h2 className="text-sm font-semibold text-gray-400">Đang tìm đơn hàng...</h2>
+                            <h2 className="text-sm font-semibold text-gray-400">
+                                {lookupMode === "booking" ? "Đang tìm đơn đặt lịch..." : "Đang tìm đơn hàng..."}
+                            </h2>
                         </div>
                     )}
 

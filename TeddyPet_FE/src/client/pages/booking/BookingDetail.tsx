@@ -21,7 +21,6 @@ import {
     getRoomsByLayoutConfigId,
     getRoomTypes,
     getTimeSlotsByServiceId,
-    getBookedRoomIds,
     type RoomLayoutConfigClient,
     type RoomClient,
     type RoomTypeClient,
@@ -744,6 +743,25 @@ const AdditionalServiceNonRoomFields = ({
 
 const cellSize = 48;
 
+const ROOM_STATUS_BLOCKED_TITLES: Record<string, string> = {
+    OCCUPIED: "Phòng đang bận hoặc đang được giữ",
+    BLOCKED: "Phòng đang bị khóa",
+    CLEANING: "Phòng đang dọn dẹp",
+    MAINTENANCE: "Phòng đang bảo trì",
+    OUT_OF_SERVICE: "Phòng ngưng hoạt động",
+};
+
+const isRoomAvailableForPicker = (room: RoomClient | null | undefined): boolean => {
+    if (!room) return false;
+    return String(room.status ?? "").toUpperCase() === "AVAILABLE";
+};
+
+function roomPickerBlockedTitle(room: RoomClient): string | undefined {
+    const s = String(room.status ?? "").toUpperCase();
+    if (s === "AVAILABLE") return undefined;
+    return ROOM_STATUS_BLOCKED_TITLES[s] ?? `Phòng không khả dụng (${s})`;
+}
+
 type RoomPickerSectionProps = {
     pet: BookingPetForm;
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
@@ -804,15 +822,7 @@ const RoomPickerSection = ({
         select: (res) => res.data ?? [],
     });
 
-    const { data: bookedRoomIdsData } = useQuery({
-        queryKey: ["booked-room-ids", effectiveDateFrom, pet.dateTo],
-        queryFn: () => getBookedRoomIds(effectiveDateFrom!, pet.dateTo!),
-        enabled: showPicker && !!effectiveDateFrom && !!pet.dateTo,
-        select: (res) => res.data ?? [],
-    });
-
     const rooms: RoomClient[] = roomsData ?? [];
-    const bookedRoomIdSet = useMemo(() => new Set(bookedRoomIdsData ?? []), [bookedRoomIdsData]);
 
     const placedRooms = useMemo(
         () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
@@ -933,10 +943,10 @@ const RoomPickerSection = ({
                             const row = Math.floor(i / maxCols);
                             const col = i % maxCols;
                             const room = getRoomAt(row, col);
-                            const isBooked = room && bookedRoomIdSet.has(room.roomId);
+                            const isBlockedByStatus = !!(room && !isRoomAvailableForPicker(room));
                             const isMatchingType = room && (effectiveRoomTypeId == null ? true : room.roomTypeId === effectiveRoomTypeId);
                             const isSelected = room && pet.selectedRoomId === room.roomId;
-                            const isClickable = isMatchingType && !isBooked;
+                            const isClickable = !!(isMatchingType && room && isRoomAvailableForPicker(room));
 
                             return (
                                 <button
@@ -953,7 +963,7 @@ const RoomPickerSection = ({
                                     }}
                                     className={`flex flex-col items-center justify-center rounded-[10px] border-2 transition-all ${!room
                                         ? "border-[#e5e7eb] bg-[#f9fafb]/50 cursor-default"
-                                        : isBooked
+                                        : isBlockedByStatus
                                             ? "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af] blur-[1.5px] select-none"
                                             : isMatchingType
                                                 ? isSelected
@@ -962,7 +972,7 @@ const RoomPickerSection = ({
                                                 : "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af]"
                                         }`}
                                     style={{ width: cellSize, height: cellSize }}
-                                    title={isBooked ? "Phòng đã được đặt" : undefined}
+                                    title={isBlockedByStatus && room ? roomPickerBlockedTitle(room) : undefined}
                                 >
                                     {room && (
                                         <>
@@ -1124,15 +1134,7 @@ const RoomPickerSectionForAdditional = ({
         select: (res) => res.data ?? [],
     });
 
-    const { data: bookedRoomIdsDataAdd } = useQuery({
-        queryKey: ["booked-room-ids", effectiveDateFrom, asvc.dateTo],
-        queryFn: () => getBookedRoomIds(effectiveDateFrom!, asvc.dateTo!),
-        enabled: showPicker && !!effectiveDateFrom && !!asvc.dateTo,
-        select: (res) => res.data ?? [],
-    });
-
     const rooms: RoomClient[] = roomsData ?? [];
-    const bookedRoomIdSetAdd = useMemo(() => new Set(bookedRoomIdsDataAdd ?? []), [bookedRoomIdsDataAdd]);
 
     const placedRooms = useMemo(
         () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
@@ -1252,10 +1254,10 @@ const RoomPickerSectionForAdditional = ({
                             const row = Math.floor(i / maxCols);
                             const col = i % maxCols;
                             const room = getRoomAt(row, col);
-                            const isBooked = room && bookedRoomIdSetAdd.has(room.roomId);
+                            const isBlockedByStatus = !!(room && !isRoomAvailableForPicker(room));
                             const isMatchingType = room && (effectiveRoomTypeId == null ? true : room.roomTypeId === effectiveRoomTypeId);
                             const isSelected = room && asvc.selectedRoomId === room.roomId;
-                            const isClickable = isMatchingType && !isBooked;
+                            const isClickable = !!(isMatchingType && room && isRoomAvailableForPicker(room));
 
                             return (
                                 <button
@@ -1272,7 +1274,7 @@ const RoomPickerSectionForAdditional = ({
                                     }}
                                     className={`flex flex-col items-center justify-center rounded-[10px] border-2 transition-all ${!room
                                         ? "border-[#e5e7eb] bg-[#f9fafb]/50 cursor-default"
-                                        : isBooked
+                                        : isBlockedByStatus
                                             ? "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af] blur-[1.5px] select-none"
                                             : isMatchingType
                                                 ? isSelected
@@ -1281,7 +1283,7 @@ const RoomPickerSectionForAdditional = ({
                                                 : "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af]"
                                         }`}
                                     style={{ width: cellSize, height: cellSize }}
-                                    title={isBooked ? "Phòng đã được đặt" : undefined}
+                                    title={isBlockedByStatus && room ? roomPickerBlockedTitle(room) : undefined}
                                 >
                                     {room ? (
                                         <>

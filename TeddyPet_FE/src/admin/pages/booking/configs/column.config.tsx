@@ -428,23 +428,27 @@ export const getBookingColumns = (
                 primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
               />
             </MenuItem>
-            <MenuItem onClick={handleRequestCancel}>
-              <ListItemIcon>
-                <CancelTwoTone sx={{ fontSize: "1.1rem", color: "#FF5630" }} />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box component="span">Yêu cầu hủy đơn</Box>
-                    {(params.row as BookingResponse).cancelRequested === true && (
-                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
-                    )}
-                  </Box>
-                }
-                primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
-              />
-            </MenuItem>
-            
+            {!["COMPLETED", "CANCELLED"].includes(
+              String((params.row as BookingResponse).status ?? "").toUpperCase()
+            ) && (
+              <MenuItem onClick={handleRequestCancel}>
+                <ListItemIcon>
+                  <CancelTwoTone sx={{ fontSize: "1.1rem", color: "#FF5630" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box component="span">Yêu cầu hủy đơn</Box>
+                      {(params.row as BookingResponse).cancelRequested === true && (
+                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ef4444" }} />
+                      )}
+                    </Box>
+                  }
+                  primaryTypographyProps={{ fontSize: "0.8125rem", color: "#1C252E", fontWeight: 500 }}
+                />
+              </MenuItem>
+            )}
+
             {["PENDING", "CONFIRMED", "READY", "COMPLETED"].includes((params.row as BookingResponse).status?.toUpperCase()) && 
              (params.row as BookingResponse).paymentStatus !== "PAID" && (
               <MenuItem onClick={handlePayment}>
