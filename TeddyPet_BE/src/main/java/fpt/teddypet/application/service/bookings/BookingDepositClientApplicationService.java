@@ -203,12 +203,23 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         Booking booking = bookingRepository.findById(deposit.getBookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
 
+        BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
+                : BigDecimal.valueOf(25);
+        BigDecimal depositAmount = total
+                .multiply(percentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        if (depositAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Số tiền cọc không hợp lệ.");
+        }
+        long amount = depositAmount.longValue();
+
         // Reuse existing link if present AND still valid on PayOS
         if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
                 && deposit.getPayosOrderCode() != null) {
             
-            // Check if the link is still alive on PayOS (not cancelled/expired/paid)
-            if (!payosGatewayAdapter.isLinkDead(deposit.getPayosOrderCode())) {
+            // Check if the link is still alive on PayOS (not cancelled/expired/paid AND amount matches)
+            if (!payosGatewayAdapter.isLinkDead(deposit.getPayosOrderCode(), amount)) {
                 log.info("Reusing existing valid PayOS URL for deposit {}: {}", depositId, deposit.getCheckoutUrl());
                 return new CreateBookingDepositPayosResponse(
                         deposit.getId(),
@@ -233,18 +244,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             deposit.setPayosOrderCode(payosOrderCode);
         }
 
-        BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
-        BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
-                : BigDecimal.valueOf(25);
-        BigDecimal depositAmount = total
-                .multiply(percentage)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        if (depositAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Số tiền cọc không hợp lệ.");
-        }
-
         String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
-        long amount = depositAmount.longValue();
 
         String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
         String checkoutUrl;

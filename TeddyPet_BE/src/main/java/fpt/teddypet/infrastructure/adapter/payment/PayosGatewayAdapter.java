@@ -123,13 +123,6 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
             return response.getCheckoutUrl();
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
-                ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
-                if (existing != null && existing.checkoutUrl() != null) {
-                    log.info("PayOS: returning existing payment link (orderCode={}).", orderCode);
-                    return existing.checkoutUrl();
-                }
-            }
             log.error("PayosGatewayAdapter failed to create payment link (orderCode={}): {}", orderCode, msg);
             throw new PaymentException("PayOS Error: " + msg, e);
         }
@@ -183,16 +176,25 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     }
 
     /**
-     * Kiểm tra link PayOS có còn khả dụng để thanh toán hay không.
-     * @return true nếu link đã bị hủy, hết hạn, hoặc đã thanh toán thành công.
+     * Kiểm tra link PayOS có còn khả dụng cho số tiền mong muốn hay không.
+     * @return true nếu link đã chết (hủy/hết hạn/...) HOẶC số tiền không khớp.
      */
-    public boolean isLinkDead(Long orderCode) {
+    public boolean isLinkDead(Long orderCode, long expectedAmount) {
         ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
         if (existing == null) {
-            // Nếu không tìm thấy link, coi như đã "dead" để có thể tạo link mới
             return true; 
         }
-        return isPayOsLinkDeadForReuse(existing.status());
+        // Link dead về trạng thái
+        if (isPayOsLinkDeadForReuse(existing.status())) {
+            return true;
+        }
+        // Link alive nhưng sai số tiền -> coi như dead để tạo link mới với mã mới
+        if (existing.amount() != expectedAmount) {
+            log.warn("PayOS: link {} is alive but amount mismatch (expected={}, actual={}). Marking as dead.", 
+                    orderCode, expectedAmount, existing.amount());
+            return true;
+        }
+        return false;
     }
 
     private static boolean isPayOsLinkDeadForReuse(String status) {
