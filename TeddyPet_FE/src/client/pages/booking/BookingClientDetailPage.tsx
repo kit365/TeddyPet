@@ -188,15 +188,17 @@ export const BookingClientDetailPage = () => {
                 try {
                     const next = await fetchData();
                     const paid = Boolean(next?.depositPaid);
-                    const status = String(next?.status ?? "");
-                    const depStatus = String(next?.depositStatus ?? "");
-                    if (paid || status.toUpperCase() !== "PENDING") {
-                        toast.success("Đã nhận thanh toán cọc.");
+                    const status = String(next?.status ?? "").toUpperCase();
+                    const depStatus = String(next?.depositStatus ?? "").toUpperCase();
+
+                    if (paid || status === "CONFIRMED") {
+                        toast.success("Thanh toán cọc thành công!");
                         refreshBookingPageAfterDeposit();
                         return;
                     }
-                    if (depStatus.toUpperCase() === "FAILED") {
-                        toast.error("Thanh toán cọc thất bại. Quý khách vui lòng thử lại.");
+
+                    if (status === "CANCELLED" || depStatus === "FAILED") {
+                        toast.error("Thanh toán cọc không thành công hoặc đã bị hủy.");
                         setActiveView("detail");
                         return;
                     }
