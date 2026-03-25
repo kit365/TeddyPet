@@ -220,10 +220,11 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                 );
             }
             
-            log.info("Existing PayOS link for deposit {} (orderCode={}) is dead. Regenerating...", 
+            log.info("Existing PayOS link for deposit {} (orderCode={}) is dead. Regenerating with fresh code...", 
                     depositId, deposit.getPayosOrderCode());
-            // Clear stale URL to force regeneration below
+            // Clear BOTH stale URL AND old orderCode to force full regeneration
             deposit.setCheckoutUrl(null);
+            deposit.setPayosOrderCode(null);
         }
 
         Long payosOrderCode = deposit.getPayosOrderCode();
