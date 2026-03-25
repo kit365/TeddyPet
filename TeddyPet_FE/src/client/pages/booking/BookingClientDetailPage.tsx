@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Rating, Box, Stack, Typography, IconButton } from "@mui/material";
-import { ChevronLeft, ChevronRight, Star, MessageCircle, AlertCircle } from "lucide-react";
+import { Rating, Box, Stack, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
+import { ChevronLeft, ChevronRight, Star, MessageCircle, AlertCircle, X } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -95,6 +95,16 @@ const svcStatusLabel = (s?: string) => {
     }
 };
 
+/** Sau cọc PayOS: bỏ query return (tránh postMessage + reload lặp) rồi reload để đồng bộ toàn trang. */
+const refreshBookingPageAfterDeposit = () => {
+    try {
+        window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+    } catch {
+        /* ignore */
+    }
+    window.location.reload();
+};
+
 const svcStatusBadgeClass = (s?: string) => {
     switch (String(s ?? "").toUpperCase()) {
         case "COMPLETED":
@@ -180,6 +190,7 @@ export const BookingClientDetailPage = () => {
                     const status = String(next?.status ?? "");
                     if (paid || status.toUpperCase() !== "PENDING") {
                         toast.success("Đã nhận thanh toán cọc.");
+                        refreshBookingPageAfterDeposit();
                         return;
                     }
                 } catch {
@@ -207,6 +218,7 @@ export const BookingClientDetailPage = () => {
     const [reviewDraftMap, setReviewDraftMap] = useState<Record<number, { customerRating: number; customerReview: string }>>({});
     const [reviewSavingMap, setReviewSavingMap] = useState<Record<number, boolean>>({});
     const [reviewCarouselIndex, setReviewCarouselIndex] = useState(0);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     const latestRefundWithAdminReply = useMemo(() => {
         const withReply = bookingRefunds.filter(
@@ -301,8 +313,7 @@ export const BookingClientDetailPage = () => {
                 const next = await fetchData();
                 if (next && (next.depositPaid || next.status !== "PENDING")) {
                     toast.success("Đã nhận thanh toán cọc tự động.");
-                    setPayosCheckoutUrl(null);
-                    setActiveView("detail");
+                    refreshBookingPageAfterDeposit();
                 }
             } catch (e) {
                 // ignore transient errors
@@ -570,7 +581,12 @@ export const BookingClientDetailPage = () => {
                                         <div className="text-[0.75rem] font-[600] text-[#166534] mb-1">Ảnh trước khi làm</div>
                                         <div className="flex gap-2 flex-wrap">
                                             {beforePhotos.map((u, i) => (
-                                                <img key={`before-${svc.id}-${i}`} src={u} className="w-16 h-16 rounded border object-cover" />
+                                                <img 
+                                                    key={`before-${svc.id}-${i}`} 
+                                                    src={u} 
+                                                    className="w-16 h-16 rounded border object-cover cursor-pointer hover:opacity-80 hover:scale-105 transition-all" 
+                                                    onClick={() => setZoomedImage(u)}
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -580,7 +596,12 @@ export const BookingClientDetailPage = () => {
                                         <div className="text-[0.75rem] font-[600] text-[#166534] mb-1">Ảnh trong lúc làm</div>
                                         <div className="flex gap-2 flex-wrap">
                                             {duringPhotos.map((u, i) => (
-                                                <img key={`during-${svc.id}-${i}`} src={u} className="w-16 h-16 rounded border object-cover" />
+                                                <img 
+                                                    key={`during-${svc.id}-${i}`} 
+                                                    src={u} 
+                                                    className="w-16 h-16 rounded border object-cover cursor-pointer hover:opacity-80 hover:scale-105 transition-all" 
+                                                    onClick={() => setZoomedImage(u)}
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -590,7 +611,12 @@ export const BookingClientDetailPage = () => {
                                         <div className="text-[0.75rem] font-[600] text-[#166534] mb-1">Ảnh sau khi làm</div>
                                         <div className="flex gap-2 flex-wrap">
                                             {afterPhotos.map((u, i) => (
-                                                <img key={`after-${svc.id}-${i}`} src={u} className="w-16 h-16 rounded border object-cover" />
+                                                <img 
+                                                    key={`after-${svc.id}-${i}`} 
+                                                    src={u} 
+                                                    className="w-16 h-16 rounded border object-cover cursor-pointer hover:opacity-80 hover:scale-105 transition-all" 
+                                                    onClick={() => setZoomedImage(u)}
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -783,16 +809,21 @@ export const BookingClientDetailPage = () => {
                                         </p>
                                         <div className="space-y-1.5 text-[0.875rem] text-[#064e3b]">
                                             <InfoRow label="Trạng thái đặt lịch" value={<span className={`inline-flex items-center px-[8px] py-[3px] rounded-[6px] text-[0.7812rem] font-[700] ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>} />
-                                            <InfoRow
-                                                label="Thanh toán"
-                                                value={
-                                                    isWalkInBooking
-                                                        ? getPaymentStatusValueNode(booking.paymentStatus)
-                                                        : booking.depositPaid
-                                                            ? <span className="font-[600] text-[#059669]">Đã thanh toán cọc</span>
-                                                            : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>
-                                                }
-                                            />
+                                            {isWalkInBooking ? (
+                                                <InfoRow label="Thanh toán" value={getPaymentStatusValueNode(booking.paymentStatus)} />
+                                            ) : (
+                                                <>
+                                                    <InfoRow
+                                                        label="Thanh toán cọc"
+                                                        value={
+                                                            booking.depositPaid
+                                                                ? <span className="font-[600] text-[#059669]">Đã thanh toán cọc</span>
+                                                                : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>
+                                                        }
+                                                    />
+                                                    <InfoRow label="Thanh toán" value={getPaymentStatusValueNode(booking.paymentStatus)} />
+                                                </>
+                                            )}
                                             {!isWalkInBooking && booking.paymentMethod && <InfoRow label="PT thanh toán" value={booking.paymentMethod} />}
                                             <div className="pt-2 space-y-0.5 border-t border-[#d1fae5] mt-2">
                                                 <InfoRow label="Tổng tiền" value={<span className="font-[700]">{formatCurrency(booking.totalAmount)}</span>} />
@@ -1134,6 +1165,51 @@ export const BookingClientDetailPage = () => {
                     }}
                 />
             )}
+
+            <Dialog
+                open={Boolean(zoomedImage)}
+                onClose={() => setZoomedImage(null)}
+                maxWidth="lg"
+                PaperProps={{
+                    sx: {
+                        bgcolor: 'transparent',
+                        boxShadow: 'none',
+                        overflow: 'hidden',
+                        m: 2,
+                    }
+                }}
+            >
+                <DialogContent sx={{ p: 0, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <IconButton
+                        onClick={() => setZoomedImage(null)}
+                        sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            color: 'white',
+                            bgcolor: 'rgba(0,0,0,0.5)',
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                            zIndex: 1,
+                        }}
+                    >
+                        <X size={24} />
+                    </IconButton>
+                    {zoomedImage && (
+                        <img
+                            src={zoomedImage}
+                            alt="Zoomed"
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '90vh',
+                                borderRadius: '8px',
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                                objectFit: 'contain',
+                            }}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
             <FooterSub />
         </div>
     );

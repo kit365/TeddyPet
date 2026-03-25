@@ -3,11 +3,11 @@ package fpt.teddypet.infrastructure.scheduler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fpt.teddypet.application.port.output.EmailServicePort;
-import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
-import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
 import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
-import fpt.teddypet.domain.entity.*;
-import fpt.teddypet.domain.enums.RoomStatusEnum;
+import fpt.teddypet.domain.entity.Booking;
+import fpt.teddypet.domain.entity.BookingDeposit;
+import fpt.teddypet.domain.entity.BookingPet;
+import fpt.teddypet.domain.entity.BookingPetService;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.TimeSlotBookingRepository;
@@ -27,8 +27,6 @@ public class BookingDepositScheduler {
 
     private final BookingDepositRepository bookingDepositRepository;
     private final BookingRepository bookingRepository;
-    private final RoomRepositoryPort roomRepositoryPort;
-    private final TimeSlotRepositoryPort timeSlotRepositoryPort;
     private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
@@ -47,6 +45,16 @@ public class BookingDepositScheduler {
 
         for (BookingDeposit d : expired) {
             try {
+                BookingDeposit current = bookingDepositRepository.findById(d.getId()).orElse(null);
+                if (current == null) {
+                    continue;
+                }
+                // Tránh xử lý trùng nếu đã thanh toán / đổi trạng thái giữa lúc query và job
+                if (!"PENDING".equalsIgnoreCase(current.getStatus()) || Boolean.TRUE.equals(current.getDepositPaid())) {
+                    continue;
+                }
+                d = current;
+
                 String payloadJson = d.getHoldPayloadJson();
                 if (payloadJson != null && !payloadJson.isBlank()) {
                     JsonNode payload = objectMapper.readTree(payloadJson);
@@ -59,30 +67,36 @@ public class BookingDepositScheduler {
                 if (d.getBookingId() != null) {
                     Booking booking = bookingRepository.findById(d.getBookingId()).orElse(null);
                     if (booking != null && Boolean.TRUE.equals(booking.getIsTemporary())) {
-                        booking.setStatus("CANCELLED");
-                        booking.setCancelledAt(LocalDateTime.now());
-                        booking.setCancelledBy("SYSTEM");
-                        booking.setCancelledReason("Deposit expired");
-                        booking.setIsTemporary(false);
-                        // Set status CANCELLED for all associated pet services and pets
-                        for (BookingPet pet : booking.getPets()) {
-                            pet.setStatus("CANCELLED");
-                            for (BookingPetService svc : pet.getServices()) {
-                                svc.setStatus("CANCELLED");
+                        String bookingStatus = booking.getStatus() != null ? booking.getStatus() : "";
+                        if (!"PENDING".equalsIgnoreCase(bookingStatus)) {
+                            log.warn("Skip auto-cancel for booking {}: expected PENDING temporary, got {}",
+                                    booking.getBookingCode(), bookingStatus);
+                        } else {
+                            booking.setStatus("CANCELLED");
+                            booking.setCancelledAt(LocalDateTime.now());
+                            booking.setCancelledBy("SYSTEM");
+                            booking.setCancelledReason("Deposit expired");
+                            booking.setIsTemporary(false);
+                            // Set status CANCELLED for all associated pet services and pets
+                            for (BookingPet pet : booking.getPets()) {
+                                pet.setStatus("CANCELLED");
+                                for (BookingPetService svc : pet.getServices()) {
+                                    svc.setStatus("CANCELLED");
+                                }
                             }
-                        }
-                        bookingRepository.save(booking);
+                            bookingRepository.save(booking);
 
-                        // Xóa TimeSlotBooking records liên quan đến booking này
-                        timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+                            // Xóa TimeSlotBooking records liên quan đến booking này
+                            timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
 
-                        // Gửi email thông báo giữ chỗ hết hạn
-                        if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
-                            try {
-                                emailServicePort.sendBookingDepositExpiredEmail(
-                                        booking.getCustomerEmail(), booking.getBookingCode());
-                            } catch (Exception emailEx) {
-                                log.warn("Failed to send deposit-expired email for booking {}", booking.getBookingCode(), emailEx);
+                            // Gửi email thông báo giữ chỗ hết hạn
+                            if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
+                                try {
+                                    emailServicePort.sendBookingDepositExpiredEmail(
+                                            booking.getCustomerEmail(), booking.getBookingCode());
+                                } catch (Exception emailEx) {
+                                    log.warn("Failed to send deposit-expired email for booking {}", booking.getBookingCode(), emailEx);
+                                }
                             }
                         }
                     }

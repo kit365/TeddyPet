@@ -6,6 +6,8 @@ import '../../../core/routes/app_routes.dart';
 import '../../../data/models/entities/order/order_entity.dart';
 import '../../providers/order/order_provider.dart';
 import '../../providers/feedback/feedback_provider.dart';
+import '../../providers/cart/cart_provider.dart';
+import '../../providers/common/navigation_provider.dart';
 import '../product/models/product_reviews_arguments.dart';
 import 'models/order_review_arguments.dart';
 
@@ -31,7 +33,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
   ];
   final List<String> _orderStatusFilters = [
     '', // Tất cả
-    'PENDING',
+    'PENDING,CONFIRMED',
     'PROCESSING',
     'DELIVERING',
     'DELIVERED',
@@ -59,6 +61,10 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
     switch (status) {
       case 'PENDING':
         return 'Chờ xác nhận';
+      case 'CONFIRMED':
+        return 'Đã xác nhận & Chờ thanh toán';
+      case 'PAID':
+        return 'Đã thanh toán';
       case 'PROCESSING':
         return 'Chờ lấy hàng';
       case 'DELIVERING':
@@ -73,8 +79,12 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
         return 'Đã trả hàng';
       case 'RETURN_REQUESTED':
         return 'Yêu cầu trả hàng';
+      case 'REFUND_PENDING':
+        return 'Đang chờ hoàn tiền';
+      case 'REFUNDED':
+        return 'Đã hoàn tiền';
       default:
-        return 'Chờ xác nhận';
+        return 'Đang xử lý';
     }
   }
 
@@ -83,6 +93,10 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
       case 'PROCESSING':
       case 'PENDING':
         return Colors.orange;
+      case 'CONFIRMED':
+        return Colors.blue;
+      case 'PAID':
+        return const Color(0xFF2D937C);
       case 'DELIVERING':
         return AppColors.primary;
       case 'DELIVERED':
@@ -92,8 +106,11 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
       case 'CANCELLED':
       case 'RETURNED':
         return Colors.red;
+      case 'REFUND_PENDING':
       case 'RETURN_REQUESTED':
         return Colors.orange;
+      case 'REFUNDED':
+        return Colors.blue;
       default:
         return Colors.grey;
     }
@@ -457,13 +474,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
                           onTap: () => _showReviewPage(context, order),
                         ),
                       OutlinedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Chức năng mua lại sẽ được cập nhật'),
-                            ),
-                          );
-                        },
+                        onPressed: () => _handleBuyAgain(context, order),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary, width: 0.8),
@@ -527,6 +538,33 @@ class _MyPurchasesPageState extends State<MyPurchasesPage>
         },
       ),
     );
+  }
+
+  Future<void> _handleBuyAgain(BuildContext context, OrderEntity order) async {
+    final cartProvider = context.read<CartProvider>();
+    final navProvider = context.read<NavigationProvider>();
+
+    final success = await cartProvider.buyAgain(order.items);
+
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Đã thêm sản phẩm vào giỏ hàng'),
+          action: SnackBarAction(
+            label: 'XEM GIỎ HÀNG',
+            textColor: Colors.white,
+            onPressed: () {
+              navProvider.setTab(2); // Index 2 là CartPage
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+          ),
+        ),
+      );
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(cartProvider.errorMessage ?? 'Không thể mua lại đơn hàng')),
+      );
+    }
   }
 
   void _confirmReceived(BuildContext context, OrderEntity order) async {

@@ -102,6 +102,8 @@ export interface ApproveCancelRequest {
     approved: boolean;
     staffNotes?: string;
     refundProof?: string;
+    /** Admin hủy đơn khi khách chưa gửi yêu cầu (kèm approved: true). */
+    forceAdminCancel?: boolean;
 }
 
 export const approveOrRejectAdminCancelRequest = async (
@@ -151,6 +153,7 @@ export const cancelAdminBooking = async (
         {
             approved: true,
             staffNotes: body?.reason?.trim() || undefined,
+            forceAdminCancel: true,
         },
         withAuth()
     );

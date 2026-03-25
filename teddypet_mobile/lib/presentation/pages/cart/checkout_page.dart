@@ -477,7 +477,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _buildPaymentDetailSection(double total) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -540,7 +540,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildTermsSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: RichText(
         text: TextSpan(
           style: const TextStyle(

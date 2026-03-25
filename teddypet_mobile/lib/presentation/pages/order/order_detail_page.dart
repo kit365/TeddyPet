@@ -10,6 +10,8 @@ import '../../../data/models/response/feedback/feedback_item_response.dart';
 import '../../providers/cart/cart_provider.dart';
 import '../../providers/feedback/feedback_provider.dart';
 import '../../providers/order/order_provider.dart';
+import 'package:teddypet_mobile/presentation/providers/payment/payment_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/routes/app_routes.dart';
 import 'models/order_review_arguments.dart';
 
@@ -169,6 +171,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         statusColor = Colors.orange;
         statusText = 'Chờ xác nhận';
         break;
+      case 'CONFIRMED':
+        statusColor = Colors.blue;
+        statusText = 'Đã xác nhận & Chờ thanh toán';
+        break;
       case 'PROCESSING':
         statusColor = Colors.orange;
         statusText = 'Chờ lấy hàng';
@@ -176,6 +182,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       case 'DELIVERING':
         statusColor = AppColors.primary;
         statusText = 'Đang giao hàng';
+        break;
+      case 'PAID':
+        statusColor = const Color(0xFF2D937C);
+        statusText = 'Đã thanh toán';
         break;
       case 'DELIVERED':
         statusColor = const Color(0xFF2D937C);
@@ -188,6 +198,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       case 'CANCELLED':
         statusColor = Colors.red;
         statusText = 'Đơn hàng đã hủy';
+        break;
+      case 'REFUND_PENDING':
+        statusColor = Colors.orange;
+        statusText = 'Đang chờ hoàn tiền';
+        break;
+      case 'REFUNDED':
+        statusColor = Colors.blue;
+        statusText = 'Đã hoàn tiền';
         break;
       case 'RETURNED':
         statusColor = Colors.red;
@@ -565,6 +583,32 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             onPressed: () => _showCancelDialog(context, order, orderProvider),
           ),
         ]);
+      case 'CONFIRMED':
+        // Đã xác nhận - nếu là BANK_TRANSFER thì có nút THANH TOÁN
+        final isBankTransfer = order.paymentMethod == 'BANK_TRANSFER';
+        final isPaid = order.payments.isNotEmpty && order.payments.any((p) => p.status == 'COMPLETED');
+        
+        if (isBankTransfer && !isPaid) {
+          return _buildActionButtons([
+            _ActionButton(
+              label: 'THANH TOÁN NGAY',
+              isPrimary: true,
+              onPressed: () => _handlePayment(context, order),
+            ),
+            _ActionButton(
+              label: 'HỦY ĐƠN',
+              isPrimary: false,
+              onPressed: () => _showCancelDialog(context, order, orderProvider),
+            ),
+          ]);
+        }
+        return _buildActionButtons([
+          _ActionButton(
+            label: 'HỦY ĐƠN',
+            isPrimary: false,
+            onPressed: () => _showCancelDialog(context, order, orderProvider),
+          ),
+        ]);
       case 'PROCESSING':
         // Chờ lấy hàng (đã xác nhận) - không thể hủy nữa
         return const SizedBox.shrink();
@@ -806,6 +850,48 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _handlePayment(BuildContext context, OrderEntity order) async {
+    debugPrint("--- _handlePayment CALLED for order ${order.orderCode} ---");
+    final paymentProvider = context.read<PaymentProvider>();
+    
+    // Web used window.location.href, we'll use a placeholder or deep link if possible, 
+    // but PayOS handles the redirect back.
+    final returnUrl = "teddypet://payment-success?orderId=${order.id}"; 
+    
+    final url = await paymentProvider.createPaymentUrl(
+      orderId: order.id,
+      gateway: "PAYOS",
+      returnUrl: returnUrl,
+    );
+
+    if (url != null && mounted) {
+      final uri = Uri.parse(url);
+      debugPrint("Attempting to launch URL: $url");
+      try {
+        if (await canLaunchUrl(uri)) {
+          debugPrint("canLaunchUrl returned true, launching...");
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          debugPrint("canLaunchUrl returned false for $url");
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không thể mở liên kết thanh toán')),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("Error launching URL: $e");
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(paymentProvider.errorMessage ?? 'Lỗi khi tạo thanh toán'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _confirmReceived(BuildContext context, OrderEntity order, OrderProvider provider) async {

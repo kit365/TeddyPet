@@ -90,15 +90,16 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
     List<Long> findDistinctOccupiedRoomIdsForActiveStay();
 
     /**
-     * Còn ít nhất một dòng dịch vụ gắn phòng mà booking và dịch vụ đều chưa CANCELLED.
-     * Dùng để phân biệt OCCUPIED do giữ chỗ thật vs. trạng thái kẹt sau khi đã hủy/hết hạn.
+     * Còn ít nhất một dòng dịch vụ gắn phòng mà booking và dịch vụ vẫn đang “còn hiệu lực”
+     * (không CANCELLED/COMPLETED ở dịch vụ; booking không CANCELLED/COMPLETED).
+     * Dùng để phân biệt OCCUPIED do lưu trú thật vs. có thể nhả phòng sau hủy/check-out.
      */
     @Query("SELECT COUNT(bps) > 0 FROM BookingPetService bps " +
             "JOIN bps.bookingPet bp " +
             "JOIN bp.booking bk " +
             "WHERE bps.roomId = :roomId " +
-            "AND bps.status <> 'CANCELLED' " +
-            "AND bk.status <> 'CANCELLED'")
+            "AND UPPER(COALESCE(bps.status, '')) NOT IN ('CANCELLED', 'COMPLETED') " +
+            "AND UPPER(COALESCE(bk.status, '')) NOT IN ('CANCELLED', 'COMPLETED')")
     boolean existsActiveAssignmentForRoom(@Param("roomId") Long roomId);
     /**
      * Lấy các lịch hẹn dịch vụ của ngày hôm nay cho nhân viên, từ các booking đã check-in và paid.
@@ -181,15 +182,15 @@ public interface BookingPetServiceRepository extends JpaRepository<BookingPetSer
     List<BookingPetService> findAssignableForWorkShift(@Param("walkIn") BookingTypeEnum walkIn);
 
     /**
-     * Cho phép gán vào ca khi {@code booking_pet_service} còn xử lý:
-     * PENDING / WAITING_STAFF / IN_PROGRESS (null coi như PENDING); booking không CANCELLED/COMPLETED.
+     * Cho phép gán vào ca khi {@code booking_pet_service} ở PENDING hoặc WAITING_STAFF (null/rỗng coi như PENDING);
+     * booking không CANCELLED/COMPLETED.
      */
     @Query("SELECT COUNT(bps) > 0 FROM BookingPetService bps " +
             "JOIN bps.bookingPet bp " +
             "JOIN bp.booking b " +
             "WHERE bps.id = :bookingPetServiceId " +
             "AND UPPER(b.status) NOT IN ('CANCELLED', 'COMPLETED') " +
-            "AND (bps.status IS NULL OR bps.status = '' OR UPPER(bps.status) IN ('PENDING', 'WAITING_STAFF', 'IN_PROGRESS'))")
+            "AND (bps.status IS NULL OR bps.status = '' OR UPPER(bps.status) IN ('PENDING', 'WAITING_STAFF'))")
     boolean isEligibleForWorkShiftAssignment(@Param("bookingPetServiceId") Long bookingPetServiceId);
 
     /** JOIN FETCH service/booking/assignedStaff để xếp ca không lỗi lazy. */

@@ -7,7 +7,7 @@ import 'feedback_repository.dart';
 
 class FeedbackRepositoryImpl implements FeedbackRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/feedbacks';
+  final String _baseEndpoint = 'feedbacks';
 
   @override
   Future<FeedbackResponse?> submitFeedback(FeedbackRequest request) async {

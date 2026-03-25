@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo, useEffect } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Card from '@mui/material/Card';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -28,6 +28,40 @@ const STATUS_LABELS: Record<string, string> = {
     MAINTENANCE: 'Đang bảo trì',
     BLOCKED: 'Bị khóa (tạm ngưng)',
     OUT_OF_SERVICE: 'Ngưng hoạt động',
+};
+
+/** Màu badge theo RoomStatusEnum (backend) — khác với cột «Hoạt động» (isActive). */
+const ROOM_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+    AVAILABLE: { bg: '#E8F8F0', color: '#0F5132' },
+    OCCUPIED: { bg: '#E0E7FF', color: '#3730A3' },
+    CLEANING: { bg: '#FEF3C7', color: '#92400E' },
+    MAINTENANCE: { bg: '#FFEDD5', color: '#9A3412' },
+    BLOCKED: { bg: '#FEE2E2', color: '#991B1B' },
+    OUT_OF_SERVICE: { bg: '#F3F4F6', color: '#4B5563' },
+};
+
+const RenderRoomStatusCell = (params: GridRenderCellParams<IRoom>) => {
+    const raw = String(params.row.status ?? '').trim().toUpperCase();
+    const label = STATUS_LABELS[raw] ?? (raw || '—');
+    const style = ROOM_STATUS_STYLE[raw] ?? { bg: '#F3F4F6', color: '#374151' };
+    return (
+        <Box
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '100%',
+                py: 0.5,
+            }}
+        >
+            <span
+                title={raw ? `Mã: ${raw}` : undefined}
+                className="inline-flex items-center leading-tight max-w-full text-left px-2 py-0.5 rounded-md text-[0.75rem] font-[700]"
+                style={{ backgroundColor: style.bg, color: style.color }}
+            >
+                {label}
+            </span>
+        </Box>
+    );
 };
 
 const RenderRoomActionsCell = (params: { row: IRoom; onOpenBlocking: (room: IRoom) => void }) => {
@@ -79,9 +113,13 @@ const roomColumnsBase = (onOpenBlocking: (room: IRoom) => void): GridColDef<IRoo
     },
     {
         field: 'status',
-        headerName: 'Trạng thái',
-        width: 130,
-        valueGetter: (_, row) => STATUS_LABELS[row.status] ?? row.status,
+        headerName: 'Trạng thái phòng',
+        width: 168,
+        minWidth: 140,
+        flex: 0,
+        sortable: true,
+        renderCell: RenderRoomStatusCell,
+        valueGetter: (_, row) => STATUS_LABELS[String(row.status ?? '').trim().toUpperCase()] ?? row.status ?? '',
     },
     {
         field: 'bookable',

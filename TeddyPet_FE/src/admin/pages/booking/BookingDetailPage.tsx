@@ -64,6 +64,19 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 const formatDateTime = (v?: string) => (v ? new Date(v).toLocaleString("vi-VN") : "—");
 
+const getServiceStatusLabel = (status: string, isRoom?: boolean): string => {
+  const s = (status ?? "").toUpperCase();
+  switch (s) {
+    case "COMPLETED": return "Hoàn thành";
+    case "IN_PROGRESS": return isRoom ? "Chờ thực hiện" : "Đang xử lý";
+    case "PENDING":
+    case "WAITING_STAFF": return isRoom ? "Chưa bắt đầu" : "Chờ thực hiện";
+    case "PET_IN_HOTEL": return "Đã vào Hotel";
+    case "CANCELLED": return "Đã hủy";
+    default: return status;
+  }
+};
+
 const InfoRow = ({
   label,
   value,
@@ -197,6 +210,16 @@ export const BookingDetailPage = () => {
     const services = (booking?.pets ?? []).flatMap((p) => p.services ?? []);
     return services.some((s) => (s?.status ?? "").toUpperCase() !== "CANCELLED" && s?.isRequiredRoom === true);
   }, [booking?.pets]);
+
+  /** Dịch vụ không yêu cầu phòng vẫn đang IN_PROGRESS → chưa được hoàn tất check-out. */
+  const hasNonRoomServiceInProgress = useMemo(() => {
+    const services = (booking?.pets ?? []).flatMap((p) => p.services ?? []);
+    return services.some(
+      (s) =>
+        (s?.status ?? "").toUpperCase() === "IN_PROGRESS" &&
+        s?.isRequiredRoom !== true
+    );
+  }, [booking?.pets]);
   const overdueRoomServices = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -276,6 +299,7 @@ export const BookingDetailPage = () => {
         serviceId: Number(service.id),
         serviceName: service.serviceName ?? "Dịch vụ",
         requiredRoom,
+        status: service.status ?? "—",
         beforeSubtotal,
         afterSubtotal,
         delta,
@@ -400,7 +424,10 @@ export const BookingDetailPage = () => {
   const hasCheckedOut =
     Boolean(booking.bookingCheckOutDate) &&
     ["COMPLETED", "CANCELLED"].includes((booking.status ?? "").toUpperCase());
-  const checkOutDisabled = actionLoading || (!hasAnyActiveRoomService && !allActiveServicesCompleted);
+  const checkOutDisabled =
+    actionLoading ||
+    (!hasAnyActiveRoomService && !allActiveServicesCompleted) ||
+    hasNonRoomServiceInProgress;
 
   // (moved hooks above conditional returns)
 
@@ -706,11 +733,15 @@ export const BookingDetailPage = () => {
             {booking.status !== "CANCELLED" && !hasCheckedOut && (
               <Tooltip
                 title={
-                  !hasAnyActiveRoomService && !allActiveServicesCompleted
-                    ? "Booking không có dịch vụ phòng: cần hoàn thành tất cả dịch vụ không phòng trước khi check-out."
-                    : ""
+                  hasNonRoomServiceInProgress
+                    ? "Còn dịch vụ (không yêu cầu phòng) đang thực hiện — hoàn thành trước khi check-out."
+                    : !hasAnyActiveRoomService && !allActiveServicesCompleted
+                      ? "Booking không có dịch vụ phòng: cần hoàn thành tất cả dịch vụ không phòng trước khi check-out."
+                      : ""
                 }
-                disableHoverListener={hasAnyActiveRoomService || allActiveServicesCompleted}
+                disableHoverListener={
+                  !(hasNonRoomServiceInProgress || (!hasAnyActiveRoomService && !allActiveServicesCompleted))
+                }
               >
                 <span style={{ display: "inline-flex" }}>
                   <Button
@@ -1229,7 +1260,7 @@ export const BookingDetailPage = () => {
                               {pet.petName} — {service.serviceName ?? "Dịch vụ phòng"} (#{service.id})
                             </Typography>
                             <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary", mb: 1 }}>
-                              Quá hạn {overdueNights} đêm × {formatCurrency(base)} = <strong>{formatCurrency(overtimeAmount)}</strong>
+                              Quá hạn {overdueNights} đêm × {formatCurrency(unitPrice)} = <strong>{formatCurrency(overtimeAmount)}</strong>
                             </Typography>
                             <TextField
                               label="Nội dung thông báo cho dòng quá hạn này"
@@ -1254,7 +1285,7 @@ export const BookingDetailPage = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell>Dịch vụ</TableCell>
-                        <TableCell>Loại</TableCell>
+                        <TableCell>Trạng thái</TableCell>
                         <TableCell align="right">Trước</TableCell>
                         <TableCell align="right">Sau</TableCell>
                         <TableCell align="right">Chênh lệch</TableCell>
@@ -1279,7 +1310,19 @@ export const BookingDetailPage = () => {
                               </Typography>
                             )}
                           </TableCell>
-                          <TableCell>{row.requiredRoom ? "isRequiredRoom=true" : "isRequiredRoom=false"}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={getServiceStatusLabel(row.status, row.requiredRoom)}
+                              size="small"
+                              sx={{ 
+                                fontWeight: 800, 
+                                fontSize: "0.7rem",
+                                borderRadius: "6px",
+                                bgcolor: "#919EAB1A",
+                                color: "#637381"
+                              }}
+                            />
+                          </TableCell>
                           <TableCell align="right">{formatCurrency(row.beforeSubtotal)}</TableCell>
                           <TableCell align="right">{formatCurrency(row.afterSubtotal)}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 900, color: row.delta > 0 ? "#B71D18" : "text.secondary" }}>
@@ -1349,7 +1392,7 @@ export const BookingDetailPage = () => {
               </Box>
             </DialogContent>
 
-            <DialogActions sx={{ px: 4, py: 3, borderTop: "1px solid #F4F6F8" }}>
+            <DialogActions sx={{ px: 4, py: 3, borderTop: "1px solid #F4F6F8", flexWrap: "wrap", gap: 1 }}>
               <Button
                 onClick={() => setCheckOutDialogOpen(false)}
                 disabled={checkOutConfirmLoading}
@@ -1357,38 +1400,48 @@ export const BookingDetailPage = () => {
               >
                 Hủy bỏ
               </Button>
-              <Button
-                variant="contained"
-                disabled={checkOutConfirmLoading}
-                onClick={async () => {
-                  if (!id) return;
-                  setCheckOutConfirmLoading(true);
-                  try {
-                    await checkOutBooking(id, {
-                      pets: checkOutPets,
-                      overtimeAdjustments: checkOutOvertimeAdjustments,
-                    });
-                    setCheckOutDialogOpen(false);
-                    await fetchBooking();
-                  } catch (e) {
-                    console.error(e);
-                  } finally {
-                    setCheckOutConfirmLoading(false);
-                  }
-                }}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 900,
-                  px: 4,
-                  py: 1.2,
-                  borderRadius: "12px",
-                  bgcolor: "#1C252E",
-                  "&:hover": { bgcolor: "#454F5B" },
-                }}
-              >
-                {checkOutConfirmLoading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
-                Hoàn tất Check-out
-              </Button>
+              <Stack alignItems="flex-end" spacing={0.5} sx={{ ml: "auto" }}>
+                <Button
+                  variant="contained"
+                  disabled={checkOutConfirmLoading || hasNonRoomServiceInProgress}
+                  onClick={async () => {
+                    if (!id || hasNonRoomServiceInProgress) return;
+                    setCheckOutConfirmLoading(true);
+                    try {
+                      await checkOutBooking(id, {
+                        pets: checkOutPets,
+                        overtimeAdjustments: checkOutOvertimeAdjustments,
+                      });
+                      setCheckOutDialogOpen(false);
+                      await fetchBooking();
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setCheckOutConfirmLoading(false);
+                    }
+                  }}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 900,
+                    px: 4,
+                    py: 1.2,
+                    borderRadius: "12px",
+                    bgcolor: "#1C252E",
+                    "&:hover": { bgcolor: "#454F5B" },
+                    ...(hasNonRoomServiceInProgress
+                      ? { opacity: 0.45, filter: "grayscale(0.25)" }
+                      : {}),
+                  }}
+                >
+                  {checkOutConfirmLoading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+                  Hoàn tất Check-out
+                </Button>
+                {hasNonRoomServiceInProgress ? (
+                  <Typography variant="caption" sx={{ color: "warning.dark", fontWeight: 600, maxWidth: 360, textAlign: "right" }}>
+                    Chưa có dịch vụ hoàn tất nên chưa thể checkout
+                  </Typography>
+                ) : null}
+              </Stack>
             </DialogActions>
           </Dialog>
 

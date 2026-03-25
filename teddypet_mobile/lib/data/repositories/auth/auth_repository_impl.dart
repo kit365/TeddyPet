@@ -11,7 +11,7 @@ import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/auth';
+  final String _baseEndpoint = 'auth';
   late final String _mobileBaseEndpoint = '$_baseEndpoint/mobile';
 
   @override
@@ -129,7 +129,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<int> sendChangePasswordOtp() async {
     final response = await _apiClient.post<int>(
-      '/users/change-password/send-otp',
+      'users/change-password/send-otp',
       fromJson: (json) => json as int,
     );
     
@@ -142,7 +142,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> verifyChangePasswordOtp(String otpCode) async {
     final response = await _apiClient.post(
-      '/users/change-password/verify-otp?otpCode=$otpCode',
+      'users/change-password/verify-otp?otpCode=$otpCode',
     );
     return response.success;
   }
@@ -150,7 +150,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> changePassword(String oldPassword, String newPassword, String otpCode) async {
     final response = await _apiClient.put(
-      '/users/change-password',
+      'users/change-password',
       data: {
         'oldPassword': oldPassword,
         'newPassword': newPassword,

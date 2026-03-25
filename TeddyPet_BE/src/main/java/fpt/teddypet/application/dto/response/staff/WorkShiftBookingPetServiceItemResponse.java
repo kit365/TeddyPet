@@ -22,7 +22,7 @@ public record WorkShiftBookingPetServiceItemResponse(
         /** Trạng thái booking (PENDING, CONFIRMED, …). */
         String bookingStatus,
         /**
-         * Chỉ true khi được phép thêm vào ca: {@code booking_pet_service} PENDING hoặc IN_PROGRESS
+         * Chỉ true khi được phép thêm vào ca: {@code booking_pet_service} PENDING hoặc WAITING_STAFF
          * (và booking chưa hủy / hoàn thành).
          */
         Boolean canAssignToShift,

@@ -8,7 +8,7 @@ import 'order_repository.dart';
 
 class OrderRepositoryImpl implements OrderRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/orders';
+  final String _baseEndpoint = 'orders';
 
   @override
   Future<OrderEntity?> createOrder(OrderRequest request) async {

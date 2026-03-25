@@ -9,7 +9,7 @@ class BrandRepositoryImpl implements BrandRepository {
   Future<List<BrandResponse>> getAllBrands() async {
     try {
       final response = await _apiClient.get<List<BrandResponse>>(
-        '/product-brands',
+        'product-brands',
         fromJson: (json) {
           if (json is List) {
             return json.map((e) => BrandResponse.fromJson(e)).toList();

@@ -80,7 +80,7 @@ export interface IWorkShiftBookingPetServiceItem {
     /** Từ service.required_staff_count */
     requiredStaffCount?: number | null;
     bookingStatus?: string | null;
-    /** true khi booking_pet_service PENDING hoặc IN_PROGRESS (và booking chưa hủy/hoàn thành) */
+    /** true khi booking_pet_service PENDING hoặc WAITING_STAFF (và booking chưa hủy/hoàn thành) */
     canAssignToShift?: boolean | null;
     /** Loại đặt (ONLINE, WALK_IN, …) — từ booking */
     bookingType?: string | null;
@@ -286,7 +286,7 @@ export const assignBookingPetServiceToShift = async (
     return res.data;
 };
 
-/** Tự tìm ca ASSIGNED phù hợp (phòng: buổi theo check-in; không phòng: overlap khung giờ) + gán nhân viên. */
+/** Tự tìm ca ASSIGNED phù hợp (phòng: buổi theo check-in; không phòng: ca đầu tiên trong ngày lịch) + gán nhân viên. */
 export const assignBookingPetServiceToShiftAuto = async (
     bookingPetServiceId: number,
     staffIds: number[]

@@ -48,7 +48,8 @@ public class WorkShiftBookingAssignmentHelper {
     private final BookingPetServiceRepository bookingPetServiceRepository;
 
     /**
-     * @param shiftId nếu null: tự resolve ca theo phòng / khung giờ; nếu có: admin chọn ca cụ thể (phải khớp ngày + buổi / overlap).
+     * @param shiftId nếu null: tự resolve ca theo phòng / ngày dịch vụ; nếu có: admin chọn ca (phòng: ngày+buổi;
+     *          dịch vụ không phòng: cùng ngày lịch — không bắt trùng khung giờ với slot khách).
      */
     @Transactional(readOnly = true)
     public WorkShiftAssignOptionsResponse getAssignOptionsForBookingPetService(Long bookingPetServiceId, Long shiftId) {
@@ -173,6 +174,7 @@ public class WorkShiftBookingAssignmentHelper {
 
     /**
      * Admin chọn ca theo ngày + buổi (sáng/chiều). Phòng: nếu đã check-in thì khớp giờ check-in; nếu chưa — khớp ngày đặt / dự kiến.
+     * Dịch vụ không phòng ({@code isRequiredRoom=false}): chỉ cần ca cùng ngày với ngày lịch, không xét overlap khung giờ.
      */
     private void validateAdminChosenShift(WorkShift shift, Booking booking, BookingPetService bps, Service svc) {
         if (Boolean.TRUE.equals(svc.getIsRequiredRoom())) {
@@ -188,20 +190,14 @@ public class WorkShiftBookingAssignmentHelper {
         } else {
             Long tsId = bps.getTimeSlotId();
             if (tsId != null) {
-                TimeSlot slot = timeSlotRepositoryPort.findById(tsId)
+                timeSlotRepositoryPort.findById(tsId)
                         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khung giờ: " + tsId));
                 LocalDate schedulingDate = resolveSchedulingDateForWorkShiftPool(booking, bps);
                 if (schedulingDate == null) {
                     throw new IllegalArgumentException("Không xác định được ngày để áp khung giờ dịch vụ.");
                 }
-                LocalDateTime slotStart = schedulingDate.atTime(slot.getStartTime());
-                LocalDateTime slotEndRaw = schedulingDate.atTime(slot.getEndTime());
-                final LocalDateTime slotEnd = !slotEndRaw.isAfter(slotStart) ? slotEndRaw.plusDays(1) : slotEndRaw;
                 if (!shift.getStartTime().toLocalDate().equals(schedulingDate)) {
                     throw new IllegalArgumentException("Ca không cùng ngày với ngày dịch vụ.");
-                }
-                if (!intervalsOverlap(slotStart, slotEnd, shift.getStartTime(), shift.getEndTime())) {
-                    throw new IllegalArgumentException("Ca không trùng khung giờ khách đã chọn.");
                 }
             } else {
                 validateNonRoomShiftWithoutTimeSlot(shift, booking, bps);
@@ -219,12 +215,8 @@ public class WorkShiftBookingAssignmentHelper {
         }
         if (bps.getScheduledStartTime() != null && bps.getScheduledEndTime() != null) {
             LocalDateTime wStart = bps.getScheduledStartTime();
-            LocalDateTime wEnd = bps.getScheduledEndTime();
             if (!shift.getStartTime().toLocalDate().equals(wStart.toLocalDate())) {
                 throw new IllegalArgumentException("Ca không cùng ngày với lịch dịch vụ.");
-            }
-            if (!intervalsOverlap(wStart, wEnd, shift.getStartTime(), shift.getEndTime())) {
-                throw new IllegalArgumentException("Ca không trùng khung giờ lịch dịch vụ.");
             }
             return;
         }
@@ -350,21 +342,18 @@ public class WorkShiftBookingAssignmentHelper {
             if (schedulingDate == null) {
                 throw new IllegalArgumentException("Không xác định được ngày để áp khung giờ dịch vụ.");
             }
-            LocalDateTime slotStart = schedulingDate.atTime(slot.getStartTime());
-            LocalDateTime slotEndRaw = schedulingDate.atTime(slot.getEndTime());
-            final LocalDateTime slotEnd = !slotEndRaw.isAfter(slotStart) ? slotEndRaw.plusDays(1) : slotEndRaw;
-            List<WorkShift> overlapping = workShiftRepositoryPort.findOverlapping(slotStart, slotEnd, null);
-            List<WorkShift> matches = overlapping.stream()
+            LocalDateTime dayStartTs = schedulingDate.atStartOfDay();
+            LocalDateTime dayEndTs = LocalDateTime.of(schedulingDate, LocalTime.MAX);
+            List<WorkShift> sameDayFromSlot = workShiftRepositoryPort.findByStartTimeBetween(dayStartTs, dayEndTs).stream()
                     .filter(WorkShiftBookingAssignmentHelper::isShiftOpenOrAssigned)
+                    .filter(ws -> ws.getStartTime() != null && ws.getEndTime() != null)
                     .filter(ws -> ws.getStartTime().toLocalDate().equals(schedulingDate))
-                    .filter(ws -> intervalsOverlap(slotStart, slotEnd, ws.getStartTime(), ws.getEndTime()))
-                    .sorted(Comparator.comparing(WorkShift::getId))
+                    .sorted(Comparator.comparing(WorkShift::getStartTime).thenComparing(WorkShift::getId))
                     .toList();
-            if (matches.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Không có ca (OPEN hoặc đã khóa) trùng khung giờ khách đã chọn.");
+            if (sameDayFromSlot.isEmpty()) {
+                throw new IllegalArgumentException("Không có ca (OPEN hoặc đã khóa) trong ngày dịch vụ.");
             }
-            return matches.get(0);
+            return sameDayFromSlot.get(0);
         }
 
         LocalDate schedulingDate = resolveSchedulingDateForWorkShiftPool(booking, bps);
@@ -372,20 +361,18 @@ public class WorkShiftBookingAssignmentHelper {
             throw new IllegalArgumentException("Không xác định được ngày dịch vụ để xếp ca.");
         }
         if (bps.getScheduledStartTime() != null && bps.getScheduledEndTime() != null) {
-            LocalDateTime slotStart = bps.getScheduledStartTime();
-            LocalDateTime slotEnd = bps.getScheduledEndTime();
-            List<WorkShift> overlapping = workShiftRepositoryPort.findOverlapping(slotStart, slotEnd, null);
-            List<WorkShift> matches = overlapping.stream()
+            LocalDateTime dayStartSched = schedulingDate.atStartOfDay();
+            LocalDateTime dayEndSched = LocalDateTime.of(schedulingDate, LocalTime.MAX);
+            List<WorkShift> sameDayFromSched = workShiftRepositoryPort.findByStartTimeBetween(dayStartSched, dayEndSched).stream()
                     .filter(WorkShiftBookingAssignmentHelper::isShiftOpenOrAssigned)
+                    .filter(ws -> ws.getStartTime() != null && ws.getEndTime() != null)
                     .filter(ws -> ws.getStartTime().toLocalDate().equals(schedulingDate))
-                    .filter(ws -> intervalsOverlap(slotStart, slotEnd, ws.getStartTime(), ws.getEndTime()))
-                    .sorted(Comparator.comparing(WorkShift::getId))
+                    .sorted(Comparator.comparing(WorkShift::getStartTime).thenComparing(WorkShift::getId))
                     .toList();
-            if (matches.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Không có ca (OPEN hoặc đã khóa) trùng khung giờ lịch dịch vụ.");
+            if (sameDayFromSched.isEmpty()) {
+                throw new IllegalArgumentException("Không có ca (OPEN hoặc đã khóa) trong ngày dịch vụ.");
             }
-            return matches.get(0);
+            return sameDayFromSched.get(0);
         }
 
         LocalDateTime dayStart = schedulingDate.atStartOfDay();
@@ -457,9 +444,6 @@ public class WorkShiftBookingAssignmentHelper {
             final LocalDateTime slotEnd = !slotEndRaw.isAfter(slotStart) ? slotEndRaw.plusDays(1) : slotEndRaw;
             if (!shift.getStartTime().toLocalDate().equals(schedulingDate)) {
                 throw new IllegalArgumentException("Ca không cùng ngày với ngày dịch vụ.");
-            }
-            if (!intervalsOverlap(slotStart, slotEnd, shift.getStartTime(), shift.getEndTime())) {
-                throw new IllegalArgumentException("Ca không trùng khung giờ khách đã chọn.");
             }
             bps.setScheduledStartTime(slotStart);
             bps.setScheduledEndTime(slotEnd);

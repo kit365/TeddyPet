@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../providers/home/home_provider.dart';
 import '../../../../providers/common/navigation_provider.dart';
+import '../../../../../core/routes/app_routes.dart';
 
 class CategoryMenu extends StatelessWidget {
   const CategoryMenu({super.key});
@@ -86,7 +87,11 @@ class CategoryMenu extends StatelessWidget {
           final item = menuItems[index];
           return GestureDetector(
             onTap: () {
-              if (item['id'] == 'fixed_products' || item['id'] == 'more' || categories.any((c) => c.id == item['id'])) {
+              if (item['id'] == 'fixed_booking') {
+                Navigator.pushNamed(context, AppRoutes.bookingWizard);
+              } else if (item['id'] == 'fixed_services') {
+                context.read<NavigationProvider>().setTab(1); // Or a specific services page
+              } else if (item['id'] == 'fixed_products' || item['id'] == 'more' || categories.any((c) => c.id == item['id'])) {
                 context.read<NavigationProvider>().setTab(1); // Chuyển sang tab Danh mục (index 1)
               }
             },

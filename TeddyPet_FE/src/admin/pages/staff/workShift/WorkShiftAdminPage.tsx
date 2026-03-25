@@ -1352,7 +1352,7 @@ export const WorkShiftAdminPage = () => {
                                     Điều kiện hiển thị: đặt online — <strong>thanh toán cọc thành công</strong>; đặt tại quầy (Walk-in) hoặc loại trống — booking chưa hủy / hoàn thành (không bắt cọc).
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                    &quot;Trong tuần&quot; = theo <strong>actualCheckInDate</strong> trên dịch vụ → <strong>estimatedCheckInDate</strong> → ngày booking; nằm trong khoảng <strong>Từ — Đến</strong>. Nút thêm vào ca chỉ áp dụng khi dịch vụ (booking_pet_service) đang <strong>PENDING</strong> hoặc <strong>IN_PROGRESS</strong> (không bắt check-in booking).
+                                    &quot;Trong tuần&quot; = theo <strong>actualCheckInDate</strong> trên dịch vụ → <strong>estimatedCheckInDate</strong> → ngày booking; nằm trong khoảng <strong>Từ — Đến</strong>. Nút thêm vào ca chỉ áp dụng khi dịch vụ (booking_pet_service) đang <strong>PENDING</strong> hoặc <strong>WAITING_STAFF</strong> (không bắt check-in booking).
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', mt: 0.75, fontWeight: 600 }}>
                                     Bấm <strong>+</strong>: hệ thống lấy <strong>ngày đặt</strong> của booking để ghép ca sáng/chiều trên lưới, sau đó chọn nhân viên có kỹ năng phù hợp dịch vụ (ca <strong>Đang tuyển</strong> hoặc <strong>Đã khóa</strong>).
@@ -1411,7 +1411,7 @@ export const WorkShiftAdminPage = () => {
                                                             {!isAssignedToShift && (
                                                             <Tooltip title={
                                                                 item.canAssignToShift === false
-                                                                    ? 'Chỉ thêm được khi dịch vụ (booking_pet_service) đang PENDING hoặc IN_PROGRESS'
+                                                                    ? 'Chỉ thêm được khi dịch vụ (booking_pet_service) đang PENDING hoặc WAITING_STAFF'
                                                                     : 'Xếp vào ca (chọn buổi sáng/chiều theo ngày đặt, rồi chọn nhân viên)'
                                                             }>
                                                                 <IconButton 
@@ -1421,7 +1421,7 @@ export const WorkShiftAdminPage = () => {
                                                                     onClick={() => {
                                                                         if (item.canAssignToShift === false) {
                                                                             toast.warning(
-                                                                                'Đơn dịch vụ đã bị hủy hoặc hoàn thành trước đó nên không thể thêm vào ca làm được.'
+                                                                                'Chỉ thêm vào ca khi dịch vụ đang PENDING hoặc WAITING_STAFF (hoặc chưa có trạng thái).'
                                                                             );
                                                                             return;
                                                                         }

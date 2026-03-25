@@ -138,9 +138,9 @@ export const CareTaskList = ({ tasks, loading, onStart, onSetUpDone }: Props) =>
                                         }`}
                                     >
                                         {isWaiting
-                                            ? "Chờ thực hiện"
+                                            ? task.serviceRequiresRoom ? "Chưa bắt đầu" : "Chờ thực hiện"
                                             : isInProgress
-                                              ? "Đang xử lý"
+                                              ? task.serviceRequiresRoom ? "Chờ thực hiện" : "Đang xử lý"
                                               : isPetInHotel
                                                 ? "Đã đưa thú cưng vào hotel"
                                               : "Đã hoàn thành"}
@@ -180,7 +180,7 @@ export const CareTaskList = ({ tasks, loading, onStart, onSetUpDone }: Props) =>
                                     )}
                                 </div>
                             )}
-                            {(isWaiting || isInProgress) && (
+                            {((!task.serviceRequiresRoom && isWaiting) || isInProgress) && (
                                 <button
                                     type="button"
                                     disabled={!canSetUpDoneTask}

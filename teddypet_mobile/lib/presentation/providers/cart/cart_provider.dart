@@ -13,6 +13,9 @@ class CartProvider extends ChangeNotifier {
   CartEntity? _cart;
   CartEntity? get cart => _cart;
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   Future<void> fetchMyCart({bool background = false}) async {
     if (!background) {
       _isLoading = true;
@@ -59,6 +62,7 @@ class CartProvider extends ChangeNotifier {
   /// Mua lại các sản phẩm từ đơn hàng cũ
   Future<bool> buyAgain(List<dynamic> items) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
     bool allSuccess = true;
 
@@ -77,6 +81,7 @@ class CartProvider extends ChangeNotifier {
       return allSuccess;
     } catch (e) {
       debugPrint("Lỗi khi mua lại: $e");
+      _errorMessage = "Không thể mua lại một số sản phẩm. Có thể chúng đã hết hàng.";
       return false;
     } finally {
       _isLoading = false;

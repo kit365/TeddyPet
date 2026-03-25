@@ -23,30 +23,58 @@ import 'package:teddypet_mobile/data/models/entities/order/order_entity.dart';
 import 'package:teddypet_mobile/presentation/pages/product/models/product_reviews_arguments.dart';
 import 'package:teddypet_mobile/presentation/pages/order/models/order_review_arguments.dart';
 import 'package:teddypet_mobile/presentation/pages/order/order_review_page.dart';
+import 'package:teddypet_mobile/presentation/pages/booking/booking_history_page.dart';
+import 'package:teddypet_mobile/presentation/pages/booking/booking_detail_page.dart';
+import 'package:teddypet_mobile/presentation/pages/booking/booking_wizard_page.dart';
 
 import 'app_routes.dart';
 
 class AppRouter {
-  static Route<dynamic> generateRoute(RouteSettings settings){
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    final String? fullRoute = settings.name;
+    if (fullRoute == null) return _errorRoute("Route name is null");
 
-    switch(settings.name) {
-      case AppRoutes.home :
+    // Phân tích URI để tách path và query parameters (cho Deep Linking)
+    final uri = Uri.parse(fullRoute);
+    final String path = uri.path;
+
+    // Ưu tiên xử lý Deep Link từ PayOS (thường có status=PAID hoặc status=CANCELLED)
+    final String? status = uri.queryParameters['status'];
+    final String? orderId = uri.queryParameters['orderId'];
+
+    if (orderId != null) {
+      return MaterialPageRoute(
+        builder: (_) => OrderDetailPage(orderId: orderId),
+      );
+    }
+
+    if (status != null || 
+        fullRoute.startsWith(AppRoutes.paymentSuccess) ||
+        path == "/payment-success") {
+      return MaterialPageRoute(
+        builder: (_) => const MyPurchasesPage(),
+      );
+    }
+
+    switch (path) {
+      case AppRoutes.home:
+      case "":
         return MaterialPageRoute(
-          builder: (_) => const MainPage(), 
+          builder: (_) => const MainPage(),
         );
-      case AppRoutes.login :
+      case AppRoutes.login:
         return MaterialPageRoute(
           builder: (_) => const LoginPage(),
         );
-      case AppRoutes.forgotPassword :
+      case AppRoutes.forgotPassword:
         return MaterialPageRoute(
           builder: (_) => const ForgotPasswordPage(),
         );
-      case AppRoutes.register :
+      case AppRoutes.register:
         return MaterialPageRoute(
           builder: (_) => const RegisterPage(),
         );
-      case AppRoutes.profile :
+      case AppRoutes.profile:
         return MaterialPageRoute(
           builder: (_) => const ProfilePage(),
         );
@@ -90,7 +118,6 @@ class AppRouter {
           builder: (_) => const MyPurchasesPage(),
         );
       case AppRoutes.orderDetail:
-        // Hỗ trợ cả OrderEntity và orderId (String)
         final args = settings.arguments;
         if (args is OrderEntity) {
           return MaterialPageRoute(
@@ -136,15 +163,31 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => OrderReviewPage(args: args),
         );
-      default:
+      case AppRoutes.bookingHistory:
         return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Center(child: Text('Không tìm thấy trang \${settings.name}')),
-            ),
-          )
+          builder: (_) => const BookingHistoryPage(),
         );
+      case AppRoutes.bookingDetail:
+        final args = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => BookingDetailPage(bookingCode: args),
+        );
+      case AppRoutes.bookingWizard:
+        return MaterialPageRoute(
+          builder: (_) => const BookingWizardPage(),
+        );
+      default:
+        return _errorRoute(fullRoute);
     }
+  }
 
+  static Route<dynamic> _errorRoute(String name) {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        body: Center(
+          child: Text('Không tìm thấy trang $name'),
+        ),
+      ),
+    );
   }
 }

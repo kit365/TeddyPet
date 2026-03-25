@@ -32,6 +32,7 @@ import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
 import fpt.teddypet.domain.entity.TimeSlotBooking;
+import fpt.teddypet.domain.enums.RoomStatusEnum;
 import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
@@ -81,6 +82,7 @@ public class BookingClientApplicationService implements BookingClientService {
     private final EmailServicePort emailServicePort;
     private final DashboardService dashboardService;
     private final BookingHoldReleaseService bookingHoldReleaseService;
+    private final RoomOccupancyReleaseService roomOccupancyReleaseService;
 
     public BookingClientApplicationService(
             BookingRepository bookingRepository,
@@ -97,7 +99,8 @@ public class BookingClientApplicationService implements BookingClientService {
             fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRefundRepository bookingRefundRepository,
             EmailServicePort emailServicePort,
             @Lazy DashboardService dashboardService,
-            BookingHoldReleaseService bookingHoldReleaseService) {
+            BookingHoldReleaseService bookingHoldReleaseService,
+            RoomOccupancyReleaseService roomOccupancyReleaseService) {
         this.bookingRepository = bookingRepository;
         this.bookingPetServiceRepository = bookingPetServiceRepository;
         this.timeSlotBookingRepository = timeSlotBookingRepository;
@@ -113,6 +116,7 @@ public class BookingClientApplicationService implements BookingClientService {
         this.emailServicePort = emailServicePort;
         this.dashboardService = dashboardService;
         this.bookingHoldReleaseService = bookingHoldReleaseService;
+        this.roomOccupancyReleaseService = roomOccupancyReleaseService;
     }
 
     @Override
@@ -497,6 +501,9 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setCancelledReason(request.reason());
 
         bookingRepository.save(booking);
+        if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
+            roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
+        }
         dashboardService.sendDashboardUpdate();
         return getClientBookingDetailByCode(bookingCode);
     }
@@ -523,6 +530,31 @@ public class BookingClientApplicationService implements BookingClientService {
         target.setCustomerReview(review == null || review.isBlank() ? null : review);
         bookingRepository.save(booking);
         return getClientBookingDetailByCode(bookingCode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientBookingDetailResponse> getMyBookings(UUID userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        List<Booking> bookings = bookingRepository.findAllByUser_IdOrderByCreatedAtDesc(userId);
+        if (bookings.isEmpty()) {
+            return List.of();
+        }
+        List<ClientBookingDetailResponse> result = new ArrayList<>(bookings.size());
+        for (Booking b : bookings) {
+            String code = b.getBookingCode();
+            if (code == null || code.isBlank()) {
+                continue;
+            }
+            try {
+                result.add(getClientBookingDetailByCode(code));
+            } catch (Exception e) {
+                log.warn("getMyBookings: bỏ qua đơn {} — {}", code, e.getMessage());
+            }
+        }
+        return result;
     }
 
     @Override
@@ -591,6 +623,10 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setRemainingAmount(bookingTotal);
 
         // compute max min for something else? no longer stored on booking
+
+        if (booking.getBookingType() == BookingTypeEnum.WALK_IN) {
+            occupyRoomsForWalkInBookingGraph(booking);
+        }
 
         Booking saved = bookingRepository.save(booking);
 
@@ -813,6 +849,46 @@ public class BookingClientApplicationService implements BookingClientService {
      * Kiểm tra phòng (isRequiredRoom) chưa bị đặt trùng khoảng ngày bởi booking
      * khác.
      */
+    /**
+     * Walk-in: đặt OCCUPIED cho từng phòng gắn dịch vụ isRequiredRoom (trước khi save booking để
+     * existsActiveAssignmentForRoom chưa tính dòng BPS sắp lưu — tránh lệch nhánh “ghost OCCUPIED”).
+     */
+    private void occupyRoomsForWalkInBookingGraph(Booking booking) {
+        if (booking.getPets() == null) {
+            return;
+        }
+        for (BookingPet pet : booking.getPets()) {
+            if (pet.getServices() == null) {
+                continue;
+            }
+            for (BookingPetService bps : pet.getServices()) {
+                if (bps.getService() == null || !Boolean.TRUE.equals(bps.getService().getIsRequiredRoom())) {
+                    continue;
+                }
+                Long roomId = bps.getRoomId();
+                if (roomId == null || bps.getEstimatedCheckInDate() == null || bps.getEstimatedCheckOutDate() == null) {
+                    continue;
+                }
+                Room room = roomRepositoryPort.findById(roomId)
+                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy phòng với id: " + roomId));
+                if (room.getStatus() != RoomStatusEnum.AVAILABLE) {
+                    if (room.getStatus() == RoomStatusEnum.OCCUPIED
+                            && !bookingPetServiceRepository.existsActiveAssignmentForRoom(roomId)) {
+                        room.setStatus(RoomStatusEnum.AVAILABLE);
+                        roomRepositoryPort.save(room);
+                    } else {
+                        throw new BookingValidationException(
+                                BookingValidationException.ROOM_ALREADY_BOOKED,
+                                "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
+                                null, null, false, roomId);
+                    }
+                }
+                room.setStatus(RoomStatusEnum.OCCUPIED);
+                roomRepositoryPort.save(room);
+            }
+        }
+    }
+
     private void validateRoomNotAlreadyBooked(CreateBookingRequest request) {
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
@@ -820,7 +896,7 @@ public class BookingClientApplicationService implements BookingClientService {
                 continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
-                if (sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
+                if (!sr.requiresRoom() || sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
                         || sr.checkOutDate() == null || sr.checkOutDate().isBlank())
                     continue;
                 LocalDate checkIn = LocalDate.parse(sr.checkInDate());

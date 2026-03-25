@@ -61,12 +61,12 @@ const getStatusColor = (status: string) => {
     }
 };
 
-const getStatusLabel = (status: string) => {
+const getStatusLabel = (status: string, serviceRequiresRoom?: boolean) => {
     switch (status) {
         case "COMPLETED": return "Đã hoàn thành";
-        case "IN_PROGRESS": return "Đang xử lý";
+        case "IN_PROGRESS": return serviceRequiresRoom ? "Chờ thực hiện" : "Đang xử lý";
         case "PENDING":
-        case "WAITING_STAFF": return "Chờ thực hiện";
+        case "WAITING_STAFF": return serviceRequiresRoom ? "Chưa bắt đầu" : "Chờ thực hiện";
         case "PET_IN_HOTEL": return "Thú cưng đã vào Hotel";
         default: return status;
     }
@@ -202,7 +202,7 @@ export const TaskDetailModal = ({
                         </Stack>
                         <Stack direction="row" spacing={1}>
                             <Chip 
-                                label={getStatusLabel(task.status)} 
+                                label={getStatusLabel(task.status, task.serviceRequiresRoom)} 
                                 color={getStatusColor(task.status) as any}
                                 size="small"
                                 sx={{ fontWeight: 800, fontSize: "0.75rem" }}
