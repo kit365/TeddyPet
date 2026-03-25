@@ -81,12 +81,16 @@ export const AddressCreatePage = () => {
 
         if (savedAddress && savedAddress !== "Chọn địa chỉ giao hàng" && !address) {
             setAddress(savedAddress);
+            setSearchKeyword(savedAddress);
             if (savedCoords) {
                 const { lat, lon } = JSON.parse(savedCoords);
                 const newPos = new L.LatLng(lat, lon);
                 setPosition(newPos);
                 setMapCenter([lat, lon]);
             }
+        } else if (position && !address) {
+            // Fetch initial address for default coords if nothing saved
+            fetchAddressFromCoords(position.lat, position.lng);
         }
         
         fetchDistricts();
@@ -155,9 +159,11 @@ export const AddressCreatePage = () => {
             const data = await res.json();
             if (data && data.display_name) {
                 console.log("📝 Đã tìm thấy địa chỉ từ bản đồ:", data.display_name);
-                isManualChange.current = false; // Tắt flag gõ tay vì đây là tự động điền từ bản đồ
+                isManualChange.current = false;
                 setAddress(data.display_name);
+                setSearchKeyword(data.display_name); // Sync search bar
                 setIsNotFound(false);
+                setShowSuggestions(false); // Hide any existing suggestions
             }
         } catch (error) {
             console.error("Lỗi reverse geocoding:", error);
@@ -287,7 +293,7 @@ export const AddressCreatePage = () => {
         setPosition(new L.LatLng(lat, lon));
         setMapCenter([lat, lon]);
         setAddress(suggestion.display_name);
-        setSearchKeyword("");
+        setSearchKeyword(suggestion.display_name); // Sync search bar
         setShowSuggestions(false);
         setIsNotFound(false);
     };
@@ -384,7 +390,7 @@ export const AddressCreatePage = () => {
                                 placeholder="Ví dụ: Nguyễn Văn A"
                             />
                         </div>
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1.5 md:col-span-2">
                             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại</label>
                             <input
                                 type="text"
@@ -394,13 +400,31 @@ export const AddressCreatePage = () => {
                                 className="w-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                                 placeholder="Ví dụ: 0912345678"
                             />
-                    </div>
-                        {isNotFound && (
-                            <p className="text-[10px] text-rose-600 font-bold mt-1">
-                                ⚠️ Không tìm thấy vị trí. Vui lòng chọn trên bản đồ hoặc <button type="button" onClick={() => setIsManualMode(true)} className="underline">nhập thủ công</button>.
-                            </p>
+                        </div>
+
+                        {!isManualMode && (
+                             <div className="flex flex-col gap-1.5 md:col-span-2">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Địa chỉ chi tiết (từ bản đồ)</label>
+                                <textarea
+                                    required
+                                    value={address}
+                                    onChange={(e) => {
+                                        isManualChange.current = true;
+                                        setAddress(e.target.value);
+                                    }}
+                                    rows={2}
+                                    className="w-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 resize-none"
+                                    placeholder="Vui lòng chọn trên bản đồ hoặc nhập tại đây..."
+                                />
+                                {isNotFound && (
+                                    <p className="text-[10px] text-rose-600 font-bold mt-1">
+                                        ⚠️ Không tìm thấy vị trí chính xác. Thử chọn lại trên bản đồ.
+                                    </p>
+                                )}
+                            </div>
                         )}
-                        <div className="flex justify-end pr-2">
+
+                        <div className="md:col-span-2 flex justify-end pr-2">
                              <button 
                                 type="button" 
                                 onClick={() => setIsManualMode(!isManualMode)}
@@ -479,7 +503,7 @@ export const AddressCreatePage = () => {
                                 <input
                                     type="text"
                                     className="flex-1 border-none bg-transparent px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none placeholder:text-slate-400"
-                                    placeholder="Tìm kiếm..."
+                                    placeholder="Địa chỉ..."
                                     value={searchKeyword}
                                     onChange={(e) => setSearchKeyword(e.target.value)}
                                 />
