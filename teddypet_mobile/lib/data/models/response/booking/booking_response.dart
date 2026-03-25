@@ -127,6 +127,7 @@ class ClientBookingPetServiceDetailResponse {
   final String? afterPhotos;
   final int? customerRating;
   final String? customerReview;
+  final String? customerReviewPhotos;
   final int? roomId;
   final String? roomName;
   final String? displayTypeName;
@@ -157,6 +158,7 @@ class ClientBookingPetServiceDetailResponse {
     this.afterPhotos,
     this.customerRating,
     this.customerReview,
+    this.customerReviewPhotos,
     this.roomId,
     this.roomName,
     this.displayTypeName,

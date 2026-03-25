@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Rating, Box, Stack, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
-import { ChevronLeft, ChevronRight, Star, MessageCircle, AlertCircle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, MessageCircle, AlertCircle, X, Camera, Trash2, Plus } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -18,6 +18,7 @@ import { createBookingDepositPayosUrl } from "../../../api/booking-deposit.api";
 import { cancelBookingFromClient, upsertServiceReviewFromClient } from "../../../api/booking.api";
 import { getBookingRefundRequestsByBookingCode } from "../../../api/bookingRefund.api";
 import type { BookingRefundResponse } from "../../../api/bookingRefund.api";
+import { uploadImagesToCloudinary } from "../../../api/uploadCloudinary.api";
 import { CancelBookingModal } from "./components/CancelBookingModal";
 /* ─── helpers ─── */
 const formatCurrency = (v?: number | null) =>
@@ -188,9 +189,15 @@ export const BookingClientDetailPage = () => {
                     const next = await fetchData();
                     const paid = Boolean(next?.depositPaid);
                     const status = String(next?.status ?? "");
+                    const depStatus = String(next?.depositStatus ?? "");
                     if (paid || status.toUpperCase() !== "PENDING") {
                         toast.success("Đã nhận thanh toán cọc.");
                         refreshBookingPageAfterDeposit();
+                        return;
+                    }
+                    if (depStatus.toUpperCase() === "FAILED") {
+                        toast.error("Thanh toán cọc thất bại. Quý khách vui lòng thử lại.");
+                        setActiveView("detail");
                         return;
                     }
                 } catch {
@@ -216,6 +223,8 @@ export const BookingClientDetailPage = () => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [bookingRefunds, setBookingRefunds] = useState<BookingRefundResponse[]>([]);
     const [reviewDraftMap, setReviewDraftMap] = useState<Record<number, { customerRating: number; customerReview: string }>>({});
+    const [reviewPhotosMap, setReviewPhotosMap] = useState<Record<number, string[]>>({});
+    const [reviewUploadingMap, setReviewUploadingMap] = useState<Record<number, boolean>>({});
     const [reviewSavingMap, setReviewSavingMap] = useState<Record<number, boolean>>({});
     const [reviewCarouselIndex, setReviewCarouselIndex] = useState(0);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -278,6 +287,36 @@ export const BookingClientDetailPage = () => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookingCode]);
+
+    const handleReviewPhotosChange = async (serviceId: number, files: FileList | null) => {
+        if (!files || files.length === 0) return;
+        
+        const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+        if (validFiles.length === 0) {
+            toast.warning("Vui lòng chọn file hình ảnh.");
+            return;
+        }
+
+        try {
+            setReviewUploadingMap(prev => ({ ...prev, [serviceId]: true }));
+            const urls = await uploadImagesToCloudinary(validFiles, "booking-reviews");
+            setReviewPhotosMap(prev => ({
+                ...prev,
+                [serviceId]: [...(prev[serviceId] || []), ...urls]
+            }));
+        } catch (error: any) {
+            toast.error(error.message || "Không thể tải ảnh lên.");
+        } finally {
+            setReviewUploadingMap(prev => ({ ...prev, [serviceId]: false }));
+        }
+    };
+
+    const handleRemoveReviewPhoto = (serviceId: number, photoUrl: string) => {
+        setReviewPhotosMap(prev => ({
+            ...prev,
+            [serviceId]: (prev[serviceId] || []).filter(url => url !== photoUrl)
+        }));
+    };
 
     // Auto-switch to detail view if booking is already paid or has wrong status for payment view
     useEffect(() => {
@@ -818,7 +857,9 @@ export const BookingClientDetailPage = () => {
                                                         value={
                                                             booking.depositPaid
                                                                 ? <span className="font-[600] text-[#059669]">Đã thanh toán cọc</span>
-                                                                : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>
+                                                                : booking.depositStatus === 'FAILED'
+                                                                    ? <span className="font-[600] text-[#dc2626]">Thanh toán thất bại</span>
+                                                                    : <span className="font-[600] text-[#d97706]">Chưa thanh toán cọc</span>
                                                         }
                                                     />
                                                     <InfoRow label="Thanh toán" value={getPaymentStatusValueNode(booking.paymentStatus)} />
@@ -936,19 +977,66 @@ export const BookingClientDetailPage = () => {
                                                             value={activeReviewDraft.customerReview}
                                                             readOnly={activeReviewLocked}
                                                             disabled={activeReviewDisabled || activeReviewSaving || activeReviewLocked}
-                                                            onChange={(e) =>
-                                                                setReviewDraftMap((prev) => ({
-                                                                    ...prev,
-                                                                    [activeReviewService.id]: {
-                                                                        customerRating: prev[activeReviewService.id]?.customerRating ?? activeReviewService.customerRating ?? 5,
-                                                                        customerReview: e.target.value,
-                                                                    },
-                                                                }))
-                                                            }
                                                             rows={4}
                                                             placeholder="Hãy cho chúng tôi biết cảm nhận của bạn về chất lượng dịch vụ nhé..."
                                                             className="w-full rounded-[14px] border border-[#e2e8f0] bg-white p-4 text-[0.875rem] text-[#1e293b] focus:border-[#4338ca] focus:ring-2 focus:ring-[#4338ca1a] transition-all outline-none resize-none disabled:bg-slate-50 disabled:text-slate-400"
                                                         />
+                                                    </Box>
+
+                                                    <Box>
+                                                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1.5 }}>
+                                                            <Camera size={14} color="#64748b" />
+                                                            <Typography variant="caption" sx={{ color: "#475569", fontWeight: 700, letterSpacing: 0.5 }}>
+                                                                HÌNH ẢNH MINH HỌA
+                                                            </Typography>
+                                                        </Stack>
+                                                        
+                                                        <div className="flex flex-wrap gap-3">
+                                                            {(reviewPhotosMap[activeReviewService.id] || []).map((url, i) => (
+                                                                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden group border border-[#e2e8f0]">
+                                                                    <img 
+                                                                        src={url} 
+                                                                        alt="Review" 
+                                                                        className="w-full h-full object-cover cursor-pointer"
+                                                                        onClick={() => setZoomedImage(url)}
+                                                                    />
+                                                                    {!activeReviewLocked && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveReviewPhoto(activeReviewService.id, url)}
+                                                                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                            
+                                                            {!activeReviewLocked && (
+                                                                <label className={`w-20 h-20 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors cursor-pointer ${
+                                                                    reviewUploadingMap[activeReviewService.id] 
+                                                                        ? "border-slate-200 bg-slate-50" 
+                                                                        : "border-[#e2e8f0] bg-white hover:border-[#0f766e] hover:bg-[#f0fdfa]"
+                                                                }`}>
+                                                                    <input 
+                                                                        type="file" 
+                                                                        multiple 
+                                                                        accept="image/*" 
+                                                                        className="hidden" 
+                                                                        onChange={(e) => handleReviewPhotosChange(activeReviewService.id, e.target.files)}
+                                                                        disabled={reviewUploadingMap[activeReviewService.id]}
+                                                                    />
+                                                                    {reviewUploadingMap[activeReviewService.id] ? (
+                                                                        <div className="w-5 h-5 border-2 border-[#0f766e]/30 border-t-[#0f766e] rounded-full animate-spin"></div>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Plus size={20} className="text-[#64748b]" />
+                                                                            <span className="text-[0.625rem] font-bold text-[#64748b] mt-1">THÊM ẢNH</span>
+                                                                        </>
+                                                                    )}
+                                                                </label>
+                                                            )}
+                                                        </div>
                                                     </Box>
                                                 </Stack>
 
@@ -963,6 +1051,7 @@ export const BookingClientDetailPage = () => {
                                                                 const payload = {
                                                                     customerRating: activeReviewDraft.customerRating,
                                                                     customerReview: activeReviewDraft.customerReview?.trim() || undefined,
+                                                                    customerPhotos: reviewPhotosMap[activeReviewService.id] || [],
                                                                 };
                                                                 const res = await upsertServiceReviewFromClient(bookingCode, activeReviewService.id, payload);
                                                                 const nextBooking = res.data;
@@ -1031,13 +1120,13 @@ export const BookingClientDetailPage = () => {
                                 {/* Action bar */}
                                 <div className="pt-4 mt-6 border-t border-[#f1f1f1] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        {booking && !isWalkInBooking && booking.status === "PENDING" && booking.paymentStatus === "PENDING" && !booking.depositPaid && booking.depositId && !isExpired && (
+                                        {booking && !isWalkInBooking && booking.status === "PENDING" && booking.paymentStatus === "PENDING" && !booking.depositPaid && booking.depositId && (!isExpired || booking.depositStatus === 'FAILED') && (
                                             <button
                                                 type="button"
                                                 onClick={openPayosDepositInline}
                                                 className="inline-flex items-center justify-center rounded-[8px] bg-[#4CAF50] text-[#fff] font-[600] text-[0.875rem] px-[20px] py-[10px] hover:bg-[#45a049] transition-colors"
                                             >
-                                                Thanh toán cọc ngay
+                                                {booking.depositStatus === 'FAILED' ? "Thanh toán lại" : "Thanh toán cọc ngay"}
                                             </button>
                                         )}
                                         {booking &&

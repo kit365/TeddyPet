@@ -6,4 +6,5 @@ abstract class BookingAppService {
   Future<List<ClientBookingDetailResponse>> getMyBookings();
   Future<ClientBookingDetailResponse> getBookingDetail(String code);
   Future<bool> cancelBooking(String code, String reason);
+  Future<bool> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos);
 }

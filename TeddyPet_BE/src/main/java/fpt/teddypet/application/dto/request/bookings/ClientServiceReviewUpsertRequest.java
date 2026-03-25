@@ -12,6 +12,8 @@ public record ClientServiceReviewUpsertRequest(
         Integer customerRating,
 
         @Size(max = 2000, message = "customerReview tối đa 2000 ký tự")
-        String customerReview
+        String customerReview,
+
+        java.util.List<String> customerPhotos
 ) {
 }

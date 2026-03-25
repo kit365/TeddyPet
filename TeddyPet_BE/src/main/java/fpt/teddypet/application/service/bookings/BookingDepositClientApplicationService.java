@@ -68,6 +68,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final UserAddressRepository userAddressRepository;
     private final PetProfileRepository petProfileRepository;
     private final BankInformationRepository bankInformationRepository;
+    private final fpt.teddypet.application.port.output.payment.PaymentOrderCodePort paymentOrderCodePort;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -215,8 +216,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
 
         Long payosOrderCode = deposit.getPayosOrderCode();
         if (payosOrderCode == null) {
-            // 12-digit-ish stable code for PayOS, derived from depositId to map webhook -> deposit
-            payosOrderCode = 900_000_000_000L + deposit.getId();
+            payosOrderCode = paymentOrderCodePort.getNext();
             deposit.setPayosOrderCode(payosOrderCode);
         }
 
@@ -234,7 +234,20 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         long amount = depositAmount.longValue();
 
         String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
-        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+        String checkoutUrl;
+        try {
+            checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            // Nếu link cũ đã chết (hủy/hết hạn), sinh mã mới để tạo link mới ngay lập tức
+            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
+                payosOrderCode = paymentOrderCodePort.getNext();
+                deposit.setPayosOrderCode(payosOrderCode);
+                checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+            } else {
+                throw e;
+            }
+        }
         deposit.setCheckoutUrl(checkoutUrl);
         bookingDepositRepository.save(deposit);
 

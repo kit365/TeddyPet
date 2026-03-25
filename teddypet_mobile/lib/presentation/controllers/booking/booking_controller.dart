@@ -22,4 +22,8 @@ class BookingController {
   Future<bool> cancelBooking(String code, String reason) async {
     return await _appService.cancelBooking(code, reason);
   }
+
+  Future<bool> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos) async {
+    return await _appService.upsertServiceReview(bookingCode, bookingPetServiceId, rating, review, photos);
+  }
 }

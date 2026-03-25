@@ -29,6 +29,7 @@ public record ClientBookingPetServiceDetailResponse(
         String afterPhotos,
         Integer customerRating,
         String customerReview,
+        String customerReviewPhotos,
 
         // Add-ons for room tracking
         Long roomId,
