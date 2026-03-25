@@ -1,0 +1,754 @@
+import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, Select, MenuItem } from "@mui/material";
+import { useProductAttributes } from "../../product-attribute/hooks/useProductAttribute";
+import { useSalesUnits } from "../hooks/useProduct";
+import { useState, useMemo, useEffect } from "react";
+import { CollapsibleCard } from "../../../components/ui/CollapsibleCard";
+import { DeleteIcon } from "../../../assets/icons";
+import { generateSKU } from "../utils/product-helper";
+
+import { ProductVariant as Variant } from "../../../../types/products.type";
+
+export const ProductVariants = ({
+    expanded,
+    onToggle,
+    variants,
+    onVariantsChange,
+    availableImages = [],
+    readOnly = false
+}: {
+    expanded: boolean,
+    onToggle: () => void,
+    variants: Variant[],
+    onVariantsChange: (variants: Variant[]) => void,
+    availableImages?: any[],
+    readOnly?: boolean
+}) => {
+    const { data: attributes = [] as any[] } = useProductAttributes();
+
+    const [selectedAttributes, setSelectedAttributes] = useState<Record<string, Set<string>>>({});
+
+    const [openAttributeDialog, setOpenAttributeDialog] = useState(false);
+    const [currentAttribute, setCurrentAttribute] = useState<any | null>(null);
+    const [tempSelectedValues, setTempSelectedValues] = useState<Set<string>>(new Set());
+
+    const { data: salesUnitOptions = [] } = useSalesUnits();
+
+    const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+    const [previewVariants, setPreviewVariants] = useState<Variant[]>([]);
+
+    const handleOpenAttribute = (attribute: any) => {
+        if (readOnly) return;
+        setCurrentAttribute(attribute);
+        const attrId = String(attribute.attributeId || attribute.id);
+        setTempSelectedValues(new Set(selectedAttributes[attrId] || []));
+        setOpenAttributeDialog(true);
+    };
+
+    const handleToggleTempValue = (value: string) => {
+        const newSet = new Set(tempSelectedValues);
+        if (newSet.has(value)) {
+            newSet.delete(value);
+        } else {
+            newSet.add(value);
+        }
+        setTempSelectedValues(newSet);
+    };
+
+    const handleToggleAllTemp = () => {
+        if (!currentAttribute) return;
+        if (tempSelectedValues.size === currentAttribute.values.length) {
+            setTempSelectedValues(new Set());
+        } else {
+            setTempSelectedValues(new Set(currentAttribute.values.map((v: any) => v.value)));
+        }
+    };
+
+    const handleSaveSelection = () => {
+        if (!currentAttribute) return;
+        const attrId = String(currentAttribute.attributeId || currentAttribute.id);
+
+        setSelectedAttributes(prev => {
+            const next = { ...prev };
+            if (tempSelectedValues.size === 0) {
+                delete next[attrId];
+            } else {
+                next[attrId] = tempSelectedValues;
+            }
+            return next;
+        });
+        setOpenAttributeDialog(false);
+    };
+
+    const handleRemoveAttribute = (attrId: string) => {
+        if (readOnly) return;
+        setSelectedAttributes(prev => {
+            const next = { ...prev };
+            delete next[attrId];
+            return next;
+        });
+    };
+
+    const validAttributes = useMemo(() => attributes.filter((attr: any) => attr.values && attr.values.length > 0), [attributes]);
+
+    // Reset or Populate selectedAttributes
+    useEffect(() => {
+        if (variants.length === 0) {
+            setSelectedAttributes({});
+        } else {
+            // Populate selectedAttributes based on existing variants
+            const newSelected: Record<string, Set<string>> = {};
+
+            variants.forEach(v => {
+                v.attributes.forEach(a => {
+                    // Variant attribute has: name, value, id (valueId).
+                    const matchedAttr = attributes.find((attr: any) => attr?.name === a?.name);
+                    if (matchedAttr) {
+                        const matchedAttrId = String(matchedAttr.id || matchedAttr.attributeId);
+                        if (!newSelected[matchedAttrId]) {
+                            newSelected[matchedAttrId] = new Set();
+                        }
+                        newSelected[matchedAttrId].add(a.value);
+                    }
+                });
+            });
+            setSelectedAttributes(newSelected);
+        }
+    }, [variants, attributes]);
+
+    const handlePreviewVariants = () => {
+        const activeAttributeIds = Object.keys(selectedAttributes);
+
+        if (activeAttributeIds.length === 0) {
+            setPreviewVariants([]);
+            return;
+        }
+
+        const attributeGroups = activeAttributeIds.map(attrId => {
+            const attr = attributes.find((a: any) => String(a?.attributeId || a?.id) === attrId);
+            const selectedValues = Array.from(selectedAttributes[attrId]);
+            return selectedValues.map(val => {
+                const valueObj = attr.values.find((v: any) => v.value === val);
+                return {
+                    attributeId: attr.id || attr.attributeId,
+                    name: attr?.name,
+                    value: val,
+                    id: valueObj?.id || valueObj?.attributeValueId
+                };
+            });
+        });
+
+        // Cartesian product function
+        const cartesian = (arrays: any[][]) => {
+            return arrays.reduce((acc, curr) => {
+                return acc.flatMap(a => curr.map(c => [...a, c]));
+            }, [[]] as any[][]);
+        };
+
+        const combinations = cartesian(attributeGroups);
+
+        // 1. Identify all attribute values currently existing in the variants list
+        const existingAttributeValues = new Set<string>();
+        variants.forEach(v => {
+            v.attributes.forEach(a => {
+                existingAttributeValues.add(`${a?.name}:${a?.value}`);
+            });
+        });
+
+        const hasExistingVariants = variants.length > 0;
+
+        const newVariants: Variant[] = combinations.map((combo, index) => {
+            // Check if this combination already exists in current variants to preserve data
+            const existing = variants.find(v =>
+                v.attributes.length === combo.length &&
+                v.attributes.every(va => combo.some(c => c?.name === va?.name && c?.value === va?.value))
+            );
+
+            if (existing) {
+                return { ...existing, active: true }; // Mark as active/selected for preview
+            }
+
+            // Smart "Active" Logic
+            let isActive = true;
+            if (hasExistingVariants) {
+                // If we have existing variants, and this combo is NEW (not existing),
+                // we check if it looks like a "deleted" item (i.e., its parts are known).
+                const allPartsKnown = combo.every(c => existingAttributeValues.has(`${c?.name}:${c?.value}`));
+                if (allPartsKnown) {
+                    // It's a combination of known values that is NOT in the list -> Likely deleted by user
+                    isActive = false;
+                }
+                // Else: Contains partially new values -> New addition -> Active
+            }
+
+            return {
+                id: `preview-${Date.now()}-${index}`,
+                attributes: combo,
+                sku: generateSKU("" , combo), // Name will be combined in parent on submit or we can pass it
+                originalPrice: 0,
+                price: 0,
+                stock: 0,
+                weight: 0,
+                unit: "PIECE",
+                status: "ACTIVE",
+                active: isActive,
+            };
+        });
+
+        setPreviewVariants(newVariants);
+        setOpenPreviewDialog(true);
+    };
+
+    const handleConfirmVariants = () => {
+        // Only take active variants from preview
+        const selectedVariants = previewVariants.filter(v => v.active).map(v => {
+            const isPreviewId = v.id.startsWith('preview-');
+            return {
+                ...v,
+                id: isPreviewId ? `variant-${Date.now()}-${Math.random()}` : v.id
+            };
+        });
+
+        onVariantsChange(selectedVariants);
+        setOpenPreviewDialog(false);
+    };
+
+    const handleRemoveVariant = (index: number) => {
+        const newVariants = [...variants];
+        newVariants.splice(index, 1);
+        onVariantsChange(newVariants);
+    };
+
+    return (
+        <CollapsibleCard
+            title="Biến thể sản phẩm"
+            subheader="Tạo các biến thể từ thuộc tính (Màu sắc, kích cỡ...)"
+            expanded={expanded}
+            onToggle={onToggle}
+        >
+            <Stack spacing={3} p="24px">
+                {/* 1. Attribute List & Selection */}
+                <Box>
+                    <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600, color: '#1C252E' }}>
+                        Chọn thuộc tính
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                        {validAttributes.map((attr: any) => {
+                            const attrId = String(attr.attributeId || attr.id);
+                            const isSelected = !!selectedAttributes[attrId];
+                            const selectedCount = selectedAttributes[attrId]?.size || 0;
+
+                            return (
+                                <Card
+                                    key={attrId}
+                                    variant="outlined"
+                                    sx={{
+                                        minWidth: 160,
+                                        cursor: 'pointer',
+                                        bgcolor: isSelected ? 'rgba(0, 184, 217, 0.08)' : 'transparent',
+                                        borderColor: isSelected ? '#00a764' : 'divider',
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            borderColor: '#00a764',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                                        },
+                                        position: 'relative'
+                                    }}
+                                    onClick={() => handleOpenAttribute(attr)}
+                                >
+                                    <CardContent sx={{ p: '16px !important' }}>
+                                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                                            <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: isSelected ? '#00a764' : '#1C252E' }}>
+                                                {attr?.name}
+                                            </Typography>
+                                            {isSelected && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveAttribute(attrId);
+                                                    }}
+                                                    sx={{
+                                                        color: '#FF5630',
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        right: 8
+                                                    }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: '1rem', marginRight: "0px" }} />
+                                                </IconButton>
+                                            )}
+                                        </Box>
+
+                                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.5 }}>
+                                            {isSelected ? `Đã chọn ${selectedCount} giá trị` : 'Chưa chọn giá trị nào'}
+                                        </Typography>
+
+                                        {isSelected && (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1.5 }}>
+                                                {Array.from(selectedAttributes[attrId]).slice(0, 3).map(val => (
+                                                    <Chip
+                                                        key={val}
+                                                        label={val}
+                                                        size="small"
+                                                        sx={{
+                                                            height: 24,
+                                                            fontSize: '0.75rem',
+                                                            bgcolor: '#fff',
+                                                            border: '1px solid #919eab33'
+                                                        }}
+                                                    />
+                                                ))}
+                                                {selectedAttributes[attrId].size > 3 && (
+                                                    <Chip
+                                                        label={`+${selectedAttributes[attrId].size - 3}`}
+                                                        size="small"
+                                                        sx={{
+                                                            height: 24,
+                                                            fontSize: '0.75rem',
+                                                            bgcolor: '#fff',
+                                                            border: '1px solid #919eab33'
+                                                        }}
+                                                    />
+                                                )}
+                                            </Box>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </Box>
+                </Box>
+
+                {/* 2. Action */}
+                {!readOnly && (
+                    <Box sx={{ ml: "auto !important" }}>
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            onClick={handlePreviewVariants}
+                            disabled={Object.keys(selectedAttributes).length === 0}
+                            sx={{
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                bgcolor: '#1C252E',
+                                color: '#fff',
+                                py: 1.2,
+                                px: 3,
+                                borderRadius: '8px',
+                                '&:hover': { bgcolor: '#454F5B' },
+                            }}
+                        >
+                            Cập nhật danh sách biến thể
+                        </Button>
+                    </Box>
+                )}
+
+                {/* 3. Variants Table */}
+                {variants.length > 0 && (
+                    <Box>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                Danh sách biến thể ({variants.length})
+                            </Typography>
+                            {!readOnly && (
+                                <Button
+                                    color="error"
+                                    onClick={() => onVariantsChange([])}
+                                    sx={{ fontSize: '0.875rem', textTransform: 'none' }}
+                                >
+                                    Xóa tất cả
+                                </Button>
+                            )}
+                        </Stack>
+
+                        <TableContainer sx={{ border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '500px' }}>
+                            <Table stickyHeader size="small">
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: '#f4f6f8' }}>
+                                        {/* Dynamic Attribute Headers */}
+                                        {Object.keys(selectedAttributes).map(attrId => {
+                                            const attr = attributes.find((a: any) => String(a.attributeId || a.id) === attrId);
+                                            return (
+                                                <TableCell key={attrId} sx={{ minWidth: 70, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>
+                                                    {attr?.name || 'Thuộc tính'}
+                                                </TableCell>
+                                            );
+                                        })}
+
+                                        <TableCell sx={{ minWidth: 60, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Ảnh</TableCell>
+                                        <TableCell sx={{ minWidth: 90, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Giá bán</TableCell>
+                                        <TableCell sx={{ minWidth: 90, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Giá KM</TableCell>
+                                        <TableCell sx={{ minWidth: 70, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Kho</TableCell>
+                                        <TableCell sx={{ minWidth: 80, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Cân nặng</TableCell>
+                                        <TableCell sx={{ minWidth: 75, fontSize: '0.875rem', fontWeight: 600, py: '8px', px: 1 }}>Đơn vị</TableCell>
+                                        <TableCell sx={{ minWidth: 100, fontSize: '0.875rem', fontWeight: 600, px: 1 }}>Trạng thái</TableCell>
+                                        {!readOnly && <TableCell width={40} align="center" sx={{ px: 0.5 }}></TableCell>}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {variants.map((variant, index) => (
+                                        <TableRow key={variant.id} hover>
+
+                                            {/* Dynamic Attribute Values */}
+                                            {Object.keys(selectedAttributes).map(attrId => {
+                                                const attr = attributes.find((a: any) => String(a.attributeId || a.id) === attrId);
+                                                const variantAttr = variant.attributes.find(a => a?.name === attr?.name);
+
+                                                return (
+                                                    <TableCell key={attrId} sx={{ py: '6px', px: 1 }}>
+                                                        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
+                                                            {variantAttr?.value}
+                                                        </Typography>
+                                                    </TableCell>
+                                                );
+                                            })}
+
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <Select
+                                                    size="small"
+                                                    disabled={readOnly}
+                                                    value={variant.featuredImage || ''}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].featuredImage = e.target.value;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    displayEmpty
+                                                    renderValue={(selected) => {
+                                                        const imgSrc = selected ? String(selected) : null;
+                                                        return (
+                                                            <Box sx={{ 
+                                                                width: 44, 
+                                                                height: 44, 
+                                                                bgcolor: '#f4f6f8', 
+                                                                borderRadius: '8px', 
+                                                                border: '1px solid #919eab29',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                {imgSrc ? (
+                                                                    <Box component="img" src={imgSrc} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                ) : (
+                                                                    <Box sx={{ width: 20, height: 20, border: '2px dashed #919eab52', borderRadius: '4px' }} />
+                                                                )}
+                                                            </Box>
+                                                        );
+                                                    }}
+                                                    sx={{
+                                                        minWidth: 44,
+                                                        height: 36,
+                                                        '& .MuiSelect-select': { 
+                                                            padding: '0px !important', 
+                                                            display: 'flex', 
+                                                            justifyContent: 'center', 
+                                                            alignItems: 'center',
+                                                            minHeight: '36px' 
+                                                        },
+                                                        '& fieldset': { border: 'none !important' },
+                                                        '&:hover fieldset': { border: 'none !important' }
+                                                    }}
+                                                >
+                                                    <MenuItem value=""><em>None</em></MenuItem>
+                                                    {availableImages.map((img: any, i: number) => {
+                                                        const imgSrc = typeof img === 'string' ? img : img.preview;
+                                                        return (
+                                                            <MenuItem key={i} value={imgSrc}>
+                                                                <Box component="img" src={imgSrc} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '4px', mr: 1 }} />
+                                                                Ảnh {i + 1}
+                                                            </MenuItem>
+                                                        );
+                                                    })}
+                                                </Select>
+                                            </TableCell>
+
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.originalPrice === 0 ? "" : variant.originalPrice.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].originalPrice = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 90 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '0.875rem', height: 36 },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.price === 0 ? "" : variant.price.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].price = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 90 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '0.875rem', height: 36 },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.stock === 0 ? "" : variant.stock.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].stock = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 60 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '0.8125rem', height: 36 },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur()
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <TextField
+                                                    size="small"
+                                                    value={variant.weight === 0 ? "" : variant.weight.toLocaleString("vi-VN")}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].weight = Number(e.target.value.replace(/\D/g, ""));
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 70 }}
+                                                    fullWidth
+                                                    InputProps={{ 
+                                                        sx: { fontSize: '0.8125rem', height: 36 },
+                                                        onWheel: (e) => (e.target as HTMLElement).blur(),
+                                                        endAdornment: <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', ml: 0.5 }}>g</Typography>
+                                                    }}
+                                                />
+                                            </TableCell>
+
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <Select
+                                                    size="small"
+                                                    disabled={readOnly}
+                                                    value={variant.unit || "PIECE"}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].unit = e.target.value as string;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{ minWidth: 65, fontSize: '0.8125rem' }}
+                                                >
+                                                    {salesUnitOptions.map((opt) => (
+                                                        <MenuItem key={opt.code} value={opt.code} sx={{ fontSize: '0.875rem' }}>
+                                                            {opt.label}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </TableCell>
+
+                                            <TableCell sx={{ px: 1, py: '6px' }}>
+                                                <Select
+                                                    size="small"
+                                                    disabled={readOnly}
+                                                    value={variant.status || "ACTIVE"}
+                                                    onChange={(e) => {
+                                                        const newVariants = [...variants];
+                                                        newVariants[index].status = e.target.value as any;
+                                                        onVariantsChange(newVariants);
+                                                    }}
+                                                    sx={{
+                                                        minWidth: 90, fontSize: '0.8125rem',
+                                                        color: variant.status === "ACTIVE" ? '#00A76F' : (variant.status === "DRAFT" ? '#637381' : '#FF5630'),
+                                                        bgcolor: variant.status === "ACTIVE" ? 'rgba(0, 167, 111, 0.08)' : (variant.status === "DRAFT" ? 'rgba(99, 115, 129, 0.08)' : 'rgba(255, 86, 48, 0.08)'),
+                                                        fontWeight: 600,
+                                                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                                                    }}
+                                                >
+                                                    <MenuItem value="ACTIVE" sx={{ color: '#00A76F', fontWeight: 600 }}>Đang bán</MenuItem>
+                                                    <MenuItem value="DRAFT" sx={{ color: '#637381', fontWeight: 600 }}>Bản nháp</MenuItem>
+                                                    <MenuItem value="HIDDEN" sx={{ color: '#FF5630', fontWeight: 600 }}>Tạm ẩn</MenuItem>
+                                                </Select>
+                                            </TableCell>
+                                            {!readOnly && (
+                                                <TableCell width={30} align="center" sx={{ px: 0.5 }}>
+                                                    <IconButton
+                                                        onClick={() => handleRemoveVariant(index)}
+                                                        sx={{ color: '#FF5630', p: 0.5 }}
+                                                    >
+                                                        <DeleteIcon sx={{ fontSize: '1.25rem' }} />
+                                                    </IconButton>
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 1.5 }}>
+                            <span style={{ color: '#FF5630', fontWeight: 'bold' }}>*</span> Ghi chú: Nhập <strong>Giá khuyến mãi = 0</strong> nếu biến thể này <strong>không có giảm giá</strong>.
+                        </Typography>
+                    </Box>
+                )}
+            </Stack>
+
+            {/* Attribute Selection Dialog */}
+            <Dialog
+                open={openAttributeDialog}
+                onClose={() => setOpenAttributeDialog(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: '12px' }
+                }}
+            >
+                <DialogTitle sx={{ fontSize: '1.125rem', fontWeight: 700, pb: 1 }}>
+                    Chọn {currentAttribute?.name}
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '0.875rem' }}>
+                        Vui lòng chọn các giá trị bạn muốn tạo biến thể
+                    </Typography>
+                </DialogTitle>
+                <DialogContent dividers sx={{ py: 2 }}>
+                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={!!currentAttribute && tempSelectedValues.size === currentAttribute.values.length && currentAttribute.values.length > 0}
+                                    indeterminate={!!currentAttribute && tempSelectedValues.size > 0 && tempSelectedValues.size < currentAttribute.values.length}
+                                    onChange={handleToggleAllTemp}
+                                />
+                            }
+                            label={<Typography sx={{ fontSize: '0.9375rem', fontWeight: 600 }}>Tất cả</Typography>}
+                        />
+                        <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                            {tempSelectedValues.size} đã chọn
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+                        {currentAttribute?.values.map((val: any) => (
+                            <Box key={val.value}>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={tempSelectedValues.has(val.value)}
+                                            onChange={() => handleToggleTempValue(val.value)}
+                                        />
+                                    }
+                                    label={<Typography sx={{ fontSize: '0.9375rem' }}>{val.value}</Typography>}
+                                    sx={{ width: '100%', mr: 0 }}
+                                />
+                            </Box>
+                        ))}
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2.5 }}>
+                    <Button
+                        onClick={() => setOpenAttributeDialog(false)}
+                        sx={{ fontSize: '0.875rem', color: 'text.secondary', fontWeight: 600 }}
+                    >
+                        Hủy
+                    </Button>
+                    <Button
+                        onClick={handleSaveSelection}
+                        variant="contained"
+                        sx={{ fontSize: '0.875rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
+                    >
+                        Xác nhận
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Variant Preview Dialog */}
+            <Dialog
+                open={openPreviewDialog}
+                onClose={() => setOpenPreviewDialog(false)}
+                maxWidth="md"
+                fullWidth
+                scroll="body"
+                slotProps={{
+                    paper: {
+                        sx: { borderRadius: '12px', minWidth: '700px', overflow: 'hidden' },
+                    }
+                }}
+            >
+                <DialogTitle sx={{ fontSize: '2rem', fontWeight: 700, pb: 1 }}>
+                    Xác nhận danh sách biến thể
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 400, mt: 0.5, fontSize: '0.875rem' }}>
+                        Bỏ chọn những biến thể bạn không muốn tạo
+                    </Typography>
+                </DialogTitle>
+                <DialogContent dividers sx={{ py: 0, px: 0 }}>
+                    <TableContainer sx={{ maxHeight: 500 }}>
+                        <Table stickyHeader size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell width={60} align="center">
+                                        <Checkbox
+                                            size="medium"
+                                            checked={previewVariants.length > 0 && previewVariants.every(v => v.active)}
+                                            indeterminate={previewVariants.some(v => v.active) && !previewVariants.every(v => v.active)}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setPreviewVariants(prev => prev.map(v => ({ ...v, active: checked })));
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Biến thể</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {previewVariants.map((variant, index) => (
+                                    <TableRow key={variant.id} hover onClick={() => {
+                                        const newVariants = [...previewVariants];
+                                        newVariants[index].active = !newVariants[index].active;
+                                        setPreviewVariants(newVariants);
+                                    }} sx={{ cursor: 'pointer' }}>
+                                        <TableCell align="center">
+                                            <Checkbox checked={variant.active} size="medium" />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                {variant.attributes.map((attr, i) => (
+                                                    <Chip key={i} label={`${attr?.name}: ${attr?.value}`} size="small" sx={{ fontSize: '0.75rem' }} />
+                                                ))}
+                                            </Box>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContent>
+                <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
+                    <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', ml: 1 }}>
+                        Đã chọn: {previewVariants.filter(v => v.active).length} / {previewVariants.length}
+                    </Typography>
+                    <Box>
+                        <Button
+                            onClick={() => setOpenPreviewDialog(false)}
+                            sx={{ fontSize: '0.875rem', color: 'text.secondary', fontWeight: 600, mr: 1 }}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            onClick={handleConfirmVariants}
+                            variant="contained"
+                            disabled={previewVariants.filter(v => v.active).length === 0}
+                            sx={{ fontSize: '0.875rem', fontWeight: 600, px: 3, borderRadius: '8px', bgcolor: '#1C252E', '&:hover': { bgcolor: '#454F5B' } }}
+                        >
+                            Tạo biến thể
+                        </Button>
+                    </Box>
+                </DialogActions>
+            </Dialog>
+        </CollapsibleCard>
+    );
+};

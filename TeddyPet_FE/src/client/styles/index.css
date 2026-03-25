@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100;200;300;400;500;600;700;800;900&family=Inter:wght@100..900&family=Montserrat:wght@100..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Pacifico&display=swap');
+@import "tailwindcss";
+@import 'swiper/css';
+@import 'swiper/css/navigation';
+@import 'swiper/css/thumbs';
+@import 'swiper/css/autoplay';
+@import "tw-animate-css";
+
+
+html {
+    font-size: 16px;
+}
+
+html body {
+    font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.swiper-thumbnail-item {
+    border: 1px solid #d7d7d7;
+    transition: border-color 0.3s linear, opacity 0.3s linear;
+}
+
+.swiper-slide-thumb-active {
+    border-color: #ff6262 !important;
+    opacity: 1;
+}
+
+.swiper-slide-thumb-active img {
+    transform: scale(1.05);
+    transition: transform 0.3s linear;
+}
+
+.post-entry-date {
+    padding: 5px 10px;
+    position: relative;
+    overflow: visible;
+    mask-position: center center;
+    -webkit-mask-position: center center;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-size: 100%;
+    -webkit-mask-size: 100%;
+    background-color: #ff6262;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' x='0px' y='0px' viewBox='0 0 160 160' style='enable-background:new 0 0 160 160;' xml:space='preserve'%3E%3Cpath d='M80.3,159.1c-14.4-0.9-28.7-1.2-43.1-0.7c-4.4,0.2-8.8,0.2-13.1-0.6c-12.4-2.1-20.5-11.4-22.5-25.3 c-1.1-7.5-0.4-15-0.1-22.6c0.8-17.8,0.9-35.7,0.8-53.6c0-7.5,0.1-15,1.9-22.3c1.2-4.8,2.5-9.6,4-14.4c1.8-5.9,5.7-10,10.8-13 c10-5.9,20.7-8,31.9-5.8c22.2,4.4,44.4,3.6,66.8,2.4c6.1-0.3,12.3-0.7,18.4,0.2c10.4,1.5,17.2,7.3,20.2,17.8 c2.2,7.4,2.7,15.1,2.7,22.7c-0.1,19.5-1.1,39-3.2,58.3c-0.8,8.1,0.4,16.1,1.7,24c0.4,2.5,0.6,5,0.7,7.6c0.2,13.4-7.5,22.9-20.2,25.2 c-5.7,1-11.5,0.9-17.3,0.7c-6.8-0.2-13.5-0.6-20.3-0.7C93.7,159,87,159.1,80.3,159.1L80.3,159.1z'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' x='0px' y='0px' viewBox='0 0 160 160' style='enable-background:new 0 0 160 160;' xml:space='preserve'%3E%3Cpath d='M80.3,159.1c-14.4-0.9-28.7-1.2-43.1-0.7c-4.4,0.2-8.8,0.2-13.1-0.6c-12.4-2.1-20.5-11.4-22.5-25.3 c-1.1-7.5-0.4-15-0.1-22.6c0.8-17.8,0.9-35.7,0.8-53.6c0-7.5,0.1-15,1.9-22.3c1.2-4.8,2.5-9.6,4-14.4c1.8-5.9,5.7-10,10.8-13 c10-5.9,20.7-8,31.9-5.8c22.2,4.4,44.4,3.6,66.8,2.4c6.1-0.3,12.3-0.7,18.4,0.2c10.4,1.5,17.2,7.3,20.2,17.8 c2.2,7.4,2.7,15.1,2.7,22.7c-0.1,19.5-1.1,39-3.2,58.3c-0.8,8.1,0.4,16.1,1.7,24c0.4,2.5,0.6,5,0.7,7.6c0.2,13.4-7.5,22.9-20.2,25.2 c-5.7,1-11.5,0.9-17.3,0.7c-6.8-0.2-13.5-0.6-20.3-0.7C93.7,159,87,159.1,80.3,159.1L80.3,159.1z'/%3E%3C/svg%3E");
+}
+
+.entry-date-format::before {
+    content: "";
+    position: absolute;
+    right: -45px;
+    top: 0;
+    width: 45px;
+    height: 45px;
+    z-index: 1;
+    background-color: inherit;
+    clip-path: path("M45,0v22.5c0-6.2-2.6-11.9-6.6-15.9S28.7,0,22.5,0H45z");
+    rotate: -90deg;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.entry-date-format::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -45px;
+    width: 45px;
+    height: 45px;
+    z-index: 1;
+    background-color: inherit;
+    clip-path: path("M45,0v22.5c0-6.2-2.6-11.9-6.6-15.9S28.7,0,22.5,0H45z");
+    rotate: -90deg;
+}
+
+/* Hiệu ứng chuyển tab thú cưng mượt */
+@keyframes booking-pet-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.booking-pet-card-enter {
+    animation: booking-pet-card-in 0.28s ease-out forwards;
+}

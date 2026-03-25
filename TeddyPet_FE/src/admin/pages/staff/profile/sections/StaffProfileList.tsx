@@ -1,0 +1,772 @@
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import Card from '@mui/material/Card';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import Popover from '@mui/material/Popover';
+import Divider from '@mui/material/Divider';
+import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { SortAscendingIcon, SortDescendingIcon, UnsortedIcon, EditIcon, DeleteIcon, GoLiveIcon } from '../../../../assets/icons';
+import { ChevronDown } from 'lucide-react';
+import { DATA_GRID_LOCALE_VN } from '../../../service/configs/localeText.config';
+import { useStaffProfiles, useDeactivateStaff, useReactivateStaff } from '../../hooks/useStaffProfile';
+import { useNavigate } from 'react-router-dom';
+import { prefixAdmin } from '../../../../constants/routes';
+import { toast } from 'react-toastify';
+import type { IStaffProfile } from '../../../../api/staffProfile.api';
+import { GridRenderCellParams } from '@mui/x-data-grid';
+import { useState, useMemo, useRef } from 'react';
+import { ExportImport } from '../../../../components/ui/ExportImport';
+import { exportStaffExcel, downloadStaffTemplate, importStaffExcel } from '../../../../api/staffProfile.api';
+import { useQueryClient } from '@tanstack/react-query';
+
+
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+    PART_TIME: 'Bán thời gian',
+    FULL_TIME: 'Toàn thời gian',
+};
+
+const STATUS_FILTER_OPTIONS = [
+    { label: 'Hoạt động', value: 'active' },
+    { label: 'Ngừng HĐ', value: 'inactive' },
+];
+
+const EMPLOYMENT_TYPE_OPTIONS = [
+    { label: 'Toàn thời gian', value: 'FULL_TIME' },
+    { label: 'Bán thời gian', value: 'PART_TIME' },
+];
+
+// ─── Actions cell (Premium Styled) ───────────────────────────────────────────
+const RenderStaffActionsCell = (params: GridRenderCellParams<IStaffProfile>) => {
+    const navigate = useNavigate();
+    const { mutate: deactivate } = useDeactivateStaff();
+    const { mutate: reactivate } = useReactivateStaff();
+    const { staffId, userId, active } = params.row;
+
+    const [open, setOpen] = useState<null | HTMLElement>(null);
+
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setOpen(event.currentTarget);
+    };
+
+    const handleCloseMenu = () => {
+        setOpen(null);
+    };
+
+    const handleEdit = () => {
+        handleCloseMenu();
+        navigate(`/${prefixAdmin}/staff/profile/edit/${staffId}`);
+    };
+
+    const handleViewDetail = () => {
+        handleCloseMenu();
+        navigate(`/${prefixAdmin}/staff/profile/detail/${staffId}`);
+    };
+
+    const handleDeactivate = () => {
+        handleCloseMenu();
+        if (window.confirm('Bạn có chắc muốn ngừng hoạt động nhân viên này?')) {
+            deactivate(staffId, {
+                onSuccess: (res: { success?: boolean; message?: string }) => {
+                    if (res?.success) toast.success('Đã ngừng hoạt động');
+                    else toast.error((res as any)?.message ?? 'Có lỗi');
+                },
+            });
+        }
+    };
+
+    const handleReactivate = () => {
+        handleCloseMenu();
+        if (window.confirm('Bạn có chắc muốn kích hoạt lại nhân viên này?')) {
+            reactivate(staffId, {
+                onSuccess: (res: { success?: boolean; message?: string }) => {
+                    if (res?.success) toast.success('Đã kích hoạt lại');
+                    else toast.error((res as any)?.message ?? 'Có lỗi');
+                },
+            });
+        }
+    };
+
+    return (
+        <>
+            <IconButton onClick={handleOpenMenu} sx={{ color: '#637381' }}>
+                <MoreVertIcon />
+            </IconButton>
+
+            <Popover
+                open={Boolean(open)}
+                anchorEl={open}
+                onClose={handleCloseMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            p: 0.5,
+                            width: 160,
+                            borderRadius: '12px',
+                            boxShadow: '0 12px 24px -4px rgba(145,158,171,0.12), 0 0 2px 0 rgba(145,158,171,0.2)',
+                            '& .MuiMenuItem-root': {
+                                px: 1,
+                                py: 1,
+                                borderRadius: '8px',
+                                gap: 1.5,
+                                color: '#1C252E',
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                '&:hover': {
+                                    backgroundColor: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            },
+                        },
+                    },
+                }}
+            >
+                <MenuItem onClick={handleViewDetail}>
+                    <VisibilityIcon sx={{ width: 18, height: 18, color: '#637381' }} />
+                    Xem chi tiết
+                </MenuItem>
+
+                <MenuItem onClick={handleEdit}>
+                    <EditIcon style={{ width: 18, height: 18, color: '#637381' }} />
+                    Sửa
+                </MenuItem>
+
+                {userId && active && (
+                    <MenuItem onClick={handleDeactivate} sx={{ color: '#FF5630 !important' }}>
+                        <DeleteIcon style={{ width: 18, height: 18, color: '#FF5630' }} />
+                        Ngừng HĐ
+                    </MenuItem>
+                )}
+
+                {userId && !active && (
+                    <MenuItem onClick={handleReactivate} sx={{ color: '#00A76F !important' }}>
+                        <GoLiveIcon style={{ width: 18, height: 18, color: '#00A76F' }} />
+                        Kích hoạt lại
+                    </MenuItem>
+                )}
+            </Popover>
+        </>
+    );
+};
+
+// ─── Columns ──────────────────────────────────────────────────────────────────
+const staffColumns: GridColDef<IStaffProfile>[] = [
+    {
+        field: 'fullName',
+        headerName: 'Nhân viên',
+        minWidth: 280,
+        flex: 1.8,
+        renderCell: (params) => {
+            const row = params.row as IStaffProfile;
+            return (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', py: '12px', width: '100%' }}>
+                    <Avatar
+                        src={row.avatarUrl ?? row.altImage ?? undefined}
+                        alt={row.fullName}
+                        sx={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: '10px',
+                            bgcolor: '#F4F6F8',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            color: '#637381',
+                            flexShrink: 0,
+                        }}
+                        variant="rounded"
+                    >
+                        {row.fullName?.charAt(0)?.toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#1C252E', lineHeight: 1.4 }}>
+                            {row.fullName}
+                        </Typography>
+                        {row.email && (
+                            <Typography noWrap sx={{ fontSize: '0.8125rem', color: '#919EAB', lineHeight: 1.4 }}>
+                                {row.email}
+                            </Typography>
+                        )}
+                    </Box>
+                </Box>
+            );
+        },
+    },
+    {
+        field: 'phoneNumber',
+        headerName: 'SĐT',
+        minWidth: 130,
+        flex: 0.9,
+        valueGetter: (v: string) => v ?? '—',
+        renderCell: (params) => (
+            <Typography sx={{ fontSize: '0.875rem', color: params.value === '—' ? '#919EAB' : '#1C252E' }}>
+                {params.value}
+            </Typography>
+        ),
+    },
+    {
+        field: 'positionName',
+        headerName: 'Cấp bậc',
+        minWidth: 120,
+        flex: 0.8,
+        valueGetter: (v: string) => v ?? '—',
+        renderCell: (params) => (
+            <Typography sx={{ fontSize: '0.875rem', color: params.value === '—' ? '#919EAB' : '#1C252E' }}>
+                {params.value}
+            </Typography>
+        ),
+    },
+    {
+        field: 'roleName',
+        headerName: 'Quyền hạn',
+        minWidth: 120,
+        flex: 0.8,
+        renderCell: (params) => {
+            const role = params.value as string;
+            if (!role) return <span style={{ fontSize: '0.875rem', color: '#919EAB' }}>—</span>;
+
+            const getRoleStyles = (r: string) => {
+                if (r === 'SUPER_ADMIN') return { bg: 'rgba(255, 86, 48, 0.16)', color: '#B71D18' };
+                if (r === 'ADMIN') return { bg: 'rgba(0, 184, 217, 0.16)', color: '#006C9C' };
+                if (r === 'STAFF') return { bg: 'rgba(34, 197, 94, 0.16)', color: '#118D57' };
+                return { bg: 'rgba(145, 158, 171, 0.16)', color: '#637381' };
+            };
+
+            const styles = getRoleStyles(role);
+
+            return (
+                <Box
+                    sx={{
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        bgcolor: styles.bg,
+                        color: styles.color,
+                        display: 'inline-flex',
+                    }}
+                >
+                    {role}
+                </Box>
+            );
+        },
+    },
+    {
+        field: 'employmentType',
+        headerName: 'Loại hình',
+        minWidth: 150,
+        flex: 1,
+        valueGetter: (v: string) => v ?? null,
+        renderCell: (params) => {
+            const raw = params.value as string | null;
+            if (!raw) return <span style={{ fontSize: '0.875rem', color: '#919EAB' }}>—</span>;
+            return (
+                <span
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        borderRadius: '8px',
+                        padding: '3px 10px',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        backgroundColor: '#F1F5F9',
+                        color: '#475569',
+                    }}
+                >
+                    {EMPLOYMENT_TYPE_LABELS[raw] ?? raw}
+                </span>
+            );
+        },
+    },
+    {
+        field: 'active',
+        headerName: 'Trạng thái',
+        minWidth: 130,
+        flex: 0.9,
+        renderCell: (params) => {
+            const isActive = Boolean((params.row as IStaffProfile).active);
+            return (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <Box
+                        sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '999px',
+                            bgcolor: isActive ? '#22C55E' : '#EF4444',
+                            boxShadow: isActive ? '0 0 0 3px rgba(34, 197, 94, 0.14)' : '0 0 0 3px rgba(239, 68, 68, 0.12)',
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
+                        {isActive ? 'Hoạt động' : 'Ngừng HĐ'}
+                    </Typography>
+                </Box>
+            );
+        },
+    },
+    {
+        field: 'userId',
+        headerName: 'Tài khoản',
+        minWidth: 140,
+        flex: 1,
+        renderCell: (params) => {
+            const row = params.row as IStaffProfile;
+            if (!row.userId) {
+                return <span style={{ fontSize: '0.8125rem', color: '#919EAB' }}>Chưa cấp</span>;
+            }
+            const status = row.googleWhitelistStatus ?? null;
+            
+            const getStatusStyles = (s: string | null) => {
+                if (s === 'ACCEPTED') return { bg: 'rgba(34, 197, 94, 0.1)', color: '#118D57' };
+                if (s === 'PENDING') return { bg: 'rgba(255, 171, 0, 0.1)', color: '#B76E00' };
+                if (s === 'EXPIRED') return { bg: 'rgba(255, 86, 48, 0.1)', color: '#B71D18' };
+                return { bg: 'rgba(99, 102, 241, 0.1)', color: '#4338CA' };
+            };
+
+            const styles = getStatusStyles(status);
+
+            return (
+                <Box 
+                    sx={{ 
+                        px: 1, py: 0.5, borderRadius: '6px', 
+                        fontSize: '0.75rem', fontWeight: 700,
+                        bgcolor: styles.bg, color: styles.color,
+                        display: 'inline-flex'
+                    }}
+                >
+                    {status === 'ACCEPTED' ? 'Đã xác nhận' : 
+                     status === 'PENDING' ? 'Chờ xác nhận' :
+                     status === 'EXPIRED' ? 'Hết hạn' : 'Đã cấp'}
+                </Box>
+            );
+        },
+    },
+    {
+        field: 'actions',
+        headerName: '',
+        width: 72,
+        flex: 0,
+        sortable: false,
+        renderCell: (params) => <RenderStaffActionsCell {...params} />,
+    },
+];
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export const StaffProfileList = () => {
+    const { data: profiles = [], isLoading } = useStaffProfiles();
+    const queryClient = useQueryClient();
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<string[]>([]);
+    const [employmentFilter, setEmploymentFilter] = useState<string[]>([]);
+
+    // Filter popover
+    const filterBtnRef = useRef<HTMLButtonElement>(null);
+    const [filterOpen, setFilterOpen] = useState(false);
+
+    // Local buffer for filters (Staged apply)
+    const [localStatus, setLocalStatus] = useState<string[]>([]);
+    const [localEmployment, setLocalEmployment] = useState<string[]>([]);
+
+    // Excel Export / Import states
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            const blob = await exportStaffExcel();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'staff_profiles.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            toast.success('Xuất file thành công');
+        } catch (error) {
+            console.error('Lỗi khi xuất file:', error);
+            toast.error('Có lỗi xảy ra khi xuất file');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setIsDownloadingTemplate(true);
+            const blob = await downloadStaffTemplate();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'staff_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            toast.success('Tải template thành công');
+        } catch (error) {
+            console.error('Lỗi khi tải template:', error);
+            toast.error('Có lỗi xảy ra khi tải template');
+        } finally {
+            setIsDownloadingTemplate(false);
+        }
+    };
+
+    const handleImportClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsImporting(true);
+            const res = await importStaffExcel(file);
+            toast.success(res.message || 'Nhập dữ liệu thành công');
+            queryClient.invalidateQueries({ queryKey: ['staffProfiles'] });
+        } catch (error: any) {
+            console.error('Lỗi khi nhập file:', error);
+            toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu');
+        } finally {
+            setIsImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleOpenFilter = () => {
+        setLocalStatus(statusFilter);
+        setLocalEmployment(employmentFilter);
+        setFilterOpen(true);
+    };
+
+    const handleApplyFilter = () => {
+        setStatusFilter(localStatus);
+        setEmploymentFilter(localEmployment);
+        setFilterOpen(false);
+    };
+
+    const activeFilterCount = statusFilter.length + employmentFilter.length;
+
+    const clearFilters = () => {
+        setStatusFilter([]);
+        setEmploymentFilter([]);
+    };
+
+    const filtered = useMemo(() => {
+        let list = profiles as IStaffProfile[];
+        if (statusFilter.length > 0) {
+            list = list.filter((p) => statusFilter.includes(p.active ? 'active' : 'inactive'));
+        }
+        if (employmentFilter.length > 0) {
+            list = list.filter((p) => p.employmentType && employmentFilter.includes(p.employmentType));
+        }
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            list = list.filter(
+                (p) =>
+                    p.fullName?.toLowerCase().includes(q) ||
+                    p.email?.toLowerCase().includes(q) ||
+                    p.phoneNumber?.toLowerCase().includes(q) ||
+                    String(p.staffId).includes(q),
+            );
+        }
+        return list;
+    }, [profiles, statusFilter, employmentFilter, search]);
+
+    return (
+        <Box sx={{ width: '100%' }}>
+            <Card
+                elevation={0}
+                sx={{
+                    background: 'white',
+                    border: '1px solid rgba(145, 158, 171, 0.2)',
+                    borderRadius: '16px',
+                }}
+            >
+                {/* ── Toolbar ── */}
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    flexWrap="wrap"
+                    gap={2}
+                    sx={{ px: 3, py: 3 }}
+                >
+                    {/* Search */}
+                    <TextField
+                        size="small"
+                        placeholder="Tìm theo tên, email, SĐT, ID..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        sx={{
+                            flex: 1,
+                            minWidth: 260,
+                            maxWidth: 450,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '14px',
+                                bgcolor: 'white',
+                                height: '44px',
+                                border: '1px solid rgba(145, 158, 171, 0.24)',
+                                transition: 'all 0.2s ease',
+                                '& fieldset': { border: 'none' },
+                                '&:hover': {
+                                    bgcolor: '#F9FAFB',
+                                    borderColor: 'rgba(145, 158, 171, 0.44)',
+                                },
+                                '&.Mui-focused': {
+                                    bgcolor: 'white',
+                                    boxShadow: '0 0 0 3px rgba(28, 37, 46, 0.05)',
+                                    borderColor: '#1C252E',
+                                },
+                                fontSize: '0.9375rem',
+                            },
+                        }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start" sx={{ mr: 1 }}>
+                                    <SearchIcon sx={{ color: '#637381', fontSize: '1.25rem' }} />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+
+                    <Box sx={{ flex: 1 }} />
+
+                    {/* Action Buttons Group */}
+                    <Stack direction="row" spacing={1.5}>
+                        {/* Filter button */}
+                        <Button
+                            ref={filterBtnRef}
+                            onClick={handleOpenFilter}
+                            startIcon={<FilterListIcon sx={{ fontSize: '1.15rem !important' }} />}
+                            sx={{
+                                height: '44px',
+                                px: 2.5,
+                                borderRadius: '14px',
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                color: '#1C252E',
+                                border: '1.5px solid rgba(145, 158, 171, 0.32)',
+                                background: 'white',
+                                transition: 'all 0.2s',
+                                '&:hover': {
+                                    bgcolor: 'rgba(145, 158, 171, 0.05)',
+                                    borderColor: '#1C252E',
+                                },
+                            }}
+                        >
+                            Bộ lọc {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+                        </Button>
+                    </Stack>
+
+                    {/* Export / Import */}
+                    <input
+                        type="file"
+                        accept=".xlsx, .xls"
+                        style={{ display: 'none' }}
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                    />
+                    <ExportImport
+                        isExporting={isExporting || isImporting}
+                        isDownloadingTemplate={isDownloadingTemplate}
+                        onExport={handleExport}
+                        onDownloadTemplate={handleDownloadTemplate}
+                        onImport={handleImportClick}
+                    />
+                </Stack>
+
+
+                {/* ── DataGrid ── */}
+                <Box sx={{ width: '100%' }}>
+                    <DataGrid
+                        autoHeight
+                        loading={isLoading}
+                        rows={filtered}
+                        getRowId={(row) => row.staffId}
+                        columns={staffColumns}
+                        density="comfortable"
+                        slots={{
+                            columnSortedAscendingIcon: SortAscendingIcon,
+                            columnSortedDescendingIcon: SortDescendingIcon,
+                            columnUnsortedIcon: UnsortedIcon,
+                            noRowsOverlay: () => (
+                                <Stack height="100%" alignItems="center" justifyContent="center">
+                                    <div className="w-[80px] h-[80px] mb-[12px]">
+                                        <img
+                                            src="https://img.icons8.com/fluency/200/nothing-found.png"
+                                            alt="No data"
+                                            className="w-full h-full object-contain filter grayscale opacity-60"
+                                        />
+                                    </div>
+                                    <Typography variant="body1" sx={{ fontSize: '0.9375rem', fontWeight: 500, color: 'text.secondary' }}>
+                                        Không tìm thấy nhân viên nào
+                                    </Typography>
+                                </Stack>
+                            ),
+                        }}
+                        localeText={DATA_GRID_LOCALE_VN}
+                        pagination
+                        getRowHeight={() => 'auto'}
+                        getEstimatedRowHeight={() => 72}
+                        pageSizeOptions={[10, 20, 50, { value: -1, label: 'Tất cả' }]}
+                        initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
+                        disableRowSelectionOnClick
+                        sx={{
+                            border: 'none',
+                            '& .MuiDataGrid-columnHeader': {
+                                bgcolor: '#F4F6F8',
+                                color: '#637381',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                            },
+                            '& .MuiDataGrid-columnHeader:first-of-type': { pl: 3 },
+                            '& .MuiDataGrid-cell:first-of-type': { pl: 3 },
+                            '& .MuiDataGrid-cell': {
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderBottom: '1px solid rgba(145, 158, 171, 0.08)',
+                                fontSize: '0.875rem',
+                            },
+                        }}
+                    />
+                </Box>
+            </Card>
+
+            {/* ── Filter Popover ── */}
+            <Popover
+                open={filterOpen}
+                anchorEl={filterBtnRef.current}
+                onClose={() => setFilterOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            mt: 1,
+                            borderRadius: '16px',
+                            minWidth: 280,
+                            boxShadow: '0 12px 24px -4px rgba(145,158,171,0.12), 0 0 2px 0 rgba(145,158,171,0.2)',
+                            p: 2.5,
+                        },
+                    },
+                }}
+            >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: '#1C252E' }}>
+                        Bộ lọc
+                    </Typography>
+                    {activeFilterCount > 0 && (
+                        <Button
+                            size="small"
+                            onClick={clearFilters}
+                            sx={{
+                                textTransform: 'none',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                color: '#1C252E', // Changed from red to dark for less "harshness"
+                                px: 1,
+                                minWidth: 'auto',
+                                opacity: 0.8,
+                                '&:hover': { 
+                                    textDecoration: 'underline',
+                                    bgcolor: 'transparent',
+                                    opacity: 1
+                                },
+                            }}
+                        >
+                            Xóa tất cả
+                        </Button>
+                    )}
+                </Stack>
+
+                <Divider sx={{ mb: 2 }} />
+
+                <Stack gap={2.5}>
+                    <Box>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            Trạng thái
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={localStatus[0] || ''}
+                                onChange={(e) => setLocalStatus(e.target.value ? [e.target.value] : [])}
+                                className="w-full h-9 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-semibold text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Tất cả trạng thái</option>
+                                {STATUS_FILTER_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={18} />
+                        </div>
+                    </Box>
+
+                    <Box>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            Loại hình làm việc
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={localEmployment[0] || ''}
+                                onChange={(e) => setLocalEmployment(e.target.value ? [e.target.value] : [])}
+                                className="w-full h-9 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-semibold text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Tất cả loại hình</option>
+                                {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={18} />
+                        </div>
+                    </Box>
+                </Stack>
+
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handleApplyFilter}
+                    sx={{
+                        mt: 4,
+                        height: '48px',
+                        borderRadius: '14px',
+                        textTransform: 'none',
+                        fontWeight: 900,
+                        fontSize: '0.9375rem',
+                        bgcolor: '#1C252E',
+                        color: 'white',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                        '&:hover': { 
+                            bgcolor: '#000000',
+                            boxShadow: '0 12px 20px rgba(0,0,0,0.2)',
+                        },
+                    }}
+                >
+                    Áp dụng
+                </Button>
+            </Popover>
+        </Box>
+    );
+};

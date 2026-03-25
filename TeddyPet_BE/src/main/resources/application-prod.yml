@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
+    out-of-order: true
+    # repair-on-migrate: bật true nếu cần repair trên host từ xa. Localhost vẫn auto-repair trong FlywayConfig.
+    repair-on-migrate: ${SPRING_FLYWAY_REPAIR_ON_MIGRATE:false}
+
+  sql:
+    init:
+      mode: never
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+    
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+  
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: ${ELASTICSEARCH_CONNECTION_TIMEOUT:5s}
+    socket-timeout: ${ELASTICSEARCH_SOCKET_TIMEOUT:60s}
+
+# Logging for production
+logging:
+  level:
+    root: INFO
+    fpt.teddypet: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN

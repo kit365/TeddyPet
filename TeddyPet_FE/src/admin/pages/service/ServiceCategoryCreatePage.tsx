@@ -1,0 +1,161 @@
+﻿import { Box, Stack, TextField, ThemeProvider, useTheme, Button } from '@mui/material';
+import { Breadcrumb } from '../../components/ui/Breadcrumb';
+import { Title } from '../../components/ui/Title';
+import { useState } from 'react';
+import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
+import { useCreateServiceCategory } from './hooks/useServiceCategory';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, Controller } from 'react-hook-form';
+import { serviceCategoryUpsertSchema, type ServiceCategoryUpsertFormValues } from '../../schemas/service-category.schema';
+import { SwitchButton } from '../../components/ui/SwitchButton';
+import { getServiceTheme } from './configs/theme';
+import { prefixAdmin } from '../../constants/routes';
+import { FormUploadSingleFile } from '../../components/upload/FormUploadSingleFile';
+import { toast } from 'react-toastify';
+
+export const ServiceCategoryCreatePage = () => {
+    const [expanded, setExpanded] = useState(true);
+    const theme = useTheme();
+    const localTheme = getServiceTheme(theme);
+
+    const { control, handleSubmit, reset } = useForm<ServiceCategoryUpsertFormValues>({
+        resolver: zodResolver(serviceCategoryUpsertSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            isActive: true,
+            imageUrl: '',
+            colorCode: '',
+        },
+    });
+
+    const { mutate: create, isPending } = useCreateServiceCategory();
+
+    const onSubmit = (data: ServiceCategoryUpsertFormValues) => {
+        create(
+            {
+                name: data.name,
+                description: data.description,
+                serviceType: data.serviceType,
+                pricingModel: data.pricingModel,
+                metaTitle: data.metaTitle,
+                metaDescription: data.metaDescription,
+                icon: data.icon,
+                imageUrl: data.imageUrl,
+                colorCode: data.colorCode || undefined,
+                parentId: data.parentId ?? undefined,
+                displayOrder: data.displayOrder,
+                isActive: data.isActive,
+            },
+            {
+                onSuccess: (res) => {
+                    if (res?.success) {
+                        toast.success(res.message ?? 'Tạo danh mục thành công');
+                        reset({ name: '', description: '', isActive: true, imageUrl: '', colorCode: '' });
+                    } else toast.error((res as any)?.message);
+                },
+            }
+        );
+    };
+
+    return (
+        <>
+            <div className="mb-[40px] gap-[16px] flex items-start justify-end">
+                <div className="mr-auto">
+                    <Title title="Thêm danh mục dịch vụ" />
+                    <Breadcrumb
+                        items={[
+                            { label: 'Trang chủ', to: '/' },
+                            { label: 'Quản lý dịch vụ', to: `/${prefixAdmin}/service/list` },
+                            { label: 'Danh mục dịch vụ', to: `/${prefixAdmin}/service-category/list` },
+                            { label: 'Thêm' },
+                        ]}
+                    />
+                </div>
+            </div>
+            <ThemeProvider theme={localTheme}>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <Stack sx={{ margin: '0px 120px', gap: '40px' }}>
+                        <CollapsibleCard title="Chi tiết" subheader="Thông tin danh mục" expanded={expanded} onToggle={() => setExpanded((p) => !p)}>
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px 16px' }}>
+                                    <Controller
+                                        name="name"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField {...field} label="Tên danh mục" error={!!fieldState.error} helperText={fieldState.error?.message} fullWidth />
+                                        )}
+                                    />
+                                    <Controller
+                                        name="serviceType"
+                                        control={control}
+                                        render={({ field }) => <TextField {...field} label="Loại dịch vụ" fullWidth />}
+                                    />
+                                    <Controller
+                                        name="pricingModel"
+                                        control={control}
+                                        render={({ field }) => <TextField {...field} label="Mô hình giá" fullWidth />}
+                                    />
+                                    <Controller
+                                        name="colorCode"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                                                <input
+                                                    type="color"
+                                                    value={field.value && /^#[0-9A-Fa-f]{6}$/.test(field.value) ? field.value : '#4A90D9'}
+                                                    onChange={(e) => field.onChange(e.target.value)}
+                                                    style={{
+                                                        width: 40,
+                                                        height: 40,
+                                                        border: '1px solid #ccc',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                        padding: 0,
+                                                    }}
+                                                />
+                                                <TextField
+                                                    {...field}
+                                                    label="Mã màu"
+                                                    placeholder="#RRGGBB"
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                            </Box>
+                                        )}
+                                    />
+                                </Box>
+                                <Controller
+                                    name="description"
+                                    control={control}
+                                    render={({ field }) => <TextField {...field} label="Mô tả" multiline rows={3} fullWidth />}
+                                />
+                                <FormUploadSingleFile name="imageUrl" control={control} />
+                            </Stack>
+                        </CollapsibleCard>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <SwitchButton control={control} name="isActive" />
+                            <Button
+                                type="submit"
+                                disabled={isPending}
+                                sx={{
+                                    background: '#1C252E',
+                                    minHeight: '3rem',
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    textTransform: 'none',
+                                    '&:hover': { background: '#454F5B' },
+                                }}
+                                variant="contained"
+                            >
+                                {isPending ? 'Đang lưu...' : 'Tạo danh mục'}
+                            </Button>
+                        </Box>
+                    </Stack>
+                </form>
+            </ThemeProvider>
+        </>
+    );
+};

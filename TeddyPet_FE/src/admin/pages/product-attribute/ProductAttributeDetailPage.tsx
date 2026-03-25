@@ -1,0 +1,290 @@
+﻿import {
+    Box,
+    Button,
+    Container,
+    IconButton,
+    Tooltip,
+    Typography,
+    CircularProgress,
+    Card,
+    CardContent,
+    Divider,
+    Chip,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    alpha,
+} from "@mui/material";
+import { prefixAdmin } from "../../constants/routes";
+import { ArrowIcon, EditIcon, EyeIcon, PrintIcon, ShareIcon } from "../../assets/icons";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useProductAttributeDetail, useDisplayTypes, useMeasurementUnits } from "./hooks/useProductAttribute";
+import dayjs from "dayjs";
+import 'dayjs/locale/vi';
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
+import TuneIcon from '@mui/icons-material/Tune';
+
+export const ProductAttributeDetailPage = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    const { data: detailRes, isLoading } = useProductAttributeDetail(id);
+    const { data: displayTypes = [] } = useDisplayTypes();
+    const { data: measurementUnits = [] } = useMeasurementUnits();
+
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <CircularProgress color="inherit" />
+            </Box>
+        );
+    }
+
+    const attribute = detailRes?.data;
+
+    if (!attribute) return <Box sx={{ textAlign: 'center', py: 5 }}>Không tìm thấy thuộc tính</Box>;
+
+    const displayTypeLabel = displayTypes.find((t: any) => t.value === attribute.displayType)?.label || attribute.displayType;
+    const isColorType = attribute.displayType === 'COLOR';
+
+    return (
+        <Container disableGutters maxWidth={false} sx={{ px: "40px", pb: 5 }}>
+            {/* Header */}
+            <Box sx={{ mb: 3 }}>
+                <Button
+                    component={Link}
+                    to={`/${prefixAdmin}/product/attribute/list`}
+                    color="inherit"
+                    startIcon={<ArrowIcon sx={{ rotate: "90deg", width: 16, height: 16 }} />}
+                    disableElevation
+                    sx={{
+                        fontWeight: 700,
+                        textTransform: "none",
+                        fontSize: "1.125rem",
+                        borderRadius: "8px",
+                        p: 0,
+                        mb: 1,
+                        "&:hover": { backgroundColor: "transparent" }
+                    }}
+                >
+                    {attribute.name}
+                </Button>
+                <Breadcrumb
+                    items={[
+                        { label: "Dashboard", to: "/" },
+                        { label: "Thuộc tính sản phẩm", to: `/${prefixAdmin}/product/attribute/list` },
+                        { label: attribute.name }
+                    ]}
+                />
+            </Box>
+
+            {/* Toolbar */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                    <Tooltip title="Chỉnh sửa">
+                        <IconButton onClick={() => navigate(`/${prefixAdmin}/product-attribute/edit/${attribute.id}`)}>
+                            <EditIcon sx={{ color: "#637381" }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Xem trước">
+                        <IconButton>
+                            <EyeIcon sx={{ color: "#637381" }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="In">
+                        <IconButton>
+                            <PrintIcon sx={{ color: "#637381" }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Chia sẻ">
+                        <IconButton>
+                            <ShareIcon sx={{ color: "#637381" }} />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+
+                {/* Display Type Badge */}
+                <Box sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', mb: 0.5 }}>Kiểu hiển thị</Typography>
+                    <Chip
+                        label={displayTypeLabel}
+                        sx={{
+                            backgroundColor: alpha('#4facfe', 0.1),
+                            color: '#4facfe',
+                            fontWeight: 600,
+                            fontSize: '0.8125rem',
+                        }}
+                    />
+                </Box>
+            </Box>
+
+            {/* Main Card */}
+            <Card sx={{
+                borderRadius: '16px',
+                boxShadow: '0 0 2px 0 rgba(145 158 171 / 20%), 0 12px 24px -4px rgba(145 158 171 / 12%)',
+            }}>
+                <CardContent sx={{ p: 5 }}>
+                    {/* Header inside card */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 5 }}>
+                        {/* Icon */}
+                        <Box
+                            sx={{
+                                width: 80,
+                                height: 80,
+                                borderRadius: '12px',
+                                backgroundColor: '#f4f6f8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <TuneIcon sx={{ fontSize: '1.875rem', color: '#4facfe' }} />
+                        </Box>
+
+                        {/* Name & Count */}
+                        <Box sx={{ textAlign: 'right' }}>
+                            <Chip
+                                label={`${attribute.values?.length || 0} giá trị`}
+                                size="small"
+                                sx={{
+                                    backgroundColor: '#22c55e',
+                                    color: '#fff',
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    mb: 1
+                                }}
+                            />
+                            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#1C252E' }}>
+                                {attribute.name}
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    {/* Info Grid */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, mb: 4 }}>
+                        <Box>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                                Ngày tạo
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
+                                {dayjs(attribute.createdAt).locale('vi').format('DD MMM YYYY')}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                                Cập nhật lần cuối
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.875rem', color: '#1C252E' }}>
+                                {dayjs(attribute.updatedAt).locale('vi').format('DD MMM YYYY')}
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    {/* Supported Units - Chỉ hiện khi không phải màu sắc */}
+                    {!isColorType && attribute.supportedUnits?.length > 0 && (
+                        <Box sx={{ mb: 4 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#919EAB', fontWeight: 600, mb: 1 }}>
+                                Đơn vị hỗ trợ
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                {attribute.supportedUnits.map((unitCode: string) => {
+                                    const unitLabel = measurementUnits.find((u: any) => u.code === unitCode)?.label || unitCode;
+                                    return (
+                                        <Chip
+                                            key={unitCode}
+                                            label={unitLabel}
+                                            size="small"
+                                            sx={{
+                                                backgroundColor: alpha('#4facfe', 0.1),
+                                                color: '#4facfe',
+                                                fontWeight: 600,
+                                                fontSize: '0.75rem',
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                    )}
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* Values Table */}
+                    <Typography sx={{ fontSize: '0.875rem', color: '#919EAB', fontWeight: 600, mb: 2 }}>
+                        Danh sách giá trị
+                    </Typography>
+
+                    {attribute.values?.length > 0 ? (
+                        <TableContainer sx={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: '#f4f6f8' }}>
+                                        <TableCell sx={{ fontWeight: 700, fontSize: '0.8125rem', width: 60 }}>#</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>Nhãn</TableCell>
+                                        {isColorType ? (
+                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>Mã màu</TableCell>
+                                        ) : (
+                                            <>
+                                                <TableCell sx={{ fontWeight: 700, fontSize: '0.8125rem', textAlign: 'right' }}>Giá trị</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, fontSize: '0.8125rem', textAlign: 'right' }}>Đơn vị</TableCell>
+                                            </>
+                                        )}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {attribute.values.map((val: any, index: number) => {
+                                        const unitLabel = measurementUnits.find((u: any) => u.code === val.unit)?.symbol || val.unit;
+                                        return (
+                                            <TableRow key={val.id || index} sx={{ '&:hover': { backgroundColor: '#f9fafb' } }}>
+                                                <TableCell sx={{ fontSize: '0.875rem', color: '#637381' }}>{index + 1}</TableCell>
+                                                <TableCell>
+                                                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#1C252E' }}>
+                                                        {val.value}
+                                                    </Typography>
+                                                </TableCell>
+                                                {isColorType ? (
+                                                    <TableCell>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                            <Box
+                                                                sx={{
+                                                                    width: 28,
+                                                                    height: 28,
+                                                                    borderRadius: '6px',
+                                                                    backgroundColor: val.displayCode || '#ccc',
+                                                                    border: '2px solid #e0e0e0',
+                                                                }}
+                                                            />
+                                                            <Typography sx={{ fontSize: '0.8125rem', fontFamily: 'monospace', color: '#637381' }}>
+                                                                {val.displayCode || '--'}
+                                                            </Typography>
+                                                        </Box>
+                                                    </TableCell>
+                                                ) : (
+                                                    <>
+                                                        <TableCell sx={{ fontSize: '0.875rem', textAlign: 'right' }}>
+                                                            {val.amount || '--'}
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontSize: '0.875rem', textAlign: 'right' }}>
+                                                            {unitLabel || '--'}
+                                                        </TableCell>
+                                                    </>
+                                                )}
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    ) : (
+                        <Typography sx={{ fontSize: '0.875rem', color: '#919EAB', fontStyle: 'italic' }}>
+                            Chưa có giá trị nào
+                        </Typography>
+                    )}
+                </CardContent>
+            </Card>
+        </Container>
+    );
+};

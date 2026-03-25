@@ -1,0 +1,17 @@
+### IDE & System ###
+.idea/
+.DS_Store
+.vscode/
+
+### Environment Files ###
+.env
+.env.*
+!.env.example
+
+### Deployment & Artifacts ###
+.gemini/antigravity/brain/
+DEVOPS_GUIDE.md
+admin-ui/
+node_modules/
+dist/
+

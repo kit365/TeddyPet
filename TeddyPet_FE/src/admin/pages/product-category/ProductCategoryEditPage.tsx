@@ -1,0 +1,300 @@
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, FormHelperText } from "@mui/material";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
+import { Title } from "../../components/ui/Title";
+import { Tiptap } from "../../components/layouts/titap/Tiptap";
+import { useState, useEffect } from "react";
+import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
+import { useProductCategoryDetail, useNestedProductCategories, useUpdateProductCategory } from "./hooks/useProductCategory";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
+import { createCategorySchema, CreateCategoryFormValues } from "../../schemas/product-category.schema";
+import { SwitchButton } from "../../components/ui/SwitchButton";
+import { getProductCategoryTheme } from "./configs/theme";
+import { prefixAdmin } from "../../constants/routes";
+import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
+import { toast } from "react-toastify";
+import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
+import { useParams, useNavigate } from "react-router-dom";
+import { useRef } from "react";
+
+export const ProductCategoryEditPage = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [expandedDetail, setExpandedDetail] = useState(true);
+
+    const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
+        () => setter(prev => !prev);
+
+    const outerTheme = useTheme();
+    const localTheme = getProductCategoryTheme(outerTheme);
+
+    const { data: detailRes, isLoading: isLoadingDetail } = useProductCategoryDetail(id);
+    const { data: nestedCategories = [] } = useNestedProductCategories();
+
+    const { mutate: update, isPending: isUpdating } = useUpdateProductCategory();
+
+    const {
+        control,
+        handleSubmit,
+        reset,
+    } = useForm<CreateCategoryFormValues>({
+        resolver: zodResolver(createCategorySchema),
+        defaultValues: {
+            name: "",
+            description: "",
+            parentId: "",
+            isActive: true,
+            imageUrl: "",
+            categoryType: "OTHER",
+            suitablePetTypes: ["DOG", "CAT"],
+        },
+    });
+
+    const isInitializedRef = useRef(false);
+
+    // 3. Đổ dữ liệu vào Form khi có dữ liệu từ Detail API
+    useEffect(() => {
+        if (detailRes?.success && detailRes?.data && !isInitializedRef.current) {
+            const detail = detailRes.data;
+            reset({
+                name: detail.name || "",
+                description: detail.description || "",
+                // Convert sang string để Select Component nhận diện đúng
+                parentId: detail.parentId ? String(detail.parentId) : "",
+                isActive: detail.isActive,
+                imageUrl: detail.imageUrl || "",
+                categoryType: detail.categoryType || "OTHER",
+                suitablePetTypes: Array.isArray(detail.suitablePetTypes) && detail.suitablePetTypes.length > 0 
+                  ? detail.suitablePetTypes 
+                  : ["DOG", "CAT"],
+            });
+            isInitializedRef.current = true;
+        }
+    }, [detailRes, reset]);
+
+    const onSubmit = (data: CreateCategoryFormValues) => {
+        // Gom dữ liệu form + categoryId để gửi lên (Backend dùng chung POST để Edit)
+        const payload = {
+            ...data,
+            categoryId: Number(id), // Gửi kèm ID để backend biết đây là lệnh Edit
+            parentId: data.parentId === "" ? null : Number(data.parentId)
+        };
+
+        update(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    toast.success(response.message || "Cập nhật danh mục thành công");
+                } else {
+                    toast.error(response.message);
+                }
+            },
+            onError: () => {
+                toast.error("Có lỗi xảy ra trong quá trình cập nhật");
+            }
+        });
+    };
+
+    // Hiển thị loading khi đang tải dữ liệu ban đầu
+    if (isLoadingDetail) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <CircularProgress color="inherit" />
+            </Box>
+        );
+    }
+
+    return (
+        <>
+            <div className="mb-[40px] gap-[16px] flex items-start justify-end">
+                <div className="mr-auto">
+                    <Title title="Chỉnh sửa danh mục sản phẩm" />
+                    <Breadcrumb
+                        items={[
+                            { label: "Dashboard", to: "/" },
+                            { label: "Danh mục sản phẩm", to: `/${prefixAdmin}/product-category/list` },
+                            { label: "Chỉnh sửa" }
+                        ]}
+                    />
+                </div>
+            </div>
+
+            <ThemeProvider theme={localTheme}>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
+                        <Box>
+                            <Box gap="16px" sx={{ display: "flex", alignItems: "center" }}>
+                                <SwitchButton control={control} name="isActive" />
+                            </Box>
+                        </Box>
+
+                        <CollapsibleCard
+                            title="Chi tiết"
+                            subheader="Cập nhật tiêu đề và hình ảnh danh mục"
+                            expanded={expandedDetail}
+                            onToggle={toggle(setExpandedDetail)}
+                        >
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px 16px" }}>
+                                    <Controller
+                                        name="name"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                label="Tên danh mục"
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
+                                                fullWidth
+                                            />
+                                        )}
+                                    />
+                                    <CategoryParentSelect
+                                        control={control}
+                                        categories={nestedCategories}
+                                    />
+
+                                    <Controller
+                                        name="categoryType"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="category-type-label">Loại danh mục</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="category-type-label"
+                                                    label="Loại danh mục"
+                                                >
+                                                    <MenuItem value="FOOD">Thức ăn</MenuItem>
+                                                    <MenuItem value="ACCESSORY">Phụ kiện</MenuItem>
+                                                    <MenuItem value="TOY">Đồ chơi</MenuItem>
+                                                    <MenuItem value="HYGIENE">Vệ sinh</MenuItem>
+                                                    <MenuItem value="GROOMING">Chăm sóc lông (Grooming)</MenuItem>
+                                                    <MenuItem value="BEDDING">Chỗ nằm / Chuồng</MenuItem>
+                                                    <MenuItem value="OTHER">Khác</MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
+                                    />
+                                    
+                                    <Controller
+                                        name="suitablePetTypes"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormControl fullWidth error={!!fieldState.error} size="medium">
+                                                <InputLabel id="suitable-pet-types-label">Thú cưng phù hợp</InputLabel>
+                                                <Select
+                                                    {...field}
+                                                    labelId="suitable-pet-types-label"
+                                                    multiple
+                                                    input={<OutlinedInput label="Thú cưng phù hợp" />}
+                                                    renderValue={(selected) => {
+                                                        const map: Record<string, string> = { DOG: "Chó", CAT: "Mèo", OTHER: "Khác" };
+                                                        return (selected as string[]).map(v => map[v] || v).join(', ');
+                                                    }}
+                                                >
+                                                    <MenuItem value="DOG">
+                                                        <Checkbox checked={field.value.indexOf("DOG") > -1} />
+                                                        <ListItemText primary="Chó" />
+                                                    </MenuItem>
+                                                    <MenuItem value="CAT">
+                                                        <Checkbox checked={field.value.indexOf("CAT") > -1} />
+                                                        <ListItemText primary="Mèo" />
+                                                    </MenuItem>
+                                                    <MenuItem value="OTHER">
+                                                        <Checkbox checked={field.value.indexOf("OTHER") > -1} />
+                                                        <ListItemText primary="Khác" />
+                                                    </MenuItem>
+                                                </Select>
+                                                <FormHelperText>{fieldState.error?.message}</FormHelperText>
+                                            </FormControl>
+                                        )}
+                                    />
+                                </Box>
+
+                                <Controller
+                                    name="description"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Tiptap
+                                            value={field.value ?? ""}
+                                            onChange={field.onChange}
+                                        />
+                                    )}
+                                />
+
+                                <FormUploadSingleFile
+                                    name="imageUrl"
+                                    control={control}
+                                />
+                            </Stack>
+                        </CollapsibleCard>
+                    </Stack>
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/product-category/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isUpdating}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isUpdating ? 'Đang cập nhật...' : 'Cập nhật danh mục'}
+                        </Button>
+                    </Box>
+                </form>
+            </ThemeProvider>
+        </>
+    );
+};

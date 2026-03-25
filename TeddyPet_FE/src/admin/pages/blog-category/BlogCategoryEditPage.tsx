@@ -1,0 +1,239 @@
+import { Box, Stack, TextField, ThemeProvider, useTheme, Button, CircularProgress } from "@mui/material";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
+import { Title } from "../../components/ui/Title";
+import { Tiptap } from "../../components/layouts/titap/Tiptap";
+import { useState, useEffect, useRef } from "react";
+import { CollapsibleCard } from "../../components/ui/CollapsibleCard";
+import { useBlogCategoryDetail, useNestedBlogCategories, useUpdateBlogCategory } from "./hooks/useBlogCategory";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
+import { createCategorySchema, CreateCategoryFormValues } from "../../schemas/blog-category.schema";
+import { SwitchButton } from "../../components/ui/SwitchButton";
+import { getBlogCategoryTheme } from "./configs/theme";
+import { prefixAdmin } from "../../constants/routes";
+import { FormUploadSingleFile } from "../../components/upload/FormUploadSingleFile";
+import { toast } from "react-toastify";
+import { CategoryParentSelect } from "../../components/ui/CategoryTreeSelect";
+import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
+export const BlogCategoryEditPage = () => {
+    const { t } = useTranslation();
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [expandedDetail, setExpandedDetail] = useState(true);
+
+    const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) =>
+        () => setter(prev => !prev);
+
+    const outerTheme = useTheme();
+    const localTheme = getBlogCategoryTheme(outerTheme);
+
+    const { data: detailRes, isLoading: isLoadingDetail } = useBlogCategoryDetail(id);
+    const { data: nestedCategories = [] } = useNestedBlogCategories();
+
+    const { mutate: update, isPending: isUpdating } = useUpdateBlogCategory();
+
+    const {
+        control,
+        handleSubmit,
+        reset,
+    } = useForm<CreateCategoryFormValues>({
+        resolver: zodResolver(createCategorySchema),
+        defaultValues: {
+            name: "",
+            description: "",
+            parentId: "",
+            isActive: true,
+            imageUrl: "",
+        },
+    });
+
+    const isInitializedRef = useRef(false);
+
+    // 3. Đổ dữ liệu vào Form khi có dữ liệu từ Detail API
+    useEffect(() => {
+        if (detailRes?.success && detailRes?.data && !isInitializedRef.current) {
+            const detail = detailRes.data;
+            reset({
+                name: detail.name || "",
+                description: detail.description || "",
+                // Convert sang string để Select Component nhận diện đúng
+                parentId: detail.parentId ? String(detail.parentId) : "",
+                isActive: detail.isActive,
+                imageUrl: detail.imageUrl || "",
+            });
+            isInitializedRef.current = true;
+        }
+    }, [detailRes, reset]);
+
+    const onSubmit = (data: CreateCategoryFormValues) => {
+        // Gom dữ liệu form + categoryId để gửi lên (Backend dùng chung POST để Edit)
+        const payload = {
+            ...data,
+            categoryId: Number(id), // Gửi kèm ID để backend biết đây là lệnh Edit
+            parentId: data.parentId === "" ? null : Number(data.parentId)
+        };
+
+        update(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    toast.success(response.message || t("admin.validation.update_success"));
+                } else {
+                    toast.error(response.message);
+                }
+            },
+            onError: () => {
+                toast.error(t("admin.validation.update_failed"));
+            }
+        });
+    };
+
+    // Hiển thị loading khi đang tải dữ liệu ban đầu
+    if (isLoadingDetail) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <CircularProgress color="inherit" />
+            </Box>
+        );
+    }
+
+    return (
+        <>
+            <div className="mb-[40px] gap-[16px] flex items-start justify-end">
+                <div className="mr-auto">
+                    <Title title={t("admin.blog_category.title.edit")} />
+                    <Breadcrumb
+                        items={[
+                            { label: t("admin.dashboard"), to: "/" },
+                            { label: t("admin.blog_category.title.list"), to: `/${prefixAdmin}/blog-category/list` },
+                            { label: t("admin.common.edit") }
+                        ]}
+                    />
+                </div>
+            </div>
+
+            <ThemeProvider theme={localTheme}>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <Stack sx={{ margin: "0px 120px", gap: "40px" }}>
+                        <Box>
+                            <Box gap="16px" sx={{ display: "flex", alignItems: "center" }}>
+                                <SwitchButton control={control} name="isActive" />
+                            </Box>
+                        </Box>
+
+                        <CollapsibleCard
+                            title={t("admin.common.details")}
+                            subheader={t("admin.blog_category.fields.description_placeholder")}
+                            expanded={expandedDetail}
+                            onToggle={toggle(setExpandedDetail)}
+                        >
+                            <Stack p="24px" gap="24px">
+                                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px 16px" }}>
+                                    <Controller
+                                        name="name"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                label={t("admin.blog_category.fields.name")}
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
+                                                fullWidth
+                                            />
+                                        )}
+                                    />
+                                    <CategoryParentSelect
+                                        control={control}
+                                        categories={nestedCategories}
+                                    />
+                                </Box>
+
+                                <Controller
+                                    name="description"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Tiptap
+                                            value={field.value ?? ""}
+                                            onChange={field.onChange}
+                                        />
+                                    )}
+                                />
+
+                                <FormUploadSingleFile
+                                    name="imageUrl"
+                                    control={control}
+                                />
+                            </Stack>
+                        </CollapsibleCard>
+                    </Stack>
+
+                    <div className="h-[120px]" />
+
+                    {/* ———————————————— STICKY FOOTER ———————————————— */}
+                    <Box sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderTop: '1px solid #919eab33',
+                        py: '16px',
+                        px: { xs: '20px', lg: '120px' },
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                    }}>
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => navigate(`/${prefixAdmin}/blog-category/list`)}
+                            sx={{
+                                minHeight: '2.75rem',
+                                minWidth: '6rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 22px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                borderColor: '#919eab52',
+                                color: '#637381',
+                                '&:hover': {
+                                    borderColor: '#1C252E',
+                                    color: '#1C252E',
+                                    background: 'rgba(145, 158, 171, 0.08)',
+                                },
+                            }}
+                        >
+                            Thoát
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isUpdating}
+                            sx={{
+                                background: '#1C252E',
+                                minHeight: '2.75rem',
+                                minWidth: '10rem',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                padding: '6px 28px',
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    background: '#454F5B',
+                                    boxShadow: '0 8px 16px 0 rgba(145 158 171 / 16%)',
+                                },
+                            }}
+                        >
+                            {isUpdating ? t("admin.common.processing") : t("admin.blog_category.title.edit")}
+                        </Button>
+                    </Box>
+                </form>
+            </ThemeProvider>
+        </>
+    );
+};

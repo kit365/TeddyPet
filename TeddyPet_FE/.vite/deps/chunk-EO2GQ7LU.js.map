@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/@mui/icons-material/esm/SubdirectoryArrowRight.js"],
+  "sourcesContent": ["\"use client\";\n\nimport createSvgIcon from \"./utils/createSvgIcon.js\";\nimport { jsx as _jsx } from \"react/jsx-runtime\";\nexport default createSvgIcon(/*#__PURE__*/_jsx(\"path\", {\n  d: \"m19 15-6 6-1.42-1.42L15.17 16H4V4h2v10h9.17l-3.59-3.58L13 9z\"\n}), 'SubdirectoryArrowRight');"],
+  "mappings": ";;;;;;;;;;;AAGA,yBAA4B;AAC5B,IAAO,iCAAQ,kBAA2B,mBAAAA,KAAK,QAAQ;AAAA,EACrD,GAAG;AACL,CAAC,GAAG,wBAAwB;",
+  "names": ["_jsx"]
+}

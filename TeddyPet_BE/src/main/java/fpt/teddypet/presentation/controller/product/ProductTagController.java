@@ -1,0 +1,108 @@
+package fpt.teddypet.presentation.controller.product;
+
+import fpt.teddypet.application.constants.products.producttag.ProductTagMessages;
+import fpt.teddypet.application.dto.request.products.tag.ProductTagRequest;
+import fpt.teddypet.application.dto.common.ApiResponse;
+import fpt.teddypet.application.dto.response.product.tag.ProductTagResponse;
+import fpt.teddypet.application.port.input.products.ProductTagService;
+import fpt.teddypet.application.service.products.SimpleEntityExcelService;
+import fpt.teddypet.presentation.constants.ApiConstants;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(ApiConstants.API_PRODUCT_TAGS)
+@Tag(name = "Tag sản phẩm", description = "API quản lý tag sản phẩm")
+@RequiredArgsConstructor
+public class ProductTagController {
+
+    private final ProductTagService productTagService;
+    private final SimpleEntityExcelService excelService;
+
+    @PostMapping
+    @Operation(summary = "Tạo tag sản phẩm", description = "Tạo tag sản phẩm mới")
+    public ResponseEntity<ApiResponse<Void>> create(
+            @Valid @RequestBody ProductTagRequest request) {
+        productTagService.create(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_CREATED_SUCCESS));
+    }
+
+    @PutMapping("/{tagId}")
+    @Operation(summary = "Cập nhật tag sản phẩm", description = "Cập nhật thông tin tag sản phẩm")
+    public ResponseEntity<ApiResponse<Void>> update(
+            @PathVariable Long tagId,
+            @Valid @RequestBody ProductTagRequest request) {
+        productTagService.update(tagId, request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_UPDATED_SUCCESS));
+    }
+
+    @GetMapping("/{tagId}")
+    @Operation(summary = "Lấy tag sản phẩm theo ID", description = "Lấy thông tin tag sản phẩm theo ID")
+    public ResponseEntity<ApiResponse<ProductTagResponse>> getById(@PathVariable Long tagId) {
+        ProductTagResponse response = productTagService.getByIdResponse(tagId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping
+    @Operation(summary = "Lấy tất cả tag sản phẩm", description = "Lấy danh sách tất cả tag sản phẩm")
+    public ResponseEntity<ApiResponse<List<ProductTagResponse>>> getAll() {
+        List<ProductTagResponse> responses = productTagService.getAll();
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @DeleteMapping("/{tagId}")
+    @Operation(summary = "Xóa tag sản phẩm", description = "Xóa mềm tag sản phẩm theo ID")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long tagId) {
+        productTagService.delete(tagId);
+        return ResponseEntity.ok(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_DELETED_SUCCESS));
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "Xóa nhiều tag sản phẩm", description = "Xóa mềm nhiều tag sản phẩm theo danh sách ID")
+    public ResponseEntity<ApiResponse<Integer>> deleteMany(@RequestBody List<Long> ids) {
+        int count = productTagService.deleteMany(ids);
+        return ResponseEntity.ok(ApiResponse.success(ProductTagMessages.MESSAGE_PRODUCT_TAG_DELETED_SUCCESS, count));
+    }
+
+    // ─── Excel ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/excel/export")
+    @Operation(summary = "Xuất danh sách tag ra Excel")
+    public void exportExcel(HttpServletResponse response) {
+        excelService.exportTags(response);
+    }
+
+    @GetMapping("/excel/template")
+    @Operation(summary = "Tải template Excel để nhập tag")
+    public void downloadTemplate(HttpServletResponse response) {
+        excelService.downloadTagTemplate(response);
+    }
+
+    @PostMapping("/excel/import")
+    @Operation(summary = "Nhập tag từ file Excel")
+    public ResponseEntity<ApiResponse<SimpleEntityExcelService.ImportResult>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        SimpleEntityExcelService.ImportResult result = excelService.importTags(file);
+        return ResponseEntity.ok(ApiResponse.success("Import tag hoàn tất.", result));
+    }
+    @PostMapping("/excel/preview")
+    @Operation(summary = "Xem trước dữ liệu nhập tag từ file Excel")
+    public ResponseEntity<ApiResponse<List<SimpleEntityExcelService.EntityPreviewRow>>> previewImport(
+            @RequestParam("file") MultipartFile file) {
+        List<SimpleEntityExcelService.EntityPreviewRow> result = excelService.previewImportTags(file);
+        return ResponseEntity.ok(ApiResponse.success("Preview tag", result));
+    }
+}

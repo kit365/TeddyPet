@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:fragment="head(title)">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title th:text="${title}">TeddyPet</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        /* Force light mode on supported email clients */
+        :root { color-scheme: light; supported-color-schemes: light; }
+
+        /* Fallback styles — these are overridden by inline styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+            -webkit-font-smoothing: antialiased;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        /* Prevent dark mode color inversion */
+        [data-ogsc] body, [data-ogsb] body { background-color: #f1f5f9 !important; color: #334155 !important; }
+        [data-ogsc] .email-card, [data-ogsb] .email-card { background-color: #ffffff !important; }
+        [data-ogsc] .email-outer, [data-ogsb] .email-outer { background-color: #f1f5f9 !important; }
+
+        u + .body .email-card { background-color: #ffffff !important; }
+
+        p { margin: 0 0 15px 0; line-height: 1.6; }
+    </style>
+</head>
+
+<body>
+</body>
+
+</html>

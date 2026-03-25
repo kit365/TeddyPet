@@ -1,0 +1,69 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
+    out-of-order: true
+    # Đồng bộ checksum trong flyway_schema_history khi file V1/V* đã apply bị sửa (tránh Validate failed).
+    repair-on-migrate: true
+  
+  data:
+    mongodb:
+      # MongoDB không auth (local). Restart backend sau khi sửa. Nếu vẫn lỗi "Authentication failed": xóa biến môi trường SPRING_DATA_MONGODB_URI hoặc set = mongodb://localhost:27017/teddypet
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/teddypet}
+    
+    redis:
+      # Khi chạy bằng docker-compose.local.yml:
+      # - BE chạy trong container, dùng SPRING_DATA_REDIS_HOST=redis, SPRING_DATA_REDIS_PORT=6379
+      # Khi chạy BE local:
+      # - Không set 2 biến này, sẽ fallback về localhost:6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      # docker-compose.yml map redis -> host port 6380 by default
+      port: ${SPRING_DATA_REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+  
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: ${ELASTICSEARCH_CONNECTION_TIMEOUT:5s}
+    socket-timeout: ${ELASTICSEARCH_SOCKET_TIMEOUT:60s}
+
+  mail:
+    properties:
+      mail:
+        debug: false
+
+# Logging configuration
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.springframework.security: DEBUG
