@@ -352,9 +352,23 @@ export const BookingClientDetailPage = () => {
         const pollTimer = setInterval(async () => {
             try {
                 const next = await fetchData();
-                if (next && (next.depositPaid || next.status !== "PENDING")) {
+                if (!next) return;
+
+                const paid = Boolean(next.depositPaid);
+                const status = String(next.status ?? "").toUpperCase();
+                const depStatus = String(next.depositStatus ?? "").toUpperCase();
+
+                // Only show success when explicitly confirmed
+                if (paid || status === "CONFIRMED") {
                     toast.success("Đã nhận thanh toán cọc tự động.");
                     refreshBookingPageAfterDeposit();
+                    return;
+                }
+
+                // Show error for failed/cancelled states
+                if (status === "CANCELLED" || depStatus === "FAILED" || depStatus === "CANCELLED") {
+                    toast.error("Thanh toán cọc không thành công hoặc đã bị hủy.");
+                    return;
                 }
             } catch (e) {
                 // ignore transient errors
