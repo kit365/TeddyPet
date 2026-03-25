@@ -26,13 +26,6 @@ export const menuOverviewData = [
         path: `/${prefixAdmin}/staff/dashboard`,
         allowedRoles: ["STAFF", "SUPER_ADMIN"],
     },
-    {
-        id: "booking",
-        Icon: ScheduleSendIcon,
-        label: "Đặt lịch",
-        path: `/${prefixAdmin}/dashboard/booking`,
-        allowedRoles: ["ADMIN", "STAFF", "SUPER_ADMIN"],
-    },
 ];
 
 /** Menu item for booking management (list/detail) - can be added under a parent or as link from dashboard. */

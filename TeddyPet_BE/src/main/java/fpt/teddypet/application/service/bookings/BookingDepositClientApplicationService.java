@@ -12,6 +12,7 @@ import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.EmailServicePort;
+import lombok.extern.slf4j.Slf4j;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
@@ -48,6 +49,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -201,17 +203,27 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         Booking booking = bookingRepository.findById(deposit.getBookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
 
-        // Reuse existing link if present
+        // Reuse existing link if present AND still valid on PayOS
         if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
                 && deposit.getPayosOrderCode() != null) {
-            return new CreateBookingDepositPayosResponse(
-                    deposit.getId(),
-                    deposit.getPayosOrderCode(),
-                    deposit.getCheckoutUrl(),
-                    deposit.getExpiresAt(),
-                    booking.getId(),
-                    booking.getBookingCode()
-            );
+            
+            // Check if the link is still alive on PayOS (not cancelled/expired/paid)
+            if (!payosGatewayAdapter.isLinkDead(deposit.getPayosOrderCode())) {
+                log.info("Reusing existing valid PayOS URL for deposit {}: {}", depositId, deposit.getCheckoutUrl());
+                return new CreateBookingDepositPayosResponse(
+                        deposit.getId(),
+                        deposit.getPayosOrderCode(),
+                        deposit.getCheckoutUrl(),
+                        deposit.getExpiresAt(),
+                        booking.getId(),
+                        booking.getBookingCode()
+                );
+            }
+            
+            log.info("Existing PayOS link for deposit {} (orderCode={}) is dead. Regenerating...", 
+                    depositId, deposit.getPayosOrderCode());
+            // Clear stale URL to force regeneration below
+            deposit.setCheckoutUrl(null);
         }
 
         Long payosOrderCode = deposit.getPayosOrderCode();

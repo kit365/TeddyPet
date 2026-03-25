@@ -182,6 +182,19 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
         throw new PaymentException("Đơn thanh toán đã được tạo trước đó. Vui lòng kiểm tra email hoặc thử lại sau vài phút.");
     }
 
+    /**
+     * Kiểm tra link PayOS có còn khả dụng để thanh toán hay không.
+     * @return true nếu link đã bị hủy, hết hạn, hoặc đã thanh toán thành công.
+     */
+    public boolean isLinkDead(Long orderCode) {
+        ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
+        if (existing == null) {
+            // Nếu không tìm thấy link, coi như đã "dead" để có thể tạo link mới
+            return true; 
+        }
+        return isPayOsLinkDeadForReuse(existing.status());
+    }
+
     private static boolean isPayOsLinkDeadForReuse(String status) {
         if (status == null || status.isBlank()) {
             return false;
@@ -232,13 +245,13 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     /**
      * DTO nội bộ chứa thông tin link PayOS đã tồn tại.
      */
-    private record ExistingLinkInfo(String checkoutUrl, long amount, String status) {}
+    public record ExistingLinkInfo(String checkoutUrl, long amount, String status) {}
 
     /**
      * Gọi PayOS API GET /v2/payment-requests/{orderCode} để lấy thông tin link đã tạo,
      * bao gồm amount và status.
      */
-    private ExistingLinkInfo fetchExistingPaymentInfo(Long orderNumericCode) {
+    public ExistingLinkInfo fetchExistingPaymentInfo(Long orderNumericCode) {
         if (orderNumericCode == null) return null;
         try {
             HttpHeaders headers = new HttpHeaders();
