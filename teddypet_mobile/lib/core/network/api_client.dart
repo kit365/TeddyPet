@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,11 +8,18 @@ class ApiClient {
   late final Dio _dio;
 
   ApiClient() {
+    String baseUrl = dotenv.get('API_URL', fallback: 'http://localhost:8080/api/');
+    
+    // Auto-replace localhost with 10.0.2.2 for Android Emulator
+    if (Platform.isAndroid && (baseUrl.contains('localhost') || baseUrl.contains('127.0.0.1'))) {
+      baseUrl = baseUrl.replaceFirst('localhost', '10.0.2.2').replaceFirst('127.0.0.1', '10.0.2.2');
+    }
+
     _dio = Dio(
       BaseOptions(
-        baseUrl: dotenv.get('API_URL', fallback: 'http://localhost:8080/api/'),
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
         contentType: 'application/json',
       ),
     );
@@ -59,10 +67,11 @@ class ApiClient {
   Future<ApiResponse<T>> post<T>(
     String path, {
     dynamic data,
+    Map<String, dynamic>? queryParameters,
     T Function(dynamic json)? fromJson,
   }) async {
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await _dio.post(path, data: data, queryParameters: queryParameters);
       return ApiResponse<T>.fromJson(response.data, fromJson);
     } catch (e) {
       rethrow;

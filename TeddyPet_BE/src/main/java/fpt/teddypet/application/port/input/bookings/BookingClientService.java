@@ -8,6 +8,7 @@ import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailRespons
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public interface BookingClientService {
 
@@ -41,6 +42,11 @@ public interface BookingClientService {
      * Khách hàng đánh giá từng booking_pet_service sau khi check-out.
      */
     ClientBookingDetailResponse upsertServiceReview(String bookingCode, Long bookingPetServiceId, ClientServiceReviewUpsertRequest request);
+
+    /**
+     * Lấy danh sách booking của người dùng hiện tại.
+     */
+    List<ClientBookingDetailResponse> getMyBookings(UUID userId);
 
     /**
      * Danh sách roomId đã có đặt phòng trùng khoảng ngày (dùng cho sơ đồ phòng làm mờ phòng đã đặt).

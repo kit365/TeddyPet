@@ -20,7 +20,6 @@ import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
-import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
@@ -31,8 +30,6 @@ import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
-import fpt.teddypet.domain.entity.TimeSlotBooking;
-import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
@@ -41,24 +38,18 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.context.annotation.Lazy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
+import fpt.teddypet.application.util.SecurityUtil;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.UUID;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
 @Service
@@ -129,6 +120,18 @@ public class BookingClientApplicationService implements BookingClientService {
     public ClientBookingDetailResponse getClientBookingDetailByCode(String bookingCode) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
+        return mapToClientBookingDetailResponse(booking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientBookingDetailResponse> getMyBookings(UUID userId) {
+        return bookingRepository.findAllByUser_IdOrderByCreatedAtDesc(userId).stream()
+                .map(this::mapToClientBookingDetailResponse)
+                .toList();
+    }
+
+    private ClientBookingDetailResponse mapToClientBookingDetailResponse(Booking booking) {
 
         Long depositId = null;
         LocalDateTime depositExpiresAt = null;
@@ -256,7 +259,31 @@ public class BookingClientApplicationService implements BookingClientService {
                     svcResponses,
                     foodResponses);
         }).toList();
-
+ 
+        // Xử lý ngày hiển thị cho Booking: Lấy từ booking_check_in_date hoặc ước tính từ service đầu tiên
+        LocalDateTime displayCheckIn = booking.getBookingCheckInDate();
+        LocalDateTime displayCheckOut = booking.getBookingCheckOutDate();
+ 
+        if (displayCheckIn == null && !booking.getPets().isEmpty()) {
+            Optional<BookingPetService> firstSvc = booking.getPets().stream()
+                    .flatMap(p -> p.getServices().stream())
+                    .findFirst();
+            if (firstSvc.isPresent()) {
+                BookingPetService svc = firstSvc.get();
+                if (svc.getEstimatedCheckInDate() != null) {
+                    displayCheckIn = svc.getEstimatedCheckInDate().atStartOfDay();
+                } else if (svc.getScheduledStartTime() != null) {
+                    displayCheckIn = svc.getScheduledStartTime();
+                }
+ 
+                if (svc.getEstimatedCheckOutDate() != null) {
+                    displayCheckOut = svc.getEstimatedCheckOutDate().atTime(23, 59);
+                } else if (svc.getScheduledEndTime() != null) {
+                    displayCheckOut = svc.getScheduledEndTime();
+                }
+            }
+        }
+ 
         return new ClientBookingDetailResponse(
                 booking.getId(),
                 booking.getBookingCode(),
@@ -277,8 +304,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getCancelledReason(),
                 depositId,
                 depositExpiresAt,
-                booking.getBookingCheckInDate(),
-                booking.getBookingCheckOutDate(),
+                displayCheckIn,
+                displayCheckOut,
                 booking.getCreatedAt(),
                 petResponses);
     }
@@ -1232,9 +1259,14 @@ public class BookingClientApplicationService implements BookingClientService {
      * DB.
      */
     private fpt.teddypet.domain.entity.User ensureUserForBooking(CreateBookingRequest request) {
+        // Ưu tiên user đang đăng nhập
+        if (SecurityUtil.isAuthenticated()) {
+            return SecurityUtil.getCurrentUserEntity();
+        }
+
         if (request.bookingType() != null
                 && fpt.teddypet.domain.enums.bookings.BookingTypeEnum.WALK_IN.name()
-                .equalsIgnoreCase(request.bookingType().trim())) {
+                        .equalsIgnoreCase(request.bookingType().trim())) {
             return null;
         }
 

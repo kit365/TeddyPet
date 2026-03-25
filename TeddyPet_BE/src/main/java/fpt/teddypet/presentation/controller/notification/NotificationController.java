@@ -1,5 +1,6 @@
 package fpt.teddypet.presentation.controller.notification;
 
+import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.notification.NotificationResponse;
 import fpt.teddypet.application.port.input.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,10 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationResponse>> getMyNotifications(
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getMyNotifications(
             @RequestParam(defaultValue = "20") int limit) {
-        return ResponseEntity.ok(notificationService.getMyNotifications(limit));
+        List<NotificationResponse> notifications = notificationService.getMyNotifications(limit);
+        return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 
     @PutMapping("/mark-as-read")

@@ -9,11 +9,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByBookingCode(String bookingCode);
+    List<Booking> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 
     boolean existsByBookingCode(String bookingCode);
 

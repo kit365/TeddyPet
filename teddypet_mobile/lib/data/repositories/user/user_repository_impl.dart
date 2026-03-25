@@ -5,12 +5,12 @@ import '../../../core/network/api_client.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final ApiClient _apiClient = ApiClient();
-  final String _baseEndpoint = '/users';
+  final String _baseEndpoint = 'users';
 
   @override
   Future<UserProfileResponse?> getProfile() async {
     final response = await _apiClient.get<Map<String, dynamic>>(
-      '/auth/me',
+      'auth/me',
       fromJson: (json) => json as Map<String, dynamic>,
     );
 
