@@ -63,16 +63,16 @@ public class EmailServiceAdapter implements EmailServicePort {
         this.self = self;
     }
 
-    @Value("${brevo.from:kietops365@gmail.com}")
+    @Value("${resend.from:noreply@teddypet.id.vn}")
     private String fromEmail;
 
-    @Value("${brevo.display-name:TeddyPet Support}")
+    @Value("${resend.display-name:TeddyPet Support}")
     private String displayName;
 
-    @Value("${brevo.api-key:}")
+    @Value("${resend.api-key:}")
     private String apiKey;
 
-    @Value("${brevo.api-url:https://api.brevo.com/v3/smtp/email}")
+    @Value("${resend.api-url:https://api.resend.com/emails}")
     private String apiUrl;
 
     @Value("${app.name:TeddyPet}")
@@ -88,44 +88,44 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendEmail(String to, String subject, String body) {
-        sendBrevoRequest(to, subject, body, false);
+        sendResendRequest(to, subject, body, false);
     }
 
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
-        sendBrevoRequest(to, subject, htmlBody, true);
+        sendResendRequest(to, subject, htmlBody, true);
     }
 
-    private void sendBrevoRequest(String to, String subject, String content, boolean isHtml) {
+    private void sendResendRequest(String to, String subject, String content, boolean isHtml) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.error("Brevo API Key is missing. Cannot send email to: {}", to);
+            log.error("Resend API Key is missing. Cannot send email to: {}", to);
             return;
         }
 
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("api-key", apiKey);
+            headers.set("Authorization", "Bearer " + apiKey);
 
             Map<String, Object> payload = Map.of(
-                "sender", Map.of("name", displayName, "email", fromEmail),
-                "to", List.of(Map.of("email", to)),
+                "from", String.format("%s <%s>", displayName, fromEmail),
+                "to", List.of(to),
                 "subject", subject,
-                isHtml ? "htmlContent" : "textContent", content
+                isHtml ? "html" : "text", content
             );
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
             restTemplate.postForEntity(apiUrl, request, String.class);
 
             if (isHtml) {
-                log.info("Successfully sent HTML email to {} via Brevo API", to);
+                log.info("Successfully sent HTML email to {} via Resend API", to);
             } else {
-                log.info("Successfully sent TEXT email to {} via Brevo API", to);
+                log.info("Successfully sent TEXT email to {} via Resend API", to);
             }
         } catch (Exception e) {
-            log.error("Failed to send email to {} via Brevo API: {}", to, e.getMessage());
+            log.error("Failed to send email to {} via Resend API: {}", to, e.getMessage());
         }
     }
 
