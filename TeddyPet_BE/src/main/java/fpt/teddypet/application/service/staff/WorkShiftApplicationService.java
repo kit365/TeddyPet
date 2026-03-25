@@ -101,8 +101,8 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     /**
-     * Chỉ cho nút &quot;thêm vào ca&quot;: {@code booking_pet_service} ở {@code PENDING} hoặc {@code IN_PROGRESS}
-     * (không bắt check-in booking). Booking CANCELLED/COMPLETED hoặc dịch vụ không còn PENDING/IN_PROGRESS → false.
+     * Chỉ cho nút &quot;thêm vào ca&quot;: {@code booking_pet_service} ở {@code PENDING} hoặc {@code WAITING_STAFF}
+     * (null/rỗng coi như chờ xử lý). Booking CANCELLED/COMPLETED → false.
      */
     private static boolean canAssignBookingPetServiceToShift(BookingPetService bps, Booking booking) {
         if (booking == null || bps == null) {
@@ -121,7 +121,7 @@ public class WorkShiftApplicationService implements WorkShiftService {
             return true;
         }
         String pu = ps.trim().toUpperCase(Locale.ROOT);
-        return "PENDING".equals(pu) || "IN_PROGRESS".equals(pu);
+        return "PENDING".equals(pu) || "WAITING_STAFF".equals(pu);
     }
 
     /**

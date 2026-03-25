@@ -31,6 +31,7 @@ public class BookingNoShowCancellationExecutor {
     private final BookingDepositRepository bookingDepositRepository;
     private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final BookingHoldReleaseService bookingHoldReleaseService;
+    private final RoomOccupancyReleaseService roomOccupancyReleaseService;
     private final EmailServicePort emailServicePort;
     private final @Lazy DashboardService dashboardService;
 
@@ -72,6 +73,7 @@ public class BookingNoShowCancellationExecutor {
 
         timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
         bookingRepository.save(booking);
+        roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
 
         if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
             try {

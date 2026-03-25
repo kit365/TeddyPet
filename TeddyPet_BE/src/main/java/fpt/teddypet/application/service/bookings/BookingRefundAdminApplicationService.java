@@ -35,6 +35,7 @@ public class BookingRefundAdminApplicationService {
     private final BookingPaymentTransactionRepository bookingPaymentTransactionRepository;
     private final TimeSlotBookingRepository timeSlotBookingRepository;
     private final DashboardService dashboardService;
+    private final RoomOccupancyReleaseService roomOccupancyReleaseService;
 
     @Transactional
     public BookingRefundResponse handleRefundRequest(Long refundId, AdminHandleBookingRefundRequest request) {
@@ -106,6 +107,9 @@ public class BookingRefundAdminApplicationService {
 
         BookingRefund saved = bookingRefundRepository.save(refund);
         bookingRepository.save(booking);
+        if (Boolean.TRUE.equals(request.approved())) {
+            roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
+        }
         dashboardService.sendDashboardUpdate();
 
         notifyCustomerRefundDecision(booking, saved, Boolean.TRUE.equals(request.approved()), request.adminNote());

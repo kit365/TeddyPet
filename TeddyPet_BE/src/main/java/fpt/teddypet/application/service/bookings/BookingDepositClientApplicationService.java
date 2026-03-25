@@ -303,8 +303,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                 continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
-                // Hold room
-                if (sr.roomId() != null && sr.checkInDate() != null && !sr.checkInDate().isBlank()
+                // Hold room — chỉ dịch vụ requiresRoom mới chiếm phòng + ghi vào hold payload
+                if (sr.requiresRoom() && sr.roomId() != null && sr.checkInDate() != null && !sr.checkInDate().isBlank()
                         && sr.checkOutDate() != null && !sr.checkOutDate().isBlank()) {
                     LocalDate checkIn = LocalDate.parse(sr.checkInDate());
                     LocalDate checkOut = LocalDate.parse(sr.checkOutDate());

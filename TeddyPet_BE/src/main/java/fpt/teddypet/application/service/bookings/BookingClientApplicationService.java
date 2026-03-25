@@ -20,6 +20,7 @@ import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
+import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
@@ -30,6 +31,9 @@ import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
+import fpt.teddypet.domain.entity.TimeSlotBooking;
+import fpt.teddypet.domain.enums.RoomStatusEnum;
+import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
@@ -38,18 +42,24 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.teddypet.application.service.dashboard.DashboardService;
-import fpt.teddypet.application.util.SecurityUtil;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,6 +82,7 @@ public class BookingClientApplicationService implements BookingClientService {
     private final EmailServicePort emailServicePort;
     private final DashboardService dashboardService;
     private final BookingHoldReleaseService bookingHoldReleaseService;
+    private final RoomOccupancyReleaseService roomOccupancyReleaseService;
 
     public BookingClientApplicationService(
             BookingRepository bookingRepository,
@@ -88,7 +99,8 @@ public class BookingClientApplicationService implements BookingClientService {
             fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRefundRepository bookingRefundRepository,
             EmailServicePort emailServicePort,
             @Lazy DashboardService dashboardService,
-            BookingHoldReleaseService bookingHoldReleaseService) {
+            BookingHoldReleaseService bookingHoldReleaseService,
+            RoomOccupancyReleaseService roomOccupancyReleaseService) {
         this.bookingRepository = bookingRepository;
         this.bookingPetServiceRepository = bookingPetServiceRepository;
         this.timeSlotBookingRepository = timeSlotBookingRepository;
@@ -104,6 +116,7 @@ public class BookingClientApplicationService implements BookingClientService {
         this.emailServicePort = emailServicePort;
         this.dashboardService = dashboardService;
         this.bookingHoldReleaseService = bookingHoldReleaseService;
+        this.roomOccupancyReleaseService = roomOccupancyReleaseService;
     }
 
     @Override
@@ -120,18 +133,6 @@ public class BookingClientApplicationService implements BookingClientService {
     public ClientBookingDetailResponse getClientBookingDetailByCode(String bookingCode) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt lịch với mã: " + bookingCode));
-        return mapToClientBookingDetailResponse(booking);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClientBookingDetailResponse> getMyBookings(UUID userId) {
-        return bookingRepository.findAllByUser_IdOrderByCreatedAtDesc(userId).stream()
-                .map(this::mapToClientBookingDetailResponse)
-                .toList();
-    }
-
-    private ClientBookingDetailResponse mapToClientBookingDetailResponse(Booking booking) {
 
         Long depositId = null;
         LocalDateTime depositExpiresAt = null;
@@ -259,31 +260,7 @@ public class BookingClientApplicationService implements BookingClientService {
                     svcResponses,
                     foodResponses);
         }).toList();
- 
-        // Xử lý ngày hiển thị cho Booking: Lấy từ booking_check_in_date hoặc ước tính từ service đầu tiên
-        LocalDateTime displayCheckIn = booking.getBookingCheckInDate();
-        LocalDateTime displayCheckOut = booking.getBookingCheckOutDate();
- 
-        if (displayCheckIn == null && !booking.getPets().isEmpty()) {
-            Optional<BookingPetService> firstSvc = booking.getPets().stream()
-                    .flatMap(p -> p.getServices().stream())
-                    .findFirst();
-            if (firstSvc.isPresent()) {
-                BookingPetService svc = firstSvc.get();
-                if (svc.getEstimatedCheckInDate() != null) {
-                    displayCheckIn = svc.getEstimatedCheckInDate().atStartOfDay();
-                } else if (svc.getScheduledStartTime() != null) {
-                    displayCheckIn = svc.getScheduledStartTime();
-                }
- 
-                if (svc.getEstimatedCheckOutDate() != null) {
-                    displayCheckOut = svc.getEstimatedCheckOutDate().atTime(23, 59);
-                } else if (svc.getScheduledEndTime() != null) {
-                    displayCheckOut = svc.getScheduledEndTime();
-                }
-            }
-        }
- 
+
         return new ClientBookingDetailResponse(
                 booking.getId(),
                 booking.getBookingCode(),
@@ -304,8 +281,8 @@ public class BookingClientApplicationService implements BookingClientService {
                 booking.getCancelledReason(),
                 depositId,
                 depositExpiresAt,
-                displayCheckIn,
-                displayCheckOut,
+                booking.getBookingCheckInDate(),
+                booking.getBookingCheckOutDate(),
                 booking.getCreatedAt(),
                 petResponses);
     }
@@ -524,6 +501,9 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setCancelledReason(request.reason());
 
         bookingRepository.save(booking);
+        if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
+            roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
+        }
         dashboardService.sendDashboardUpdate();
         return getClientBookingDetailByCode(bookingCode);
     }
@@ -550,6 +530,31 @@ public class BookingClientApplicationService implements BookingClientService {
         target.setCustomerReview(review == null || review.isBlank() ? null : review);
         bookingRepository.save(booking);
         return getClientBookingDetailByCode(bookingCode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientBookingDetailResponse> getMyBookings(UUID userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        List<Booking> bookings = bookingRepository.findAllByUser_IdOrderByCreatedAtDesc(userId);
+        if (bookings.isEmpty()) {
+            return List.of();
+        }
+        List<ClientBookingDetailResponse> result = new ArrayList<>(bookings.size());
+        for (Booking b : bookings) {
+            String code = b.getBookingCode();
+            if (code == null || code.isBlank()) {
+                continue;
+            }
+            try {
+                result.add(getClientBookingDetailByCode(code));
+            } catch (Exception e) {
+                log.warn("getMyBookings: bỏ qua đơn {} — {}", code, e.getMessage());
+            }
+        }
+        return result;
     }
 
     @Override
@@ -618,6 +623,10 @@ public class BookingClientApplicationService implements BookingClientService {
         booking.setRemainingAmount(bookingTotal);
 
         // compute max min for something else? no longer stored on booking
+
+        if (booking.getBookingType() == BookingTypeEnum.WALK_IN) {
+            occupyRoomsForWalkInBookingGraph(booking);
+        }
 
         Booking saved = bookingRepository.save(booking);
 
@@ -840,6 +849,46 @@ public class BookingClientApplicationService implements BookingClientService {
      * Kiểm tra phòng (isRequiredRoom) chưa bị đặt trùng khoảng ngày bởi booking
      * khác.
      */
+    /**
+     * Walk-in: đặt OCCUPIED cho từng phòng gắn dịch vụ isRequiredRoom (trước khi save booking để
+     * existsActiveAssignmentForRoom chưa tính dòng BPS sắp lưu — tránh lệch nhánh “ghost OCCUPIED”).
+     */
+    private void occupyRoomsForWalkInBookingGraph(Booking booking) {
+        if (booking.getPets() == null) {
+            return;
+        }
+        for (BookingPet pet : booking.getPets()) {
+            if (pet.getServices() == null) {
+                continue;
+            }
+            for (BookingPetService bps : pet.getServices()) {
+                if (bps.getService() == null || !Boolean.TRUE.equals(bps.getService().getIsRequiredRoom())) {
+                    continue;
+                }
+                Long roomId = bps.getRoomId();
+                if (roomId == null || bps.getEstimatedCheckInDate() == null || bps.getEstimatedCheckOutDate() == null) {
+                    continue;
+                }
+                Room room = roomRepositoryPort.findById(roomId)
+                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy phòng với id: " + roomId));
+                if (room.getStatus() != RoomStatusEnum.AVAILABLE) {
+                    if (room.getStatus() == RoomStatusEnum.OCCUPIED
+                            && !bookingPetServiceRepository.existsActiveAssignmentForRoom(roomId)) {
+                        room.setStatus(RoomStatusEnum.AVAILABLE);
+                        roomRepositoryPort.save(room);
+                    } else {
+                        throw new BookingValidationException(
+                                BookingValidationException.ROOM_ALREADY_BOOKED,
+                                "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
+                                null, null, false, roomId);
+                    }
+                }
+                room.setStatus(RoomStatusEnum.OCCUPIED);
+                roomRepositoryPort.save(room);
+            }
+        }
+    }
+
     private void validateRoomNotAlreadyBooked(CreateBookingRequest request) {
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
@@ -847,7 +896,7 @@ public class BookingClientApplicationService implements BookingClientService {
                 continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
-                if (sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
+                if (!sr.requiresRoom() || sr.roomId() == null || sr.checkInDate() == null || sr.checkInDate().isBlank()
                         || sr.checkOutDate() == null || sr.checkOutDate().isBlank())
                     continue;
                 LocalDate checkIn = LocalDate.parse(sr.checkInDate());
@@ -1259,14 +1308,9 @@ public class BookingClientApplicationService implements BookingClientService {
      * DB.
      */
     private fpt.teddypet.domain.entity.User ensureUserForBooking(CreateBookingRequest request) {
-        // Ưu tiên user đang đăng nhập
-        if (SecurityUtil.isAuthenticated()) {
-            return SecurityUtil.getCurrentUserEntity();
-        }
-
         if (request.bookingType() != null
                 && fpt.teddypet.domain.enums.bookings.BookingTypeEnum.WALK_IN.name()
-                        .equalsIgnoreCase(request.bookingType().trim())) {
+                .equalsIgnoreCase(request.bookingType().trim())) {
             return null;
         }
 

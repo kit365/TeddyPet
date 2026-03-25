@@ -99,6 +99,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
         private final ShopOperationHourRepositoryPort shopOperationHourRepositoryPort;
         private final BookingNoShowCancellationExecutor bookingNoShowCancellationExecutor;
         private final NoShowAppointmentStartResolver noShowAppointmentStartResolver;
+        private final RoomOccupancyReleaseService roomOccupancyReleaseService;
 
         @Value("${app.frontend-url}")
         private String frontendUrl;
@@ -120,7 +121,8 @@ public class BookingAdminApplicationService implements BookingAdminService {
                         BookingNoShowEvaluationRepository bookingNoShowEvaluationRepository,
                         ShopOperationHourRepositoryPort shopOperationHourRepositoryPort,
                         BookingNoShowCancellationExecutor bookingNoShowCancellationExecutor,
-                        NoShowAppointmentStartResolver noShowAppointmentStartResolver) {
+                        NoShowAppointmentStartResolver noShowAppointmentStartResolver,
+                        RoomOccupancyReleaseService roomOccupancyReleaseService) {
                 this.bookingRepository = bookingRepository;
                 this.bookingPetServiceRepository = bookingPetServiceRepository;
                 this.bookingPetServiceItemRepository = bookingPetServiceItemRepository;
@@ -138,6 +140,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 this.shopOperationHourRepositoryPort = shopOperationHourRepositoryPort;
                 this.bookingNoShowCancellationExecutor = bookingNoShowCancellationExecutor;
                 this.noShowAppointmentStartResolver = noShowAppointmentStartResolver;
+                this.roomOccupancyReleaseService = roomOccupancyReleaseService;
         }
 
         @Override
@@ -262,75 +265,86 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 }
 
                 Booking booking = getBookingOrThrow(bookingId);
-                if (!Boolean.TRUE.equals(booking.getCancelRequested())) {
-                        throw new IllegalStateException("Booking không có yêu cầu hủy đang chờ xử lý.");
-                }
+                boolean forceAdminCancel = Boolean.TRUE.equals(request.forceAdminCancel())
+                                && Boolean.TRUE.equals(request.approved());
 
-                // Only allow cancelling bookings that are still pending
-                if (!"PENDING".equalsIgnoreCase(booking.getStatus())) {
-                        throw new IllegalStateException("Chỉ có thể hủy đơn đang ở trạng thái PENDING.");
-                }
-
-                if (Boolean.TRUE.equals(request.approved())) {
-                        booking.setStatus("CANCELLED");
+                if (Boolean.FALSE.equals(request.approved())) {
+                        if (!Boolean.TRUE.equals(booking.getCancelRequested())) {
+                                throw new IllegalStateException("Booking không có yêu cầu hủy đang chờ xử lý.");
+                        }
+                        if (!"PENDING".equalsIgnoreCase(booking.getStatus())) {
+                                throw new IllegalStateException("Chỉ có thể từ chối yêu cầu hủy khi đơn đang ở trạng thái PENDING.");
+                        }
+                        booking.setStatus("CONFIRMED");
                         booking.setCancelRequested(false);
-                        // Optional: lưu ghi chú nội bộ từ staff khi duyệt hủy
                         if (request.staffNotes() != null && !request.staffNotes().isBlank()) {
                                 booking.setInternalNotes(request.staffNotes().trim());
                         }
-                        // Cancel all associated pet services and pets
-                        for (var pet : booking.getPets()) {
-                                pet.setStatus("CANCELLED");
-                                for (var svc : pet.getServices()) {
-                                        svc.setStatus("CANCELLED");
-                                }
-                        }
-                        // Nếu có refundProof từ nhân viên, lưu vào booking_deposits (bản ghi đã thanh toán gần nhất)
-                        if (request.refundProof() != null && !request.refundProof().isBlank()) {
-                                bookingDepositRepository.findByBookingId(booking.getId()).stream()
-                                                .filter(d -> Boolean.TRUE.equals(d.getDepositPaid()))
-                                                .sorted((a, b) -> b.getDepositPaidAt()
-                                                                .compareTo(a.getDepositPaidAt()))
-                                                .findFirst()
-                                                .ifPresent(d -> {
-                                                        d.setRefundProof(request.refundProof());
-                                                        bookingDepositRepository.save(d);
-                                                });
-                        }
-                        // Cancel pending deposits
-                        bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
-                                if ("PENDING".equalsIgnoreCase(deposit.getStatus())) {
-                                        deposit.setStatus("CANCELLED");
-                                        bookingDepositRepository.save(deposit);
-                                }
-                        });
+                        bookingRepository.save(booking);
+                        dashboardService.sendDashboardUpdate();
+                        return toListItem(booking);
+                }
 
-                        // Xóa TimeSlotBooking records
-                        timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+                // approved == true
+                if (forceAdminCancel) {
+                        String st = booking.getStatus() != null ? booking.getStatus().trim() : "";
+                        if ("CANCELLED".equalsIgnoreCase(st) || "COMPLETED".equalsIgnoreCase(st)) {
+                                throw new IllegalStateException("Không thể hủy đơn đã hoàn thành hoặc đã hủy trước đó.");
+                        }
+                } else {
+                        if (!Boolean.TRUE.equals(booking.getCancelRequested())) {
+                                throw new IllegalStateException("Booking không có yêu cầu hủy đang chờ xử lý.");
+                        }
+                        if (!"PENDING".equalsIgnoreCase(booking.getStatus())) {
+                                throw new IllegalStateException("Chỉ có thể hủy đơn đang ở trạng thái PENDING.");
+                        }
+                }
 
-                        // Send refund approved email to customer
-                        if (booking.getRefundAmount() != null && booking.getRefundAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                booking.setStatus("CANCELLED");
+                booking.setCancelRequested(false);
+                if (request.staffNotes() != null && !request.staffNotes().isBlank()) {
+                        booking.setInternalNotes(request.staffNotes().trim());
+                }
+                for (var pet : booking.getPets()) {
+                        pet.setStatus("CANCELLED");
+                        for (var svc : pet.getServices()) {
+                                svc.setStatus("CANCELLED");
+                        }
+                }
+                if (request.refundProof() != null && !request.refundProof().isBlank()) {
+                        bookingDepositRepository.findByBookingId(booking.getId()).stream()
+                                        .filter(d -> Boolean.TRUE.equals(d.getDepositPaid()))
+                                        .sorted((a, b) -> b.getDepositPaidAt()
+                                                        .compareTo(a.getDepositPaidAt()))
+                                        .findFirst()
+                                        .ifPresent(d -> {
+                                                d.setRefundProof(request.refundProof());
+                                                bookingDepositRepository.save(d);
+                                        });
+                }
+                bookingDepositRepository.findByBookingId(booking.getId()).forEach(deposit -> {
+                        if ("PENDING".equalsIgnoreCase(deposit.getStatus())) {
+                                deposit.setStatus("CANCELLED");
+                                bookingDepositRepository.save(deposit);
+                        }
+                });
+
+                timeSlotBookingRepository.deleteByBookingPetService_Booking_Id(booking.getId());
+
+                if (booking.getRefundAmount() != null && booking.getRefundAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
                             if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                                 try {
                                     String refundAmountFormatted = String.format("%,.0f VND", booking.getRefundAmount());
                                     emailServicePort.sendBookingRefundApprovedEmail(
                                             booking.getCustomerEmail(), booking.getBookingCode(), refundAmountFormatted, null);
                                 } catch (Exception emailEx) {
-                                        System.out.println("Failed to send refund-approved email for booking " + booking.getBookingCode() + ": " + emailEx);
+                                    System.out.println("Failed to send refund-approved email for booking " + booking.getBookingCode() + ": " + emailEx);
                                 }
                             }
-                        }
-                } else {
-                        // Reject cancel request: keep client reason for feedback,
-                        // store staff note for client to read, and revert booking state.
-                        booking.setStatus("CONFIRMED");
-                        booking.setCancelRequested(false);
-                        if (request.staffNotes() != null && !request.staffNotes().isBlank()) {
-                                booking.setInternalNotes(request.staffNotes().trim());
-                        }
                 }
 
                 bookingRepository.save(booking);
+                roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
                 dashboardService.sendDashboardUpdate();
                 return toListItem(booking);
         }
@@ -712,6 +726,7 @@ public class BookingAdminApplicationService implements BookingAdminService {
                 applyActualCheckOutDateToActiveBookingPetServices(booking, checkOutAt.toLocalDate());
                 bookingRepository.save(booking);
                 recomputeBookingTotalFromActiveLinesWithCredit(bookingId);
+                roomOccupancyReleaseService.releaseRoomsReferencedByBooking(booking);
                 if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                         emailServicePort.sendBookingCheckOutThankYouEmail(booking.getCustomerEmail(), booking.getBookingCode());
                 }
@@ -942,6 +957,9 @@ public class BookingAdminApplicationService implements BookingAdminService {
 
                 bookingRepository.save(booking);
                 recomputeBookingTotalFromActiveLinesWithCredit(bookingId);
+                if (isRoomService(target) && target.getRoomId() != null) {
+                        roomOccupancyReleaseService.releaseRoomIfNoActiveAssignment(target.getRoomId());
+                }
                 dashboardService.sendDashboardUpdate();
                 return toListItem(getBookingOrThrow(bookingId));
         }
