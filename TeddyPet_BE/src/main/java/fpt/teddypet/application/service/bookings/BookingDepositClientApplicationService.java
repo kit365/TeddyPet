@@ -12,6 +12,7 @@ import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.EmailServicePort;
+import lombok.extern.slf4j.Slf4j;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
@@ -48,6 +49,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -68,6 +70,7 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final UserAddressRepository userAddressRepository;
     private final PetProfileRepository petProfileRepository;
     private final BankInformationRepository bankInformationRepository;
+    private final fpt.teddypet.application.port.output.payment.PaymentOrderCodePort paymentOrderCodePort;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -200,26 +203,6 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         Booking booking = bookingRepository.findById(deposit.getBookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
 
-        // Reuse existing link if present
-        if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
-                && deposit.getPayosOrderCode() != null) {
-            return new CreateBookingDepositPayosResponse(
-                    deposit.getId(),
-                    deposit.getPayosOrderCode(),
-                    deposit.getCheckoutUrl(),
-                    deposit.getExpiresAt(),
-                    booking.getId(),
-                    booking.getBookingCode()
-            );
-        }
-
-        Long payosOrderCode = deposit.getPayosOrderCode();
-        if (payosOrderCode == null) {
-            // 12-digit-ish stable code for PayOS, derived from depositId to map webhook -> deposit
-            payosOrderCode = 900_000_000_000L + deposit.getId();
-            deposit.setPayosOrderCode(payosOrderCode);
-        }
-
         BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
         BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
                 : BigDecimal.valueOf(25);
@@ -229,12 +212,55 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         if (depositAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Số tiền cọc không hợp lệ.");
         }
-
-        String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
         long amount = depositAmount.longValue();
 
+        // Reuse existing link if present AND still valid on PayOS
+        if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
+                && deposit.getPayosOrderCode() != null) {
+            
+            // Check if the link is still alive on PayOS (not cancelled/expired/paid AND amount matches)
+            if (!payosGatewayAdapter.isLinkDead(deposit.getPayosOrderCode(), amount)) {
+                log.info("Reusing existing valid PayOS URL for deposit {}: {}", depositId, deposit.getCheckoutUrl());
+                return new CreateBookingDepositPayosResponse(
+                        deposit.getId(),
+                        deposit.getPayosOrderCode(),
+                        deposit.getCheckoutUrl(),
+                        deposit.getExpiresAt(),
+                        booking.getId(),
+                        booking.getBookingCode()
+                );
+            }
+            
+            log.info("Existing PayOS link for deposit {} (orderCode={}) is dead. Regenerating with fresh code...", 
+                    depositId, deposit.getPayosOrderCode());
+            // Clear BOTH stale URL AND old orderCode to force full regeneration
+            deposit.setCheckoutUrl(null);
+            deposit.setPayosOrderCode(null);
+        }
+
+        Long payosOrderCode = deposit.getPayosOrderCode();
+        if (payosOrderCode == null) {
+            payosOrderCode = paymentOrderCodePort.getNext();
+            deposit.setPayosOrderCode(payosOrderCode);
+        }
+
+        String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
+
         String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
-        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+        String checkoutUrl;
+        try {
+            checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            // Nếu link cũ đã chết (hủy/hết hạn), sinh mã mới để tạo link mới ngay lập tức
+            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
+                payosOrderCode = paymentOrderCodePort.getNext();
+                deposit.setPayosOrderCode(payosOrderCode);
+                checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
+            } else {
+                throw e;
+            }
+        }
         deposit.setCheckoutUrl(checkoutUrl);
         bookingDepositRepository.save(deposit);
 

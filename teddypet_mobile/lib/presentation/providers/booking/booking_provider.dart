@@ -110,4 +110,24 @@ class BookingProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _controller.upsertServiceReview(bookingCode, bookingPetServiceId, rating, review, photos);
+      // Refresh detail to show the new review
+      if (_currentBookingDetail?.bookingCode == bookingCode) {
+        await fetchBookingDetail(bookingCode);
+      }
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

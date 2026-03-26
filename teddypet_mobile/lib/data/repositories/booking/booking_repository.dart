@@ -6,4 +6,5 @@ abstract class BookingRepository {
   Future<List<ClientBookingDetailResponse>> getMyBookings();
   Future<ClientBookingDetailResponse> getBookingDetail(String bookingCode);
   Future<bool> cancelBooking(String bookingCode, String reason);
+  Future<bool> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos);
 }

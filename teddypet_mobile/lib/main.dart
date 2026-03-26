@@ -48,6 +48,10 @@ import 'package:teddypet_mobile/presentation/providers/booking/booking_provider.
 import 'package:teddypet_mobile/data/repositories/booking/booking_repository_impl.dart';
 import 'package:teddypet_mobile/application/booking/booking_app_service_impl.dart';
 import 'package:teddypet_mobile/presentation/controllers/booking/booking_controller.dart';
+import 'package:teddypet_mobile/data/repositories/media/media_repository.dart';
+import 'package:teddypet_mobile/application/media/media_app_service.dart';
+import 'package:teddypet_mobile/presentation/controllers/media/media_controller.dart';
+import 'package:teddypet_mobile/presentation/providers/media/media_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -137,6 +141,13 @@ Future<void> main() async {
           create: (_) => BookingProvider(
             BookingController(
               BookingAppServiceImpl(BookingRepositoryImpl(ApiClient())),
+            ),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MediaProvider(
+            MediaController(
+              MediaAppServiceImpl(MediaRepositoryImpl(ApiClient())),
             ),
           ),
         ),

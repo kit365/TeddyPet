@@ -310,6 +310,7 @@ export interface BookingResponse {
   deposit?: number;
   depositPaid?: boolean;
   depositId?: number;
+  depositStatus?: string;
   depositExpiresAt?: string;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod | string;
@@ -449,6 +450,7 @@ export interface ClientBookingPetServiceDetail {
   afterPhotos?: string;
   customerRating?: number;
   customerReview?: string;
+  customerReviewPhotos?: string;
   roomId?: number;
   roomName?: string;
   displayTypeName?: string;
@@ -495,6 +497,7 @@ export interface ClientBookingDetailResponse {
   bookingCheckInDate?: string;
   bookingCheckOutDate?: string;
   depositId?: number;
+  depositStatus?: string;
   depositExpiresAt?: string;
   createdAt?: string;
   pets?: ClientBookingPetDetail[];

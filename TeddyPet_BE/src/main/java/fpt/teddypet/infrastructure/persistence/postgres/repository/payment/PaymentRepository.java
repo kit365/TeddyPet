@@ -4,6 +4,7 @@ package fpt.teddypet.infrastructure.persistence.postgres.repository.payment;
 import fpt.teddypet.domain.entity.Payment;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -19,4 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     Optional<Payment> findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
             UUID orderId, String paymentGateway, PaymentStatusEnum status);
+
+    @Query(value = "SELECT nextval('payment_order_code_seq')", nativeQuery = true)
+    Long getNextOrderCode();
 }

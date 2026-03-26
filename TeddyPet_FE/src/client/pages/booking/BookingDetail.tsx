@@ -2040,8 +2040,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
         const phone = (step1Data.phone ?? "").trim();
         const address = (step1Data.address ?? "").trim();
 
-        if (!fullName || !email || !phone || !address) {
-            toast.error("Vui lòng điền đầy đủ Họ tên, Email, Số điện thoại và Địa chỉ ở phần Thông tin khách hàng.");
+        if (!fullName || !email || !phone) {
+            toast.error("Vui lòng điền đầy đủ Họ tên, Email và Số điện thoại ở phần Thông tin khách hàng.");
             // Cuộn lên phần thông tin khách hàng ở đầu trang
             window.scrollTo({ top: 0, behavior: "smooth" });
             return false;

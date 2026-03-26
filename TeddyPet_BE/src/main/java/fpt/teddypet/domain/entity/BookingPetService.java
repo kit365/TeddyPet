@@ -129,6 +129,9 @@ public class BookingPetService extends BaseEntity {
     @Column(name = "customer_review", columnDefinition = "TEXT")
     private String customerReview;
 
+    @Column(name = "customer_review_photos", columnDefinition = "TEXT")
+    private String customerReviewPhotos;
+
     @OneToMany(mappedBy = "bookingPetService", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BookingPetServiceItem> items = new ArrayList<>();

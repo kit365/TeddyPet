@@ -36,4 +36,17 @@ class BookingRepositoryImpl implements BookingRepository {
     );
     return response.success;
   }
+
+  @override
+  Future<bool> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos) async {
+    final response = await _apiClient.post(
+      'bookings/code/$bookingCode/services/$bookingPetServiceId/review',
+      data: {
+        'customerRating': rating,
+        'customerReview': review,
+        'customerPhotos': photos,
+      },
+    );
+    return response.success;
+  }
 }

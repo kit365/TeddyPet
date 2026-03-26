@@ -23,4 +23,6 @@ public interface PaymentRepositoryPort {
     /** Tìm payment PENDING theo order và gateway (để lấy lại checkoutUrl khi PayOS báo đơn đã tồn tại). */
     Optional<Payment> findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
             UUID orderId, String paymentGateway, PaymentStatusEnum status);
+
+    Long getNextOrderCode();
 }

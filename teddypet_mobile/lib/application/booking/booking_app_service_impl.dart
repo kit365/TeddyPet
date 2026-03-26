@@ -27,4 +27,9 @@ class BookingAppServiceImpl implements BookingAppService {
   Future<bool> cancelBooking(String code, String reason) async {
     return await _repository.cancelBooking(code, reason);
   }
+
+  @override
+  Future<bool> upsertServiceReview(String bookingCode, int bookingPetServiceId, int rating, String? review, List<String>? photos) async {
+    return await _repository.upsertServiceReview(bookingCode, bookingPetServiceId, rating, review, photos);
+  }
 }

@@ -123,13 +123,6 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
             return response.getCheckoutUrl();
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
-                ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
-                if (existing != null && existing.checkoutUrl() != null) {
-                    log.info("PayOS: returning existing payment link (orderCode={}).", orderCode);
-                    return existing.checkoutUrl();
-                }
-            }
             log.error("PayosGatewayAdapter failed to create payment link (orderCode={}): {}", orderCode, msg);
             throw new PaymentException("PayOS Error: " + msg, e);
         }
@@ -182,6 +175,28 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
         throw new PaymentException("Đơn thanh toán đã được tạo trước đó. Vui lòng kiểm tra email hoặc thử lại sau vài phút.");
     }
 
+    /**
+     * Kiểm tra link PayOS có còn khả dụng cho số tiền mong muốn hay không.
+     * @return true nếu link đã chết (hủy/hết hạn/...) HOẶC số tiền không khớp.
+     */
+    public boolean isLinkDead(Long orderCode, long expectedAmount) {
+        ExistingLinkInfo existing = fetchExistingPaymentInfo(orderCode);
+        if (existing == null) {
+            return true; 
+        }
+        // Link dead về trạng thái
+        if (isPayOsLinkDeadForReuse(existing.status())) {
+            return true;
+        }
+        // Link alive nhưng sai số tiền -> coi như dead để tạo link mới với mã mới
+        if (existing.amount() != expectedAmount) {
+            log.warn("PayOS: link {} is alive but amount mismatch (expected={}, actual={}). Marking as dead.", 
+                    orderCode, expectedAmount, existing.amount());
+            return true;
+        }
+        return false;
+    }
+
     private static boolean isPayOsLinkDeadForReuse(String status) {
         if (status == null || status.isBlank()) {
             return false;
@@ -232,13 +247,13 @@ public class PayosGatewayAdapter implements PaymentGatewayPort<Webhook> {
     /**
      * DTO nội bộ chứa thông tin link PayOS đã tồn tại.
      */
-    private record ExistingLinkInfo(String checkoutUrl, long amount, String status) {}
+    public record ExistingLinkInfo(String checkoutUrl, long amount, String status) {}
 
     /**
      * Gọi PayOS API GET /v2/payment-requests/{orderCode} để lấy thông tin link đã tạo,
      * bao gồm amount và status.
      */
-    private ExistingLinkInfo fetchExistingPaymentInfo(Long orderNumericCode) {
+    public ExistingLinkInfo fetchExistingPaymentInfo(Long orderNumericCode) {
         if (orderNumericCode == null) return null;
         try {
             HttpHeaders headers = new HttpHeaders();

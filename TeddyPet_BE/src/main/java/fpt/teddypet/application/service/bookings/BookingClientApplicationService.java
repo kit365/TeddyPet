@@ -20,7 +20,6 @@ import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServicePricingRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
-import fpt.teddypet.application.service.bookings.BookingHoldReleaseService;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingPet;
 import fpt.teddypet.domain.entity.BookingPetService;
@@ -31,9 +30,7 @@ import fpt.teddypet.domain.entity.PetFoodBrought;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.ServicePricing;
 import fpt.teddypet.domain.entity.TimeSlot;
-import fpt.teddypet.domain.entity.TimeSlotBooking;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
-import fpt.teddypet.domain.enums.bookings.BookingPaymentMethodEnum;
 import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.UserRepository;
@@ -42,7 +39,6 @@ import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.Book
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.context.annotation.Lazy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -227,6 +223,7 @@ public class BookingClientApplicationService implements BookingClientService {
                         svc.getAfterPhotos(),
                         svc.getCustomerRating(),
                         svc.getCustomerReview(),
+                        svc.getCustomerReviewPhotos(),
                         svc.getRoomId(),
                         roomName,
                         displayTypeName,
@@ -528,6 +525,13 @@ public class BookingClientApplicationService implements BookingClientService {
         target.setCustomerRating(request.customerRating());
         String review = request.customerReview() != null ? request.customerReview().trim() : null;
         target.setCustomerReview(review == null || review.isBlank() ? null : review);
+
+        if (request.customerPhotos() != null && !request.customerPhotos().isEmpty()) {
+            target.setCustomerReviewPhotos(String.join(",", request.customerPhotos()));
+        } else {
+            target.setCustomerReviewPhotos(null);
+        }
+
         bookingRepository.save(booking);
         return getClientBookingDetailByCode(bookingCode);
     }

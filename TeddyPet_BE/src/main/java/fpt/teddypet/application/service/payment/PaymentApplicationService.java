@@ -397,7 +397,45 @@ public class PaymentApplicationService implements PaymentService {
                                         result.transactionId(), e);
                             }
                         },
-                        () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
+                        () -> {
+                            log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId());
+                            tryHandleBookingDepositFailure(result, gateway);
+                        });
+    }
+
+    /**
+     * Fallback for BookingDeposit: if no Payment record exists, check if it's a booking deposit.
+     */
+    private void tryHandleBookingDepositFailure(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
+        if (gateway != PaymentGatewayEnum.PAYOS) return;
+        Long orderCode;
+        try {
+            orderCode = Long.parseLong(result.transactionId());
+        } catch (Exception ex) {
+            return;
+        }
+
+        bookingDepositRepository.findFirstByPayosOrderCode(orderCode)
+                .ifPresent(deposit -> {
+                    log.warn("PayOS Payment Failed for BookingDeposit {}: {}", orderCode, result.message());
+                    deposit.setStatus("FAILED");
+                    deposit.setNotes("Thanh toán thất bại: " + result.message());
+                    if (result.rawPayload() != null && !result.rawPayload().isBlank()) {
+                        deposit.setWebhookPayload(result.rawPayload());
+                    }
+                    bookingDepositRepository.save(deposit);
+
+                    // Re-sync after failure (address/pet/bank)
+                    var bookingOpt = bookingRepository.findById(deposit.getBookingId());
+                    bookingOpt.ifPresent(booking -> {
+                        try {
+                            bookingDepositClientService.runAfterDepositPaidSuccessfully(booking, deposit);
+                        } catch (Exception syncEx) {
+                            log.warn("Post-failure sync failed for booking {}: {}",
+                                    booking.getBookingCode(), syncEx.getMessage());
+                        }
+                    });
+                });
     }
 
     /** Mã Napas (PayOS counterAccountBankId) -> mã ngân hàng nội bộ (VietnamBankEnum), để suy ra tên khi PayOS không trả bankName. */

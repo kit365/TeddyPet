@@ -43,4 +43,9 @@ public class PaymentRepositoryAdapter implements PaymentRepositoryPort {
         return paymentRepository.findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
                 orderId, paymentGateway, status);
     }
+
+    @Override
+    public Long getNextOrderCode() {
+        return paymentRepository.getNextOrderCode();
+    }
 }

@@ -33,8 +33,16 @@
         }
 
         /* Prevent dark mode color inversion */
+        @media (prefers-color-scheme: dark) {
+            body, .email-outer { background-color: #f1f5f9 !important; color: #334155 !important; }
+            .email-card { background-color: #ffffff !important; color: #334155 !important; }
+            h1, h2, h3, p, span, li, td, div { color: #334155 !important; }
+            strong { color: #4f46e5 !important; }
+            .button-text { color: #ffffff !important; }
+        }
+
         [data-ogsc] body, [data-ogsb] body { background-color: #f1f5f9 !important; color: #334155 !important; }
-        [data-ogsc] .email-card, [data-ogsb] .email-card { background-color: #ffffff !important; }
+        [data-ogsc] .email-card, [data-ogsb] .email-card { background-color: #ffffff !important; color: #334155 !important; }
         [data-ogsc] .email-outer, [data-ogsb] .email-outer { background-color: #f1f5f9 !important; }
 
         u + .body .email-card { background-color: #ffffff !important; }

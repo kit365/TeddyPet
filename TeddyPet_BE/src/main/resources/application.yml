@@ -31,11 +31,11 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-brevo:
-  from: ${BREVO_FROM:kietops365@gmail.com}
-  display-name: ${SPRING_MAIL_DISPLAY_NAME:TeddyPet Support}
-  api-key: ${BREVO_API_KEY:}
-  api-url: https://api.brevo.com/v3/smtp/email
+resend:
+  from: ${RESEND_FROM:noreply@teddypet.id.vn}
+  display-name: ${RESEND_DISPLAY_NAME:TeddyPet Support}
+  api-key: ${RESEND_API_KEY:}
+  api-url: https://api.resend.com/emails
 
 # Custom Properties (Nằm ngoài spring)
 jwt:
