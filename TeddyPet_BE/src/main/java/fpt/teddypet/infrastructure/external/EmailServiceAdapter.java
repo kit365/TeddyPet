@@ -383,6 +383,39 @@ public class EmailServiceAdapter implements EmailServicePort {
     @Async
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendStaffPasswordReissueRequestToAdmin(
+            String to,
+            String adminGreetingName,
+            String staffEmail,
+            String staffDisplayName,
+            String actionUrl) {
+        log.info(EmailConstants.LOG_SEND_STAFF_REISSUE_ADMIN, to);
+        String subject = String.format(EmailConstants.SUBJECT_STAFF_REISSUE_ADMIN, appName);
+        Context context = prepareContext();
+        context.setVariable("adminGreetingName", adminGreetingName != null ? adminGreetingName : "");
+        context.setVariable("staffEmail", staffEmail);
+        context.setVariable("staffDisplayName", staffDisplayName);
+        context.setVariable("actionUrl", actionUrl);
+        String htmlBody = templateEngine.process("email/admin/staff-password-reissue-request", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void sendStaffTemporaryPasswordEmail(String to, String temporaryPassword, String loginUrl) {
+        log.info(EmailConstants.LOG_SEND_STAFF_TEMP_PASSWORD, to);
+        String subject = String.format(EmailConstants.SUBJECT_STAFF_TEMP_PASSWORD, appName);
+        Context context = prepareContext();
+        context.setVariable("tempPassword", temporaryPassword);
+        context.setVariable("loginUrl", loginUrl);
+        String htmlBody = templateEngine.process("email/auth/staff-temporary-password", context);
+        self.sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    @Async
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendOrderConfirmation(Order order) {
         // Reload order with items and payments to avoid LazyInitializationException in @Async context
         Order detailedOrder = orderRepository.findByIdWithDetails(order.getId()).orElse(order);

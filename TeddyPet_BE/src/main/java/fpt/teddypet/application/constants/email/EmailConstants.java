@@ -19,6 +19,8 @@ public final class EmailConstants {
     public static final String SUBJECT_ORDER_REFUNDED = "[%s] Đơn hàng #%s đã được hoàn tiền";
     public static final String SUBJECT_ORDER_REFUND_REJECTED = "[%s] Yêu cầu hoàn tiền đơn #%s đã bị từ chối";
     public static final String SUBJECT_PASSWORD_RESET = "[%s] Yêu cầu đặt lại mật khẩu";
+    public static final String SUBJECT_STAFF_REISSUE_ADMIN = "[%s] Yêu cầu cấp lại mật khẩu nhân viên";
+    public static final String SUBJECT_STAFF_TEMP_PASSWORD = "[%s] Mật khẩu tạm đăng nhập nhân viên";
     public static final String SUBJECT_ACCOUNT_VERIFICATION = "[%s] Xác thực tài khoản của bạn";
     public static final String SUBJECT_GUEST_OTP = "[%s] Mã xác thực đơn hàng của bạn";
     public static final String SUBJECT_SECURITY_OTP = "[%s] Mã xác thực bảo mật tài khoản";
@@ -79,6 +81,8 @@ public final class EmailConstants {
     public static final String LOG_HTML_EMAIL_SENT_SUCCESS = "[EmailServiceAdapter] HTML email sent successfully to: {}";
     public static final String LOG_HTML_EMAIL_SENT_FAILED = "[EmailServiceAdapter] Failed to send HTML email to: {}";
     public static final String LOG_SEND_PASSWORD_RESET = "Sending password reset email to: {}";
+    public static final String LOG_SEND_STAFF_REISSUE_ADMIN = "Sending staff password reissue request email to admin: {}";
+    public static final String LOG_SEND_STAFF_TEMP_PASSWORD = "Sending staff temporary password email to: {}";
     public static final String LOG_SEND_VERIFICATION = "Sending verification email to: {}";
     public static final String LOG_SEND_GUEST_OTP = "Sending guest order OTP to: {}";
     public static final String LOG_SEND_SECURITY_OTP = "Sending security OTP to: {}";

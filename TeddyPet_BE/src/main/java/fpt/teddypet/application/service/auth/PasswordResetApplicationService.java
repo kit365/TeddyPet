@@ -8,8 +8,13 @@ import fpt.teddypet.application.port.input.PasswordResetService;
 import fpt.teddypet.application.port.output.EmailServicePort;
 import fpt.teddypet.application.port.output.PasswordResetTokenPort;
 import fpt.teddypet.application.port.output.UserRepositoryPort;
+import fpt.teddypet.application.port.output.auth.CredentialReissueHistoryPort;
 import fpt.teddypet.domain.entity.User;
+import fpt.teddypet.domain.entity.auth.CredentialReissueHistory;
+import fpt.teddypet.domain.enums.RoleEnum;
 import fpt.teddypet.domain.enums.UserStatusEnum;
+import fpt.teddypet.domain.enums.auth.CredentialReissueEventType;
+import fpt.teddypet.domain.enums.auth.CredentialReissueStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +36,7 @@ public class PasswordResetApplicationService implements PasswordResetService {
     private final EmailServicePort emailServicePort;
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordEncoder passwordEncoder;
+    private final CredentialReissueHistoryPort credentialReissueHistoryPort;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -56,6 +63,8 @@ public class PasswordResetApplicationService implements PasswordResetService {
             log.warn(PasswordResetLogMessages.LOG_FORGOT_PASSWORD_USER_NOT_ACTIVE, request.email());
             throw new IllegalArgumentException(PasswordResetMessages.MESSAGE_USER_NOT_ACTIVE);
         }
+
+        recordForgotPasswordSelfServiceIfCustomer(user);
 
         String token = generateResetToken();
 
@@ -163,5 +172,30 @@ public class PasswordResetApplicationService implements PasswordResetService {
     private void sendPasswordResetEmail(User user, String token) {
         String resetLink = frontendUrl + "/reset-password?token=" + token;
         emailServicePort.sendPasswordResetEmail(user.getEmail(), token, resetLink);
+    }
+
+    /** Ghi lịch sử quên mật khẩu tự phục vụ (khách USER) vào bảng audit chung. */
+    private void recordForgotPasswordSelfServiceIfCustomer(User user) {
+        if (user.getRole() == null || !RoleEnum.USER.name().equals(user.getRole().getName())) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        UUID id = UUID.randomUUID();
+        String roleName = user.getRole().getName();
+        CredentialReissueHistory row = CredentialReissueHistory.builder()
+                .id(id)
+                .subjectUser(user)
+                .subjectRoleName(roleName)
+                .eventType(CredentialReissueEventType.FORGOT_PASSWORD_SELF_SERVICE)
+                .status(CredentialReissueStatus.COMPLETED)
+                .correlationId(id)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        try {
+            credentialReissueHistoryPort.save(row);
+        } catch (Exception e) {
+            log.warn("[PasswordResetService] Không ghi được credential_reissue_history: {}", e.getMessage());
+        }
     }
 }

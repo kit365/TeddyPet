@@ -31,6 +31,31 @@ export const forgotPassword = async (email: string): Promise<ForgotPasswordRespo
     return response.data;
 };
 
+export type StaffPasswordReissuePreview = {
+    email: string;
+    username: string;
+    fullName: string;
+    staffId: number | null;
+};
+
+export const requestStaffPasswordReissue = async (usernameOrEmail: string) => {
+    const response = await apiApp.post(`${BASE_PATH}/staff/password-reissue/request`, { usernameOrEmail });
+    return response.data as { success: boolean; message?: string };
+};
+
+export const previewStaffPasswordReissue = async (token: string) => {
+    const response = await apiApp.get<{ success: boolean; data: StaffPasswordReissuePreview; message?: string }>(
+        "/api/admin/staff/password-reissue/preview",
+        { params: { token } }
+    );
+    return response.data;
+};
+
+export const confirmStaffPasswordReissue = async (token: string) => {
+    const response = await apiApp.post("/api/admin/staff/password-reissue/confirm", { token });
+    return response.data as { success: boolean; message?: string };
+};
+
 export const verifyEmail = async (token: string): Promise<AuthResponse> => {
     const response = await apiApp.get(`${BASE_PATH}/verify-email`, {
         params: { token }

@@ -127,4 +127,6 @@ public final class ApiConstants {
 
     public static final String API_NEWSLETTER = BASE_API + "/newsletter";
 
+    public static final String API_ADMIN_STAFF_PASSWORD_REISSUE = BASE_API + "/admin/staff/password-reissue";
+
 }
