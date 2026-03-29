@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -84,11 +85,55 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.FORBIDDEN.value()));
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
+    /**
+     * DaoAuthenticationProvider bọc lỗi khi load user (vd. email không tồn tại → IllegalArgumentException trong UserDetailsService).
+     */
+    @ExceptionHandler(InternalAuthenticationServiceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInternalAuthenticationServiceException(
+            InternalAuthenticationServiceException ex) {
+        String message = unwrapCauseMessage(ex);
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Authentication failed", HttpStatus.UNAUTHORIZED.value()));
+                .body(ApiResponse.error(message, HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            message = "Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.";
+        }
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(message, HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    /** Lấy thông báo từ cause (vd. Không tìm thấy người dùng) thay vì message chung của wrapper. */
+    private static String unwrapCauseMessage(Throwable ex) {
+        if (ex == null) return "Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.";
+        
+        // Nếu bản thân ex có message hữu ích (không phải mặc định của Spring), ưu tiên nó
+        String topMessage = ex.getMessage();
+        if (topMessage != null && !topMessage.isBlank() && 
+            !topMessage.equalsIgnoreCase("Authentication failed") && 
+            !topMessage.contains("InternalAuthenticationServiceException")) {
+            return topMessage;
+        }
+
+        Throwable c = ex.getCause();
+        while (c != null) {
+            String m = c.getMessage();
+            if (m != null && !m.isBlank() && !m.equalsIgnoreCase("Authentication failed")) {
+                return m;
+            }
+            c = c.getCause();
+        }
+        
+        if (topMessage != null && !topMessage.isBlank()) {
+            return topMessage;
+        }
+        
+        return "Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.";
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)

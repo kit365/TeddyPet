@@ -72,7 +72,11 @@ export const useGoogleLogin = () => {
             setTimeout(() => navigate(target), 100);
         },
         onError: (error: any) => {
-            const errorMessage = error.message || error?.response?.data?.message || "Đăng nhập Google thất bại!";
+            const errorMessage = 
+                error?.response?.data?.message || 
+                error?.response?.data?.error || 
+                error?.message || 
+                "Đăng nhập Google thất bại!";
             toast.error(errorMessage);
         }
     });
