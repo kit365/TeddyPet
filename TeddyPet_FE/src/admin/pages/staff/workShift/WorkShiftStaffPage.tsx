@@ -1,10 +1,9 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography, Stack, Chip, Paper, alpha } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography, Stack, Chip, Paper, alpha, IconButton, Tooltip } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { CalendarClock, Check, Clock3 } from 'lucide-react';
-import { Icon } from '@iconify/react';
+import { CalendarClock, Check, Clock3, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { ListHeader } from '../../../components/ui/ListHeader';
 import { prefixAdmin } from '../../../constants/routes';
 import {
@@ -56,7 +55,9 @@ function formatTimeRange(start: string, end: string): string {
 }
 
 export const WorkShiftStaffPage = () => {
-    const { start: from, end: to } = useMemo(() => getNextWeekRange(), []);
+    const defaultRange = useMemo(() => getNextWeekRange(), []);
+    const [from, setFrom] = useState(defaultRange.start);
+    const [to, setTo] = useState(defaultRange.end);
 
     const { data: myProfileRes } = useQuery({
         queryKey: ['my-staff-profile'],
@@ -76,7 +77,6 @@ export const WorkShiftStaffPage = () => {
     const { mutate: cancelMyRegistration } = useCancelMyRegistration();
     const [registeredShiftIds, setRegisteredShiftIds] = useState<Set<number>>(() => new Set());
     const [cancelledShiftIds, setCancelledShiftIds] = useState<Set<number>>(() => new Set());
-    const [leaveRequestedShiftIds, setLeaveRequestedShiftIds] = useState<Set<number>>(() => new Set());
     /** Popup chọn chức vụ khi part-time đăng ký ca */
     const [registerModalShift, setRegisterModalShift] = useState<IAvailableShiftForStaff | null>(null);
     const [registerModalPositionId, setRegisterModalPositionId] = useState<number | null>(null);
@@ -133,6 +133,18 @@ export const WorkShiftStaffPage = () => {
     const closeRegisterModal = () => {
         setRegisterModalShift(null);
         setRegisterModalPositionId(null);
+    };
+
+    const shiftWeek = (direction: number) => {
+        const start = dayjs(from).startOf('day').add(direction * 7, 'day');
+        const end = start.add(6, 'day').endOf('day');
+        setFrom(start.toISOString());
+        setTo(end.toISOString());
+    };
+
+    const goToCurrentWeek = () => {
+        setFrom(defaultRange.start);
+        setTo(defaultRange.end);
     };
 
     /** Lưới 2x7: grid[slotIndex][dayIndex] = IAvailableShiftForStaff | null (chỉ tuần chứa from) */
@@ -215,7 +227,6 @@ export const WorkShiftStaffPage = () => {
             {
                 onSuccess: (res) => {
                     if (res?.success) {
-                        setLeaveRequestedShiftIds((prev) => new Set(prev).add(shiftId));
                         toast.success(res.message ?? 'Đã gửi xin nghỉ.');
                         closeLeaveDialog();
                     }
@@ -235,11 +246,6 @@ export const WorkShiftStaffPage = () => {
         undoLeave(shiftId, {
             onSuccess: (res) => {
                 if (res?.success) {
-                    setLeaveRequestedShiftIds((prev) => {
-                        const s = new Set(prev);
-                        s.delete(shiftId);
-                        return s;
-                    });
                     toast.success(res.message ?? 'Đã hoàn tác xin nghỉ.');
                 }
             },
@@ -298,10 +304,93 @@ export const WorkShiftStaffPage = () => {
 
                     {/* Main Timetable */}
                     <Box sx={{ mb: 4 }}>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                            <Icon icon="solar:calendar-date-bold-duotone" width={24} style={{ color: 'var(--palette-primary-main)' }} />
-                            <Typography variant="h6" sx={{ fontWeight: 800 }}>Lịch làm việc trong tuần</Typography>
-                        </Stack>
+                    {/* Navigation Controls */}
+                    <Box sx={{ mb: 3 }}>
+                        <Paper 
+                            elevation={0} 
+                            sx={{ 
+                                p: 2, 
+                                borderRadius: '16px', 
+                                bgcolor: 'background.paper', 
+                                border: (theme) => `1px solid ${theme.palette.divider}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 2,
+                                boxShadow: (theme) => `0 4px 20px 0 ${alpha(theme.palette.common.black, 0.05)}`
+                            }}
+                        >
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Tooltip title="Tuần trước">
+                                    <IconButton 
+                                        onClick={() => shiftWeek(-1)} 
+                                        sx={{ 
+                                            bgcolor: 'action.hover', 
+                                            '&:hover': { bgcolor: 'action.selected', color: 'primary.main' },
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </IconButton>
+                                </Tooltip>
+                                
+                                <Button 
+                                    variant="outlined" 
+                                    size="medium" 
+                                    onClick={goToCurrentWeek}
+                                    startIcon={<CalendarClock size={18} />}
+                                    sx={{ 
+                                        borderRadius: '10px', 
+                                        textTransform: 'none', 
+                                        fontWeight: 800, 
+                                        px: 3,
+                                        borderColor: 'divider',
+                                        color: 'text.primary',
+                                        '&:hover': { 
+                                            borderColor: 'primary.main', 
+                                            bgcolor: alpha('#00A76F', 0.05),
+                                            color: 'primary.main'
+                                        }
+                                    }}
+                                >
+                                    Về tuần đăng ký
+                                </Button>
+
+                                <Tooltip title="Tuần tiếp theo">
+                                    <IconButton 
+                                        onClick={() => shiftWeek(1)} 
+                                        sx={{ 
+                                            bgcolor: 'action.hover', 
+                                            '&:hover': { bgcolor: 'action.selected', color: 'primary.main' },
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <ChevronRight size={20} />
+                                    </IconButton>
+                                </Tooltip>
+                            </Stack>
+
+                            <Box 
+                                sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 1.5, 
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08), 
+                                    px: 3, 
+                                    py: 1, 
+                                    borderRadius: '12px', 
+                                    color: 'primary.dark',
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                                }}
+                            >
+                                <Calendar size={18} />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
+                                    {dayjs(from).format('DD/MM/YYYY')} — {dayjs(to).format('DD/MM/YYYY')}
+                                </Typography>
+                            </Box>
+                        </Paper>
+                    </Box>
 
                         <DashboardCard sx={{ overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }}>
                             <Box sx={{ minWidth: 900 }}>
