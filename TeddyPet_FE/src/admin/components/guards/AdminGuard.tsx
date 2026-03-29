@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useSearchParams } from "react-router-dom";
+import { Navigate, Outlet, useSearchParams, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "../../../api/auth.api";
@@ -12,6 +12,7 @@ const ALLOWED_ADMIN_ROLES = ["ADMIN", "STAFF", "SUPER_ADMIN"];
 export const AdminGuard = () => {
     const tokenAdmin = Cookies.get("tokenAdmin");
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const forbidden = searchParams.get("forbidden");
 
     const { data: meRes, isLoading, isError } = useQuery({
@@ -30,7 +31,8 @@ export const AdminGuard = () => {
     }, [meRes, tokenAdmin]);
 
     if (!tokenAdmin) {
-        return <Navigate to="/admin/auth/login" replace />;
+        const returnUrl = encodeURIComponent(location.pathname + location.search);
+        return <Navigate to={`/admin/auth/login?returnUrl=${returnUrl}`} replace />;
     }
 
     if (isLoading) {

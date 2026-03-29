@@ -314,6 +314,13 @@ public class AuthApplicationService implements AuthService {
             log.info(AuthLogMessages.LOG_AUTH_LOGIN_SUCCESS, request.usernameOrEmail());
 
             return generateTokenResponse(user);
+        } catch (org.springframework.security.authentication.InternalAuthenticationServiceException e) {
+            log.warn("[AuthService] Internal authentication error for {}: {}", request.usernameOrEmail(), e.getMessage());
+            Throwable cause = e.getCause();
+            if (cause != null && cause.getMessage() != null && !cause.getMessage().isBlank()) {
+                throw new IllegalArgumentException(cause.getMessage());
+            }
+            throw new BadCredentialsException(AuthMessages.MESSAGE_INVALID_CREDENTIALS);
         } catch (BadCredentialsException e) {
             log.warn(AuthLogMessages.LOG_AUTH_LOGIN_ERROR_INVALID_CREDENTIALS, request.usernameOrEmail());
 

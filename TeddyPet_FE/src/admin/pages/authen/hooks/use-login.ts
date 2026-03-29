@@ -57,6 +57,26 @@ export const useLogin = () => {
                 }
 
                 toast.success(response.message);
+
+                const params = new URLSearchParams(window.location.search);
+                const rawReturn = params.get("returnUrl");
+                let safeReturn: string | null = null;
+                if (rawReturn) {
+                    try {
+                        const decoded = decodeURIComponent(rawReturn);
+                        if (decoded.startsWith("/admin") && !decoded.includes("//")) {
+                            safeReturn = decoded;
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                }
+
+                if (safeReturn && (role === "ADMIN" || role === "SUPER_ADMIN")) {
+                    setTimeout(() => navigate(safeReturn), 100);
+                    return;
+                }
+
                 if (role === "ADMIN" || role === "SUPER_ADMIN") {
                     setTimeout(() => navigate("/admin/dashboard/system"), 100);
                 } else if (role === "STAFF") {
@@ -71,7 +91,11 @@ export const useLogin = () => {
             }
         },
         onError: (error: any) => {
-            const errorMessage = error?.response?.data?.message || "Đăng nhập thất bại!";
+            const errorMessage = 
+                error?.response?.data?.message || 
+                error?.response?.data?.error || 
+                error?.message || 
+                "Đăng nhập thất bại!";
             toast.error(errorMessage);
         }
     });
