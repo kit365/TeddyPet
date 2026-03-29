@@ -18,6 +18,7 @@ import { BlogCreatePage } from "../pages/blog/BlogCreatePage";
 import { BlogDetailPage } from "../pages/blog/BlogDetailPage";
 import { BlogEditPage } from "../pages/blog/BlogEditPage";
 import { LoginPage } from "../pages/authen/LoginPage";
+import { StaffPasswordReissuePage } from "../pages/authen/StaffPasswordReissuePage";
 import { SetupPasswordPage } from "../pages/authen/SetupPasswordPage";
 import { AnalyticsPage } from "../pages/dashboard/AnalyticsPage";
 import { DashboardHome } from "../pages/dashboard/DashboardHome";
@@ -232,6 +233,14 @@ export const AdminRoutes: RouteObject[] = [
     { path: "profile", element: <AdminProfilePage /> },
     { path: "profile/edit", element: <AdminProfileEditPage /> },
     { path: "setup-password", element: <SetupPasswordPage /> },
+    {
+        path: "password-reissue",
+        element: (
+            <AdminOnlyGuard>
+                <StaffPasswordReissuePage />
+            </AdminOnlyGuard>
+        ),
+    },
 ];
 
 export const AdminAuthRoutes: RouteObject[] = [

@@ -9,6 +9,10 @@ import fpt.teddypet.application.dto.request.auth.RegisterRequest;
 import fpt.teddypet.application.dto.request.auth.ResendEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ChangeUnverifiedEmailRequest;
 import fpt.teddypet.application.dto.request.auth.ResetPasswordRequest;
+import fpt.teddypet.application.dto.request.auth.StaffPasswordReissueRequest;
+import fpt.teddypet.application.dto.response.auth.StaffReissueRequestOutcome;
+import fpt.teddypet.application.constants.auth.StaffPasswordReissueMessages;
+import fpt.teddypet.application.port.input.auth.StaffPasswordReissueService;
 import fpt.teddypet.application.dto.request.otp.VerifyOtpRequest;
 import fpt.teddypet.application.dto.common.ApiResponse;
 import fpt.teddypet.application.dto.response.RegisterResponse;
@@ -33,6 +37,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final StaffPasswordReissueService staffPasswordReissueService;
 
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản bằng email và mật khẩu, trả về thông tin xác thực lại email (resend cooldown).")
@@ -120,6 +125,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         passwordResetService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success(PasswordResetMessages.MESSAGE_FORGOT_PASSWORD_SUCCESS));
+    }
+
+    @PostMapping("/staff/password-reissue/request")
+    @Operation(summary = "Nhân viên yêu cầu cấp lại mật khẩu", description = "Gửi thông báo tới Admin/SUPER_ADMIN để duyệt cấp mật khẩu tạm.")
+    public ResponseEntity<ApiResponse<Void>> requestStaffPasswordReissue(
+            @Valid @RequestBody StaffPasswordReissueRequest request) {
+        StaffReissueRequestOutcome outcome = staffPasswordReissueService.requestReissue(request.usernameOrEmail());
+        String msg = outcome == StaffReissueRequestOutcome.ALREADY_PENDING
+                ? StaffPasswordReissueMessages.MESSAGE_REQUEST_ALREADY_PENDING
+                : StaffPasswordReissueMessages.MESSAGE_REQUEST_SUCCESS;
+        return ResponseEntity.ok(ApiResponse.success(msg));
     }
 
     @PostMapping("/mobile/forgot-password")

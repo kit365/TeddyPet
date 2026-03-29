@@ -101,6 +101,11 @@ public interface EmailServicePort {
      */
     void sendAdminInvitationEmail(String to, String link);
 
+    void sendStaffPasswordReissueRequestToAdmin(
+            String to, String adminGreetingName, String staffEmail, String staffDisplayName, String actionUrl);
+
+    void sendStaffTemporaryPasswordEmail(String to, String temporaryPassword, String loginUrl);
+
     /**
      * Send order confirmation email with full details
      * 

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     Box, 
@@ -14,18 +15,23 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { 
-    ShieldCheck, 
-    Calendar, 
-    Users, 
-    Mail, 
-    Phone, 
-    MapPin, 
-    Award, 
-    Briefcase, 
-    Landmark, 
     UserCircle,
-    CheckCircle2
+    CheckCircle2,
+    Key,
+    TriangleAlert
 } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import { forgotPassword } from '../../../../api/auth.api';
+import { 
+    Dialog, 
+    DialogTitle, 
+    DialogContent, 
+    DialogActions, 
+    DialogContentText,
+    CircularProgress
+} from '@mui/material';
+import LockResetIcon from '@mui/icons-material/LockReset';
 
 import { Breadcrumb } from '../../../components/ui/Breadcrumb';
 import { useStaffProfileById } from '../hooks/useStaffProfile';
@@ -101,6 +107,32 @@ export const StaffProfileDetailPage = () => {
 
     const handleEdit = () => {
         navigate(`/${prefixAdmin}/staff/profile/edit/${profile.staffId}`);
+    };
+
+    const [openConfirm, setOpenConfirm] = React.useState(false);
+
+    const resetPasswordMutation = useMutation({
+        mutationFn: () => forgotPassword(profile.email!),
+        onSuccess: () => {
+            toast.success('Yêu cầu cấp lại mật khẩu đã được gửi tới email của nhân sự.');
+            setOpenConfirm(false);
+        },
+        onError: (error: any) => {
+            const msg = error?.response?.data?.message || 'Không thể gửi yêu cầu cấp lại mật khẩu.';
+            toast.error(msg);
+        }
+    });
+
+    const handleResetPassword = () => {
+        if (!profile.email) {
+            toast.warning('Nhân sự này chưa cập nhật email để nhận mã đặt lại mật khẩu.');
+            return;
+        }
+        setOpenConfirm(true);
+    };
+
+    const confirmReset = () => {
+        resetPasswordMutation.mutate();
     };
 
     return (
@@ -311,7 +343,7 @@ export const StaffProfileDetailPage = () => {
                     onClick={() => navigate(`/${prefixAdmin}/staff/profile/list`)} 
                     sx={{ 
                         borderRadius: '12px', textTransform: 'none', fontWeight: 800, fontSize: '0.875rem',
-                        color: '#475569', borderColor: '#E2E8F0', px: 6, height: '48px',
+                        color: '#475569', borderColor: '#E2E8F0', px: 4, height: '48px',
                         bgcolor: 'white',
                         '&:hover': { bgcolor: '#F8FAFC', borderColor: '#CBD5E1' } 
                     }}
@@ -319,12 +351,27 @@ export const StaffProfileDetailPage = () => {
                     Danh sách
                 </Button>
                 <Button 
+                    variant="outlined" 
+                    color="warning"
+                    startIcon={<LockResetIcon />} 
+                    onClick={handleResetPassword}
+                    disabled={!profile.email}
+                    sx={{ 
+                        borderRadius: '12px', textTransform: 'none', fontWeight: 800, fontSize: '0.875rem',
+                        px: 4, height: '48px',
+                        borderWidth: '2px',
+                        '&:hover': { borderWidth: '2px' }
+                    }}
+                >
+                    Cấp lại mật khẩu
+                </Button>
+                <Button 
                     variant="contained" 
                     startIcon={<EditIcon />} 
                     onClick={handleEdit} 
                     sx={{ 
                         bgcolor: '#0F172A', borderRadius: '12px', textTransform: 'none', fontWeight: 800, 
-                        fontSize: '0.875rem', px: 6, height: '48px',
+                        fontSize: '0.875rem', px: 4, height: '48px',
                         boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
                         '&:hover': { bgcolor: '#1E293B', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.3)' } 
                     }}
@@ -332,6 +379,62 @@ export const StaffProfileDetailPage = () => {
                     Chỉnh sửa
                 </Button>
             </Box>
+
+            {/* Confirmation Dialog */}
+            <Dialog
+                open={openConfirm}
+                onClose={() => !resetPasswordMutation.isPending && setOpenConfirm(false)}
+                PaperProps={{
+                    sx: { borderRadius: '24px', p: 1, maxWidth: 450 }
+                }}
+            >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
+                    <Box sx={{ 
+                        bgcolor: '#FFF7ED', p: 1, borderRadius: '12px', color: '#EA580C',
+                        display: 'flex', alignItems: 'center'
+                    }}>
+                        <TriangleAlert size={24} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1C252E' }}>
+                        Cấp lại mật khẩu?
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ color: '#64748B', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+                        Hệ thống sẽ gửi một email hướng dẫn đặt lại mật khẩu tới hòm thư 
+                        <Typography component="span" sx={{ fontWeight: 700, color: '#1C252E', mx: 0.5 }}>
+                            {profile.email}
+                        </Typography> 
+                        của nhân sự này. Bạn có chắc chắn muốn thực hiện?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, gap: 1.5 }}>
+                    <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        onClick={() => setOpenConfirm(false)}
+                        disabled={resetPasswordMutation.isPending}
+                        sx={{ borderRadius: '12px', fontWeight: 700, color: '#64748B', borderColor: '#E2E8F0' }}
+                    >
+                        Hủy bỏ
+                    </Button>
+                    <Button 
+                        fullWidth 
+                        variant="contained" 
+                        color="warning"
+                        onClick={confirmReset}
+                        disabled={resetPasswordMutation.isPending}
+                        startIcon={resetPasswordMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <LockResetIcon />}
+                        sx={{ 
+                            borderRadius: '12px', fontWeight: 700, 
+                            bgcolor: '#EA580C',
+                            '&:hover': { bgcolor: '#C2410C' }
+                        }}
+                    >
+                        {resetPasswordMutation.isPending ? 'Đang gửi...' : 'Xác nhận gửi'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     </ThemeProvider>
     );

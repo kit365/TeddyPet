@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton, Alert } from "@mui/material"
+import { Box, Button, Container, TextField, ThemeProvider, Typography, InputAdornment, IconButton, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material"
 import { Link, useSearchParams } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
+import { useMutation } from "@tanstack/react-query"
+import { requestStaffPasswordReissue } from "../../../api/auth.api"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LogoTeddyPet } from "../../../assets/admin/LogoTeddyPet"
 import { SettingsIcon, EyeIcon, NoEyeIcon } from "../../assets/icons"
@@ -19,6 +21,7 @@ export const LoginPage = () => {
     const forbidden = searchParams.get("forbidden") === "1";
     const [showPassword, setShowPassword] = useState(false);
     const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+    const [reissueDialogOpen, setReissueDialogOpen] = useState(false);
     const handleTogglePasswordVisibility = () => {
         setShowPassword(prev => !prev)
     }
@@ -26,6 +29,9 @@ export const LoginPage = () => {
     const {
         control,
         handleSubmit,
+        getValues,
+        setError,
+        clearErrors,
     } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
@@ -37,9 +43,44 @@ export const LoginPage = () => {
     const { mutate: loginMutate, isPending } = useLogin()
     const { mutate: googleLoginMutate, isPending: isGooglePending } = useGoogleLogin()
 
+    const reissueMutation = useMutation({
+        mutationFn: (usernameOrEmail: string) => requestStaffPasswordReissue(usernameOrEmail),
+        onSuccess: (res) => {
+            setReissueDialogOpen(false);
+            clearErrors("usernameOrEmail");
+            toast.success(res.message ?? "Đã gửi yêu cầu.");
+        },
+        onError: (err: any) => {
+            const msg =
+                err?.response?.data?.message ||
+                err?.message ||
+                "Không thể gửi yêu cầu. Vui lòng thử lại.";
+            setError("usernameOrEmail", { type: "manual", message: msg });
+            setReissueDialogOpen(false);
+        },
+    });
+
     const onSubmit = (data: LoginFormValues) => {
         loginMutate(data)
     }
+
+    const openReissueConfirm = () => {
+        const v = (getValues("usernameOrEmail") || "").trim();
+        if (!v) {
+            setError("usernameOrEmail", {
+                type: "manual",
+                message: "Vui lòng nhập email hoặc tên đăng nhập trước khi gửi yêu cầu.",
+            });
+            return;
+        }
+        clearErrors("usernameOrEmail");
+        setReissueDialogOpen(true);
+    };
+
+    const confirmReissue = () => {
+        const v = (getValues("usernameOrEmail") || "").trim();
+        reissueMutation.mutate(v);
+    };
 
     return (
         <>
@@ -214,9 +255,23 @@ export const LoginPage = () => {
                                                 )}
                                             />
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                                <Link to={'/admin/auth/forgot-password'} className="text-[0.8125rem] text-[#637381] hover:text-[#1C252E] transition-colors font-medium">
-                                                    Quên mật khẩu?
-                                                </Link>
+                                                <Button
+                                                    type="button"
+                                                    variant="text"
+                                                    onClick={openReissueConfirm}
+                                                    disabled={isPending || reissueMutation.isPending}
+                                                    sx={{
+                                                        textTransform: "none",
+                                                        fontSize: "0.8125rem",
+                                                        color: "#637381",
+                                                        fontWeight: 500,
+                                                        minWidth: 0,
+                                                        p: 0,
+                                                        "&:hover": { color: "#1C252E", bgcolor: "transparent" },
+                                                    }}
+                                                >
+                                                    Yêu cầu cấp lại mật khẩu
+                                                </Button>
                                             </Box>
                                         </div>
                                         <Button
@@ -294,6 +349,24 @@ export const LoginPage = () => {
                     </main>
                 </div>
             </ThemeProvider>
+
+            <Dialog open={reissueDialogOpen} onClose={() => !reissueMutation.isPending && setReissueDialogOpen(false)}>
+                <DialogTitle>Gửi yêu cầu cấp lại mật khẩu?</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Yêu cầu sẽ được gửi tới quản trị viên. Bạn sẽ nhận mật khẩu tạm qua email sau khi được duyệt.
+                        Chỉ áp dụng cho tài khoản nhân viên.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setReissueDialogOpen(false)} disabled={reissueMutation.isPending}>
+                        Hủy
+                    </Button>
+                    <Button variant="contained" onClick={confirmReissue} disabled={reissueMutation.isPending}>
+                        {reissueMutation.isPending ? "Đang gửi…" : "Xác nhận gửi"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </>
     )
 }
