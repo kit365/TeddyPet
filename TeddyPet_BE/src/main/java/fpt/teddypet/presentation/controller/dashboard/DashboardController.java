@@ -153,4 +153,11 @@ public class DashboardController {
                 "Today's revenue details retrieved successfully",
                 dashboardService.getTodayRevenueDetails()));
     }
+
+    @GetMapping("/total-revenue-details")
+    public ResponseEntity<ApiResponse<TodayRevenueDetailsResponse>> getTotalRevenueDetails() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Total revenue details retrieved successfully",
+                dashboardService.getTotalRevenueDetails()));
+    }
 }

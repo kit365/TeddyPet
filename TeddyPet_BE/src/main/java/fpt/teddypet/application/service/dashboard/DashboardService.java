@@ -363,7 +363,6 @@ public class DashboardService {
             for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
                 LocalDateTime dayStart = date.atStartOfDay();
                 LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
-                LocalDate finalDate = date;
 
                 BigDecimal orderRevenueForDay = allOrders.stream()
                         .filter(o -> o.getCreatedAt() != null
@@ -724,28 +723,28 @@ public class DashboardService {
 
         public TodayRevenueDetailsResponse getTodayRevenueDetails() {
                 ZoneId vietnam = ZoneId.of("Asia/Ho_Chi_Minh");
-                LocalDate today = LocalDate.now(vietnam);
-                ZonedDateTime startOfDay = today.atStartOfDay(vietnam);
-                ZonedDateTime endOfDay = today.atTime(LocalTime.MAX).atZone(vietnam);
-                ZoneId serverZone = ZoneId.systemDefault();
+                LocalDateTime todayStart = LocalDate.now(vietnam).atStartOfDay();
+                LocalDateTime todayEnd = todayStart.plusDays(1);
 
-                var allOrders = orderRepository.findAll();
-                var allBookings = bookingRepository.findAll();
+                // Orders: COMPLETED or DELIVERED finalized today
+                List<Order> todayOrdersList = orderRepository.findAllByStatusInAndCompletedAtBetween(
+                        List.of(OrderStatusEnum.COMPLETED, OrderStatusEnum.DELIVERED),
+                        todayStart, todayEnd);
+                
+                // Fallback to updatedAt if no completedAt matches
+                if (todayOrdersList.isEmpty()) {
+                    todayOrdersList = orderRepository.findAllByStatusInAndUpdatedAtBetween(
+                            List.of(OrderStatusEnum.COMPLETED, OrderStatusEnum.DELIVERED),
+                            todayStart, todayEnd);
+                }
 
-                List<Order> todayOrdersList = allOrders.stream()
-                        .filter(o -> isInToday(o.getCreatedAt(), startOfDay, endOfDay, serverZone))
-                        .filter(o -> o.getStatus() != OrderStatusEnum.CANCELLED
-                                && o.getStatus() != OrderStatusEnum.RETURNED
-                                && o.getStatus() != OrderStatusEnum.RETURN_REQUESTED)
-                        .toList();
-
-                List<Booking> todayBookingsList = allBookings.stream()
-                        .filter(b -> isInToday(b.getCreatedAt(), startOfDay, endOfDay, serverZone))
-                        .filter(b -> "COMPLETED".equalsIgnoreCase(b.getStatus()) || "FINISHED".equalsIgnoreCase(b.getStatus()))
-                        .toList();
+                // Bookings: COMPLETED status today
+                List<Booking> todayBookingsList = bookingRepository.findAllByStatusAndUpdatedAtBetween(
+                        "COMPLETED",
+                        todayStart, todayEnd);
 
                 BigDecimal todayOrderRevenue = todayOrdersList.stream()
-                        .map(this::resolveOrderAmount)
+                        .map(o -> o.getFinalAmount() != null ? o.getFinalAmount() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 BigDecimal todayBookingRevenue = todayBookingsList.stream()
@@ -784,6 +783,59 @@ public class DashboardService {
                         totalRevenue,
                         todayOrdersList.size(),
                         todayBookingsList.size(),
+                        orderDtos,
+                        bookingDtos
+                );
+        }
+
+        public TodayRevenueDetailsResponse getTotalRevenueDetails() {
+                // Orders: COMPLETED or DELIVERED
+                List<Order> allOrdersList = orderRepository.findAllByStatusIn(
+                        List.of(OrderStatusEnum.COMPLETED, OrderStatusEnum.DELIVERED));
+                
+                // Bookings: COMPLETED status
+                List<Booking> allBookingsList = bookingRepository.findAllByStatus("COMPLETED");
+
+                BigDecimal totalOrderRevenue = allOrdersList.stream()
+                        .map(o -> o.getFinalAmount() != null ? o.getFinalAmount() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal totalBookingRevenue = allBookingsList.stream()
+                        .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal totalRevenue = totalOrderRevenue.add(totalBookingRevenue);
+
+                List<TodayRevenueOrderDto> orderDtos = allOrdersList.stream()
+                        .map(o -> new TodayRevenueOrderDto(
+                                o.getId(),
+                                o.getOrderCode(),
+                                o.getUser() != null ? (o.getUser().getFirstName() + " " + o.getUser().getLastName()) : "Khách vãng lai",
+                                resolveOrderAmount(o),
+                                o.getStatus() != null ? o.getStatus().name() : "",
+                                o.getUpdatedAt() != null ? o.getUpdatedAt() : o.getCreatedAt()
+                        ))
+                        .toList();
+
+                List<TodayRevenueBookingDto> bookingDtos = allBookingsList.stream()
+                        .map(b -> {
+                                String custName = b.getUser() != null ? (b.getUser().getFirstName() + " " + b.getUser().getLastName()) : b.getCustomerName();
+                                return new TodayRevenueBookingDto(
+                                        b.getId(),
+                                        b.getBookingCode(),
+                                        custName,
+                                        b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO,
+                                        b.getStatus(),
+                                        b.getPaymentStatus(),
+                                        b.getUpdatedAt() != null ? b.getUpdatedAt() : b.getCreatedAt()
+                                );
+                        })
+                        .toList();
+
+                return new TodayRevenueDetailsResponse(
+                        totalRevenue,
+                        allOrdersList.size(),
+                        allBookingsList.size(),
                         orderDtos,
                         bookingDtos
                 );

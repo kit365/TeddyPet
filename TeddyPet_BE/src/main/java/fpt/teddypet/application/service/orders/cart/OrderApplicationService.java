@@ -547,6 +547,7 @@ public class OrderApplicationService implements OrderService {
 
         // Send feedback email if completed
         if (status == OrderStatusEnum.COMPLETED && oldStatus != OrderStatusEnum.COMPLETED) {
+            order.setCompletedAt(java.time.LocalDateTime.now());
             try {
                 feedbackService.sendFeedbackEmailsForOrder(orderId);
             } catch (Exception e) {
