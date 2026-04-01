@@ -101,12 +101,14 @@ import { CalendarPage } from "../pages/calendar/CalendarPage";
 import { AdminProfilePage } from "../pages/profile/AdminProfilePage";
 import { AdminProfileEditPage } from "../pages/profile/AdminProfileEditPage";
 import { TransactionListPage } from "../pages/transaction/TransactionListPage";
+import { RevenuePage } from "../pages/revenue/RevenuePage";
 
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardHome /> },
     { path: "dashboard/analytics", element: <AnalyticsPage /> },
     { path: "dashboard/system", element: <SystemPage /> },
+    { path: "dashboard/revenue", element: <RevenuePage /> },
     { path: "dashboard/booking", element: <BookingListPage /> },
     { path: "calendar", element: <AdminOnlyGuard><CalendarPage /></AdminOnlyGuard> },
     { path: "product/list", element: <AdminOnlyGuard><ProductListPage /></AdminOnlyGuard> },

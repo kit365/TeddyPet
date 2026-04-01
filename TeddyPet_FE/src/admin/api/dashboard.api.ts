@@ -209,3 +209,8 @@ export const getTodayRevenueDetails = async () => {
     return response.data;
 };
 
+export const getTotalRevenueDetails = async () => {
+    const response = await apiApp.get<ApiResponse<TodayRevenueDetailsResponse>>(`${BASE_PATH}/total-revenue-details`);
+    return response.data;
+};
+

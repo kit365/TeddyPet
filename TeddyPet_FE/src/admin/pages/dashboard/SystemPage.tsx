@@ -742,6 +742,7 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                             percent={12.5}
                             color="#0062ff"
                             chartData={chartData?.length ? chartData.map(x => x.revenue) : [1000, 1500, 1200, 1800, 1600, 2200, 2000, 2500]}
+                            to={`/${prefixAdmin}/dashboard/revenue`}
                         />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -751,7 +752,6 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                             percent={5.4}
                             color="#0062ff"
                             chartData={[5, 8, 7, 12, 10, 15, 13, 18]}
-                            to={`/${prefixAdmin}/order/list`}
                         />
                     </Grid>
                 </Grid>
@@ -1050,13 +1050,7 @@ export const SystemPage = () => {
             </Grid>
 
 
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 8 }}>
                 <WelcomeWidget
                     title={`Chào mừng trở lại 👋 \n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
                     description="Chào mừng bạn đến với hệ thống quản trị. Hãy bắt đầu quản lý các dịch vụ và đơn hàng của bạn ngay hôm nay."
@@ -1090,13 +1084,7 @@ export const SystemPage = () => {
                 />
             </Grid >
 
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 4 }}>
                 <DashboardCard
                     sx={{
                         backgroundColor: 'var(--palette-common-black)',
@@ -1200,22 +1188,11 @@ export const SystemPage = () => {
             <SystemStats stats={stats} chartData={chartData} ratingSummary={ratingSummary} />
 
 
-            {/* Sales & Balance Section */}
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, 
-                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 8 }}>
                 <SalesOverview stats={stats} isLoading={!stats} hideCosts />
             </Grid>
 
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, 
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 4 }}>
                 <CurrentBalance stats={stats} isLoading={!stats} hideWithdraw hideLowStock onOpenStats={() => setIsTodayRevenueOpen(true)} />
             </Grid>
 
@@ -1229,24 +1206,11 @@ export const SystemPage = () => {
                 <RevenueOverTimeChart />
             </Grid>
 
-            {/* Ngay sau Doanh số tổng quan: Phân bổ thú cưng (trái) + Thống kê dịch vụ (phải) */}
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, lg: 6 }}>
                 <PetDistributionChart data={petDistribution} />
             </Grid>
 
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, lg: 6 }}>
                 <ServiceUsageChart
                     data={serviceStatistics?.months}
                     serviceSeries={serviceStatistics?.services}
@@ -1256,64 +1220,29 @@ export const SystemPage = () => {
                 />
             </Grid>
 
-            {/* Sản phẩm mới (đẩy lên trước) + Top bán chạy */}
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 8 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 8) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 8 }}>
                 <NewProductsTable data={latestProducts} />
             </Grid>
 
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 4 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 4) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 4 }}>
                 <TopSellingProducts data={topSellingProducts} days={topSellingDays} onDaysChange={setTopSellingDays} />
             </Grid>
 
             {/* Tăng trưởng thành viên (trái) + Lượt truy cập theo vùng (phải) */}
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, alignSelf: 'flex-start',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 6 }}>
                 <CustomerGrowthChart data={customerGrowth} />
             </Grid>
 
-            <Grid
-                sx={{
-                    flexBasis: 'auto', flexGrow: 0, alignSelf: 'flex-start',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 6 }}>
                 <CurrentVisitsChart data={visitsByRegion} />
             </Grid>
 
             {/* Bottom Section */}
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 6 }}>
                 <TopCustomers data={topCustomers} />
             </Grid>
 
-            <Grid
-                sx={{
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    width: 'calc(100% * 6 / var(--Grid-parent-columns) - (var(--Grid-parent-columns) - 6) * (var(--Grid-parent-columnSpacing) / var(--Grid-parent-columns)))',
-                }}
-            >
+            <Grid size={{ xs: 12, md: 6 }}>
                 <TopStaff data={topStaff} />
             </Grid>
             
