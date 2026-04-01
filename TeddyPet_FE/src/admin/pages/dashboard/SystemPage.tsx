@@ -416,7 +416,7 @@ const TopStaff = ({ data }: { data?: Array<{ staffId: number; name: string; avat
     );
 };
 
-const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
+const ProgressCard = ({ title, total, percent, color, bgIcon, to }: any) => {
     const isConversion = title === "Conversion";
     const chartColor = isConversion ? "#00a76f" : color || "#00b8d9";
 
@@ -450,7 +450,7 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
         },
     };
 
-    return (
+    const content = (
         <Box sx={{
             p: 3,
             gap: 3,
@@ -514,6 +514,16 @@ const ProgressCard = ({ title, total, percent, color, bgIcon }: any) => {
             </Box>
         </Box>
     );
+
+    if (to) {
+        return (
+            <Link to={to} style={{ textDecoration: 'none' }}>
+                {content}
+            </Link>
+        );
+    }
+
+    return content;
 };
 
 /** Màu biểu đồ (lặp lại nếu nhiều dịch vụ). */
@@ -725,7 +735,7 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                     Kinh doanh
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 8 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <SummaryWidget
                             title="Tổng doanh thu"
                             total={formatMoney(stats?.totalRevenue ?? 0)}
@@ -734,17 +744,7 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                             chartData={chartData?.length ? chartData.map(x => x.revenue) : [1000, 1500, 1200, 1800, 1600, 2200, 2000, 2500]}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 8 }}>
-                        <SummaryWidget
-                            title="Tổng giao dịch (Đơn hàng + Lịch đặt)"
-                            total={((stats?.totalOrders ?? 0) + (stats?.completedBookings ?? 0)).toLocaleString()}
-                            percent={8.2}
-                            color="#0062ff"
-                            chartData={[45, 52, 48, 60, 58, 70, 65, 80]}
-                            to={`/${prefixAdmin}/order/list`}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 8 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <SummaryWidget
                             title="Giao dịch hoàn thành (Đơn hàng + Lịch đặt)"
                             total={((stats?.completedOrders ?? 0) + (stats?.completedBookings ?? 0)).toLocaleString()}
@@ -764,7 +764,7 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                     Khách hàng
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 4 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <SummaryWidget
                             title="Khách hàng"
                             total={stats?.totalCustomers?.toLocaleString() ?? "0"}
@@ -774,22 +774,13 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                             to={`/${prefixAdmin}/user/list`}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <SummaryWidget
-                            title="Đánh giá TB"
-                            total={stats?.avgRating != null ? stats.avgRating.toFixed(1) : "0.0"}
-                            percent={0.2}
-                            color="#0062ff"
-                            chartData={[4.2, 4.5, 4.3, 4.6, 4.4, 4.7, 4.5, 4.8]}
-                            to={`/${prefixAdmin}/feedback/list`}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <ProgressCard
                             title="Độ hài lòng (Rating)"
                             total={ratingSummary != null ? `${Number(ratingSummary.averageScore).toFixed(1)} / 5.0` : '— / 5.0'}
                             percent={ratingSummary != null ? Math.round((ratingSummary.averageScore / 5) * 100) : 0}
                             color="#118d57"
+                            to={`/${prefixAdmin}/feedback/list`}
                             bgIcon={
                                 <svg width="120" height="120" viewBox="0 0 24 24">
                                     <path fill="currentColor" d="m12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72l3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41l-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08z"/>
@@ -1067,7 +1058,7 @@ export const SystemPage = () => {
                 }}
             >
                 <WelcomeWidget
-                    title={`Chào mừng trở lại 👋 \\n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
+                    title={`Chào mừng trở lại 👋 \n ${user ? `${user.lastName} ${user.firstName}` : 'Quản trị viên'}`}
                     description="Chào mừng bạn đến với hệ thống quản trị. Hãy bắt đầu quản lý các dịch vụ và đơn hàng của bạn ngay hôm nay."
                     img="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/illustrations/characters/character-present.webp"
                     bgImg="https://pub-c5e31b5cdafb419fb247a8ac2e78df7a.r2.dev/public/assets/background/background-5.webp"
