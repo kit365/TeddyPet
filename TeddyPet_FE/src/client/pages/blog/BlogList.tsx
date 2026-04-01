@@ -1,9 +1,10 @@
-﻿import { FooterSub } from "../../components/layouts/FooterSub";
+import { FooterSub } from "../../components/layouts/FooterSub";
 import { ProductBanner } from "../product/sections/ProductBanner";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getPublicBlogs } from "../../../api/blog.api";
 import dayjs from "dayjs";
+import { useEffect, useRef } from "react";
 
 const breadcrumbs = [
     { label: "Trang chủ", to: "/" },
@@ -11,10 +12,41 @@ const breadcrumbs = [
 ];
 
 export const BlogListPage = () => {
-    const { data: blogsRes, isLoading } = useQuery({
-        queryKey: ['public-blogs'],
-        queryFn: getPublicBlogs
+    const loaderRef = useRef<HTMLDivElement>(null);
+
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading
+    } = useInfiniteQuery({
+        queryKey: ['public-blogs-infinite'],
+        queryFn: ({ pageParam = 0 }) => getPublicBlogs({ page: pageParam, size: 9, sortKey: 'createdAt', sortDirection: 'desc' }),
+        initialPageParam: 0,
+        getNextPageParam: (lastPage) => {
+            const pageData = lastPage.data;
+            if (pageData.last) return undefined;
+            return pageData.page + 1;
+        },
     });
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loaderRef.current) {
+            observer.observe(loaderRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     if (isLoading) {
         return (
@@ -24,19 +56,12 @@ export const BlogListPage = () => {
         );
     }
 
-    const blogsData = blogsRes?.data;
-    let blogs: any[] = [];
-
-    if (Array.isArray(blogsData)) {
-        blogs = blogsData;
-    } else if (blogsData && typeof blogsData === 'object' && 'content' in blogsData && Array.isArray(blogsData.content)) {
-        blogs = blogsData.content;
-    }
+    const blogs = data?.pages.flatMap(page => page.data.content) || [];
 
     return (
         <>
             <ProductBanner pageTitle="Bài viết" breadcrumbs={breadcrumbs} url="https://wdtsweetheart.wpengine.com/wp-content/uploads/2025/06/bc-blog-listing.jpg" />
-            <section className="relative px-[30px] bg-white">
+            <section className="relative px-[30px] bg-white pt-[50px]">
                 <div className="app-container grid grid-cols-3 gap-[30px] relative">
                     {blogs.map((blog: any) => (
                         <div key={blog.id} className="bg-[#e67e2026] rounded-[20px] overflow-hidden product-item transition-all duration-300 ease-linear hover:bg-client-primary group">
@@ -54,7 +79,7 @@ export const BlogListPage = () => {
                             </div>
 
                             <div className="grid grid-cols-[1fr_auto] gap-[10px]">
-                                <div className="pl-[25px]">
+                                <div className="pl-[25px] pb-[25px]">
                                     <Link
                                         to={`/blog/detail/${blog.slug}`}
                                         className="inline-block text-client-secondary text-[1.375rem] font-secondary leading-[1.4] transition-default ease-in-out group-hover:text-white hover:opacity-90 mb-[10px]"
@@ -79,11 +104,17 @@ export const BlogListPage = () => {
                         </div>
                     ))}
                 </div>
-                <ul className="flex items-center mt-[65px] 2xl:mt-[40px] justify-center gap-[11px] pb-[150px] 2xl:pb-[120px]">
-                    <li className="flex items-center cursor-pointer justify-center bg-client-secondary text-white rounded-full w-[2.8125rem] h-[2.8125rem]">1</li>
-                    <li className="flex items-center cursor-pointer justify-center bg-client-primary hover:bg-client-secondary transition-default text-white rounded-full w-[2.8125rem] h-[2.8125rem]">2</li>
-                    <div className="w-[2.8125rem] h-[2.8125rem] rounded-full bg-client-primary hover:bg-client-secondary cursor-pointer transition-default flex items-center justify-center next-button"></div>
-                </ul>
+
+                {/* Loader Trigger */}
+                <div ref={loaderRef} className="py-20 flex justify-center items-center w-full">
+                    {isFetchingNextPage ? (
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-client-primary"></div>
+                    ) : hasNextPage ? (
+                        <span className="text-gray-400 italic">Cuộn xuống để tải thêm...</span>
+                    ) : (
+                        <span className="text-gray-400 italic">Đã hết bài viết.</span>
+                    )}
+                </div>
             </section>
             <FooterSub />
         </>

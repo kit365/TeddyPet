@@ -15,8 +15,22 @@ const withAuth = () => {
     };
 };
 
-export const getPublicBlogs = async () => {
-    const response = await apiApp.get(BASE_URL, withAuth());
+export const getPublicBlogs = async (params?: {
+    page?: number;
+    size?: number;
+    keyword?: string;
+    categoryId?: number | string;
+    tagId?: number | string;
+    sortKey?: string;
+    sortDirection?: string;
+}) => {
+    const response = await apiApp.get(BASE_URL, {
+        ...withAuth(),
+        params: {
+            ...params,
+            status: 'PUBLISHED' // Chỉ lấy bài viết đã xuất bản
+        }
+    });
     return response.data;
 };
 
