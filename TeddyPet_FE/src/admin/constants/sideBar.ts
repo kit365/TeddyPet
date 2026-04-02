@@ -3,7 +3,6 @@ import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import ArticleIcon from '@mui/icons-material/Article';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import DiscountIcon from '@mui/icons-material/Discount';
 import PersonIcon from '@mui/icons-material/Person';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
@@ -83,17 +82,6 @@ export const menuManagementData = [
             { id: "brand-create", label: "Tạo thương hiệu", tKey: "admin.sidebar.brand_create", path: `/${prefixAdmin}/brand/create`, hidden: true, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
             { id: "tags", label: "Tags", tKey: "admin.sidebar.tags", path: `/${prefixAdmin}/product/list?modal=product-tags`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
             { id: "age-ranges", label: "Độ tuổi", tKey: "admin.sidebar.age-ranges", path: `/${prefixAdmin}/product/list?modal=product-age-ranges`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
-        ]
-    },
-    {
-        id: "coupons",
-        label: "Mã giảm giá",
-        tKey: "admin.sidebar.coupons",
-        Icon: DiscountIcon,
-        allowedRoles: ["ADMIN", "SUPER_ADMIN"],
-        children: [
-            { id: "create", label: "Tạo mã giảm giá", tKey: "admin.sidebar.coupon_create", path: `/${prefixAdmin}/role/create`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
-            { id: "list", label: "Danh sách mã giảm giá", tKey: "admin.sidebar.coupon_list", path: `/${prefixAdmin}/role/list`, allowedRoles: ["ADMIN", "SUPER_ADMIN"] },
         ]
     },
     {

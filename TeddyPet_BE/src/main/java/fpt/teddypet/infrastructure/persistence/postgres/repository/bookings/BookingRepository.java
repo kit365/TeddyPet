@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,5 +43,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             where b.id = :id
             """)
     Optional<Booking> findByIdWithPetsFetch(@Param("id") Long id);
+
+    List<Booking> findAllByStatusAndUpdatedAtBetween(String status, LocalDateTime start, LocalDateTime end);
+
+    List<Booking> findAllByStatus(String status);
 }
 

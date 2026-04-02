@@ -46,6 +46,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatusEnum status, LocalDateTime dateTime);
 
+    List<Order> findAllByStatusInAndCompletedAtBetween(List<OrderStatusEnum> statuses, LocalDateTime start, LocalDateTime end);
+
+    List<Order> findAllByStatusInAndUpdatedAtBetween(List<OrderStatusEnum> statuses, LocalDateTime start, LocalDateTime end);
+
+    List<Order> findAllByStatusIn(List<OrderStatusEnum> statuses);
+
     @Query("SELECT DISTINCT o FROM Order o JOIN o.payments p " +
             "WHERE o.status = :status " +
             "AND p.paymentMethod = :method " +
