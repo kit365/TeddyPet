@@ -1,51 +1,84 @@
-import { useMemo, useState } from 'react';
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
-import { ListHeader } from '../../../components/ui/ListHeader';
-import { prefixAdmin } from '../../../constants/routes';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getStaffProfiles } from '../../../api/staffProfile.api';
+﻿import { useMemo, useState } from 'react';
+import { Box, MenuItem, Select } from '@mui/material';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { getStaffPositions } from '../../../api/staffPosition.api';
+import { getStaffProfiles } from '../../../api/staffProfile.api';
 import {
-    getFixedSchedulesByStaffId,
     createFixedSchedule,
     deleteFixedSchedule,
+    getFixedSchedulesByStaffId,
     type IStaffFixedSchedule,
     type IStaffFixedScheduleRequest,
 } from '../../../api/staffFixedSchedule.api';
+import { ListHeader } from '../../../components/ui/ListHeader';
+import { prefixAdmin } from '../../../constants/routes';
 import { ApiResponse } from '../../../config/type';
-import { toast } from 'react-toastify';
-import { Plus, Trash2 } from 'lucide-react';
 
 const DAY_LABELS: Record<number, string> = {
-    1: 'Thứ 2',
-    2: 'Thứ 3',
-    3: 'Thứ 4',
-    4: 'Thứ 5',
-    5: 'Thứ 6',
-    6: 'Thứ 7',
-    7: 'Chủ nhật',
+    1: 'Thu 2',
+    2: 'Thu 3',
+    3: 'Thu 4',
+    4: 'Thu 5',
+    5: 'Thu 6',
+    6: 'Thu 7',
+    7: 'Chu nhat',
 };
 
+const DAYS = [1, 2, 3, 4, 5, 6, 7];
 const DAY_SHORT_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const SLOT_OPTIONS = [
+    { label: 'Sang', value: 0 },
+    { label: 'Chieu', value: 1 },
+];
+const DAY_PRESETS = [
+    { label: 'T2-T6', values: [1, 2, 3, 4, 5] },
+    { label: 'Cuoi tuan', values: [6, 7] },
+    { label: 'Ca tuan', values: [1, 2, 3, 4, 5, 6, 7] },
+];
 
-/** Rút gọn tên chức vụ để hiển thị trong card, tránh tràn/xuống dòng. */
-function getShortPositionLabel(fullName: string): string {
+const selectSx = {
+    '& .MuiSelect-select': {
+        backgroundColor: '#F9FAFB',
+        borderRadius: '0.75rem',
+        paddingTop: '10px',
+        paddingBottom: '10px',
+    },
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#93C5FD' },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3B82F6' },
+};
+
+type ProfileItem = {
+    staffId?: number;
+    id?: number;
+    fullName: string;
+    employmentType?: string;
+};
+
+function getShortPositionLabel(fullName: string) {
     const raw = (fullName ?? '').trim();
-    const n = raw.toLowerCase();
-    if (!n) return '—';
-    if (n.includes('thu ngân') || n.includes('thủ ngân') || n.includes('bán hàng')) return 'Thu ngân';
-    if (n.includes('spa')) return 'Spa';
-    if (n.includes('chăm sóc')) return 'Chăm sóc';
-    if (n.includes('tư vấn')) return 'Tư vấn';
-    if (n.includes('kỹ thuật')) return 'Kỹ thuật';
-    return raw.length > 8 ? raw.slice(0, 7) + '…' : raw;
+    const text = raw.toLowerCase();
+    if (!text) return '-';
+    if (text.includes('thu ngan') || text.includes('thu ngan') || text.includes('ban hang')) return 'Thu ngan';
+    if (text.includes('spa')) return 'Spa';
+    if (text.includes('cham soc')) return 'Cham soc';
+    if (text.includes('tu van')) return 'Tu van';
+    if (text.includes('ky thuat')) return 'Ky thuat';
+    return raw.length > 10 ? `${raw.slice(0, 9)}...` : raw;
+}
+
+function uniq(values: number[]) {
+    return Array.from(new Set(values)).sort((a, b) => a - b);
 }
 
 export const StaffFixedSchedulePage = () => {
     const [selectedStaffId, setSelectedStaffId] = useState<number | ''>('');
     const [formPositionId, setFormPositionId] = useState<number | ''>('');
-    const [formDayOfWeek, setFormDayOfWeek] = useState<number>(1);
-    const [formIsAfternoon, setFormIsAfternoon] = useState(false);
+    const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+    const [selectedSlots, setSelectedSlots] = useState<number[]>([0]);
+    const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -54,10 +87,10 @@ export const StaffFixedSchedulePage = () => {
         queryFn: getStaffProfiles,
         select: (res: ApiResponse<any>) => res.data ?? [],
     });
-    type ProfileItem = { staffId?: number; id?: number; fullName: string; employmentType?: string };
     const profiles = (profilesRes ?? []) as ProfileItem[];
-    const fullTimeProfiles = profiles.filter((p) => p.employmentType === 'FULL_TIME');
-    const getStaffId = (p: ProfileItem) => (typeof p.staffId === 'number' ? p.staffId : p.id) as number | undefined;
+    const fullTimeProfiles = profiles.filter((item) => item.employmentType === 'FULL_TIME');
+    const getStaffId = (item: ProfileItem) =>
+        (typeof item.staffId === 'number' ? item.staffId : item.id) as number | undefined;
 
     const { data: positionsRes } = useQuery({
         queryKey: ['staff-positions'],
@@ -65,6 +98,10 @@ export const StaffFixedSchedulePage = () => {
         select: (res: ApiResponse<any>) => res.data ?? [],
     });
     const positions = (positionsRes ?? []) as { id: number; name: string }[];
+    const activePosition = useMemo(
+        () => positions.find((item) => item.id === formPositionId),
+        [formPositionId, positions],
+    );
 
     const { data: schedulesRes, isLoading: loadingSchedules } = useQuery({
         queryKey: ['staff-fixed-schedules', selectedStaffId],
@@ -79,313 +116,393 @@ export const StaffFixedSchedulePage = () => {
             Array.from({ length: 7 }, () => []),
             Array.from({ length: 7 }, () => []),
         ];
-        for (const s of schedules) {
-            const dayIdx = (Number(s.dayOfWeek) || 1) - 1;
-            const slotIdx = s.isAfternoon ? 1 : 0;
-            if (dayIdx < 0 || dayIdx > 6 || slotIdx < 0 || slotIdx > 1) continue;
-            matrix[slotIdx][dayIdx].push(s);
+        for (const item of schedules) {
+            const dayIdx = (Number(item.dayOfWeek) || 1) - 1;
+            const slotIdx = item.isAfternoon ? 1 : 0;
+            if (dayIdx >= 0 && dayIdx <= 6) matrix[slotIdx][dayIdx].push(item);
         }
         return matrix;
     }, [schedules]);
 
+    const hasDuplicate = (positionId: number, dayOfWeek: number, isAfternoon: boolean) =>
+        schedules.some(
+            (item) =>
+                Number(item.positionId) === positionId &&
+                Number(item.dayOfWeek) === dayOfWeek &&
+                Boolean(item.isAfternoon) === isAfternoon,
+        );
+
+    const bulkCandidates = useMemo(() => {
+        if (typeof formPositionId !== 'number' || formPositionId <= 0) return [];
+        return uniq(selectedDays).flatMap((dayOfWeek) =>
+            uniq(selectedSlots).map((slot) => ({
+                positionId: formPositionId,
+                dayOfWeek,
+                isAfternoon: slot === 1,
+                exists: hasDuplicate(formPositionId, dayOfWeek, slot === 1),
+            })),
+        );
+    }, [formPositionId, schedules, selectedDays, selectedSlots]);
+
+    const addableBulkCandidates = bulkCandidates.filter((item) => !item.exists);
+    const duplicateBulkCount = bulkCandidates.length - addableBulkCandidates.length;
+
     const createMutation = useMutation({
         mutationFn: (body: IStaffFixedScheduleRequest) => createFixedSchedule(body),
-        onSuccess: (res) => {
+        onSuccess: async (res) => {
             if (res?.success !== false) {
-                queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
-                setFormPositionId('');
-                setFormDayOfWeek(1);
-                setFormIsAfternoon(false);
+                await queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
             }
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: (scheduleId: number) => deleteFixedSchedule(scheduleId),
-        onSuccess: (res) => {
+        onSuccess: async (res) => {
             if (res?.success) {
-                toast.success(res?.message ?? 'Đã xóa lịch cố định.');
-                queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
-            } else toast.error(res?.message ?? 'Xóa thất bại');
+                toast.success('Da xoa lich co dinh.');
+                await queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
+            } else {
+                toast.error('Xoa that bai.');
+            }
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? 'Xóa lịch cố định thất bại'),
+        onError: (error: any) =>
+            toast.error(error?.response?.data?.message ?? error?.message ?? 'Xoa lich co dinh that bai.'),
     });
 
-    const handleAdd = () => {
+    const ensureSelections = () => {
         if (typeof selectedStaffId !== 'number' || selectedStaffId <= 0) {
-            toast.warning('Chọn nhân viên.');
-            return;
+            toast.warning('Chon nhan vien truoc.');
+            return false;
         }
         if (typeof formPositionId !== 'number' || formPositionId <= 0) {
-            toast.warning('Chọn chức vụ.');
-            return;
+            toast.warning('Chon chuc vu truoc.');
+            return false;
         }
-        const posId = Number(formPositionId);
-        const day = Number(formDayOfWeek);
-        const afternoon = Boolean(formIsAfternoon);
-        const isDuplicate = schedules.some(
-            (s) =>
-                Number(s.positionId) === posId &&
-                Number(s.dayOfWeek) === day &&
-                Boolean(s.isAfternoon) === afternoon
-        );
-        if (isDuplicate) {
-            toast.error('Dữ liệu đã tồn tại.', { autoClose: 5000 });
-            return;
-        }
-        createMutation.mutate(
-            {
-                staffId: selectedStaffId,
-                positionId: formPositionId,
-                dayOfWeek: formDayOfWeek,
-                isAfternoon: formIsAfternoon,
-            },
-            {
-                onSuccess: (res) => {
-                    if (res?.success !== false) {
-                        toast.success(res?.message ?? 'Đã thêm lịch cố định.');
-                    } else {
-                        toast.error(res?.message ?? 'Thất bại', { autoClose: 5000 });
-                    }
-                },
-                onError: (err: any) => {
-                    const status = err?.response?.status;
-                    const data = err?.response?.data;
-                    const msg =
-                        (typeof data?.message === 'string' && data.message) ||
-                        (typeof data?.error === 'string' && data.error) ||
-                        err?.message;
-                    if (status === 400) {
-                        toast.error('Dữ liệu đã tồn tại.', { autoClose: 5000 });
-                    } else {
-                        toast.error(String(msg || 'Thêm lịch cố định thất bại'), { autoClose: 5000 });
-                    }
-                },
-            }
+        return true;
+    };
+
+    const toggleDay = (day: number) => {
+        setSelectedDays((prev) => (prev.includes(day) ? prev.filter((item) => item !== day) : uniq([...prev, day])));
+    };
+
+    const toggleSlot = (slot: number) => {
+        setSelectedSlots((prev) =>
+            prev.includes(slot) ? prev.filter((item) => item !== slot) : uniq([...prev, slot]),
         );
     };
+
+    const handleQuickCellAdd = async (dayOfWeek: number, isAfternoon: boolean) => {
+        if (!ensureSelections()) return;
+        if (hasDuplicate(formPositionId as number, dayOfWeek, isAfternoon)) {
+            toast.info('Ca nay da co san cho chuc vu dang chon.');
+            return;
+        }
+        try {
+            const res = await createMutation.mutateAsync({
+                staffId: selectedStaffId as number,
+                positionId: formPositionId as number,
+                dayOfWeek,
+                isAfternoon,
+            });
+            if (res?.success !== false) {
+                toast.success(
+                    `Da them ${activePosition?.name ?? 'chuc vu'} vao ${DAY_LABELS[dayOfWeek]} ${
+                        isAfternoon ? 'buoi chieu' : 'buoi sang'
+                    }.`,
+                );
+            } else {
+                toast.error(res?.message ?? 'Khong the them lich co dinh.');
+            }
+        } catch (error: any) {
+            const status = error?.response?.status;
+            const message =
+                error?.response?.data?.message ??
+                error?.response?.data?.error ??
+                error?.message ??
+                'Them lich co dinh that bai.';
+            toast.error(status === 400 ? 'Ca nay da ton tai.' : String(message));
+        }
+    };
+
+    const handleBulkAdd = async () => {
+        if (!ensureSelections()) return;
+        if (selectedDays.length === 0) return toast.warning('Chon it nhat 1 ngay.');
+        if (selectedSlots.length === 0) return toast.warning('Chon it nhat 1 buoi.');
+        if (addableBulkCandidates.length === 0) return toast.info('Cac ca dang chon deu da ton tai.');
+
+        setIsBulkSubmitting(true);
+        try {
+            const results = await Promise.allSettled(
+                addableBulkCandidates.map((item) =>
+                    createFixedSchedule({
+                        staffId: selectedStaffId as number,
+                        positionId: item.positionId,
+                        dayOfWeek: item.dayOfWeek,
+                        isAfternoon: item.isAfternoon,
+                    }),
+                ),
+            );
+            const successCount = results.filter(
+                (item) => item.status === 'fulfilled' && item.value?.success !== false,
+            ).length;
+            const failedCount = results.length - successCount;
+            if (successCount > 0) {
+                await queryClient.invalidateQueries({ queryKey: ['staff-fixed-schedules', selectedStaffId] });
+                toast.success(`Da them nhanh ${successCount} ca co dinh.`);
+            }
+            if (failedCount > 0) {
+                toast.warning(`${failedCount} ca chua them duoc. He thong da bo qua ca loi hoac trung.`);
+            }
+        } finally {
+            setIsBulkSubmitting(false);
+        }
+    };
+
+    const currentSelectionLabel = activePosition?.name ?? 'Chua chon chuc vu';
 
     return (
         <>
             <ListHeader
-                title="Lịch cố định Full-time"
+                title="Lich co dinh Full-time"
                 breadcrumbItems={[
-                    { label: 'Trang chủ', to: '/' },
-                    { label: 'Nhân sự', to: `/${prefixAdmin}/staff/profile/list` },
-                    { label: 'Lịch cố định' },
+                    { label: 'Trang chu', to: '/' },
+                    { label: 'Nhan su', to: `/${prefixAdmin}/staff/profile/list` },
+                    { label: 'Lich co dinh' },
                 ]}
             />
             <Box sx={{ px: { xs: 2, sm: 3, md: '40px' }, pb: 3, mt: 3 }}>
                 <Box className="space-y-6">
-                    <Box className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all">
-                        <div className="flex flex-col gap-4">
-                            <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-1.5">
-                                    Nhân viên (Full-time)
-                                </label>
-                                <div className="relative">
-                                    <Select
-                                        fullWidth
-                                        size="small"
-                                        value={selectedStaffId}
-                                        displayEmpty
-                                        onChange={(e) =>
-                                            setSelectedStaffId(e.target.value === '' ? '' : Number(e.target.value))
-                                        }
-                                        sx={{
-                                            '& .MuiSelect-select': {
-                                                backgroundColor: '#F9FAFB',
-                                                borderRadius: '0.75rem',
-                                                paddingTop: '10px',
-                                                paddingBottom: '10px',
-                                            },
-                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                borderColor: '#E5E7EB',
-                                            },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                borderColor: '#93C5FD',
-                                            },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                borderColor: '#3B82F6',
-                                            },
-                                        }}
-                                    >
-                                        <MenuItem value="">— Chọn nhân viên —</MenuItem>
-                                        {fullTimeProfiles.map((p) => {
-                                            const sid = getStaffId(p);
-                                            if (sid == null || sid <= 0) return null;
-                                            return (
-                                                <MenuItem key={sid} value={sid}>
-                                                    {p.fullName}
-                                                </MenuItem>
-                                            );
-                                        })}
-                                        {fullTimeProfiles.length === 0 && (
-                                            <MenuItem value="" disabled>
-                                                Chưa có nhân viên Full-time
-                                            </MenuItem>
-                                        )}
-                                    </Select>
-                                </div>
-                            </div>
+                    <Box className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <label className="mb-1.5 block text-base font-semibold text-gray-700">Nhan vien Full-time</label>
+                        <Select
+                            fullWidth
+                            size="small"
+                            value={selectedStaffId}
+                            displayEmpty
+                            onChange={(e) => {
+                                const value = e.target.value as string | number;
+                                setSelectedStaffId(value === '' ? '' : Number(value));
+                            }}
+                            sx={selectSx}
+                        >
+                            <MenuItem value="">- Chon nhan vien -</MenuItem>
+                            {fullTimeProfiles.map((item) => {
+                                const staffId = getStaffId(item);
+                                if (staffId == null || staffId <= 0) return null;
+                                return (
+                                    <MenuItem key={staffId} value={staffId}>
+                                        {item.fullName}
+                                    </MenuItem>
+                                );
+                            })}
+                        </Select>
 
-                            {selectedStaffId && (
-                                <div className="mt-2 space-y-4">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <h3 className="text-base font-semibold text-gray-800">
-                                            Thêm slot lịch cố định
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Cấu hình nhanh các ca làm lặp lại
+                        {selectedStaffId && (
+                            <div className="mt-5 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-sky-50 p-5">
+                                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-slate-900">Thiet ke them nhanh</h3>
+                                        <p className="text-sm text-slate-600">
+                                            Chon chuc vu 1 lan, chon nhieu ngay va nhieu buoi, roi them cung luc.
                                         </p>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormControl size="small" fullWidth>
-                                            <InputLabel>Chức vụ</InputLabel>
-                                            <Select
-                                                value={formPositionId}
-                                                label="Chức vụ"
-                                                onChange={(e) =>
-                                                    setFormPositionId(
-                                                        e.target.value === '' ? '' : Number(e.target.value),
-                                                    )
-                                                }
-                                                sx={{
-                                                    '& .MuiSelect-select': {
-                                                        backgroundColor: '#F9FAFB',
-                                                        borderRadius: '0.75rem',
-                                                        paddingTop: '10px',
-                                                        paddingBottom: '10px',
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#E5E7EB',
-                                                    },
-                                                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#93C5FD',
-                                                    },
-                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#3B82F6',
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value="">— Chọn —</MenuItem>
-                                                {positions.map((p) => (
-                                                    <MenuItem key={p.id} value={p.id}>
-                                                        {p.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-
-                                        <FormControl size="small" fullWidth>
-                                            <InputLabel>Thứ</InputLabel>
-                                            <Select
-                                                value={formDayOfWeek}
-                                                label="Thứ"
-                                                onChange={(e) => setFormDayOfWeek(Number(e.target.value))}
-                                                sx={{
-                                                    '& .MuiSelect-select': {
-                                                        backgroundColor: '#F9FAFB',
-                                                        borderRadius: '0.75rem',
-                                                        paddingTop: '10px',
-                                                        paddingBottom: '10px',
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#E5E7EB',
-                                                    },
-                                                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#93C5FD',
-                                                    },
-                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#3B82F6',
-                                                    },
-                                                }}
-                                            >
-                                                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                                                    <MenuItem key={d} value={d}>
-                                                        {DAY_LABELS[d]}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-
-                                        <FormControl size="small" fullWidth>
-                                            <InputLabel>Buổi</InputLabel>
-                                            <Select
-                                                value={formIsAfternoon ? 1 : 0}
-                                                label="Buổi"
-                                                onChange={(e) => setFormIsAfternoon(e.target.value === 1)}
-                                                sx={{
-                                                    '& .MuiSelect-select': {
-                                                        backgroundColor: '#F9FAFB',
-                                                        borderRadius: '0.75rem',
-                                                        paddingTop: '10px',
-                                                        paddingBottom: '10px',
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#E5E7EB',
-                                                    },
-                                                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#93C5FD',
-                                                    },
-                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#3B82F6',
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value={0}>Sáng</MenuItem>
-                                                <MenuItem value={1}>Chiều</MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                    </div>
-
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={handleAdd}
-                                            disabled={createMutation.isPending || !formPositionId}
-                                            className={`inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold shadow-sm transition-all ${
-                                                createMutation.isPending || !formPositionId
-                                                    ? 'bg-gray-400 text-white opacity-50 cursor-not-allowed'
-                                                    : 'bg-gray-900 hover:bg-gray-800 text-white'
-                                            }`}
-                                        >
-                                            <Plus className="h-3 w-3" />
-                                            <span>{createMutation.isPending ? 'Đang thêm...' : 'Thêm'}</span>
-                                        </button>
+                                    <div className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm ring-1 ring-blue-100">
+                                        Giam thao tac chon lap lai
                                     </div>
                                 </div>
-                            )}
-                        </div>
+
+                                <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+                                    <div className="space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">1. Chon chuc vu</p>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {positions.map((item) => {
+                                                    const active = formPositionId === item.id;
+                                                    return (
+                                                        <button
+                                                            key={item.id}
+                                                            type="button"
+                                                            onClick={() => setFormPositionId(item.id)}
+                                                            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                                                active
+                                                                    ? 'border-blue-600 bg-blue-600 text-white'
+                                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50'
+                                                            }`}
+                                                        >
+                                                            {active && <Check className="h-4 w-4" />}
+                                                            <span>{item.name}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-sm font-semibold text-gray-800">2. Chon ngay</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {DAY_PRESETS.map((item) => (
+                                                        <button
+                                                            key={item.label}
+                                                            type="button"
+                                                            onClick={() => setSelectedDays(item.values)}
+                                                            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-blue-200 hover:bg-blue-50"
+                                                        >
+                                                            {item.label}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedDays([])}
+                                                        className="rounded-full px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                                                    >
+                                                        Xoa chon
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {DAYS.map((day) => {
+                                                    const active = selectedDays.includes(day);
+                                                    return (
+                                                        <button
+                                                            key={day}
+                                                            type="button"
+                                                            onClick={() => toggleDay(day)}
+                                                            className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                                                                active
+                                                                    ? 'border-blue-600 bg-blue-600 text-white'
+                                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50'
+                                                            }`}
+                                                        >
+                                                            {DAY_LABELS[day]}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-sm font-semibold text-gray-800">3. Chon buoi</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedSlots([0, 1])}
+                                                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-blue-200 hover:bg-blue-50"
+                                                >
+                                                    Ca ngay
+                                                </button>
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {SLOT_OPTIONS.map((item) => {
+                                                    const active = selectedSlots.includes(item.value);
+                                                    return (
+                                                        <button
+                                                            key={item.value}
+                                                            type="button"
+                                                            onClick={() => toggleSlot(item.value)}
+                                                            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                                                                active
+                                                                    ? 'border-slate-900 bg-slate-900 text-white'
+                                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                                                            }`}
+                                                        >
+                                                            {item.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-900 p-4 text-white">
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Tom tat</p>
+                                            <div className="rounded-2xl bg-white/10 p-4">
+                                                <p className="text-sm text-slate-300">Chuc vu dang chon</p>
+                                                <p className="mt-1 text-lg font-semibold">{currentSelectionLabel}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="rounded-2xl bg-white/10 p-4">
+                                                    <p className="text-sm text-slate-300">O da chon</p>
+                                                    <p className="mt-1 text-2xl font-semibold">{bulkCandidates.length}</p>
+                                                </div>
+                                                <div className="rounded-2xl bg-emerald-400/15 p-4">
+                                                    <p className="text-sm text-emerald-100">Co the them</p>
+                                                    <p className="mt-1 text-2xl font-semibold text-emerald-200">
+                                                        {addableBulkCandidates.length}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                                                {duplicateBulkCount > 0
+                                                    ? `Co ${duplicateBulkCount} ca da ton tai va se duoc bo qua tu dong.`
+                                                    : 'Tat ca lua chon hien tai deu co the them ngay.'}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 space-y-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleBulkAdd}
+                                                disabled={
+                                                    isBulkSubmitting ||
+                                                    typeof formPositionId !== 'number' ||
+                                                    addableBulkCandidates.length === 0
+                                                }
+                                                className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold transition ${
+                                                    isBulkSubmitting ||
+                                                    typeof formPositionId !== 'number' ||
+                                                    addableBulkCandidates.length === 0
+                                                        ? 'cursor-not-allowed bg-white/10 text-slate-400'
+                                                        : 'bg-white text-slate-900 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                <span>
+                                                    {isBulkSubmitting
+                                                        ? 'Dang them nhanh...'
+                                                        : `Them nhanh ${addableBulkCandidates.length} ca`}
+                                                </span>
+                                            </button>
+                                            <p className="text-xs text-slate-400">
+                                                Co the giu nguyen bo chon de ap cho chuc vu khac ma khong can chon lai.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </Box>
 
                     {selectedStaffId && (
-                        <Box className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-2">
-                            <div className="flex items-center justify-between mb-4">
+                        <Box className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                 <div>
-                                    <h3 className="text-base font-semibold text-gray-800">
-                                        Lịch cố định đã cấu hình
-                                    </h3>
+                                    <h3 className="text-base font-semibold text-gray-800">Lich co dinh da cau hinh</h3>
+                                    <p className="text-sm text-gray-500">
+                                        Khi da chon chuc vu, co the them nhanh truc tiep tren tung o trong bang.
+                                    </p>
+                                </div>
+                                <div className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
+                                    Chuc vu hien tai: {currentSelectionLabel}
                                 </div>
                             </div>
 
                             {loadingSchedules ? (
-                                <div className="py-3 text-sm text-gray-500">Đang tải...</div>
-                            ) : schedules.length === 0 ? (
-                                <div className="py-3 text-sm text-gray-500">Chưa có dữ liệu.</div>
+                                <div className="py-3 text-sm text-gray-500">Dang tai...</div>
                             ) : (
-                                <div className="mt-4 w-full rounded-md border border-gray-200 bg-white shadow-sm overflow-hidden">
+                                <div className="mt-4 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                                     <table className="w-full table-fixed border-collapse">
                                         <thead>
                                             <tr className="border-b border-gray-200 bg-gray-50">
-                                                <th className="w-[10%] p-1.5 text-center text-sm font-semibold text-gray-700 border-r border-gray-200">
-                                                    Buổi / Ngày
+                                                <th className="w-[10%] border-r border-gray-200 p-2 text-center text-sm font-semibold text-gray-700">
+                                                    Buoi / Ngay
                                                 </th>
                                                 {DAY_SHORT_LABELS.map((label) => (
                                                     <th
                                                         key={label}
-                                                        className="p-1.5 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0"
+                                                        className="border-r border-gray-200 p-2 text-center text-sm font-semibold text-gray-700 last:border-r-0"
                                                     >
                                                         {label}
                                                     </th>
@@ -394,50 +511,73 @@ export const StaffFixedSchedulePage = () => {
                                         </thead>
                                         <tbody>
                                             {[
-                                                { label: 'Sáng', slotIndex: 0 },
-                                                { label: 'Chiều', slotIndex: 1 },
+                                                { label: 'Sang', slotIndex: 0 },
+                                                { label: 'Chieu', slotIndex: 1 },
                                             ].map(({ label, slotIndex }) => (
                                                 <tr key={label} className="border-b border-gray-200 last:border-b-0">
-                                                    <td className="p-[5px] text-center text-sm font-semibold text-gray-700 border-r border-gray-200 bg-gray-50/50 align-top">
+                                                    <td className="border-r border-gray-200 bg-gray-50/50 p-2 text-center text-sm font-semibold text-gray-700 align-top">
                                                         {label}
                                                     </td>
                                                     {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
+                                                        const dayOfWeek = dayIdx + 1;
                                                         const cellItems = scheduleMatrix[slotIndex][dayIdx];
+                                                        const canQuickAdd =
+                                                            typeof formPositionId === 'number' &&
+                                                            !hasDuplicate(formPositionId, dayOfWeek, slotIndex === 1);
+
                                                         return (
                                                             <td
                                                                 key={dayIdx}
-                                                                className="p-[5px] border-r border-gray-200 align-top last:border-r-0"
+                                                                className="border-r border-gray-200 p-2 align-top last:border-r-0"
                                                             >
-                                                                {cellItems.length === 0 ? (
-                                                                    // Không cấu hình ca → ô trống hoàn toàn
-                                                                    <div className="min-h-[60px] w-full" aria-label="Chưa cấu hình" />
-                                                                ) : (
-                                                                    <div className="flex flex-col gap-1">
-                                                                        {cellItems.map((s) => (
-                                                                            <div
-                                                                                key={s.scheduleId}
-                                                                                className="group relative w-full h-full rounded-md border border-gray-200 border-l-4 border-l-indigo-500 bg-white py-1.5 px-2 shadow-sm flex items-center justify-center min-h-[2rem]"
+                                                                <div className="flex min-h-[92px] flex-col gap-2">
+                                                                    {cellItems.length === 0 && (
+                                                                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-2 py-3 text-center text-[11px] text-slate-400">
+                                                                            Chua co ca
+                                                                        </div>
+                                                                    )}
+
+                                                                    {cellItems.map((item) => (
+                                                                        <div
+                                                                            key={item.scheduleId}
+                                                                            className="group relative flex min-h-[2.5rem] items-center justify-center rounded-xl border border-gray-200 border-l-4 border-l-indigo-500 bg-white px-2 py-2 shadow-sm"
+                                                                        >
+                                                                            <span
+                                                                                className="w-full overflow-hidden whitespace-nowrap pr-4 text-center text-[11px] font-semibold text-gray-700"
+                                                                                title={item.positionName}
                                                                             >
-                                                                                <span
-                                                                                    className="text-[11px] font-semibold text-gray-700 whitespace-nowrap overflow-hidden text-center flex items-center justify-center w-full pr-3"
-                                                                                    title={s.positionName}
-                                                                                >
-                                                                                    {getShortPositionLabel(s.positionName || '')}
+                                                                                {getShortPositionLabel(item.positionName || '')}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={deleteMutation.isPending}
+                                                                                onClick={() => deleteMutation.mutate(item.scheduleId)}
+                                                                                className="absolute right-1 top-1 rounded-md p-1 text-gray-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                            >
+                                                                                <Trash2 className="h-3 w-3" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+
+                                                                    {typeof formPositionId === 'number' &&
+                                                                        (canQuickAdd ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleQuickCellAdd(dayOfWeek, slotIndex === 1)}
+                                                                                disabled={createMutation.isPending}
+                                                                                className="mt-auto inline-flex items-center justify-center gap-1 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-2 py-2 text-[11px] font-semibold text-blue-700 hover:border-blue-400 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                            >
+                                                                                <Plus className="h-3 w-3" />
+                                                                                <span>
+                                                                                    Them {getShortPositionLabel(currentSelectionLabel)}
                                                                                 </span>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    disabled={deleteMutation.isPending}
-                                                                                    onClick={() => {
-                                                                                        deleteMutation.mutate(s.scheduleId);
-                                                                                    }}
-                                                                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
-                                                                                >
-                                                                                    <Trash2 className="h-1.5 w-1.5" />
-                                                                                </button>
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="mt-auto rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-[11px] font-semibold text-emerald-700">
+                                                                                {getShortPositionLabel(currentSelectionLabel)} da co
                                                                             </div>
                                                                         ))}
-                                                                    </div>
-                                                                )}
+                                                                </div>
                                                             </td>
                                                         );
                                                     })}
