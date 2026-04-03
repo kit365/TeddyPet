@@ -12,7 +12,6 @@ import type {
     AdminCheckInRepricePreviewRequest,
     AdminCheckInRepricePreviewResponse,
   AdminCheckOutConfirmRequest,
-  AdminBookingNoShowPreviewResponse,
 } from '../../types/booking.type';
 
 const BASE_URL = '/api/admin/bookings';
@@ -102,8 +101,6 @@ export interface ApproveCancelRequest {
     approved: boolean;
     staffNotes?: string;
     refundProof?: string;
-    /** Admin hủy đơn khi khách chưa gửi yêu cầu (kèm approved: true). */
-    forceAdminCancel?: boolean;
 }
 
 export const approveOrRejectAdminCancelRequest = async (
@@ -147,16 +144,7 @@ export const cancelAdminBooking = async (
     bookingId: string | number,
     body?: CancelAdminBookingRequest
 ): Promise<ApiResponse<BookingResponse>> => {
-    // BE không có endpoint /cancel; dùng /cancel-request với approved=true để hủy.
-    const response = await apiApp.patch(
-        `${BASE_URL}/${bookingId}/cancel-request`,
-        {
-            approved: true,
-            staffNotes: body?.reason?.trim() || undefined,
-            forceAdminCancel: true,
-        },
-        withAuth()
-    );
+    const response = await apiApp.patch(`${BASE_URL}/${bookingId}/cancel`, body || {}, withAuth());
     return response.data;
 };
 
@@ -255,31 +243,21 @@ export const createBookingPayosPaymentLink = async (
     bookingId: string | number,
     returnUrl?: string
 ): Promise<ApiResponse<string>> => {
-    const response = await apiApp.post(`${BASE_URL}/${bookingId}/payment-link/payos`, null, {
-        ...withAuth(),
-        params: returnUrl ? { returnUrl } : undefined,
-    });
+    const response = await apiApp.post<ApiResponse<string>>(
+        `${BASE_URL}/${bookingId}/payment-link/payos`,
+        null,
+        {
+            ...withAuth(),
+            params: returnUrl ? { returnUrl } : undefined,
+        }
+    );
     return response.data;
 };
 
 export const downloadBookingInvoice = async (bookingId: string | number): Promise<Blob> => {
     const response = await apiApp.get(`${BASE_URL}/${bookingId}/invoice/pdf`, {
         ...withAuth(),
-        responseType: "blob",
+        responseType: 'blob',
     });
-    return response.data as Blob;
-};
-
-export const getAdminBookingNoShowPreview = async (
-    bookingId: string | number
-): Promise<ApiResponse<AdminBookingNoShowPreviewResponse>> => {
-    const response = await apiApp.get(`${BASE_URL}/${bookingId}/no-show/preview`, withAuth());
-    return response.data;
-};
-
-export const markAdminBookingManualNoShow = async (
-    bookingId: string | number
-): Promise<ApiResponse<BookingResponse>> => {
-    const response = await apiApp.post(`${BASE_URL}/${bookingId}/no-show/mark`, {}, withAuth());
     return response.data;
 };
