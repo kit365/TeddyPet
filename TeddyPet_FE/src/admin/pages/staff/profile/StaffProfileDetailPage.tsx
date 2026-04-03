@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     Box, 
@@ -10,15 +10,25 @@ import {
     IconButton,
     Container,
     ThemeProvider,
-    useTheme
+    useTheme,
+    alpha
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { 
     UserCircle,
     CheckCircle2,
-    Key,
-    TriangleAlert
+    TriangleAlert,
+    ShieldCheck,
+    CalendarDays as Calendar,
+    Users,
+    Mail,
+    Phone,
+    MapPin,
+    BriefcaseBusiness as Briefcase,
+    Award,
+    Landmark,
+    BadgeCheck
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
@@ -83,6 +93,26 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
     </Box>
 );
 
+const formatGender = (gender?: string | null) => {
+    if (gender === 'MALE') return 'Nam';
+    if (gender === 'FEMALE') return 'Nữ';
+    if (gender === 'OTHER') return 'Khác';
+    return null;
+};
+
+const formatEmploymentType = (employmentType?: string | null) => {
+    if (employmentType === 'FULL_TIME') return 'Toàn thời gian';
+    if (employmentType === 'PART_TIME') return 'Bán thời gian';
+    return null;
+};
+
+const formatBirthDate = (value?: string | null) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('vi-VN');
+};
+
 export const StaffProfileDetailPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -92,8 +122,24 @@ export const StaffProfileDetailPage = () => {
     const { data: res, isLoading } = useStaffProfileById(id);
     const { data: banks } = useBanks();
     const profile = (res as any)?.data as IStaffProfile;
+    const [openConfirm, setOpenConfirm] = React.useState(false);
 
     const bankData = banks?.find(b => b.shortName === profile?.bankName || b.name === profile?.bankName);
+
+    const resetPasswordMutation = useMutation({
+        mutationFn: async () => {
+            if (!profile?.email) throw new Error('Nhân sự này chưa cập nhật email để nhận hướng dẫn đặt lại mật khẩu.');
+            return forgotPassword(profile.email);
+        },
+        onSuccess: () => {
+            toast.success('Yêu cầu cấp lại mật khẩu đã được gửi tới email của nhân sự.');
+            setOpenConfirm(false);
+        },
+        onError: (error: any) => {
+            const msg = error?.response?.data?.message || error?.message || 'Không thể gửi yêu cầu cấp lại mật khẩu.';
+            toast.error(msg);
+        }
+    });
 
     if (isLoading) return (
         <Stack alignItems="center" justifyContent="center" sx={{ minHeight: '60vh' }}>
@@ -109,7 +155,7 @@ export const StaffProfileDetailPage = () => {
         navigate(`/${prefixAdmin}/staff/profile/edit/${profile.staffId}`);
     };
 
-    const [openConfirm, setOpenConfirm] = React.useState(false);
+    /* duplicate hooks moved above
 
     const resetPasswordMutation = useMutation({
         mutationFn: () => forgotPassword(profile.email!),
@@ -121,7 +167,7 @@ export const StaffProfileDetailPage = () => {
             const msg = error?.response?.data?.message || 'Không thể gửi yêu cầu cấp lại mật khẩu.';
             toast.error(msg);
         }
-    });
+    }); */
 
     const handleResetPassword = () => {
         if (!profile.email) {
@@ -137,7 +183,7 @@ export const StaffProfileDetailPage = () => {
 
     return (
         <ThemeProvider theme={localTheme}>
-            <Container maxWidth="lg" sx={{ pb: 15 }}>
+            <Container maxWidth="xl" sx={{ pb: 15 }}>
             {/* Header / Breadcrumbs */}
             <Stack direction="row" alignItems="center" spacing={2.5} sx={{ mb: 6, mt: 4 }}>
                 <IconButton 
@@ -176,10 +222,11 @@ export const StaffProfileDetailPage = () => {
                 <Box>
                     <Card sx={{ 
                         p: 5, textAlign: 'center', borderRadius: '2rem',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 8px 32px -4px rgba(145, 158, 171, 0.08)',
+                        border: `1px solid ${alpha('#60A5FA', 0.25)}`,
+                        boxShadow: '0 20px 48px rgba(37, 99, 235, 0.12)',
                         height: 'fit-content',
-                        bgcolor: 'white'
+                        bgcolor: 'white',
+                        background: 'radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 30%), linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)'
                     }}>
                         <Box sx={{ position: 'relative', width: 140, height: 140, mx: 'auto', mb: 4.5 }}>
                             <Avatar
@@ -238,6 +285,40 @@ export const StaffProfileDetailPage = () => {
                                 {profile.employmentType === 'FULL_TIME' ? "Toàn thời gian" : "Bán thời gian"}
                             </Box>
                         </Stack>
+                        <Box
+                            sx={{
+                                mt: 3.5,
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                                gap: 1.2,
+                                textAlign: 'left'
+                            }}
+                        >
+                            <Box sx={{ p: 1.4, borderRadius: '14px', bgcolor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                    Mã NV
+                                </Typography>
+                                <Typography sx={{ mt: 0.6, fontSize: '1rem', fontWeight: 900, color: '#0F172A' }}>
+                                    #{profile.staffId}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ p: 1.4, borderRadius: '14px', bgcolor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                    Vai trò
+                                </Typography>
+                                <Typography sx={{ mt: 0.6, fontSize: '0.95rem', fontWeight: 900, color: '#0F172A' }}>
+                                    {profile.roleName || 'Chưa có'}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ p: 1.4, borderRadius: '14px', bgcolor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                    Tài khoản
+                                </Typography>
+                                <Typography sx={{ mt: 0.6, fontSize: '0.95rem', fontWeight: 900, color: '#0F172A' }}>
+                                    {profile.userId ? 'Đã có' : 'Chưa có'}
+                                </Typography>
+                            </Box>
+                        </Box>
                     </Card>
                 </Box>
 

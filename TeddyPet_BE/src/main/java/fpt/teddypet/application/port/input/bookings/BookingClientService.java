@@ -1,7 +1,6 @@
 package fpt.teddypet.application.port.input.bookings;
 
 import fpt.teddypet.application.dto.request.bookings.CreateBookingRequest;
-import fpt.teddypet.application.dto.request.bookings.ClientServiceReviewUpsertRequest;
 import fpt.teddypet.application.dto.request.bookings.UpdateBookingContactRequest;
 import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.dto.response.bookings.ClientBookingDetailResponse;
@@ -41,7 +40,7 @@ public interface BookingClientService {
     /**
      * Khách hàng đánh giá từng booking_pet_service sau khi check-out.
      */
-    ClientBookingDetailResponse upsertServiceReview(String bookingCode, Long bookingPetServiceId, ClientServiceReviewUpsertRequest request);
+    ClientBookingDetailResponse upsertServiceReview(String bookingCode, Long bookingPetServiceId, fpt.teddypet.application.dto.request.bookings.ClientServiceReviewUpsertRequest request);
 
     /**
      * Lấy danh sách booking của người dùng hiện tại.

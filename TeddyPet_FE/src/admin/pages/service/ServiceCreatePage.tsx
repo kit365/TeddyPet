@@ -6,7 +6,6 @@ import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
 import { useCreateService } from './hooks/useService';
 import { useUpdateService } from './hooks/useService';
 import { useServiceCategories } from './hooks/useServiceCategory';
-import { useSkills } from '../staff/hooks/useSkill';
 import { usePetTypes } from './hooks/useEnums';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller, useWatch } from 'react-hook-form';
@@ -69,7 +68,6 @@ export const ServiceCreatePage = () => {
     const theme = useTheme();
     const localTheme = getServiceTheme(theme);
     const { data: categories = [] } = useServiceCategories();
-    const { data: skills = [] } = useSkills();
     const { data: petTypes = [] } = usePetTypes();
     const { data: roomTypes = [] } = useRoomTypes();
     const { data: timeSlots = [] } = useQuery({
@@ -85,7 +83,6 @@ export const ServiceCreatePage = () => {
         resolver: zodResolver(serviceUpsertSchema),
         defaultValues: {
             serviceCategoryId: undefined as unknown as number,
-            skillId: undefined as unknown as number,
             code: '',
             serviceName: '',
             duration: 60,
@@ -133,7 +130,6 @@ export const ServiceCreatePage = () => {
     const buildServicePayload = (data: ServiceUpsertFormValues, existingId: number | null) => ({
         ...(existingId ? { serviceId: existingId } : {}),
         serviceCategoryId: data.serviceCategoryId,
-        skillId: data.skillId,
         code: (data.code || '').trim() || generateServiceCode(data),
         serviceName: data.serviceName,
         suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
@@ -467,38 +463,6 @@ export const ServiceCreatePage = () => {
                                             )}
                                         />
                                         <Controller
-                                            name="skillId"
-                                            control={control}
-                                            render={({ field, fieldState }) => (
-                                                <TextField
-                                                    {...field}
-                                                    id="field-skillId"
-                                                    select
-                                                    label="Kỹ năng yêu cầu"
-                                                    error={!!fieldState.error}
-                                                    helperText={fieldState.error?.message}
-                                                    fullWidth
-                                                    value={field.value ?? ''}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value;
-                                                        if (v === '') {
-                                                            field.onChange(undefined);
-                                                        } else {
-                                                            const n = Number(v);
-                                                            field.onChange(Number.isNaN(n) ? undefined : n);
-                                                        }
-                                                    }}
-                                                >
-                                                    <MenuItem value="">-- Chọn kỹ năng --</MenuItem>
-                                                    {skills.map((s: any) => (
-                                                        <MenuItem key={s.id} value={s.id}>
-                                                            {s.name}
-                                                        </MenuItem>
-                                                    ))}
-                                                </TextField>
-                                            )}
-                                        />
-                                        <Controller
                                             name="serviceName"
                                             control={control}
                                             render={({ field, fieldState }) => (
@@ -613,7 +577,7 @@ export const ServiceCreatePage = () => {
                                         <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                             <Box sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.5 }}>Loại phòng gắn với dịch vụ này</Box>
                                             <Box sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
-                                                Chọn các loại phòng cho dịch vụ này. Cùng một loại phòng có thể dùng chung cho nhiều dịch vụ. (Gắn sau khi tạo thành công)
+                                                Chọn các loại phòng sẽ được sử dụng cho dịch vụ này. Một loại phòng chỉ có thể gắn với một dịch vụ. (Gắn sau khi tạo thành công)
                                             </Box>
                                             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
                                                 {roomTypes.map((rt) => {

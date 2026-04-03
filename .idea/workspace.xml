@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="23384f20-0c23-4bc5-8ca6-27b0711a129d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/TeddyPet_BE/src/main/java/fpt/teddypet/presentation/exception/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TeddyPet_FE/src/admin/pages/staff/fixedSchedule/StaffFixedSchedulePage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/TeddyPet_FE/src/admin/pages/staff/fixedSchedule/StaffFixedSchedulePage.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,12 +26,12 @@
     &quot;assignee&quot;: &quot;kit365&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/kit365/TeddyPet.git&quot;,
-    &quot;accountId&quot;: &quot;7f5e4c84-dd23-488c-8881-53871ef9fc30&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/kit365/TeddyPet.git",
+    "accountId": "4943668a-1cf0-4507-93a6-b3f5b12f34a3"
   }
-}</component>
+}]]></component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
   &quot;isMigrated&quot;: true
@@ -70,10 +70,10 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "Spring Boot.TeddyPetApplication.executor": "Run",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "feature/orders",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/ngotuankiet/Desktop/FPT/TeddyPet",
+    "last_opened_file_path": "C:/TeddyPet - EXE201 Project",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -143,8 +143,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.30387.90" />
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.29188.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.29188.11" />
       </set>
     </attachedChunks>
   </component>
@@ -163,6 +163,7 @@
       <workItem from="1770024459792" duration="1152000" />
       <workItem from="1770031131772" duration="6593000" />
       <workItem from="1770100481435" duration="17000" />
+      <workItem from="1775182746713" duration="15000" />
     </task>
     <servers />
   </component>
@@ -179,5 +180,13 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
   </component>
 </project>

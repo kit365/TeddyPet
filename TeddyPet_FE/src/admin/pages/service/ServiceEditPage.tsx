@@ -5,12 +5,11 @@ import { useState, useEffect, useRef } from 'react';
 import { CollapsibleCard } from '../../components/ui/CollapsibleCard';
 import { useServiceDetail, useUpdateService } from './hooks/useService';
 import { useServiceCategories } from './hooks/useServiceCategory';
-import { useSkills } from '../staff/hooks/useSkill';
 import { usePetTypes } from './hooks/useEnums';
 import { useServicePricings } from './hooks/useService';
 import { useCreateServicePricing, useUpdateServicePricing, useDeleteServicePricing } from './hooks/useServicePricing';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller, useWatch, type FieldErrors } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { serviceUpsertSchema, type ServiceUpsertFormValues } from '../../schemas/service.schema';
 import { SwitchButton } from '../../components/ui/SwitchButton';
 import { getServiceTheme } from './configs/theme';
@@ -36,37 +35,7 @@ import dayjs from 'dayjs';
 import { TimeSlotsSection } from './components/TimeSlotsSection';
 import { Tiptap } from '../../components/layouts/titap/Tiptap';
 import { useRoomTypes } from '../room/hooks/useRoomType';
-import { setServiceRoomTypes } from '../../api/service.api';
-
-const SERVICE_EDIT_BASIC_FIELDS = new Set<keyof ServiceUpsertFormValues>([
-    'serviceCategoryId',
-    'skillId',
-    'code',
-    'serviceName',
-    'suitablePetTypes',
-    'slug',
-    'shortDescription',
-    'description',
-    'duration',
-    'imageURL',
-    'galleryImages',
-    'isRequiredRoom',
-]);
-
-const SERVICE_EDIT_EXTRA_FIELDS = new Set<keyof ServiceUpsertFormValues>([
-    'bufferTime',
-    'maxPetsPerSession',
-    'advanceBookingHours',
-    'requiredStaffCount',
-    'requiredCertifications',
-    'requiresVaccination',
-    'displayOrder',
-    'isPopular',
-    'isAddon',
-    'isAdditionalCharge',
-    'isCritical',
-    'isActive',
-]);
+import { updateRoomTypeServiceId } from '../../api/room.api';
 
 export const ServiceEditPage = () => {
     const { id } = useParams();
@@ -84,7 +53,6 @@ export const ServiceEditPage = () => {
     const localTheme = getServiceTheme(theme);
     const { data: detailRes, isLoading } = useServiceDetail(id);
     const { data: categories = [] } = useServiceCategories();
-    const { data: skills = [] } = useSkills();
     const { data: petTypes = [] } = usePetTypes();
     const { data: pricings = [] } = useServicePricings(serviceId);
     const { data: roomTypes = [] } = useRoomTypes();
@@ -99,7 +67,6 @@ export const ServiceEditPage = () => {
         resolver: zodResolver(serviceUpsertSchema) as any,
         defaultValues: {
             serviceCategoryId: 0,
-            skillId: undefined as unknown as number,
             code: '',
             serviceName: '',
             duration: 60,
@@ -122,20 +89,10 @@ export const ServiceEditPage = () => {
 
     useEffect(() => {
         if (detailRes?.data && roomTypes.length > 0) {
-            const linked = roomTypes
-                .filter((rt) => {
-                    const ids =
-                        rt.linkedServiceIds && rt.linkedServiceIds.length > 0
-                            ? rt.linkedServiceIds
-                            : rt.serviceId != null
-                              ? [rt.serviceId]
-                              : [];
-                    return ids.includes(serviceId);
-                })
-                .map((rt) => rt.roomTypeId);
+            const linked = roomTypes.filter((rt) => rt.serviceId === serviceId).map((rt) => rt.roomTypeId);
             setSelectedRoomTypeIds(linked);
         }
-    }, [detailRes?.data, serviceId, roomTypes]);
+    }, [detailRes?.data, serviceId, roomTypes.length]);
 
     useEffect(() => {
         if (detailRes?.data) {
@@ -143,7 +100,6 @@ export const ServiceEditPage = () => {
             reset({
                 serviceId: d.serviceId,
                 serviceCategoryId: d.serviceCategoryId,
-                skillId: d.skillId ?? undefined,
                 code: d.code ?? '',
                 serviceName: d.serviceName ?? '',
                 suitablePetTypes: d.suitablePetTypes ?? [],
@@ -172,27 +128,10 @@ export const ServiceEditPage = () => {
         }
     }, [detailRes, reset]);
 
-    const onSubmitInvalid = (errors: FieldErrors<ServiceUpsertFormValues>) => {
-        const keys = Object.keys(errors) as (keyof ServiceUpsertFormValues)[];
-        let firstMessage: string | undefined;
-        for (const k of keys) {
-            const e = errors[k];
-            if (e && typeof e === 'object' && 'message' in e && (e as { message?: string }).message) {
-                firstMessage = String((e as { message?: string }).message);
-                break;
-            }
-        }
-        toast.error(firstMessage ?? 'Vui lòng kiểm tra lại thông tin trên form');
-        if (keys.some((k) => SERVICE_EDIT_BASIC_FIELDS.has(k))) setExpanded1(true);
-        if (keys.some((k) => SERVICE_EDIT_EXTRA_FIELDS.has(k))) setExpanded2(true);
-        if (keys.some((k) => k === 'metaTitle' || k === 'metaDescription')) setExpandedMeta(true);
-    };
-
     const onSubmit = (data: ServiceUpsertFormValues) => {
         const payload = {
             serviceId: serviceId,
             serviceCategoryId: data.serviceCategoryId,
-            skillId: data.skillId,
             code: data.code,
             serviceName: data.serviceName,
             suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
@@ -221,22 +160,31 @@ export const ServiceEditPage = () => {
         update(payload, {
             onSuccess: async (res: any) => {
                 if (res?.success) {
-                    try {
-                        if (payload.isRequiredRoom) {
-                            await setServiceRoomTypes(serviceId, selectedRoomTypeIdsRef.current);
-                        } else {
-                            await setServiceRoomTypes(serviceId, []);
+                    const ids = selectedRoomTypeIdsRef.current;
+                    if (payload.isRequiredRoom && roomTypes.length > 0) {
+                        try {
+                            for (const rt of roomTypes) {
+                                const shouldLink = ids.includes(rt.roomTypeId);
+                                const currentlyLinked = rt.serviceId === serviceId;
+                                if (shouldLink && !currentlyLinked) {
+                                    await updateRoomTypeServiceId(rt.roomTypeId, serviceId);
+                                } else if (!shouldLink && currentlyLinked) {
+                                    await updateRoomTypeServiceId(rt.roomTypeId, null);
+                                }
+                            }
+                        } catch {
+                            toast.error('Cập nhật dịch vụ thành công nhưng gắn loại phòng có lỗi.');
                         }
-                    } catch {
-                        toast.error('Cập nhật dịch vụ thành công nhưng gắn loại phòng có lỗi.');
+                    } else if (!payload.isRequiredRoom) {
+                        for (const rt of roomTypes) {
+                            if (rt.serviceId === serviceId) {
+                                await updateRoomTypeServiceId(rt.roomTypeId, null);
+                            }
+                        }
                     }
                     toast.success(res.message ?? 'Cập nhật thành công');
                     queryClient.invalidateQueries({ queryKey: ['room-types'] });
                 } else toast.error(res?.message ?? 'Có lỗi');
-            },
-            onError: (err: unknown) => {
-                const ax = err as { response?: { data?: { message?: string } }; message?: string };
-                toast.error(ax?.response?.data?.message ?? ax?.message ?? 'Không thể cập nhật dịch vụ');
             },
         });
     };
@@ -275,7 +223,7 @@ export const ServiceEditPage = () => {
                 </div>
             </div>
             <ThemeProvider theme={localTheme}>
-                <form onSubmit={handleSubmit(onSubmit, onSubmitInvalid)}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <Stack sx={{ margin: '0px 120px', gap: '40px' }}>
                         <CollapsibleCard title="Thông tin cơ bản" expanded={expanded1} onToggle={() => setExpanded1((p) => !p)}>
                             <Stack p="24px" gap="24px">
@@ -297,28 +245,6 @@ export const ServiceEditPage = () => {
                                                 {categories.map((c) => (
                                                     <MenuItem key={c.categoryId} value={c.categoryId}>
                                                         {c.categoryName}
-                                                    </MenuItem>
-                                                ))}
-                                            </TextField>
-                                        )}
-                                    />
-                                    <Controller
-                                        name="skillId"
-                                        control={control}
-                                        render={({ field, fieldState }) => (
-                                            <TextField
-                                                {...field}
-                                                select
-                                                label="Kỹ năng yêu cầu"
-                                                error={!!fieldState.error}
-                                                helperText={fieldState.error?.message}
-                                                fullWidth
-                                                value={field.value ?? ''}
-                                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                            >
-                                                {skills.map((s: any) => (
-                                                    <MenuItem key={s.id} value={s.id}>
-                                                        {s.name}
                                                     </MenuItem>
                                                 ))}
                                             </TextField>
@@ -415,24 +341,15 @@ export const ServiceEditPage = () => {
                                     <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                         <Typography sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.5 }}>Loại phòng gắn với dịch vụ này</Typography>
                                         <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
-                                            Chọn các loại phòng dùng cho dịch vụ này. Cùng một loại phòng có thể được nhiều dịch vụ sử dụng chung.
+                                            Chọn các loại phòng sẽ được sử dụng cho dịch vụ này. Một loại phòng chỉ có thể gắn với một dịch vụ.
                                         </Typography>
 
                                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
                                             {roomTypes.map((rt) => {
                                                 const isSelected = selectedRoomTypeIds.includes(rt.roomTypeId);
-                                                const linkedNames =
-                                                    rt.linkedServiceNames && rt.linkedServiceNames.length > 0
-                                                        ? rt.linkedServiceNames
-                                                        : rt.serviceName
-                                                          ? [rt.serviceName]
-                                                          : [];
-                                                const linkedIds =
-                                                    rt.linkedServiceIds && rt.linkedServiceIds.length > 0
-                                                        ? rt.linkedServiceIds
-                                                        : rt.serviceId != null
-                                                          ? [rt.serviceId]
-                                                          : [];
+                                                const currentService = rt.serviceName;
+                                                const isOtherService = !!(currentService && rt.serviceId && rt.serviceId !== serviceId);
+                                                const isDisabled = isOtherService && !isSelected;
 
                                                 return (
                                                     <Card
@@ -446,34 +363,39 @@ export const ServiceEditPage = () => {
                                                             borderRadius: 1.5,
                                                             transition: 'all 0.2s',
                                                             borderColor: isSelected ? 'primary.main' : 'divider',
-                                                            bgcolor: isSelected ? 'primary.lighter' : 'background.paper',
+                                                            bgcolor: isSelected ? 'primary.lighter' : isDisabled ? 'action.disabledBackground' : 'background.paper',
+                                                            opacity: isDisabled ? 0.55 : 1,
+                                                            cursor: isDisabled ? 'not-allowed' : 'default',
                                                             boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                                                         }}
                                                     >
                                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                                            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : 'text.primary' }}>
+                                                            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : isDisabled ? 'text.disabled' : 'text.primary' }}>
                                                                 {rt.typeName}
                                                             </Typography>
-                                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5 }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                                 <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>Dịch vụ:</Typography>
-                                                                {linkedNames.length > 0 ? (
-                                                                    linkedNames.map((name, i) => (
-                                                                        <Chip
-                                                                            key={`${rt.roomTypeId}-${linkedIds[i] ?? i}`}
-                                                                            label={name}
-                                                                            size="small"
-                                                                            color={linkedIds[i] === serviceId ? 'primary' : 'default'}
-                                                                            sx={{ height: 18, fontSize: '0.75rem', fontWeight: 500 }}
-                                                                        />
-                                                                    ))
+                                                                {currentService ? (
+                                                                    <Chip
+                                                                        label={currentService}
+                                                                        size="small"
+                                                                        color={rt.serviceId === serviceId ? "primary" : "default"}
+                                                                        sx={{ height: 18, fontSize: '0.75rem', fontWeight: 500 }}
+                                                                    />
                                                                 ) : (
                                                                     <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontStyle: 'italic' }}>Chưa gắn</Typography>
                                                                 )}
                                                             </Box>
+                                                            {isDisabled && (
+                                                                <Typography sx={{ fontSize: '0.75rem', color: 'warning.main', mt: 0.25 }}>
+                                                                    Đã thuộc dịch vụ khác
+                                                                </Typography>
+                                                            )}
                                                         </Box>
                                                         <Switch
                                                             size="small"
                                                             checked={isSelected}
+                                                            disabled={isDisabled}
                                                             onChange={(_, checked) => {
                                                                 setSelectedRoomTypeIds((prev) =>
                                                                     checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)

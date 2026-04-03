@@ -6,7 +6,6 @@ import fpt.teddypet.application.constants.payments.PaymentConstants;
 import fpt.teddypet.application.dto.response.payment.GatewayCallbackResult;
 import fpt.teddypet.application.dto.response.payment.PaymentResult;
 import fpt.teddypet.application.exception.PaymentException;
-import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.orders.order.OrderService;
 import fpt.teddypet.application.port.input.payment.PaymentService;
 import fpt.teddypet.application.port.output.payment.PaymentGatewayPort;
@@ -21,7 +20,6 @@ import fpt.teddypet.domain.enums.payments.PaymentGatewayEnum;
 import fpt.teddypet.domain.enums.payments.PaymentStatusEnum;
 import fpt.teddypet.domain.enums.payments.PaymentTypeEnum;
 import fpt.teddypet.domain.exception.PaymentDomainException;
-import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
@@ -30,7 +28,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,14 +51,10 @@ public class PaymentApplicationService implements PaymentService {
     private final BankInformationRepository bankInformationRepository;
     private final BookingDepositRepository bookingDepositRepository;
     private final BookingRepository bookingRepository;
-    private final BookingDepositClientService bookingDepositClientService;
     private final EmailServicePort emailServicePort;
     private final ObjectMapper objectMapper;
     private final List<PaymentGatewayPort<?>> gatewayAdapters;
     private Map<PaymentGatewayEnum, PaymentGatewayPort<?>> gatewayMap;
-
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
 
     @PostConstruct
     private void initializeGatewayMap() {
@@ -80,11 +73,10 @@ public class PaymentApplicationService implements PaymentService {
         OrderValidator.validateForPayment(order);
         PaymentGatewayPort<?> gatewayAdapter = getGatewayAdapter(gateway);
 
-        String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
-
-        fpt.teddypet.application.dto.response.payment.BuildPaymentUrlResult urlResult;
+        String paymentUrl;
         try {
-            urlResult = gatewayAdapter.buildPaymentUrl(order, ipAddress, effectiveReturnUrl);
+            fpt.teddypet.application.dto.response.payment.BuildPaymentUrlResult result = gatewayAdapter.buildPaymentUrl(order, ipAddress, returnUrl);
+            paymentUrl = result.getCheckoutUrl();
         } catch (PaymentException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             // PayOS báo "Đơn thanh toán đã tồn tại" khi user bấm thanh toán lần 2
@@ -104,11 +96,11 @@ public class PaymentApplicationService implements PaymentService {
             throw e;
         }
 
-        String paymentUrl = urlResult.getCheckoutUrl();
-        // When gateway returns a transactionId (e.g. new PayOS orderCode after cancel), use it for callback lookup
-        String transactionRef = (urlResult.getTransactionId() != null && !urlResult.getTransactionId().isBlank())
-                ? urlResult.getTransactionId()
-                : ((order.getNumericCode() != null) ? String.valueOf(order.getNumericCode()) : order.getOrderCode());
+        // Use orderCode or numericCode as the primary transaction identifier for
+        // searching during callbacks
+        String transactionRef = (order.getNumericCode() != null)
+                ? String.valueOf(order.getNumericCode())
+                : order.getOrderCode();
 
         Payment payment = Payment.builder()
                 .order(order)
@@ -128,55 +120,6 @@ public class PaymentApplicationService implements PaymentService {
 
         return paymentUrl;
     }
-
-    @Override
-    @Transactional
-    public boolean cancelPayosPaymentLink(UUID orderId) {
-        Order order = orderService.getById(orderId);
-
-        // Best-effort: ưu tiên cancel theo transactionId của payment PENDING mới nhất (nếu là PayOS orderCode mới),
-        // fallback về order.numericCode.
-        Long orderCodeToCancel = null;
-        try {
-            Optional<Payment> existing = paymentRepositoryPort
-                    .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
-                            orderId, PaymentGatewayEnum.PAYOS.name(), PaymentStatusEnum.PENDING);
-            if (existing.isPresent() && existing.get().getTransactionId() != null && !existing.get().getTransactionId().isBlank()) {
-                orderCodeToCancel = Long.parseLong(existing.get().getTransactionId().trim());
-            }
-        } catch (Exception ignore) {
-            // ignore parsing/lookup issues, fallback below
-        }
-
-        if (orderCodeToCancel == null) {
-            orderCodeToCancel = order.getNumericCode();
-        }
-
-        if (orderCodeToCancel == null) {
-            return false;
-        }
-
-        PaymentGatewayPort<?> gatewayAdapter = getGatewayAdapter(PaymentGatewayEnum.PAYOS);
-        if (!(gatewayAdapter instanceof PayosGatewayAdapter payosGatewayAdapter)) {
-            return false;
-        }
-
-        boolean cancelled = payosGatewayAdapter.cancelPaymentLinkByOrderCode(orderCodeToCancel);
-
-        if (cancelled) {
-            Optional<Payment> pending = paymentRepositoryPort
-                    .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
-                            orderId, PaymentGatewayEnum.PAYOS.name(), PaymentStatusEnum.PENDING);
-            if (pending.isPresent()) {
-                Payment p = pending.get();
-                p.setStatus(PaymentStatusEnum.VOIDED);
-                paymentRepositoryPort.save(p);
-            }
-        }
-
-        return cancelled;
-    }
-
 
     @Override
     @Transactional
@@ -209,6 +152,28 @@ public class PaymentApplicationService implements PaymentService {
     @Override
     public void validateOrderForPayment(Order order) {
         OrderValidator.validateForPayment(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean cancelPayosPaymentLink(UUID orderId) {
+        // Best-effort: find pending PayOS payment and void it
+        Optional<Payment> pendingOpt = paymentRepositoryPort
+                .findFirstByOrderIdAndPaymentGatewayAndStatusOrderByCreatedAtDesc(
+                        orderId, PaymentGatewayEnum.PAYOS.name(), PaymentStatusEnum.PENDING);
+        if (pendingOpt.isEmpty()) {
+            return false;
+        }
+        Payment payment = pendingOpt.get();
+        try {
+            payment.setStatus(PaymentStatusEnum.VOIDED);
+            payment.setNotes("Link cancelled by user");
+            paymentRepositoryPort.save(payment);
+            return true;
+        } catch (Exception e) {
+            log.warn("Failed to cancel PayOS payment for order {}: {}", orderId, e.getMessage());
+            return false;
+        }
     }
 
     // Private helpers
@@ -334,26 +299,9 @@ public class PaymentApplicationService implements PaymentService {
                         booking.setPaidAmount(depositAmount);
                         booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
                         booking.setIsTemporary(false);
-
-                        if ("CANCELLED".equals(booking.getStatus())) {
-                            booking.setCancelledAt(null);
-                            booking.setCancelledBy(null);
-                            booking.setCancelledReason(null);
-                            for (fpt.teddypet.domain.entity.BookingPet pet : booking.getPets()) {
-                                if ("CANCELLED".equals(pet.getStatus())) {
-                                    pet.setStatus("PENDING");
-                                }
-                                for (fpt.teddypet.domain.entity.BookingPetService svc : pet.getServices()) {
-                                    if ("CANCELLED".equals(svc.getStatus())) {
-                                        svc.setStatus("PENDING");
-                                    }
-                                }
-                            }
-                        }
-
                         booking.setStatus("CONFIRMED");
-                        booking.setPaymentStatus(booking.getRemainingAmount().compareTo(BigDecimal.ZERO) <= 0 ? "PAID" : "PARTIAL");
-
+                        booking.setConfirmAt(LocalDateTime.now());
+                        booking.setConfirmBy("SYSTEM");
                         bookingRepository.save(booking);
 
                         deposit.setStatus("PAID");
@@ -367,13 +315,6 @@ public class PaymentApplicationService implements PaymentService {
 
                         if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                             emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
-                        }
-
-                        try {
-                            bookingDepositClientService.runAfterDepositPaidSuccessfully(booking, deposit);
-                        } catch (Exception syncEx) {
-                            log.warn("Post-deposit sync (address/pet/bank) failed for booking {}: {}",
-                                    booking.getBookingCode(), syncEx.getMessage());
                         }
                     } catch (Exception e) {
                         log.error("Failed to finalize booking deposit for payosOrderCode={}", orderCode, e);
@@ -397,45 +338,7 @@ public class PaymentApplicationService implements PaymentService {
                                         result.transactionId(), e);
                             }
                         },
-                        () -> {
-                            log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId());
-                            tryHandleBookingDepositFailure(result, gateway);
-                        });
-    }
-
-    /**
-     * Fallback for BookingDeposit: if no Payment record exists, check if it's a booking deposit.
-     */
-    private void tryHandleBookingDepositFailure(GatewayCallbackResult result, PaymentGatewayEnum gateway) {
-        if (gateway != PaymentGatewayEnum.PAYOS) return;
-        Long orderCode;
-        try {
-            orderCode = Long.parseLong(result.transactionId());
-        } catch (Exception ex) {
-            return;
-        }
-
-        bookingDepositRepository.findFirstByPayosOrderCode(orderCode)
-                .ifPresent(deposit -> {
-                    log.warn("PayOS Payment Failed for BookingDeposit {}: {}", orderCode, result.message());
-                    deposit.setStatus("FAILED");
-                    deposit.setNotes("Thanh toán thất bại: " + result.message());
-                    if (result.rawPayload() != null && !result.rawPayload().isBlank()) {
-                        deposit.setWebhookPayload(result.rawPayload());
-                    }
-                    bookingDepositRepository.save(deposit);
-
-                    // Re-sync after failure (address/pet/bank)
-                    var bookingOpt = bookingRepository.findById(deposit.getBookingId());
-                    bookingOpt.ifPresent(booking -> {
-                        try {
-                            bookingDepositClientService.runAfterDepositPaidSuccessfully(booking, deposit);
-                        } catch (Exception syncEx) {
-                            log.warn("Post-failure sync failed for booking {}: {}",
-                                    booking.getBookingCode(), syncEx.getMessage());
-                        }
-                    });
-                });
+                        () -> log.warn(PaymentConstants.Messages.PAYMENT_NOT_FOUND, result.transactionId()));
     }
 
     /** Mã Napas (PayOS counterAccountBankId) -> mã ngân hàng nội bộ (VietnamBankEnum), để suy ra tên khi PayOS không trả bankName. */

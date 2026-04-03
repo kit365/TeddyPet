@@ -1,0 +1,18 @@
+-- V32: Add refund & reschedule policy fields to services
+-- ===== CANCELLATION REFUND PERCENTAGES =====
+ALTER TABLE services ADD COLUMN IF NOT EXISTS before_deadline_refund_pct DECIMAL(5,2) DEFAULT 100;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS after_deadline_refund_pct DECIMAL(5,2) DEFAULT 50;
+
+-- ===== NO-SHOW =====
+ALTER TABLE services ADD COLUMN IF NOT EXISTS no_show_refund_pct DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS no_show_penalty DECIMAL(10,2) DEFAULT 0;
+
+-- ===== RESCHEDULE =====
+ALTER TABLE services ADD COLUMN IF NOT EXISTS allow_reschedule BOOLEAN DEFAULT TRUE;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS reschedule_deadline_hours INT DEFAULT 24;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS reschedule_limit INT DEFAULT 2;
+
+-- ===== FORCE MAJEURE =====
+ALTER TABLE services ADD COLUMN IF NOT EXISTS allow_force_majeure BOOLEAN DEFAULT TRUE;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS force_majeure_refund_pct DECIMAL(5,2) DEFAULT 100;
+

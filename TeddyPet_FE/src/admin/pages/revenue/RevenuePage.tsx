@@ -15,6 +15,8 @@ import {
     Container,
     Breadcrumbs,
     Link as MuiLink,
+    ToggleButton,
+    ToggleButtonGroup,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -30,8 +32,11 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
+type RevenueListFilter = 'ALL' | 'ORDER' | 'BOOKING';
+
 export const RevenuePage: React.FC = () => {
     const navigate = useNavigate();
+    const [listFilter, setListFilter] = React.useState<RevenueListFilter>('ALL');
     const { data: response, isLoading, isError } = useQuery({
         queryKey: ['dashboard-total-revenue-details'],
         queryFn: getTotalRevenueDetails,
@@ -66,6 +71,16 @@ export const RevenuePage: React.FC = () => {
             dayjs(b.date).unix() - dayjs(a.date).unix()
         );
     }, [details]);
+
+    const filteredRows = React.useMemo(() => {
+        if (listFilter === 'ORDER') {
+            return combinedRows.filter((row) => row.type === 'Order');
+        }
+        if (listFilter === 'BOOKING') {
+            return combinedRows.filter((row) => row.type === 'Booking');
+        }
+        return combinedRows;
+    }, [combinedRows, listFilter]);
 
     if (isLoading) {
         return (
@@ -121,6 +136,57 @@ export const RevenuePage: React.FC = () => {
             </Grid>
 
             <Card sx={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--customShadows-z8)' }}>
+                <Box
+                    sx={{
+                        px: { xs: 2, md: 3 },
+                        py: 2,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                    }}
+                >
+                    <Stack
+                        direction={{ xs: 'column', lg: 'row' }}
+                        spacing={1.5}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', lg: 'center' }}
+                    >
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+                                Danh sách doanh thu
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Lọc nhanh theo loại giao dịch để xem tất cả, đơn hàng hoặc đơn đặt lịch.
+                            </Typography>
+                        </Box>
+                        <ToggleButtonGroup
+                            size="small"
+                            exclusive
+                            value={listFilter}
+                            onChange={(_, value: RevenueListFilter | null) => {
+                                if (value) {
+                                    setListFilter(value);
+                                }
+                            }}
+                            sx={{
+                                flexWrap: 'wrap',
+                                gap: 1,
+                                '& .MuiToggleButtonGroup-grouped': {
+                                    borderRadius: '999px !important',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    px: 1.5,
+                                    textTransform: 'none',
+                                    fontWeight: 700,
+                                },
+                            }}
+                        >
+                            <ToggleButton value="ALL">Tất cả ({combinedRows.length})</ToggleButton>
+                            <ToggleButton value="ORDER">Đơn hàng ({details.completedOrdersCount})</ToggleButton>
+                            <ToggleButton value="BOOKING">Đơn đặt lịch ({details.completedBookingsCount})</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Stack>
+                </Box>
                 <Box sx={{ p: 0 }}>
                     <TableContainer>
                         <Table stickyHeader sx={{ minWidth: 800 }}>
@@ -135,7 +201,7 @@ export const RevenuePage: React.FC = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {combinedRows.length === 0 ? (
+                                {filteredRows.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                                             <Stack alignItems="center" spacing={1}>
@@ -147,7 +213,7 @@ export const RevenuePage: React.FC = () => {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    combinedRows.map((row) => (
+                                    filteredRows.map((row) => (
                                         <TableRow 
                                             key={`${row.type}-${row.id}`} 
                                             hover

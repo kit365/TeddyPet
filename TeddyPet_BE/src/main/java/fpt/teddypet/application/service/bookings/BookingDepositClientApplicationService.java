@@ -12,33 +12,22 @@ import fpt.teddypet.application.dto.response.bookings.CreateBookingResponse;
 import fpt.teddypet.application.port.input.bookings.BookingDepositClientService;
 import fpt.teddypet.application.port.input.bookings.BookingClientService;
 import fpt.teddypet.application.port.output.EmailServicePort;
-import lombok.extern.slf4j.Slf4j;
 import fpt.teddypet.application.port.output.room.RoomRepositoryPort;
 import fpt.teddypet.application.port.output.services.ServiceRepositoryPort;
 import fpt.teddypet.application.port.output.shop.TimeSlotRepositoryPort;
-import fpt.teddypet.domain.entity.BankInformation;
 import fpt.teddypet.domain.entity.Booking;
 import fpt.teddypet.domain.entity.BookingDeposit;
-import fpt.teddypet.domain.entity.BookingPet;
-import fpt.teddypet.domain.entity.PetProfile;
 import fpt.teddypet.domain.entity.Room;
 import fpt.teddypet.domain.entity.TimeSlot;
-import fpt.teddypet.domain.entity.UserAddress;
-import fpt.teddypet.domain.enums.PetTypeEnum;
 import fpt.teddypet.domain.enums.RoomStatusEnum;
-import fpt.teddypet.domain.enums.bookings.BookingTypeEnum;
 import fpt.teddypet.domain.exception.BookingValidationException;
 import fpt.teddypet.infrastructure.adapter.payment.PayosGatewayAdapter;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.PetProfileRepository;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.user.BankInformationRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingDepositRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingRepository;
 import fpt.teddypet.infrastructure.persistence.postgres.repository.bookings.BookingPetServiceRepository;
-import fpt.teddypet.infrastructure.persistence.postgres.repository.user.UserAddressRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,10 +35,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -67,22 +53,11 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
     private final ObjectMapper objectMapper;
     private final EmailServicePort emailServicePort;
     private final PayosGatewayAdapter payosGatewayAdapter;
-    private final UserAddressRepository userAddressRepository;
-    private final PetProfileRepository petProfileRepository;
-    private final BankInformationRepository bankInformationRepository;
-    private final fpt.teddypet.application.port.output.payment.PaymentOrderCodePort paymentOrderCodePort;
-
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
 
     @Override
     public CreateBookingDepositIntentResponse createDepositIntent(CreateBookingRequest request) {
         if (request.pets() == null || request.pets().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất một thú cưng và dịch vụ.");
-        }
-        if (request.bookingType() != null
-                && BookingTypeEnum.WALK_IN.name().equalsIgnoreCase(request.bookingType().trim())) {
-            throw new IllegalArgumentException("Đặt lịch tại quầy không áp dụng giữ chỗ/thanh toán cọc.");
         }
 
         // validate service active (main + add-on)
@@ -158,6 +133,9 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             booking.setPaidAmount(depositAmount);
             booking.setRemainingAmount(total.subtract(depositAmount).max(BigDecimal.ZERO));
             booking.setIsTemporary(false);
+            booking.setStatus("CONFIRMED");
+            booking.setConfirmAt(LocalDateTime.now());
+            booking.setConfirmBy("SYSTEM");
             bookingRepository.save(booking);
 
             deposit.setStatus("PAID");
@@ -171,9 +149,6 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             deposit.setDepositAmount(depositAmount);
             deposit.setBookingCode(booking.getBookingCode());
             bookingDepositRepository.save(deposit);
-
-            // Sau khi cọc thành công: đồng bộ địa chỉ / pet / ngân hàng cho user đã đăng nhập.
-            runAfterDepositPaidSuccessfully(booking, deposit);
 
             if (booking.getCustomerEmail() != null && !booking.getCustomerEmail().isBlank()) {
                 emailServicePort.sendBookingDepositSuccessEmail(booking.getCustomerEmail(), booking.getBookingCode());
@@ -203,6 +178,26 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         Booking booking = bookingRepository.findById(deposit.getBookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy booking với id: " + deposit.getBookingId()));
 
+        // Reuse existing link if present
+        if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
+                && deposit.getPayosOrderCode() != null) {
+            return new CreateBookingDepositPayosResponse(
+                    deposit.getId(),
+                    deposit.getPayosOrderCode(),
+                    deposit.getCheckoutUrl(),
+                    deposit.getExpiresAt(),
+                    booking.getId(),
+                    booking.getBookingCode()
+            );
+        }
+
+        Long payosOrderCode = deposit.getPayosOrderCode();
+        if (payosOrderCode == null) {
+            // 12-digit-ish stable code for PayOS, derived from depositId to map webhook -> deposit
+            payosOrderCode = 900_000_000_000L + deposit.getId();
+            deposit.setPayosOrderCode(payosOrderCode);
+        }
+
         BigDecimal total = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
         BigDecimal percentage = deposit.getDepositPercentage() != null ? deposit.getDepositPercentage()
                 : BigDecimal.valueOf(25);
@@ -212,55 +207,11 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         if (depositAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Số tiền cọc không hợp lệ.");
         }
-        long amount = depositAmount.longValue();
-
-        // Reuse existing link if present AND still valid on PayOS
-        if (deposit.getCheckoutUrl() != null && !deposit.getCheckoutUrl().isBlank()
-                && deposit.getPayosOrderCode() != null) {
-            
-            // Check if the link is still alive on PayOS (not cancelled/expired/paid AND amount matches)
-            if (!payosGatewayAdapter.isLinkDead(deposit.getPayosOrderCode(), amount)) {
-                log.info("Reusing existing valid PayOS URL for deposit {}: {}", depositId, deposit.getCheckoutUrl());
-                return new CreateBookingDepositPayosResponse(
-                        deposit.getId(),
-                        deposit.getPayosOrderCode(),
-                        deposit.getCheckoutUrl(),
-                        deposit.getExpiresAt(),
-                        booking.getId(),
-                        booking.getBookingCode()
-                );
-            }
-            
-            log.info("Existing PayOS link for deposit {} (orderCode={}) is dead. Regenerating with fresh code...", 
-                    depositId, deposit.getPayosOrderCode());
-            // Clear BOTH stale URL AND old orderCode to force full regeneration
-            deposit.setCheckoutUrl(null);
-            deposit.setPayosOrderCode(null);
-        }
-
-        Long payosOrderCode = deposit.getPayosOrderCode();
-        if (payosOrderCode == null) {
-            payosOrderCode = paymentOrderCodePort.getNext();
-            deposit.setPayosOrderCode(payosOrderCode);
-        }
 
         String desc = "Coc " + (booking.getBookingCode() != null ? booking.getBookingCode() : ("BK" + booking.getId()));
+        long amount = depositAmount.longValue();
 
-        String effectiveReturnUrl = (returnUrl != null && !returnUrl.isBlank()) ? returnUrl : frontendUrl;
-        String checkoutUrl;
-        try {
-            checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "";
-            // Nếu link cũ đã chết (hủy/hết hạn), sinh mã mới để tạo link mới ngay lập tức
-            if (msg.contains("đã tồn tại") || msg.contains("already exist")) {
-                payosOrderCode = paymentOrderCodePort.getNext();
-                deposit.setPayosOrderCode(payosOrderCode);
-                checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, effectiveReturnUrl);
-            } else {
-                throw e;
-            }
-        }
+        String checkoutUrl = payosGatewayAdapter.buildPaymentUrlByOrderCode(payosOrderCode, amount, desc, returnUrl);
         deposit.setCheckoutUrl(checkoutUrl);
         bookingDepositRepository.save(deposit);
 
@@ -319,9 +270,6 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
         ArrayNode timeSlots = objectMapper.createArrayNode();
         payload.set("rooms", rooms);
         payload.set("timeSlots", timeSlots);
-        if (request.customerAddress() != null && !request.customerAddress().isBlank()) {
-            payload.put("customerAddress", request.customerAddress().trim());
-        }
 
         for (int petIdx = 0; petIdx < request.pets().size(); petIdx++) {
             CreateBookingPetRequest petRequest = request.pets().get(petIdx);
@@ -329,8 +277,8 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                 continue;
             for (int svcIdx = 0; svcIdx < petRequest.services().size(); svcIdx++) {
                 CreateBookingPetServiceRequest sr = petRequest.services().get(svcIdx);
-                // Hold room — chỉ dịch vụ requiresRoom mới chiếm phòng + ghi vào hold payload
-                if (sr.requiresRoom() && sr.roomId() != null && sr.checkInDate() != null && !sr.checkInDate().isBlank()
+                // Hold room
+                if (sr.roomId() != null && sr.checkInDate() != null && !sr.checkInDate().isBlank()
                         && sr.checkOutDate() != null && !sr.checkOutDate().isBlank()) {
                     LocalDate checkIn = LocalDate.parse(sr.checkInDate());
                     LocalDate checkOut = LocalDate.parse(sr.checkOutDate());
@@ -344,16 +292,10 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
                             .orElseThrow(
                                     () -> new EntityNotFoundException("Không tìm thấy phòng với id: " + sr.roomId()));
                     if (room.getStatus() != RoomStatusEnum.AVAILABLE) {
-                        if (room.getStatus() == RoomStatusEnum.OCCUPIED
-                                && !bookingPetServiceRepository.existsActiveAssignmentForRoom(sr.roomId())) {
-                            room.setStatus(RoomStatusEnum.AVAILABLE);
-                            roomRepositoryPort.save(room);
-                        } else {
-                            throw new BookingValidationException(
-                                    BookingValidationException.ROOM_ALREADY_BOOKED,
-                                    "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
-                                    petIdx, svcIdx, svcIdx > 0, sr.roomId());
-                        }
+                        throw new BookingValidationException(
+                                BookingValidationException.ROOM_ALREADY_BOOKED,
+                                "Phòng này vừa được giữ/đặt bởi khách khác. Vui lòng chọn phòng khác.",
+                                petIdx, svcIdx, svcIdx > 0, sr.roomId());
                     }
                     room.setStatus(RoomStatusEnum.OCCUPIED);
                     roomRepositoryPort.save(room);
@@ -397,155 +339,6 @@ public class BookingDepositClientApplicationService implements BookingDepositCli
             case "BANK_TRANSFER" -> "Chuyển khoản";
             case "VIETQR" -> "VietQR";
             default -> method;
-        };
-    }
-
-    @Override
-    public void runAfterDepositPaidSuccessfully(Booking booking, BookingDeposit deposit) {
-        if (booking == null || deposit == null) {
-            return;
-        }
-        syncUserAddressAndPetProfiles(booking, deposit);
-        syncBankInformationToUser(booking);
-    }
-
-    private void syncUserAddressAndPetProfiles(Booking booking, BookingDeposit deposit) {
-        if (booking == null || booking.getUser() == null || booking.getUser().getId() == null) {
-            return;
-        }
-
-        String customerAddress = extractCustomerAddressFromHoldPayload(deposit);
-        createUserAddressIfNeeded(booking, customerAddress);
-        createPetProfilesIfNeeded(booking);
-    }
-
-    /**
-     * Bản ghi bank do FE tạo qua /bank-information/booking/code (GUEST, user_id null).
-     * Khi booking gắn USER và cọc đã thành công → gắn vào ví ngân hàng của khách.
-     */
-    private void syncBankInformationToUser(Booking booking) {
-        if (booking == null || booking.getId() == null) {
-            return;
-        }
-        if (booking.getUser() == null || booking.getUser().getId() == null) {
-            return;
-        }
-        UUID userId = booking.getUser().getId();
-        List<BankInformation> rows = bankInformationRepository.findByBookingIdNotDeleted(booking.getId());
-        if (rows.isEmpty()) {
-            return;
-        }
-
-        List<BankInformation> userBanksBefore = bankInformationRepository.findByUserIdNotDeleted(userId);
-        boolean userHadNoBanks = userBanksBefore.isEmpty();
-        int attachedCount = 0;
-
-        for (BankInformation row : rows) {
-            if (row.getUserId() != null) {
-                continue;
-            }
-            if (!BankInformation.ACCOUNT_TYPE_GUEST.equalsIgnoreCase(row.getAccountType())) {
-                continue;
-            }
-            List<BankInformation> dup = bankInformationRepository.findByAccountNumberAndBankCodeAndUserIdAndIsDeletedFalse(
-                    row.getAccountNumber(), row.getBankCode(), userId);
-            if (!dup.isEmpty()) {
-                row.setDeleted(true);
-                bankInformationRepository.save(row);
-                continue;
-            }
-            row.setUserId(userId);
-            row.setAccountType(BankInformation.ACCOUNT_TYPE_CUSTOMER);
-            if (userHadNoBanks && attachedCount == 0) {
-                row.setDefault(true);
-            }
-            bankInformationRepository.save(row);
-            attachedCount++;
-        }
-    }
-
-    private String extractCustomerAddressFromHoldPayload(BookingDeposit deposit) {
-        if (deposit == null || deposit.getHoldPayloadJson() == null || deposit.getHoldPayloadJson().isBlank()) {
-            return null;
-        }
-        try {
-            var root = objectMapper.readTree(deposit.getHoldPayloadJson());
-            if (root == null) return null;
-            String address = root.path("customerAddress").asText(null);
-            return (address == null || address.isBlank()) ? null : address.trim();
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private void createUserAddressIfNeeded(Booking booking, String customerAddress) {
-        if (customerAddress == null || customerAddress.isBlank()) {
-            return;
-        }
-        String normalizedAddress = customerAddress.trim();
-        String phone = booking.getCustomerPhone() == null ? "" : booking.getCustomerPhone().trim();
-        String fullName = booking.getCustomerName() == null || booking.getCustomerName().isBlank()
-                ? "Khách hàng"
-                : booking.getCustomerName().trim();
-
-        boolean exists = userAddressRepository.existsByUserIdAndAddressIgnoreCaseAndPhone(
-                booking.getUser().getId(),
-                normalizedAddress,
-                phone
-        );
-        if (exists) {
-            return;
-        }
-
-        List<UserAddress> existingAddresses = userAddressRepository.findAllByUserId(booking.getUser().getId());
-        UserAddress address = UserAddress.builder()
-                .user(booking.getUser())
-                .fullName(fullName)
-                .phone(phone)
-                .address(normalizedAddress)
-                .defaultAddress(existingAddresses.isEmpty())
-                .build();
-        userAddressRepository.save(address);
-    }
-
-    private void createPetProfilesIfNeeded(Booking booking) {
-        if (booking.getPets() == null || booking.getPets().isEmpty()) {
-            return;
-        }
-
-        for (BookingPet bookingPet : booking.getPets()) {
-            if (bookingPet == null || bookingPet.getPetName() == null || bookingPet.getPetName().isBlank()) {
-                continue;
-            }
-
-            PetTypeEnum petType = toPetTypeEnum(bookingPet.getPetType());
-            String petName = bookingPet.getPetName().trim();
-            boolean existed = petProfileRepository.existsByUserIdAndNameIgnoreCaseAndPetType(
-                    booking.getUser().getId(),
-                    petName,
-                    petType
-            );
-            if (existed) {
-                continue;
-            }
-
-            PetProfile petProfile = PetProfile.builder()
-                    .user(booking.getUser())
-                    .name(petName)
-                    .petType(petType)
-                    .weight(bookingPet.getWeightAtBooking())
-                    .healthNote(bookingPet.getPetConditionNotes())
-                    .build();
-            petProfileRepository.save(petProfile);
-        }
-    }
-
-    private PetTypeEnum toPetTypeEnum(String raw) {
-        if (raw == null) return PetTypeEnum.OTHER;
-        return switch (raw.trim().toUpperCase()) {
-            case "DOG", "CHO" -> PetTypeEnum.DOG;
-            case "CAT", "MEO" -> PetTypeEnum.CAT;
-            default -> PetTypeEnum.OTHER;
         };
     }
 }

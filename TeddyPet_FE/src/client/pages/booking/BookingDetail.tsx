@@ -3,9 +3,7 @@ import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PhoneEnabledOutlinedIcon from "@mui/icons-material/PhoneEnabledOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import { prefixAdmin } from "../../../admin/constants/routes";
+import { useNavigate, useLocation } from "react-router-dom";
 import type { BookingStep1FormData } from "./Booking";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import PetsIcon from "@mui/icons-material/Pets";
@@ -21,6 +19,7 @@ import {
     getRoomsByLayoutConfigId,
     getRoomTypes,
     getTimeSlotsByServiceId,
+    getBookedRoomIds,
     type RoomLayoutConfigClient,
     type RoomClient,
     type RoomTypeClient,
@@ -31,20 +30,17 @@ import { getFoodBrandOptions, type ProductBrandOption } from "../../../api/home.
 import type { BookingPetForm, BookingPetServiceForm, PetFoodBroughtItemForm } from "../../../types/booking.type";
 import type { ServiceCategoryClient, ServiceClient } from "../../../types/booking.type";
 import { ServiceSelectField } from "../../components/ui/ServiceSelectField";
-import { BookingNoShowNotice } from "./components/BookingNoShowNotice";
 import { SESSION_SLOTS, PET_TYPES, FOOD_TYPE_OPTIONS } from "./constants";
 import type { IServicePricing } from "../../../admin/pages/service/configs/types";
-import { getServicePricingsByServiceId } from "../../../api/service-pricing.api";
+import { getServicePricingsByServiceId } from "../../../admin/api/service-pricing.api";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
 import { toast } from "react-toastify";
 import "dayjs/locale/vi";
-import { buildCreateBookingPayload, createBookingFromClient, getBookingShiftCoverage } from "../../../api/booking.api";
+import { buildCreateBookingPayload } from "../../../api/booking.api";
 import { createBookingDepositIntent } from "../../../api/booking-deposit.api";
-import { getAdminBookings } from "../../../admin/api/booking.api";
 import { getBanks, getMyBankInformation, createGuestBankInformationByBookingCode, getBankByGuestEmail } from "../../../api/bank.api";
 import type { BankOption, BankInformationPayload } from "../../../types/bank.type";
 import { useAuthStore } from "../../../stores/useAuthStore";
@@ -57,41 +53,7 @@ const defaultStep1Data: BookingStep1FormData = {
     message: "",
 };
 
-dayjs.extend(isoWeek);
 dayjs.locale("vi");
-
-/** Ngày gửi nằm trong ISO tuần hiện tại hoặc tuần kế tiếp → áp dụng ràng buộc theo ca làm (chỉ cần admin đã tạo ca OPEN/ASSIGNED). */
-function isCheckInInCurrentOrNextIsoWeek(d: Dayjs): boolean {
-    if (!d || !d.isValid()) return false;
-    const wStart = dayjs().startOf("isoWeek");
-    const wEnd = dayjs().endOf("isoWeek").add(1, "week");
-    const ge = d.isAfter(wStart, "day") || d.isSame(wStart, "day");
-    const le = d.isBefore(wEnd, "day") || d.isSame(wEnd, "day");
-    return ge && le;
-}
-
-/** Dịch vụ theo buổi (không phòng): khóa khung giờ AM/PM theo phủ ca trong cùng khoảng 2 tuần ISO với ô Ngày gửi. */
-function getShiftCoverageFlagsForSessionDate(
-    dateYmd: string | undefined,
-    shiftCoverageLoading: boolean,
-    rangeStart: Dayjs,
-    rangeEnd: Dayjs,
-    shiftCoverageMap: Map<string, { morning: boolean; afternoon: boolean }>
-): { apply: boolean; morning: boolean; afternoon: boolean } {
-    const ymd = dateYmd?.trim();
-    if (!ymd || shiftCoverageLoading) {
-        return { apply: false, morning: true, afternoon: true };
-    }
-    const d = dayjs(ymd);
-    if (!d.isValid() || d.isBefore(rangeStart, "day") || d.isAfter(rangeEnd, "day")) {
-        return { apply: false, morning: true, afternoon: true };
-    }
-    const cov = shiftCoverageMap.get(ymd);
-    if (!cov) {
-        return { apply: true, morning: false, afternoon: false };
-    }
-    return { apply: true, morning: cov.morning, afternoon: cov.afternoon };
-}
 
 const OTHER_BRAND_VALUE = "__OTHER__";
 
@@ -236,7 +198,7 @@ const PetTypeDropdown = ({ isOpen, value, options, onToggle, onChange, renderLab
     );
 };
 
-type GenericDropdownOption = { value: string; label: string; disabled?: boolean };
+type GenericDropdownOption = { value: string; label: string };
 
 type GenericDropdownGroup = {
     groupLabel: string;
@@ -277,27 +239,21 @@ const GenericDropdown = ({ isOpen, value, onToggle, onChange, options, groups, p
 
     const renderOption = (opt: GenericDropdownOption) => {
         const isSelected = opt.value === value;
-        const isDisabled = opt.disabled === true;
         return (
             <button
                 key={opt.value}
                 type="button"
-                disabled={isDisabled}
-                title={isDisabled ? "Không có ca làm cho buổi này trong ngày đã chọn" : undefined}
                 onClick={() => {
-                    if (isDisabled) return;
                     onChange(opt.value, opt.label);
                     onToggle();
                 }}
-                className={`w-full text-left rounded-[12px] px-[14px] py-[11px] transition-all flex items-center justify-between ${isDisabled
-                    ? "cursor-not-allowed opacity-45 text-[#9ca3af]"
-                    : isSelected
-                      ? "bg-[#fff7f3] text-[#c45a3a]"
-                      : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
+                className={`w-full text-left rounded-[12px] px-[14px] py-[11px] transition-all flex items-center justify-between ${isSelected
+                    ? "bg-[#fff7f3] text-[#c45a3a]"
+                    : "text-[#4b5563] hover:bg-[#fff7f3]/50 hover:text-[#c45a3a]"
                     }`}
             >
-                <span className={`text-[0.9062rem] whitespace-nowrap ${isSelected && !isDisabled ? "font-[700]" : "font-[500]"}`}>{opt.label}</span>
-                {isSelected && !isDisabled && (
+                <span className={`text-[0.9062rem] whitespace-nowrap ${isSelected ? "font-[700]" : "font-[500]"}`}>{opt.label}</span>
+                {isSelected && (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#ffbaa0]"><path d="M20 6L9 17l-5-5" /></svg>
                 )}
             </button>
@@ -358,11 +314,8 @@ type AdditionalServiceNonRoomFieldsProps = {
     updateAdditionalService: (petId: string, svcId: string, updates: Partial<BookingPetServiceForm>) => void;
     services: ServiceClient[];
     globalDateFrom: string;
-    enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
-    /** Trong 2 tuần ISO: khóa khung giờ sáng/chiều theo ca OPEN/ASSIGNED */
-    sessionShiftCoverage: { apply: boolean; morning: boolean; afternoon: boolean };
 };
 
 /** Ô Ngày gửi + Khung giờ cho dịch vụ chính khi isRequiredRoom = false (dùng time_slots của dịch vụ). */
@@ -371,10 +324,8 @@ type MainServiceNonRoomFieldsProps = {
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
     services: ServiceClient[];
     globalDateFrom: string;
-    enforceAdvanceBookingHours: boolean;
     bookingDatePickerPopperSx: object;
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
-    sessionShiftCoverage: { apply: boolean; morning: boolean; afternoon: boolean };
 };
 
 const MainServiceNonRoomFields = ({
@@ -382,10 +333,8 @@ const MainServiceNonRoomFields = ({
     updatePet,
     services,
     globalDateFrom,
-    enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
-    sessionShiftCoverage,
 }: MainServiceNonRoomFieldsProps) => {
     const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = pet.serviceId ? services.find((s) => s.serviceId === pet.serviceId) : undefined;
@@ -399,27 +348,6 @@ const MainServiceNonRoomFields = ({
     });
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
-
-    useEffect(() => {
-        if (!sessionShiftCoverage.apply || pet.sessionTimeSlotId == null) return;
-        const ts = timeSlots.find((t) => t.id === pet.sessionTimeSlotId);
-        if (!ts) return;
-        const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : String(ts.startTime ?? "").slice(0, 5);
-        const isPm = start && start >= "12:00";
-        const allowed = isPm ? sessionShiftCoverage.afternoon : sessionShiftCoverage.morning;
-        if (!allowed) {
-            updatePet(pet.id, { sessionTimeSlotId: undefined, sessionSlotLabel: undefined, sessionSlot: undefined });
-        }
-    }, [
-        sessionShiftCoverage.apply,
-        sessionShiftCoverage.morning,
-        sessionShiftCoverage.afternoon,
-        pet.sessionTimeSlotId,
-        pet.id,
-        timeSlots,
-        updatePet,
-    ]);
-
     const slotGroups = useMemo(() => {
         const am: GenericDropdownOption[] = [];
         const pm: GenericDropdownOption[] = [];
@@ -431,12 +359,10 @@ const MainServiceNonRoomFields = ({
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                const isPm = !!(start && start >= "12:00");
-                const shiftBlocked = sessionShiftCoverage.apply && (isPm ? !sessionShiftCoverage.afternoon : !sessionShiftCoverage.morning);
-                const option: GenericDropdownOption = { value: String(ts.id), label, disabled: shiftBlocked };
+                const option = { value: String(ts.id), label };
 
                 // Determine AM or PM based on start time (HH:mm)
-                if (isPm) {
+                if (start && start >= "12:00") {
                     pm.push(option);
                 } else {
                     am.push(option);
@@ -447,14 +373,12 @@ const MainServiceNonRoomFields = ({
         if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
         if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
-    }, [timeSlots, sessionShiftCoverage.apply, sessionShiftCoverage.morning, sessionShiftCoverage.afternoon]);
+    }, [timeSlots]);
 
     if (!pet.serviceId || !isNonRoom) return null;
 
     const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
-    const minSessionDate = enforceAdvanceBookingHours
-        ? dayjs().add(advanceHours, "hour").startOf("day")
-        : dayjs().startOf("day");
+    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
 
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = pet.addonServiceIds ?? [];
@@ -509,11 +433,6 @@ const MainServiceNonRoomFields = ({
                     placeholder="— Chọn khung giờ —"
                     twoColumns={true}
                 />
-                {sessionShiftCoverage.apply && (!sessionShiftCoverage.morning || !sessionShiftCoverage.afternoon) && (
-                    <p className="mt-1 text-[0.75rem] text-[#888]">
-                        Khung giờ được lọc theo ca làm đã xếp trong ngày (chỉ chọn được buổi có ca sáng hoặc ca chiều tương ứng).
-                    </p>
-                )}
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -563,10 +482,8 @@ const AdditionalServiceNonRoomFields = ({
     updateAdditionalService,
     services,
     globalDateFrom,
-    enforceAdvanceBookingHours,
     bookingDatePickerPopperSx,
     getServicePriceForWeight,
-    sessionShiftCoverage,
 }: AdditionalServiceNonRoomFieldsProps) => {
     const [isSlotDropdownOpen, setIsSlotDropdownOpen] = useState(false);
     const selectedSvc = asvc.serviceId ? services.find((s) => s.serviceId === asvc.serviceId) : undefined;
@@ -581,31 +498,6 @@ const AdditionalServiceNonRoomFields = ({
 
     const timeSlots: TimeSlotClient[] = timeSlotsData ?? [];
 
-    useEffect(() => {
-        if (!sessionShiftCoverage.apply || asvc.sessionTimeSlotId == null) return;
-        const ts = timeSlots.find((t) => t.id === asvc.sessionTimeSlotId);
-        if (!ts) return;
-        const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : String(ts.startTime ?? "").slice(0, 5);
-        const isPm = start && start >= "12:00";
-        const allowed = isPm ? sessionShiftCoverage.afternoon : sessionShiftCoverage.morning;
-        if (!allowed) {
-            updateAdditionalService(petId, asvc.id, {
-                sessionTimeSlotId: undefined,
-                sessionSlotLabel: undefined,
-                sessionSlot: undefined,
-            });
-        }
-    }, [
-        sessionShiftCoverage.apply,
-        sessionShiftCoverage.morning,
-        sessionShiftCoverage.afternoon,
-        asvc.sessionTimeSlotId,
-        asvc.id,
-        petId,
-        timeSlots,
-        updateAdditionalService,
-    ]);
-
     const slotGroups = useMemo(() => {
         const am: GenericDropdownOption[] = [];
         const pm: GenericDropdownOption[] = [];
@@ -617,11 +509,9 @@ const AdditionalServiceNonRoomFields = ({
                 const start = typeof ts.startTime === "string" ? ts.startTime.slice(0, 5) : ts.startTime;
                 const end = typeof ts.endTime === "string" ? ts.endTime.slice(0, 5) : ts.endTime;
                 const label = start && end ? `${start} - ${end}` : start || end || `Slot #${ts.id}`;
-                const isPm = !!(start && start >= "12:00");
-                const shiftBlocked = sessionShiftCoverage.apply && (isPm ? !sessionShiftCoverage.afternoon : !sessionShiftCoverage.morning);
-                const option: GenericDropdownOption = { value: String(ts.id), label, disabled: shiftBlocked };
+                const option = { value: String(ts.id), label };
 
-                if (isPm) {
+                if (start && start >= "12:00") {
                     pm.push(option);
                 } else {
                     am.push(option);
@@ -632,14 +522,12 @@ const AdditionalServiceNonRoomFields = ({
         if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
         if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
-    }, [timeSlots, sessionShiftCoverage.apply, sessionShiftCoverage.morning, sessionShiftCoverage.afternoon]);
+    }, [timeSlots]);
 
     if (!asvc.serviceId || !isNonRoom) return null;
 
     const advanceHours = selectedSvc?.advanceBookingHours ?? 24;
-    const minSessionDate = enforceAdvanceBookingHours
-        ? dayjs().add(advanceHours, "hour").startOf("day")
-        : dayjs().startOf("day");
+    const minSessionDate = dayjs().add(advanceHours, "hour").startOf("day");
 
     const mainServicePrice = selectedSvc ? getServicePriceForWeight(selectedSvc, pet.weight, pet.petType) : undefined;
     const addonIds = asvc.addonServiceIds ?? [];
@@ -694,11 +582,6 @@ const AdditionalServiceNonRoomFields = ({
                     placeholder="— Chọn khung giờ —"
                     twoColumns={true}
                 />
-                {sessionShiftCoverage.apply && (!sessionShiftCoverage.morning || !sessionShiftCoverage.afternoon) && (
-                    <p className="mt-1 text-[0.75rem] text-[#888]">
-                        Khung giờ được lọc theo ca làm đã xếp trong ngày (chỉ chọn được buổi có ca sáng hoặc ca chiều tương ứng).
-                    </p>
-                )}
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
@@ -743,25 +626,6 @@ const AdditionalServiceNonRoomFields = ({
 
 const cellSize = 48;
 
-const ROOM_STATUS_BLOCKED_TITLES: Record<string, string> = {
-    OCCUPIED: "Phòng đang bận hoặc đang được giữ",
-    BLOCKED: "Phòng đang bị khóa",
-    CLEANING: "Phòng đang dọn dẹp",
-    MAINTENANCE: "Phòng đang bảo trì",
-    OUT_OF_SERVICE: "Phòng ngưng hoạt động",
-};
-
-const isRoomAvailableForPicker = (room: RoomClient | null | undefined): boolean => {
-    if (!room) return false;
-    return String(room.status ?? "").toUpperCase() === "AVAILABLE";
-};
-
-function roomPickerBlockedTitle(room: RoomClient): string | undefined {
-    const s = String(room.status ?? "").toUpperCase();
-    if (s === "AVAILABLE") return undefined;
-    return ROOM_STATUS_BLOCKED_TITLES[s] ?? `Phòng không khả dụng (${s})`;
-}
-
 type RoomPickerSectionProps = {
     pet: BookingPetForm;
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
@@ -798,14 +662,14 @@ const RoomPickerSection = ({
     const showPicker = needsRoom && hasDates && !!pet.serviceId;
 
     const { data: layoutData } = useQuery({
-        queryKey: ["room-layout-config", pet.serviceId],
-        queryFn: () => getRoomLayoutConfigsByServiceId(pet.serviceId!),
+        queryKey: ["room-layout-config", pet.serviceId, "IN_USE"],
+        queryFn: () => getRoomLayoutConfigsByServiceId(pet.serviceId!, "IN_USE"),
         enabled: showPicker && !!pet.serviceId,
         select: (res) => res.data,
     });
 
     const layouts: RoomLayoutConfigClient[] = layoutData ?? [];
-    const activeLayout = layouts.find(l => l.status === "IN_USE" || l.status === "READY_FOR_USE");
+    const activeLayout = layouts[0];
     const layoutId = activeLayout?.id;
 
     const { data: roomsData } = useQuery({
@@ -822,31 +686,16 @@ const RoomPickerSection = ({
         select: (res) => res.data ?? [],
     });
 
+    const { data: bookedRoomIdsData } = useQuery({
+        queryKey: ["booked-room-ids", effectiveDateFrom, pet.dateTo],
+        queryFn: () => getBookedRoomIds(effectiveDateFrom!, pet.dateTo!),
+        enabled: showPicker && !!effectiveDateFrom && !!pet.dateTo,
+        select: (res) => res.data ?? [],
+    });
+
     const rooms: RoomClient[] = roomsData ?? [];
-
-    const placedRooms = useMemo(
-        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
-        [rooms, layoutId]
-    );
-
-    const roomTypes: RoomTypeClient[] = useMemo(() => {
-        const fetchTypes = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
-        if (fetchTypes.length > 0) return fetchTypes;
-
-        const map = new Map<number, RoomTypeClient>();
-        placedRooms.forEach((r) => {
-            if (r.roomTypeId && !map.has(r.roomTypeId)) {
-                map.set(r.roomTypeId, {
-                    roomTypeId: r.roomTypeId,
-                    typeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
-                    displayTypeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
-                    isActive: true,
-                });
-            }
-        });
-        return Array.from(map.values()).sort((a,b) => a.roomTypeId - b.roomTypeId);
-    }, [roomTypesData, placedRooms]);
-
+    const bookedRoomIdSet = useMemo(() => new Set(bookedRoomIdsData ?? []), [bookedRoomIdsData]);
+    const roomTypes: RoomTypeClient[] = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
     const selectedRoomTypeId = pet.selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
     const effectiveRoomTypeId = selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
 
@@ -856,6 +705,11 @@ const RoomPickerSection = ({
         if (!showPicker || firstRoomTypeId == null || pet.selectedRoomTypeId != null) return;
         updatePet(pet.id, { selectedRoomTypeId: firstRoomTypeId });
     }, [showPicker, roomTypes.length, firstRoomTypeId, pet.id, pet.selectedRoomTypeId, updatePet]);
+
+    const placedRooms = useMemo(
+        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
+        [rooms, layoutId]
+    );
 
     const getRoomAt = useCallback(
         (row: number, col: number) => placedRooms.find((r) => r.gridRow === row && r.gridCol === col),
@@ -943,10 +797,10 @@ const RoomPickerSection = ({
                             const row = Math.floor(i / maxCols);
                             const col = i % maxCols;
                             const room = getRoomAt(row, col);
-                            const isBlockedByStatus = !!(room && !isRoomAvailableForPicker(room));
+                            const isBooked = room && bookedRoomIdSet.has(room.roomId);
                             const isMatchingType = room && (effectiveRoomTypeId == null ? true : room.roomTypeId === effectiveRoomTypeId);
                             const isSelected = room && pet.selectedRoomId === room.roomId;
-                            const isClickable = !!(isMatchingType && room && isRoomAvailableForPicker(room));
+                            const isClickable = isMatchingType && !isBooked;
 
                             return (
                                 <button
@@ -963,7 +817,7 @@ const RoomPickerSection = ({
                                     }}
                                     className={`flex flex-col items-center justify-center rounded-[10px] border-2 transition-all ${!room
                                         ? "border-[#e5e7eb] bg-[#f9fafb]/50 cursor-default"
-                                        : isBlockedByStatus
+                                        : isBooked
                                             ? "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af] blur-[1.5px] select-none"
                                             : isMatchingType
                                                 ? isSelected
@@ -972,7 +826,7 @@ const RoomPickerSection = ({
                                                 : "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af]"
                                         }`}
                                     style={{ width: cellSize, height: cellSize }}
-                                    title={isBlockedByStatus && room ? roomPickerBlockedTitle(room) : undefined}
+                                    title={isBooked ? "Phòng đã được đặt" : undefined}
                                 >
                                     {room && (
                                         <>
@@ -1110,14 +964,14 @@ const RoomPickerSectionForAdditional = ({
     const showPicker = needsRoom && hasDates && !!asvc.serviceId;
 
     const { data: layoutData } = useQuery({
-        queryKey: ["room-layout-config", asvc.serviceId],
-        queryFn: () => getRoomLayoutConfigsByServiceId(asvc.serviceId!),
+        queryKey: ["room-layout-config", asvc.serviceId, "IN_USE"],
+        queryFn: () => getRoomLayoutConfigsByServiceId(asvc.serviceId!, "IN_USE"),
         enabled: showPicker && !!asvc.serviceId,
         select: (res) => res.data,
     });
 
     const layouts: RoomLayoutConfigClient[] = layoutData ?? [];
-    const activeLayout = layouts.find(l => l.status === "IN_USE" || l.status === "READY_FOR_USE");
+    const activeLayout = layouts[0];
     const layoutId = activeLayout?.id;
 
     const { data: roomsData } = useQuery({
@@ -1134,31 +988,16 @@ const RoomPickerSectionForAdditional = ({
         select: (res) => res.data ?? [],
     });
 
+    const { data: bookedRoomIdsDataAdd } = useQuery({
+        queryKey: ["booked-room-ids", effectiveDateFrom, asvc.dateTo],
+        queryFn: () => getBookedRoomIds(effectiveDateFrom!, asvc.dateTo!),
+        enabled: showPicker && !!effectiveDateFrom && !!asvc.dateTo,
+        select: (res) => res.data ?? [],
+    });
+
     const rooms: RoomClient[] = roomsData ?? [];
-
-    const placedRooms = useMemo(
-        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
-        [rooms, layoutId]
-    );
-
-    const roomTypes: RoomTypeClient[] = useMemo(() => {
-        const fetchTypes = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
-        if (fetchTypes.length > 0) return fetchTypes;
-
-        const map = new Map<number, RoomTypeClient>();
-        placedRooms.forEach((r) => {
-            if (r.roomTypeId && !map.has(r.roomTypeId)) {
-                map.set(r.roomTypeId, {
-                    roomTypeId: r.roomTypeId,
-                    typeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
-                    displayTypeName: r.roomTypeName || `Phòng loại ${r.roomTypeId}`,
-                    isActive: true,
-                });
-            }
-        });
-        return Array.from(map.values()).sort((a,b) => a.roomTypeId - b.roomTypeId);
-    }, [roomTypesData, placedRooms]);
-
+    const bookedRoomIdSetAdd = useMemo(() => new Set(bookedRoomIdsDataAdd ?? []), [bookedRoomIdsDataAdd]);
+    const roomTypes: RoomTypeClient[] = (roomTypesData ?? []).filter((rt) => rt.isActive && !rt.isDeleted);
     const selectedRoomTypeId = asvc.selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
     const effectiveRoomTypeId = selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
 
@@ -1167,6 +1006,11 @@ const RoomPickerSectionForAdditional = ({
         if (!showPicker || firstRoomTypeId == null || asvc.selectedRoomTypeId != null) return;
         updateAdditionalService(pet.id, asvc.id, { selectedRoomTypeId: firstRoomTypeId });
     }, [showPicker, roomTypes.length, firstRoomTypeId, pet.id, asvc.id, asvc.selectedRoomTypeId, updateAdditionalService]);
+
+    const placedRooms = useMemo(
+        () => rooms.filter((r) => r.roomLayoutConfigId === layoutId && r.gridRow != null && r.gridCol != null),
+        [rooms, layoutId]
+    );
 
     const getRoomAt = useCallback(
         (row: number, col: number) => placedRooms.find((r) => r.gridRow === row && r.gridCol === col),
@@ -1254,10 +1098,10 @@ const RoomPickerSectionForAdditional = ({
                             const row = Math.floor(i / maxCols);
                             const col = i % maxCols;
                             const room = getRoomAt(row, col);
-                            const isBlockedByStatus = !!(room && !isRoomAvailableForPicker(room));
+                            const isBooked = room && bookedRoomIdSetAdd.has(room.roomId);
                             const isMatchingType = room && (effectiveRoomTypeId == null ? true : room.roomTypeId === effectiveRoomTypeId);
                             const isSelected = room && asvc.selectedRoomId === room.roomId;
-                            const isClickable = !!(isMatchingType && room && isRoomAvailableForPicker(room));
+                            const isClickable = isMatchingType && !isBooked;
 
                             return (
                                 <button
@@ -1274,7 +1118,7 @@ const RoomPickerSectionForAdditional = ({
                                     }}
                                     className={`flex flex-col items-center justify-center rounded-[10px] border-2 transition-all ${!room
                                         ? "border-[#e5e7eb] bg-[#f9fafb]/50 cursor-default"
-                                        : isBlockedByStatus
+                                        : isBooked
                                             ? "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af] blur-[1.5px] select-none"
                                             : isMatchingType
                                                 ? isSelected
@@ -1283,7 +1127,7 @@ const RoomPickerSectionForAdditional = ({
                                                 : "border-[#e5e7eb] bg-[#f4f4f5] opacity-40 cursor-not-allowed text-[#9ca3af]"
                                         }`}
                                     style={{ width: cellSize, height: cellSize }}
-                                    title={isBlockedByStatus && room ? roomPickerBlockedTitle(room) : undefined}
+                                    title={isBooked ? "Phòng đã được đặt" : undefined}
                                 >
                                     {room ? (
                                         <>
@@ -1591,34 +1435,18 @@ export type BookingDetailDraft = {
     pets: BookingPetForm[];
 };
 
-type BookingDetailPageMode = "client" | "admin-counter";
-
-type BookingDetailPageProps = {
-    mode?: BookingDetailPageMode;
-};
-
-type ServicePricingQueryResult = {
-    map: Record<number, IServicePricing[]>;
-    failedServiceIds: number[];
-};
-
-export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) => {
+export const BookingDetailPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft; bookingCodeForEdit?: string; bookingMode?: BookingDetailPageMode }) | undefined;
-    const searchParams = new URLSearchParams(location.search);
-    const routeMode = searchParams.get("mode") === "counter" ? "admin-counter" : undefined;
-    const currentMode: BookingDetailPageMode = routeMode ?? rawState?.bookingMode ?? mode;
-    const isCounterBooking = currentMode === "admin-counter";
-    const enforceAdvanceBookingHours = !isCounterBooking;
+    const rawState = location.state as (BookingStep1FormData & { bookingDraft?: BookingDetailDraft; bookingCodeForEdit?: string }) | undefined;
     const draft = rawState?.bookingDraft;
     const step1Data: BookingStep1FormData = draft?.step1Data ?? (rawState as BookingStep1FormData) ?? defaultStep1Data;
 
     useEffect(() => {
         if (!step1Data.fullName?.trim() || !step1Data.phone?.trim()) {
-            navigate(isCounterBooking ? "/admin/booking/create?mode=counter" : "/dat-lich", { replace: true });
+            navigate("/dat-lich", { replace: true });
         }
-    }, [step1Data.fullName, step1Data.phone, navigate, isCounterBooking]);
+    }, [step1Data.fullName, step1Data.phone, navigate]);
 
     const initialPets: BookingPetForm[] = draft?.pets?.length ? draft.pets : [createEmptyPet(step1Data)];
 
@@ -1629,7 +1457,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
     /** Index thú cưng đang xem (story style: chuyển qua lại bên phải) */
     const [activePetIndex, setActivePetIndex] = useState(0);
     const queryClient = useQueryClient();
-    const pricingWarningShownRef = useRef<string>("");
 
     useEffect(() => {
         setActivePetIndex((i) => Math.min(i, Math.max(0, pets.length - 1)));
@@ -1659,9 +1486,9 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
 
     const minGlobalDateFrom = useMemo(() => {
         const base = dayjs().startOf("day"); // không bao giờ cho chọn ngày quá khứ
-        if (!enforceAdvanceBookingHours || !maxAdvanceBookingHours || maxAdvanceBookingHours <= 0) return base;
+        if (!maxAdvanceBookingHours || maxAdvanceBookingHours <= 0) return base;
         return dayjs().add(maxAdvanceBookingHours, "hour").startOf("day");
-    }, [maxAdvanceBookingHours, enforceAdvanceBookingHours]);
+    }, [maxAdvanceBookingHours]);
 
     // Nếu globalDateFrom đang nhỏ hơn min thì tự đẩy lên mốc tối thiểu để tránh sai logic
     useEffect(() => {
@@ -1675,19 +1502,10 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
     }, [minGlobalDateFrom?.valueOf()]);
 
     // Map serviceId -> danh sách pricing rule
-    const serviceIdsForPricingQuery = useMemo(
-        () => services.map((s) => s.serviceId).sort((a, b) => a - b),
-        [services]
-    );
-
-    const {
-        data: servicePricingData,
-        refetch: refetchServicePricing,
-    } = useQuery({
-        queryKey: ["service-pricings-client", serviceIdsForPricingQuery],
-        queryFn: async (): Promise<ServicePricingQueryResult> => {
+    const { data: servicePricingMap } = useQuery({
+        queryKey: ["service-pricings-client", services.map((s) => s.serviceId)],
+        queryFn: async (): Promise<Record<number, IServicePricing[]>> => {
             const result: Record<number, IServicePricing[]> = {};
-            const failedServiceIds: number[] = [];
             await Promise.all(
                 services.map(async (s) => {
                     try {
@@ -1695,130 +1513,14 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                         result[s.serviceId] = res.data ?? [];
                     } catch {
                         result[s.serviceId] = [];
-                        failedServiceIds.push(s.serviceId);
                     }
                 })
             );
-            return {
-                map: result,
-                failedServiceIds,
-            };
+            return result;
         },
         enabled: services.length > 0,
         staleTime: 5 * 60 * 1000,
     });
-
-    const servicePricingMap = servicePricingData?.map;
-    const failedServiceIds = servicePricingData?.failedServiceIds ?? [];
-
-    /** Khoảng 2 tuần ISO (tuần này + tuần sau) để lấy phủ ca từ BE */
-    const shiftCoverageRange = useMemo(() => {
-        const start = dayjs().startOf("isoWeek");
-        const end = dayjs().endOf("isoWeek").add(1, "week");
-        return {
-            start,
-            end,
-            fromStr: start.format("YYYY-MM-DD"),
-            toStr: end.format("YYYY-MM-DD"),
-        };
-    }, []);
-
-    /** Cần hiển thị gợi ý ràng buộc ca (ngày trả) khi ngày gửi thuộc 2 tuần ISO gần nhất */
-    const needsShiftCoverageForCheckout = useMemo(() => {
-        if (globalDateFrom && isCheckInInCurrentOrNextIsoWeek(dayjs(globalDateFrom))) return true;
-        return pets.some((p) => p.dateFrom && isCheckInInCurrentOrNextIsoWeek(dayjs(p.dateFrom)));
-    }, [globalDateFrom, pets]);
-
-    /** Luôn tải phủ ca 2 tuần để khóa ô Ngày gửi chung + ngày trả trong khoảng đó (tuần xa hơn không ràng buộc). */
-    const { data: shiftCoverageApi, isLoading: shiftCoverageLoading } = useQuery({
-        queryKey: ["booking-shift-coverage", shiftCoverageRange.fromStr, shiftCoverageRange.toStr],
-        queryFn: () => getBookingShiftCoverage(shiftCoverageRange.fromStr, shiftCoverageRange.toStr),
-        staleTime: 120_000,
-    });
-
-    const shiftCoverageMap = useMemo(() => {
-        const m = new Map<string, { morning: boolean; afternoon: boolean }>();
-        const rows = shiftCoverageApi?.data ?? [];
-        rows.forEach((row) => m.set(row.date, { morning: row.morning, afternoon: row.afternoon }));
-        return m;
-    }, [shiftCoverageApi]);
-
-    /** Khung giờ dịch vụ không phòng: theo ca sáng/chiều của ngày gửi chung (cùng khoảng 2 tuần ISO). */
-    const sessionShiftCoverageFlags = useMemo(
-        () =>
-            getShiftCoverageFlagsForSessionDate(
-                globalDateFrom,
-                shiftCoverageLoading,
-                shiftCoverageRange.start,
-                shiftCoverageRange.end,
-                shiftCoverageMap
-            ),
-        [globalDateFrom, shiftCoverageLoading, shiftCoverageRange.start, shiftCoverageRange.end, shiftCoverageMap]
-    );
-
-    /**
-     * Trong [tuần ISO hiện tại, tuần ISO kế]: khóa ngày nếu cả buổi sáng và chiều đều không có ca (OPEN/ASSIGNED).
-     * Ngoài khoảng đó → không khóa (tuần xa admin sẽ xếp ca sau; nếu trùng ngày nghỉ có thể báo khách đổi sau).
-     */
-    const isDateWithNoShiftInNearWeeks = useCallback(
-        (d: Dayjs | null) => {
-            if (!d || !d.isValid()) return false;
-            if (shiftCoverageLoading) return false;
-            if (d.isBefore(shiftCoverageRange.start, "day") || d.isAfter(shiftCoverageRange.end, "day")) return false;
-            const cov = shiftCoverageMap.get(d.format("YYYY-MM-DD"));
-            if (!cov) return true;
-            return !cov.morning && !cov.afternoon;
-        },
-        [shiftCoverageLoading, shiftCoverageMap, shiftCoverageRange.start, shiftCoverageRange.end]
-    );
-
-    const isReturnDateDisabledByShift = useCallback(
-        (checkInYmd: string | undefined, d: Dayjs | null) => {
-            const cin = checkInYmd?.trim();
-            if (!cin) return false;
-            const checkIn = dayjs(cin);
-            if (!checkIn.isValid() || !isCheckInInCurrentOrNextIsoWeek(checkIn)) return false;
-            return isDateWithNoShiftInNearWeeks(d);
-        },
-        [isDateWithNoShiftInNearWeeks]
-    );
-
-    /**
-     * Ngày trả: dịch vụ cần phòng → cùng quy tắc ca như ô Ngày gửi (2 tuần ISO gần nhất).
-     * Dịch vụ không cần phòng → chỉ áp khi ngày gửi thuộc 2 tuần đó (logic cũ).
-     */
-    const shouldDisableReturnDateByShift = useCallback(
-        (checkInYmd: string | undefined, d: Dayjs | null, requiresRoom: boolean) => {
-            if (requiresRoom) return isDateWithNoShiftInNearWeeks(d);
-            return isReturnDateDisabledByShift(checkInYmd, d);
-        },
-        [isDateWithNoShiftInNearWeeks, isReturnDateDisabledByShift]
-    );
-
-    const helperTextReturnDateShift = (requiresRoom: boolean) => {
-        if (requiresRoom) {
-            return undefined;
-        }
-        if (needsShiftCoverageForCheckout) {
-            return "Tuần này & tuần sau: không chọn được ngày trả nếu cả ca sáng và ca chiều đều trống (khi ngày gửi cũng trong 2 tuần đó).";
-        }
-        return undefined;
-    };
-
-    useEffect(() => {
-        if (!failedServiceIds.length) {
-            pricingWarningShownRef.current = "";
-            return;
-        }
-
-        const key = failedServiceIds.slice().sort((a, b) => a - b).join(",");
-        if (pricingWarningShownRef.current === key) return;
-
-        pricingWarningShownRef.current = key;
-        toast.warning(
-            "Một số bảng giá chưa tải được. Vui lòng bấm 'Tải lại bảng giá' để cập nhật đầy đủ."
-        );
-    }, [failedServiceIds]);
 
     const petTypeOptions = useMemo(() => {
         const result = new Set<string>();
@@ -2040,8 +1742,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
         const phone = (step1Data.phone ?? "").trim();
         const address = (step1Data.address ?? "").trim();
 
-        if (!fullName || !email || !phone) {
-            toast.error("Vui lòng điền đầy đủ Họ tên, Email và Số điện thoại ở phần Thông tin khách hàng.");
+        if (!fullName || !email || !phone || !address) {
+            toast.error("Vui lòng điền đầy đủ Họ tên, Email, Số điện thoại và Địa chỉ ở phần Thông tin khách hàng.");
             // Cuộn lên phần thông tin khách hàng ở đầu trang
             window.scrollTo({ top: 0, behavior: "smooth" });
             return false;
@@ -2497,8 +2199,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
         bankCode: "",
         note: "",
     });
-    /** Remount dropdown "chọn TK để điền" sau mỗi lần chọn để có thể chọn lại cùng một dòng. */
-    const [bankQuickFillKey, setBankQuickFillKey] = useState(0);
 
     const openBankInfoModal = async () => {
         // Reset bank form when opening
@@ -2511,7 +2211,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
             setSelectedBankAccountId(null);
         }
         setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
-        setBankQuickFillKey((k) => k + 1);
         setIsBankInfoOpen(true);
         // Pre-fill bank form theo email khách đã lưu (khi guest hoặc đang thêm mới)
         const email = step1Data?.email?.trim();
@@ -2536,24 +2235,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
         if (!validateBeforePayment()) return;
         setIsHolding(true);
         try {
-            const payload = buildCreateBookingPayload(step1Data, pets, isCounterBooking ? "walk-in" : "online");
-            if (isCounterBooking) {
-                const createRes = await createBookingFromClient(payload);
-                const bookingCode = createRes?.data?.bookingCode;
-                if (createRes?.success && bookingCode) {
-                    const adminBookingsRes = await getAdminBookings();
-                    const matched = (adminBookingsRes?.data ?? []).find((b) => b.bookingCode === bookingCode);
-                    toast.success("Đặt lịch tại quầy thành công. Vui lòng ghi nhận thanh toán.");
-                    if (matched?.id != null) {
-                        navigate(`/admin/booking/detail/${matched.id}`, { replace: true });
-                        return;
-                    }
-                    navigate("/admin/booking/list", { replace: true });
-                    return;
-                }
-                toast.error(createRes?.message ?? "Không thể tạo đơn đặt lịch tại quầy.");
-                return;
-            }
+            const payload = buildCreateBookingPayload(step1Data, pets);
             // Attach bank info if provided (guest or newly added)
             const finalPayload = bankPayload
                 ? { ...payload, bankInformation: bankPayload }
@@ -2607,9 +2289,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
             }
         } finally {
             setIsHolding(false);
-            if (!isCounterBooking) {
-                setIsBankInfoOpen(false);
-            }
+            setIsBankInfoOpen(false);
         }
     };
 
@@ -2619,22 +2299,11 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
             await handleProceedToPayment();
         } else {
             // Guest or adding new: validate form
-            const accNum = bankForm.accountNumber.trim();
-            if (!accNum) {
+            if (!bankForm.accountNumber.trim()) {
                 toast.error("Vui lòng nhập số tài khoản.");
                 return;
             }
-            if (!/^[0-9]+$/.test(accNum)) {
-                toast.error("Số tài khoản chỉ được chứa chữ số (0-9).");
-                return;
-            }
-            if (accNum.length < 6 || accNum.length > 19) {
-                toast.error("Số tài khoản phải từ 6 đến 19 chữ số.");
-                return;
-            }
-
-            const holderName = bankForm.accountHolderName.trim();
-            if (!holderName) {
+            if (!bankForm.accountHolderName.trim()) {
                 toast.error("Vui lòng nhập tên chủ tài khoản.");
                 return;
             }
@@ -2642,53 +2311,40 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                 toast.error("Vui lòng chọn ngân hàng.");
                 return;
             }
-            
-            const bankMeta = banks.find((b) => b.bankCode === bankForm.bankCode);
-            await handleProceedToPayment({
-                ...bankForm,
-                accountNumber: accNum,
-                accountHolderName: holderName,
-                bankName: bankForm.bankName ?? bankMeta?.bankName ?? null,
-            });
+            await handleProceedToPayment(bankForm);
         }
     };
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
             <>
-                {!isCounterBooking && (
-                    <div className="relative">
-                        <div className="app-container flex py-[100px] bg-white">
-                            <div className="px-[20px] w-[42%] z-[10]">
-                                <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
-                                    {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
+                <div className="relative">
+                    <div className="app-container flex py-[100px] bg-white">
+                        <div className="px-[20px] w-[42%] z-[10]">
+                            <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
+                                {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
+                            </p>
+                            <h2 className="text-[3.125rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
+                                Thông tin lịch hẹn cho thú cưng
+                            </h2>
+                            {rawState?.bookingCodeForEdit && (
+                                <p className="mt-[8px] text-[0.9375rem] text-[#c45a3a] font-[600]">
+                                    Mã đặt lịch: <span className="font-[800]">{rawState.bookingCodeForEdit}</span>
                                 </p>
-                                <h2 className="text-[3.125rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
-                                    Thông tin lịch hẹn cho thú cưng
-                                </h2>
-                                {rawState?.bookingCodeForEdit && (
-                                    <p className="mt-[8px] text-[0.9375rem] text-[#c45a3a] font-[600]">
-                                        Mã đặt lịch: <span className="font-[800]">{rawState.bookingCodeForEdit}</span>
-                                    </p>
-                                )}
-                                <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
-                                    Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
-                                </p>
-                            </div>
+                            )}
+                            <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
+                                Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
+                            </p>
                         </div>
-                        <img
-                            className="absolute right-[0%] max-w-[58%] top-[-20%] 2xl:top-[-17%]"
-                            src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/hero_image_13-1.png"
-                            alt=""
-                        />
                     </div>
-                )}
+                    <img
+                        className="absolute right-[0%] max-w-[58%] top-[-20%] 2xl:top-[-17%]"
+                        src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/hero_image_13-1.png"
+                        alt=""
+                    />
+                </div>
 
-                <div
-                    ref={formSectionRef}
-                    className={`app-container flex gap-[48px] justify-center ${isCounterBooking ? "py-8 bg-[#fbfbf9]" : "py-[60px]"}`}
-                >
-                    {!isCounterBooking && (
+                <div ref={formSectionRef} className="app-container flex py-[60px] gap-[48px] justify-center">
                     <aside className="w-[320px] shrink-0 hidden lg:block">
                         <h2 className="text-[1.5rem] font-third text-[#181818] mb-[24px]">Thông tin</h2>
                         <div className="space-y-[20px]">
@@ -2721,37 +2377,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                             </div>
                         </div>
                     </aside>
-                    )}
 
                     <main className="w-full max-w-[800px]">
-                        {isCounterBooking && (
-                            <div className="mb-6">
-                                <Link
-                                    to={`/${prefixAdmin}/booking/list`}
-                                    className="inline-flex items-center gap-2 text-[0.9375rem] font-[600] text-[#c45a3a] hover:text-[#a04330] transition-colors"
-                                >
-                                    <ArrowBackIosNewIcon sx={{ fontSize: 18 }} aria-hidden />
-                                    Quay lại danh sách đặt lịch
-                                </Link>
-                            </div>
-                        )}
-                        {failedServiceIds.length > 0 && (
-                            <div className="mb-[20px] rounded-[12px] border border-[#ffd7a8] bg-[#fff7ed] px-[16px] py-[12px]">
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <p className="text-[0.875rem] text-[#9a3412]">
-                                        Một số quy tắc giá chưa tải được ({failedServiceIds.length} dịch vụ). Bạn có thể tải lại để đồng bộ giá.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => void refetchServicePricing()}
-                                        className="self-start rounded-[8px] border border-[#fb923c] bg-white px-[12px] py-[6px] text-[0.8125rem] font-[600] text-[#c2410c] transition hover:bg-[#fff1e6]"
-                                    >
-                                        Tải lại bảng giá
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
                         {/* ========== PHẦN 1: Thông tin cơ bản khách ========== */}
                         <section className="mb-[40px]">
                             <div className="flex items-center gap-2 mb-[16px]">
@@ -3038,7 +2665,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                 applyGlobalDateFromToAll(next);
                                                                             }}
                                                                             minDate={minGlobalDateFrom}
-                                                                            shouldDisableDate={(d) => isDateWithNoShiftInNearWeeks(d)}
                                                                             format="DD/MM/YYYY"
                                                                             slotProps={{
                                                                                 textField: {
@@ -3048,7 +2674,9 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                     color: "warning",
                                                                                     sx: bookingDatePickerTextFieldSx,
                                                                                     helperText:
-                                                                                        "Ngày gửi áp dụng cho mọi dịch vụ.",
+                                                                                        maxAdvanceBookingHours > 0
+                                                                                            ? `Ngày gửi tối thiểu = hôm nay + ${maxAdvanceBookingHours} giờ (theo yêu cầu đặt trước của các dịch vụ).`
+                                                                                            : "Ngày gửi này sẽ áp dụng cho tất cả dịch vụ của mọi thú cưng trong đơn.",
                                                                                 },
                                                                                 popper: { sx: bookingDatePickerPopperSx },
                                                                             }}
@@ -3147,11 +2775,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                 }
                                                             />
                                                         </div>
-
-                                                        <BookingNoShowNotice
-                                                            globalDateFrom={globalDateFrom}
-                                                            serviceId={pet.serviceId ?? undefined}
-                                                        />
 
                                                         {/* Dịch vụ add-on kèm theo: luôn hiển thị ô input khi đã chọn dịch vụ chính; add-on cùng category với dịch vụ đang chọn */}
                                                         {pet.serviceId && (() => {
@@ -3488,13 +3111,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             ? dayjs(pet.dateFrom || globalDateFrom).add(1, "day")
                                                                                             : dayjs().add(1, "day")
                                                                                     }
-                                                                                    shouldDisableDate={(d) =>
-                                                                                        shouldDisableReturnDateByShift(
-                                                                                            globalDateFrom || pet.dateFrom,
-                                                                                            d,
-                                                                                            mainService?.isRequiredRoom === true
-                                                                                        )
-                                                                                    }
                                                                                     slotProps={{
                                                                                         textField: {
                                                                                             placeholder: "DD/MM/YYYY",
@@ -3502,14 +3118,10 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             fullWidth: true,
                                                                                             color: "warning",
                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                            helperText: [
+                                                                                            helperText:
                                                                                                 pet.dateFrom && !pet.dateTo
                                                                                                     ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
-                                                                                                    : null,
-                                                                                                helperTextReturnDateShift(mainService?.isRequiredRoom === true) ?? null,
-                                                                                            ]
-                                                                                                .filter(Boolean)
-                                                                                                .join(" ") || undefined,
+                                                                                                    : undefined,
                                                                                         },
                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                     }}
@@ -3576,10 +3188,8 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                             updatePet={updatePet}
                                                             services={services}
                                                             globalDateFrom={globalDateFrom}
-                                                            enforceAdvanceBookingHours={enforceAdvanceBookingHours}
                                                             bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                             getServicePriceForWeight={getServicePriceForWeight}
-                                                            sessionShiftCoverage={sessionShiftCoverageFlags}
                                                             // id để scroll tới phần session
                                                             // @ts-ignore
                                                             id={`pet-${pet.id}-main-session`}
@@ -3834,27 +3444,13 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                             ? dayjs(asvc.dateFrom || globalDateFrom || pet.dateFrom).add(1, "day")
                                                                                             : dayjs().add(1, "day")
                                                                                     }
-                                                                                                                    shouldDisableDate={(d) =>
-                                                                                                                        shouldDisableReturnDateByShift(
-                                                                                                                            globalDateFrom || asvc.dateFrom || pet.dateFrom,
-                                                                                                                            d,
-                                                                                                                            isAdditionalRoom
-                                                                                                                        )
-                                                                                                                    }
                                                                                                                     slotProps={{
                                                                                                                         textField: {
                                                                                                                             placeholder: "DD/MM/YYYY",
                                                                                                                             required: true,
                                                                                                                             fullWidth: true,
                                                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                                                            helperText: [
-                                                                                                                                asvc.dateFrom && !asvc.dateTo
-                                                                                                                                    ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
-                                                                                                                                    : null,
-                                                                                                                                helperTextReturnDateShift(isAdditionalRoom) ?? null,
-                                                                                                                            ]
-                                                                                                                                .filter(Boolean)
-                                                                                                                                .join(" ") || undefined,
+                                                                                                                            helperText: asvc.dateFrom && !asvc.dateTo ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)" : undefined,
                                                                                                                         },
                                                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                                                     }}
@@ -3914,11 +3510,9 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                                                                                     asvc={asvc}
                                                                                                     updateAdditionalService={updateAdditionalService}
                                                                                                     services={services}
-                                                                                                    globalDateFrom={globalDateFrom}
-                                                                                                    enforceAdvanceBookingHours={enforceAdvanceBookingHours}
+                                                                                                        globalDateFrom={globalDateFrom}
                                                                                                     bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                                                                     getServicePriceForWeight={getServicePriceForWeight}
-                                                                                                    sessionShiftCoverage={sessionShiftCoverageFlags}
                                                                                                     // @ts-ignore
                                                                                                     id={`pet-${pet.id}-${asvc.id}-session`}
                                                                                                 />
@@ -3944,7 +3538,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                             <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
                                 <button
                                     type="button"
-                                    onClick={() => navigate(isCounterBooking ? "/admin/booking/create?mode=counter" : "/dat-lich", {
+                                    onClick={() => navigate("/dat-lich", {
                                         state: {
                                             ...step1Data,
                                             bookingDraft: {
@@ -3968,7 +3562,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                         disabled={isHolding || isSubmitting}
                                         className="py-[14px] px-[28px] rounded-[12px] border border-[#ffbaa0] bg-[#fff7f3] hover:bg-[#ffe9dd] text-[#c45a3a] font-[700] text-[0.9375rem] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
-                                        {isHolding ? (isCounterBooking ? "Đang tạo đơn..." : "Đang giữ chỗ...") : (isCounterBooking ? "Tạo đơn tại quầy" : "Tiếp tục thanh toán")}
+                                        {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
                                     </button>
                                 </div>
                             </section>
@@ -3983,9 +3577,7 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                 <div>
                                     <h3 className="text-[1.3125rem] font-[800] text-[#181818]">Xác nhận thông tin đặt lịch</h3>
                                     <p className="text-[0.875rem] text-[#6b7280] mt-0.5">
-                                        {isCounterBooking
-                                            ? "Vui lòng kiểm tra lại thông tin trước khi tạo đơn tại quầy."
-                                            : "Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc."}
+                                        Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc.
                                     </p>
                                 </div>
                                 <button
@@ -4506,15 +4098,11 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                     disabled={isHolding}
                                     onClick={() => {
                                         setIsSummaryOpen(false);
-                                        if (isCounterBooking) {
-                                            handleProceedToPayment();
-                                            return;
-                                        }
                                         openBankInfoModal();
                                     }}
                                     className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[0.9375rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {isCounterBooking ? "Tạo đơn tại quầy" : "Tiếp tục thanh toán"}
+                                    Tiếp tục thanh toán
                                 </button>
                             </div>
                         </div>
@@ -4615,73 +4203,6 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                                         >
                                             ← Quay lại danh sách tài khoản
                                         </button>
-                                    )}
-
-                                    {isLoggedIn && bankFormMode === "add-new" && myBankAccounts.length > 0 && (
-                                        <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f9fafb] p-4 space-y-3">
-                                            <div className="text-[0.8125rem] font-[700] text-[#374151]">
-                                                Điền nhanh từ tài khoản đã lưu
-                                            </div>
-                                            <p className="text-[0.75rem] text-[#6b7280] -mt-1">
-                                                Chọn một tài khoản để tự điền form bên dưới — bạn vẫn có thể chỉnh sửa trước khi xác nhận.
-                                            </p>
-                                            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const acc =
-                                                            myBankAccounts.find((a) => a.isDefault) ?? myBankAccounts[0];
-                                                        if (!acc) return;
-                                                        setBankForm({
-                                                            accountNumber: acc.accountNumber || "",
-                                                            accountHolderName: (acc.accountHolderName || "").toUpperCase(),
-                                                            bankCode: acc.bankCode || "",
-                                                            note: acc.note ?? "",
-                                                            bankName: acc.bankName ?? undefined,
-                                                        });
-                                                        toast.success("Đã điền từ tài khoản mặc định.");
-                                                    }}
-                                                    className="inline-flex items-center justify-center rounded-[12px] border-2 border-[#ffbaa0] bg-white px-4 py-2.5 text-[0.8125rem] font-[700] text-[#c45a3a] hover:bg-[#fff7f3] transition-colors"
-                                                >
-                                                    Điền tài khoản mặc định
-                                                </button>
-                                                <div className="flex-1 min-w-[200px]">
-                                                    <label htmlFor="booking-bank-quick-fill" className="sr-only">
-                                                        Chọn tài khoản đã lưu để điền form
-                                                    </label>
-                                                    <select
-                                                        key={bankQuickFillKey}
-                                                        id="booking-bank-quick-fill"
-                                                        defaultValue=""
-                                                        className="w-full py-[11px] px-[14px] text-[0.8438rem] text-[#111827] outline-none border border-[#d1d5db] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 rounded-[12px] bg-white"
-                                                        onChange={(e) => {
-                                                            const raw = e.target.value;
-                                                            if (!raw) return;
-                                                            const id = Number(raw);
-                                                            const acc = myBankAccounts.find((a) => a.id === id);
-                                                            if (!acc) return;
-                                                            setBankForm({
-                                                                accountNumber: acc.accountNumber || "",
-                                                                accountHolderName: (acc.accountHolderName || "").toUpperCase(),
-                                                                bankCode: acc.bankCode || "",
-                                                                note: acc.note ?? "",
-                                                                bankName: acc.bankName ?? undefined,
-                                                            });
-                                                            setBankQuickFillKey((k) => k + 1);
-                                                            toast.success("Đã điền thông tin từ tài khoản đã chọn.");
-                                                        }}
-                                                    >
-                                                        <option value="">— Hoặc chọn tài khoản trong danh sách —</option>
-                                                        {myBankAccounts.map((acc) => (
-                                                            <option key={acc.id} value={acc.id}>
-                                                                {acc.bankName} · {acc.accountNumber}
-                                                                {acc.isDefault ? " (Mặc định)" : ""}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
                                     )}
 
                                     <div className="space-y-4">
@@ -4791,56 +4312,52 @@ export const BookingDetailPage = ({ mode = "client" }: BookingDetailPageProps) =
                     </div>
                 )}
 
-                {!isCounterBooking && (
-                    <>
-                        <div className="app-container flex gap-[30px] pb-[100px]">
-                            <div className="w-[413px] px-[20px]">
-                                <div className="w-full h-[206px]">
-                                    <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+                <div className="app-container flex gap-[30px] pb-[100px]">
+                    <div className="w-[413px] px-[20px]">
+                        <div className="w-full h-[206px]">
+                            <img src="https://pawsitive.bold-themes.com/coco/wp-content/uploads/sites/3/2019/08/inner_image_maps_02.png" alt="" width={413} height={206} className="w-full h-full object-cover rounded-t-[50px]" />
+                        </div>
+                        <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
+                            <div className="flex mb-[32px]">
+                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                    <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
                                 </div>
-                                <div className="bg-[#e67e2026] px-[30px] pt-[32px] pb-[40px] rounded-b-[50px]">
-                                    <div className="flex mb-[32px]">
-                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                            <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
-                                        </div>
-                                        <div className="pl-[20px]">
-                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
-                                            <p className="text-[#181818]">99/45, Nguyễn Văn Linh, Tân Thuận Tây, Quận 7, Ho Chi Minh City, Vietnam</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex mb-[32px]">
-                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                            <PhoneEnabledOutlinedIcon style={{ fontSize: "2.5rem" }} />
-                                        </div>
-                                        <div className="pl-[20px]">
-                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
-                                            <p className="text-[#181818]">096 768 13 28</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex mb-[32px]">
-                                        <div className="w-[45px] h-[45px] text-[#ffbaa0]">
-                                            <MailOutlineOutlinedIcon style={{ fontSize: "2.5rem" }} />
-                                        </div>
-                                        <div className="pl-[20px]">
-                                            <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
-                                            <p className="text-[#181818]">teddypet@gmail.com</p>
-                                        </div>
-                                    </div>
+                                <div className="pl-[20px]">
+                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
+                                    <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
                                 </div>
                             </div>
-                            <div className="flex-1">
-                                <iframe
-                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
-                                    width="100%"
-                                    height="100%"
-                                    loading="lazy"
-                                />
+                            <div className="flex mb-[32px]">
+                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                    <PhoneEnabledOutlinedIcon style={{ fontSize: "2.5rem" }} />
+                                </div>
+                                <div className="pl-[20px]">
+                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Số điện thoại</div>
+                                    <p className="text-[#181818]">+84346587796</p>
+                                </div>
+                            </div>
+                            <div className="flex mb-[32px]">
+                                <div className="w-[45px] h-[45px] text-[#ffbaa0]">
+                                    <MailOutlineOutlinedIcon style={{ fontSize: "2.5rem" }} />
+                                </div>
+                                <div className="pl-[20px]">
+                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">E-mail</div>
+                                    <p className="text-[#181818]">teddypet@gmail.com</p>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex-1">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761230475278!5m2!1sen!2s"
+                            width="100%"
+                            height="100%"
+                            loading="lazy"
+                        />
+                    </div>
+                </div>
 
-                        <FooterSub />
-                    </>
-                )}
+                <FooterSub />
             </>
         </LocalizationProvider>
     );

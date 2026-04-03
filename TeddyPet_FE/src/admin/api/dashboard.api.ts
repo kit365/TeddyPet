@@ -157,6 +157,8 @@ export const getTopSellingProducts = async (days?: number | null) => {
 export interface RatingSummaryResponse {
     averageScore: number;
     totalCount: number;
+    orderReviewCount: number;
+    bookingReviewCount: number;
 }
 
 export const getRatingSummary = async () => {

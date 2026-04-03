@@ -5,5 +5,7 @@ import java.math.BigDecimal;
 /** Tổng hợp đánh giá: điểm trung bình + số lượt đánh giá. */
 public record RatingSummaryResponse(
         BigDecimal averageScore,
-        long totalCount
+        long totalCount,
+        long orderReviewCount,
+        long bookingReviewCount
 ) {}

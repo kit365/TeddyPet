@@ -683,7 +683,7 @@ public class DashboardService {
                 long bookingCount = bookingPetServiceRepository.countWithCustomerRating();
                 long totalCount = productCount + bookingCount;
                 BigDecimal avg = BigDecimal.valueOf(computeOverallAverageRating());
-                return new RatingSummaryResponse(avg, totalCount);
+                return new RatingSummaryResponse(avg, totalCount, productCount, bookingCount);
         }
 
         private double computeOverallAverageRating() {

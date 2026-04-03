@@ -126,38 +126,8 @@ export interface AdminCheckOutConfirmPetInput {
   departurePhotos?: string[];
 }
 
-export interface AdminCheckOutOvertimeInput {
-  bookingPetServiceId: number;
-  note?: string;
-}
-
 export interface AdminCheckOutConfirmRequest {
   pets: AdminCheckOutConfirmPetInput[];
-  overtimeAdjustments?: AdminCheckOutOvertimeInput[];
-}
-
-/** Admin: preview no-show (grace / phút trễ) */
-export interface AdminNoShowLinePreview {
-  bookingPetServiceId: number;
-  serviceName: string;
-  noShowConfigName: string;
-  autoMarkNoShow: boolean;
-  gracePeriodMinutes: number;
-  allowLateCheckin: boolean;
-  lateCheckinMinutes: number;
-  appointmentStartOffset: string | null;
-  graceEndsAtOffset: string | null;
-  minutesLateNow: number;
-  outcome: string;
-  note: string;
-}
-
-export interface AdminBookingNoShowPreviewResponse {
-  eligibleForNoShowActions: boolean;
-  showManualNoShowButton: boolean;
-  lines: AdminNoShowLinePreview[];
-  /** Thời điểm hẹn sớm nhất (min T0) khi có nhiều dịch vụ — ISO offset */
-  earliestNoShowReferenceStartOffset?: string | null;
 }
 
 /** Giao dịch thanh toán hóa đơn (từng lần thu tiền) */
@@ -192,7 +162,7 @@ export interface CreateBookingPaymentTransactionRequest {
 
 /** Một dòng trong danh sách giao dịch chi tiết (cọc + thanh toán hóa đơn) */
 export interface BookingTransactionItemResponse {
-  transactionType: "DEPOSIT" | "INVOICE_PAYMENT" | "NO_SHOW_EVALUATION" | "OVERTIME_NIGHT_ADJUSTMENT";
+  transactionType: "DEPOSIT" | "INVOICE_PAYMENT";
   id: number;
   amount: number;
   paymentMethod: string;
@@ -261,8 +231,8 @@ export interface BookingPetServiceItemResponse {
 export interface BookingPetServiceResponse {
   id: number;
   bookingPetId: number;
-  assignedStaffIds?: number[];
-  assignedStaffNames?: string;
+  assignedStaffId?: number;
+  assignedStaffName?: string;
   serviceId?: number;
   serviceComboId?: number;
   timeSlotId?: number;
@@ -288,7 +258,6 @@ export interface BookingPetServiceResponse {
   customerReview?: string;
   serviceName?: string;
   isRequiredRoom?: boolean;
-  isOverCheckOutDue?: boolean;
   items?: BookingPetServiceItemResponse[];
 }
 
@@ -310,7 +279,6 @@ export interface BookingResponse {
   deposit?: number;
   depositPaid?: boolean;
   depositId?: number;
-  depositStatus?: string;
   depositExpiresAt?: string;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod | string;
@@ -428,8 +396,7 @@ export interface ClientPetFoodBroughtDetail {
 /** Service attached to a pet (booking_pet_services) */
 export interface ClientBookingPetServiceDetail {
   id: number;
-  assignedStaffIds?: number[];
-  assignedStaffNames?: string;
+  assignedStaffId?: number;
   serviceName?: string;
   timeSlotName?: string;
   estimatedCheckInDate?: string;
@@ -444,13 +411,8 @@ export interface ClientBookingPetServiceDetail {
   basePrice?: number;
   subtotal?: number;
   status?: string;
-  staffNotes?: string;
-  beforePhotos?: string;
-  duringPhotos?: string;
-  afterPhotos?: string;
   customerRating?: number;
   customerReview?: string;
-  customerReviewPhotos?: string;
   roomId?: number;
   roomName?: string;
   displayTypeName?: string;
@@ -497,10 +459,7 @@ export interface ClientBookingDetailResponse {
   bookingCheckInDate?: string;
   bookingCheckOutDate?: string;
   depositId?: number;
-  depositStatus?: string;
   depositExpiresAt?: string;
   createdAt?: string;
   pets?: ClientBookingPetDetail[];
-  cancelRequested?: boolean;
-  cancelledReason?: string | null;
 }

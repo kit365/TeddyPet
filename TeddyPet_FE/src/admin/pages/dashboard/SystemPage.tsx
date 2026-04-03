@@ -416,7 +416,7 @@ const TopStaff = ({ data }: { data?: Array<{ staffId: number; name: string; avat
     );
 };
 
-const ProgressCard = ({ title, total, percent, color, bgIcon, to }: any) => {
+const ProgressCard = ({ title, total, percent, color, bgIcon, to, details }: any) => {
     const isConversion = title === "Conversion";
     const chartColor = isConversion ? "#00a76f" : color || "#00b8d9";
 
@@ -466,7 +466,8 @@ const ProgressCard = ({ title, total, percent, color, bgIcon, to }: any) => {
                 boxShadow: '0 8px 16px 0 rgba(145, 158, 171, 0.15)',
                 transition: 'all 0.3s ease'
             },
-            height: 120,
+            minHeight: 120,
+            height: details ? 'auto' : 120,
         }}>
             <Box sx={{
                 width: 120,
@@ -511,6 +512,11 @@ const ProgressCard = ({ title, total, percent, color, bgIcon, to }: any) => {
                 }}>
                     {title}
                 </Typography>
+                {details ? (
+                    <Box sx={{ mt: 1.25 }}>
+                        {details}
+                    </Box>
+                ) : null}
             </Box>
         </Box>
     );
@@ -780,6 +786,45 @@ const SystemStats = ({ stats, chartData, ratingSummary }: { stats?: DashboardSta
                             total={ratingSummary != null ? `${Number(ratingSummary.averageScore).toFixed(1)} / 5.0` : '— / 5.0'}
                             percent={ratingSummary != null ? Math.round((ratingSummary.averageScore / 5) * 100) : 0}
                             color="#118d57"
+                            details={
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} useFlexGap flexWrap="wrap">
+                                    {(ratingSummary?.orderReviewCount ?? 0) > 0 && (
+                                        <Box
+                                            sx={{
+                                                px: 1.1,
+                                                py: 0.55,
+                                                borderRadius: '999px',
+                                                bgcolor: 'rgba(24, 144, 255, 0.08)',
+                                                color: '#0c4a6e',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700,
+                                                lineHeight: 1.2,
+                                            }}
+                                        >
+                                            Đơn hàng: {(ratingSummary?.orderReviewCount ?? 0).toLocaleString()}
+                                        </Box>
+                                    )}
+                                    {(ratingSummary?.bookingReviewCount ?? 0) > 0 && (
+                                        <Box
+                                            sx={{
+                                                px: 1.1,
+                                                py: 0.55,
+                                                borderRadius: '999px',
+                                                bgcolor: 'rgba(17, 141, 87, 0.10)',
+                                                color: '#166534',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700,
+                                                lineHeight: 1.2,
+                                            }}
+                                        >
+                                            Đơn đặt lịch: {(ratingSummary?.bookingReviewCount ?? 0).toLocaleString()}
+                                        </Box>
+                                    )}
+                                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600 }}>
+                                        Tổng: {(ratingSummary?.totalCount ?? 0).toLocaleString()} đánh giá
+                                    </Typography>
+                                </Stack>
+                            }
                             to={`/${prefixAdmin}/feedback/list`}
                             bgIcon={
                                 <svg width="120" height="120" viewBox="0 0 24 24">
