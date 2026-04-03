@@ -97,6 +97,7 @@ export interface IStaffShiftOption {
     staffId: number;
     fullName: string;
     positionName?: string | null;
+    positionNames?: string[] | null;
 }
 
 export interface IWorkShiftAssignOptions {

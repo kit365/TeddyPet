@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Stack, Typography, Grid, Paper, Chip, alpha } from '@mui/material';
+import { Avatar, Box, Button, Stack, Typography, Grid, Paper, Chip, alpha } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -33,6 +33,7 @@ import type {
     IWorkShiftRegistration,
     IOpenShiftRequest,
     IAvailableShiftForStaff,
+    IStaffShiftOption,
     IWorkShiftBookingPetServiceItem,
     IWorkShiftAssignedBookingPetServiceItem,
 } from '../../../api/workShift.api';
@@ -48,7 +49,6 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 import CloseIcon from '@mui/icons-material/Close';
 import { AlertTriangle, CalendarClock, UserPlus } from 'lucide-react';
@@ -187,6 +187,13 @@ function getInitials(name: string): string {
     if (!parts.length) return 'NV';
     if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function getStaffOptionPositionNames(option: IStaffShiftOption): string[] {
+    const raw = option.positionNames?.length ? option.positionNames : option.positionName ? [option.positionName] : [];
+    return raw
+        .map((name) => String(name ?? '').trim())
+        .filter((name, index, arr) => !!name && arr.indexOf(name) === index);
 }
 
 
@@ -773,9 +780,28 @@ export const WorkShiftAdminPage = () => {
     };
 
     const toggleAssignStaff = (staffId: number) => {
-        setAssignStaffSelection((prev) =>
-            prev.includes(staffId) ? prev.filter((x) => x !== staffId) : [...prev, staffId]
-        );
+        setAssignStaffSelection((prev) => {
+            if (prev.includes(staffId)) {
+                return prev.filter((x) => x !== staffId);
+            }
+
+            const required = assignOptionsPayload?.requiredStaffCount ?? 0;
+            const availableCount = assignOptionsPayload?.participatingStaff?.length ?? 0;
+            const maxSelectable = assignOptionsPayload?.shortage
+                ? availableCount
+                : required;
+
+            if (maxSelectable > 0 && prev.length >= maxSelectable) {
+                toast.warning(
+                    assignOptionsPayload?.shortage
+                        ? `Đã chọn đủ ${maxSelectable} nhân viên đang có trong ca. Bỏ chọn bớt nếu muốn đổi người.`
+                        : `Dịch vụ này chỉ cần ${maxSelectable} nhân viên. Bỏ chọn bớt nếu muốn đổi người.`
+                );
+                return prev;
+            }
+
+            return [...prev, staffId];
+        });
     };
 
     const handleConfirmAssignBpsToShift = () => {
@@ -1545,61 +1571,195 @@ export const WorkShiftAdminPage = () => {
                     setAssignBpsDialog(null);
                     setAssignStaffSelection([]);
                 }}
-                maxWidth="sm"
+                maxWidth="md"
                 fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: alpha('#0f172a', 0.08),
+                        boxShadow: '0 24px 60px rgba(15, 23, 42, 0.18)',
+                    },
+                }}
             >
-                <DialogTitle sx={{ fontWeight: 800 }}>Xếp dịch vụ vào ca làm</DialogTitle>
-                <DialogContent dividers>
+                <DialogTitle
+                    sx={{
+                        fontWeight: 800,
+                        fontSize: '1.15rem',
+                        pb: 1.25,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        background: 'linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(255,255,255,0.98) 100%)',
+                    }}
+                >
+                    Xếp dịch vụ vào ca làm
+                </DialogTitle>
+                <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
                     {assignBpsDialog && assignBpsDialog.step === 'slot' && (
-                        <Stack spacing={2}>
-                            <Typography variant="body2" color="text.secondary">
-                                Booking <strong>{assignBpsDialog.item.bookingCode}</strong> — {assignBpsDialog.item.serviceName}
-                            </Typography>
-                            <Typography variant="body2">
-                                Ngày đặt:{' '}
-                                <strong>
-                                    {(() => {
-                                        const ad = resolveBookingDayForAssign(assignBpsDialog.item);
-                                        return ad ? dayjs(ad).format('DD/MM/YYYY') : '—';
-                                    })()}
-                                </strong>
-                                . Chọn buổi ca trùng ngày này (theo lưới ca Sáng / Chiều):
-                            </Typography>
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                                <Button
-                                    variant="contained"
-                                    disabled={!assignDayPartition.morning}
-                                    fullWidth
-                                    onClick={() => {
-                                        const s = assignDayPartition.morning;
-                                        if (!s) return;
-                                        setAssignStaffSelection([]);
-                                        setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
-                                    }}
-                                >
-                                    Ca sáng (08:00–12:00)
-                                    {!assignDayPartition.morning ? ' — chưa có ca' : ''}
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    color="secondary"
-                                    disabled={!assignDayPartition.afternoon}
-                                    fullWidth
-                                    onClick={() => {
-                                        const s = assignDayPartition.afternoon;
-                                        if (!s) return;
-                                        setAssignStaffSelection([]);
-                                        setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
-                                    }}
-                                >
-                                    Ca chiều (13:00–17:00)
-                                    {!assignDayPartition.afternoon ? ' — chưa có ca' : ''}
-                                </Button>
-                            </Stack>
-                            {!assignDayPartition.morning && !assignDayPartition.afternoon && (
-                                <Typography color="error" variant="body2">
-                                    Không tìm thấy ca sáng/chiều cho ngày này trong khoảng Từ–Đến. Hãy tạo ca hoặc mở rộng khoảng ngày.
+                        <Stack spacing={2.25}>
+                            <Box
+                                sx={{
+                                    borderRadius: 2.5,
+                                    p: 2.25,
+                                    background: 'linear-gradient(135deg, rgba(248,250,252,0.98) 0%, rgba(239,246,255,0.92) 100%)',
+                                    border: '1px solid',
+                                    borderColor: alpha('#2563eb', 0.12),
+                                }}
+                            >
+                                <Stack spacing={1.25}>
+                                    <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                                        Booking {assignBpsDialog.item.bookingCode}
+                                    </Typography>
+                                    <Typography variant="body1" sx={{ color: '#334155', fontWeight: 600 }}>
+                                        {assignBpsDialog.item.serviceName || 'Dịch vụ chưa xác định'}
+                                    </Typography>
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
+                                        <Chip
+                                            variant="outlined"
+                                            label={`Ngày đặt: ${(() => {
+                                                const ad = resolveBookingDayForAssign(assignBpsDialog.item);
+                                                return ad ? dayjs(ad).format('DD/MM/YYYY') : '—';
+                                            })()}`}
+                                            sx={{ fontWeight: 600, bgcolor: 'white' }}
+                                        />
+                                        <Chip
+                                            variant="outlined"
+                                            label="Chọn buổi ca phù hợp để tiếp tục chọn nhân viên"
+                                            sx={{ fontWeight: 600, bgcolor: 'white' }}
+                                        />
+                                    </Stack>
+                                </Stack>
+                            </Box>
+
+                            <Box>
+                                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', mb: 1.25 }}>
+                                    Chọn buổi ca
                                 </Typography>
+                                <Grid container spacing={1.5}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Box
+                                            onClick={() => {
+                                                const s = assignDayPartition.morning;
+                                                if (!s) return;
+                                                setAssignStaffSelection([]);
+                                                setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
+                                            }}
+                                            sx={{
+                                                borderRadius: 2.5,
+                                                p: 2,
+                                                height: '100%',
+                                                border: '1px solid',
+                                                borderColor: assignDayPartition.morning ? alpha('#2563eb', 0.22) : alpha('#94a3b8', 0.18),
+                                                background: assignDayPartition.morning
+                                                    ? 'linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(219,234,254,0.92) 100%)'
+                                                    : 'linear-gradient(135deg, rgba(248,250,252,0.98) 0%, rgba(241,245,249,0.95) 100%)',
+                                                cursor: assignDayPartition.morning ? 'pointer' : 'not-allowed',
+                                                opacity: assignDayPartition.morning ? 1 : 0.72,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': assignDayPartition.morning
+                                                    ? {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 16px 30px rgba(37, 99, 235, 0.12)',
+                                                        borderColor: alpha('#2563eb', 0.35),
+                                                    }
+                                                    : undefined,
+                                            }}
+                                        >
+                                            <Stack spacing={1.25}>
+                                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#1d4ed8' }}>
+                                                        Ca sáng
+                                                    </Typography>
+                                                    <Chip
+                                                        size="small"
+                                                        color={assignDayPartition.morning ? 'primary' : 'default'}
+                                                        label={assignDayPartition.morning ? `Ca #${assignDayPartition.morning.shiftId}` : 'Chưa có ca'}
+                                                        sx={{ fontWeight: 700 }}
+                                                    />
+                                                </Stack>
+                                                <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                                                    08:00–12:00
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                                    {assignDayPartition.morning
+                                                        ? 'Phù hợp để xếp dịch vụ vào khung làm việc buổi sáng.'
+                                                        : 'Hiện chưa có ca sáng trong khoảng ngày bạn đang xem.'}
+                                                </Typography>
+                                            </Stack>
+                                        </Box>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Box
+                                            onClick={() => {
+                                                const s = assignDayPartition.afternoon;
+                                                if (!s) return;
+                                                setAssignStaffSelection([]);
+                                                setAssignBpsDialog({ ...assignBpsDialog, step: 'staff', shiftId: s.shiftId });
+                                            }}
+                                            sx={{
+                                                borderRadius: 2.5,
+                                                p: 2,
+                                                height: '100%',
+                                                border: '1px solid',
+                                                borderColor: assignDayPartition.afternoon ? alpha('#9333ea', 0.22) : alpha('#94a3b8', 0.18),
+                                                background: assignDayPartition.afternoon
+                                                    ? 'linear-gradient(135deg, rgba(250,245,255,0.98) 0%, rgba(243,232,255,0.92) 100%)'
+                                                    : 'linear-gradient(135deg, rgba(248,250,252,0.98) 0%, rgba(241,245,249,0.95) 100%)',
+                                                cursor: assignDayPartition.afternoon ? 'pointer' : 'not-allowed',
+                                                opacity: assignDayPartition.afternoon ? 1 : 0.72,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': assignDayPartition.afternoon
+                                                    ? {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 16px 30px rgba(147, 51, 234, 0.12)',
+                                                        borderColor: alpha('#9333ea', 0.35),
+                                                    }
+                                                    : undefined,
+                                            }}
+                                        >
+                                            <Stack spacing={1.25}>
+                                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#9333ea' }}>
+                                                        Ca chiều
+                                                    </Typography>
+                                                    <Chip
+                                                        size="small"
+                                                        color={assignDayPartition.afternoon ? 'secondary' : 'default'}
+                                                        label={assignDayPartition.afternoon ? `Ca #${assignDayPartition.afternoon.shiftId}` : 'Chưa có ca'}
+                                                        sx={{ fontWeight: 700 }}
+                                                    />
+                                                </Stack>
+                                                <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                                                    13:00–17:00
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                                    {assignDayPartition.afternoon
+                                                        ? 'Phù hợp để xếp dịch vụ vào khung làm việc buổi chiều.'
+                                                        : 'Hiện chưa có ca chiều trong khoảng ngày bạn đang xem.'}
+                                                </Typography>
+                                            </Stack>
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            {!assignDayPartition.morning && !assignDayPartition.afternoon && (
+                                <Box
+                                    sx={{
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: alpha('#ef4444', 0.2),
+                                        bgcolor: alpha('#ef4444', 0.05),
+                                        px: 1.75,
+                                        py: 1.25,
+                                    }}
+                                >
+                                    <Typography color="error" variant="body2" sx={{ fontWeight: 600 }}>
+                                        Không tìm thấy ca sáng hoặc ca chiều cho ngày này trong khoảng Từ–Đến. Hãy tạo ca hoặc mở rộng khoảng ngày.
+                                    </Typography>
+                                </Box>
                             )}
                         </Stack>
                     )}
@@ -1608,6 +1768,7 @@ export const WorkShiftAdminPage = () => {
                             <Button
                                 size="small"
                                 variant="text"
+                                sx={{ alignSelf: 'flex-start', fontWeight: 700 }}
                                 onClick={() => {
                                     setAssignBpsDialog({ item: assignBpsDialog.item, step: 'slot' });
                                     setAssignStaffSelection([]);
@@ -1626,36 +1787,162 @@ export const WorkShiftAdminPage = () => {
                                 </Typography>
                             )}
                             {assignOptionsPayload && !assignOptionsLoading && (
-                                <>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Ca #{assignOptionsPayload.shiftId} · Cần <strong>{assignOptionsPayload.requiredStaffCount}</strong> nhân viên
-                                        {assignOptionsPayload.shortage && ' (thiếu người trong ca — chọn hết danh sách dưới)'}
-                                    </Typography>
-                                    <Stack spacing={0.5}>
-                                        {(assignOptionsPayload.participatingStaff ?? []).map((p) => (
-                                            <FormControlLabel
-                                                key={p.staffId}
-                                                control={
-                                                    <Checkbox
-                                                        checked={assignStaffSelection.includes(p.staffId)}
-                                                        onChange={() => toggleAssignStaff(p.staffId)}
-                                                    />
-                                                }
-                                                label={`${p.fullName}${p.positionName ? ` — ${p.positionName}` : ''}`}
-                                            />
-                                        ))}
-                                    </Stack>
-                                    {(assignOptionsPayload.participatingStaff ?? []).length === 0 && (
-                                        <Typography color="warning.main" variant="body2">
-                                            Không có nhân viên trong ca có kỹ năng phù hợp với dịch vụ này.
-                                        </Typography>
-                                    )}
-                                </>
+                                (() => {
+                                    const participatingStaff = assignOptionsPayload.participatingStaff ?? [];
+                                    const maxSelectable = assignOptionsPayload.shortage
+                                        ? participatingStaff.length
+                                        : assignOptionsPayload.requiredStaffCount;
+                                    const remaining = Math.max(0, maxSelectable - assignStaffSelection.length);
+                                    return (
+                                        <Stack spacing={2}>
+                                            <Box
+                                                sx={{
+                                                    borderRadius: 2.5,
+                                                    p: 2,
+                                                    background: 'linear-gradient(135deg, rgba(239,246,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
+                                                    border: '1px solid',
+                                                    borderColor: alpha('#2563eb', 0.14),
+                                                }}
+                                            >
+                                                <Stack spacing={1.5}>
+                                                    <Stack
+                                                        direction={{ xs: 'column', sm: 'row' }}
+                                                        spacing={1}
+                                                        justifyContent="space-between"
+                                                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                                    >
+                                                        <Box>
+                                                            <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                                                                Ca #{assignOptionsPayload.shiftId}
+                                                            </Typography>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {assignBpsDialog.item.serviceName || 'Dịch vụ chưa xác định'}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Chip
+                                                            color={assignStaffSelection.length >= maxSelectable && maxSelectable > 0 ? 'success' : 'primary'}
+                                                            label={`Đã chọn ${assignStaffSelection.length}/${maxSelectable || 0}`}
+                                                            sx={{ fontWeight: 700 }}
+                                                        />
+                                                    </Stack>
+                                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
+                                                        <Chip
+                                                            variant="outlined"
+                                                            label={`Yêu cầu: ${assignOptionsPayload.requiredStaffCount} nhân viên`}
+                                                            sx={{ fontWeight: 600, bgcolor: 'white' }}
+                                                        />
+                                                        <Chip
+                                                            variant="outlined"
+                                                            label={assignOptionsPayload.shortage
+                                                                ? `Trong ca hiện có ${participatingStaff.length} người phù hợp`
+                                                                : `Còn cần chọn ${remaining} người`}
+                                                            sx={{ fontWeight: 600, bgcolor: 'white' }}
+                                                        />
+                                                    </Stack>
+                                                    {assignOptionsPayload.shortage && (
+                                                        <Typography variant="body2" sx={{ color: '#b45309', fontWeight: 600 }}>
+                                                            Ca này đang thiếu người so với định mức dịch vụ, nên cần chọn toàn bộ nhân viên phù hợp đang có trong ca.
+                                                        </Typography>
+                                                    )}
+                                                </Stack>
+                                            </Box>
+
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', mb: 1.25 }}>
+                                                    Nhân viên phù hợp trong ca
+                                                </Typography>
+                                                <Stack spacing={1.25}>
+                                                    {participatingStaff.map((p) => {
+                                                        const selected = assignStaffSelection.includes(p.staffId);
+                                                        const positions = getStaffOptionPositionNames(p);
+                                                        return (
+                                                            <Box
+                                                                key={p.staffId}
+                                                                onClick={() => toggleAssignStaff(p.staffId)}
+                                                                sx={{
+                                                                    borderRadius: 2.5,
+                                                                    border: '1px solid',
+                                                                    borderColor: selected ? 'primary.main' : alpha('#0f172a', 0.08),
+                                                                    bgcolor: selected ? alpha('#2563eb', 0.06) : 'background.paper',
+                                                                    px: 1.5,
+                                                                    py: 1.25,
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.2s ease',
+                                                                    '&:hover': {
+                                                                        borderColor: selected ? 'primary.main' : alpha('#2563eb', 0.26),
+                                                                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
+                                                                    },
+                                                                }}
+                                                            >
+                                                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                                                    <Checkbox
+                                                                        checked={selected}
+                                                                        onChange={() => toggleAssignStaff(p.staffId)}
+                                                                        onClick={(event) => event.stopPropagation()}
+                                                                    />
+                                                                    <Avatar
+                                                                        sx={{
+                                                                            width: 44,
+                                                                            height: 44,
+                                                                            bgcolor: selected ? 'primary.main' : alpha('#2563eb', 0.12),
+                                                                            color: selected ? 'white' : 'primary.main',
+                                                                            fontWeight: 800,
+                                                                        }}
+                                                                    >
+                                                                        {getInitials(p.fullName)}
+                                                                    </Avatar>
+                                                                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                                                                        <Typography sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                                                            {p.fullName}
+                                                                        </Typography>
+                                                                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 0.75 }}>
+                                                                            {positions.length > 0 ? positions.map((position) => (
+                                                                                <Chip
+                                                                                    key={`${p.staffId}-${position}`}
+                                                                                    size="small"
+                                                                                    label={position}
+                                                                                    variant={selected ? 'filled' : 'outlined'}
+                                                                                    color={selected ? 'primary' : 'default'}
+                                                                                    sx={{ fontWeight: 600 }}
+                                                                                />
+                                                                            )) : (
+                                                                                <Chip
+                                                                                    size="small"
+                                                                                    label="Chưa có chức vụ"
+                                                                                    variant="outlined"
+                                                                                    sx={{ fontWeight: 600 }}
+                                                                                />
+                                                                            )}
+                                                                        </Stack>
+                                                                    </Box>
+                                                                    {selected && (
+                                                                        <Chip
+                                                                            size="small"
+                                                                            color="success"
+                                                                            label="Đang chọn"
+                                                                            sx={{ fontWeight: 700 }}
+                                                                        />
+                                                                    )}
+                                                                </Stack>
+                                                            </Box>
+                                                        );
+                                                    })}
+                                                </Stack>
+                                            </Box>
+
+                                            {participatingStaff.length === 0 && (
+                                                <Typography color="warning.main" variant="body2">
+                                                    Không có nhân viên trong ca có kỹ năng phù hợp với dịch vụ này.
+                                                </Typography>
+                                            )}
+                                        </Stack>
+                                    );
+                                })()
                             )}
                         </Stack>
                     )}
                 </DialogContent>
-                <DialogActions>
+                <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                     <Button
                         onClick={() => {
                             setAssignBpsDialog(null);

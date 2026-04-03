@@ -501,10 +501,15 @@ public class WorkShiftApplicationService implements WorkShiftService {
     }
 
     @Override
+    @Transactional
     public List<WorkShiftRegistrationResponse> getRegistrationsForShift(Long shiftId) {
         WorkShift shift = getShiftOrThrow(shiftId);
+        backfillOpenShiftRegistrationsFromFixedScheduleIfNeeded(shift);
         List<WorkShiftRegistration> list = new ArrayList<>(
                 registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shift.getId()));
+        if (list.isEmpty() && shift.getStaff() != null) {
+            return List.of(toLegacyRegistrationResponse(shift));
+        }
         list.sort(Comparator
                 .comparing(WorkShiftRegistration::getWorkType, (a, b) -> {
                     if (a == EmploymentTypeEnum.FULL_TIME && b != EmploymentTypeEnum.FULL_TIME) return -1;
@@ -513,6 +518,27 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 })
                 .thenComparing(WorkShiftRegistration::getRegisteredAt));
         return list.stream().map(this::toRegistrationResponse).toList();
+    }
+
+    /**
+     * Self-heal cho ca OPEN:
+     * nếu ca đã được tạo từ trước khi lịch cố định được cập nhật và hiện chưa có đăng ký nào,
+     * thì đồng bộ lại Full-time theo lịch cố định để modal admin hiển thị đúng.
+     *
+     * Chỉ chạy khi danh sách đăng ký đang rỗng để tránh tự động thêm lại người mà admin đã chủ động điều chỉnh.
+     */
+    private void backfillOpenShiftRegistrationsFromFixedScheduleIfNeeded(WorkShift shift) {
+        if (shift.getStatus() != ShiftStatus.OPEN) {
+            return;
+        }
+        if (shift.getStartTime() == null) {
+            return;
+        }
+        if (!registrationRepositoryPort.findByWorkShiftIdOrderByRegisteredAtAsc(shift.getId()).isEmpty()) {
+            return;
+        }
+        createDefaultRoleConfigsForShift(shift);
+        autoFillFullTime(shift);
     }
 
     @Override
@@ -824,6 +850,26 @@ public class WorkShiftApplicationService implements WorkShiftService {
                 reg.getRegisteredAt(),
                 reg.getLeaveReason(),
                 reg.getLeaveDecision()
+        );
+    }
+
+    /**
+     * Fallback cho dữ liệu ca cũ: một số ca lịch sử có staff_id trực tiếp trên work_shifts
+     * nhưng không có bản ghi ở work_shift_registrations.
+     */
+    private WorkShiftRegistrationResponse toLegacyRegistrationResponse(WorkShift shift) {
+        StaffProfile staff = shift.getStaff();
+        return new WorkShiftRegistrationResponse(
+                -shift.getId(),
+                shift.getId(),
+                staff.getId(),
+                staff.getFullName(),
+                staff.getPosition() != null ? staff.getPosition().getName() : null,
+                staff.getEmploymentType(),
+                RegistrationStatus.APPROVED,
+                shift.getCreatedAt() != null ? shift.getCreatedAt() : shift.getStartTime(),
+                null,
+                null
         );
     }
 

@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -243,7 +244,8 @@ public class WorkShiftBookingAssignmentHelper {
                 .map(reg -> new StaffShiftOptionResponse(
                         reg.getStaff().getId(),
                         reg.getStaff().getFullName(),
-                        reg.getRoleAtRegistration() != null ? reg.getRoleAtRegistration().getName() : null))
+                        reg.getRoleAtRegistration() != null ? reg.getRoleAtRegistration().getName() : null,
+                        collectStaffPositionNames(reg)))
                 .collect(Collectors.toList());
         if (svc == null || svc.getSkill() == null) {
             return base;
@@ -257,6 +259,33 @@ public class WorkShiftBookingAssignmentHelper {
         return base.stream()
                 .filter(o -> eligible.contains(o.staffId()))
                 .collect(Collectors.toList());
+    }
+
+    private List<String> collectStaffPositionNames(WorkShiftRegistration reg) {
+        StaffProfile staff = reg.getStaff();
+        if (staff == null) {
+            return List.of();
+        }
+        List<String> names = new ArrayList<>();
+        if (reg.getRoleAtRegistration() != null && reg.getRoleAtRegistration().getName() != null
+                && !reg.getRoleAtRegistration().getName().isBlank()) {
+            names.add(reg.getRoleAtRegistration().getName().trim());
+        }
+        if (staff.getPosition() != null && staff.getPosition().getName() != null
+                && !staff.getPosition().getName().isBlank()) {
+            String name = staff.getPosition().getName().trim();
+            if (!names.contains(name)) {
+                names.add(name);
+            }
+        }
+        if (staff.getSecondaryPosition() != null && staff.getSecondaryPosition().getName() != null
+                && !staff.getSecondaryPosition().getName().isBlank()) {
+            String name = staff.getSecondaryPosition().getName().trim();
+            if (!names.contains(name)) {
+                names.add(name);
+            }
+        }
+        return names;
     }
 
     private void validateStaffSelections(Long shiftId, List<Long> staffIds, Service svc) {
