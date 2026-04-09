@@ -24,6 +24,8 @@ export interface IServiceCategory {
 export interface IService {
     serviceId: number;
     serviceCategoryId: number;
+    skillId?: number;
+    skillName?: string;
     code: string;
     serviceName: string;
     suitablePetTypes?: string[];
