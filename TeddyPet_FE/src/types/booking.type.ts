@@ -16,6 +16,7 @@ export interface ServiceClient {
   serviceCategoryId: number;
   serviceName: string;
   code: string;
+  imageURL?: string | null;
   duration: number; // minutes
   /** Số giờ phải đặt trước (advance booking) – dùng để chặn đặt quá sát giờ, đặc biệt với dịch vụ cần phòng. */
   advanceBookingHours?: number;

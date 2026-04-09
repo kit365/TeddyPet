@@ -565,9 +565,34 @@ export const ServiceCreatePage = () => {
                                             </Box>
                                         )}
                                     />
-                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                        <FormUploadSingleFile name="imageURL" control={control} title="Ảnh chính" compact />
-                                        <FormUploadMultiFile name="galleryImages" control={control} title="Kho ảnh" compact />
+                                    <Box 
+                                        sx={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, 
+                                            gap: 3,
+                                            mt: 1
+                                        }}
+                                    >
+                                        <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
+                                            <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                Ảnh chính
+                                                <Chip label="Hiển thị ở danh sách" size="small" color="primary" sx={{ height: 20, fontSize: '0.625rem', fontWeight: 600 }} />
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                                                Ảnh đại diện sẽ xuất hiện trên trang danh sách dịch vụ và kết quả tìm kiếm.
+                                            </Typography>
+                                            <FormUploadSingleFile name="imageURL" control={control} title="" compact />
+                                        </Box>
+
+                                        <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                                            <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
+                                                Kho ảnh (Gallery)
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                                                Tải lên nhiều ảnh để khách hàng có cái nhìn chi tiết hơn về dịch vụ khi xem trang chi tiết.
+                                            </Typography>
+                                            <FormUploadMultiFile name="galleryImages" control={control} title="" compact />
+                                        </Box>
                                     </Box>
 
                                     <Box sx={{ mt: 3 }}>

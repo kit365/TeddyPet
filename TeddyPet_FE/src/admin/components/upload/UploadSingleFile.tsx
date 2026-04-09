@@ -4,6 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { uploadImagesToCloudinary } from "../../api/uploadCloudinary.api";
 import { toast } from "react-toastify";
+import { ImageLightbox } from "../ui/ImageLightbox";
 
 interface CustomFile extends File {
     preview: string;
@@ -88,6 +89,8 @@ export const UploadSingleFile = memo(
             }
         }, [value]);
 
+        const [lightboxOpen, setLightboxOpen] = useState(false);
+
         const renderThumb = () => {
             const src = localFile?.preview || value;
             if (!src) return null;
@@ -96,7 +99,10 @@ export const UploadSingleFile = memo(
 
             return (
                 <li className="inline-flex">
-                    <span className="inline-flex relative items-center justify-center rounded-[10px] w-[80px] h-[80px] border border-[#919eab29]">
+                    <span 
+                        className="inline-flex relative items-center justify-center rounded-[10px] w-[80px] h-[80px] border border-[#919eab29] cursor-pointer"
+                        onClick={() => setLightboxOpen(true)}
+                    >
                         <Box
                             component="img"
                             src={src}
@@ -220,6 +226,17 @@ export const UploadSingleFile = memo(
                 {error && (
                     <FormHelperText error>{error}</FormHelperText>
                 )}
+
+                {(() => {
+                    const currentImage = localFile?.preview || value;
+                    return (
+                        <ImageLightbox 
+                            open={lightboxOpen}
+                            onClose={() => setLightboxOpen(false)}
+                            images={currentImage ? [currentImage] : []}
+                        />
+                    );
+                })()}
             </Stack>
         );
     }

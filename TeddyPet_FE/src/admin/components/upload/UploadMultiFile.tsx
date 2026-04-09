@@ -1,9 +1,16 @@
-﻿import { Box, Button, ButtonBase, FormHelperText, Stack, Typography } from '@mui/material';
+import { Box, Button, ButtonBase, FormHelperText, Stack, Typography, IconButton } from '@mui/material';
 import { UploadFileIcon, UploadIcon } from '../../assets/icons';
 import { useDropzone } from 'react-dropzone';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation } from 'swiper/modules';
 import { uploadImagesToCloudinary } from '../../api/uploadCloudinary.api';
 import { toast } from 'react-toastify';
+import { ImageLightbox } from '../ui/ImageLightbox';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
 
 interface CustomFile extends File {
     preview: string;
@@ -93,83 +100,81 @@ export const UploadMultiFile = memo(
             };
         }, []);
 
+        const allImages = [
+            ...value.map((url) => ({ type: 'uploaded' as const, url })),
+            ...localFiles.map((f) => ({ type: 'local' as const, url: f.preview })),
+        ];
+
+        const [lightboxOpen, setLightboxOpen] = useState(false);
+        const [lightboxIndex, setLightboxIndex] = useState(0);
+
         const renderThumbs = () => {
-            const uploaded = value.map((url) => ({ type: 'uploaded' as const, url }));
-            const locals = localFiles.map((f) => ({ type: 'local' as const, file: f }));
+            if (!allImages.length) return null;
 
-            const items = [
-                ...uploaded.map((item, idx) => (
-                    <li key={`uploaded-${idx}`} className="inline-flex">
-                        <span className="inline-flex relative items-center justify-center rounded-[10px] w-[80px] h-[80px] border border-[#919eab29]">
-                            <Box
-                                component="img"
-                                src={item.url}
-                                sx={{ width: 1, height: 1, objectFit: 'cover', borderRadius: '10px' }}
-                            />
-                            <ButtonBase
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveUploaded(idx);
-                                }}
-                                sx={{
-                                    position: 'absolute',
-                                    top: 4,
-                                    right: 4,
-                                    color: '#fff',
-                                    bgcolor: '#141a217a',
-                                    borderRadius: '50%',
-                                    padding: '4px',
-                                    '&:hover': { bgcolor: '#FF5630' },
-                                }}
-                            >
-                                <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
-                                    <path
-                                        fill="currentColor"
-                                        d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z"
+            return (
+                <Box sx={{ position: 'relative', px: 4 }}>
+                    <Swiper
+                        modules={[Navigation]}
+                        navigation
+                        spaceBetween={12}
+                        slidesPerView={'auto'}
+                        style={{
+                            width: '100%',
+                            height: 'auto',
+                            padding: '4px 0',
+                            // @ts-ignore
+                            '--swiper-navigation-size': '20px',
+                            '--swiper-navigation-color': '#1C252E',
+                        }}
+                    >
+                        {allImages.map((item, idx) => (
+                            <SwiperSlide key={idx} style={{ width: '80px' }}>
+                                <span 
+                                    className="inline-flex relative items-center justify-center rounded-[10px] w-[80px] h-[80px] border border-[#919eab29] cursor-pointer"
+                                    onClick={() => {
+                                        setLightboxIndex(idx);
+                                        setLightboxOpen(true);
+                                    }}
+                                >
+                                    <Box
+                                        component="img"
+                                        src={item.url}
+                                        sx={{ width: 1, height: 1, objectFit: 'cover', borderRadius: '10px' }}
                                     />
-                                </svg>
-                            </ButtonBase>
-                        </span>
-                    </li>
-                )),
-                ...locals.map((item, idx) => (
-                    <li key={`local-${idx}`} className="inline-flex">
-                        <span className="inline-flex relative items-center justify-center rounded-[10px] w-[80px] h-[80px] border border-[#919eab29]">
-                            <Box
-                                component="img"
-                                src={item.file.preview}
-                                sx={{ width: 1, height: 1, objectFit: 'cover', borderRadius: '10px' }}
-                            />
-                            <ButtonBase
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveLocal(idx);
-                                }}
-                                sx={{
-                                    position: 'absolute',
-                                    top: 4,
-                                    right: 4,
-                                    color: '#fff',
-                                    bgcolor: '#141a217a',
-                                    borderRadius: '50%',
-                                    padding: '4px',
-                                    '&:hover': { bgcolor: '#FF5630' },
-                                }}
-                            >
-                                <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
-                                    <path
-                                        fill="currentColor"
-                                        d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z"
-                                    />
-                                </svg>
-                            </ButtonBase>
-                        </span>
-                    </li>
-                )),
-            ];
-
-            if (!items.length) return null;
-            return <ul className="flex gap-[12px] flex-wrap">{items}</ul>;
+                                    <ButtonBase
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (item.type === 'uploaded') {
+                                                handleRemoveUploaded(idx);
+                                            } else {
+                                                handleRemoveLocal(idx - value.length);
+                                            }
+                                        }}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 4,
+                                            right: 4,
+                                            color: '#fff',
+                                            bgcolor: '#141a217a',
+                                            borderRadius: '50%',
+                                            padding: '4px',
+                                            '&:hover': { bgcolor: '#FF5630' },
+                                            zIndex: 2,
+                                        }}
+                                    >
+                                        <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
+                                            <path
+                                                fill="currentColor"
+                                                d="m12 13.414l5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586L6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z"
+                                            />
+                                        </svg>
+                                    </ButtonBase>
+                                </span>
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                </Box>
+            );
         };
 
         const hasPendingLocal = localFiles.length > 0;
@@ -280,6 +285,13 @@ export const UploadMultiFile = memo(
                         {getErrorMessage()}
                     </FormHelperText>
                 )}
+
+                <ImageLightbox 
+                    open={lightboxOpen}
+                    onClose={() => setLightboxOpen(false)}
+                    images={allImages.map(img => img.url)}
+                    startIndex={lightboxIndex}
+                />
             </Stack>
         );
     }

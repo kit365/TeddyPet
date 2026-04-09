@@ -35,6 +35,8 @@ import dayjs from 'dayjs';
 import { TimeSlotsSection } from './components/TimeSlotsSection';
 import { Tiptap } from '../../components/layouts/titap/Tiptap';
 import { useRoomTypes } from '../room/hooks/useRoomType';
+import { useSkills } from '../staff/hooks/useSkill';
+import { setServiceRoomTypes } from '../../api/service.api';
 import { updateRoomTypeServiceId } from '../../api/room.api';
 
 export const ServiceEditPage = () => {
@@ -53,6 +55,7 @@ export const ServiceEditPage = () => {
     const localTheme = getServiceTheme(theme);
     const { data: detailRes, isLoading } = useServiceDetail(id);
     const { data: categories = [] } = useServiceCategories();
+    const { data: skills = [] } = useSkills();
     const { data: petTypes = [] } = usePetTypes();
     const { data: pricings = [] } = useServicePricings(serviceId);
     const { data: roomTypes = [] } = useRoomTypes();
@@ -67,6 +70,7 @@ export const ServiceEditPage = () => {
         resolver: zodResolver(serviceUpsertSchema) as any,
         defaultValues: {
             serviceCategoryId: 0,
+            skillId: 0,
             code: '',
             serviceName: '',
             duration: 60,
@@ -88,11 +92,11 @@ export const ServiceEditPage = () => {
     }, [selectedRoomTypeIds]);
 
     useEffect(() => {
-        if (detailRes?.data && roomTypes.length > 0) {
-            const linked = roomTypes.filter((rt) => rt.serviceId === serviceId).map((rt) => rt.roomTypeId);
+        if (detailRes?.data) {
+            const linked = roomTypesForService.map((rt) => rt.roomTypeId);
             setSelectedRoomTypeIds(linked);
         }
-    }, [detailRes?.data, serviceId, roomTypes.length]);
+    }, [detailRes?.data, roomTypesForService]);
 
     useEffect(() => {
         if (detailRes?.data) {
@@ -100,6 +104,7 @@ export const ServiceEditPage = () => {
             reset({
                 serviceId: d.serviceId,
                 serviceCategoryId: d.serviceCategoryId,
+                skillId: d.skillId ?? 0,
                 code: d.code ?? '',
                 serviceName: d.serviceName ?? '',
                 suitablePetTypes: d.suitablePetTypes ?? [],
@@ -132,6 +137,7 @@ export const ServiceEditPage = () => {
         const payload = {
             serviceId: serviceId,
             serviceCategoryId: data.serviceCategoryId,
+            skillId: data.skillId,
             code: data.code,
             serviceName: data.serviceName,
             suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
@@ -189,6 +195,66 @@ export const ServiceEditPage = () => {
         });
     };
 
+    const submitServiceUpdate = (data: ServiceUpsertFormValues) => {
+        const payload = {
+            serviceId: serviceId,
+            serviceCategoryId: data.serviceCategoryId,
+            skillId: data.skillId,
+            code: data.code,
+            serviceName: data.serviceName,
+            suitablePetTypes: data.suitablePetTypes && data.suitablePetTypes.length > 0 ? data.suitablePetTypes : null,
+            slug: data.slug || null,
+            shortDescription: data.shortDescription || null,
+            description: data.description || null,
+            duration: data.duration,
+            bufferTime: data.bufferTime ?? null,
+            maxPetsPerSession: data.maxPetsPerSession ?? null,
+            advanceBookingHours: data.advanceBookingHours ?? null,
+            imageURL: data.imageURL || null,
+            galleryImages: data.galleryImages && data.galleryImages.length > 0 ? data.galleryImages : null,
+            requiredStaffCount: data.requiredStaffCount ?? null,
+            requiredCertifications: data.requiredCertifications || null,
+            requiresVaccination: data.requiresVaccination ?? null,
+            displayOrder: data.displayOrder ?? null,
+            isPopular: data.isPopular ?? null,
+            isAddon: data.isAddon ?? null,
+            isAdditionalCharge: data.isAdditionalCharge ?? null,
+            isCritical: data.isCritical ?? null,
+            metaTitle: data.metaTitle || null,
+            metaDescription: data.metaDescription || null,
+            isActive: data.isActive,
+            isRequiredRoom: data.isRequiredRoom ?? false,
+        };
+
+        update(payload, {
+            onSuccess: async (res: any) => {
+                if (!res?.success) {
+                    toast.error(res?.message ?? 'Có lỗi');
+                    return;
+                }
+
+                try {
+                    await setServiceRoomTypes(serviceId, payload.isRequiredRoom ? selectedRoomTypeIdsRef.current : []);
+                } catch {
+                    toast.error('Cập nhật dịch vụ thành công nhưng đồng bộ loại phòng có lỗi.');
+                }
+
+                toast.success(res.message ?? 'Cập nhật thành công');
+                queryClient.invalidateQueries({ queryKey: ['room-types'] });
+                queryClient.invalidateQueries({ queryKey: ['room-types', serviceId] });
+                queryClient.invalidateQueries({ queryKey: ['service', serviceId] });
+            },
+            onError: (error: any) => {
+                toast.error(error?.response?.data?.message ?? 'Cập nhật dịch vụ thất bại');
+            },
+        });
+    };
+
+    const handleInvalidSubmit = () => {
+        toast.error('Vui lòng kiểm tra lại các trường bắt buộc trước khi cập nhật.');
+        setExpanded1(true);
+    };
+
     const onPricingSubmit = createOnPricingSubmit(
         serviceId,
         editingPricing,
@@ -223,7 +289,7 @@ export const ServiceEditPage = () => {
                 </div>
             </div>
             <ThemeProvider theme={localTheme}>
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form onSubmit={handleSubmit(submitServiceUpdate, handleInvalidSubmit)}>
                     <Stack sx={{ margin: '0px 120px', gap: '40px' }}>
                         <CollapsibleCard title="Thông tin cơ bản" expanded={expanded1} onToggle={() => setExpanded1((p) => !p)}>
                             <Stack p="24px" gap="24px">
@@ -255,6 +321,29 @@ export const ServiceEditPage = () => {
                                         control={control}
                                         render={({ field, fieldState }) => (
                                             <TextField {...field} label="Mã dịch vụ" error={!!fieldState.error} helperText={fieldState.error?.message} fullWidth />
+                                        )}
+                                    />
+                                    <Controller
+                                        name="skillId"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <TextField
+                                                {...field}
+                                                select
+                                                label="Kỹ năng"
+                                                error={!!fieldState.error}
+                                                helperText={fieldState.error?.message}
+                                                fullWidth
+                                                value={field.value ?? 0}
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                            >
+                                                <MenuItem value={0}>-- Chọn kỹ năng --</MenuItem>
+                                                {skills.map((skill: any) => (
+                                                    <MenuItem key={skill.id} value={skill.id}>
+                                                        {skill.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </TextField>
                                         )}
                                     />
                                     <Controller
@@ -329,9 +418,34 @@ export const ServiceEditPage = () => {
                                         </Box>
                                     )}
                                 />
-                                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                    <FormUploadSingleFile name="imageURL" control={control} title="Ảnh chính" compact />
-                                    <FormUploadMultiFile name="galleryImages" control={control} title="Kho ảnh" compact />
+                                <Box 
+                                    sx={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, 
+                                        gap: 3,
+                                        mt: 1
+                                    }}
+                                >
+                                    <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            Ảnh chính
+                                            <Chip label="Hiển thị ở danh sách" size="small" color="primary" sx={{ height: 20, fontSize: '0.625rem', fontWeight: 600 }} />
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                                            Ảnh đại diện sẽ xuất hiện trên trang danh sách dịch vụ và kết quả tìm kiếm.
+                                        </Typography>
+                                        <FormUploadSingleFile name="imageURL" control={control} title="" compact />
+                                    </Box>
+
+                                    <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
+                                            Kho ảnh (Gallery)
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                                            Tải lên nhiều ảnh để khách hàng có cái nhìn chi tiết hơn về dịch vụ khi xem trang chi tiết.
+                                        </Typography>
+                                        <FormUploadMultiFile name="galleryImages" control={control} title="" compact />
+                                    </Box>
                                 </Box>
 
                                 <Box sx={{ mt: 3 }}>
@@ -347,9 +461,10 @@ export const ServiceEditPage = () => {
                                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.5 }}>
                                             {roomTypes.map((rt) => {
                                                 const isSelected = selectedRoomTypeIds.includes(rt.roomTypeId);
-                                                const currentService = rt.serviceName;
-                                                const isOtherService = !!(currentService && rt.serviceId && rt.serviceId !== serviceId);
-                                                const isDisabled = isOtherService && !isSelected;
+                                                const linkedNames = Array.isArray(rt.linkedServiceNames) ? rt.linkedServiceNames.filter(Boolean) : [];
+                                                const linkedIds = Array.isArray(rt.linkedServiceIds) ? rt.linkedServiceIds : [];
+                                                const currentService = linkedNames.length > 0 ? linkedNames.join(', ') : rt.serviceName;
+                                                const isDisabled = false;
 
                                                 return (
                                                     <Card
@@ -363,14 +478,14 @@ export const ServiceEditPage = () => {
                                                             borderRadius: 1.5,
                                                             transition: 'all 0.2s',
                                                             borderColor: isSelected ? 'primary.main' : 'divider',
-                                                            bgcolor: isSelected ? 'primary.lighter' : isDisabled ? 'action.disabledBackground' : 'background.paper',
-                                                            opacity: isDisabled ? 0.55 : 1,
-                                                            cursor: isDisabled ? 'not-allowed' : 'default',
+                                                            bgcolor: isSelected ? 'primary.lighter' : 'background.paper',
+                                                            opacity: 1,
+                                                            cursor: 'default',
                                                             boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                                                         }}
                                                     >
                                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                                            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : isDisabled ? 'text.disabled' : 'text.primary' }}>
+                                                            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: isSelected ? 'primary.main' : 'text.primary' }}>
                                                                 {rt.typeName}
                                                             </Typography>
                                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -379,7 +494,7 @@ export const ServiceEditPage = () => {
                                                                     <Chip
                                                                         label={currentService}
                                                                         size="small"
-                                                                        color={rt.serviceId === serviceId ? "primary" : "default"}
+                                                                        color={linkedIds.includes(serviceId) ? "primary" : "default"}
                                                                         sx={{ height: 18, fontSize: '0.75rem', fontWeight: 500 }}
                                                                     />
                                                                 ) : (
@@ -395,7 +510,6 @@ export const ServiceEditPage = () => {
                                                         <Switch
                                                             size="small"
                                                             checked={isSelected}
-                                                            disabled={isDisabled}
                                                             onChange={(_, checked) => {
                                                                 setSelectedRoomTypeIds((prev) =>
                                                                     checked ? [...prev, rt.roomTypeId] : prev.filter((id) => id !== rt.roomTypeId)
