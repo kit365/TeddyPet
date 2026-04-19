@@ -1,0 +1,1 @@
+                toast.success("Äơn đặt lịch của bạn đã được xác nhận, vui lòng thanh toán cọc để giờ chọnavigate(`/dat-lich/chi-tiet-don/${res.data.bookingCode}`, {

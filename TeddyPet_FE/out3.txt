@@ -1,0 +1,21 @@
+/** Ã” Ngày gửi + Khung giờ khi dịch về thêm có isRequiredRoom = false (dùng time_slots của dịch về type AdditionalServiceNonRoomFieldsProps = {
+/** Ã” Ngày gửi + Khung giờ cho dịch về chính khi isRequiredRoom = false (dùng time_slots của dịch về type MainServiceNonRoomFieldsProps = {
+    // Chọ cần đủ ngày gửi/ngày trả họ p lệ lÃ  mở sơ đổ.
+    // Trước đây có phụ thuộc pet.pricingModel khiến một sồ luổng reset dateFrom lÃ m sơ đổ không mở.
+    // Tự chọ n loại phòng đầu tiên khi picker hiển thọ mÃ  chưa có loại phòng nào được chọ n
+/** Draft form đặt lịch (để truyá»n qua mÃ n chi tiết phòng và khôi phụ c khi quay lại). */
+        // Sort giờ ng backend: ưu tiên priority (tăng dần), sau đó rule có rÃ ng buộc weight nhiều hơn,
+                toast.error("Vui lòng chọ n ngân hÃ ng.");
+                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">giờ lÃ m việc</div>
+                                    <p className="text-[#505050] text-[0.875rem]">Theo dÃµi qua camera trên điện thoại.</p>
+                                                            {/* Row 1: tên thú cưng + Loại (ngang hÃ ng) */}
+                                                            {/* Ngày gửi chung cho toÃ n bộ đơn (hiển thọ một lần dưới thú cưng đầu tiên) */}
+                            {/* ========== PHáº¦N 3: Nút hÃ nh động ========== */}
+                                    <h3 className="text-[1.25rem] font-[800] text-[#181818]">Thông tin tài khoản ngân hÃ ng</h3>
+                                            ? "Chọ n tài khoản để hoÃ n tiền cọc nếu cần, hoặc thêm tài khoản mọi."
+                                            : "Cung cấp tài khoản để hoÃ n tiền cọc nếu cần."}
+                                        <span className="text-[1rem]">+</span> Thêm tài khoản ngân hÃ ng mọi
+                                                Ngân hÃ ng <span className="text-[#e67e20]">*</span>
+                                                <option value="">— Chọ n ngân hÃ ng —</option>
+                                        Bạn chưa có tài khoản ngân hÃ ng nào.
+                                    {isHolding ? "Đang xử lý..." : "Xác nhận & Tiến hÃ nh đặt lịch"}

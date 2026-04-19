@@ -1,0 +1,60 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/admin/constants/sideBar.ts
+	modified:   src/admin/pages/booking/BookingDetailPage.tsx
+	modified:   src/admin/pages/booking/BookingPetServiceDetailPage.tsx
+	modified:   src/admin/pages/booking/sections/BookingPetServiceDetailDrawer.tsx
+	modified:   src/admin/pages/dashboard/SystemPage.tsx
+	modified:   src/admin/pages/feedback/FeedbackListPage.tsx
+	modified:   src/admin/pages/feedback/configs/column.config.tsx
+	modified:   src/admin/pages/feedback/sections/FeedbackList.tsx
+	modified:   src/admin/pages/order/OrderDetailPage.tsx
+	modified:   src/admin/pages/order/sections/OrderList.tsx
+	modified:   src/admin/pages/product/ProductFormPage.tsx
+	modified:   src/admin/pages/product/configs/column.config.tsx
+	modified:   src/admin/pages/service/ServiceCategoryCreatePage.tsx
+	modified:   src/admin/pages/service/ServiceCategoryEditPage.tsx
+	modified:   src/admin/pages/service/ServiceComboCreatePage.tsx
+	modified:   src/admin/pages/service/ServiceComboEditPage.tsx
+	modified:   src/admin/pages/service/ServiceCreatePage.tsx
+	modified:   src/admin/pages/service/ServiceEditPage.tsx
+	modified:   src/admin/pages/service/components/ServicePricingFormModal.tsx
+	modified:   src/admin/pages/service/serviceEditHelpers.ts
+	modified:   src/admin/pages/shipping/components/ShippingRuleFormDialog.tsx
+	modified:   src/admin/pages/shipping/configs/column.config.tsx
+	modified:   src/client/components/layouts/MainFooter.tsx
+	modified:   src/client/components/layouts/TopBar.tsx
+	modified:   src/client/constants/shop-content.ts
+	modified:   src/client/pages/FeedbackPage.tsx
+	modified:   src/client/pages/booking/BookingClientDetailPage.tsx
+	modified:   src/client/pages/booking/BookingDetail.tsx
+	modified:   src/client/pages/checkout/Checkout.tsx
+	modified:   src/client/pages/checkout/OrderTracking.tsx
+	modified:   src/client/pages/dashboard/OrderDetail.tsx
+	modified:   src/client/pages/dashboard/OrderHistoryNew.tsx
+	modified:   src/client/pages/dashboard/OrderHistoryRefactored.tsx
+	modified:   src/client/pages/dashboard/Overview.tsx
+	modified:   src/client/pages/dashboard/Review.tsx
+	modified:   src/client/pages/product/sections/ProductAside.tsx
+	modified:   src/client/pages/product/sections/ProductComment.tsx
+	modified:   src/client/pages/product/sections/ProductListSearch.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	bad_files.txt
+	bad_files2.txt
+	bad_files3.txt
+	fix_all_mojibake.cjs
+	fix_encoding_test.cjs
+	fix_mojibake_broad.cjs
+	fix_mojibake_hex.cjs
+	fix_mojibake_ultimate.cjs
+	fix_mojibake_unicode.cjs
+	git_status.txt
+	out3.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

@@ -1,0 +1,8 @@
+src\admin\components\staff\contract\ContractDetailModal.tsx
+src\admin\pages\booking\BookingDetailPage.tsx
+src\admin\pages\order\OrderDetailPage.tsx
+src\admin\pages\order\sections\OrderList.tsx
+src\client\pages\checkout\Checkout.tsx
+src\client\pages\checkout\OrderTracking.tsx
+src\client\pages\FeedbackPage.tsx
+src\client\pages\home\sections\Section3.tsx

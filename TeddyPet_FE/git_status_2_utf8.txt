@@ -1,0 +1,33 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/client/pages/booking/Booking.tsx
+	modified:   src/client/pages/booking/BookingDetail.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	bad_files.txt
+	bad_files2.txt
+	bad_files3.txt
+	bad_files4.txt
+	bad_files5.txt
+	fix_all_mojibake.cjs
+	fix_encoding_test.cjs
+	fix_mojibake_broad.cjs
+	fix_mojibake_hex.cjs
+	fix_mojibake_ultimate.cjs
+	fix_mojibake_unicode.cjs
+	fix_safe_global.cjs
+	fix_safe_v3.cjs
+	git_status.txt
+	git_status_2.txt
+	git_status_utf8.txt
+	match.txt
+	out3.txt
+	out4.txt
+	out4_utf8.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
