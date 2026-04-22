@@ -1,4 +1,5 @@
 import './App.css'
+import './client/styles/index.css'
 import 'react-toastify/dist/ReactToastify.css';
 import { BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';

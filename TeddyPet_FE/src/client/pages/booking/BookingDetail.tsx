@@ -25,7 +25,7 @@ import {
     type RoomTypeClient,
     type TimeSlotClient,
 } from "../../../api/service.api";
-import { getSettingByKey, getSupportPhone, DEFAULT_SHOP_PHONE } from "../../../api/settings.api";
+import { getSupportPhone, DEFAULT_SHOP_PHONE } from "../../../api/settings.api";
 import { getFoodBrandOptions, type ProductBrandOption } from "../../../api/home.api";
 import type { BookingPetForm, BookingPetServiceForm, PetFoodBroughtItemForm } from "../../../types/booking.type";
 import type { ServiceCategoryClient, ServiceClient } from "../../../types/booking.type";
@@ -231,7 +231,7 @@ type ServiceDropdownContentProps = {
 };
 
 const SERVICE_DROPDOWN_FILTERS: Array<{ key: ServiceTypeFilter; label: string; description: string }> = [
-    { key: "ROOM_REQUIRED", label: "LÆ°u trÃº", description: "Dịch vụ cần chọn phòng" },
+    { key: "ROOM_REQUIRED", label: "Lưu trữ", description: "Dịch vụ cần chọn phòng" },
     { key: "SPA", label: "Spa", description: "Dịch vụ không cần phòng" },
 ];
 
@@ -371,7 +371,7 @@ const ServiceDropdownContent = ({
                                                                     {Number(price).toLocaleString("vi-VN")}đ
                                                                 </div>
                                                                 <div className="text-[0.75rem] font-[600] text-[#8a8a8a]">
-                                                                    Giá dá»± kiáº¿n
+                                                                    Giá dự kiến
                                                                 </div>
                                                             </div>
                                                         )}
@@ -386,7 +386,7 @@ const ServiceDropdownContent = ({
                     ))
                 ) : (
                     <div className="px-[16px] py-[24px] text-center">
-                        <div className="text-[0.9375rem] font-[700] text-[#6b7280]">ChÆ°a có dịch vụ phÃ¹ hợp</div>
+                        <div className="text-[0.9375rem] font-[700] text-[#6b7280]">chưa có dịch vụ phù hợp</div>
                         <div className="mt-[4px] text-[0.8125rem] font-[500] text-[#9ca3af]">
                             Hãy chuyển sang nhóm còn lại hoặc kiểm tra lại loại thú cưng và cân nặng.
                         </div>
@@ -476,7 +476,7 @@ const GenericDropdown = ({ isOpen, value, onToggle, onChange, options, groups, p
                             options?.map((opt) => renderOption(opt))
                         )}
                         {allOptions.length === 0 && (
-                            <div className="py-8 px-4 text-center text-[0.875rem] text-[#9ca3af]">Không có tÃ¹y chọn khả dụng</div>
+                            <div className="py-8 px-4 text-center text-[0.875rem] text-[#9ca3af]">Không có tùy chọn khả dụng</div>
                         )}
                     </div>
                 </div>
@@ -485,7 +485,7 @@ const GenericDropdown = ({ isOpen, value, onToggle, onChange, options, groups, p
     );
 };
 
-/** Ã” Ngày gửi + Khung giá» khi dịch vụ thêm có isRequiredRoom = false (dùng time_slots của dịch vụ). */
+/** Ô Ngày gửi + Khung giá khi dịch vụ thêm có isRequiredRoom = false (dùng time_slots của dịch vụ). */
 type AdditionalServiceNonRoomFieldsProps = {
     petId: string;
     pet: BookingPetForm;
@@ -497,7 +497,7 @@ type AdditionalServiceNonRoomFieldsProps = {
     getServicePriceForWeight: (service: ServiceClient, petWeightStr?: string | null, petType?: string | null) => number | undefined;
 };
 
-/** Ã” Ngày gửi + Khung giá» cho dịch vụ chÃ­nh khi isRequiredRoom = false (dùng time_slots của dịch vụ). */
+/** Ô Ngày gửi + Khung giá cho dịch vụ chính khi isRequiredRoom = false (dùng time_slots của dịch vụ). */
 type MainServiceNonRoomFieldsProps = {
     pet: BookingPetForm;
     updatePet: (id: string, updates: Partial<BookingPetForm>) => void;
@@ -549,8 +549,8 @@ const MainServiceNonRoomFields = ({
             });
 
         const groups: GenericDropdownGroup[] = [];
-        if (am.length > 0) groups.push({ groupLabel: "Buá»•i sáng (AM)", options: am });
-        if (pm.length > 0) groups.push({ groupLabel: "Buá»•i chiá»u (PM)", options: pm });
+        if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
+        if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
     }, [timeSlots]);
 
@@ -588,7 +588,7 @@ const MainServiceNonRoomFields = ({
                             required: true,
                             fullWidth: true,
                             sx: bookingDatePickerTextFieldSx,
-                            helperText: "Ngày gửi được lấy từ Ã´ Ngày gửi chung phÃ­a trên.",
+                            helperText: "Ngày gửi được lấy từ ở Ngày gửi chung phía trên.",
                         },
                         popper: { sx: bookingDatePickerPopperSx },
                     }}
@@ -596,7 +596,7 @@ const MainServiceNonRoomFields = ({
             </div>
             <div>
                 <GenericDropdown
-                    label="Khung giá»"
+                    label="Khung giá"
                     required
                     isOpen={isSlotDropdownOpen}
                     value={pet.sessionTimeSlotId != null ? String(pet.sessionTimeSlotId) : ""}
@@ -609,7 +609,7 @@ const MainServiceNonRoomFields = ({
                         });
                     }}
                     groups={slotGroups}
-                    placeholder="— Chọn khung giá» —"
+                    placeholder="— Chọn khung giá —"
                     twoColumns={true}
                 />
             </div>
@@ -698,8 +698,8 @@ const AdditionalServiceNonRoomFields = ({
             });
 
         const groups: GenericDropdownGroup[] = [];
-        if (am.length > 0) groups.push({ groupLabel: "Buá»•i sáng (AM)", options: am });
-        if (pm.length > 0) groups.push({ groupLabel: "Buá»•i chiá»u (PM)", options: pm });
+        if (am.length > 0) groups.push({ groupLabel: "Buổi sáng (AM)", options: am });
+        if (pm.length > 0) groups.push({ groupLabel: "Buổi chiều (PM)", options: pm });
         return groups;
     }, [timeSlots]);
 
@@ -737,7 +737,7 @@ const AdditionalServiceNonRoomFields = ({
                             fullWidth: true,
                             placeholder: "DD/MM/YYYY",
                             sx: bookingDatePickerTextFieldSx,
-                            helperText: "Ngày gửi được lấy từ Ã´ Ngày gửi chung phÃ­a trên.",
+                            helperText: "Ngày gửi được lấy từ ở Ngày gửi chung phía trên.",
                         },
                         popper: { sx: bookingDatePickerPopperSx },
                     }}
@@ -745,7 +745,7 @@ const AdditionalServiceNonRoomFields = ({
             </div>
             <div>
                 <GenericDropdown
-                    label="Khung giá»"
+                    label="Khung giá"
                     required
                     isOpen={isSlotDropdownOpen}
                     value={asvc.sessionTimeSlotId != null ? String(asvc.sessionTimeSlotId) : ""}
@@ -758,13 +758,13 @@ const AdditionalServiceNonRoomFields = ({
                         });
                     }}
                     groups={slotGroups}
-                    placeholder="— Chọn khung giá» —"
+                    placeholder="— Chọn khung giá —"
                     twoColumns={true}
                 />
             </div>
             {(mainServicePrice != null || addonServices.length > 0) && (
                 <div className="sm:col-span-2 mt-2 rounded-[10px] bg-white border border-[#ffe0ce] px-4 py-3">
-                    <div className="text-[0.8438rem] text-[#181818] font-[600] mb-1">Tóm táº¯t giá dịch vụ thêm</div>
+                    <div className="text-[0.8438rem] text-[#181818] font-[600] mb-1">Tóm tắt giá dịch vụ thêm</div>
                     {mainServicePrice != null && (
                         <div className="text-[0.8125rem] text-[#555]">
                             Dịch vụ thêm:{" "}
@@ -827,10 +827,10 @@ const RoomPickerSection = ({
     const selectedService = services.find((s) => s.serviceId === pet.serviceId);
     const needsRoom = selectedService?.isRequiredRoom === true;
 
-    // Náº¿u state dateFrom bá»‹ reset vá» "", váº«n lấy từ globalDateFrom đá»ƒ hiá»ƒn thá»‹/ mở sÆ¡ đá»“ chÃ­nh xác.
+    // Nếu state dateFrom bị reset về "", vẫn lấy từ globalDateFrom để hiển thị/ mở sơ đồ chính xác.
     const effectiveDateFrom = pet.dateFrom || globalDateFrom;
-    // Chá»‰ cần đủ ngày gửi/ngày trả hợp lá»‡ là mở sÆ¡ đá»“.
-    // Trước đây có phụ thuộc pet.pricingModel khiáº¿n một số luá»“ng reset dateFrom làm sÆ¡ đá»“ không mở.
+    // Chỉ cần đủ ngày gửi/ngày trả hợp lệ là mở sơ đồ.
+    // Trước đây có phụ thuộc pet.pricingModel khiến một số luồng reset dateFrom làm sơ đồ không mở.
     const hasDates =
         !!(
             pet.pricingModel === "per_day" &&
@@ -878,7 +878,7 @@ const RoomPickerSection = ({
     const selectedRoomTypeId = pet.selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
     const effectiveRoomTypeId = selectedRoomTypeId ?? roomTypes[0]?.roomTypeId ?? null;
 
-    // Tá»± chọn loại phòng đầu tiên khi picker hiá»ƒn thá»‹ mà chÆ°a có loại phòng nào được chọn
+    // Tự chọn loại phòng đầu tiên khi picker hiển thị mà chưa có loại phòng nào được chọn
     const firstRoomTypeId = roomTypes[0]?.roomTypeId;
     useEffect(() => {
         if (!showPicker || firstRoomTypeId == null || pet.selectedRoomTypeId != null) return;
@@ -910,7 +910,7 @@ const RoomPickerSection = ({
         return (
             <div className="mt-[16px] p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
                 <p className="text-[0.875rem] text-[#555]">
-                    ChÆ°a có dá»¯ liá»‡u phòng cho dịch vụ này, vui lòng liên hệ hotline{" "}
+                    chưa có dữ liệu phòng cho dịch vụ này, vui lòng liên hệ hotline{" "}
                     <a 
                         href={`tel:${phoneValue.replace(/\s+/g, '')}`} 
                         className="text-[#c45a3a] font-[700] hover:underline"
@@ -961,7 +961,7 @@ const RoomPickerSection = ({
 
             {roomTypes.length > 1 && !effectiveRoomTypeId ? (
                 <div className="py-[24px] text-center text-[0.875rem] text-[#888] rounded-[12px] bg-[#f9fafb] border border-dashed border-[#e5e7eb]">
-                    Vui lòng chọn loại phòng ở trên đá»ƒ xem sÆ¡ đá»“ và chọn phòng.
+                    Vui lòng chọn loại phòng ở trên để xem sơ đồ và chọn phòng.
                 </div>
             ) : (
                 <div className="flex justify-center overflow-x-auto py-4">
@@ -1027,7 +1027,7 @@ const RoomPickerSection = ({
                 </div>
             )}
 
-            {/* Phòng đang chọn + giá tá»•ng + Xem chi tiáº¿t (chá»‰ khi đã chọn phòng) */}
+            {/* Phòng đang chọn + giá tổng + Xem chi tiết (chỉ khi đã chọn phòng) */}
             {(() => {
                 const mainServicePrice = selectedService ? getRoomTotalPrice?.(pet, effectiveRoomTypeId) : null;
                 const addonIds = pet.addonServiceIds ?? [];
@@ -1089,7 +1089,7 @@ const RoomPickerSection = ({
                         {(() => {
                             const selectedRoom = pet.selectedRoomId != null ? placedRooms.find((r) => r.roomId === pet.selectedRoomId) ?? null : null;
                             if (!selectedRoom) return null;
-                            const roomDisplayName = selectedRoom.roomName?.trim() ? `${selectedRoom.roomNumber} – ${selectedRoom.roomName}` : `${selectedRoom.roomNumber} T${selectedRoom.tier ?? 1}`;
+                            const roomDisplayName = selectedRoom.roomName?.trim() ? `${selectedRoom.roomNumber} â€“ ${selectedRoom.roomName}` : `${selectedRoom.roomNumber} T${selectedRoom.tier ?? 1}`;
                             return (
                                 <div className="mt-3 pt-3 border-t border-[#ffe0ce] flex flex-wrap items-center justify-between gap-3">
                                     <span className="text-[0.8125rem] text-[#181818]">
@@ -1101,7 +1101,7 @@ const RoomPickerSection = ({
                                             onClick={() => onViewRoomDetail(selectedRoom)}
                                             className="inline-flex items-center gap-2 rounded-[10px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-1.5 text-[0.7812rem] font-[600] text-[#c45a3a] transition-colors hover:bg-[#ffbaa0] hover:text-[#181818]"
                                         >
-                                            Xem chi tiáº¿t
+                                            Xem chi tiết
                                         </button>
                                     )}
                                 </div>
@@ -1114,7 +1114,7 @@ const RoomPickerSection = ({
     );
 };
 
-/** SÆ¡ đá»“ chọn phòng + xem chi tiáº¿t phòng cho dịch vụ thêm có isRequiredRoom = true. */
+/** Sơ đồ chọn phòng + xem chi tiết phòng cho dịch vụ thêm có isRequiredRoom = true. */
 type RoomPickerSectionForAdditionalProps = {
     pet: BookingPetForm;
     asvc: BookingPetServiceForm;
@@ -1211,7 +1211,7 @@ const RoomPickerSectionForAdditional = ({
         return (
             <div className="mt-[16px] p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce]">
                 <p className="text-[0.875rem] text-[#555]">
-                    ChÆ°a có dá»¯ liá»‡u phòng cho dịch vụ này, vui lòng liên hệ hotline{" "}
+                    chưa có dữ liệu phòng cho dịch vụ này, vui lòng liên hệ hotline{" "}
                     <a 
                         href={`tel:${phoneValue.replace(/\s+/g, '')}`} 
                         className="text-[#c45a3a] font-[700] hover:underline"
@@ -1262,7 +1262,7 @@ const RoomPickerSectionForAdditional = ({
 
             {roomTypes.length > 1 && !effectiveRoomTypeId ? (
                 <div className="py-[24px] text-center text-[0.875rem] text-[#888] rounded-[12px] bg-[#f9fafb] border border-dashed border-[#e5e7eb]">
-                    Vui lòng chọn loại phòng ở trên đá»ƒ xem sÆ¡ đá»“ và chọn phòng.
+                    Vui lòng chọn loại phòng ở trên để xem sơ đồ và chọn phòng.
                 </div>
             ) : (
                 <div className="flex justify-center overflow-x-auto py-4">
@@ -1384,7 +1384,7 @@ const RoomPickerSectionForAdditional = ({
                         {(() => {
                             const selectedRoom = asvc.selectedRoomId != null ? placedRooms.find((r) => r.roomId === asvc.selectedRoomId) ?? null : null;
                             if (!selectedRoom) return null;
-                            const roomDisplayName = selectedRoom.roomName?.trim() ? `${selectedRoom.roomNumber} – ${selectedRoom.roomName}` : `${selectedRoom.roomNumber} T${selectedRoom.tier ?? 1}`;
+                            const roomDisplayName = selectedRoom.roomName?.trim() ? `${selectedRoom.roomNumber} â€“ ${selectedRoom.roomName}` : `${selectedRoom.roomNumber} T${selectedRoom.tier ?? 1}`;
                             return (
                                 <div className="mt-3 pt-3 border-t border-[#ffe0ce] flex flex-wrap items-center justify-between gap-3">
                                     <span className="text-[0.8125rem] text-[#181818]">
@@ -1396,7 +1396,7 @@ const RoomPickerSectionForAdditional = ({
                                             onClick={() => onViewRoomDetail(selectedRoom)}
                                             className="inline-flex items-center gap-2 rounded-[10px] border border-[#ffbaa0] bg-[#fff7f3] px-3 py-1.5 text-[0.7812rem] font-[600] text-[#c45a3a] transition-colors hover:bg-[#ffbaa0] hover:text-[#181818]"
                                         >
-                                            Xem chi tiáº¿t
+                                            Xem chi tiết
                                         </button>
                                     )}
                                 </div>
@@ -1608,7 +1608,7 @@ function createEmptyAdditionalService(): BookingPetServiceForm {
     };
 }
 
-/** Draft form đặt lịch (đá»ƒ truyá»n qua màn chi tiáº¿t phòng và khÃ´i phục khi quay lại). */
+/** Draft form đặt lịch (để truyền qua màn chi tiết phòng và khôi phục khi quay lại). */
 export type BookingDetailDraft = {
     step1Data: BookingStep1FormData;
     pets: BookingPetForm[];
@@ -1653,8 +1653,8 @@ export const BookingDetailPage = () => {
     const categories: ServiceCategoryClient[] = categoriesData?.data ?? [];
     const services: ServiceClient[] = servicesData?.data ?? [];
 
-    // Min "Ngày gửi chung" = hÃ´m nay + max(advanceBookingHours) của các dịch vụ hiện có (active).
-    // Mục tiêu: luÃ´n cháº·n chọn ngày quá khá»©, và luÃ´n áp dụng quy đá»‹nh đặt trước lớn nhất đá»ƒ dễ quản lÃ½.
+    // Min "Ngày gửi chung" = hôm nay + max(advanceBookingHours) của các dịch vụ hiện có (active).
+    // Mục tiêu: luôn chặn chọn ngày quá khứ, và luôn áp dụng quy định đặt trước lớn nhất để dễ quản lý.
     const maxAdvanceBookingHours = useMemo(() => {
         const active = services.filter((s) => s.isActive !== false);
         const hours = active
@@ -1664,12 +1664,12 @@ export const BookingDetailPage = () => {
     }, [services]);
 
     const minGlobalDateFrom = useMemo(() => {
-        const base = dayjs().startOf("day"); // không bao giá» cho chọn ngày quá khá»©
+        const base = dayjs().startOf("day"); // không bao giờ cho chọn ngày quá khứ
         if (!maxAdvanceBookingHours || maxAdvanceBookingHours <= 0) return base;
         return dayjs().add(maxAdvanceBookingHours, "hour").startOf("day");
     }, [maxAdvanceBookingHours]);
 
-    // Náº¿u globalDateFrom đang nhá» hơn min thÃ¬ tá»± đáº©y lên má»‘c tá»‘i thiá»ƒu đá»ƒ tránh sai logic
+    // Nếu globalDateFrom đang nhỏ hơn min thì tự đẩy lên mốc tối thiểu để tránh sai logic
     useEffect(() => {
         if (!minGlobalDateFrom) return;
         const minStr = minGlobalDateFrom.format("YYYY-MM-DD");
@@ -1708,7 +1708,7 @@ export const BookingDetailPage = () => {
                 if (t) result.add(normalizePetType(t));
             });
         });
-        // Náº¿u BE chÆ°a trả suitablePetTypes thÃ¬ fallback vá» háº±ng PET_TYPES cÅ©
+        // Nếu BE chưa trả suitablePetTypes thì fallback về hằng PET_TYPES cũ
         if (result.size === 0) {
             PET_TYPES.forEach((t) => result.add(t.value));
         }
@@ -1721,7 +1721,7 @@ export const BookingDetailPage = () => {
             case "dog":
                 return "Chó";
             case "cat":
-                return "MÃ¨o";
+                return "Mèo";
             case "other":
                 return "Khác";
             default:
@@ -1736,8 +1736,8 @@ export const BookingDetailPage = () => {
     };
 
     /**
-     * TÃ¬m rule giá phÃ¹ hợp cho 1 dịch vụ theo cân nặng + loại thú cưng.
-     * Náº¿u không có rule nào match thÃ¬ trả vá» undefined.
+     * Tìm rule giá phù hợp cho 1 dịch vụ theo cân nặng + loại thú cưng.
+     * Nếu không có rule nào match thì trả về undefined.
      */
     const findMatchingPricingRule = (
         serviceId: number,
@@ -1753,8 +1753,8 @@ export const BookingDetailPage = () => {
         const petNorm = normalizePetType(petType);
 
         const activeRules = rules.filter((r) => r.isActive && !r.isDeleted);
-        // Sort giá»‘ng backend: Æ°u tiên priority (tăng dần), sau đó rule có ràng buộc weight nhiá»u hơn,
-        // rá»“i minWeight cao hơn, cuá»‘i cÃ¹ng maxWeight thấp hơn.
+        // Sort giống backend: ưu tiên priority (tăng dần), sau đó rule có ràng buộc weight nhiều hơn,
+        // rồi minWeight cao hơn, cuối cùng maxWeight thấp hơn.
         activeRules.sort((a, b) => {
             const pa = a.priority ?? 0;
             const pb = b.priority ?? 0;
@@ -1806,7 +1806,7 @@ export const BookingDetailPage = () => {
     };
 
     /**
-     * TÃ¬m rule giá cho dịch vụ báº¯t buộc chọn phòng: Æ°u tiên rule có roomTypeId trÃ¹ng, rá»“i weight/petType.
+     * Tìm rule giá cho dịch vụ bắt buộc chọn phòng: ưu tiên rule có roomTypeId trùng, rồi weight/petType.
      */
     const findMatchingPricingRuleWithRoom = (
         serviceId: number,
@@ -1823,7 +1823,7 @@ export const BookingDetailPage = () => {
         const petNorm = normalizePetType(petType);
 
         const activeRules = rules.filter((r) => r.isActive && !r.isDeleted);
-        // Sort giá»‘ng backend đá»ƒ chọn đÃºng rule khi có nhiá»u khoảng weight cÃ¹ng match.
+        // Sort giống backend để chọn đúng rule khi có nhiều khoảng weight cùng match.
         activeRules.sort((a, b) => {
             const pa = a.priority ?? 0;
             const pb = b.priority ?? 0;
@@ -1866,7 +1866,7 @@ export const BookingDetailPage = () => {
         });
     };
 
-    /** Tá»•ng tiá»n phòng = giá/đêm (theo loại phòng) Ã— số đêm. Trả vá» null nếu không đủ dá»¯ liá»‡u. */
+    /** Tổng tiền phòng = giá/đêm (theo loại phòng) × số đêm. Trả về null nếu không đủ dữ liệu. */
     const getRoomTotalPrice = (p: BookingPetForm, roomTypeId: number | null): number | null => {
         const effectiveFrom = p.dateFrom || globalDateFrom;
         const nights =
@@ -1877,13 +1877,13 @@ export const BookingDetailPage = () => {
                     : null;
 
         if (!p.serviceId || nights == null || nights < 1) return null;
-        // Resolve theo quy táº¯c admin: roomType + petType + cân nặng.
+        // Resolve theo quy tắc admin: roomType + petType + cân nặng.
         const rule = findMatchingPricingRuleWithRoom(p.serviceId, roomTypeId, p.weight, p.petType);
         if (rule?.price == null) return null;
         return rule.price * nights;
     };
 
-    /** Tá»•ng tiá»n phòng cho dịch vụ thêm (dùng weight/petType của pet). */
+    /** Tổng tiền phòng cho dịch vụ thêm (dùng weight/petType của pet). */
     const getAdditionalRoomTotalPrice = (asvc: BookingPetServiceForm, roomTypeId: number | null, pet: BookingPetForm): number | null => {
         const effectiveFrom = asvc.dateFrom || globalDateFrom;
         const nights =
@@ -1894,7 +1894,7 @@ export const BookingDetailPage = () => {
                     : null;
 
         if (!asvc.serviceId || nights == null || nights < 1) return null;
-        // Resolve theo quy táº¯c admin: roomType + petType + cân nặng.
+        // Resolve theo quy tắc admin: roomType + petType + cân nặng.
         const rule = findMatchingPricingRuleWithRoom(asvc.serviceId, roomTypeId, pet.weight, pet.petType);
         if (rule?.price == null) return null;
         return rule.price * nights;
@@ -1922,13 +1922,13 @@ export const BookingDetailPage = () => {
         const address = (step1Data.address ?? "").trim();
 
         if (!fullName || !email || !phone || !address) {
-            toast.error("Vui lòng điá»n đầy đủ Há» tên, Email, Số điện thoại và Đá»‹a chá»‰ ở phần Thông tin khách hàng.");
+            toast.error("Vui lòng điền đầy đủ Họ tên, Email, Số điện thoại và Địa chỉ ở phần Thông tin khách hàng.");
             // Cuộn lên phần thông tin khách hàng ở đầu trang
             window.scrollTo({ top: 0, behavior: "smooth" });
             return false;
         }
 
-        // 2) Kiểm tra chi tiáº¿t thú cưng & dịch vụ
+        // 2) Kiểm tra chi tiết thú cưng & dịch vụ
         const nextErrors: Record<string, PetFieldErrors> = {};
         setPetErrors({});
 
@@ -1968,10 +1968,10 @@ export const BookingDetailPage = () => {
             if (!pet.emergencyContactName?.trim()) {
                 nextErrors[pet.id] = {
                     ...(nextErrors[pet.id] ?? {}),
-                    emergencyContactName: "Vui lòng nhập ngÆ°á»i liên hệ khẩn cấp.",
+                    emergencyContactName: "Vui lòng nhập người liên hệ khẩn cấp.",
                 };
                 setPetErrors(nextErrors);
-                toast.error(`Vui lòng nhập ngÆ°á»i liên hệ khẩn cấp cho ${idxLabel}.`);
+                toast.error(`Vui lòng nhập người liên hệ khẩn cấp cho ${idxLabel}.`);
                 scrollToPet(i, `pet-${pet.id}-emergency-name`);
                 return false;
             }
@@ -1997,7 +1997,7 @@ export const BookingDetailPage = () => {
             }
 
             if (allServices.length === 0) {
-                toast.error(`Vui lòng chọn Ã­t nhất một dịch vụ cho ${idxLabel}.`);
+                toast.error(`Vui lòng chọn ít nhất một dịch vụ cho ${idxLabel}.`);
                 scrollToPet(i, `pet-${pet.id}-service`);
                 return false;
             }
@@ -2018,8 +2018,8 @@ export const BookingDetailPage = () => {
                     const dateFrom = "dateFrom" in base ? base.dateFrom : (base as BookingPetServiceForm).dateFrom;
                     const dateTo = "dateTo" in base ? base.dateTo : (base as BookingPetServiceForm).dateTo;
                     // Trong UI, Ngày gửi cho các dịch vụ được lấy từ "Ngày gửi chung" (globalDateFrom).
-                    // Có trÆ°á»ng hợp state dateFrom của service/pet bá»‹ rỗng trong khi UI váº«n hiá»ƒn thá»‹ từ globalDateFrom,
-                    // dáº«n tới validate bá»‹ báo sai dù user đã chọn ngày trả.
+                    // Có trường hợp state dateFrom của service/pet bị rỗng trong khi UI vẫn hiển thị từ globalDateFrom,
+                    // dẫn tới validate bị báo sai dù user đã chọn ngày trả.
                     const effectiveDateFrom = dateFrom || globalDateFrom;
                     const selectedRoomId =
                         "selectedRoomId" in base ? base.selectedRoomId : (base as BookingPetServiceForm).selectedRoomId;
@@ -2027,11 +2027,11 @@ export const BookingDetailPage = () => {
                     if (!effectiveDateFrom || !dateTo || !dayjs(dateTo).isAfter(dayjs(effectiveDateFrom))) {
                         const petErr = nextErrors[pet.id] ?? {};
                         const svcDateErrors = { ...(petErr.serviceDateErrors ?? {}) };
-                        svcDateErrors[serviceKey] = "Vui lòng chọn Ngày gửi/Ngày trả hợp lá»‡.";
+                        svcDateErrors[serviceKey] = "Vui lòng chọn Ngày gửi/Ngày trả hợp lệ.";
                         nextErrors[pet.id] = { ...petErr, serviceDateErrors: svcDateErrors };
                         setPetErrors(nextErrors);
 
-                        toast.error(`Vui lòng chọn Ngày gửi/Ngày trả hợp lá»‡ cho ${serviceLabel}.`);
+                        toast.error(`Vui lòng chọn Ngày gửi/Ngày trả hợp lệ cho ${serviceLabel}.`);
                         scrollToPet(i, `pet-${pet.id}-${serviceKey}-dates`);
                         return false;
                     }
@@ -2054,9 +2054,9 @@ export const BookingDetailPage = () => {
                             ? base.sessionTimeSlotId
                             : (base as BookingPetServiceForm).sessionTimeSlotId;
 
-                    // UI có thá»ƒ hiá»ƒn thá»‹ ngày gửi từ globalDateFrom (readOnly/disabled),
-                    // nhÆ°ng state sessionDate váº«n rỗng -> validate sáº½ sai.
-                    // Fallback sang globalDateFrom đá»ƒ validate đÃºng theo quy táº¯c "Ngày gửi chung".
+                    // UI có thể hiển thị ngày gửi từ globalDateFrom (readOnly/disabled),
+                    // nhưng state sessionDate vẫn rỗng -> validate sẽ sai.
+                    // Fallback sang globalDateFrom để validate đúng theo quy tắc "Ngày gửi chung".
                     const effectiveSessionDate = sessionDate || globalDateFrom;
 
                     const sessionSlotLabel =
@@ -2064,12 +2064,12 @@ export const BookingDetailPage = () => {
                             ? (base as BookingPetForm | BookingPetServiceForm).sessionSlotLabel
                             : (base as BookingPetServiceForm).sessionSlotLabel;
 
-                    // Một số trÆ°á»ng hợp UI đã chọn "Khung giá»" nhÆ°ng sessionTimeSlotId chÆ°a được set đÃºng,
-                    // trong khi sessionSlotLabel váº«n có. Cho validate pass theo label đá»ƒ tránh báo sai.
+                    // Một số trường hợp UI đã chọn "Khung giá" nhưng sessionTimeSlotId chưa được set đúng,
+                    // trong khi sessionSlotLabel vẫn có. Cho validate pass theo label để tránh báo sai.
                     const hasTimeSlot = !!sessionTimeSlotId || !!sessionSlotLabel;
 
                     if (!effectiveSessionDate || !hasTimeSlot) {
-                        toast.error(`Vui lòng chọn Ngày gửi và Khung giá» cho ${serviceLabel}.`);
+                        toast.error(`Vui lòng chọn Ngày gửi và Khung giá cho ${serviceLabel}.`);
                         scrollToPet(i, `pet-${pet.id}-${"id" in base ? base.id : "main"}-session`);
                         return false;
                     }
@@ -2108,7 +2108,7 @@ export const BookingDetailPage = () => {
                 slug.includes("luu-tru") ||
                 slug.includes("khach-san") ||
                 slug.includes("luu tru") ||
-                name.includes("lÆ°u trÃº") ||
+                name.includes("lưu trú") ||
                 name.includes("khách sạn") ||
                 name.includes("hotel")
             );
@@ -2184,7 +2184,7 @@ export const BookingDetailPage = () => {
                         return asvc;
                     }) ?? p.additionalServices;
 
-                // Dịch vụ chính không cần phòng (per_session): tá»± fill ngày gửi theo globalDateFrom
+                // Dịch vụ chính không cần phòng (per_session): tự fill ngày gửi theo globalDateFrom
                 const mainSvc = p.serviceId ? services.find((s) => s.serviceId === p.serviceId) : undefined;
                 const updatedSessionDate = mainSvc && mainSvc.isRequiredRoom === false ? next : p.sessionDate;
 
@@ -2234,9 +2234,9 @@ export const BookingDetailPage = () => {
                         next.sessionSlotLabel = undefined;
                         next.addonServiceIds = [];
 
-                        // Náº¿u service mới:
-                        // - isRequiredRoom=false: tá»± fill sessionDate theo globalDateFrom
-                        // - isRequiredRoom=true : tá»± fill dateFrom theo globalDateFrom (đá»ƒ summary "Ngày gửi" không bá»‹ —)
+                        // Nếu service mới:
+                        // - isRequiredRoom=false: tự fill sessionDate theo globalDateFrom
+                        // - isRequiredRoom=true : tự fill dateFrom theo globalDateFrom (để summary "Ngày gửi" không bị —)
                         const svc =
                             updates.serviceId != null ? services.find((x) => x.serviceId === updates.serviceId) : undefined;
                         if (svc?.isRequiredRoom === false) {
@@ -2247,9 +2247,9 @@ export const BookingDetailPage = () => {
                         }
                     }
                     if (updates.dateFrom !== undefined || updates.dateTo !== undefined) {
-                        // DateFrom của dịch vụ "per_day" nên được đá»“ng bộ từ globalDateFrom.
-                        // Một số luá»“ng trước đó có thá»ƒ reset next.dateFrom vá» "" nên khi user chá»‰ chọn dateTo
-                        // thÃ¬ numberOfNights sáº½ không được tÃ­nh và room diagram cÅ©ng không mở.
+                        // DateFrom của dịch vụ "per_day" nên được đồng bộ từ globalDateFrom.
+                        // Một số luồng trước đó có thể reset next.dateFrom về "" nên khi user chỉ chọn dateTo
+                        // thì numberOfNights sẽ không được tính và room diagram cũng không mở.
                         const from = (updates.dateFrom ?? next.dateFrom ?? globalDateFrom) || "";
                         const to = updates.dateTo ?? next.dateTo;
                         next.dateFrom = from;
@@ -2272,7 +2272,7 @@ export const BookingDetailPage = () => {
                 if (p.id !== id) return p;
                 const next = { ...p, ...updates };
 
-                // Náº¿u thay đá»•i petType hoặc weight thÃ¬ reset dịch vụ và các field phụ thuộc
+                // Nếu thay đổi petType hoặc weight thì reset dịch vụ và các field phụ thuộc
                 if (updates.petType !== undefined || updates.weight !== undefined) {
                     next.serviceId = null;
                     next.pricingModel = null;
@@ -2287,9 +2287,9 @@ export const BookingDetailPage = () => {
                     next.foodItems = [];
                 }
                 if (updates.dateFrom !== undefined || updates.dateTo !== undefined) {
-                    // DateFrom của booking "per_day" được áp dụng từ globalDateFrom phÃ­a trên.
-                    // Náº¿u pet.dateFrom đang rỗng (do reset ở các luá»“ng trước), thÃ¬ cần đá»“ng bộ khi user chọn dateTo
-                    // đá»ƒ hiá»ƒn thá»‹ số đêm và mở sÆ¡ đá»“ chọn phòng.
+                    // DateFrom của booking "per_day" được áp dụng từ globalDateFrom phía trên.
+                    // Nếu pet.dateFrom đang rỗng (do reset ở các luồng trước), thì cần đồng bộ khi user chọn dateTo
+                    // để hiển thị số đêm và mở sơ đồ chọn phòng.
                     const from = (updates.dateFrom ?? next.dateFrom ?? globalDateFrom) || "";
                     const to = updates.dateTo ?? next.dateTo;
                     next.dateFrom = from;
@@ -2312,9 +2312,9 @@ export const BookingDetailPage = () => {
                         next.sessionTimeSlotId = undefined;
                         next.sessionSlotLabel = undefined;
                     }
-                    // Náº¿u service:
-                    // - isRequiredRoom=false: tá»± fill sessionDate theo globalDateFrom
-                    // - isRequiredRoom=true : tá»± fill dateFrom theo globalDateFrom (đá»ƒ summary "Ngày gửi" không bá»‹ —)
+                    // NáÂºÂ¿u service:
+                    // - isRequiredRoom=false: tự fill sessionDate theo globalDateFrom
+                    // - isRequiredRoom=true : tự fill dateFrom theo globalDateFrom (để summary "Ngày gửi" không bị —)
                     const svc =
                         updates.serviceId != null ? services.find((x) => x.serviceId === updates.serviceId) : undefined;
                     if (svc?.isRequiredRoom === false) {
@@ -2391,7 +2391,7 @@ export const BookingDetailPage = () => {
         }
         setBankForm({ accountNumber: "", accountHolderName: "", bankCode: "", note: "" });
         setIsBankInfoOpen(true);
-        // Pre-fill bank form theo email khách đã lÆ°u (khi guest hoặc đang thêm mới)
+        // Pre-fill bank form theo email khách đã lưu (khi guest hoặc đang thêm mới)
         const email = step1Data?.email?.trim();
         if (email && (!isLoggedIn || myBankAccounts.length === 0)) {
             try {
@@ -2421,7 +2421,7 @@ export const BookingDetailPage = () => {
                 : payload;
             const res = await createBookingDepositIntent(finalPayload);
             if (res?.success && res?.data?.depositId && res?.data?.bookingCode) {
-                // Náº¿u có bank info (khách vãng lai hoặc thêm mới), lÆ°u vào bank_information gáº¯n với booking
+                // Nếu có bank info (khách vãng lai hoặc thêm mới), lưu vào bank_information gắn với booking
                 if (bankPayload) {
                     try {
                         await createGuestBankInformationByBookingCode(res.data.bookingCode, {
@@ -2433,21 +2433,21 @@ export const BookingDetailPage = () => {
                             userEmail: step1Data?.email?.trim() || undefined,
                         });
                     } catch (e) {
-                        // Náº¿u lÆ°u bank info thất bại, váº«n cho khách tiáº¿p tục nhÆ°ng log/toast nháº¹
+                        // Nếu lưu bank info thất bại, vẫn cho khách tiếp tục nhưng log/toast nhẹ
                         console.error("Failed to create guest bank information", e);
                     }
                 }
-                toast.success("ĐÆ¡n đặt lịch của bạn đã được xác nháº­n, vui lòng thanh toán cá»c đá»ƒ giá»¯ chỗ.");
+                toast.success("Đơn đặt lịch của bạn đã được xác nhận, vui lòng thanh toán cọc để giữ chỗ.");
                 navigate(`/dat-lich/chi-tiet-don/${res.data.bookingCode}`, {
                     replace: true,
                     state: { openPayment: true }
                 });
                 return;
             }
-            toast.error(res?.message ?? "Không thá»ƒ giá»¯ chỗ. Vui lòng thử lại.");
+            toast.error(res?.message ?? "Không thể giữ chỗ. Vui lòng thử lại.");
         } catch (err: unknown) {
             const data = (err as { response?: { data?: { message?: string; data?: { errorCode?: string; petIndex?: number; serviceIndex?: number; roomId?: number } } } })?.response?.data;
-            const message = data?.message ?? (err instanceof Error ? err.message : "Không thá»ƒ giá»¯ chỗ. Vui lòng thử lại.");
+            const message = data?.message ?? (err instanceof Error ? err.message : "Không thể giữ chỗ. Vui lòng thử lại.");
             const errorData = data?.data;
             toast.error(message);
 
@@ -2501,10 +2501,10 @@ export const BookingDetailPage = () => {
                     <div className="app-container flex py-[100px] bg-white">
                         <div className="px-[20px] w-[42%] z-[10]">
                             <p className="uppercase text-client-secondary text-[1.0625rem] font-[700] mb-[15px]">
-                                {rawState?.bookingCodeForEdit ? "Chá»‰nh sửa đơn đặt lịch" : "Đáº·t lịch chi tiáº¿t"}
+                                {rawState?.bookingCodeForEdit ? "Chỉnh sửa đơn đặt lịch" : "Đặt lịch chi tiết"}
                             </p>
                             <h2 className="text-[3.125rem] text-[#181818] leading-[1.2] font-third mb-[20px]">
-                                Thông tin lịch háº¹n cho thú cưng
+                                Thông tin lịch hẹn cho thú cưng
                             </h2>
                             {rawState?.bookingCodeForEdit && (
                                 <p className="mt-[8px] text-[0.9375rem] text-[#c45a3a] font-[600]">
@@ -2512,7 +2512,7 @@ export const BookingDetailPage = () => {
                                 </p>
                             )}
                             <p className="text-[#505050] font-[500] text-[1.125rem] inline-block mt-[15px]">
-                                Thêm thú cưng, chọn dịch vụ và thá»i gian phÃ¹ hợp với từng loại hÃ¬nh dịch vụ.
+                                Thêm thú cưng, chọn dịch vụ và thời gian phù hợp với từng loại hình dịch vụ.
                             </p>
                         </div>
                     </div>
@@ -2532,7 +2532,7 @@ export const BookingDetailPage = () => {
                                     <EditLocationAltIcon sx={{ fontSize: 22, color: "#0d7c82" }} />
                                 </div>
                                 <div>
-                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">Đá»‹a điá»ƒm</div>
+                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">Địa điểm</div>
                                     <p className="text-[#505050] text-[0.875rem]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
                                 </div>
                             </div>
@@ -2541,7 +2541,7 @@ export const BookingDetailPage = () => {
                                     <ScheduleIcon sx={{ fontSize: 22, color: "#2e7d32" }} />
                                 </div>
                                 <div>
-                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">Giá» làm việc</div>
+                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">Giờ làm việc</div>
                                     <p className="text-[#505050] text-[0.875rem]">T2 - T7: 7:00 - 16:00</p>
                                 </div>
                             </div>
@@ -2550,15 +2550,15 @@ export const BookingDetailPage = () => {
                                     <RocketLaunchIcon sx={{ fontSize: 22, color: "#c45a3a" }} />
                                 </div>
                                 <div>
-                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">ChĐƒm sóc di động</div>
-                                    <p className="text-[#505050] text-[0.875rem]">Theo dÃµi qua camera trên điá»‡n thoại.</p>
+                                    <div className="font-[700] text-[#181818] text-[0.9375rem]">Chăm sóc di động</div>
+                                    <p className="text-[#505050] text-[0.875rem]">Theo dõi qua camera trên điện thoại.</p>
                                 </div>
                             </div>
                         </div>
                     </aside>
 
                     <main className="w-full max-w-[800px]">
-                        {/* ========== PHáº¦N 1: Thông tin cÆ¡ bản khách ========== */}
+                        {/* ========== PHẦN 1: Thông tin cơ bản khách ========== */}
                         <section className="mb-[40px]">
                             <div className="flex items-center gap-2 mb-[16px]">
                                 <span className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-[#ffbaa0] text-[#181818] font-[700] text-[0.875rem]">1</span>
@@ -2571,7 +2571,7 @@ export const BookingDetailPage = () => {
                                 </div>
                                 <div className="p-[24px] grid grid-cols-1 sm:grid-cols-2 gap-x-[24px] gap-y-[16px] text-[0.9375rem]">
                                     <div>
-                                        <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Há» và tên</span>
+                                        <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Họ và tên</span>
                                         <span className="text-[#181818] font-[500]">{step1Data.fullName || "—"}</span>
                                     </div>
                                     <div>
@@ -2583,12 +2583,12 @@ export const BookingDetailPage = () => {
                                         <span className="text-[#181818] font-[500]">{step1Data.phone || "—"}</span>
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Đá»‹a chá»‰</span>
+                                        <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Địa chỉ</span>
                                         <span className="text-[#181818] font-[500]">{step1Data.address || "—"}</span>
                                     </div>
                                     {step1Data.message ? (
                                         <div className="sm:col-span-2">
-                                            <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Lá»i nháº¯n</span>
+                                            <span className="text-[#888] block mb-[4px] text-[0.8125rem]">Lời nhắn</span>
                                             <span className="text-[#181818] font-[500]">{step1Data.message}</span>
                                         </div>
                                     ) : null}
@@ -2596,7 +2596,7 @@ export const BookingDetailPage = () => {
                             </div>
                         </section>
 
-                        {/* ========== PHáº¦N 2: Số lÆ°ợng thú cưng + thông tin từng thÃº + dịch vụ + ngày/slot ========== */}
+                        {/* ========== PHẦN 2: Số lượng thú cưng + thông tin từng thú + dịch vụ + ngày/slot ========== */}
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
@@ -2606,7 +2606,7 @@ export const BookingDetailPage = () => {
                                 <div className="flex items-center justify-between gap-4 mb-[16px]">
                                     <div className="flex items-center gap-2">
                                         <span className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-[#ffbaa0] text-[#181818] font-[700] text-[0.875rem]">2</span>
-                                        <h3 className="text-[1.25rem] font-[700] text-[#181818]">ThÃº cÆ°ng & dịch vụ</h3>
+                                        <h3 className="text-[1.25rem] font-[700] text-[#181818]">Thú cưng & dịch vụ</h3>
                                     </div>
                                     <button
                                         type="button"
@@ -2618,7 +2618,7 @@ export const BookingDetailPage = () => {
                                 </div>
 
                                 <div className="flex flex-col lg:flex-row gap-6">
-                                    {/* Hiá»ƒn thá»‹ 3 tab thú cưng, tab đang xem ở giữa và nổi bật; chuyển báº±ng 2 nÃºt mÅ©i tên */}
+                                    {/* Hiển thị 3 tab thú cưng, tab đang xem ở giữa và nổi bật; chuyển bằng 2 nút mũi tên */}
                                     <div className="flex items-center justify-center gap-2 flex-shrink-0">
                                         <div className="flex items-center gap-2 transition-all duration-300 ease-out">
                                             {(() => {
@@ -2646,7 +2646,7 @@ export const BookingDetailPage = () => {
                                                                 <PetsIcon sx={{ fontSize: 16 }} />
                                                             </span>
                                                             <span className={`truncate transition-all duration-300 ease-out ${isActive ? "text-[0.8125rem] font-[700] text-[#181818]" : "text-[0.75rem] font-[500] text-[#555]"}`}>
-                                                                {pet.petName.trim() || `ThÃº cÆ°ng ${idx + 1}`}
+                                                                {pet.petName.trim() || `Thú cưng ${idx + 1}`}
                                                             </span>
                                                             {total > 1 && (
                                                                 <span className={`shrink-0 text-[0.6875rem] transition-all duration-300 ease-out ${isActive ? "font-[600] text-[#c45a3a]" : "font-[500] text-[#999]"}`}>
@@ -2660,7 +2660,7 @@ export const BookingDetailPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* Form thú cưng đang chọn (chá»‰ 1 card hiá»ƒn thá»‹, chuyển qua lại nhÆ° story) */}
+                                    {/* Form thú cưng đang chọn (chỉ 1 card hiển thị, chuyển qua lại như story) */}
                                     <div className="flex-1 min-w-0 relative">
                                         {pets.map((pet, index) => index !== activePetIndex ? null : (
                                             <div key={pet.id} className="booking-pet-card-enter">
@@ -2670,7 +2670,7 @@ export const BookingDetailPage = () => {
                                                     <div className="bg-[#f8f9fa] px-[24px] py-[14px] border-b border-[#eee] flex items-center justify-between flex-wrap gap-2">
                                                         <span className="flex items-center gap-2 text-[0.9375rem] font-[600] text-[#181818]">
                                                             <PetsIcon sx={{ fontSize: 22, color: "#c45a3a" }} />
-                                                            {pet.petName.trim() || `ThÃº cÆ°ng ${index + 1}`}
+                                                            {pet.petName.trim() || `Thú cưng ${index + 1}`}
                                                         </span>
                                                         <div className="flex items-center gap-1">
                                                             {pets.length > 1 && (
@@ -2704,7 +2704,7 @@ export const BookingDetailPage = () => {
                                                                         type="text"
                                                                         value={pet.petName}
                                                                         onChange={(e) => updatePet(pet.id, { petName: e.target.value })}
-                                                                        placeholder="VÃ­ dụ: Milu"
+                                                                        placeholder="Ví dụ: Milu"
                                                                         required
                                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[0.9375rem]"
                                                                     />
@@ -2749,7 +2749,7 @@ export const BookingDetailPage = () => {
                                                                         type="text"
                                                                         value={pet.weight}
                                                                         onChange={(e) => updatePet(pet.id, { weight: e.target.value })}
-                                                                        placeholder="VÃ­ dụ: 5"
+                                                                        placeholder="Ví dụ: 5"
                                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[0.9375rem]"
                                                                     />
                                                                 </div>
@@ -2766,7 +2766,7 @@ export const BookingDetailPage = () => {
                                                                         type="text"
                                                                         value={pet.emergencyContactName ?? ""}
                                                                         onChange={(e) => updatePet(pet.id, { emergencyContactName: e.target.value })}
-                                                                        placeholder="Há» tên ngÆ°á»i liên hệ"
+                                                                        placeholder="Họ tên người liên hệ"
                                                                         className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[0.9375rem]"
                                                                     />
                                                                 </div>
@@ -2789,7 +2789,7 @@ export const BookingDetailPage = () => {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Ngày gửi chung cho toàn bộ đơn (hiá»ƒn thá»‹ một lần dÆ°ới thú cưng đầu tiên) */}
+                                                            {/* Ngày gửi chung cho toàn bộ đơn (hiển thị một lần dưới thú cưng đầu tiên) */}
                                                             {index === 0 && (
                                                                 <div className="mt-[16px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
                                                                     <div>
@@ -2814,8 +2814,8 @@ export const BookingDetailPage = () => {
                                                                                     sx: bookingDatePickerTextFieldSx,
                                                                                     helperText:
                                                                                         maxAdvanceBookingHours > 0
-                                                                                            ? `Ngày gửi tá»‘i thiá»ƒu = hÃ´m nay + ${maxAdvanceBookingHours} giá» (theo yêu cầu đặt trước của các dịch vụ).`
-                                                                                            : "Ngày gửi này sáº½ áp dụng cho tất cả dịch vụ của má»i thú cưng trong đơn.",
+                                                                                            ? `Ngày gửi tối thiểu = hôm nay + ${maxAdvanceBookingHours} giờ (theo yêu cầu đặt trước của các dịch vụ).`
+                                                                                            : "Ngày gửi này sẽ áp dụng cho tất cả dịch vụ của mọi thú cưng trong đơn.",
                                                                                 },
                                                                                 popper: { sx: bookingDatePickerPopperSx },
                                                                             }}
@@ -2826,18 +2826,18 @@ export const BookingDetailPage = () => {
 
                                                             {/* Row 3: Ghi chú */}
                                                             <div>
-                                                                <label className="block mb-[6px] text-[0.875rem] font-[600] text-[#181818]">Ghi chú (bá»‡nh, dá»‹ á»©ng...)</label>
+                                                                <label className="block mb-[6px] text-[0.875rem] font-[600] text-[#181818]">Ghi chú (bệnh, dị ứng...)</label>
                                                                 <input
                                                                     type="text"
                                                                     value={pet.notes}
                                                                     onChange={(e) => updatePet(pet.id, { notes: e.target.value })}
-                                                                    placeholder="TÃ¹y chọn"
+                                                                    placeholder="Tùy chọn"
                                                                     className="input-booking w-full py-[12px] px-[16px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] focus:ring-2 focus:ring-[#ffbaa0]/20 outline-none text-[0.9375rem]"
                                                                 />
                                                             </div>
                                                         </div>
 
-                                                        {/* Chọn dịch vụ + các tuá»³ chọn phụ thuộc */}
+                                                        {/* Chọn dịch vụ + các tùy chọn phụ thuộc */}
                                                         <div className="mt-[8px]">
                                                             <ServiceSelectField
                                                                 label="Chọn dịch vụ *"
@@ -2882,7 +2882,7 @@ export const BookingDetailPage = () => {
                                                             />
                                                         </div>
 
-                                                        {/* Dịch vụ add-on kÃ¨m theo: luÃ´n hiá»ƒn thá»‹ Ã´ input khi đã chọn dịch vụ chÃ­nh; add-on cÃ¹ng category với dịch vụ đang chọn */}
+                                                        {/* Dịch vụ add-on kèm theo: luôn hiển thị ô input khi đã chọn dịch vụ chính; add-on cùng category với dịch vụ đang chọn */}
                                                         {pet.serviceId && (() => {
                                                             const currentService = services.find((s) => s.serviceId === pet.serviceId);
                                                             const categoryId = currentService?.serviceCategoryId;
@@ -2900,7 +2900,7 @@ export const BookingDetailPage = () => {
                                                                 .filter((s): s is ServiceClient => s != null);
                                                             return (
                                                                 <div className="mt-4 p-4 rounded-[12px] border border-[#ffe0ce] bg-[#fffbf9]">
-                                                                    <label className="block mb-3 text-[0.875rem] font-[600] text-[#181818]">Dịch vụ add-on kÃ¨m theo (tÃ¹y chọn)</label>
+                                                                    <label className="block mb-3 text-[0.875rem] font-[600] text-[#181818]">Dịch vụ add-on kèm theo (tùy chọn)</label>
                                                                     {selectedServices.length > 0 && (
                                                                         <div className="mb-3 flex flex-wrap gap-2">
                                                                             {selectedServices.map((s) => {
@@ -2930,7 +2930,7 @@ export const BookingDetailPage = () => {
                                                                                             className="p-0.5 rounded hover:bg-[#ffbaa0]/40 text-[#888] hover:text-[#e53935] transition-colors duration-200"
                                                                                             aria-label="Xóa"
                                                                                         >
-                                                                                            Ã—
+                                                                                            ×
                                                                                         </button>
                                                                                     </span>
                                                                                 );
@@ -2977,7 +2977,7 @@ export const BookingDetailPage = () => {
                                                                         <p className="text-[0.8438rem] text-[#888] py-2">
                                                                             {addonServices.length === 0
                                                                                 ? "Không có dịch vụ add-on cho nhóm này."
-                                                                                : "Đã chọn háº¿t dịch vụ add-on khả dụng."}
+                                                                                : "Đã chọn hết dịch vụ add-on khả dụng."}
                                                                         </p>
                                                                     )}
                                                                 </div>
@@ -3092,7 +3092,7 @@ export const BookingDetailPage = () => {
                                                                                         />
                                                                                     </div>
                                                                                     <div>
-                                                                                        <label className="block mb-[4px] text-[0.8125rem] font-[500] text-[#555]">Số lÆ°ợng</label>
+                                                                                        <label className="block mb-[4px] text-[0.8125rem] font-[500] text-[#555]">Số lượng</label>
                                                                                         <input
                                                                                             type="number"
                                                                                             min={0}
@@ -3103,13 +3103,13 @@ export const BookingDetailPage = () => {
                                                                                                 next[idx] = { ...next[idx], quantity: v === "" ? null : Number(v) };
                                                                                                 updatePet(pet.id, { foodItems: next });
                                                                                             }}
-                                                                                            placeholder="TÃ¹y chọn"
+                                                                                            placeholder="Tùy chọn"
                                                                                             className="input-booking w-full py-[10px] px-[14px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] outline-none text-[0.875rem]"
                                                                                         />
                                                                                     </div>
                                                                                 </div>
                                                                                 <div>
-                                                                                    <label className="block mb-[4px] text-[0.8125rem] font-[500] text-[#555]">HÆ°ớng dáº«n cho ăn</label>
+                                                                                    <label className="block mb-[4px] text-[0.8125rem] font-[500] text-[#555]">Hướng dẫn cho ăn</label>
                                                                                     <input
                                                                                         type="text"
                                                                                         value={item.feedingInstructions ?? ""}
@@ -3118,7 +3118,7 @@ export const BookingDetailPage = () => {
                                                                                             next[idx] = { ...next[idx], feedingInstructions: e.target.value };
                                                                                             updatePet(pet.id, { foodItems: next });
                                                                                         }}
-                                                                                        placeholder="VÃ­ dụ: 2 bá»¯a/ngày, mỗi bá»¯a 200g"
+                                                                                        placeholder="Ví dụ: 2 bữa/ngày, mỗi bữa 200g"
                                                                                         className="input-booking w-full py-[10px] px-[14px] rounded-[10px] border border-[#ddd] focus:border-[#ffbaa0] outline-none text-[0.875rem]"
                                                                                     />
                                                                                 </div>
@@ -3142,7 +3142,7 @@ export const BookingDetailPage = () => {
                                                                 id={`pet-${pet.id}-main-dates`}
                                                                 className="p-[16px] bg-[#fff7f3] rounded-[12px] border border-[#ffe0ce] scroll-mt-[120px]"
                                                             >
-                                                                {/** Min Ngày gửi dá»±a trên advanceBookingHours của các dịch vụ cần phòng (main + additional). */}
+                                                                {/** Min Ngày gửi dựa trên advanceBookingHours của các dịch vụ cần phòng (main + additional). */}
                                                                 {(() => {
                                                                     const mainService = pet.serviceId
                                                                         ? services.find((s) => s.serviceId === pet.serviceId)
@@ -3200,7 +3200,7 @@ export const BookingDetailPage = () => {
                                                                                             color: "warning",
                                                                                             sx: bookingDatePickerTextFieldSx,
                                                                                             helperText:
-                                                                                                "Ngày gửi được lấy từ Ã´ Ngày gửi chung phÃ­a trên.",
+                                                                                                "Ngày gửi được lấy từ ở Ngày gửi chung phía trên.",
                                                                                         },
                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                     }}
@@ -3226,7 +3226,7 @@ export const BookingDetailPage = () => {
                                                                                             sx: bookingDatePickerTextFieldSx,
                                                                                             helperText:
                                                                                                 pet.dateFrom && !pet.dateTo
-                                                                                                    ? "Ngày trả phải sau ngày gửi (Ã­t nhất 1 đêm)"
+                                                                                                    ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)"
                                                                                                     : undefined,
                                                                                         },
                                                                                         popper: { sx: bookingDatePickerPopperSx },
@@ -3296,12 +3296,12 @@ export const BookingDetailPage = () => {
                                                             globalDateFrom={globalDateFrom}
                                                             bookingDatePickerPopperSx={bookingDatePickerPopperSx}
                                                             getServicePriceForWeight={getServicePriceForWeight}
-                                                            // id đá»ƒ scroll tới phần session
+                                                            // id để scroll tới phần session
                                                             // @ts-ignore
                                                             id={`pet-${pet.id}-main-session`}
                                                         />
 
-                                                        {/* Dịch vụ thêm (nhiá»u booking_pet_services, không trÃ¹ng dịch vụ) */}
+                                                        {/* Dịch vụ thêm (nhiều booking_pet_services, không trùng dịch vụ) */}
                                                         <div className="border-t border-[#eee] pt-[20px]">
                                                             <div className="flex flex-col gap-3 mb-6">
                                                                 <span className="text-[0.875rem] font-[600] text-[#181818]">Dịch vụ thêm</span>
@@ -3321,7 +3321,7 @@ export const BookingDetailPage = () => {
                                                                             ...(pet.additionalServices ?? []).map((s) => s.serviceId).filter((id): id is number => id != null),
                                                                         ].filter((id, i, arr) => arr.indexOf(id) === i);
                                                                         const canSelect = (serviceId: number) => !excludedIds.includes(serviceId) || serviceId === asvc.serviceId;
-                                                                        // Đã có dịch vụ is_required_room ở chÃ­nh hoặc dịch vụ thêm khác thÃ¬ không cho chọn thêm dịch vụ is_required_room ở Ã´ này (trừ đang giá»¯ chọn dịch vụ hiện tại)
+                                                                        // Đã có dịch vụ is_required_room ở chính hoặc dịch vụ thêm khác thì không cho chọn thêm dịch vụ is_required_room ở ô này (trừ đang giữ chọn dịch vụ hiện tại)
                                                                         const mainSvc = pet.serviceId ? services.find((s) => s.serviceId === pet.serviceId) : undefined;
                                                                         const mainIsRoomRequired = mainSvc?.isRequiredRoom === true;
                                                                         const roomRequiredInOtherAdditional = (pet.additionalServices ?? []).some(
@@ -3331,7 +3331,7 @@ export const BookingDetailPage = () => {
                                                                         const allowService = (s: ServiceClient) =>
                                                                             canSelect(s.serviceId) &&
                                                                             (!s.isRequiredRoom || s.serviceId === asvc.serviceId || !roomRequiredElsewhere);
-                                                                        // Dịch vụ thêm: dùng cÃ¹ng logic với phần Chọn dịch vụ chÃ­nh
+                                                                        // Dịch vụ thêm: dùng cùng logic với phần Chọn dịch vụ chính
                                                                         const catServicesForAdditional = categories
                                                                             .map((cat) => ({
                                                                                 cat,
@@ -3394,7 +3394,7 @@ export const BookingDetailPage = () => {
                                                                                         ) : null
                                                                                     }
                                                                                 />
-                                                                                {/* Dịch vụ add-on kÃ¨m theo: danh sách đã chọn ở trên, dropdown ở dÆ°ới; add-on cÃ¹ng category với dịch vụ đang chọn */}
+                                                                                {/* Dịch vụ add-on kàƒÂ¨m theo: danh sách đã chọn ở trên, dropdown ở dà†Â°ới; add-on càƒÂ¹ng category với dịch vụ đang chọn */}
                                                                                 {asvc.serviceId && (() => {
                                                                                     const currentSvc = services.find((s) => s.serviceId === asvc.serviceId);
                                                                                     const categoryIdAdd = currentSvc?.serviceCategoryId;
@@ -3418,7 +3418,7 @@ export const BookingDetailPage = () => {
                                                                                         <>
                                                                                             {(addonForAdditional.length > 0 || selectedIdsAdd.length > 0) && (
                                                                                                 <div className="mt-4 p-4 rounded-[12px] border border-[#ffe0ce] bg-[#fffbf9]">
-                                                                                                    <label className="block mb-3 text-[0.875rem] font-[600] text-[#181818]">Dịch vụ add-on kÃ¨m theo (tÃ¹y chọn)</label>
+                                                                                                    <label className="block mb-3 text-[0.875rem] font-[600] text-[#181818]">Dịch vụ add-on kàƒÂ¨m theo (tàƒÂ¹y chọn)</label>
                                                                                                     {selectedServicesAdd.length > 0 && (
                                                                                                         <div className="mb-3 flex flex-wrap gap-2">
                                                                                                             {selectedServicesAdd.map((s) => {
@@ -3444,7 +3444,7 @@ export const BookingDetailPage = () => {
                                                                                                                             className="p-0.5 rounded hover:bg-[#ffbaa0]/40 text-[#888] hover:text-[#e53935] transition-colors duration-200"
                                                                                                                             aria-label="Xóa"
                                                                                                                         >
-                                                                                                                            Ã—
+                                                                                                                            ×
                                                                                                                         </button>
                                                                                                                     </span>
                                                                                                                 );
@@ -3478,7 +3478,7 @@ export const BookingDetailPage = () => {
                                                                                                         </div>
                                                                                                     ) : (
                                                                                                         selectedIdsAdd.length > 0 && availableToAddAdd.length === 0 ? (
-                                                                                                            <p className="text-[0.8438rem] text-[#888] py-2">Không còn dịch vụ add-on đá»ƒ chọn.</p>
+                                                                                                            <p className="text-[0.8438rem] text-[#888] py-2">Không còn dịch vụ add-on đáÂ»Æ’ chọn.</p>
                                                                                                         ) : null
                                                                                                     )}
                                                                                                 </div>
@@ -3506,7 +3506,7 @@ export const BookingDetailPage = () => {
                                                                                                                             required: true,
                                                                                                                             fullWidth: true,
                                                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                                                            helperText: "Ngày gửi được lấy từ Ã´ Ngày gửi chung phÃ­a trên.",
+                                                                                                                            helperText: "Ngày gửi được lấy từ ở Ngày gửi chung phía trên.",
                                                                                                                         },
                                                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                                                     }}
@@ -3529,7 +3529,7 @@ export const BookingDetailPage = () => {
                                                                                                                             required: true,
                                                                                                                             fullWidth: true,
                                                                                                                             sx: bookingDatePickerTextFieldSx,
-                                                                                                                            helperText: asvc.dateFrom && !asvc.dateTo ? "Ngày trả phải sau ngày gửi (Ã­t nhất 1 đêm)" : undefined,
+                                                                                                                            helperText: asvc.dateFrom && !asvc.dateTo ? "Ngày trả phải sau ngày gửi (ít nhất 1 đêm)" : undefined,
                                                                                                                         },
                                                                                                                         popper: { sx: bookingDatePickerPopperSx },
                                                                                                                     }}
@@ -3613,7 +3613,7 @@ export const BookingDetailPage = () => {
                                 </div>
                             </section>
 
-                            {/* ========== PHáº¦N 3: NÃºt hành động ========== */}
+                            {/* ========== PHẦN 3: Nút hành động ========== */}
                             <section className="flex flex-wrap items-center justify-between gap-4 pt-[8px]">
                                 <button
                                     type="button"
@@ -3641,7 +3641,7 @@ export const BookingDetailPage = () => {
                                         disabled={isHolding || isSubmitting}
                                         className="py-[14px] px-[28px] rounded-[12px] border border-[#ffbaa0] bg-[#fff7f3] hover:bg-[#ffe9dd] text-[#c45a3a] font-[700] text-[0.9375rem] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
-                                        {isHolding ? "Đang giá»¯ chỗ..." : "Tiếp tục thanh toán"}
+                                        {isHolding ? "Đang giữ chỗ..." : "Tiếp tục thanh toán"}
                                     </button>
                                 </div>
                             </section>
@@ -3656,7 +3656,7 @@ export const BookingDetailPage = () => {
                                 <div>
                                     <h3 className="text-[1.3125rem] font-[800] text-[#181818]">Xác nhận thông tin đặt lịch</h3>
                                     <p className="text-[0.875rem] text-[#6b7280] mt-0.5">
-                                        Vui lòng kiểm tra lại thông tin trước khi tiáº¿p tục thanh toán cá»c.
+                                        Vui lòng kiểm tra lại thông tin trước khi tiếp tục thanh toán cọc.
                                     </p>
                                 </div>
                                 <button
@@ -3665,7 +3665,7 @@ export const BookingDetailPage = () => {
                                     className="text-[1.25rem] leading-none px-2 text-[#888] hover:text-[#e53935]"
                                     aria-label="Đóng"
                                 >
-                                    Ã—
+                                    ×
                                 </button>
                             </div>
 
@@ -3674,7 +3674,7 @@ export const BookingDetailPage = () => {
                                     <h4 className="text-[1rem] font-[700] text-[#181818] mb-2">Thông tin chủ thú cưng</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-[12px] gap-x-[24px] text-[0.875rem]">
                                         <div className="sm:col-span-2">
-                                            <span className="text-[#888] block mb-[2px]">Há» và tên</span>
+                                            <span className="text-[#888] block mb-[2px]">Họ và tên</span>
                                             <span className="font-[600] text-[#181818]">{step1Data.fullName || "—"}</span>
                                         </div>
                                         <div className="sm:col-span-2">
@@ -3686,14 +3686,14 @@ export const BookingDetailPage = () => {
                                             <span className="font-[500] text-[#181818]">{step1Data.email || "—"}</span>
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <span className="text-[#888] block mb-[2px]">Đá»‹a chá»‰</span>
+                                            <span className="text-[#888] block mb-[2px]">Địa chỉ</span>
                                             <span className="font-[500] text-[#181818]">{step1Data.address || "—"}</span>
                                         </div>
                                     </div>
                                 </section>
 
                                 <section>
-                                    <h4 className="text-[1rem] font-[700] text-[#181818] mb-3">ThÃº cÆ°ng & dịch vụ</h4>
+                                    <h4 className="text-[1rem] font-[700] text-[#181818] mb-3">Thú cưng & dịch vụ</h4>
                                     <div className="space-y-6">
                                         {pets.map((pet, idx) => {
                                             const additional = pet.additionalServices ?? [];
@@ -3720,7 +3720,7 @@ export const BookingDetailPage = () => {
                                                                 : null;
                                                     if (!pet.serviceId || !nights || nights < 1) return { unit: null, total: null };
                                                     const roomTypeId = pet.selectedRoomTypeId ?? null;
-                                                    // Resolve theo quy táº¯c admin: roomType + petType + cân nặng.
+                                                    // Resolve theo quy tắc admin: roomType + petType + cân nặng.
                                                     const rule = findMatchingPricingRuleWithRoom(pet.serviceId, roomTypeId, pet.weight, pet.petType);
                                                     if (rule?.price == null) return { unit: null, total: null };
                                                     return {
@@ -3748,7 +3748,7 @@ export const BookingDetailPage = () => {
                                                                 : null;
                                                     if (!asvc.serviceId || !nights || nights < 1) return { unit: null, total: null };
                                                     const roomTypeId = asvc.selectedRoomTypeId ?? null;
-                                                    // Resolve theo quy táº¯c admin: roomType + petType + cân nặng.
+                                                    // Resolve theo quy tắc admin: roomType + petType + cân nặng.
                                                     const rule = findMatchingPricingRuleWithRoom(asvc.serviceId, roomTypeId, pet.weight, pet.petType);
                                                     if (rule?.price == null) return { unit: null, total: null };
                                                     return {
@@ -3809,12 +3809,12 @@ export const BookingDetailPage = () => {
                                                     <div className="flex items-center justify-between gap-3 mb-3">
                                                         <div>
                                                             <div className="text-[0.9375rem] font-[700] text-[#181818]">
-                                                                ThÃº cÆ°ng {idx + 1}: {pet.petName || "ChÆ°a đặt tên"}
+                                                                Thú cưng {idx + 1}: {pet.petName || "chưa đặt tên"}
                                                             </div>
                                                             <div className="space-y-[2px] text-[0.8125rem] text-[#6b7280]">
                                                                 <div>
                                                                     Loại: {pet.petType || "—"}{" "}
-                                                                    {pet.weight ? `â€¢ Cân nặng: ${pet.weight}kg` : ""}
+                                                                    {pet.weight ? `• Cân nặng: ${pet.weight}kg` : ""}
                                                                 </div>
                                                                 {(pet.emergencyContactName || pet.emergencyContactPhone) && (
                                                                     <div>
@@ -3825,7 +3825,7 @@ export const BookingDetailPage = () => {
                                                                         {pet.emergencyContactPhone && (
                                                                             <>
                                                                                 {" "}
-                                                                                â€¢{" "}
+                                                                                •{" "}
                                                                                 <span className="font-[500]">
                                                                                     {pet.emergencyContactPhone}
                                                                                 </span>
@@ -3835,7 +3835,7 @@ export const BookingDetailPage = () => {
                                                                 )}
                                                                 {pet.notes && (
                                                                     <div>
-                                                                        Ghi chú tÃ¬nh trạng:{" "}
+                                                                        Ghi chú tình trạng:{" "}
                                                                         <span className="font-[500]">
                                                                             {pet.notes}
                                                                         </span>
@@ -3854,8 +3854,8 @@ export const BookingDetailPage = () => {
                                                                                             {fi.foodBroughtType || "Thức ăn"}
                                                                                         </span>
                                                                                         {fi.foodBrand && ` — ${fi.foodBrand}`}
-                                                                                        {fi.quantity != null && ` â€¢ SL: ${fi.quantity}`}
-                                                                                        {fi.feedingInstructions && ` â€¢ ${fi.feedingInstructions}`}
+                                                                                        {fi.quantity != null && ` • SL: ${fi.quantity}`}
+                                                                                        {fi.feedingInstructions && ` • ${fi.feedingInstructions}`}
                                                                                     </li>
                                                                                 ))}
                                                                             </ul>
@@ -3875,7 +3875,7 @@ export const BookingDetailPage = () => {
                                                         <div className="space-y-2 text-[0.8438rem] text-[#374151]">
                                                             {(!mainService && additionalItems.length === 0) ? (
                                                                 <div className="text-[#9ca3af] text-[0.8125rem]">
-                                                                    ChÆ°a chọn dịch vụ nào.
+                                                                    chưa chọn dịch vụ nào.
                                                                 </div>
                                                             ) : (
                                                                 <>
@@ -3920,7 +3920,7 @@ export const BookingDetailPage = () => {
                                                                                                 <span className="font-[500]">
                                                                                                     {mainPrices.unit.toLocaleString("vi-VN")}đ
                                                                                                 </span>{" "}
-                                                                                                â€¢ Tá»•ng:{" "}
+                                                                                                • Tổng:{" "}
                                                                                                 <span className="font-[500]">
                                                                                                     {mainPrices.total.toLocaleString("vi-VN")}đ
                                                                                                 </span>
@@ -3936,7 +3936,7 @@ export const BookingDetailPage = () => {
                                                                                             </span>
                                                                                         </div>
                                                                                         <div>
-                                                                                            Khung giá»:{" "}
+                                                                                            Khung giá:{" "}
                                                                                             <span className="font-[500]">
                                                                                                 {pet.sessionSlotLabel || pet.sessionSlot || "—"}
                                                                                             </span>
@@ -3996,7 +3996,7 @@ export const BookingDetailPage = () => {
                                                                                             :{" "}
                                                                                             {item.svc
                                                                                                 ? item.svc.serviceName
-                                                                                                : "ChÆ°a chọn dịch vụ"}
+                                                                                                : "chưa chọn dịch vụ"}
                                                                                         </div>
                                                                                         {item.prices.total != null && (
                                                                                             <div className="text-[0.8125rem] font-[700] text-[#c45a3a] whitespace-nowrap">
@@ -4033,7 +4033,7 @@ export const BookingDetailPage = () => {
                                                                                                         <span className="font-[500]">
                                                                                                             {item.prices.unit.toLocaleString("vi-VN")}đ
                                                                                                         </span>{" "}
-                                                                                                        â€¢ Tá»•ng:{" "}
+                                                                                                        • Tổng:{" "}
                                                                                                         <span className="font-[500]">
                                                                                                             {item.prices.total.toLocaleString("vi-VN")}đ
                                                                                                         </span>
@@ -4100,7 +4100,7 @@ export const BookingDetailPage = () => {
 
                                                         <div className="border border-[#e5e7eb] rounded-[12px] bg-white px-3 py-3 text-[0.8125rem] text-[#111827]">
                                                             <div className="font-[700] text-[0.875rem] mb-2">
-                                                                Bảng giá tạm tÃ­nh
+                                                                Bảng giá tạm tính
                                                             </div>
                                                             <div className="space-y-1">
                                                                 {mainPrices.total != null && (
@@ -4149,7 +4149,7 @@ export const BookingDetailPage = () => {
                                                             </div>
                                                             {grandTotal > 0 && (
                                                                 <div className="mt-2 border-t border-dashed border-[#e5e7eb] pt-2 flex justify-between text-[0.875rem]">
-                                                                    <span className="font-[700]">Tá»•ng cộng</span>
+                                                                    <span className="font-[700]">Tổng cộng</span>
                                                                     <span className="font-[800] text-[#c45a3a]">
                                                                         {grandTotal.toLocaleString("vi-VN")}đ
                                                                     </span>
@@ -4170,7 +4170,7 @@ export const BookingDetailPage = () => {
                                     onClick={() => setIsSummaryOpen(false)}
                                     className="py-[11px] px-[22px] rounded-[12px] border border-[#d1d5db] bg-white text-[#111827] text-[0.875rem] font-[600] hover:bg-[#f3f4f6]"
                                 >
-                                    Quay lại chá»‰nh sửa
+                                    Quay lại chỉnh sửa
                                 </button>
                                 <button
                                     type="button"
@@ -4198,8 +4198,8 @@ export const BookingDetailPage = () => {
                                     <h3 className="text-[1.25rem] font-[800] text-[#181818]">Thông tin tài khoản ngân hàng</h3>
                                     <p className="text-[0.8125rem] text-[#6b7280] mt-1">
                                         {isLoggedIn
-                                            ? "Chọn tài khoản đá»ƒ hoàn tiá»n cá»c nếu cần, hoặc thêm tài khoản mới."
-                                            : "Cung cấp tài khoản đá»ƒ hoàn tiá»n cá»c nếu cần."}
+                                            ? "Chọn tài khoản để hoàn tiền cọc nếu cần, hoặc thêm tài khoản mới."
+                                            : "Cung cấp tài khoản để hoàn tiền cọc nếu cần."}
                                     </p>
                                 </div>
                                 <button
@@ -4208,14 +4208,14 @@ export const BookingDetailPage = () => {
                                     className="text-[1.25rem] leading-none px-2 text-[#888] hover:text-[#e53935]"
                                     aria-label="Đóng"
                                 >
-                                    Ã—
+                                    ×
                                 </button>
                             </div>
 
                             {/* Logged-in: show existing accounts */}
                             {isLoggedIn && myBankAccounts.length > 0 && bankFormMode === "select" && (
                                 <div className="space-y-4">
-                                    <div className="text-[0.875rem] font-[700] text-[#374151] mb-2">Tài khoản đã lÆ°u</div>
+                                    <div className="text-[0.875rem] font-[700] text-[#374151] mb-2">Tài khoản đã lưu</div>
                                     <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
                                         {myBankAccounts.map((acc) => {
                                             const isSelected = selectedBankAccountId === acc.id;
@@ -4245,7 +4245,7 @@ export const BookingDetailPage = () => {
                                                         </div>
                                                         {acc.isDefault && (
                                                             <span className="shrink-0 text-[0.6875rem] font-[700] text-[#c45a3a] bg-[#ffedd5] px-2 py-1 rounded-full">
-                                                                Máº·c đá»‹nh
+                                                                Mặc định
                                                             </span>
                                                         )}
                                                     </div>
@@ -4280,7 +4280,7 @@ export const BookingDetailPage = () => {
                                             }}
                                             className="text-[0.8125rem] text-[#6b7280] hover:text-[#111827] flex items-center gap-1"
                                         >
-                                            â† Quay lại danh sách tài khoản
+                                            ←  Quay lại danh sách tài khoản
                                         </button>
                                     )}
 
@@ -4335,7 +4335,7 @@ export const BookingDetailPage = () => {
                                         {/* Note (optional) */}
                                         <div>
                                             <label className="block text-[0.875rem] font-[600] text-[#181818] mb-[8px]">
-                                                Ghi chú <span className="text-[0.75rem] text-[#9ca3af] font-[400]">(tuá»³ chọn)</span>
+                                                Ghi chú <span className="text-[0.75rem] text-[#9ca3af] font-[400]">(tùy chọn)</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -4353,7 +4353,7 @@ export const BookingDetailPage = () => {
                             {isLoggedIn && myBankAccounts.length === 0 && bankFormMode === "select" && (
                                 <div className="flex flex-col items-center gap-3 py-4">
                                     <div className="text-[0.8438rem] text-[#9ca3af] text-center">
-                                        Bạn chÆ°a có tài khoản ngân hàng nào.
+                                        Bạn chưa có tài khoản ngân hàng nào.
                                     </div>
                                     <button
                                         type="button"
@@ -4384,7 +4384,7 @@ export const BookingDetailPage = () => {
                                     onClick={handleBankInfoConfirm}
                                     className="py-[11px] px-[26px] rounded-[12px] bg-[#ffbaa0] hover:bg-[#e6a890] text-[#181818] text-[0.9375rem] font-[700] shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {isHolding ? "Đang xử lÃ½..." : "Xác nhận & Tiến hành đặt lịch"}
+                                    {isHolding ? "Đang xử lý..." : "Xác nhận & Tiến hành đặt lịch"}
                                 </button>
                             </div>
                         </div>
@@ -4402,7 +4402,7 @@ export const BookingDetailPage = () => {
                                     <EditLocationAltIcon style={{ fontSize: "2.5rem" }} />
                                 </div>
                                 <div className="pl-[20px]">
-                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Đá»‹a chá»‰</div>
+                                    <div className="text-[1.375rem] font-[800] text-[#181818] mb-[12px]">Địa chỉ</div>
                                     <p className="text-[#181818]">64 Ung Văn Khiêm, Pleiku, Gia Lai</p>
                                 </div>
                             </div>
